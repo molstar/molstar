@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "alwaysStrict": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "sourceMap": false,
+        "noUnusedLocals": true,
+        "strictNullChecks": true,
+        "lib": [ "es6" ],
+        "outDir": "build/js/src"
+    },
+    "include": [ "src/**/*" ]
+}

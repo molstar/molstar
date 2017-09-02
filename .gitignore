@@ -1,0 +1,7 @@
+build/
+
+node_modules/
+debug.log
+npm-debug.log
+
+*.sublime-workspace

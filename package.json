@@ -1,0 +1,41 @@
+{
+  "name": "molio",
+  "version": "0.1.0",
+  "description": "Parsers for molecular data.",
+  "main": "dist/molio.js",
+  "module": "dist/molio.esm.js",
+  "types": "src/index.d.ts",
+  "scripts": {
+    "lint": "./node_modules/.bin/tslint src/**/*.ts",
+    "build": "./node_modules/.bin/tsc",
+    "watch": "./node_modules/.bin/tsc -watch",
+    "bundle": "./node_modules/.bin/rollup -c",
+    "test": "./node_modules/.bin/jest",
+    "dist": "./node_modules/.bin/uglifyjs build/js/molio.dev.js -cm > dist/molio.js && cp build/js/molio.esm.js dist/molio.esm.js",
+    "script": "./node_modules/.bin/rollup build/js/src/script.js -e fs -f cjs -o build/js/script.js"
+  },
+  "jest": {
+    "moduleFileExtensions": [ "ts", "js" ],
+    "transform": { "\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js" },
+    "testRegex": "\\.spec\\.ts$"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "latest",
+    "@types/node": "^8.0.25",
+    "jest": "^20.0.4",
+    "rollup": "^0.49.2",
+    "rollup-plugin-buble": "^0.15.0",
+    "rollup-plugin-commonjs": "^8.2.0",
+    "rollup-plugin-json": "^2.3.0",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-watch": "^4.3.1",
+    "ts-jest": "^20.0.14",
+    "tslint": "^5.7.0",
+    "typescript": "^2.5.1",
+    "uglify-js": "^3.0.28",
+    "webpack": "^3.5.5"
+  },
+  "dependencies": {}
+}
