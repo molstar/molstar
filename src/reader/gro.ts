@@ -193,25 +193,28 @@ function handleAtoms (state: GroState, block: GroBlock) {
     const columnCount = columns.length
     const tokens = Tokens.create(state.numberOfAtoms * 2 * columnCount)
 
+    let start: number
+    let end: number
+    let valueStart: number
+    let valueEnd: number = state.position
+
     for (let i = 0; i < state.numberOfAtoms; ++i) {
         state.currentTokenStart = state.position
-        eatLine(state)
-        // console.log('atom line', state.data.substring(state.currentTokenStart, state.currentTokenEnd))
-
-        let start: number
-        let end = state.currentTokenStart
+        end = state.currentTokenStart
         for (let j = 0; j < columnCount; ++j) {
             start = end
             end = start + fieldSizes[j]
 
             // trim
-            let valueStart = start
-            let valueEnd = end
+            valueStart = start
+            valueEnd = end
             while (valueStart < valueEnd && state.data.charCodeAt(valueStart) === 32) ++valueStart;
             while (valueEnd > valueStart && state.data.charCodeAt(valueEnd - 1) === 32) --valueEnd;
 
-            Tokens.add(tokens, valueStart, valueEnd)
+            Tokens.addUnchecked(tokens, valueStart, valueEnd)
         }
+        state.position = valueEnd
+        eatLine(state)
     }
 
     block.addTable(new TextTable(state.data, name, columns, tokens));

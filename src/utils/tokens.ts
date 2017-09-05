@@ -25,6 +25,11 @@ export namespace Tokens {
         tokens.indices[tokens.count++] = end;
     }
 
+    export function addUnchecked(tokens: Tokens, start: number, end: number) {
+        tokens.indices[tokens.count++] = start;
+        tokens.indices[tokens.count++] = end;
+    }
+
     export function create(size: number): Tokens {
         return {
             indicesLenMinus2: (size - 2) | 0,
