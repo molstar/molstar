@@ -16,12 +16,31 @@
 
     npm run watch
 
-### Bundle with rollup (UMD and ES6 )
+### Bundle with rollup (UMD and ES6)
 
-    npm run watch
+    npm run bundle
+
+### Make distribution files
+
+    npm run dist
+
+### Build everything above
+
+    npm run-script build && npm run-script bundle && npm run-script dist
+
+
+## Example script
+
+### Build
+
+    npm run script
+
+### Run
+
+    node ./build/js/script.js
 
 
 TODO
 ----
 
--
+- ...
