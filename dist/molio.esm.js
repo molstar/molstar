@@ -559,6 +559,7 @@ function handleNumberOfAtoms(state, tokens) {
  *     velocity (in nm/ps (or km/s), x y z in 3 columns, each 8 positions with 4 decimal places)
  */
 function handleAtoms(state, block) {
+    console.log('MOINMOIN');
     var name = 'atoms';
     var columns = ['residueNumber', 'residueName', 'atomName', 'atomNumber', 'x', 'y', 'z'];
     if (state.hasVelocities) {

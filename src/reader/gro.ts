@@ -182,6 +182,7 @@ function handleNumberOfAtoms (state: GroState, tokens: Tokens) {
  *     velocity (in nm/ps (or km/s), x y z in 3 columns, each 8 positions with 4 decimal places)
  */
 function handleAtoms (state: GroState, block: GroBlock) {
+    console.log('MOINMOIN')
     const name = 'atoms'
 
     const columns = [ 'residueNumber', 'residueName', 'atomName', 'atomNumber', 'x', 'y', 'z' ]
