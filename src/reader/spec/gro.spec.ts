@@ -5,7 +5,7 @@
  */
 
 import { parse } from '../gro'
-// import { Table } from '../../relational/table'
+// import { Category } from '../../relational/category'
 
 const groString = `MD of 2 waters, t= 4.2
     6
@@ -33,7 +33,7 @@ describe('gro reader', () => {
         } else {
             const groFile = parsed.result
 
-            const header = groFile.blocks[0].getTable('header')
+            const header = groFile.blocks[0].getCategory('header')
             if (header) {
                 expect(header.columnNames).toEqual(['title', 'timeInPs', 'numberOfAtoms', 'boxX', 'boxY', 'boxZ'])
 
@@ -58,7 +58,7 @@ describe('gro reader', () => {
         } else {
             const groFile = parsed.result
 
-            const header = groFile.blocks[0].getTable('header')
+            const header = groFile.blocks[0].getCategory('header')
             if (header) {
                 expect(header.columnNames).toEqual(['title', 'timeInPs', 'numberOfAtoms', 'boxX', 'boxY', 'boxZ'])
 

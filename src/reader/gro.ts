@@ -9,7 +9,9 @@ import { eatLine, eatValue, skipWhitespace } from '../utils/helper'
 import { Tokens } from '../utils/tokens'
 import { TokenizerState } from '../utils/tokenizer-state'
 
-import { TextTable } from '../relational/text-table'
+import { TextFile } from '../relational/text-file'
+import { TextBlock } from '../relational/text-block'
+import { TextCategory } from '../relational/text-category'
 
 import { ParserResult } from '../parser'
 
@@ -17,53 +19,40 @@ import { ParserResult } from '../parser'
  * http://manual.gromacs.org/current/online/gro.html
  */
 
-export interface GroFile {
-    data: string;
-    blocks: GroBlock[];
+export const GroCategories = {
+    'header': '',
+    'atoms': ''
 }
 
-export interface GroBlock {
-    getTable(name: string): TextTable
-    addTable(table: TextTable): void
+// type GroCategories = keyof typeof GroCategories
+
+export const GroAtomBasicColumns = {
+    'residueNumber': '',
+    'residueName': '',
+    'atomName': '',
+    'atomNumber': '',
+    'x': '',
+    'y': '',
+    'z': ''
 }
+export type GroAtomBasicColumns = keyof typeof GroAtomBasicColumns
 
-export class GroFile implements GroFile {
-    data: string;
-    blocks: GroBlock[] = [];
+export const GroAtomVelocityColumns = Object.assign({
+    'vx': '',
+    'vy': '',
+    'vz': ''
+}, GroAtomBasicColumns)
+export type GroAtomVelocityColumns = keyof typeof GroAtomVelocityColumns
 
-    constructor(data: string) {
-        this.data = data;
-    }
+export const GroHeaderColumns = {
+    'title': '',
+    'timeInPs': '',
+    'numberOfAtoms': '',
+    'boxX': '',
+    'boxY': '',
+    'boxZ': ''
 }
-
-export class GroBlock implements GroBlock {
-    private tableMap: Map<string, TextTable>;
-    private tableList: TextTable[];
-
-    data: string;
-
-    /**
-     * Gets a table by its name.
-     */
-    getTable(name: string) {
-        return this.tableMap.get(name);
-    }
-
-    /**
-     * Adds a table.
-     */
-    addTable(table: TextTable) {
-        this.tableList[this.tableList.length] = table;
-        this.tableMap.set(table.name, table);
-    }
-
-    constructor(data: string) {
-        this.data = data;
-
-        this.tableMap = new Map()
-        this.tableList = []
-    }
-}
+export type GroHeaderColumns = keyof typeof GroHeaderColumns
 
 export interface GroState extends TokenizerState {
     numberOfAtoms: number
@@ -181,7 +170,7 @@ function handleNumberOfAtoms (state: GroState, tokens: Tokens) {
  *     position (in nm, x y z in 3 columns, each 8 positions with 3 decimal places)
  *     velocity (in nm/ps (or km/s), x y z in 3 columns, each 8 positions with 4 decimal places)
  */
-function handleAtoms (state: GroState, block: GroBlock) {
+function handleAtoms (state: GroState, block: TextBlock) {
     console.log('MOINMOIN')
     const name = 'atoms'
 
@@ -218,7 +207,7 @@ function handleAtoms (state: GroState, block: GroBlock) {
         eatLine(state)
     }
 
-    block.addTable(new TextTable(state.data, name, columns, tokens));
+    block.addCategory(new TextCategory(state.data, name, columns, tokens));
 }
 
 /**
@@ -241,27 +230,28 @@ function handleBoxVectors (state: GroState, tokens: Tokens) {
  * Creates an error result.
  */
 // function error(line: number, message: string) {
-//     return ParserResult.error<GroFile>(message, line);
+//     return ParserResult.error<TextFile>(message, line);
 // }
 
 /**
  * Creates a data result.
  */
-function result(data: GroFile) {
+function result(data: TextFile) {
     return ParserResult.success(data);
 }
 
-function parseInternal(data: string): ParserResult<GroFile> {
+function parseInternal(data: string): ParserResult<TextFile> {
     const state = createTokenizer(data)
-    const file = new GroFile(data)
+    const file = new TextFile(data)
+    file.blocks
 
-    let block = new GroBlock(data)
+    let block = new TextBlock(data)
     file.blocks.push(block)
 
     const headerColumns = ['title', 'timeInPs', 'numberOfAtoms', 'boxX', 'boxY', 'boxZ']
     const headerTokens = Tokens.create(2 * headerColumns.length)
-    let header = new TextTable(state.data, 'header', headerColumns, headerTokens)
-    block.addTable(header)
+    let header = new TextCategory(state.data, 'header', headerColumns, headerTokens)
+    block.addCategory(header)
 
     handleTitleString(state, headerTokens)
     handleNumberOfAtoms(state, headerTokens)

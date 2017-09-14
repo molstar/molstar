@@ -6,16 +6,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Table } from './table'
+import { Category } from './category'
 import { UndefinedColumn } from './column'
 import { TextColumn, CifColumn } from './text-column'
 
 import { Tokens } from '../utils/tokens'
 
 /**
- * Represents a table backed by a string.
+ * Represents a category backed by a string.
  */
-export class TextTable implements Table {
+export class TextCategory extends Category {
     protected data: string;
     protected columnNameList: string[];
     protected columnIndices: Map<string, number>;
@@ -66,8 +66,9 @@ export class TextTable implements Table {
         }
     }
 
-    constructor(
-        data: string, name: string, columns: string[], tokens: Tokens) {
+    constructor(data: string, name: string, columns: string[], tokens: Tokens) {
+        super()
+
         this.name = name;
         this.indices = tokens.indices;
         this.data = data;
@@ -79,7 +80,7 @@ export class TextTable implements Table {
     }
 }
 
-export class CifTable extends TextTable {
+export class CifCategory extends TextCategory {
     getColumn(name: string): CifColumn {
         let i = this.columnIndices.get(name);
         if (i !== void 0) return new CifColumn(this, this.data, name, i);

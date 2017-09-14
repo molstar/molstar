@@ -7,17 +7,17 @@
 // import * as util from 'util'
 import * as fs from 'fs'
 
-import { parse } from './reader/gro'
-import { Table } from './relational/table'
+import { parse, GroCategories, GroAtomBasicColumns } from './reader/gro'
+import { Category } from './relational/category'
 
 const file = '1crn.gro'
 // const file = 'water.gro'
 // const file = 'test.gro'
 // const file = 'md_1u19_trj.gro'
 
-function getFloatArray(table: Table, name: string) {
-    const column = table.getColumn(name)
-    const n = table.rowCount
+function getFloatArray(category: Category, name: string) {
+    const column = category.getColumn(name)
+    const n = category.rowCount
     const array = new Float32Array(n)
     for (let i = 0; i < n; ++i) {
         array[i] = column.getFloat(i)
@@ -25,9 +25,9 @@ function getFloatArray(table: Table, name: string) {
     return array
 }
 
-function getIntArray(table: Table, name: string) {
-    const column = table.getColumn(name)
-    const n = table.rowCount
+function getIntArray(category: Category, name: string) {
+    const column = category.getColumn(name)
+    const n = category.rowCount
     const array = new Int32Array(n)
     for (let i = 0; i < n; ++i) {
         array[i] = column.getInteger(i)
@@ -48,8 +48,10 @@ fs.readFile(`./examples/${file}`, 'utf8', function (err,data) {
         console.log(parsed)
     } else {
         const groFile = parsed.result
+        const categories = groFile.blocks[0].getCategoriesFromSchema(GroCategories)
 
-        const header = groFile.blocks[0].getTable('header')
+        // const header = groFile.blocks[0].getCategory('header')
+        const header = categories.header
         if (header) {
             console.log(header.columnNames)
 
@@ -63,15 +65,17 @@ fs.readFile(`./examples/${file}`, 'utf8', function (err,data) {
             console.error('no header')
         }
 
-        const atoms = groFile.blocks[0].getTable('atoms')
+        const atoms = categories.atoms
         if (atoms) {
             console.log(atoms.columnNames)
 
-            console.log(`'${atoms.getColumn('residueNumber').getString(1)}'`)
-            console.log(`'${atoms.getColumn('residueName').getString(1)}'`)
-            console.log(`'${atoms.getColumn('atomName').getString(1)}'`)
-            console.log(atoms.getColumn('z').getFloat(1))
-            console.log(`'${atoms.getColumn('z').getString(1)}'`)
+            const columns = atoms.getColumnsFromSchema(GroAtomBasicColumns)
+
+            console.log(`'${columns.residueNumber.getString(1)}'`)
+            console.log(`'${columns.residueName.getString(1)}'`)
+            console.log(`'${columns.atomName.getString(1)}'`)
+            console.log(columns.z.getFloat(1))
+            console.log(`'${columns.z.getString(1)}'`)
 
             const n = atoms.rowCount
             console.log('rowCount', n)

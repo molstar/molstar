@@ -72,6 +72,12 @@ function parseFloat(str, start, end) {
     return neg * ret;
 }
 
+/*
+ * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * from https://github.com/dsehnal/CIFTools.js
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
 /**
  * Eat everything until a newline occurs.
  */
@@ -150,6 +156,13 @@ function skipWhitespace(state) {
     return prev;
 }
 
+/*
+ * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * from https://github.com/dsehnal/CIFTools.js
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
 var Tokens;
 (function (Tokens) {
     function resize(tokens) {
@@ -182,6 +195,12 @@ var Tokens;
     Tokens.create = create;
 })(Tokens || (Tokens = {}));
 
+/*
+ * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * from https://github.com/dsehnal/CIFTools.js
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
 /**
  * Represents a column that is not present.
  */
@@ -219,6 +238,13 @@ var ShortStringPool;
     ShortStringPool.get = get;
 })(ShortStringPool || (ShortStringPool = {}));
 
+/*
+ * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * from https://github.com/dsehnal/CIFTools.js
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
 /**
  * Represents a single column.
  */
@@ -328,10 +354,17 @@ var CifColumn = (function (TextColumn) {
     return CifColumn;
 }(TextColumn));
 
-/**
- * Represents a table backed by a string.
+/*
+ * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * from https://github.com/dsehnal/CIFTools.js
+ * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
-var TextTable = function TextTable(data, name, columns, tokens) {
+/**
+ * Represents a category backed by a string.
+ */
+var TextCategory = function TextCategory(data, name, columns, tokens) {
     this.name = name;
     this.indices = tokens.indices;
     this.data = data;
@@ -348,13 +381,13 @@ prototypeAccessors.columnNames.get = function () {
 /**
  * Get a column object that makes accessing data easier.
  */
-TextTable.prototype.getColumn = function getColumn (name) {
+TextCategory.prototype.getColumn = function getColumn (name) {
     var i = this.columnIndices.get(name);
     if (i !== void 0)
         { return new TextColumn(this, this.data, name, i); }
     return UndefinedColumn;
 };
-TextTable.prototype.initColumns = function initColumns (columns) {
+TextCategory.prototype.initColumns = function initColumns (columns) {
         var this$1 = this;
 
     this.columnIndices = new Map();
@@ -365,23 +398,23 @@ TextTable.prototype.initColumns = function initColumns (columns) {
     }
 };
 
-Object.defineProperties( TextTable.prototype, prototypeAccessors );
-var CifTable = (function (TextTable) {
-    function CifTable () {
-        TextTable.apply(this, arguments);
+Object.defineProperties( TextCategory.prototype, prototypeAccessors );
+var CifCategory = (function (TextCategory) {
+    function CifCategory () {
+        TextCategory.apply(this, arguments);
     }
 
-    if ( TextTable ) CifTable.__proto__ = TextTable;
-    CifTable.prototype = Object.create( TextTable && TextTable.prototype );
-    CifTable.prototype.constructor = CifTable;
+    if ( TextCategory ) CifCategory.__proto__ = TextCategory;
+    CifCategory.prototype = Object.create( TextCategory && TextCategory.prototype );
+    CifCategory.prototype.constructor = CifCategory;
 
-    CifTable.prototype.getColumn = function getColumn (name) {
+    CifCategory.prototype.getColumn = function getColumn (name) {
         var i = this.columnIndices.get(name);
         if (i !== void 0)
             { return new CifColumn(this, this.data, name, i); }
         return UndefinedColumn;
     };
-    CifTable.prototype.initColumns = function initColumns (columns) {
+    CifCategory.prototype.initColumns = function initColumns (columns) {
         var this$1 = this;
 
         this.columnIndices = new Map();
@@ -393,8 +426,8 @@ var CifTable = (function (TextTable) {
         }
     };
 
-    return CifTable;
-}(TextTable));
+    return CifCategory;
+}(TextCategory));
 
 /*
  * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
@@ -445,19 +478,19 @@ var GroFile = function GroFile(data) {
 };
 var GroBlock = function GroBlock(data) {
     this.data = data;
-    this.tableMap = new Map();
-    this.tableList = [];
+    this.categoryMap = new Map();
+    this.categoryList = [];
 };
 
-GroBlock.prototype.getTable = function getTable (name) {
-    return this.tableMap.get(name);
+GroBlock.prototype.getCategory = function getCategory (name) {
+    return this.categoryMap.get(name);
 };
 /**
- * Adds a table.
+ * Adds a category.
  */
-GroBlock.prototype.addTable = function addTable (table) {
-    this.tableList[this.tableList.length] = table;
-    this.tableMap.set(table.name, table);
+GroBlock.prototype.addCategory = function addCategory (category) {
+    this.categoryList[this.categoryList.length] = category;
+    this.categoryMap.set(category.name, category);
 };
 function createTokenizer(data) {
     return {
@@ -590,7 +623,7 @@ function handleAtoms(state, block) {
         state.position = valueEnd;
         eatLine(state);
     }
-    block.addTable(new TextTable(state.data, name, columns, tokens));
+    block.addCategory(new TextCategory(state.data, name, columns, tokens));
 }
 /**
  * box vectors (free format, space separated reals), values:
@@ -626,8 +659,8 @@ function parseInternal(data) {
     file.blocks.push(block);
     var headerColumns = ['title', 'timeInPs', 'numberOfAtoms', 'boxX', 'boxY', 'boxZ'];
     var headerTokens = Tokens.create(2 * headerColumns.length);
-    var header = new TextTable(state.data, 'header', headerColumns, headerTokens);
-    block.addTable(header);
+    var header = new TextCategory(state.data, 'header', headerColumns, headerTokens);
+    block.addCategory(header);
     handleTitleString(state, headerTokens);
     handleNumberOfAtoms(state, headerTokens);
     handleAtoms(state, block);
@@ -637,6 +670,12 @@ function parseInternal(data) {
 function parse(data) {
     return parseInternal(data);
 }
+
+/*
+ * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
 
 export { parse as groReader };
 //# sourceMappingURL=molio.esm.js.map

@@ -1,4 +1,4 @@
-import buble from 'rollup-plugin-buble';
+// import buble from 'rollup-plugin-buble';
 import json from 'rollup-plugin-json';
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
@@ -16,21 +16,21 @@ export default {
     }),
     commonjs(),
     json(),
-    buble()
+    // buble()
   ],
   output: [
     {
       file: "build/js/molio.dev.js",
       format: 'umd',
       name: 'MOLIO',
-      sourcemap: true
+      sourcemap: false
     },
-    {
-      file: "build/js/molio.esm.js",
-      format: 'es',
-      sourcemap: true
-    }
+    // {
+    //   file: "build/js/molio.esm.js",
+    //   format: 'es',
+    //   sourcemap: false
+    // }
   ],
   external: external,
-  sourcemap: true
+  sourcemap: false
 };

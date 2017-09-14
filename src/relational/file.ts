@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export { Category } from './relational/category'
-export { Column } from './relational/column'
+export interface File<T> {
+    blocks: T[];
+}
 
-export { parse as groReader } from './reader/gro'

@@ -8,7 +8,7 @@
 
 import { Column } from './column'
 import { ValuePresence } from './constants'
-import { TextTable } from './text-table'
+import { TextCategory } from './text-category'
 
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../utils/number-parser'
 import { ShortStringPool } from '../utils/short-string-pool'
@@ -89,7 +89,7 @@ export class TextColumn implements Column {
         return ValuePresence.Present
     }
 
-    constructor(table: TextTable, protected data: string, public name: string, public index: number) {
+    constructor(table: TextCategory, protected data: string, public name: string, public index: number) {
         this.indices = table.indices;
         this.columnCount = table.columnCount;
     }
