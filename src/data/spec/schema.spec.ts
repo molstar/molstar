@@ -34,17 +34,8 @@ function Field(values: any[]): Data.Field {
     }
 }
 
-class Category implements Data.Category {
-    getField(name: string) { return this.fields[name]; }
-    constructor(public rowCount: number, private fields: any) { }
-}
-
-class Block implements Data.Block {
-    constructor(public categories: { readonly [name: string]: Data.Category }, public header?: string) { }
-}
-
-const testBlock = new Block({
-    'atoms': new Category(2, {
+const testBlock = Data.Block({
+    'atoms': Data.Category(2, {
         x: Field([1, 2]),
         name: Field(['C', 'O'])
     })

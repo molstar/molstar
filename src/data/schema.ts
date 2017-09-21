@@ -23,10 +23,11 @@ import * as Data from './data'
 export type BlockDefinition = { [category: string]: CategoryDefinition }
 export type CategoryDefinition = { '@alias'?: string } & { [field: string]: Field.Schema<any> }
 
-export type Schema<Definition extends BlockDefinition> = Block<{ [C in keyof Definition]: Category<{ [F in keyof Definition[C]]: Field<Definition[C][F]['type']> }> }>
+export type BlockInstance<Definition extends BlockDefinition> = Block<{ [C in keyof Definition]: CategoryInstance<Definition[C]> }>
+export type CategoryInstance<Definition extends CategoryDefinition> = Category<{ [F in keyof Definition]: Field<Definition[F]['type']> }>
 
-export function apply<T extends BlockDefinition>(schema: T, block: Data.Block): Schema<T> {
-    return createBlock(schema, block) as Schema<T>;
+export function apply<Definition extends BlockDefinition>(schema: Definition, block: Data.Block): BlockInstance<Definition> {
+    return createBlock(schema, block) as BlockInstance<Definition>;
 }
 
 export type Block<Categories> = Categories & {

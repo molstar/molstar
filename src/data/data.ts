@@ -9,14 +9,26 @@ export interface File {
     readonly blocks: ReadonlyArray<Block>
 }
 
+export function File(blocks: ArrayLike<Block>, name?: string): File {
+    return { name, blocks: blocks as any };
+}
+
 export interface Block {
     readonly header?: string,
     readonly categories: { readonly [name: string]: Category }
 }
 
+export function Block(categories: { readonly [name: string]: Category }, header?: string): Block {
+    return { header, categories };
+}
+
 export interface Category {
     readonly rowCount: number,
     getField(name: string): Field | undefined
+}
+
+export function Category(rowCount: number, fields: { [name: string]: Field }): Category {
+    return { rowCount, getField(name) { return fields[name]; } };
 }
 
 export namespace Category {
@@ -29,7 +41,7 @@ export const enum ValuePresence {
     Unknown = 2
 }
 
-export type FieldArray = number[] | Float32Array | Float64Array | Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array
+export type FieldArray = string[] | number[] | Float32Array | Float64Array | Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array
 
 /**
  * Implementation note:
