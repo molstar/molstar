@@ -29,12 +29,6 @@ export const enum ValuePresence {
     Unknown = 2
 }
 
-export const enum ArrayKind {
-    String,
-    Float32,
-    Float64
-}
-
 export type FieldArray = number[] | Float32Array | Float64Array | Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array
 
 /**
