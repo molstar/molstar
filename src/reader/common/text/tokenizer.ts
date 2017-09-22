@@ -122,7 +122,7 @@ export function trim(state: State, start: number, end: number) {
     let c = data.charCodeAt(s);
     while (c === 9 || c === 32) c = data.charCodeAt(++s);
     c = data.charCodeAt(e);
-    while (c === 9 || c === 32) c = data.charCodeAt(--e);
+    while ((c === 9 || c === 32) && e >= s) c = data.charCodeAt(--e);
 
     state.currentTokenStart = s;
     state.currentTokenEnd = e + 1;
