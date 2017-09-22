@@ -13,7 +13,7 @@ function Field(values: any[]): Data.Field {
         str: row => '' + values[row],
         int: row => +values[row] || 0,
         float: row => +values[row] || 0,
-        bin: row => null,
+        value: row => values[row],
 
         presence: row => Data.ValuePresence.Present,
         areValuesEqual: (rowA, rowB) => values[rowA] === values[rowB],

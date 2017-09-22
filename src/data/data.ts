@@ -55,7 +55,9 @@ export interface Field {
     str(row: number): string | null,
     int(row: number): number,
     float(row: number): number,
-    bin(row: number): Uint8Array | null,
+
+    /** The 'intrinsic value' of the field, e.g., array, binary data, ... */
+    value(row: number): any,
 
     presence(row: number): ValuePresence,
 
