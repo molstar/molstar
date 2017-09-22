@@ -7,7 +7,7 @@
 // import * as util from 'util'
 import * as fs from 'fs'
 
-import Gro from './reader/gro/index'
+import Gro from './reader/gro/format'
 
 //const file = '1crn.gro'
 // const file = 'water.gro'

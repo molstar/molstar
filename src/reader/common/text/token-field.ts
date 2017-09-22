@@ -9,14 +9,13 @@ import { parseInt as fastParseInt, parseFloat as fastParseFloat } from './number
 import { Tokens } from './tokenizer'
 import ShortStringPool from '../../../utils/short-string-pool'
 
-export function createCategory(data: string, fields: string[], tokens: Tokens, rowCount: number) {
+export function createTokenFields(data: string, fields: string[], tokens: Tokens): { [name: string]: Data.Field } {
     const fi: TokenFieldInfo = { data, fieldCount: fields.length, tokens: tokens.indices };
-
     const categoryFields = Object.create(null);
     for (let i = 0; i < fi.fieldCount; ++i) {
         categoryFields[fields[i]] = TokenField(fi, i);
     }
-    return Data.Category(rowCount, categoryFields);
+    return categoryFields;
 }
 
 export interface TokenFieldInfo {

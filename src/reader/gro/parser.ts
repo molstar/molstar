@@ -7,7 +7,7 @@
 
 import { State as TokenizerState, Tokens, eatLine, skipWhitespace, eatValue, trim } from '../common/text/tokenizer'
 import { parseInt } from '../common/text/number-parser'
-import { createCategory } from '../common/text/data'
+import { createTokenFields } from '../common/text/token-field'
 import * as Data from '../../data/data'
 import Result from '../result'
 
@@ -120,7 +120,7 @@ function handleAtoms(state: State) {
         eatLine(state)
     }
 
-    return createCategory(state.data, fields, tokens, state.info.numberOfAtoms);
+    return Data.Category(state.info.numberOfAtoms, createTokenFields(state.data, fields, tokens));
 }
 
 /**
@@ -151,7 +151,7 @@ function parseInternal(data: string): Result<Data.File> {
     handleBoxVectors(state, headerTokens);
 
     const block = Data.Block({
-        header: createCategory(data, headerFields, headerTokens, 1),
+        header: Data.Category(1, createTokenFields(data, headerFields, headerTokens)),
         atoms
     });
 

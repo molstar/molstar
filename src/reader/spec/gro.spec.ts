@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Gro from '../gro/index'
+import Gro from '../gro/format'
 
 const groString = `MD of 2 waters, t= 4.2
     6
