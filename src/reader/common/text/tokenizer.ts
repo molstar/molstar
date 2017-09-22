@@ -120,7 +120,7 @@ export function trim(state: State, start: number, end: number) {
     let s = start, e = end - 1;
 
     let c = data.charCodeAt(s);
-    while (c === 9 || c === 32) c = data.charCodeAt(++s);
+    while ((c === 9 || c === 32) && s <= e) c = data.charCodeAt(++s);
     c = data.charCodeAt(e);
     while ((c === 9 || c === 32) && e >= s) c = data.charCodeAt(--e);
 
