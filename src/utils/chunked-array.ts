@@ -113,34 +113,6 @@ export namespace ChunkedArray {
         return ret as any;
     }
 
-    export function forVertex3D(chunkVertexCount: number = 262144): ChunkedArray<number> {
-        return create<number>(size => new Float32Array(size) as any, chunkVertexCount, 3)
-    }
-
-    export function forIndexBuffer(chunkIndexCount: number = 262144): ChunkedArray<number> {
-        return create<number>(size => new Uint32Array(size) as any, chunkIndexCount, 3)
-    }
-
-    export function forTokenIndices(chunkTokenCount: number = 131072): ChunkedArray<number> {
-        return create<number>(size => new Int32Array(size) as any, chunkTokenCount, 2)
-    }
-
-    export function forIndices(chunkTokenCount: number = 131072): ChunkedArray<number> {
-        return create<number>(size => new Int32Array(size) as any, chunkTokenCount, 1)
-    }
-
-    export function forInt32(chunkSize: number = 131072): ChunkedArray<number> {
-        return create<number>(size => new Int32Array(size) as any, chunkSize, 1)
-    }
-
-    export function forFloat32(chunkSize: number = 131072): ChunkedArray<number> {
-        return create<number>(size => new Float32Array(size) as any, chunkSize, 1)
-    }
-
-    export function forArray<T>(chunkSize: number = 131072): ChunkedArray<T> {
-        return create<T>(size => [] as any, chunkSize, 1)
-    }
-
     export function create<T>(creator: (size: number) => any, chunkElementCount: number, elementSize: number): ChunkedArray<T> {
         chunkElementCount = chunkElementCount | 0;
         if (chunkElementCount <= 0) chunkElementCount = 1;

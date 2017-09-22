@@ -5,19 +5,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export type ParserResult<T> = ParserSuccess<T> | ParserError
+type ReaderResult<T> = Success<T> | Error
 
-export namespace ParserResult {
-    export function error<T>(message: string, line = -1): ParserResult<T> {
-        return new ParserError(message, line);
+namespace ReaderResult {
+    export function error<T>(message: string, line = -1): ReaderResult<T> {
+        return new Error(message, line);
     }
 
-    export function success<T>(result: T, warnings: string[] = []): ParserResult<T> {
-        return new ParserSuccess<T>(result, warnings);
+    export function success<T>(result: T, warnings: string[] = []): ReaderResult<T> {
+        return new Success<T>(result, warnings);
     }
 }
 
-export class ParserError {
+export class Error {
     isError: true = true;
 
     toString() {
@@ -33,8 +33,10 @@ export class ParserError {
     }
 }
 
-export class ParserSuccess<T> {
+export class Success<T> {
     isError: false = false;
 
     constructor(public result: T, public warnings: string[]) { }
 }
+
+export default ReaderResult

@@ -40,6 +40,7 @@ export namespace Block {
 
 export type Category<Fields> = Fields & {
     readonly _rowCount: number,
+    readonly _isDefined: boolean,
     /** For accessing 'non-standard' fields */
     _getField(name: string): Data.Field | undefined
 }
@@ -66,14 +67,16 @@ export namespace Field {
     export function str(spec?: Spec) { return createSchema(spec, Str); }
     export function int(spec?: Spec) { return createSchema(spec, Int); }
     export function float(spec?: Spec) { return createSchema(spec, Float); }
+    export function value<T>(spec?: Spec): Schema<T> { return createSchema(spec, Value); }
 
     function create<T>(field: Data.Field, value: (row: number) => T, toArray: Field<T>['toArray']): Field<T> {
         return { isDefined: field.isDefined, value, presence: field.presence, areValuesEqual: field.areValuesEqual, stringEquals: field.stringEquals, toArray };
     }
 
     function Str(field: Data.Field) { return create(field, field.str, field.toStringArray); }
-    function Int(field: Data.Field) { return create(field, field.int, field.toNumberArray); }
-    function Float(field: Data.Field) { return create(field, field.float, field.toNumberArray); }
+    function Int(field: Data.Field) { return create(field, field.int, field.toIntArray); }
+    function Float(field: Data.Field) { return create(field, field.float, field.toFloatArray); }
+    function Value(field: Data.Field) { return create(field, field.value, () => { throw Error('not supported'); }); }
 
     const DefaultUndefined: Data.Field = {
         isDefined: false,
@@ -92,7 +95,8 @@ export namespace Field {
             for (let i = 0; i < count; i++) { ret[i] = null; }
             return ret;
         },
-        toNumberArray: (startRow, endRowExclusive, ctor) => new Uint8Array(endRowExclusive - startRow) as any
+        toIntArray: (startRow, endRowExclusive, ctor) => new Uint8Array(endRowExclusive - startRow) as any,
+        toFloatArray: (startRow, endRowExclusive, ctor) => new Float32Array(endRowExclusive - startRow) as any
     };
 
     function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field) => Field<T>): Schema<T> {
@@ -113,7 +117,7 @@ class _Block implements Block<any> { // tslint:disable-line:class-name
 class _Category implements Category<any> { // tslint:disable-line:class-name
     _rowCount = this._category.rowCount;
     _getField(name: string) { return this._category.getField(name); }
-    constructor(private _category: Data.Category, schema: Category.Schema) {
+    constructor(private _category: Data.Category, schema: Category.Schema, public _isDefined: boolean) {
         const fieldKeys = Object.keys(schema).filter(k => k !== '@alias');
         const cache = Object.create(null);
         for (const k of fieldKeys) {
@@ -137,6 +141,6 @@ function createBlock(schema: Block.Schema, block: Data.Block): any {
 }
 
 function createCategory(key: string, schema: Category.Schema, block: Data.Block) {
-    const cat = block.categories[schema['@alias'] || key] || Data.Category.Empty;
-    return new _Category(cat, schema);
+    const cat = block.categories[schema['@alias'] || key];
+    return new _Category(cat || Data.Category.Empty, schema, !!cat);
 }

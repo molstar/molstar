@@ -65,5 +65,6 @@ export interface Field {
     stringEquals(row: number, value: string | null): boolean,
 
     toStringArray(startRow: number, endRowExclusive: number, ctor: (size: number) => FieldArray): ReadonlyArray<string>,
-    toNumberArray(startRow: number, endRowExclusive: number, ctor: (size: number) => FieldArray): ReadonlyArray<number>
+    toIntArray(startRow: number, endRowExclusive: number, ctor: (size: number) => FieldArray): ReadonlyArray<number>,
+    toFloatArray(startRow: number, endRowExclusive: number, ctor: (size: number) => FieldArray): ReadonlyArray<number>
 }

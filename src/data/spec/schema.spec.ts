@@ -25,7 +25,13 @@ function Field(values: any[]): Data.Field {
             for (let i = 0; i < count; i++) { ret[i] = values[startRow + i]; }
             return ret;
         },
-        toNumberArray: (startRow, endRowExclusive, ctor) => {
+        toIntArray: (startRow, endRowExclusive, ctor) => {
+            const count = endRowExclusive - startRow;
+            const ret = ctor(count) as any;
+            for (let i = 0; i < count; i++) { ret[i] = +values[startRow + i]; }
+            return ret;
+        },
+        toFloatArray: (startRow, endRowExclusive, ctor) => {
             const count = endRowExclusive - startRow;
             const ret = ctor(count) as any;
             for (let i = 0; i < count; i++) { ret[i] = +values[startRow + i]; }
