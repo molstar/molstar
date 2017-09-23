@@ -116,8 +116,8 @@ function handleAtoms(state: State): Schema.Atoms {
     const ret = {
         count: state.numberOfAtoms,
         residueNumber: col(0, 5, ColumnType.int),
-        residueName: col(5, 5, ColumnType.str),
-        atomName: col(10, 5, ColumnType.str),
+        residueName: col(5, 5, ColumnType.pooledStr),
+        atomName: col(10, 5, ColumnType.pooledStr),
         atomNumber: col(15, 5, ColumnType.int),
         x: col(pO, pW, ColumnType.float),
         y: col(pO + pW, pW, ColumnType.float),

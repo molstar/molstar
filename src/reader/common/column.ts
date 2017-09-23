@@ -5,10 +5,11 @@
  */
 
 export type ArrayType = string[] | number[] | Float32Array | Float64Array | Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array
-export type ColumnType = typeof ColumnType.str | typeof ColumnType.int | typeof ColumnType.float
+export type ColumnType = typeof ColumnType.str | typeof ColumnType.pooledStr | typeof ColumnType.int | typeof ColumnType.float
 
 export namespace ColumnType {
     export const str = { '@type': '' as string, kind: 'str' as 'str' };
+    export const pooledStr = { '@type': '' as string, kind: 'pooled-str' as 'pooled-str' };
     export const int = { '@type': 0 as number, kind: 'int' as 'int' };
     export const float = { '@type': 0 as number, kind: 'float' as 'float' };
 }
