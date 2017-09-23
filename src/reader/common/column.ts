@@ -15,7 +15,7 @@ export namespace ColumnType {
 }
 
 export interface Column<T> {
-    readonly isColumnDefined: boolean,
+    readonly isDefined: boolean,
     readonly rowCount: number,
     value(row: number): T,
     toArray(ctor?: (size: number) => ArrayType, startRow?: number, endRowExclusive?: number): ReadonlyArray<T>
@@ -24,7 +24,7 @@ export interface Column<T> {
 export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T): Column<T['@type']> {
     const value: Column<T['@type']>['value'] = type.kind === 'str' ? row => '' : row => 0;
     return {
-        isColumnDefined: false,
+        isDefined: false,
         rowCount,
         value,
         toArray(ctor, s, e) {

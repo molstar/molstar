@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './data'
+import * as Data from './data-model'
+import * as Column from '../common/column'
 
 /**
  * A schema defines the shape of categories and fields.
@@ -57,12 +58,12 @@ export interface Field<T> {
     areValuesEqual(rowA: number, rowB: number): boolean,
     stringEquals(row: number, value: string | null): boolean,
     /** Converts the selected row range to an array. ctor might or might not be called depedning on the source data format. */
-    toArray(startRow: number, endRowExclusive: number, ctor: (size: number) => Data.FieldArray): ReadonlyArray<T> | undefined
+    toArray(ctor?: (size: number) => Column.ArrayType, startRow?: number, endRowExclusive?: number): ReadonlyArray<T> | undefined
 }
 
 export namespace Field {
-    export interface Schema<T> { type: T, ctor: (field: Data.Field) => Field<T>, undefinedField: Data.Field, alias?: string };
-    export interface Spec { undefinedField?: Data.Field, alias?: string }
+    export interface Schema<T> { type: T, ctor: (field: Data.Field) => Field<T>, undefinedField: (c: number) => Data.Field, alias?: string };
+    export interface Spec { undefinedField?: (c: number) => Data.Field, alias?: string }
 
     export function str(spec?: Spec) { return createSchema(spec, Str); }
     export function int(spec?: Spec) { return createSchema(spec, Int); }
@@ -76,28 +77,26 @@ export namespace Field {
     function Int(field: Data.Field) { return create(field, field.int, field.toIntArray); }
     function Float(field: Data.Field) { return create(field, field.float, field.toFloatArray); }
 
-    const DefaultUndefined: Data.Field = {
-        isDefined: false,
-        str: row => null,
-        int: row => 0,
-        float: row => 0,
+    function defaultUndefined(rowCount: number): Data.Field {
+        return {
+            isDefined: false,
+            rowCount,
+            str: row => '',
+            int: row => 0,
+            float: row => 0,
 
-        presence: row => Data.ValuePresence.NotSpecified,
-        areValuesEqual: (rowA, rowB) => true,
-        stringEquals: (row, value) => value === null,
+            presence: row => Data.ValuePresence.NotSpecified,
+            areValuesEqual: (rowA, rowB) => true,
+            stringEquals: (row, value) => value === null,
 
-        toStringArray: (startRow, endRowExclusive, ctor) => {
-            const count = endRowExclusive - startRow;
-            const ret = ctor(count) as any;
-            for (let i = 0; i < count; i++) { ret[i] = null; }
-            return ret;
-        },
-        toIntArray: (startRow, endRowExclusive, ctor) => new Uint8Array(endRowExclusive - startRow) as any,
-        toFloatArray: (startRow, endRowExclusive, ctor) => new Float32Array(endRowExclusive - startRow) as any
-    };
+            toStringArray: (ctor, s, e) => Column.createArray(rowCount, ctor, s, e).array,
+            toIntArray: (ctor, s, e) => Column.createArray(rowCount, ctor, s, e).array,
+            toFloatArray: (ctor, s, e) => Column.createArray(rowCount, ctor, s, e).array
+        };
+    }
 
     function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field) => Field<T>): Schema<T> {
-        return { type: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || DefaultUndefined, alias: spec && spec.alias };
+        return { type: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || defaultUndefined, alias: spec && spec.alias };
     }
 }
 
@@ -122,7 +121,7 @@ class _Category implements Category<any> { // tslint:disable-line:class-name
             Object.defineProperty(this, k, {
                 get: function() {
                     if (cache[k]) return cache[k];
-                    const field = _category.getField(s.alias || k) || s.undefinedField;
+                    const field = _category.getField(s.alias || k) || s.undefinedField(_category.rowCount);
                     cache[k] = s.ctor(field);
                     return cache[k];
                 },

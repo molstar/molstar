@@ -5,8 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import FixedColumn from '../text/column/fixed'
-import { ColumnType } from '../../common/column'
+import FixedColumn from '../common/text/column/fixed'
+import { ColumnType } from '../common/column'
 
 const lines = [
     '1.123 abc',

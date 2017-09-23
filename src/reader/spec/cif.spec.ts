@@ -4,50 +4,24 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from '../cif/data'
+import * as Data from '../cif/data-model'
+import TextField from '../cif/text-field'
 import * as Schema from '../cif/schema'
 
-function Field(values: any[]): Data.Field {
-    return {
-        isDefined: true,
-        str: row => '' + values[row],
-        int: row => +values[row] || 0,
-        float: row => +values[row] || 0,
+const columnData = `123abc`;
 
-        presence: row => Data.ValuePresence.Present,
-        areValuesEqual: (rowA, rowB) => values[rowA] === values[rowB],
-        stringEquals: (row, value) => '' + values[row] === value,
-
-        toStringArray: (startRow, endRowExclusive, ctor) => {
-            const count = endRowExclusive - startRow;
-            const ret = ctor(count) as any;
-            for (let i = 0; i < count; i++) { ret[i] = values[startRow + i]; }
-            return ret;
-        },
-        toIntArray: (startRow, endRowExclusive, ctor) => {
-            const count = endRowExclusive - startRow;
-            const ret = ctor(count) as any;
-            for (let i = 0; i < count; i++) { ret[i] = +values[startRow + i]; }
-            return ret;
-        },
-        toFloatArray: (startRow, endRowExclusive, ctor) => {
-            const count = endRowExclusive - startRow;
-            const ret = ctor(count) as any;
-            for (let i = 0; i < count; i++) { ret[i] = +values[startRow + i]; }
-            return ret;
-        }
-    }
-}
+const intField = TextField(columnData, [0, 1, 1, 2, 2, 3], 3);
+const strField = TextField(columnData, [3, 4, 4, 5, 5, 6], 3);
 
 const testBlock = Data.Block({
-    'atoms': Data.Category(2, {
-        x: Field([1, 2]),
-        name: Field(['C', 'O'])
+    'atoms': Data.Category(3, {
+        x: intField,
+        name: strField
     })
-});
+}, 'test');
 
 namespace TestSchema {
-    export const atoms = { x: Schema.Field.float(), name: Schema.Field.str() }
+    export const atoms = { x: Schema.Field.int(), name: Schema.Field.str() }
     export const schema = { atoms }
 }
 
@@ -56,13 +30,14 @@ describe('schema', () => {
     it('property access', () => {
         const { x, name } = data.atoms;
         expect(x.value(0)).toBe(1);
-        expect(name.value(1)).toBe('O');
+        expect(name.value(1)).toBe('b');
     });
 
     it('toArray', () => {
-        const ret = data.atoms.x.toArray(0, 2, (s) => new Int32Array(s))!;
-        expect(ret.length).toBe(2);
+        const ret = data.atoms.x.toArray(s => new Int32Array(s))!;
+        expect(ret.length).toBe(3);
         expect(ret[0]).toBe(1);
         expect(ret[1]).toBe(2);
+        expect(ret[2]).toBe(3);
     })
 });

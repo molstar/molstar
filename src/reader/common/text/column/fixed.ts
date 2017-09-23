@@ -21,7 +21,7 @@ export default function FixedColumnProvider(info: FixedColumnInfo) {
     }
 }
 
-function getArrayValues(value: (row: number) => any, target: any[], start: number) {
+function fillArrayValues(value: (row: number) => any, target: any[], start: number) {
     for (let i = 0, _e = target.length; i < _e; i++) target[i] = value(start + i);
     return target;
 }
@@ -32,29 +32,33 @@ export function FixedColumn<T extends ColumnType>(info: FixedColumnInfo, offset:
     const pool = kind === 'pooled-str' ? StringPool.create() : void 0;
 
     const value: Column<T['@type']>['value'] = kind === 'str' ? row => {
-        let s = lines[2 * row] + offset, e = s + width, le = lines[2 * row + 1];
+        let s = lines[2 * row] + offset, le = lines[2 * row + 1];
         if (s >= le) return '';
+        let e = s + width;
         if (e > le) e = le;
         return trimStr(data, s, e);
     } : kind === 'pooled-str' ? row => {
-        let s = lines[2 * row] + offset, e = s + width, le = lines[2 * row + 1];
+        let s = lines[2 * row] + offset, le = lines[2 * row + 1];
         if (s >= le) return '';
+        let e = s + width;
         if (e > le) e = le;
         return StringPool.get(pool!, trimStr(data, s, e));
     } : kind === 'int' ? row => {
-        const s = lines[2 * row] + offset, e = s + width;
-        return parseIntSkipLeadingWhitespace(data, s, e);
+        const s = lines[2 * row] + offset;
+        if (s > lines[2 * row + 1]) return 0;
+        return parseIntSkipLeadingWhitespace(data, s, s + width);
     } : row => {
-        const s = lines[2 * row] + offset, e = s + width;
-        return parseFloatSkipLeadingWhitespace(data, s, e);
-    }
+        const s = lines[2 * row] + offset;
+        if (s > lines[2 * row + 1]) return 0;
+        return parseFloatSkipLeadingWhitespace(data, s, s + width);
+    };
     return {
-        isColumnDefined: true,
+        isDefined: true,
         rowCount,
         value,
         toArray(ctor, s, e) {
             const { array, start } = createArray(rowCount, ctor, s, e);
-            return getArrayValues(value, array, start);
+            return fillArrayValues(value, array, start);
         }
     };
 }

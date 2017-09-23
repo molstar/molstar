@@ -12,7 +12,8 @@
     "bundle": "./node_modules/.bin/rollup -c",
     "test": "./node_modules/.bin/jest",
     "dist": "./node_modules/.bin/uglifyjs build/js/molio.dev.js -cm > dist/molio.js && cp build/js/molio.esm.js dist/molio.esm.js",
-    "script": "./node_modules/.bin/rollup build/js/src/script.js -e fs -f cjs -o build/js/script.js"
+    "script": "./node_modules/.bin/rollup build/js/src/script.js -e fs -f cjs -o build/js/script.js",
+    "runscript": "npm run script && node build\\js\\script.js"
   },
   "jest": {
     "moduleFileExtensions": [
