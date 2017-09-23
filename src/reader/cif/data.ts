@@ -56,9 +56,6 @@ export interface Field {
     int(row: number): number,
     float(row: number): number,
 
-    /** The 'intrinsic value' of the field, e.g., array, binary data, ... */
-    value(row: number): any,
-
     presence(row: number): ValuePresence,
 
     areValuesEqual(rowA: number, rowB: number): boolean,

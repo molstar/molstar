@@ -5,77 +5,71 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State as TokenizerState, Tokens, eatLine, skipWhitespace, eatValue, trim } from '../common/text/tokenizer'
-import { parseInt } from '../common/text/number-parser'
-import { createTokenFields } from '../common/text/token-field'
-import * as Data from '../../data/data'
+import { State as TokenizerState, Tokens, markLine, getTokenString } from '../common/text/tokenizer'
+import FixedColumn from '../common/text/column/fixed'
+import { ColumnType, UndefinedColumn } from '../common/column'
+import * as Schema from './schema'
 import Result from '../result'
 
-interface StateInfo {
-    numberOfAtoms: number
-    hasVelocities: boolean
-    numberOfDecimalPlaces: number
+interface State {
+    tokenizer: TokenizerState,
+    header: Schema.Header,
+    numberOfAtoms: number,
 }
 
-type State = TokenizerState<StateInfo>
+function createEmptyHeader(): Schema.Header {
+    return {
+        title: '',
+        timeInPs: 0,
+        hasVelocities: false,
+        precision: { position: 0, velocity: 0 },
+        box: [0, 0, 0]
+    };
+}
 
-function createState(data: string): State {
-    return TokenizerState(data, { numberOfAtoms: 0, hasVelocities: false, numberOfDecimalPlaces: 3 });
+function createState(tokenizer: TokenizerState): State {
+    return {
+        tokenizer,
+        header: createEmptyHeader(),
+        numberOfAtoms: 0
+    };
 }
 
 /**
  * title string (free format string, optional time in ps after 't=')
  */
-function handleTitleString(state: State, tokens: Tokens) {
-    eatLine(state)
-    // console.log('title', state.data.substring(state.currentTokenStart, state.currentTokenEnd))
-    let start = state.currentTokenStart
-    let end = state.currentTokenEnd
-    let valueStart = state.currentTokenStart
-    let valueEnd = start
+function handleTitleString(state: State) {
+    const { tokenizer, header } = state;
+    markLine(tokenizer);
 
-    while (valueEnd < end && !isTime(state.data, valueEnd)) ++valueEnd;
+    let line = getTokenString(tokenizer);
 
-    if (isTime(state.data, valueEnd)) {
-        let timeStart = valueEnd + 2
-
-        while (valueEnd > start && isSpaceOrComma(state.data, valueEnd - 1)) --valueEnd;
-        Tokens.add(tokens, valueStart, valueEnd)  // title
-
-        while (timeStart < end && state.data.charCodeAt(timeStart) === 32) ++timeStart;
-        while (valueEnd > timeStart && state.data.charCodeAt(valueEnd - 1) === 32) --valueEnd;
-        Tokens.add(tokens, timeStart, end)  // time
-    } else {
-        Tokens.add(tokens, valueStart, valueEnd)  // title
-        Tokens.add(tokens, valueEnd, valueEnd)  // empty token for time
+    // skip potential empty lines...
+    if (line.trim().length === 0) {
+        markLine(tokenizer);
+        line = getTokenString(tokenizer);
     }
-}
 
-function isSpaceOrComma(data: string, position: number): boolean {
-    const c = data.charCodeAt(position);
-    return c === 32 || c === 44
-}
-
-function isTime(data: string, position: number): boolean {
-    // T/t
-    const c = data.charCodeAt(position);
-    if (c !== 84 && c !== 116) return false;
-    // =
-    if (data.charCodeAt(position + 1) !== 61) return false;
-
-    return true;
+    const timeOffset = line.lastIndexOf('t=');
+    if (timeOffset >= 0) {
+        header.timeInPs = parseFloat(line.substring(timeOffset + 2));
+        header.title = line.substring(0, timeOffset).trim();
+        if (header.title && header.title[header.title.length - 1] === ',') {
+            header.title = header.title.substring(0, header.title.length - 1);
+        }
+    } else {
+        header.title = line;
+    }
 }
 
 /**
  * number of atoms (free format integer)
  */
-function handleNumberOfAtoms(state: State, tokens: Tokens) {
-    skipWhitespace(state)
-    state.currentTokenStart = state.position
-    eatValue(state)
-    state.info.numberOfAtoms = parseInt(state.data, state.currentTokenStart, state.currentTokenEnd)
-    Tokens.add(tokens, state.currentTokenStart, state.currentTokenEnd)
-    eatLine(state)
+function handleNumberOfAtoms(state: State) {
+    const { tokenizer } = state;
+    markLine(tokenizer);
+    const line = getTokenString(tokenizer);
+    state.numberOfAtoms = parseInt(line);
 }
 
 /**
@@ -94,33 +88,46 @@ function handleNumberOfAtoms(state: State, tokens: Tokens) {
  *     position (in nm, x y z in 3 columns, each 8 positions with 3 decimal places)
  *     velocity (in nm/ps (or km/s), x y z in 3 columns, each 8 positions with 4 decimal places)
  */
-function handleAtoms(state: State) {
-    const fieldSizes = [ 5, 5, 5, 5, 8, 8, 8, 8, 8, 8 ];
-    const fields = [ 'residueNumber', 'residueName', 'atomName', 'atomNumber', 'x', 'y', 'z' ]
-    if (state.info.hasVelocities) {
-        fields.push('vx', 'vy', 'vz')
+function handleAtoms(state: State): Schema.Atoms {
+    const { tokenizer, numberOfAtoms } = state;
+    const lineTokens = Tokens.create(numberOfAtoms * 2);
+
+    for (let i = 0; i < numberOfAtoms; i++) {
+        markLine(tokenizer);
+        Tokens.addUnchecked(lineTokens, tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
     }
 
-    const fieldCount = fields.length
-    const tokens = Tokens.create(state.info.numberOfAtoms * 2 * fieldCount)
+    const lines = lineTokens.indices;
+    const positionSample = tokenizer.data.substring(lines[0], lines[1]).substring(20);
+    const precisions = positionSample.match(/\.\d+/g)!;
+    const hasVelocities = precisions.length === 6;
+    state.header.hasVelocities = hasVelocities;
+    state.header.precision.position = precisions[0].length - 1;
+    state.header.precision.velocity = hasVelocities ? precisions[3].length - 1 : 0;
 
-    let start: number;
-    let end: number;
+    const pO = 20;
+    const pW = state.header.precision.position + 5;
+    const vO = pO + 3 * pW;
+    const vW = state.header.precision.velocity + 4;
 
-    for (let i = 0, _i = state.info.numberOfAtoms; i < _i; ++i) {
-        state.currentTokenStart = state.position;
-        end = state.currentTokenStart;
-        for (let j = 0; j < fieldCount; ++j) {
-            start = end;
-            end = start + fieldSizes[j];
+    const col = FixedColumn({ data: tokenizer.data, lines, rowCount: state.numberOfAtoms });
+    const undef = UndefinedColumn(state.numberOfAtoms, ColumnType.float);
 
-            trim(state, start, end);
-            Tokens.addUnchecked(tokens, state.currentTokenStart, state.currentTokenEnd);
-        }
-        eatLine(state)
-    }
+    const ret = {
+        count: state.numberOfAtoms,
+        residueNumber: col(0, 5, ColumnType.int),
+        residueName: col(5, 5, ColumnType.str),
+        atomName: col(10, 5, ColumnType.str),
+        atomNumber: col(15, 5, ColumnType.int),
+        x: col(pO, pW, ColumnType.float),
+        y: col(pO + pW, pW, ColumnType.float),
+        z: col(pO + 2 * pW, pW, ColumnType.float),
+        vx: hasVelocities ? col(vO, vW, ColumnType.float) : undef,
+        vy: hasVelocities ? col(vO + vW, vW, ColumnType.float) : undef,
+        vz: hasVelocities ? col(vO + 2 * vW, vW, ColumnType.float) : undef,
+    };
 
-    return Data.Category(state.info.numberOfAtoms, createTokenFields(state.data, fields, tokens));
+    return ret;
 }
 
 /**
@@ -129,35 +136,32 @@ function handleAtoms(state: State) {
  * the last 6 values may be omitted (they will be set to zero).
  * Gromacs only supports boxes with v1(y)=v1(z)=v2(z)=0.
  */
-function handleBoxVectors(state: State, tokens: Tokens) {
-    // just read the first three values, ignore any remaining
-    for (let i = 0; i < 3; ++i) {
-        skipWhitespace(state);
-        state.currentTokenStart = state.position;
-        eatValue(state);
-        Tokens.add(tokens, state.currentTokenStart, state.currentTokenEnd);
+function handleBoxVectors(state: State) {
+    const { tokenizer } = state;
+    markLine(tokenizer);
+    const values = getTokenString(tokenizer).trim().split(/\s+/g);
+    state.header.box = [+values[0], +values[1], +values[2]];
+}
+
+function parseInternal(data: string): Result<Schema.File> {
+    const tokenizer = TokenizerState(data);
+
+    const structures: Schema.Structure[] = [];
+    while (tokenizer.position < data.length) {
+        const state = createState(tokenizer);
+        handleTitleString(state);
+        handleNumberOfAtoms(state);
+        const atoms = handleAtoms(state);
+        handleBoxVectors(state);
+        structures.push({ header: state.header, atoms });
     }
+
+    const result: Schema.File = { structures };
+    return Result.success(result);
 }
 
-function parseInternal(data: string): Result<Data.File> {
-    const state = createState(data);
-
-    const headerFields = ['title', 'timeInPs', 'numberOfAtoms', 'boxX', 'boxY', 'boxZ'];
-    const headerTokens = Tokens.create(2 * headerFields.length);
-
-    handleTitleString(state, headerTokens);
-    handleNumberOfAtoms(state, headerTokens);
-    const atoms = handleAtoms(state);
-    handleBoxVectors(state, headerTokens);
-
-    const block = Data.Block({
-        header: Data.Category(1, createTokenFields(data, headerFields, headerTokens)),
-        atoms
-    });
-
-    return Result.success(Data.File([block]));
-}
-
-export default function parse(data: string) {
+export function parse(data: string) {
     return parseInternal(data);
 }
+
+export default parse;

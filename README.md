@@ -44,7 +44,3 @@ TODO
 ----
 
 - write about unittest (AR)
-- gro reader
-  - read more than one block
-  - read velocities
-  - detect number of decimal places

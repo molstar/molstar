@@ -67,7 +67,6 @@ export namespace Field {
     export function str(spec?: Spec) { return createSchema(spec, Str); }
     export function int(spec?: Spec) { return createSchema(spec, Int); }
     export function float(spec?: Spec) { return createSchema(spec, Float); }
-    export function value<T>(spec?: Spec): Schema<T> { return createSchema(spec, Value); }
 
     function create<T>(field: Data.Field, value: (row: number) => T, toArray: Field<T>['toArray']): Field<T> {
         return { isDefined: field.isDefined, value, presence: field.presence, areValuesEqual: field.areValuesEqual, stringEquals: field.stringEquals, toArray };
@@ -76,14 +75,12 @@ export namespace Field {
     function Str(field: Data.Field) { return create(field, field.str, field.toStringArray); }
     function Int(field: Data.Field) { return create(field, field.int, field.toIntArray); }
     function Float(field: Data.Field) { return create(field, field.float, field.toFloatArray); }
-    function Value(field: Data.Field) { return create(field, field.value, () => { throw Error('not supported'); }); }
 
     const DefaultUndefined: Data.Field = {
         isDefined: false,
         str: row => null,
         int: row => 0,
         float: row => 0,
-        value: row => null,
 
         presence: row => Data.ValuePresence.NotSpecified,
         areValuesEqual: (rowA, rowB) => true,

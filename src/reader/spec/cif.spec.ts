@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from '../data'
-import * as Schema from '../schema'
+import * as Data from '../cif/data'
+import * as Schema from '../cif/schema'
 
 function Field(values: any[]): Data.Field {
     return {
@@ -13,7 +13,6 @@ function Field(values: any[]): Data.Field {
         str: row => '' + values[row],
         int: row => +values[row] || 0,
         float: row => +values[row] || 0,
-        value: row => values[row],
 
         presence: row => Data.ValuePresence.Present,
         areValuesEqual: (rowA, rowB) => values[rowA] === values[rowB],

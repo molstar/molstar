@@ -15,8 +15,13 @@
     "script": "./node_modules/.bin/rollup build/js/src/script.js -e fs -f cjs -o build/js/script.js"
   },
   "jest": {
-    "moduleFileExtensions": [ "ts", "js" ],
-    "transform": { "\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js" },
+    "moduleFileExtensions": [
+      "ts",
+      "js"
+    ],
+    "transform": {
+      "\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+    },
     "testRegex": "\\.spec\\.ts$"
   },
   "author": "",

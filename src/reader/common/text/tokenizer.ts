@@ -6,7 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export interface State<Info = any, TokenType = any> {
+export interface State<TokenType = any> {
     data: string
 
     position: number
@@ -16,12 +16,10 @@ export interface State<Info = any, TokenType = any> {
     currentTokenStart: number
     currentTokenEnd: number
 
-    currentTokenType: TokenType,
-
-    info: Info
+    currentTokenType: TokenType
 }
 
-export function State<Info, TokenType>(data: string, info?: Info, initialTokenType?: TokenType): State<Info, TokenType> {
+export function State<TokenType>(data: string, initialTokenType?: TokenType): State<TokenType> {
     return {
         data,
         position: 0,
@@ -29,35 +27,51 @@ export function State<Info, TokenType>(data: string, info?: Info, initialTokenTy
         currentLineNumber: 1,
         currentTokenStart: 0,
         currentTokenEnd: 0,
-        currentTokenType: initialTokenType!,
-        info: info!
+        currentTokenType: initialTokenType!
     };
+}
+
+export function getTokenString(state: State) {
+    return state.data.substring(state.currentTokenStart, state.currentTokenEnd);
 }
 
 /**
  * Eat everything until a newline occurs.
  */
 export function eatLine(state: State) {
+    const { data } = state;
     while (state.position < state.length) {
-        switch (state.data.charCodeAt(state.position)) {
+        switch (data.charCodeAt(state.position)) {
             case 10: // \n
-                state.currentTokenEnd = state.position
-                ++state.position
-                ++state.currentLineNumber
-                return
+                state.currentTokenEnd = state.position;
+                ++state.position;
+                ++state.currentLineNumber;
+                return;
             case 13: // \r
-                state.currentTokenEnd = state.position
-                ++state.position
-                ++state.currentLineNumber
-                if (state.data.charCodeAt(state.position) === 10) {
-                    ++state.position
+                state.currentTokenEnd = state.position;
+                ++state.position;
+                ++state.currentLineNumber;
+                if (data.charCodeAt(state.position) === 10) {
+                    ++state.position;
                 }
-                return
+                return;
             default:
-                ++state.position
+                ++state.position;
+                break;
         }
     }
     state.currentTokenEnd = state.position;
+}
+
+/** Sets the current token start to the current position */
+export function markStart(state: State) {
+    state.currentTokenStart = state.position;
+}
+
+/** Sets the current token start to current position and moves to the next line. */
+export function markLine(state: State) {
+    state.currentTokenStart = state.position;
+    eatLine(state);
 }
 
 /**
@@ -127,6 +141,15 @@ export function trim(state: State, start: number, end: number) {
     state.currentTokenStart = s;
     state.currentTokenEnd = e + 1;
     state.position = end;
+}
+
+export function trimStr(data: string, start: number, end: number) {
+    let s = start, e = end - 1;
+    let c = data.charCodeAt(s);
+    while ((c === 9 || c === 32) && s <= e) c = data.charCodeAt(++s);
+    c = data.charCodeAt(e);
+    while ((c === 9 || c === 32) && e >= s) c = data.charCodeAt(--e);
+    return data.substring(s, e + 1);
 }
 
 export interface Tokens {
