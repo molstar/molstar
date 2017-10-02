@@ -51,22 +51,22 @@ export function _gro() {
         console.log('rowCount', n)
 
         console.time('getFloatArray x')
-        const x = atoms.x.toArray(x => new Float32Array(x))!
+        const x = atoms.x.toArray({ array: Float32Array })
         console.timeEnd('getFloatArray x')
         console.log(x.length, x[0], x[x.length - 1])
 
         console.time('getFloatArray y')
-        const y = atoms.y.toArray(x => new Float32Array(x))!
+        const y = atoms.y.toArray({ array: Float32Array })
         console.timeEnd('getFloatArray y')
         console.log(y.length, y[0], y[y.length - 1])
 
         console.time('getFloatArray z')
-        const z = atoms.z.toArray(x => new Float32Array(x))!
+        const z = atoms.z.toArray({ array: Float32Array })
         console.timeEnd('getFloatArray z')
         console.log(z.length, z[0], z[z.length - 1])
 
         console.time('getIntArray residueNumber')
-        const residueNumber = atoms.residueNumber.toArray(x => new Int32Array(x))!
+        const residueNumber = atoms.residueNumber.toArray({ array: Int32Array })
         console.timeEnd('getIntArray residueNumber')
         console.log(residueNumber.length, residueNumber[0], residueNumber[residueNumber.length - 1])
     });

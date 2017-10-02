@@ -60,9 +60,27 @@ export interface Field {
     presence(row: number): ValuePresence,
 
     areValuesEqual(rowA: number, rowB: number): boolean,
-    stringEquals(row: number, value: string | null): boolean,
+    stringEquals(row: number, value: string): boolean,
 
-    toStringArray(ctor?: (size: number) => Column.ArrayType, startRow?: number, endRowExclusive?: number): ReadonlyArray<string>,
-    toIntArray(ctor?: (size: number) => Column.ArrayType, startRow?: number, endRowExclusive?: number): ReadonlyArray<number>,
-    toFloatArray(ctor?: (size: number) => Column.ArrayType, startRow?: number, endRowExclusive?: number): ReadonlyArray<number>
+    toStringArray(params?: Column.ToArrayParams): ReadonlyArray<string>,
+    toIntArray(params?: Column.ToArrayParams): ReadonlyArray<number>,
+    toFloatArray(params?: Column.ToArrayParams): ReadonlyArray<number>
+}
+
+export function DefaultUndefinedField(rowCount: number): Field {
+    return {
+        isDefined: false,
+        rowCount,
+        str: row => '',
+        int: row => 0,
+        float: row => 0,
+
+        presence: row => ValuePresence.NotSpecified,
+        areValuesEqual: (rowA, rowB) => true,
+        stringEquals: (row, value) => value === null,
+
+        toStringArray: (p) => Column.createArray(rowCount, p).array,
+        toIntArray: (p) => Column.createArray(rowCount, p).array,
+        toFloatArray: (p) => Column.createArray(rowCount, p).array
+    };
 }

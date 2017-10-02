@@ -6,7 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export interface State<TokenType = any> {
+export interface Tokenizer {
     data: string
 
     position: number
@@ -15,132 +15,150 @@ export interface State<TokenType = any> {
     currentLineNumber: number
     currentTokenStart: number
     currentTokenEnd: number
-
-    currentTokenType: TokenType
 }
 
-export function State<TokenType>(data: string, initialTokenType?: TokenType): State<TokenType> {
+export interface Lines {
+    data: string,
+    count: number,
+    tokens: ArrayLike<number>
+}
+
+export function Tokenizer(data: string): Tokenizer {
     return {
         data,
         position: 0,
         length: data.length,
         currentLineNumber: 1,
         currentTokenStart: 0,
-        currentTokenEnd: 0,
-        currentTokenType: initialTokenType!
+        currentTokenEnd: 0
     };
 }
 
-export function getTokenString(state: State) {
-    return state.data.substring(state.currentTokenStart, state.currentTokenEnd);
-}
+export namespace Tokenizer {
 
-/**
- * Eat everything until a newline occurs.
- */
-export function eatLine(state: State) {
-    const { data } = state;
-    while (state.position < state.length) {
-        switch (data.charCodeAt(state.position)) {
-            case 10: // \n
-                state.currentTokenEnd = state.position;
-                ++state.position;
-                ++state.currentLineNumber;
-                return;
-            case 13: // \r
-                state.currentTokenEnd = state.position;
-                ++state.position;
-                ++state.currentLineNumber;
-                if (data.charCodeAt(state.position) === 10) {
+    export function getTokenString(state: Tokenizer) {
+        return state.data.substring(state.currentTokenStart, state.currentTokenEnd);
+    }
+
+    /**
+     * Eat everything until a newline occurs.
+     */
+    export function eatLine(state: Tokenizer) {
+        const { data } = state;
+        while (state.position < state.length) {
+            switch (data.charCodeAt(state.position)) {
+                case 10: // \n
+                    state.currentTokenEnd = state.position;
                     ++state.position;
-                }
-                return;
-            default:
-                ++state.position;
-                break;
-        }
-    }
-    state.currentTokenEnd = state.position;
-}
-
-/** Sets the current token start to the current position */
-export function markStart(state: State) {
-    state.currentTokenStart = state.position;
-}
-
-/** Sets the current token start to current position and moves to the next line. */
-export function markLine(state: State) {
-    state.currentTokenStart = state.position;
-    eatLine(state);
-}
-
-/**
- * Eat everything until a whitespace/newline occurs.
- */
-export function eatValue(state: State) {
-    while (state.position < state.length) {
-        switch (state.data.charCodeAt(state.position)) {
-            case 9:  // \t
-            case 10: // \n
-            case 13: // \r
-            case 32: // ' '
-                state.currentTokenEnd = state.position;
-                return;
-            default:
-                ++state.position;
-                break;
-        }
-    }
-    state.currentTokenEnd = state.position;
-}
-
-/**
- * Skips all the whitespace - space, tab, newline, CR
- * Handles incrementing line count.
- */
-export function skipWhitespace(state: State): number {
-    let prev = 10;
-    while (state.position < state.length) {
-        let c = state.data.charCodeAt(state.position);
-        switch (c) {
-            case 9: // '\t'
-            case 32: // ' '
-                prev = c;
-                ++state.position;
-                break;
-            case 10: // \n
-                // handle \r\n
-                if (prev !== 13) {
                     ++state.currentLineNumber;
-                }
-                prev = c;
-                ++state.position;
-                break;
-            case 13: // \r
-                prev = c;
-                ++state.position;
-                ++state.currentLineNumber;
-                break;
-            default:
-                return prev;
+                    return;
+                case 13: // \r
+                    state.currentTokenEnd = state.position;
+                    ++state.position;
+                    ++state.currentLineNumber;
+                    if (data.charCodeAt(state.position) === 10) {
+                        ++state.position;
+                    }
+                    return;
+                default:
+                    ++state.position;
+                    break;
+            }
         }
+        state.currentTokenEnd = state.position;
     }
-    return prev;
-}
 
-/** Trims spaces and tabs */
-export function trim(state: State, start: number, end: number) {
-    const { data } = state;
-    let s = start, e = end - 1;
+    /** Sets the current token start to the current position */
+    export function markStart(state: Tokenizer) {
+        state.currentTokenStart = state.position;
+    }
 
-    let c = data.charCodeAt(s);
-    while ((c === 9 || c === 32) && s <= e) c = data.charCodeAt(++s);
-    c = data.charCodeAt(e);
-    while ((c === 9 || c === 32) && e >= s) c = data.charCodeAt(--e);
+    /** Sets the current token start to current position and moves to the next line. */
+    export function markLine(state: Tokenizer) {
+        state.currentTokenStart = state.position;
+        eatLine(state);
+    }
 
-    state.currentTokenStart = s;
-    state.currentTokenEnd = e + 1;
-    state.position = end;
+    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
+    export function readLines(state: Tokenizer, count: number): Lines {
+        const lineTokens = Tokens.create(count * 2);
+
+        for (let i = 0; i < count; i++) {
+            markLine(state);
+            Tokens.addUnchecked(lineTokens, state.currentTokenStart, state.currentTokenEnd);
+        }
+
+        return { data: state.data, count, tokens: lineTokens.indices };
+    }
+
+    /**
+     * Eat everything until a whitespace/newline occurs.
+     */
+    export function eatValue(state: Tokenizer) {
+        while (state.position < state.length) {
+            switch (state.data.charCodeAt(state.position)) {
+                case 9:  // \t
+                case 10: // \n
+                case 13: // \r
+                case 32: // ' '
+                    state.currentTokenEnd = state.position;
+                    return;
+                default:
+                    ++state.position;
+                    break;
+            }
+        }
+        state.currentTokenEnd = state.position;
+    }
+
+    /**
+     * Skips all the whitespace - space, tab, newline, CR
+     * Handles incrementing line count.
+     */
+    export function skipWhitespace(state: Tokenizer): number {
+        let prev = 10;
+        while (state.position < state.length) {
+            let c = state.data.charCodeAt(state.position);
+            switch (c) {
+                case 9: // '\t'
+                case 32: // ' '
+                    prev = c;
+                    ++state.position;
+                    break;
+                case 10: // \n
+                    // handle \r\n
+                    if (prev !== 13) {
+                        ++state.currentLineNumber;
+                    }
+                    prev = c;
+                    ++state.position;
+                    break;
+                case 13: // \r
+                    prev = c;
+                    ++state.position;
+                    ++state.currentLineNumber;
+                    break;
+                default:
+                    return prev;
+            }
+        }
+        return prev;
+    }
+
+    /** Trims spaces and tabs */
+    export function trim(state: Tokenizer, start: number, end: number) {
+        const { data } = state;
+        let s = start, e = end - 1;
+
+        let c = data.charCodeAt(s);
+        while ((c === 9 || c === 32) && s <= e) c = data.charCodeAt(++s);
+        c = data.charCodeAt(e);
+        while ((c === 9 || c === 32) && e >= s) c = data.charCodeAt(--e);
+
+        state.currentTokenStart = s;
+        state.currentTokenEnd = e + 1;
+        state.position = end;
+    }
 }
 
 export function trimStr(data: string, start: number, end: number) {
@@ -189,8 +207,4 @@ export namespace Tokens {
     }
 }
 
-
-/**
- * A helper for building a typed array of token indices.
- */
-export default Tokens
+export default Tokenizer

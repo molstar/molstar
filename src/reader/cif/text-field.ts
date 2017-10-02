@@ -42,7 +42,7 @@ export default function CifTextField(data: string, tokens: ArrayLike<number>, ro
         int,
         float,
         presence,
-        areValuesEqual: (rowA, rowB) => {
+        areValuesEqual(rowA, rowB) {
             const aS = tokens[2 * rowA], bS = tokens[2 * rowB];
             const len = tokens[2 * rowA + 1] - aS;
             if (len !== tokens[2 *  rowB + 1] - bS) return false;
@@ -53,7 +53,7 @@ export default function CifTextField(data: string, tokens: ArrayLike<number>, ro
             }
             return true;
         },
-        stringEquals: (row, value) => {
+        stringEquals(row, value) {
             const s = tokens[2 * row];
             if (!value) return presence(row) !== Data.ValuePresence.Present;
             const len = value.length;
@@ -63,16 +63,16 @@ export default function CifTextField(data: string, tokens: ArrayLike<number>, ro
             }
             return true;
         },
-        toStringArray: (ctor, s, e) => {
-            const { array, start } = Column.createArray(rowCount, ctor, s, e);
+        toStringArray(params) {
+            const { array, start } = Column.createArray(rowCount, params);
             return fillArrayValues(str, array, start);
         },
-        toIntArray: (ctor, s, e) => {
-            const { array, start } = Column.createArray(rowCount, ctor, s, e);
+        toIntArray(params) {
+            const { array, start } = Column.createArray(rowCount, params);
             return fillArrayValues(int, array, start);
         },
-        toFloatArray: (ctor, s, e) => {
-            const { array, start } = Column.createArray(rowCount, ctor, s, e);
+        toFloatArray(params) {
+            const { array, start } = Column.createArray(rowCount, params);
             return fillArrayValues(float, array, start);
         }
     }

@@ -30,7 +30,7 @@ const linesTokens = (function () {
 }());
 
 describe('fixed text column', () => {
-    const col = FixedColumn({ data, lines: linesTokens, rowCount: lines.length });
+    const col = FixedColumn({ data, tokens: linesTokens, count: lines.length });
     const col1 = col(0, 5, ColumnType.float);
     const col2 = col(5, 4, ColumnType.str);
     it('number', () => {

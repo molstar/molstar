@@ -48,55 +48,45 @@ export type Category<Fields> = Fields & {
 
 export namespace Category {
     export type Schema = { '@alias'?: string } & { [field: string]: Field.Schema<any> }
-    export type Instance<T extends Schema> = Category<{ [F in keyof T]: Field<T[F]['type']> }>
+    export type Instance<T extends Schema> = Category<{ [F in keyof T]: Column.Column<T[F]['type']> }>
 }
 
-export interface Field<T> {
-    readonly isDefined: boolean,
-    value(row: number): T,
-    presence(row: number): Data.ValuePresence,
-    areValuesEqual(rowA: number, rowB: number): boolean,
-    stringEquals(row: number, value: string | null): boolean,
-    /** Converts the selected row range to an array. ctor might or might not be called depedning on the source data format. */
-    toArray(ctor?: (size: number) => Column.ArrayType, startRow?: number, endRowExclusive?: number): ReadonlyArray<T> | undefined
-}
+// export interface Field<T> {
+//     readonly isDefined: boolean,
+//     value(row: number): T,
+//     presence(row: number): Data.ValuePresence,
+//     areValuesEqual(rowA: number, rowB: number): boolean,
+//     stringEquals(row: number, value: string | null): boolean,
+//     /** Converts the selected row range to an array. ctor might or might not be called depedning on the source data format. */
+//     toArray(params?: Column.ToArrayParams): ReadonlyArray<T>
+// }
 
 export namespace Field {
-    export interface Schema<T> { type: T, ctor: (field: Data.Field) => Field<T>, undefinedField: (c: number) => Data.Field, alias?: string };
+    export interface Schema<T> { type: T, ctor: (field: Data.Field) => Column.Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
     export interface Spec { undefinedField?: (c: number) => Data.Field, alias?: string }
 
     export function str(spec?: Spec) { return createSchema(spec, Str); }
     export function int(spec?: Spec) { return createSchema(spec, Int); }
     export function float(spec?: Spec) { return createSchema(spec, Float); }
 
-    function create<T>(field: Data.Field, value: (row: number) => T, toArray: Field<T>['toArray']): Field<T> {
-        return { isDefined: field.isDefined, value, presence: field.presence, areValuesEqual: field.areValuesEqual, stringEquals: field.stringEquals, toArray };
+    function create<T>(field: Data.Field, value: (row: number) => T, toArray: Column.Column<T>['toArray']): Column.Column<T> {
+        const presence = field.presence;
+        return {
+            isDefined: field.isDefined,
+            rowCount: field.rowCount,
+            value,
+            isValueDefined: row => presence(row) === Data.ValuePresence.Present,
+            areValuesEqual: field.areValuesEqual,
+            toArray
+        };
     }
 
     function Str(field: Data.Field) { return create(field, field.str, field.toStringArray); }
     function Int(field: Data.Field) { return create(field, field.int, field.toIntArray); }
     function Float(field: Data.Field) { return create(field, field.float, field.toFloatArray); }
 
-    function defaultUndefined(rowCount: number): Data.Field {
-        return {
-            isDefined: false,
-            rowCount,
-            str: row => '',
-            int: row => 0,
-            float: row => 0,
-
-            presence: row => Data.ValuePresence.NotSpecified,
-            areValuesEqual: (rowA, rowB) => true,
-            stringEquals: (row, value) => value === null,
-
-            toStringArray: (ctor, s, e) => Column.createArray(rowCount, ctor, s, e).array,
-            toIntArray: (ctor, s, e) => Column.createArray(rowCount, ctor, s, e).array,
-            toFloatArray: (ctor, s, e) => Column.createArray(rowCount, ctor, s, e).array
-        };
-    }
-
-    function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field) => Field<T>): Schema<T> {
-        return { type: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || defaultUndefined, alias: spec && spec.alias };
+    function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field) => Column.Column<T>): Schema<T> {
+        return { type: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || Data.DefaultUndefinedField, alias: spec && spec.alias };
     }
 }
 

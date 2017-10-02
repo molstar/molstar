@@ -5,14 +5,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State as TokenizerState, Tokens, markLine, getTokenString } from '../common/text/tokenizer'
+import Tokenizer from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
 import { ColumnType, UndefinedColumn } from '../common/column'
 import * as Schema from './schema'
 import Result from '../result'
 
 interface State {
-    tokenizer: TokenizerState,
+    tokenizer: Tokenizer,
     header: Schema.Header,
     numberOfAtoms: number,
 }
@@ -27,7 +27,7 @@ function createEmptyHeader(): Schema.Header {
     };
 }
 
-function createState(tokenizer: TokenizerState): State {
+function State(tokenizer: Tokenizer): State {
     return {
         tokenizer,
         header: createEmptyHeader(),
@@ -40,14 +40,14 @@ function createState(tokenizer: TokenizerState): State {
  */
 function handleTitleString(state: State) {
     const { tokenizer, header } = state;
-    markLine(tokenizer);
+    Tokenizer.markLine(tokenizer);
 
-    let line = getTokenString(tokenizer);
+    let line = Tokenizer.getTokenString(tokenizer);
 
     // skip potential empty lines...
     if (line.trim().length === 0) {
-        markLine(tokenizer);
-        line = getTokenString(tokenizer);
+        Tokenizer.markLine(tokenizer);
+        line = Tokenizer.getTokenString(tokenizer);
     }
 
     const timeOffset = line.lastIndexOf('t=');
@@ -67,8 +67,8 @@ function handleTitleString(state: State) {
  */
 function handleNumberOfAtoms(state: State) {
     const { tokenizer } = state;
-    markLine(tokenizer);
-    const line = getTokenString(tokenizer);
+    Tokenizer.markLine(tokenizer);
+    const line = Tokenizer.getTokenString(tokenizer);
     state.numberOfAtoms = parseInt(line);
 }
 
@@ -90,17 +90,12 @@ function handleNumberOfAtoms(state: State) {
  */
 function handleAtoms(state: State): Schema.Atoms {
     const { tokenizer, numberOfAtoms } = state;
-    const lineTokens = Tokens.create(numberOfAtoms * 2);
+    const lines = Tokenizer.readLines(tokenizer, numberOfAtoms);
 
-    for (let i = 0; i < numberOfAtoms; i++) {
-        markLine(tokenizer);
-        Tokens.addUnchecked(lineTokens, tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
-    }
-
-    const lines = lineTokens.indices;
-    const positionSample = tokenizer.data.substring(lines[0], lines[1]).substring(20);
+    const positionSample = tokenizer.data.substring(lines.tokens[0], lines.tokens[1]).substring(20);
     const precisions = positionSample.match(/\.\d+/g)!;
     const hasVelocities = precisions.length === 6;
+
     state.header.hasVelocities = hasVelocities;
     state.header.precision.position = precisions[0].length - 1;
     state.header.precision.velocity = hasVelocities ? precisions[3].length - 1 : 0;
@@ -110,7 +105,7 @@ function handleAtoms(state: State): Schema.Atoms {
     const vO = pO + 3 * pW;
     const vW = state.header.precision.velocity + 4;
 
-    const col = FixedColumn({ data: tokenizer.data, lines, rowCount: state.numberOfAtoms });
+    const col = FixedColumn(lines);
     const undef = UndefinedColumn(state.numberOfAtoms, ColumnType.float);
 
     const ret = {
@@ -138,17 +133,17 @@ function handleAtoms(state: State): Schema.Atoms {
  */
 function handleBoxVectors(state: State) {
     const { tokenizer } = state;
-    markLine(tokenizer);
-    const values = getTokenString(tokenizer).trim().split(/\s+/g);
+    Tokenizer.markLine(tokenizer);
+    const values = Tokenizer.getTokenString(tokenizer).trim().split(/\s+/g);
     state.header.box = [+values[0], +values[1], +values[2]];
 }
 
 function parseInternal(data: string): Result<Schema.File> {
-    const tokenizer = TokenizerState(data);
+    const tokenizer = Tokenizer(data);
 
     const structures: Schema.Structure[] = [];
     while (tokenizer.position < data.length) {
-        const state = createState(tokenizer);
+        const state = State(tokenizer);
         handleTitleString(state);
         handleNumberOfAtoms(state);
         const atoms = handleAtoms(state);

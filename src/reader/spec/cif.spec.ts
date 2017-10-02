@@ -34,7 +34,7 @@ describe('schema', () => {
     });
 
     it('toArray', () => {
-        const ret = data.atoms.x.toArray(s => new Int32Array(s))!;
+        const ret = data.atoms.x.toArray({ array: Int32Array });
         expect(ret.length).toBe(3);
         expect(ret[0]).toBe(1);
         expect(ret[1]).toBe(2);

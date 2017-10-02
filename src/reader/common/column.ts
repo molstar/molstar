@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export type ArrayType = string[] | number[] | Float32Array | Float64Array | Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array
 export type ColumnType = typeof ColumnType.str | typeof ColumnType.pooledStr | typeof ColumnType.int | typeof ColumnType.float
 
 export namespace ColumnType {
@@ -14,11 +13,21 @@ export namespace ColumnType {
     export const float = { '@type': 0 as number, kind: 'float' as 'float' };
 }
 
+export interface ToArrayParams {
+    array?: { new(size: number): ArrayLike<number> },
+    /** First row */
+    start?: number,
+    /** Last row (exclusive) */
+    end?: number
+}
+
 export interface Column<T> {
     readonly isDefined: boolean,
     readonly rowCount: number,
     value(row: number): T,
-    toArray(ctor?: (size: number) => ArrayType, startRow?: number, endRowExclusive?: number): ReadonlyArray<T>
+    isValueDefined(row: number): boolean,
+    toArray(params?: ToArrayParams): ReadonlyArray<T>,
+    areValuesEqual(rowA: number, rowB: number): boolean
 }
 
 export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T): Column<T['@type']> {
@@ -27,18 +36,21 @@ export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T)
         isDefined: false,
         rowCount,
         value,
-        toArray(ctor, s, e) {
-            const { array } = createArray(rowCount, ctor, s, e);
+        isValueDefined(row) { return false; },
+        toArray(params) {
+            const { array } = createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(0)
             return array;
-        }
+        },
+        areValuesEqual() { return true; }
     }
 }
 
 /** A helped function for Column.toArray */
-export function createArray(rowCount: number, ctor?: (size: number) => ArrayType, start?: number, end?: number) {
-    const c = typeof ctor !== 'undefined' ? ctor : (s: number) => new Array(s);
+export function createArray(rowCount: number, params?: ToArrayParams) {
+    const { array, start, end } = params || ({} as ToArrayParams);
+    const c = typeof array !== 'undefined' ? array : Array;
     const s = typeof start !== 'undefined' ? Math.max(Math.min(start, rowCount - 1), 0) : 0;
     const e = typeof end !== 'undefined' ? Math.min(end, rowCount) : rowCount;
-    return { array: c(e - s) as any[], start: s, end: e };
+    return { array: new c(e - s) as any[], start: s, end: e };
 }
