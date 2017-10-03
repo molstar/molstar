@@ -22,10 +22,10 @@
  *
  */
 
-import * as Data from './data-model'
-import Field from './text-field'
-import { Tokens, TokenBuilder } from '../common/text/tokenizer'
-import Result from '../result'
+import * as Data from '../data-model'
+import Field from './field'
+import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
+import Result from '../../result'
 
 /**
  * Types of supported mmCIF tokens.

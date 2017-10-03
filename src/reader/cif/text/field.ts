@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Column from '../common/column'
-import * as TokenColumn from '../common/text/column/token'
-import { Tokens } from '../common/text/tokenizer'
-import * as Data from './data-model'
-import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../common/text/number-parser'
+import * as Column from '../../common/column'
+import * as TokenColumn from '../../common/text/column/token'
+import { Tokens } from '../../common/text/tokenizer'
+import * as Data from '../data-model'
+import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
 
 export default function CifTextField(tokens: Tokens, rowCount: number): Data.Field {
     const { data, indices } = tokens;

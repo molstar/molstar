@@ -94,7 +94,7 @@ export function _cif() {
         console.log(atom_site.getField('Cartn_x')!.float(0));
         //console.log(atom_site.getField('label_atom_id')!.toStringArray());
 
-        const mmcif = CIF.applySchema(CIF.schema.mmCIF, data);
+        const mmcif = CIF.schema.mmCIF(data);
         console.log(mmcif.atom_site.Cartn_x.value(0));
         console.log(mmcif.entity.type.toArray());
         console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));

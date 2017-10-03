@@ -71,6 +71,7 @@ export namespace Field {
             rowCount: field.rowCount,
             value,
             isValueDefined: row => presence(row) === Data.ValuePresence.Present,
+            stringEquals: field.stringEquals,
             areValuesEqual: field.areValuesEqual,
             toArray
         };

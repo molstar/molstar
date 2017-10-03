@@ -27,6 +27,7 @@ export interface Column<T> {
     value(row: number): T,
     isValueDefined(row: number): boolean,
     toArray(params?: ToArrayParams): ReadonlyArray<T>,
+    stringEquals(row: number, value: string): boolean,
     areValuesEqual(rowA: number, rowB: number): boolean
 }
 
@@ -42,7 +43,8 @@ export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T)
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(0)
             return array;
         },
-        areValuesEqual() { return true; }
+        stringEquals(row, value) { return !value; },
+        areValuesEqual(rowA, rowB) { return true; }
     }
 }
 

@@ -35,6 +35,16 @@ export function TokenColumn<T extends ColumnType>(tokens: Tokens, type: T): Colu
         value,
         isValueDefined(row) { return true; },
         toArray(params) { return createAndFillArray(rowCount, value, params); },
+        stringEquals(row, v) {
+            const s = indices[2 * row];
+            const value = v || '';
+            const len = value.length;
+            if (len !== indices[2 * row + 1] - s) return false;
+            for (let i = 0; i < len; i++) {
+                if (data.charCodeAt(i + s) !== value.charCodeAt(i)) return false;
+            }
+            return true;
+        },
         areValuesEqual: areValuesEqualProvider(tokens)
     };
 }

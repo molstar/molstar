@@ -5,7 +5,7 @@
  */
 
 import * as Data from '../cif/data-model'
-import TextField from '../cif/text-field'
+import TextField from '../cif/text/field'
 import * as Schema from '../cif/schema'
 
 const columnData = `123abc`;

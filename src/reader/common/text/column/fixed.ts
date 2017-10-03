@@ -47,6 +47,7 @@ export function FixedColumn<T extends ColumnType>(lines: Tokens, offset: number,
         value,
         isValueDefined(row) { return true; },
         toArray(params) { return createAndFillArray(rowCount, value, params); },
+        stringEquals(row, v) { return value(row) === v; },
         areValuesEqual(rowA, rowB) {
             return value(rowA) === value(rowB);
         }

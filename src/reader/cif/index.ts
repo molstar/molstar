@@ -4,12 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import parseText from './text-parser'
+import parseText from './text/parser'
+import { Block } from './data-model'
 import { apply as applySchema } from './schema'
 import mmCIF from './schema/mmcif'
 
 export default {
     parseText,
     applySchema,
-    schema: { mmCIF }
+    schema: {
+        mmCIF: (block: Block) => applySchema(mmCIF, block)
+    }
 }
