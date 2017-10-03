@@ -5,14 +5,18 @@
  */
 
 import parseText from './text/parser'
+import parseBinary from './binary/parser'
 import { Block } from './data-model'
 import { apply as applySchema } from './schema'
 import mmCIF from './schema/mmcif'
 
 export default {
     parseText,
+    parseBinary,
     applySchema,
     schema: {
         mmCIF: (block: Block) => applySchema(mmCIF, block)
     }
 }
+
+export * from './data-model'

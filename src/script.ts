@@ -72,32 +72,49 @@ export function _gro() {
     });
 }
 
+function runCIF(input: string | Uint8Array) {
+    console.time('parseCIF');
+    const parsed = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
+    console.timeEnd('parseCIF');
+    if (parsed.isError) {
+        console.log(parsed);
+        return;
+    }
+
+    const data = parsed.result.blocks[0];
+    const atom_site = data.categories._atom_site;
+    console.log(atom_site.getField('Cartn_x')!.float(0));
+    //console.log(atom_site.getField('label_atom_id')!.toStringArray());
+
+    const mmcif = CIF.schema.mmCIF(data);
+    console.log(mmcif.atom_site.Cartn_x.value(0));
+    console.log(mmcif.entity.type.toArray());
+    console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
+}
+
 export function _cif() {
-    const path = `./examples/1cbs_updated.cif`;
-    //const path = 'c:/test/quick/3j3q.cif';
+    let path = `./examples/1cbs_updated.cif`;
+    //path = 'c:/test/quick/3j3q.cif';
     fs.readFile(path, 'utf8', function (err, input) {
         if (err) {
             return console.log(err);
         }
+        console.log('------------------');
+        console.log('Text CIF:');
+        runCIF(input);
+    });
 
-        console.time('parseCIF');
-        const parsed = CIF.parseText(input);
-        console.timeEnd('parseCIF');
-        if (parsed.isError) {
-            console.log(parsed);
-            return;
+    path = `./examples/1cbs_full.bcif`;
+    //const path = 'c:/test/quick/3j3q.cif';
+    fs.readFile(path, function (err, input) {
+        if (err) {
+            return console.log(err);
         }
-
-        const data = parsed.result.blocks[0];
-
-        const atom_site = data.categories._atom_site;
-        console.log(atom_site.getField('Cartn_x')!.float(0));
-        //console.log(atom_site.getField('label_atom_id')!.toStringArray());
-
-        const mmcif = CIF.schema.mmCIF(data);
-        console.log(mmcif.atom_site.Cartn_x.value(0));
-        console.log(mmcif.entity.type.toArray());
-        console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
+        console.log('------------------');
+        console.log('BinaryCIF:');
+        const data = new Uint8Array(input.byteLength);
+        for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
+        runCIF(input);
     });
 }
 
