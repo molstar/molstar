@@ -21,6 +21,9 @@ export interface Block {
 }
 
 export function Block(categories: { readonly [name: string]: Category }, header: string): Block {
+    if (Object.keys(categories).some(k => k[0] !== '_')) {
+        throw new Error(`Category names must start with '_'.`);
+    }
     return { header, categories };
 }
 
