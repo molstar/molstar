@@ -32,5 +32,9 @@ export default {
     // }
   ],
   external: external,
-  sourcemap: false
+  sourcemap: false,
+  onwarn(warning, warn) {
+    if (warning.code === 'THIS_IS_UNDEFINED') return;
+    warn(warning); // this requires Rollup 0.46
+  }
 };

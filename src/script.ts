@@ -119,3 +119,19 @@ export function _cif() {
 }
 
 _cif();
+
+import Computation from './utils/computation'
+const comp = new Computation(async ctx => {
+    for (let i = 0; i < 3; i++) {
+        await new Promise(res => setTimeout(res, 500));
+        if (ctx.requiresUpdate) await ctx.updateProgress('working', void 0, i, 2);
+    }
+    return 42;
+});
+async function testComp() {
+    const running = comp.runWithContext();
+    running.subscribe(p => console.log(JSON.stringify(p)));
+    const ret = await running.result;
+    console.log('computation returned', ret);
+}
+testComp();
