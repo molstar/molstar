@@ -26,6 +26,7 @@ import * as Data from '../data-model'
 import Field from './field'
 import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
 import Result from '../../result'
+import Computation from '../../../utils/computation'
 
 /**
  * Types of supported mmCIF tokens.
@@ -51,6 +52,8 @@ interface TokenizerState {
     currentTokenType: CifTokenType;
     currentTokenStart: number;
     currentTokenEnd: number;
+
+    computation: Computation.Chunked
 }
 
 /**
@@ -384,7 +387,7 @@ function moveNext(state: TokenizerState) {
     while (state.currentTokenType === CifTokenType.Comment) moveNextInternal(state);
 }
 
-function createTokenizer(data: string): TokenizerState {
+function createTokenizer(data: string, ctx: Computation.Context): TokenizerState {
     return {
         data,
         length: data.length,
@@ -393,7 +396,8 @@ function createTokenizer(data: string): TokenizerState {
         currentTokenEnd: 0,
         currentTokenType: CifTokenType.End,
         currentLineNumber: 1,
-        isEscaped: false
+        isEscaped: false,
+        computation: new Computation.Chunked(ctx, 1000000)
     };
 }
 
@@ -443,10 +447,39 @@ function handleSingle(tokenizer: TokenizerState, categories: { [name: string]: D
     };
 }
 
+interface LoopReadState {
+    tokenizer: TokenizerState,
+    tokens: Tokens[],
+    fieldCount: number,
+    tokenCount: number
+}
+
+function readLoopChunk(state: LoopReadState, chunkSize: number) {
+    const { tokenizer, tokens, fieldCount } = state;
+    let tokenCount = state.tokenCount;
+    let counter = 0;
+    while (tokenizer.currentTokenType === CifTokenType.Value && counter < chunkSize) {
+        TokenBuilder.add(tokens[(tokenCount++) % fieldCount], tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
+        moveNext(tokenizer);
+        counter++;
+    }
+    state.tokenCount = tokenCount;
+    return tokenizer.currentTokenType === CifTokenType.Value;
+}
+
+async function readLoopChunks(state: LoopReadState) {
+    const { computation } = state.tokenizer;
+    while (readLoopChunk(state, computation.chunkSize)) {
+        if (computation.requiresUpdate) {
+            await computation.updateProgress('Parsing...', void 0, state.tokenizer.position, state.tokenizer.data.length);
+        }
+    }
+}
+
 /**
  * Reads a loop.
  */
-function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Data.Category }): CifCategoryResult {
+async function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Data.Category }): Promise<CifCategoryResult> {
     const loopLine = tokenizer.currentLineNumber;
 
     moveNext(tokenizer);
@@ -463,13 +496,22 @@ function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Dat
     const fieldCount = fieldNames.length;
     for (let i = 0; i < fieldCount; i++) tokens[i] = TokenBuilder.create(tokenizer, rowCountEstimate);
 
-    let tokenCount = 0;
-    while (tokenizer.currentTokenType === CifTokenType.Value) {
-        TokenBuilder.add(tokens[(tokenCount++) % fieldCount], tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
-        moveNext(tokenizer);
-    }
+    const state: LoopReadState = {
+        fieldCount,
+        tokenCount: 0,
+        tokenizer,
+        tokens
+    };
 
-    if (tokenCount % fieldCount !== 0) {
+    // let tokenCount = 0;
+    // while (tokenizer.currentTokenType === CifTokenType.Value) {
+    //     TokenBuilder.add(tokens[(tokenCount++) % fieldCount], tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
+    //     moveNext(tokenizer);
+    // }
+
+    await readLoopChunks(state);
+
+    if (state.tokenCount % fieldCount !== 0) {
         return {
             hasError: true,
             errorLine: tokenizer.currentLineNumber,
@@ -477,7 +519,7 @@ function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Dat
         };
     }
 
-    const rowCount = (tokenCount / fieldCount) | 0;
+    const rowCount = (state.tokenCount / fieldCount) | 0;
     const fields = Object.create(null);
     for (let i = 0; i < fieldCount; i++) {
         fields[fieldNames[i]] = Field(tokens[i], rowCount);
@@ -511,15 +553,17 @@ function result(data: Data.File) {
  *
  * @returns CifParserResult wrapper of the result.
  */
-function parseInternal(data: string): Result<Data.File> {
+async function parseInternal(data: string, ctx: Computation.Context) {
     const dataBlocks: Data.Block[] = [];
-    const tokenizer = createTokenizer(data);
+    const tokenizer = createTokenizer(data, ctx);
     let blockHeader: string = '';
     let blockCategories = Object.create(null);
 
     //saveFrame = new DataBlock(data, "empty"),
     //inSaveFrame = false,
     //blockSaveFrames: any;
+
+    ctx.updateProgress('Parsing...');
 
     moveNext(tokenizer);
     while (tokenizer.currentTokenType !== CifTokenType.End) {
@@ -561,7 +605,7 @@ function parseInternal(data: string): Result<Data.File> {
             moveNext(tokenizer);
             // Loop
         } */ else if (token === CifTokenType.Loop) {
-            const cat = handleLoop(tokenizer, /*inSaveFrame ? saveFrame : */ blockCategories);
+            const cat = await handleLoop(tokenizer, /*inSaveFrame ? saveFrame : */ blockCategories);
             if (cat.hasError) {
                 return error(cat.errorLine, cat.errorMessage);
             }
@@ -590,5 +634,7 @@ function parseInternal(data: string): Result<Data.File> {
 }
 
 export default function parse(data: string) {
-    return parseInternal(data);
+    return new Computation<Result<Data.File>>(async ctx => {
+        return await parseInternal(data, ctx);
+    });
 }

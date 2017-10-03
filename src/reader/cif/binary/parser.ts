@@ -9,6 +9,7 @@ import * as Encoding from './encoding'
 import Field from './field'
 import Result from '../../result'
 import decodeMsgPack from '../../../utils/msgpack/decode'
+import Computation from '../../../utils/computation'
 
 function checkVersions(min: number[], current: number[]) {
     for (let i = 0; i < 2; i++) {
@@ -29,21 +30,23 @@ function Category(data: Encoding.EncodedCategory): Data.Category {
     }
 }
 
-export default function parse(data: Uint8Array): Result<Data.File> {
-    const minVersion = [0, 3];
+export default function parse(data: Uint8Array) {
+    return new Computation<Result<Data.File>>(async ctx => {
+        const minVersion = [0, 3];
 
-    try {
-        const unpacked = decodeMsgPack(data) as Encoding.EncodedFile;
-        if (!checkVersions(minVersion, unpacked.version.match(/(\d)\.(\d)\.\d/)!.slice(1).map(v => +v))) {
-            return Result.error<Data.File>(`Unsupported format version. Current ${unpacked.version}, required ${minVersion.join('.')}.`);
+        try {
+            const unpacked = decodeMsgPack(data) as Encoding.EncodedFile;
+            if (!checkVersions(minVersion, unpacked.version.match(/(\d)\.(\d)\.\d/)!.slice(1).map(v => +v))) {
+                return Result.error<Data.File>(`Unsupported format version. Current ${unpacked.version}, required ${minVersion.join('.')}.`);
+            }
+            const file = Data.File(unpacked.dataBlocks.map(block => {
+                const cats = Object.create(null);
+                for (const cat of block.categories) cats[cat.name] = Category(cat);
+                return Data.Block(cats, block.header);
+            }));
+            return Result.success(file);
+        } catch (e) {
+            return Result.error<Data.File>('' + e);
         }
-        const file = Data.File(unpacked.dataBlocks.map(block => {
-            const cats = Object.create(null);
-            for (const cat of block.categories) cats[cat.name] = Category(cat);
-            return Data.Block(cats, block.header);
-        }));
-        return Result.success(file);
-    } catch (e) {
-        return Result.error<Data.File>('' + e);
-    }
+    })
 }

@@ -56,11 +56,12 @@ namespace Computation {
     export const Aborted = 'Aborted';
 
     export interface Progress {
-        message: string;
-        isIndeterminate: boolean;
-        current: number;
-        max: number;
-        requestAbort?: () => void;
+        message: string,
+        isIndeterminate: boolean,
+        current: number,
+        max: number,
+        elapsedMs: number,
+        requestAbort?: () => void
     }
 
     export interface Context {
@@ -69,6 +70,8 @@ namespace Computation {
         /**
          * Checks if the computation was aborted. If so, throws.
          * Otherwise, updates the progress.
+         *
+         * Returns the number of ms since the last update.
          */
         updateProgress(msg: string, abort?: boolean | (() => void), current?: number, max?: number): Promise<void> | void
     }
@@ -87,13 +90,16 @@ namespace Computation {
     }
 
     export class ObservableContext implements Context {
-        private updateRate: number;
+        readonly updateRate: number;
         private isSynchronous: boolean;
         private level = 0;
+        private startedTime = 0;
         private abortRequested = false;
         private lastUpdated = 0;
         private observers: ProgressObserver[] | undefined = void 0;
-        private progress: Progress = { message: 'Working...', current: 0, max: 0, isIndeterminate: true, requestAbort: void 0 };
+        private progress: Progress = { message: 'Working...', current: 0, max: 0, elapsedMs: 0, isIndeterminate: true, requestAbort: void 0 };
+
+        lastDelta = 0;
 
         private checkAborted() {
             if (this.abortRequested) throw Aborted;
@@ -117,6 +123,8 @@ namespace Computation {
         updateProgress(msg: string, abort?: boolean | (() => void), current?: number, max?: number): Promise<void> | void {
             this.checkAborted();
 
+            const time = Helpers.getTime();
+
             if (typeof abort === 'boolean') {
                 this.progress.requestAbort = abort ? this.abortRequester : void 0;
             } else {
@@ -125,6 +133,7 @@ namespace Computation {
             }
 
             this.progress.message = msg;
+            this.progress.elapsedMs = time - this.startedTime;
             if (isNaN(current!)) {
                 this.progress.isIndeterminate = true;
             } else {
@@ -138,7 +147,8 @@ namespace Computation {
                 for (const o of this.observers) setTimeout(o, 0, p);
             }
 
-            this.lastUpdated = Helpers.getTime();
+            this.lastDelta = time - this.lastUpdated;
+            this.lastUpdated = time;
 
             return new Promise<void>(res => setTimeout(res, 0));
         }
@@ -146,10 +156,11 @@ namespace Computation {
         get requiresUpdate() {
             this.checkAborted();
             if (this.isSynchronous) return false;
-            return Helpers.getTime() - this.lastUpdated > this.updateRate;
+            return Helpers.getTime() - this.lastUpdated > this.updateRate / 2;
         }
 
         started() {
+            if (!this.level) this.startedTime = Helpers.getTime();
             this.level++;
         }
 
@@ -161,9 +172,44 @@ namespace Computation {
             if (!this.level) this.observers = void 0;
         }
 
-        constructor(params?: Params) {
+        constructor(params?: Partial<Params>) {
             this.updateRate = (params && params.updateRateMs) || DefaulUpdateRateMs;
             this.isSynchronous = !!(params && params.isSynchronous);
+        }
+    }
+
+    export class Chunked {
+        private currentChunkSize: number;
+
+        private computeChunkSize() {
+            const lastDelta = (this.context as ObservableContext).lastDelta || 0;
+            if (!lastDelta) return this.defaultChunkSize;
+            const rate = (this.context as ObservableContext).updateRate || 0;
+            return Math.round(this.currentChunkSize * rate / lastDelta + 1);
+        }
+
+        get chunkSize() {
+            return this.defaultChunkSize;
+        }
+
+        set chunkSize(value: number) {
+            this.defaultChunkSize = value;
+            this.currentChunkSize = value;
+        }
+
+        get requiresUpdate() {
+            const ret = this.context.requiresUpdate;
+            if (!ret) this.currentChunkSize += this.chunkSize;
+            return ret;
+        }
+
+        async updateProgress(msg: string, abort?: boolean | (() => void), current?: number, max?: number) {
+            await this.context.updateProgress(msg, abort, current, max);
+            this.defaultChunkSize = this.computeChunkSize();
+        }
+
+        constructor(public context: Context, private defaultChunkSize: number) {
+            this.currentChunkSize = defaultChunkSize;
         }
     }
 }

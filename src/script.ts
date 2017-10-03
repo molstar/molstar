@@ -72,9 +72,13 @@ export function _gro() {
     });
 }
 
-function runCIF(input: string | Uint8Array) {
+async function runCIF(input: string | Uint8Array) {
     console.time('parseCIF');
-    const parsed = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
+    const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
+    
+    const running = comp.runWithContext(new Computation.ObservableContext({ updateRateMs: 250 }));
+    running.subscribe(p => console.log(`${(p.current / p.max * 100).toFixed(2)} (${p.elapsedMs | 0}ms)`));
+    const parsed = await running.result;
     console.timeEnd('parseCIF');
     if (parsed.isError) {
         console.log(parsed);
@@ -94,7 +98,7 @@ function runCIF(input: string | Uint8Array) {
 
 export function _cif() {
     let path = `./examples/1cbs_updated.cif`;
-    //path = 'c:/test/quick/3j3q.cif';
+    path = 'c:/test/quick/3j3q.cif';
     fs.readFile(path, 'utf8', function (err, input) {
         if (err) {
             return console.log(err);
@@ -122,7 +126,7 @@ _cif();
 
 import Computation from './utils/computation'
 const comp = new Computation(async ctx => {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 0; i++) {
         await new Promise(res => setTimeout(res, 500));
         if (ctx.requiresUpdate) await ctx.updateProgress('working', void 0, i, 2);
     }
