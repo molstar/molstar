@@ -40,14 +40,11 @@ function State(tokenizer: Tokenizer): State {
  */
 function handleTitleString(state: State) {
     const { tokenizer, header } = state;
-    Tokenizer.markLine(tokenizer);
-
-    let line = Tokenizer.getTokenString(tokenizer);
+    let line = Tokenizer.readLine(tokenizer);
 
     // skip potential empty lines...
     if (line.trim().length === 0) {
-        Tokenizer.markLine(tokenizer);
-        line = Tokenizer.getTokenString(tokenizer);
+        line = Tokenizer.readLine(tokenizer);
     }
 
     const timeOffset = line.lastIndexOf('t=');
@@ -92,7 +89,7 @@ function handleAtoms(state: State): Schema.Atoms {
     const { tokenizer, numberOfAtoms } = state;
     const lines = Tokenizer.readLines(tokenizer, numberOfAtoms);
 
-    const positionSample = tokenizer.data.substring(lines.tokens[0], lines.tokens[1]).substring(20);
+    const positionSample = tokenizer.data.substring(lines.indices[0], lines.indices[1]).substring(20);
     const precisions = positionSample.match(/\.\d+/g)!;
     const hasVelocities = precisions.length === 6;
 
@@ -133,8 +130,7 @@ function handleAtoms(state: State): Schema.Atoms {
  */
 function handleBoxVectors(state: State) {
     const { tokenizer } = state;
-    Tokenizer.markLine(tokenizer);
-    const values = Tokenizer.getTokenString(tokenizer).trim().split(/\s+/g);
+    const values = Tokenizer.readLine(tokenizer).trim().split(/\s+/g);
     state.header.box = [+values[0], +values[1], +values[2]];
 }
 

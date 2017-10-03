@@ -8,7 +8,7 @@
 import * as fs from 'fs'
 
 import Gro from './reader/gro/parser'
-import CIF from './reader/cif/text-parser'
+import CIF from './reader/cif/index'
 
 // const file = '1crn.gro'
 // const file = 'water.gro'
@@ -81,7 +81,7 @@ export function _cif() {
         }
 
         console.time('parseCIF');
-        const parsed = CIF(input);
+        const parsed = CIF.parseText(input);
         console.timeEnd('parseCIF');
         if (parsed.isError) {
             console.log(parsed);
@@ -92,7 +92,12 @@ export function _cif() {
 
         const atom_site = data.categories._atom_site;
         console.log(atom_site.getField('Cartn_x')!.float(0));
-        console.log(atom_site.getField('label_atom_id')!.toStringArray());
+        //console.log(atom_site.getField('label_atom_id')!.toStringArray());
+
+        const mmcif = CIF.applySchema(CIF.schema.mmCIF, data);
+        console.log(mmcif.atom_site.Cartn_x.value(0));
+        console.log(mmcif.entity.type.toArray());
+        console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
     });
 }
 

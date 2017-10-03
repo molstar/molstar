@@ -24,7 +24,7 @@
 
 import * as Data from './data-model'
 import Field from './text-field'
-import { Tokens } from '../common/text/tokenizer'
+import { Tokens, TokenBuilder } from '../common/text/tokenizer'
 import Result from '../result'
 
 /**
@@ -430,7 +430,7 @@ function handleSingle(tokenizer: TokenizerState, categories: { [name: string]: D
                 errorMessage: 'Expected value.'
             }
         }
-        fields[fieldName] = Field(tokenizer.data, [tokenizer.currentTokenStart, tokenizer.currentTokenEnd], 1);
+        fields[fieldName] = Field({ data: tokenizer.data, indices: [tokenizer.currentTokenStart, tokenizer.currentTokenEnd], count: 1 }, 1);
         moveNext(tokenizer);
     }
 
@@ -461,11 +461,11 @@ function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Dat
     const rowCountEstimate = name === '_atom_site' ? (tokenizer.data.length / 100) | 0 : 32;
     const tokens: Tokens[] = [];
     const fieldCount = fieldNames.length;
-    for (let i = 0; i < fieldCount; i++) tokens[i] = Tokens.create(rowCountEstimate);
+    for (let i = 0; i < fieldCount; i++) tokens[i] = TokenBuilder.create(tokenizer, rowCountEstimate);
 
     let tokenCount = 0;
     while (tokenizer.currentTokenType === CifTokenType.Value) {
-        Tokens.add(tokens[(tokenCount++) % fieldCount], tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
+        TokenBuilder.add(tokens[(tokenCount++) % fieldCount], tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
         moveNext(tokenizer);
     }
 
@@ -480,7 +480,7 @@ function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Dat
     const rowCount = (tokenCount / fieldCount) | 0;
     const fields = Object.create(null);
     for (let i = 0; i < fieldCount; i++) {
-        fields[fieldNames[i]] = Field(tokenizer.data, tokens[i].indices, rowCount);
+        fields[fieldNames[i]] = Field(tokens[i], rowCount);
     }
 
     categories[name] = Data.Category(rowCount, fields);

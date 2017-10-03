@@ -10,8 +10,8 @@ import * as Schema from '../cif/schema'
 
 const columnData = `123abc`;
 
-const intField = TextField(columnData, [0, 1, 1, 2, 2, 3], 3);
-const strField = TextField(columnData, [3, 4, 4, 5, 5, 6], 3);
+const intField = TextField({ data: columnData, indices: [0, 1, 1, 2, 2, 3], count: 3 }, 3);
+const strField = TextField({ data: columnData, indices: [3, 4, 4, 5, 5, 6], count: 3 }, 3);
 
 const testBlock = Data.Block({
     'atoms': Data.Category(3, {

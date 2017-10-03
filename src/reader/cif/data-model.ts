@@ -84,3 +84,25 @@ export function DefaultUndefinedField(rowCount: number): Field {
         toFloatArray: (p) => Column.createArray(rowCount, p).array
     };
 }
+
+export function getMatrix(category: Category, field: string, rows: number, cols: number, row: number) {
+    const ret: number[][] = [];
+    for (let i = 0; i < rows; i++) {
+        const r: number[] = [];
+        for (let j = 0; j < cols; j++) {
+            const f = category.getField(`${field}[${i + 1}][${j + 1}]`);
+            r[j] = f ? f.float(row) : 0.0;
+        }
+        ret[i] = r;
+    }
+    return ret;
+}
+
+export function getVector(category: Category, field: string, rows: number, row: number) {
+    const ret: number[] = [];
+    for (let i = 0; i < rows; i++) {
+        const f = category.getField(`${field}[${i + 1}]`);
+        ret[i] = f ? f.float(row) : 0.0;
+    }
+    return ret;
+}

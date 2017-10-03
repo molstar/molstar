@@ -6,6 +6,7 @@
 
 import * as Data from './data-model'
 import * as Column from '../common/column'
+import StringPool from '../../utils/short-string-pool'
 
 /**
  * A schema defines the shape of categories and fields.
@@ -47,27 +48,21 @@ export type Category<Fields> = Fields & {
 }
 
 export namespace Category {
-    export type Schema = { '@alias'?: string } & { [field: string]: Field.Schema<any> }
+    export type Schema = { [field: string]: Field.Schema<any> }
     export type Instance<T extends Schema> = Category<{ [F in keyof T]: Column.Column<T[F]['type']> }>
 }
 
-// export interface Field<T> {
-//     readonly isDefined: boolean,
-//     value(row: number): T,
-//     presence(row: number): Data.ValuePresence,
-//     areValuesEqual(rowA: number, rowB: number): boolean,
-//     stringEquals(row: number, value: string | null): boolean,
-//     /** Converts the selected row range to an array. ctor might or might not be called depedning on the source data format. */
-//     toArray(params?: Column.ToArrayParams): ReadonlyArray<T>
-// }
-
 export namespace Field {
-    export interface Schema<T> { type: T, ctor: (field: Data.Field) => Column.Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
+    export interface Schema<T> { type: T, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
     export interface Spec { undefinedField?: (c: number) => Data.Field, alias?: string }
 
+    export function alias(name: string): Schema<any> { return { alias: name } as any; }
+    export function pooledStr(spec?: Spec) { return createSchema(spec, PooledStr); }
     export function str(spec?: Spec) { return createSchema(spec, Str); }
     export function int(spec?: Spec) { return createSchema(spec, Int); }
     export function float(spec?: Spec) { return createSchema(spec, Float); }
+    export function vector(rows: number, spec?: Spec) { return createSchema(spec, Vector(rows)); }
+    export function matrix(rows: number, cols: number, spec?: Spec) { return createSchema(spec, Matrix(rows, cols)); }
 
     function create<T>(field: Data.Field, value: (row: number) => T, toArray: Column.Column<T>['toArray']): Column.Column<T> {
         const presence = field.presence;
@@ -81,11 +76,31 @@ export namespace Field {
         };
     }
 
+    function PooledStr(field: Data.Field) {
+        const pool = StringPool.create();
+        const value = (row: number) => StringPool.get(pool, field.str(row));
+        const array = (params?: Column.ToArrayParams) => Column.createAndFillArray(field.rowCount, value, params);
+        return create<string>(field, value, array);
+    }
     function Str(field: Data.Field) { return create(field, field.str, field.toStringArray); }
     function Int(field: Data.Field) { return create(field, field.int, field.toIntArray); }
     function Float(field: Data.Field) { return create(field, field.float, field.toFloatArray); }
 
-    function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field) => Column.Column<T>): Schema<T> {
+    function Vector(rows: number) {
+        return function(field: Data.Field, category: Data.Category, key: string) {
+            const value = (row: number) => Data.getVector(category, key, rows, row);
+            return create(field, value, params => Column.createAndFillArray(field.rowCount, value, params));
+        }
+    }
+
+    function Matrix(rows: number, cols: number) {
+        return function(field: Data.Field, category: Data.Category, key: string) {
+            const value = (row: number) => Data.getMatrix(category, key, rows, cols, row);
+            return create(field, value, params => Column.createAndFillArray(field.rowCount, value, params));
+        }
+    }
+
+    function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>): Schema<T> {
         return { type: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || Data.DefaultUndefinedField, alias: spec && spec.alias };
     }
 }
@@ -111,8 +126,9 @@ class _Category implements Category<any> { // tslint:disable-line:class-name
             Object.defineProperty(this, k, {
                 get: function() {
                     if (cache[k]) return cache[k];
-                    const field = _category.getField(s.alias || k) || s.undefinedField(_category.rowCount);
-                    cache[k] = s.ctor(field);
+                    const name = s.alias || k;
+                    const field = _category.getField(name) || s.undefinedField(_category.rowCount);
+                    cache[k] = s.ctor(field, _category, name);
                     return cache[k];
                 },
                 enumerable: true,
@@ -127,6 +143,8 @@ function createBlock(schema: Block.Schema, block: Data.Block): any {
 }
 
 function createCategory(key: string, schema: Category.Schema, block: Data.Block) {
-    const cat = block.categories[schema['@alias'] || key];
+    const alias = (schema['@alias'] && schema['@alias'].alias) || key;
+    const name = alias[0] === '_' ? alias : '_' + alias;
+    const cat = block.categories[name];
     return new _Category(cat || Data.Category.Empty, schema, !!cat);
 }

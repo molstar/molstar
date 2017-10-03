@@ -17,10 +17,10 @@ export interface Tokenizer {
     currentTokenEnd: number
 }
 
-export interface Lines {
+export interface Tokens {
     data: string,
     count: number,
-    tokens: ArrayLike<number>
+    indices: ArrayLike<number>
 }
 
 export function Tokenizer(data: string): Tokenizer {
@@ -80,15 +80,21 @@ export namespace Tokenizer {
     }
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
-    export function readLines(state: Tokenizer, count: number): Lines {
-        const lineTokens = Tokens.create(count * 2);
+    export function readLine(state: Tokenizer): string {
+        markLine(state);
+        return getTokenString(state);
+    }
+
+    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
+    export function readLines(state: Tokenizer, count: number): Tokens {
+        const lineTokens = TokenBuilder.create(state, count * 2);
 
         for (let i = 0; i < count; i++) {
             markLine(state);
-            Tokens.addUnchecked(lineTokens, state.currentTokenStart, state.currentTokenEnd);
+            TokenBuilder.addUnchecked(lineTokens, state.currentTokenStart, state.currentTokenEnd);
         }
 
-        return { data: state.data, count, tokens: lineTokens.indices };
+        return { data: state.data, count, indices: lineTokens.indices };
     }
 
     /**
@@ -170,38 +176,43 @@ export function trimStr(data: string, start: number, end: number) {
     return data.substring(s, e + 1);
 }
 
-export interface Tokens {
-    indicesLenMinus2: number,
-    count: number,
-    indices: Uint32Array
-}
+export namespace TokenBuilder {
+    interface Builder extends Tokens {
+        offset: number,
+        indices: Uint32Array,
+        indicesLenMinus2: number
+    }
 
-export namespace Tokens {
-    function resize(tokens: Tokens) {
+    function resize(builder: Builder) {
         // scale the size using golden ratio, because why not.
-        const newBuffer = new Uint32Array((1.61 * tokens.indices.length) | 0);
-        newBuffer.set(tokens.indices);
-        tokens.indices = newBuffer;
-        tokens.indicesLenMinus2 = (newBuffer.length - 2) | 0;
+        const newBuffer = new Uint32Array((1.61 * builder.indices.length) | 0);
+        newBuffer.set(builder.indices);
+        builder.indices = newBuffer;
+        builder.indicesLenMinus2 = (newBuffer.length - 2) | 0;
     }
 
     export function add(tokens: Tokens, start: number, end: number) {
-        if (tokens.count > tokens.indicesLenMinus2) {
-            resize(tokens);
+        const builder = tokens as Builder;
+        if (builder.offset > builder.indicesLenMinus2) {
+            resize(builder);
         }
-        tokens.indices[tokens.count++] = start;
-        tokens.indices[tokens.count++] = end;
+        builder.indices[builder.offset++] = start;
+        builder.indices[builder.offset++] = end;
+        tokens.count++;
     }
 
     export function addUnchecked(tokens: Tokens, start: number, end: number) {
-        tokens.indices[tokens.count++] = start;
-        tokens.indices[tokens.count++] = end;
+        (tokens as Builder).indices[(tokens as Builder).offset++] = start;
+        (tokens as Builder).indices[(tokens as Builder).offset++] = end;
+        tokens.count++;
     }
 
-    export function create(size: number): Tokens {
-        return {
+    export function create(tokenizer: Tokenizer, size: number): Tokens {
+        return <Builder>{
+            data: tokenizer.data,
             indicesLenMinus2: (size - 2) | 0,
             count: 0,
+            offset: 0,
             indices: new Uint32Array(size)
         }
     }

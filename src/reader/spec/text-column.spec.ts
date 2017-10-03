@@ -6,6 +6,7 @@
  */
 
 import FixedColumn from '../common/text/column/fixed'
+import TokenColumn from '../common/text/column/token'
 import { ColumnType } from '../common/column'
 
 const lines = [
@@ -16,7 +17,7 @@ const lines = [
     ' 5'
 ]
 
-const data = lines.join('\n');
+const linesData = lines.join('\n');
 
 const linesTokens = (function () {
     const tokens: number[] = [];
@@ -25,12 +26,12 @@ const linesTokens = (function () {
         tokens.push(last, last + l.length);
         last += l.length + 1;
     }
-    if (tokens[tokens.length - 1] > data.length) tokens[tokens.length - 1] = data.length;
+    if (tokens[tokens.length - 1] > linesData.length) tokens[tokens.length - 1] = linesData.length;
     return tokens;
 }());
 
 describe('fixed text column', () => {
-    const col = FixedColumn({ data, tokens: linesTokens, count: lines.length });
+    const col = FixedColumn({ data: linesData, indices: linesTokens, count: lines.length });
     const col1 = col(0, 5, ColumnType.float);
     const col2 = col(5, 4, ColumnType.str);
     it('number', () => {
@@ -46,5 +47,16 @@ describe('fixed text column', () => {
         expect(col2.value(2)).toBe('bc');
         expect(col2.value(3)).toBe('');
         expect(col2.value(4)).toBe('');
+    })
+});
+
+describe('token text column', () => {
+    const tokensData = '321';
+    const col = TokenColumn({ data: tokensData, indices: [0, 1, 1, 2, 2, 3], count: 3 });
+    const col1 = col(ColumnType.int);
+    it('number', () => {
+        expect(col1.value(0)).toBe(3);
+        expect(col1.value(1)).toBe(2);
+        expect(col1.value(2)).toBe(1);
     })
 });

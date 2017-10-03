@@ -54,3 +54,17 @@ export function createArray(rowCount: number, params?: ToArrayParams) {
     const e = typeof end !== 'undefined' ? Math.min(end, rowCount) : rowCount;
     return { array: new c(e - s) as any[], start: s, end: e };
 }
+
+/** A helped function for Column.toArray */
+export function fillArrayValues(value: (row: number) => any, target: any[], start: number) {
+    for (let i = 0, _e = target.length; i < _e; i++) target[i] = value(start + i);
+    return target;
+}
+
+/** A helped function for Column.toArray */
+export function createAndFillArray(rowCount: number, value: (row: number) => any, params?: ToArrayParams) {
+    const { array, start } = createArray(rowCount, params);
+    return fillArrayValues(value, array, start);
+}
+
+
