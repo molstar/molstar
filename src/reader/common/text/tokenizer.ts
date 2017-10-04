@@ -6,6 +6,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import Computation from '../../../utils/computation'
+
 export interface Tokenizer {
     data: string
 
@@ -15,6 +17,8 @@ export interface Tokenizer {
     currentLineNumber: number
     currentTokenStart: number
     currentTokenEnd: number
+
+    computation: Computation.Chunked
 }
 
 export interface Tokens {
@@ -23,14 +27,15 @@ export interface Tokens {
     indices: ArrayLike<number>
 }
 
-export function Tokenizer(data: string): Tokenizer {
+export function Tokenizer(data: string, ctx: Computation.Context): Tokenizer {
     return {
         data,
         position: 0,
         length: data.length,
         currentLineNumber: 1,
         currentTokenStart: 0,
-        currentTokenEnd: 0
+        currentTokenEnd: 0,
+        computation: new Computation.Chunked(ctx, 1000000)
     };
 }
 
@@ -86,12 +91,17 @@ export namespace Tokenizer {
     }
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
-    export function readLines(state: Tokenizer, count: number): Tokens {
+    export async function readLines(state: Tokenizer, count: number): Promise<Tokens> {
+        const { computation, position, length } = state
         const lineTokens = TokenBuilder.create(state, count * 2);
 
         for (let i = 0; i < count; i++) {
             markLine(state);
             TokenBuilder.addUnchecked(lineTokens, state.currentTokenStart, state.currentTokenEnd);
+
+            if (computation.requiresUpdate) {
+                await computation.updateProgress('Parsing...', void 0, position, length);
+            }
         }
 
         return { data: state.data, count, indices: lineTokens.indices };

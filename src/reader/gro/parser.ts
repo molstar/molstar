@@ -10,6 +10,7 @@ import FixedColumn from '../common/text/column/fixed'
 import { ColumnType, UndefinedColumn } from '../common/column'
 import * as Schema from './schema'
 import Result from '../result'
+import Computation from '../../utils/computation'
 
 interface State {
     tokenizer: Tokenizer,
@@ -85,9 +86,9 @@ function handleNumberOfAtoms(state: State) {
  *     position (in nm, x y z in 3 columns, each 8 positions with 3 decimal places)
  *     velocity (in nm/ps (or km/s), x y z in 3 columns, each 8 positions with 4 decimal places)
  */
-function handleAtoms(state: State): Schema.Atoms {
+async function handleAtoms(state: State): Promise<Schema.Atoms> {
     const { tokenizer, numberOfAtoms } = state;
-    const lines = Tokenizer.readLines(tokenizer, numberOfAtoms);
+    const lines = await Tokenizer.readLines(tokenizer, numberOfAtoms);
 
     const positionSample = tokenizer.data.substring(lines.indices[0], lines.indices[1]).substring(20);
     const precisions = positionSample.match(/\.\d+/g)!;
@@ -134,15 +135,15 @@ function handleBoxVectors(state: State) {
     state.header.box = [+values[0], +values[1], +values[2]];
 }
 
-function parseInternal(data: string): Result<Schema.File> {
-    const tokenizer = Tokenizer(data);
+async function parseInternal(data: string, ctx: Computation.Context): Promise<Result<Schema.File>> {
+    const tokenizer = Tokenizer(data, ctx);
 
     const structures: Schema.Structure[] = [];
     while (tokenizer.position < data.length) {
         const state = State(tokenizer);
         handleTitleString(state);
         handleNumberOfAtoms(state);
-        const atoms = handleAtoms(state);
+        const atoms = await handleAtoms(state);
         handleBoxVectors(state);
         structures.push({ header: state.header, atoms });
     }
@@ -152,7 +153,9 @@ function parseInternal(data: string): Result<Schema.File> {
 }
 
 export function parse(data: string) {
-    return parseInternal(data);
+    return new Computation<Result<Schema.File>>(async ctx => {
+        return await parseInternal(data, ctx);
+    });
 }
 
 export default parse;
