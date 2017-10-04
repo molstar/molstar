@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from https://github.com/dsehnal/LiteMol
@@ -13,7 +13,7 @@ interface Computation<A> {
 }
 
 namespace Computation {
-    export let PRINT_CONSOLE_ERROR = false;
+    export let PRINT_ERRORS_TO_CONSOLE = false;
 
     export function create<A>(computation: (ctx: Context) => Promise<A>) {
         return new ComputationImpl(computation);
@@ -61,7 +61,7 @@ namespace Computation {
     export type ProgressObserver = (progress: Readonly<Progress>) => void;
 
     export interface Running<A> {
-        subscribe(onProgress: ProgressObserver): void;
+        subscribe(onProgress: ProgressObserver): void,
         result: Promise<A>
     }
 
@@ -101,8 +101,8 @@ namespace Computation {
         process(nextChunk: (chunkSize: number) => number, update: (updater: Context['updateProgress']) => void, nextChunkSize?: number): Promise<void>
     }
 
-    export function chunker(ctx: Context, defaultChunkSize: number): Chunker {
-        return new ChunkedImpl(ctx, defaultChunkSize);
+    export function chunker(ctx: Context, nextChunkSize: number): Chunker {
+        return new ChunkerImpl(ctx, nextChunkSize);
     }
 }
 
@@ -125,7 +125,7 @@ class ComputationImpl<A> implements Computation<A> {
                     const result = await this.computation(context);
                     resolve(result);
                 } catch (e) {
-                    if (Computation.PRINT_CONSOLE_ERROR) console.error(e);
+                    if (Computation.PRINT_ERRORS_TO_CONSOLE) console.error(e);
                     reject(e);
                 } finally {
                     if (context.finished) context.finished();
@@ -227,15 +227,14 @@ class ObservableContext implements Computation.Context {
     }
 }
 
-
-class ChunkedImpl implements Computation.Chunker {
+class ChunkerImpl implements Computation.Chunker {
     private processedSinceUpdate = 0;
     private updater: Computation.Context['updateProgress'];
 
     private computeChunkSize() {
         const lastDelta = (this.context as ObservableContext).lastDelta || 0;
         if (!lastDelta) return this.nextChunkSize;
-        const rate = (this.context as ObservableContext).updateRate || 0;
+        const rate = (this.context as ObservableContext).updateRate || DefaulUpdateRateMs;
         const ret = Math.round(this.processedSinceUpdate * rate / lastDelta + 1);
         this.processedSinceUpdate = 0;
         return ret;
@@ -254,10 +253,10 @@ class ChunkedImpl implements Computation.Chunker {
 
     async process(nextChunk: (size: number) => number, update: (updater: Computation.Context['updateProgress']) => Promise<void> | void, nextChunkSize?: number) {
         if (typeof nextChunkSize !== 'undefined') this.setNextChunkSize(nextChunkSize);
-        let lastChunk: number;
 
-        while (( lastChunk = nextChunk(this.getNextChunkSize())) > 0) {
-            this.processedSinceUpdate += lastChunk;
+        let lastChunkSize: number;
+        while ((lastChunkSize = nextChunk(this.getNextChunkSize())) > 0) {
+            this.processedSinceUpdate += lastChunkSize;
             if (this.context.requiresUpdate) {
                 await update(this.updater);
                 this.nextChunkSize = this.computeChunkSize();

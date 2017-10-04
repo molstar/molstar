@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -48,10 +48,10 @@ interface TokenizerState {
     length: number;
     isEscaped: boolean;
 
-    currentLineNumber: number;
-    currentTokenType: CifTokenType;
-    currentTokenStart: number;
-    currentTokenEnd: number;
+    lineNumber: number;
+    tokenType: CifTokenType;
+    tokenStart: number;
+    tokenEnd: number;
 
     chunker: Computation.Chunker
 }
@@ -66,14 +66,14 @@ function eatValue(state: TokenizerState) {
             case 10: // \n
             case 13: // \r
             case 32: // ' '
-                state.currentTokenEnd = state.position;
+                state.tokenEnd = state.position;
                 return;
             default:
                 ++state.position;
                 break;
         }
     }
-    state.currentTokenEnd = state.position;
+    state.tokenEnd = state.position;
 }
 
 /**
@@ -99,16 +99,16 @@ function eatEscaped(state: TokenizerState, esc: number) {
                 case 13: // \r
                 case 32: // ' '
                     // get rid of the quotes.
-                    state.currentTokenStart++;
-                    state.currentTokenEnd = state.position;
+                    state.tokenStart++;
+                    state.tokenEnd = state.position;
                     state.isEscaped = true;
                     ++state.position;
                     return;
                 default:
                     if (next === void 0) { // = "end of stream"
                         // get rid of the quotes.
-                        state.currentTokenStart++;
-                        state.currentTokenEnd = state.position;
+                        state.tokenStart++;
+                        state.tokenEnd = state.position;
                         state.isEscaped = true;
                         ++state.position;
                         return;
@@ -119,14 +119,14 @@ function eatEscaped(state: TokenizerState, esc: number) {
         } else {
             // handle 'xxxNEWLINE => 'xxx
             if (c === 10 || c === 13) {
-                state.currentTokenEnd = state.position;
+                state.tokenEnd = state.position;
                 return;
             }
             ++state.position;
         }
     }
 
-    state.currentTokenEnd = state.position;
+    state.tokenEnd = state.position;
 }
 
 /**
@@ -139,7 +139,7 @@ function eatMultiline(state: TokenizerState) {
         if (c === 59 && (prev === 10 || prev === 13)) { // ;, \n \r
             state.position = pos + 1;
             // get rid of the ;
-            state.currentTokenStart++;
+            state.tokenStart++;
 
             // remove trailing newlines
             pos--;
@@ -148,16 +148,16 @@ function eatMultiline(state: TokenizerState) {
                 pos--;
                 c = state.data.charCodeAt(pos);
             }
-            state.currentTokenEnd = pos + 1;
+            state.tokenEnd = pos + 1;
 
             state.isEscaped = true;
             return;
         } else {
             // handle line numbers
             if (c === 13) { // \r
-                state.currentLineNumber++;
+                state.lineNumber++;
             } else if (c === 10 && prev !== 13) { // \r\n
-                state.currentLineNumber++;
+                state.lineNumber++;
             }
 
             prev = c;
@@ -199,7 +199,7 @@ function skipWhitespace(state: TokenizerState): number {
             case 10: // \n
                 // handle \r\n
                 if (prev !== 13) {
-                    ++state.currentLineNumber;
+                    ++state.lineNumber;
                 }
                 prev = c;
                 ++state.position;
@@ -207,7 +207,7 @@ function skipWhitespace(state: TokenizerState): number {
             case 13: // \r
                 prev = c;
                 ++state.position;
-                ++state.currentLineNumber;
+                ++state.lineNumber;
                 break;
             default:
                 return prev;
@@ -220,16 +220,16 @@ function isData(state: TokenizerState): boolean {
     // here we already assume the 5th char is _ and that the length >= 5
 
     // d/D
-    let c = state.data.charCodeAt(state.currentTokenStart);
+    let c = state.data.charCodeAt(state.tokenStart);
     if (c !== 68 && c !== 100) return false;
     // a/A
-    c = state.data.charCodeAt(state.currentTokenStart + 1);
+    c = state.data.charCodeAt(state.tokenStart + 1);
     if (c !== 65 && c !== 97) return false;
     // t/t
-    c = state.data.charCodeAt(state.currentTokenStart + 2);
+    c = state.data.charCodeAt(state.tokenStart + 2);
     if (c !== 84 && c !== 116) return false;
     // a/A
-    c = state.data.charCodeAt(state.currentTokenStart + 3);
+    c = state.data.charCodeAt(state.tokenStart + 3);
     if (c !== 65 && c !== 97) return false;
 
     return true;
@@ -239,16 +239,16 @@ function isSave(state: TokenizerState): boolean {
     // here we already assume the 5th char is _ and that the length >= 5
 
     // s/S
-    let c = state.data.charCodeAt(state.currentTokenStart);
+    let c = state.data.charCodeAt(state.tokenStart);
     if (c !== 83 && c !== 115) return false;
     // a/A
-    c = state.data.charCodeAt(state.currentTokenStart + 1);
+    c = state.data.charCodeAt(state.tokenStart + 1);
     if (c !== 65 && c !== 97) return false;
     // v/V
-    c = state.data.charCodeAt(state.currentTokenStart + 2);
+    c = state.data.charCodeAt(state.tokenStart + 2);
     if (c !== 86 && c !== 118) return false;
     // e/E
-    c = state.data.charCodeAt(state.currentTokenStart + 3);
+    c = state.data.charCodeAt(state.tokenStart + 3);
     if (c !== 69 && c !== 101) return false;
 
     return true;
@@ -257,19 +257,19 @@ function isSave(state: TokenizerState): boolean {
 function isLoop(state: TokenizerState): boolean {
     // here we already assume the 5th char is _ and that the length >= 5
 
-    if (state.currentTokenEnd - state.currentTokenStart !== 5) return false;
+    if (state.tokenEnd - state.tokenStart !== 5) return false;
 
     // l/L
-    let c = state.data.charCodeAt(state.currentTokenStart);
+    let c = state.data.charCodeAt(state.tokenStart);
     if (c !== 76 && c !== 108) return false;
     // o/O
-    c = state.data.charCodeAt(state.currentTokenStart + 1);
+    c = state.data.charCodeAt(state.tokenStart + 1);
     if (c !== 79 && c !== 111) return false;
     // o/O
-    c = state.data.charCodeAt(state.currentTokenStart + 2);
+    c = state.data.charCodeAt(state.tokenStart + 2);
     if (c !== 79 && c !== 111) return false;
     // p/P
-    c = state.data.charCodeAt(state.currentTokenStart + 3);
+    c = state.data.charCodeAt(state.tokenStart + 3);
     if (c !== 80 && c !== 112) return false;
 
     return true;
@@ -281,8 +281,8 @@ function isLoop(state: TokenizerState): boolean {
 function isNamespace(state: TokenizerState, start: number, end: number): boolean {
     let i: number,
         nsLen = end - start,
-        offset = state.currentTokenStart - start,
-        tokenLen = state.currentTokenEnd - state.currentTokenStart;
+        offset = state.tokenStart - start,
+        tokenLen = state.tokenEnd - state.tokenStart;
 
     if (tokenLen < nsLen) return false;
 
@@ -303,7 +303,7 @@ function isNamespace(state: TokenizerState, start: number, end: number): boolean
  */
 function getNamespaceEnd(state: TokenizerState): number {
     let i: number;
-    for (i = state.currentTokenStart; i < state.currentTokenEnd; ++i) {
+    for (i = state.tokenStart; i < state.tokenEnd; ++i) {
         if (state.data.charCodeAt(i) === 46) return i;
     }
     return i;
@@ -313,14 +313,14 @@ function getNamespaceEnd(state: TokenizerState): number {
  * Get the namespace string. endIndex is obtained by the getNamespaceEnd() function.
  */
 function getNamespace(state: TokenizerState, endIndex: number) {
-    return state.data.substring(state.currentTokenStart, endIndex);
+    return state.data.substring(state.tokenStart, endIndex);
 }
 
 /**
  * String representation of the current token.
  */
 function getTokenString(state: TokenizerState) {
-    return state.data.substring(state.currentTokenStart, state.currentTokenEnd);
+    return state.data.substring(state.tokenStart, state.tokenEnd);
 }
 
 /**
@@ -330,23 +330,23 @@ function moveNextInternal(state: TokenizerState) {
     let prev = skipWhitespace(state);
 
     if (state.position >= state.length) {
-        state.currentTokenType = CifTokenType.End;
+        state.tokenType = CifTokenType.End;
         return;
     }
 
-    state.currentTokenStart = state.position;
-    state.currentTokenEnd = state.position;
+    state.tokenStart = state.position;
+    state.tokenEnd = state.position;
     state.isEscaped = false;
     let c = state.data.charCodeAt(state.position);
     switch (c) {
         case 35: // #, comment
             skipCommentLine(state);
-            state.currentTokenType = CifTokenType.Comment;
+            state.tokenType = CifTokenType.Comment;
             break;
         case 34: // ", escaped value
         case 39: // ', escaped value
             eatEscaped(state, c);
-            state.currentTokenType = CifTokenType.Value;
+            state.tokenType = CifTokenType.Value;
             break;
         case 59: // ;, possible multiline value
             // multiline value must start at the beginning of the line.
@@ -355,25 +355,25 @@ function moveNextInternal(state: TokenizerState) {
             } else {
                 eatValue(state);
             }
-            state.currentTokenType = CifTokenType.Value;
+            state.tokenType = CifTokenType.Value;
             break;
         default:
             eatValue(state);
             // escaped is always Value
             if (state.isEscaped) {
-                state.currentTokenType = CifTokenType.Value;
+                state.tokenType = CifTokenType.Value;
                 // _ always means column name
-            } else if (state.data.charCodeAt(state.currentTokenStart) === 95) { // _
-                state.currentTokenType = CifTokenType.ColumnName;
+            } else if (state.data.charCodeAt(state.tokenStart) === 95) { // _
+                state.tokenType = CifTokenType.ColumnName;
                 // 5th char needs to be _ for data_ or loop_
-            } else if (state.currentTokenEnd - state.currentTokenStart >= 5 && state.data.charCodeAt(state.currentTokenStart + 4) === 95) {
-                if (isData(state)) state.currentTokenType = CifTokenType.Data;
-                else if (isSave(state)) state.currentTokenType = CifTokenType.Save;
-                else if (isLoop(state)) state.currentTokenType = CifTokenType.Loop;
-                else state.currentTokenType = CifTokenType.Value;
+            } else if (state.tokenEnd - state.tokenStart >= 5 && state.data.charCodeAt(state.tokenStart + 4) === 95) {
+                if (isData(state)) state.tokenType = CifTokenType.Data;
+                else if (isSave(state)) state.tokenType = CifTokenType.Save;
+                else if (isLoop(state)) state.tokenType = CifTokenType.Loop;
+                else state.tokenType = CifTokenType.Value;
                 // all other tests failed, we are at Value token.
             } else {
-                state.currentTokenType = CifTokenType.Value;
+                state.tokenType = CifTokenType.Value;
             }
             break;
     }
@@ -384,7 +384,7 @@ function moveNextInternal(state: TokenizerState) {
  */
 function moveNext(state: TokenizerState) {
     moveNextInternal(state);
-    while (state.currentTokenType === CifTokenType.Comment) moveNextInternal(state);
+    while (state.tokenType === CifTokenType.Comment) moveNextInternal(state);
 }
 
 function createTokenizer(data: string, ctx: Computation.Context): TokenizerState {
@@ -392,10 +392,10 @@ function createTokenizer(data: string, ctx: Computation.Context): TokenizerState
         data,
         length: data.length,
         position: 0,
-        currentTokenStart: 0,
-        currentTokenEnd: 0,
-        currentTokenType: CifTokenType.End,
-        currentLineNumber: 1,
+        tokenStart: 0,
+        tokenEnd: 0,
+        tokenType: CifTokenType.End,
+        lineNumber: 1,
         isEscaped: false,
 
         chunker: Computation.chunker(ctx, 1000000)
@@ -415,27 +415,27 @@ interface CifCategoryResult {
  * Reads a category containing a single row.
  */
 function handleSingle(tokenizer: TokenizerState, categories: { [name: string]: Data.Category }): CifCategoryResult {
-    const nsStart = tokenizer.currentTokenStart, nsEnd = getNamespaceEnd(tokenizer);
+    const nsStart = tokenizer.tokenStart, nsEnd = getNamespaceEnd(tokenizer);
     const name = getNamespace(tokenizer, nsEnd);
     const fields = Object.create(null);
 
     let readingNames = true;
     while (readingNames) {
-        if (tokenizer.currentTokenType !== CifTokenType.ColumnName || !isNamespace(tokenizer, nsStart, nsEnd)) {
+        if (tokenizer.tokenType !== CifTokenType.ColumnName || !isNamespace(tokenizer, nsStart, nsEnd)) {
             readingNames = false;
             break;
         }
 
         const fieldName = getTokenString(tokenizer).substring(name.length + 1);
         moveNext(tokenizer);
-        if (tokenizer.currentTokenType as any !== CifTokenType.Value) {
+        if (tokenizer.tokenType as any !== CifTokenType.Value) {
             return {
                 hasError: true,
-                errorLine: tokenizer.currentLineNumber,
+                errorLine: tokenizer.lineNumber,
                 errorMessage: 'Expected value.'
             }
         }
-        fields[fieldName] = Field({ data: tokenizer.data, indices: [tokenizer.currentTokenStart, tokenizer.currentTokenEnd], count: 1 }, 1);
+        fields[fieldName] = Field({ data: tokenizer.data, indices: [tokenizer.tokenStart, tokenizer.tokenEnd], count: 1 }, 1);
         moveNext(tokenizer);
     }
 
@@ -459,8 +459,8 @@ function readLoopChunk(state: LoopReadState, chunkSize: number) {
     const { tokenizer, tokens, fieldCount } = state;
     let tokenCount = state.tokenCount;
     let counter = 0;
-    while (tokenizer.currentTokenType === CifTokenType.Value && counter < chunkSize) {
-        TokenBuilder.add(tokens[(tokenCount++) % fieldCount], tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
+    while (tokenizer.tokenType === CifTokenType.Value && counter < chunkSize) {
+        TokenBuilder.add(tokens[(tokenCount++) % fieldCount], tokenizer.tokenStart, tokenizer.tokenEnd);
         moveNext(tokenizer);
         counter++;
     }
@@ -478,13 +478,13 @@ function readLoopChunks(state: LoopReadState) {
  * Reads a loop.
  */
 async function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Data.Category }): Promise<CifCategoryResult> {
-    const loopLine = tokenizer.currentLineNumber;
+    const loopLine = tokenizer.lineNumber;
 
     moveNext(tokenizer);
     const name = getNamespace(tokenizer, getNamespaceEnd(tokenizer));
     const fieldNames: string[] = [];
 
-    while (tokenizer.currentTokenType === CifTokenType.ColumnName) {
+    while (tokenizer.tokenType === CifTokenType.ColumnName) {
         fieldNames[fieldNames.length] = getTokenString(tokenizer).substring(name.length + 1);
         moveNext(tokenizer);
     }
@@ -506,7 +506,7 @@ async function handleLoop(tokenizer: TokenizerState, categories: { [name: string
     if (state.tokenCount % fieldCount !== 0) {
         return {
             hasError: true,
-            errorLine: tokenizer.currentLineNumber,
+            errorLine: tokenizer.lineNumber,
             errorMessage: 'The number of values for loop starting at line ' + loopLine + ' is not a multiple of the number of columns.'
         };
     }
@@ -558,8 +558,8 @@ async function parseInternal(data: string, ctx: Computation.Context) {
     ctx.updateProgress({ message: 'Parsing...' });
 
     moveNext(tokenizer);
-    while (tokenizer.currentTokenType !== CifTokenType.End) {
-        let token = tokenizer.currentTokenType;
+    while (tokenizer.tokenType !== CifTokenType.End) {
+        let token = tokenizer.tokenType;
 
         // Data block
         if (token === CifTokenType.Data) {
@@ -569,7 +569,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
             if (Object.keys(blockCategories).length > 0) {
                 dataBlocks.push(Data.Block(blockCategories, blockHeader));
             }
-            blockHeader = data.substring(tokenizer.currentTokenStart + 5, tokenizer.currentTokenEnd);
+            blockHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
             blockCategories = Object.create(null);
             moveNext(tokenizer);
         }
@@ -609,7 +609,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
             }
             // Out of options
         } else {
-            return error(tokenizer.currentLineNumber, 'Unexpected token. Expected data_, loop_, or data name.');
+            return error(tokenizer.lineNumber, 'Unexpected token. Expected data_, loop_, or data name.');
         }
     }
 

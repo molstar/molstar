@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
  *
  * mostly from https://github.com/dsehnal/CIFTools.js
@@ -9,14 +9,14 @@
 import Computation from '../../../utils/computation'
 
 export interface Tokenizer {
-    data: string
+    data: string,
 
-    position: number
-    length: number
+    position: number,
+    length: number,
 
-    currentLineNumber: number
-    currentTokenStart: number
-    currentTokenEnd: number
+    lineNumber: number,
+    tokenStart: number,
+    tokenEnd: number
 }
 
 export interface Tokens {
@@ -30,16 +30,16 @@ export function Tokenizer(data: string): Tokenizer {
         data,
         position: 0,
         length: data.length,
-        currentLineNumber: 1,
-        currentTokenStart: 0,
-        currentTokenEnd: 0
+        lineNumber: 1,
+        tokenStart: 0,
+        tokenEnd: 0
     };
 }
 
 export namespace Tokenizer {
 
     export function getTokenString(state: Tokenizer) {
-        return state.data.substring(state.currentTokenStart, state.currentTokenEnd);
+        return state.data.substring(state.tokenStart, state.tokenEnd);
     }
 
     /**
@@ -50,14 +50,14 @@ export namespace Tokenizer {
         while (state.position < state.length) {
             switch (data.charCodeAt(state.position)) {
                 case 10: // \n
-                    state.currentTokenEnd = state.position;
+                    state.tokenEnd = state.position;
                     ++state.position;
-                    ++state.currentLineNumber;
+                    ++state.lineNumber;
                     return;
                 case 13: // \r
-                    state.currentTokenEnd = state.position;
+                    state.tokenEnd = state.position;
                     ++state.position;
-                    ++state.currentLineNumber;
+                    ++state.lineNumber;
                     if (data.charCodeAt(state.position) === 10) {
                         ++state.position;
                     }
@@ -67,17 +67,17 @@ export namespace Tokenizer {
                     break;
             }
         }
-        state.currentTokenEnd = state.position;
+        state.tokenEnd = state.position;
     }
 
     /** Sets the current token start to the current position */
     export function markStart(state: Tokenizer) {
-        state.currentTokenStart = state.position;
+        state.tokenStart = state.position;
     }
 
     /** Sets the current token start to current position and moves to the next line. */
     export function markLine(state: Tokenizer) {
-        state.currentTokenStart = state.position;
+        state.tokenStart = state.position;
         eatLine(state);
     }
 
@@ -90,7 +90,7 @@ export namespace Tokenizer {
     function readLinesChunk(state: Tokenizer, count: number, tokens: Tokens) {
         for (let i = 0; i < count; i++) {
             markLine(state);
-            TokenBuilder.addUnchecked(tokens, state.currentTokenStart, state.currentTokenEnd);
+            TokenBuilder.addUnchecked(tokens, state.tokenStart, state.tokenEnd);
         }
     }
 
@@ -127,14 +127,14 @@ export namespace Tokenizer {
                 case 10: // \n
                 case 13: // \r
                 case 32: // ' '
-                    state.currentTokenEnd = state.position;
+                    state.tokenEnd = state.position;
                     return;
                 default:
                     ++state.position;
                     break;
             }
         }
-        state.currentTokenEnd = state.position;
+        state.tokenEnd = state.position;
     }
 
     /**
@@ -154,7 +154,7 @@ export namespace Tokenizer {
                 case 10: // \n
                     // handle \r\n
                     if (prev !== 13) {
-                        ++state.currentLineNumber;
+                        ++state.lineNumber;
                     }
                     prev = c;
                     ++state.position;
@@ -162,7 +162,7 @@ export namespace Tokenizer {
                 case 13: // \r
                     prev = c;
                     ++state.position;
-                    ++state.currentLineNumber;
+                    ++state.lineNumber;
                     break;
                 default:
                     return prev;
@@ -181,8 +181,8 @@ export namespace Tokenizer {
         c = data.charCodeAt(e);
         while ((c === 9 || c === 32) && e >= s) c = data.charCodeAt(--e);
 
-        state.currentTokenStart = s;
-        state.currentTokenEnd = e + 1;
+        state.tokenStart = s;
+        state.tokenEnd = e + 1;
         state.position = end;
     }
 }

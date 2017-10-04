@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -10,7 +10,7 @@
  * MIT license.
  */
 
-function createActions() {
+function createImmediateActions() {
     type Callback = (...args: any[]) => void;
     type Task = { callback: Callback, args: any[] }
 
@@ -161,10 +161,6 @@ function createActions() {
         };
     }
 
-    // If supported, we should attach to the prototype of global, since that is where setTimeout et al. live.
-    //const attachTo = Object.getPrototypeOf && Object.getPrototypeOf(global);
-    //attachTo = attachTo && attachTo.setTimeout ? attachTo : global;
-
     // Don't get fooled by e.g. browserify environments.
     if (typeof process !== 'undefined' && {}.toString.call(process) === '[object process]') {
         // For Node.js before 0.9
@@ -189,20 +185,20 @@ function createActions() {
     };
 }
 
-const actions = (function () {
+const immediateActions = (function () {
     if (typeof setImmediate !== 'undefined') {
         return { setImmediate, clearImmediate };
     }
-    return createActions();
+    return createImmediateActions();
 }());
 
 function resolveImmediate(res: () => void) {
-    actions.setImmediate(res);
+    immediateActions.setImmediate(res);
 }
 
 export default {
-    immediate: actions.setImmediate,
-    clearImmediate: actions.clearImmediate,
+    immediate: immediateActions.setImmediate,
+    clearImmediate: immediateActions.clearImmediate,
 
     immediatePromise() { return new Promise<void>(resolveImmediate); }
 };
