@@ -19,7 +19,7 @@ const file = 'md_1u19_trj.gro'
 async function runGro(input: string) {
     console.time('parseGro');
     const comp = Gro(input);
-    const running = comp.runObservable(Computation.observableContext({ updateRateMs: 150 }));
+    const running = comp.runObservable(Computation.observable({ updateRateMs: 150 }));
     running.subscribe(p => console.log(`[Gro] ${(p.current / p.max * 100).toFixed(2)} (${p.elapsedMs | 0}ms)`));
     const parsed = await running.result;
     console.timeEnd('parseGro');
@@ -85,8 +85,8 @@ async function runCIF(input: string | Uint8Array) {
     console.time('parseCIF');
     const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
 
-    const running = comp.runObservable(Computation.observableContext({ updateRateMs: 250 }));
-    running.subscribe(p => console.log(`[CIF] ${(p.current / p.max * 100).toFixed(2)} (${p.elapsedMs | 0}ms)`));
+    const running = comp.runObservable(Computation.observable({ updateRateMs: 250 })); // Computation.synchronous
+    running.subscribe(p => console.log(`[CIF] ${p.message} ${(p.current / p.max * 100).toFixed(2)}% (${p.elapsedMs | 0}ms)`));
     const parsed = await running.result;
     console.timeEnd('parseCIF');
     if (parsed.isError) {
@@ -137,7 +137,7 @@ import Computation from './utils/computation'
 const comp = Computation.create(async ctx => {
     for (let i = 0; i < 0; i++) {
         await new Promise(res => setTimeout(res, 500));
-        if (ctx.requiresUpdate) await ctx.updateProgress('working', void 0, i, 2);
+        if (ctx.requiresUpdate) await ctx.updateProgress({ message: 'working', current: i, max: 2 });
     }
     return 42;
 });

@@ -112,7 +112,7 @@ export namespace Tokenizer {
             readLinesChunk(state, linesToRead, lineTokens);
             linesAlreadyRead += linesToRead;
             return linesToRead;
-        }, update => update('Parsing...', void 0, state.position, length));
+        }, update => update({ message: 'Parsing...', current: state.position, max: length }));
 
         return lineTokens;
     }

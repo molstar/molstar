@@ -456,7 +456,6 @@ interface LoopReadState {
 }
 
 function readLoopChunk(state: LoopReadState, chunkSize: number) {
-    //console.log(chunkSize);
     const { tokenizer, tokens, fieldCount } = state;
     let tokenCount = state.tokenCount;
     let counter = 0;
@@ -466,20 +465,13 @@ function readLoopChunk(state: LoopReadState, chunkSize: number) {
         counter++;
     }
     state.tokenCount = tokenCount;
-    return counter; //tokenizer.currentTokenType === CifTokenType.Value;
+    return counter;
 }
 
 function readLoopChunks(state: LoopReadState) {
-    const { chunker } = state.tokenizer;
-    // while (readLoopChunk(state, computation.chunkSize)) {
-    //     if (computation.requiresUpdate) {
-    //         await computation.updateProgress('Parsing...', void 0, state.tokenizer.position, state.tokenizer.data.length);
-    //     }
-    // }
-
-    return chunker.process(
+    return state.tokenizer.chunker.process(
         chunkSize => readLoopChunk(state, chunkSize),
-        update => update('Parsing...', void 0, state.tokenizer.position, state.tokenizer.data.length));
+        update => update({ message: 'Parsing...', current: state.tokenizer.position, max: state.tokenizer.data.length }));
 }
 
 /**
@@ -508,12 +500,6 @@ async function handleLoop(tokenizer: TokenizerState, categories: { [name: string
         tokenizer,
         tokens
     };
-
-    // let tokenCount = 0;
-    // while (tokenizer.currentTokenType === CifTokenType.Value) {
-    //     TokenBuilder.add(tokens[(tokenCount++) % fieldCount], tokenizer.currentTokenStart, tokenizer.currentTokenEnd);
-    //     moveNext(tokenizer);
-    // }
 
     await readLoopChunks(state);
 
@@ -569,7 +555,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
     //inSaveFrame = false,
     //blockSaveFrames: any;
 
-    ctx.updateProgress('Parsing...');
+    ctx.updateProgress({ message: 'Parsing...' });
 
     moveNext(tokenizer);
     while (tokenizer.currentTokenType !== CifTokenType.End) {

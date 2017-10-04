@@ -42,13 +42,20 @@ namespace Computation {
         requestAbort?: () => void
     }
 
+    export interface ProgressUpdate {
+        message?: string,
+        abort?: boolean | (() => void),
+        current?: number,
+        max?: number
+    }
+
     export interface Context {
         readonly isSynchronous: boolean,
         /** Also checks if the computation was aborted. If so, throws. */
         readonly requiresUpdate: boolean,
         requestAbort(): void,
         /** Also checks if the computation was aborted. If so, throws. */
-        updateProgress(msg: string, abort?: boolean | (() => void), current?: number, max?: number): Promise<void> | void
+        updateProgress(info: ProgressUpdate): Promise<void> | void
     }
 
     export type ProgressObserver = (progress: Readonly<Progress>) => void;
@@ -59,14 +66,14 @@ namespace Computation {
     }
 
     /** A context without updates. */
-    export const synchronousContext: Context = {
+    export const synchronous: Context = {
         isSynchronous: true,
         requiresUpdate: false,
         requestAbort() { },
-        updateProgress(msg, abort, current, max) { }
+        updateProgress(info) { }
     }
 
-    export function observableContext(params?: Partial<Params>) {
+    export function observable(params?: Partial<Params>) {
         return new ObservableContext(params);
     }
 
@@ -163,7 +170,7 @@ class ObservableContext implements Computation.Context {
         } catch (e) { }
     }
 
-    updateProgress(msg: string, abort?: boolean | (() => void), current?: number, max?: number): Promise<void> | void {
+    updateProgress({ message, abort, current, max }: Computation.ProgressUpdate): Promise<void> | void {
         this.checkAborted();
 
         const time = Computation.now();
@@ -175,14 +182,14 @@ class ObservableContext implements Computation.Context {
             this.progress.requestAbort = abort ? this.abortRequester : void 0;
         }
 
-        this.progress.message = msg;
+        if (typeof message !== 'undefined') this.progress.message = message;
         this.progress.elapsedMs = time - this.startedTime;
-        if (isNaN(current!) || isNaN(max!)) {
+        if (isNaN(current!)) {
             this.progress.isIndeterminate = true;
         } else {
             this.progress.isIndeterminate = false;
             this.progress.current = current!;
-            this.progress.max = max!;
+            if (!isNaN(max!)) this.progress.max = max!;
         }
 
         if (this.observers) {
