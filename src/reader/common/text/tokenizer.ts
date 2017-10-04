@@ -17,8 +17,6 @@ export interface Tokenizer {
     currentLineNumber: number
     currentTokenStart: number
     currentTokenEnd: number
-
-    computation: Computation.Chunked
 }
 
 export interface Tokens {
@@ -27,15 +25,14 @@ export interface Tokens {
     indices: ArrayLike<number>
 }
 
-export function Tokenizer(data: string, ctx: Computation.Context): Tokenizer {
+export function Tokenizer(data: string): Tokenizer {
     return {
         data,
         position: 0,
         length: data.length,
         currentLineNumber: 1,
         currentTokenStart: 0,
-        currentTokenEnd: 0,
-        computation: Computation.chunked(ctx, 1000000)
+        currentTokenEnd: 0
     };
 }
 
@@ -105,20 +102,17 @@ export namespace Tokenizer {
     }
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
-    export async function readLinesAsync(state: Tokenizer, count: number): Promise<Tokens> {
-        const { computation, length } = state
+    export async function readLinesAsync(state: Tokenizer, count: number, chunker: Computation.Chunker): Promise<Tokens> {
+        const { length } = state;
         const lineTokens = TokenBuilder.create(state, count * 2);
 
-        computation.chunkSize = 100000;
         let linesAlreadyRead = 0;
-        while (linesAlreadyRead < count) {
-            const linesToRead = Math.min(count - linesAlreadyRead, computation.chunkSize);
+        await chunker.process(chunkSize => {
+            const linesToRead = Math.min(count - linesAlreadyRead, chunkSize);
             readLinesChunk(state, linesToRead, lineTokens);
             linesAlreadyRead += linesToRead;
-            if (computation.requiresUpdate) {
-                await computation.updateProgress('Parsing...', void 0, state.position, length);
-            }
-        }
+            return linesToRead;
+        }, update => update('Parsing...', void 0, state.position, length));
 
         return lineTokens;
     }

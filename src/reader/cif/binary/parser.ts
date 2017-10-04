@@ -31,7 +31,7 @@ function Category(data: Encoding.EncodedCategory): Data.Category {
 }
 
 export default function parse(data: Uint8Array) {
-    return new Computation<Result<Data.File>>(async ctx => {
+    return Computation.create<Result<Data.File>>(async ctx => {
         const minVersion = [0, 3];
 
         try {

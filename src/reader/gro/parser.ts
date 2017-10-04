@@ -16,6 +16,7 @@ interface State {
     tokenizer: Tokenizer,
     header: Schema.Header,
     numberOfAtoms: number,
+    chunker: Computation.Chunker
 }
 
 function createEmptyHeader(): Schema.Header {
@@ -28,11 +29,12 @@ function createEmptyHeader(): Schema.Header {
     };
 }
 
-function State(tokenizer: Tokenizer): State {
+function State(tokenizer: Tokenizer, ctx: Computation.Context): State {
     return {
         tokenizer,
         header: createEmptyHeader(),
-        numberOfAtoms: 0
+        numberOfAtoms: 0,
+        chunker: Computation.chunker(ctx, 100000)
     };
 }
 
@@ -88,7 +90,7 @@ function handleNumberOfAtoms(state: State) {
  */
 async function handleAtoms(state: State): Promise<Schema.Atoms> {
     const { tokenizer, numberOfAtoms } = state;
-    const lines = await Tokenizer.readLinesAsync(tokenizer, numberOfAtoms);
+    const lines = await Tokenizer.readLinesAsync(tokenizer, numberOfAtoms, state.chunker);
 
     const positionSample = tokenizer.data.substring(lines.indices[0], lines.indices[1]).substring(20);
     const precisions = positionSample.match(/\.\d+/g)!;
@@ -136,11 +138,13 @@ function handleBoxVectors(state: State) {
 }
 
 async function parseInternal(data: string, ctx: Computation.Context): Promise<Result<Schema.File>> {
-    const tokenizer = Tokenizer(data, ctx);
+    const tokenizer = Tokenizer(data);
+
+    // 100000 lines is the default chunk size for this reader
 
     const structures: Schema.Structure[] = [];
     while (tokenizer.position < data.length) {
-        const state = State(tokenizer);
+        const state = State(tokenizer, ctx);
         handleTitleString(state);
         handleNumberOfAtoms(state);
         const atoms = await handleAtoms(state);
@@ -153,7 +157,7 @@ async function parseInternal(data: string, ctx: Computation.Context): Promise<Re
 }
 
 export function parse(data: string) {
-    return new Computation<Result<Schema.File>>(async ctx => {
+    return Computation.create<Result<Schema.File>>(async ctx => {
         return await parseInternal(data, ctx);
     });
 }

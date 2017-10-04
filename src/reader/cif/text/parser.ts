@@ -53,7 +53,7 @@ interface TokenizerState {
     currentTokenStart: number;
     currentTokenEnd: number;
 
-    computation: Computation.Chunked
+    chunker: Computation.Chunker
 }
 
 /**
@@ -397,7 +397,8 @@ function createTokenizer(data: string, ctx: Computation.Context): TokenizerState
         currentTokenType: CifTokenType.End,
         currentLineNumber: 1,
         isEscaped: false,
-        computation: Computation.chunked(ctx, 1000000)
+
+        chunker: Computation.chunker(ctx, 1000000)
     };
 }
 
@@ -455,6 +456,7 @@ interface LoopReadState {
 }
 
 function readLoopChunk(state: LoopReadState, chunkSize: number) {
+    //console.log(chunkSize);
     const { tokenizer, tokens, fieldCount } = state;
     let tokenCount = state.tokenCount;
     let counter = 0;
@@ -464,16 +466,20 @@ function readLoopChunk(state: LoopReadState, chunkSize: number) {
         counter++;
     }
     state.tokenCount = tokenCount;
-    return tokenizer.currentTokenType === CifTokenType.Value;
+    return counter; //tokenizer.currentTokenType === CifTokenType.Value;
 }
 
-async function readLoopChunks(state: LoopReadState) {
-    const { computation } = state.tokenizer;
-    while (readLoopChunk(state, computation.chunkSize)) {
-        if (computation.requiresUpdate) {
-            await computation.updateProgress('Parsing...', void 0, state.tokenizer.position, state.tokenizer.data.length);
-        }
-    }
+function readLoopChunks(state: LoopReadState) {
+    const { chunker } = state.tokenizer;
+    // while (readLoopChunk(state, computation.chunkSize)) {
+    //     if (computation.requiresUpdate) {
+    //         await computation.updateProgress('Parsing...', void 0, state.tokenizer.position, state.tokenizer.data.length);
+    //     }
+    // }
+
+    return chunker.process(
+        chunkSize => readLoopChunk(state, chunkSize),
+        update => update('Parsing...', void 0, state.tokenizer.position, state.tokenizer.data.length));
 }
 
 /**
@@ -634,7 +640,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
 }
 
 export default function parse(data: string) {
-    return new Computation<Result<Data.File>>(async ctx => {
+    return Computation.create<Result<Data.File>>(async ctx => {
         return await parseInternal(data, ctx);
     });
 }

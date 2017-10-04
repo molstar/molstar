@@ -19,7 +19,7 @@ const file = 'md_1u19_trj.gro'
 async function runGro(input: string) {
     console.time('parseGro');
     const comp = Gro(input);
-    const running = comp.runObservable(Computation.observableContext({ updateRateMs: 250 }));
+    const running = comp.runObservable(Computation.observableContext({ updateRateMs: 150 }));
     running.subscribe(p => console.log(`[Gro] ${(p.current / p.max * 100).toFixed(2)} (${p.elapsedMs | 0}ms)`));
     const parsed = await running.result;
     console.timeEnd('parseGro');
@@ -131,10 +131,10 @@ export function _cif() {
     });
 }
 
-//_cif();
+_cif();
 
 import Computation from './utils/computation'
-const comp = new Computation(async ctx => {
+const comp = Computation.create(async ctx => {
     for (let i = 0; i < 0; i++) {
         await new Promise(res => setTimeout(res, 500));
         if (ctx.requiresUpdate) await ctx.updateProgress('working', void 0, i, 2);
