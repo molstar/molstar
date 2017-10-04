@@ -397,7 +397,7 @@ function createTokenizer(data: string, ctx: Computation.Context): TokenizerState
         currentTokenType: CifTokenType.End,
         currentLineNumber: 1,
         isEscaped: false,
-        computation: new Computation.Chunked(ctx, 1000000)
+        computation: Computation.chunked(ctx, 1000000)
     };
 }
 

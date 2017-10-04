@@ -88,7 +88,7 @@ function handleNumberOfAtoms(state: State) {
  */
 async function handleAtoms(state: State): Promise<Schema.Atoms> {
     const { tokenizer, numberOfAtoms } = state;
-    const lines = await Tokenizer.readLines(tokenizer, numberOfAtoms);
+    const lines = await Tokenizer.readLinesAsync(tokenizer, numberOfAtoms);
 
     const positionSample = tokenizer.data.substring(lines.indices[0], lines.indices[1]).substring(20);
     const precisions = positionSample.match(/\.\d+/g)!;

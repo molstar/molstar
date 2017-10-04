@@ -19,7 +19,7 @@ const file = 'md_1u19_trj.gro'
 async function runGro(input: string) {
     console.time('parseGro');
     const comp = Gro(input);
-    const running = comp.runWithContext(new Computation.ObservableContext({ updateRateMs: 250 }));
+    const running = comp.runObservable(Computation.observableContext({ updateRateMs: 250 }));
     running.subscribe(p => console.log(`[Gro] ${(p.current / p.max * 100).toFixed(2)} (${p.elapsedMs | 0}ms)`));
     const parsed = await running.result;
     console.timeEnd('parseGro');
@@ -70,7 +70,7 @@ async function runGro(input: string) {
     console.log(residueNumber.length, residueNumber[0], residueNumber[residueNumber.length - 1])
 }
 
-async function _gro() {
+function _gro() {
     fs.readFile(`./examples/${file}`, 'utf8', function (err, input) {
         if (err) {
             return console.log(err);
@@ -85,7 +85,7 @@ async function runCIF(input: string | Uint8Array) {
     console.time('parseCIF');
     const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
 
-    const running = comp.runWithContext(new Computation.ObservableContext({ updateRateMs: 250 }));
+    const running = comp.runObservable(Computation.observableContext({ updateRateMs: 250 }));
     running.subscribe(p => console.log(`[CIF] ${(p.current / p.max * 100).toFixed(2)} (${p.elapsedMs | 0}ms)`));
     const parsed = await running.result;
     console.timeEnd('parseCIF');
@@ -131,7 +131,7 @@ export function _cif() {
     });
 }
 
-_cif();
+//_cif();
 
 import Computation from './utils/computation'
 const comp = new Computation(async ctx => {
@@ -142,7 +142,7 @@ const comp = new Computation(async ctx => {
     return 42;
 });
 async function testComp() {
-    const running = comp.runWithContext();
+    const running = comp.runObservable();
     running.subscribe(p => console.log(JSON.stringify(p)));
     const ret = await running.result;
     console.log('computation returned', ret);

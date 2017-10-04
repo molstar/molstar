@@ -35,7 +35,7 @@ export function Tokenizer(data: string, ctx: Computation.Context): Tokenizer {
         currentLineNumber: 1,
         currentTokenStart: 0,
         currentTokenEnd: 0,
-        computation: new Computation.Chunked(ctx, 1000000)
+        computation: Computation.chunked(ctx, 1000000)
     };
 }
 
@@ -90,21 +90,37 @@ export namespace Tokenizer {
         return getTokenString(state);
     }
 
-    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
-    export async function readLines(state: Tokenizer, count: number): Promise<Tokens> {
-        const { computation, position, length } = state
-        const lineTokens = TokenBuilder.create(state, count * 2);
-
+    function readLinesChunk(state: Tokenizer, count: number, tokens: Tokens) {
         for (let i = 0; i < count; i++) {
             markLine(state);
-            TokenBuilder.addUnchecked(lineTokens, state.currentTokenStart, state.currentTokenEnd);
+            TokenBuilder.addUnchecked(tokens, state.currentTokenStart, state.currentTokenEnd);
+        }
+    }
 
+    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
+    export function readLines(state: Tokenizer, count: number): Tokens {
+        const lineTokens = TokenBuilder.create(state, count * 2);
+        readLinesChunk(state, count, lineTokens);
+        return lineTokens;
+    }
+
+    /** Advance the state by the given number of lines and return line starts/ends as tokens. */
+    export async function readLinesAsync(state: Tokenizer, count: number): Promise<Tokens> {
+        const { computation, length } = state
+        const lineTokens = TokenBuilder.create(state, count * 2);
+
+        computation.chunkSize = 100000;
+        let linesAlreadyRead = 0;
+        while (linesAlreadyRead < count) {
+            const linesToRead = Math.min(count - linesAlreadyRead, computation.chunkSize);
+            readLinesChunk(state, linesToRead, lineTokens);
+            linesAlreadyRead += linesToRead;
             if (computation.requiresUpdate) {
-                await computation.updateProgress('Parsing...', void 0, position, length);
+                await computation.updateProgress('Parsing...', void 0, state.position, length);
             }
         }
 
-        return { data: state.data, count, indices: lineTokens.indices };
+        return lineTokens;
     }
 
     /**
