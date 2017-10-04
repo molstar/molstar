@@ -5,6 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import Scheduler from './scheduler'
+
 class Computation<A> {
     run(ctx?: Computation.Context) {
         return this.runWithContext(ctx).result;
@@ -14,7 +16,7 @@ class Computation<A> {
         const context = ctx ? ctx as Computation.ObservableContext : new Computation.ObservableContext();
 
         return {
-            subscribe: (context as Computation.ObservableContext).subscribe || Helpers.NoOpSubscribe,
+            subscribe: (context as Computation.ObservableContext).subscribe || NoOpSubscribe,
             result: new Promise<A>(async (resolve, reject) => {
                 try {
                     if (context.started) context.started();
@@ -34,6 +36,8 @@ class Computation<A> {
 
     }
 }
+
+const NoOpSubscribe = () => {}
 
 namespace Computation {
     const DefaulUpdateRateMs = 100;
@@ -123,7 +127,7 @@ namespace Computation {
         updateProgress(msg: string, abort?: boolean | (() => void), current?: number, max?: number): Promise<void> | void {
             this.checkAborted();
 
-            const time = Helpers.getTime();
+            const time = now();
 
             if (typeof abort === 'boolean') {
                 this.progress.requestAbort = abort ? this.abortRequester : void 0;
@@ -134,7 +138,7 @@ namespace Computation {
 
             this.progress.message = msg;
             this.progress.elapsedMs = time - this.startedTime;
-            if (isNaN(current!)) {
+            if (isNaN(current!) || isNaN(max!)) {
                 this.progress.isIndeterminate = true;
             } else {
                 this.progress.isIndeterminate = false;
@@ -144,23 +148,23 @@ namespace Computation {
 
             if (this.observers) {
                 const p = { ...this.progress };
-                for (const o of this.observers) setTimeout(o, 0, p);
+                for (const o of this.observers) Scheduler.immediate(o, p);
             }
 
             this.lastDelta = time - this.lastUpdated;
             this.lastUpdated = time;
 
-            return new Promise<void>(res => setTimeout(res, 0));
+            return Scheduler.immediatePromise();
         }
 
         get requiresUpdate() {
             this.checkAborted();
             if (this.isSynchronous) return false;
-            return Helpers.getTime() - this.lastUpdated > this.updateRate / 2;
+            return now() - this.lastUpdated > this.updateRate / 2;
         }
 
         started() {
-            if (!this.level) this.startedTime = Helpers.getTime();
+            if (!this.level) this.startedTime = now();
             this.level++;
         }
 
@@ -212,13 +216,11 @@ namespace Computation {
             this.currentChunkSize = defaultChunkSize;
         }
     }
-}
 
-namespace Helpers {
     declare var process: any;
     declare var window: any;
 
-    export const getTime: () => number = (function () {
+    export const now: () => number = (function () {
         if (typeof window !== 'undefined' && window.performance) {
             const perf = window.performance;
             return function () { return perf.now(); }
@@ -231,8 +233,6 @@ namespace Helpers {
             return function () { return +new Date(); }
         }
     })();
-
-    export const NoOpSubscribe = () => {};
 }
 
 export default Computation;

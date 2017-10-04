@@ -107,7 +107,7 @@ async function runCIF(input: string | Uint8Array) {
 
 export function _cif() {
     let path = `./examples/1cbs_updated.cif`;
-    path = '../test/3j3q.cif';
+    path = 'c:/test/quick/3j3q.cif';
     fs.readFile(path, 'utf8', function (err, input) {
         if (err) {
             return console.log(err);

@@ -7,7 +7,7 @@
         "sourceMap": false,
         "noUnusedLocals": true,
         "strictNullChecks": true,
-        "lib": [ "es6" ],
+        "lib": [ "es6", "dom" ],
         "outDir": "build/js/src"
     },
     "include": [ "src/**/*" ]
