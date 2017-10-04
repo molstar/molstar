@@ -11,17 +11,21 @@ import * as fs from 'fs'
 import Gro from './reader/gro/parser'
 import CIF from './reader/cif/index'
 
-// const file = '1crn.gro'
+const file = '1crn.gro'
 // const file = 'water.gro'
 // const file = 'test.gro'
-const file = 'md_1u19_trj.gro'
+// const file = 'md_1u19_trj.gro'
+
+function showProgress(tag: string, p: Computation.Progress) {
+    console.log(`[${tag}] ${p.message} ${p.isIndeterminate ? '' : (p.current / p.max * 100).toFixed(2) + '% '}(${p.elapsedMs | 0}ms)`)
+}
 
 async function runGro(input: string) {
     console.time('parseGro');
     const comp = Gro(input);
-    const running = comp.runObservable(Computation.observable({ updateRateMs: 150 }));
-    running.subscribe(p => console.log(`[Gro] ${(p.current / p.max * 100).toFixed(2)} (${p.elapsedMs | 0}ms)`));
-    const parsed = await running.result;
+
+    const ctx = Computation.observable({ updateRateMs: 150, observer: p => showProgress('GRO', p) });
+    const parsed = await comp(ctx);
     console.timeEnd('parseGro');
 
     if (parsed.isError) {
@@ -85,9 +89,8 @@ async function runCIF(input: string | Uint8Array) {
     console.time('parseCIF');
     const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
 
-    const running = comp.runObservable(Computation.observable({ updateRateMs: 250 })); // Computation.synchronous
-    running.subscribe(p => console.log(`[CIF] ${p.message} ${(p.current / p.max * 100).toFixed(2)}% (${p.elapsedMs | 0}ms)`));
-    const parsed = await running.result;
+    const ctx = Computation.observable({ updateRateMs: 250, observer: p => showProgress('CIF', p) });
+    const parsed = await comp(ctx);
     console.timeEnd('parseCIF');
     if (parsed.isError) {
         console.log(parsed);
@@ -118,7 +121,7 @@ export function _cif() {
     });
 
     path = `./examples/1cbs_full.bcif`;
-    //const path = 'c:/test/quick/3j3q.cif';
+    // const path = 'c:/test/quick/3j3q.cif';
     fs.readFile(path, function (err, input) {
         if (err) {
             return console.log(err);
@@ -137,14 +140,13 @@ import Computation from './utils/computation'
 const comp = Computation.create(async ctx => {
     for (let i = 0; i < 0; i++) {
         await new Promise(res => setTimeout(res, 500));
-        if (ctx.requiresUpdate) await ctx.updateProgress({ message: 'working', current: i, max: 2 });
+        if (ctx.requiresUpdate) await ctx.update({ message: 'working', current: i, max: 2 });
     }
     return 42;
 });
 async function testComp() {
-    const running = comp.runObservable();
-    running.subscribe(p => console.log(JSON.stringify(p)));
-    const ret = await running.result;
+    const ctx = Computation.observable({ observer: p => showProgress('test', p) });
+    const ret = await comp(ctx);
     console.log('computation returned', ret);
 }
 testComp();

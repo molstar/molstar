@@ -37,7 +37,6 @@ export function Tokenizer(data: string): Tokenizer {
 }
 
 export namespace Tokenizer {
-
     export function getTokenString(state: Tokenizer) {
         return state.data.substring(state.tokenStart, state.tokenEnd);
     }

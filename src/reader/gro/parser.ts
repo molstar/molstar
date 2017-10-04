@@ -34,7 +34,7 @@ function State(tokenizer: Tokenizer, ctx: Computation.Context): State {
         tokenizer,
         header: createEmptyHeader(),
         numberOfAtoms: 0,
-        chunker: Computation.chunker(ctx, 100000)
+        chunker: Computation.chunker(ctx, 100000) // 100000 lines is the default chunk size for this reader
     };
 }
 
@@ -140,8 +140,7 @@ function handleBoxVectors(state: State) {
 async function parseInternal(data: string, ctx: Computation.Context): Promise<Result<Schema.File>> {
     const tokenizer = Tokenizer(data);
 
-    // 100000 lines is the default chunk size for this reader
-
+    ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     const structures: Schema.Structure[] = [];
     while (tokenizer.position < data.length) {
         const state = State(tokenizer, ctx);

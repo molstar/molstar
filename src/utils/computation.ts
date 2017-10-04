@@ -8,15 +8,14 @@
 import Scheduler from './scheduler'
 
 interface Computation<A> {
-    run(ctx?: Computation.Context): Promise<A>,
-    runObservable(ctx?: Computation.Context): Computation.Running<A>
+    (ctx?: Computation.Context): Promise<A>
 }
 
 namespace Computation {
     export let PRINT_ERRORS_TO_CONSOLE = false;
 
     export function create<A>(computation: (ctx: Context) => Promise<A>) {
-        return new ComputationImpl(computation);
+        return ComputationImpl(computation);
     }
 
     export function resolve<A>(a: A) {
@@ -28,7 +27,8 @@ namespace Computation {
     }
 
     export interface Params {
-        updateRateMs: number
+        updateRateMs?: number,
+        observer?: ProgressObserver
     }
 
     export const Aborted = 'Aborted';
@@ -54,27 +54,29 @@ namespace Computation {
         /** Also checks if the computation was aborted. If so, throws. */
         readonly requiresUpdate: boolean,
         requestAbort(): void,
+
+        subscribe(onProgress: ProgressObserver): { dispose: () => void },
         /** Also checks if the computation was aborted. If so, throws. */
-        updateProgress(info: ProgressUpdate): Promise<void> | void
+        update(info: ProgressUpdate): Promise<void> | void
     }
 
     export type ProgressObserver = (progress: Readonly<Progress>) => void;
 
-    export interface Running<A> {
-        subscribe(onProgress: ProgressObserver): void,
-        result: Promise<A>
-    }
+    const emptyDisposer = { dispose: () => { } }
 
     /** A context without updates. */
     export const synchronous: Context = {
         isSynchronous: true,
         requiresUpdate: false,
         requestAbort() { },
-        updateProgress(info) { }
+        subscribe(onProgress) { return emptyDisposer; },
+        update(info) { }
     }
 
     export function observable(params?: Partial<Params>) {
-        return new ObservableContext(params);
+        const ret = new ObservableContext(params && params.updateRateMs);
+        if (params && params.observer) ret.subscribe(params.observer);
+        return ret;
     }
 
     declare var process: any;
@@ -98,7 +100,7 @@ namespace Computation {
     export interface Chunker {
         setNextChunkSize(size: number): void,
         /** nextChunk must return the number of actually processed chunks. */
-        process(nextChunk: (chunkSize: number) => number, update: (updater: Context['updateProgress']) => void, nextChunkSize?: number): Promise<void>
+        process(nextChunk: (chunkSize: number) => number, update: (updater: Context['update']) => void, nextChunkSize?: number): Promise<void>
     }
 
     export function chunker(ctx: Context, nextChunkSize: number): Chunker {
@@ -107,35 +109,22 @@ namespace Computation {
 }
 
 const DefaulUpdateRateMs = 150;
-const NoOpSubscribe = () => { }
 
-class ComputationImpl<A> implements Computation<A> {
-    run(ctx?: Computation.Context) {
-        return this.runObservable(ctx).result;
-    }
-
-    runObservable(ctx?: Computation.Context): Computation.Running<A> {
-        const context = ctx ? ctx as ObservableContext : new ObservableContext();
-
-        return {
-            subscribe: (context as ObservableContext).subscribe || NoOpSubscribe,
-            result: new Promise<A>(async (resolve, reject) => {
-                try {
-                    if (context.started) context.started();
-                    const result = await this.computation(context);
-                    resolve(result);
-                } catch (e) {
-                    if (Computation.PRINT_ERRORS_TO_CONSOLE) console.error(e);
-                    reject(e);
-                } finally {
-                    if (context.finished) context.finished();
-                }
-            })
-        };
-    }
-
-    constructor(private computation: (ctx: Computation.Context) => Promise<A>) {
-
+function ComputationImpl<A>(computation: (ctx: Computation.Context) => Promise<A>): Computation<A> {
+    return (ctx?: Computation.Context) => {
+        const context: ObservableContext = ctx ? ctx : Computation.synchronous as any;
+        return new Promise<A>(async (resolve, reject) => {
+            try {
+                if (context.started) context.started();
+                const result = await computation(context);
+                resolve(result);
+            } catch (e) {
+                if (Computation.PRINT_ERRORS_TO_CONSOLE) console.error(e);
+                reject(e);
+            } finally {
+                if (context.finished) context.finished();
+            }
+        });
     }
 }
 
@@ -160,6 +149,18 @@ class ObservableContext implements Computation.Context {
     subscribe = (obs: Computation.ProgressObserver) => {
         if (!this.observers) this.observers = [];
         this.observers.push(obs);
+        return {
+            dispose: () => {
+                if (!this.observers) return;
+                for (let i = 0; i < this.observers.length; i++) {
+                    if (this.observers[i] === obs) {
+                        this.observers[i] = this.observers[this.observers.length - 1];
+                        this.observers.pop();
+                        return;
+                    }
+                }
+            }
+        };
     }
 
     requestAbort() {
@@ -170,7 +171,7 @@ class ObservableContext implements Computation.Context {
         } catch (e) { }
     }
 
-    updateProgress({ message, abort, current, max }: Computation.ProgressUpdate): Promise<void> | void {
+    update({ message, abort, current, max }: Computation.ProgressUpdate): Promise<void> | void {
         this.checkAborted();
 
         const time = Computation.now();
@@ -210,7 +211,10 @@ class ObservableContext implements Computation.Context {
     }
 
     started() {
-        if (!this.level) this.startedTime = Computation.now();
+        if (!this.level) {
+            this.startedTime = Computation.now();
+            this.lastUpdated = this.startedTime;
+        }
         this.level++;
     }
 
@@ -222,14 +226,14 @@ class ObservableContext implements Computation.Context {
         if (!this.level) this.observers = void 0;
     }
 
-    constructor(params?: Partial<Computation.Params>) {
-        this.updateRate = (params && params.updateRateMs) || DefaulUpdateRateMs;
+    constructor(updateRate?: number) {
+        this.updateRate = updateRate || DefaulUpdateRateMs;
     }
 }
 
 class ChunkerImpl implements Computation.Chunker {
     private processedSinceUpdate = 0;
-    private updater: Computation.Context['updateProgress'];
+    private updater: Computation.Context['update'];
 
     private computeChunkSize() {
         const lastDelta = (this.context as ObservableContext).lastDelta || 0;
@@ -251,7 +255,7 @@ class ChunkerImpl implements Computation.Chunker {
         this.nextChunkSize = size;
     }
 
-    async process(nextChunk: (size: number) => number, update: (updater: Computation.Context['updateProgress']) => Promise<void> | void, nextChunkSize?: number) {
+    async process(nextChunk: (size: number) => number, update: (updater: Computation.Context['update']) => Promise<void> | void, nextChunkSize?: number) {
         if (typeof nextChunkSize !== 'undefined') this.setNextChunkSize(nextChunkSize);
 
         let lastChunkSize: number;
@@ -269,7 +273,7 @@ class ChunkerImpl implements Computation.Chunker {
     }
 
     constructor(public context: Computation.Context, private nextChunkSize: number) {
-        this.updater = this.context.updateProgress.bind(this.context);
+        this.updater = this.context.update.bind(this.context);
     }
 }
 

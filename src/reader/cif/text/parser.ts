@@ -555,7 +555,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
     //inSaveFrame = false,
     //blockSaveFrames: any;
 
-    ctx.updateProgress({ message: 'Parsing...' });
+    ctx.update({ message: 'Parsing...', current: 0, max: data.length });
 
     moveNext(tokenizer);
     while (tokenizer.tokenType !== CifTokenType.End) {
