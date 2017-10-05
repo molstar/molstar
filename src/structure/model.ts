@@ -17,7 +17,6 @@ export interface Unit extends Readonly<{
 }> { }
 
 export namespace Unit {
-    /** Represent the th */
     export interface Structure extends Readonly<{
         data: Data.Structure,
         /** A globally unique number for this instance (to easily determine unique structures within a model) */
