@@ -33,9 +33,9 @@ export function TokenColumn<T extends ColumnType>(tokens: Tokens, type: T): Colu
         isDefined: true,
         rowCount,
         value,
-        isValueDefined(row) { return true; },
-        toArray(params) { return createAndFillArray(rowCount, value, params); },
-        stringEquals(row, v) {
+        isValueDefined: row => true,
+        toArray: params => createAndFillArray(rowCount, value, params),
+        stringEquals: (row, v) => {
             const s = indices[2 * row];
             const value = v || '';
             const len = value.length;
