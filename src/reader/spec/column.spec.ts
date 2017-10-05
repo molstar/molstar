@@ -5,6 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as BinaryColumn from '../common/binary/column'
 import FixedColumn from '../common/text/column/fixed'
 import TokenColumn from '../common/text/column/token'
 import { ColumnType } from '../common/column'
@@ -60,3 +61,17 @@ describe('token text column', () => {
         expect(col1.value(2)).toBe(1);
     })
 });
+
+describe('binary column', () => {
+    it('window works', () => {
+        const xs = new Float64Array([1, 2, 3, 4]);
+        const w1 = BinaryColumn.typedArrayWindow(xs, { start: 1 });
+        const w2 = BinaryColumn.typedArrayWindow(xs, { start: 2, end: 4 });
+
+        expect(w1.length).toBe(3);
+        for (let i = 0; i < w1.length; i++) expect(w1[i]).toBe(xs[i + 1]);
+
+        expect(w2.length).toBe(2);
+        for (let i = 0; i < w2.length; i++) expect(w2[i]).toBe(xs[i + 2]);
+    });
+})

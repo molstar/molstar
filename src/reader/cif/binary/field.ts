@@ -8,12 +8,13 @@ import * as Column from '../../common/column'
 import * as Data from '../data-model'
 import { EncodedColumn } from './encoding'
 import decode from './decoder'
+import { isTypedArray, typedArrayWindow } from '../../common/binary/column'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
 
 export default function Field(column: EncodedColumn): Data.Field {
     const mask = column.mask ? decode(column.mask) as number[] : void 0;
     const data = decode(column.data);
-    const isNumeric = (data as any).buffer && (data as any).byteLength && (data as any).BYTES_PER_ELEMENT;
+    const isNumeric = isTypedArray(data);
 
     const str: Data.Field['str'] = isNumeric
         ? mask
@@ -45,9 +46,13 @@ export default function Field(column: EncodedColumn): Data.Field {
         float,
         presence,
         areValuesEqual: (rowA, rowB) => data[rowA] === data[rowB],
-        stringEquals(row, v) { return str(row) === v; },
-        toStringArray(params) { return Column.createAndFillArray(rowCount, str, params); },
-        toIntArray(params) { return Column.createAndFillArray(rowCount, int, params); },
-        toFloatArray(params)  { return Column.createAndFillArray(rowCount, float, params); }
+        stringEquals: (row, v) => str(row) === v,
+        toStringArray: params => Column.createAndFillArray(rowCount, str, params),
+        toIntArray: isNumeric
+            ? params => typedArrayWindow(data, params)
+            : params => Column.createAndFillArray(rowCount, int, params),
+        toFloatArray: isNumeric
+            ? params => typedArrayWindow(data, params)
+            : params => Column.createAndFillArray(rowCount, float, params)
     };
 }

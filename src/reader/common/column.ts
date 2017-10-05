@@ -49,12 +49,17 @@ export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T)
 }
 
 /** A helped function for Column.toArray */
+export function getArrayBounds(rowCount: number, params?: ToArrayParams) {
+    const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;
+    const end = params && typeof params.end !== 'undefined' ? Math.min(params.end, rowCount) : rowCount;
+    return { start, end };
+}
+
+/** A helped function for Column.toArray */
 export function createArray(rowCount: number, params?: ToArrayParams) {
-    const { array, start, end } = params || ({} as ToArrayParams);
-    const c = typeof array !== 'undefined' ? array : Array;
-    const s = typeof start !== 'undefined' ? Math.max(Math.min(start, rowCount - 1), 0) : 0;
-    const e = typeof end !== 'undefined' ? Math.min(end, rowCount) : rowCount;
-    return { array: new c(e - s) as any[], start: s, end: e };
+    const c = params && typeof params.array !== 'undefined' ? params.array : Array;
+    const { start, end } = getArrayBounds(rowCount, params);
+    return { array: new c(end - start) as any[], start, end };
 }
 
 /** A helped function for Column.toArray */
