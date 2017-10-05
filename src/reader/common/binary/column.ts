@@ -10,7 +10,7 @@ export function isTypedArray(data: any) {
     return data.buffer && typeof data.byteLength === 'number' && data.BYTES_PER_ELEMENT;
 }
 
-export function typedArrayWindow(data: any, params?: ToArrayParams): ArrayLike<number> {
+export function typedArrayWindow(data: any, params?: ToArrayParams): ReadonlyArray<number> {
     const { constructor, buffer, length, byteOffset, BYTES_PER_ELEMENT } = data;
     const { start, end } = getArrayBounds(length, params);
     if (start === 0 && end === length) return data;
