@@ -32,6 +32,17 @@ export interface Chains extends DataTable<Chain> { }
 export interface Entity { key: number, id: string }
 export interface Entities extends DataTable<Entity> { }
 
+export type SourceData =
+    | { kind: 'mmCIF', data: any  } // TODO
+    | { kind: 'custom', data: any  } // TODO
+
+export interface Structure {
+    atoms: Atoms,
+    residues: Residues,
+    chains: Chains,
+    entities: Entities
+}
+
 export interface SecondaryStructure {
 
 }

@@ -17,32 +17,21 @@ export interface Unit extends Readonly<{
 }> { }
 
 export namespace Unit {
-    export interface ResidueLayer extends Readonly<{
-        data: Data.Residues,
-        /** Indices into the data table. */
-        index: ArrayLike<number>,
-        /** Offsets of atoms in the residue layer. start = offsets[i], endExclusive = offsets[i + 1] */
-        offset: ArrayLike<number>
-    }> { }
-
-    export interface AtomLayer extends Readonly<{
-        data: Data.Atoms,
-        /** Indices into the data table. */
-        index: ArrayLike<number>,
-        /** Index of a residue in the corresponding residue layer. */
-        residue: number
-    }> { }
-
     /** Represent the th */
     export interface Structure extends Readonly<{
+        data: Data.Structure,
         /** A globally unique number for this instance (to easily determine unique structures within a model) */
         key: number,
-        /** Reference to the Data.Entities table */
+        /** Reference to the data.entities table */
         entity: number,
-        /** Reference to the Data.Chains table */
+        /** Reference to the data.chains table */
         chain: number,
-        residues: ResidueLayer,
-        atoms: AtomLayer
+        /** Indices into the data.residues table. */
+        residues: ArrayLike<number>,
+        /** Offsets of atoms in the residue layer. start = offsets[i], endExclusive = offsets[i + 1] */
+        atomOffsets: ArrayLike<number>,
+        /** Index of a residue in the corresponding residues array. */
+        atomResidue: number
     }> { }
 
     export interface Bonds extends Readonly<{
@@ -91,10 +80,10 @@ export interface Model extends Readonly<{
 }> { }
 
 export namespace Model {
-    export interface Structure extends Readonly<{
-        entityData: Data.Entities,
-        chainData: Data.Chains,
+    // TODO: model residues between units
+    // use a map of map of bonds?
 
+    export interface Structure extends Readonly<{
         operators: Unit.Operator[],
         units: Unit.Structure[]
     }> { }
