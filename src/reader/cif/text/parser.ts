@@ -551,9 +551,12 @@ async function parseInternal(data: string, ctx: Computation.Context) {
     let blockHeader: string = '';
     let blockCategories = Object.create(null);
 
-    //saveFrame = new DataBlock(data, "empty"),
-    //inSaveFrame = false,
-    //blockSaveFrames: any;
+    let inSaveFrame = false
+
+    // the next three initial values are never used in valid files
+    let saveFrames: Data.SafeFrame[] = [];
+    let saveCategories = Object.create(null);
+    let saveFrame: Data.SafeFrame = Data.SafeFrame(saveCategories, '');
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
 
@@ -563,63 +566,58 @@ async function parseInternal(data: string, ctx: Computation.Context) {
 
         // Data block
         if (token === CifTokenType.Data) {
-            // if (inSaveFrame) {
-            //     return error(tokenizer.currentLineNumber, "Unexpected data block inside a save frame.");
-            // }
+            if (inSaveFrame) {
+                return error(tokenizer.lineNumber, "Unexpected data block inside a save frame.");
+            }
             if (Object.keys(blockCategories).length > 0) {
-                dataBlocks.push(Data.Block(blockCategories, blockHeader));
+                dataBlocks.push(Data.Block(blockCategories, blockHeader, saveFrames));
             }
             blockHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
             blockCategories = Object.create(null);
+            saveFrames = []
             moveNext(tokenizer);
-        }
-         /*   // Save frame
+        // Save frame
         } else if (token === CifTokenType.Save) {
-            id = data.substring(tokenizer.currentTokenStart + 5, tokenizer.currentTokenEnd);
-
-            if (id.length === 0) {
-                if (saveFrame.categories.length > 0) {
-                    blockSaveFrames = blockCategories.additionalData["saveFrames"];
-                    if (!blockSaveFrames) {
-                        blockSaveFrames = [];
-                        blockCategories.additionalData["saveFrames"] = blockSaveFrames;
-                    }
-                    blockSaveFrames[blockSaveFrames.length] = saveFrame;
+            const saveHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
+            if (saveHeader.length === 0) {
+                if (Object.keys(saveCategories).length > 0) {
+                    saveFrames[saveFrames.length] = saveFrame
                 }
                 inSaveFrame = false;
             } else {
                 if (inSaveFrame) {
-                    return error(tokenizer.currentLineNumber, "Save frames cannot be nested.");
+                    return error(tokenizer.lineNumber, "Save frames cannot be nested.");
                 }
                 inSaveFrame = true;
-                saveFrame = new DataBlock(data, id);
+                saveCategories = Object.create(null);
+                saveFrame = Data.SafeFrame(saveCategories, saveHeader);
             }
             moveNext(tokenizer);
-            // Loop
-        } */ else if (token === CifTokenType.Loop) {
-            const cat = await handleLoop(tokenizer, /*inSaveFrame ? saveFrame : */ blockCategories);
+        // Loop
+        } else if (token === CifTokenType.Loop) {
+            const cat = await handleLoop(tokenizer, inSaveFrame ? saveCategories : blockCategories);
             if (cat.hasError) {
                 return error(cat.errorLine, cat.errorMessage);
             }
-            // Single row
+        // Single row
         } else if (token === CifTokenType.ColumnName) {
-            const cat = handleSingle(tokenizer, /*inSaveFrame ? saveFrame :*/ blockCategories);
+            const cat = handleSingle(tokenizer, inSaveFrame ? saveCategories : blockCategories);
             if (cat.hasError) {
                 return error(cat.errorLine, cat.errorMessage);
             }
-            // Out of options
+        // Out of options
         } else {
             return error(tokenizer.lineNumber, 'Unexpected token. Expected data_, loop_, or data name.');
         }
     }
 
     // Check if the latest save frame was closed.
-    // if (inSaveFrame) {
-    //     return error(tokenizer.currentLineNumber, "Unfinished save frame (`" + saveFrame.header + "`).");
-    // }
+    if (inSaveFrame) {
+        return error(tokenizer.lineNumber, "Unfinished save frame (`" + saveFrame.header + "`).");
+    }
 
     if (Object.keys(blockCategories).length > 0) {
-        dataBlocks.push(Data.Block(blockCategories, blockHeader));
+        dataBlocks.push(Data.Block(blockCategories, blockHeader, saveFrames));
     }
 
     return result(Data.File(dataBlocks));

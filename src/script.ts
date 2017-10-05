@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// import * as util from 'util'
+import * as util from 'util'
 import * as fs from 'fs'
 
 import Gro from './reader/gro/parser'
@@ -74,7 +74,7 @@ async function runGro(input: string) {
     console.log(residueNumber.length, residueNumber[0], residueNumber[residueNumber.length - 1])
 }
 
-function _gro() {
+export function _gro() {
     fs.readFile(`./examples/${file}`, 'utf8', function (err, input) {
         if (err) {
             return console.log(err);
@@ -83,7 +83,7 @@ function _gro() {
     });
 }
 
-_gro()
+// _gro()
 
 async function runCIF(input: string | Uint8Array) {
     console.time('parseCIF');
@@ -110,7 +110,7 @@ async function runCIF(input: string | Uint8Array) {
 
 export function _cif() {
     let path = `./examples/1cbs_updated.cif`;
-    path = 'c:/test/quick/3j3q.cif';
+    path = '../test/3j3q.cif'  // lets have a relative path for big test files
     fs.readFile(path, 'utf8', function (err, input) {
         if (err) {
             return console.log(err);
@@ -134,7 +134,37 @@ export function _cif() {
     });
 }
 
-_cif();
+// _cif();
+
+async function runDic(input: string | Uint8Array) {
+    console.time('parseDic');
+    const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
+
+    const ctx = Computation.observable({ updateRateMs: 250, observer: p => showProgress('DIC', p) });
+    const parsed = await comp(ctx);
+    console.timeEnd('parseDic');
+    if (parsed.isError) {
+        console.log(parsed);
+        return;
+    }
+
+    const data = parsed.result.blocks[0];
+    console.log(util.inspect(data.saveFrames, {showHidden: false, depth: 3}))
+}
+
+export function _dic() {
+    let path = '../test/mmcif_pdbx_v50.dic'
+    fs.readFile(path, 'utf8', function (err, input) {
+        if (err) {
+            return console.log(err);
+        }
+        console.log('------------------');
+        console.log('Text DIC:');
+        runDic(input);
+    });
+}
+
+_dic();
 
 import Computation from './utils/computation'
 const comp = Computation.create(async ctx => {

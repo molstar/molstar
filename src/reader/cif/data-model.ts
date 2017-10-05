@@ -17,15 +17,27 @@ export function File(blocks: ArrayLike<Block>, name?: string): File {
 
 export interface Block {
     readonly header: string,
-    readonly categories: { readonly [name: string]: Category }
+    readonly categories: Categories
+    readonly saveFrames: SafeFrame[]
 }
 
-export function Block(categories: { readonly [name: string]: Category }, header: string): Block {
+export function Block(categories: Categories, header: string, saveFrames: SafeFrame[] = []): Block {
     if (Object.keys(categories).some(k => k[0] !== '_')) {
         throw new Error(`Category names must start with '_'.`);
     }
+    return { header, categories, saveFrames };
+}
+
+export interface SafeFrame {
+    readonly header: string,
+    readonly categories: Categories
+}
+
+export function SafeFrame(categories: Categories, header: string): SafeFrame {
     return { header, categories };
 }
+
+export type Categories = { readonly [name: string]: Category }
 
 export interface Category {
     readonly rowCount: number,
