@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Field } from '../schema'
+import { Field, Block } from '../schema'
 
 const pooledStr = Field.pooledStr();
 const str = Field.str();
@@ -226,7 +226,7 @@ const atom_site = {
     pdbx_PDB_model_num: int
 }
 
-const schema = {
+const mmCIF = {
     entry,
     entity,
     exptl,
@@ -243,4 +243,5 @@ const schema = {
     pdbx_struct_mod_residue,
     atom_site
 };
-export default schema;
+type mmCIF = Block.Instance<typeof mmCIF>
+export default mmCIF;
