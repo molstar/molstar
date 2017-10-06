@@ -32,6 +32,20 @@ export interface Chains extends DataTable<Chain> { }
 export interface Entity { key: number, id: string }
 export interface Entities extends DataTable<Entity> { }
 
+export interface Bonds extends Readonly<{
+    /**
+     * Where bonds for atom A start and end.
+     * Start at idx, end at idx + 1
+     */
+    offset: ArrayLike<number>,
+    neighbor: ArrayLike<number>,
+
+    order: ArrayLike<number>,
+    flags: ArrayLike<number>,
+
+    count: number
+}> { }
+
 export type SourceData =
     | { kind: 'mmCIF', data: any  } // TODO
     | { kind: 'custom', data: any  } // TODO
