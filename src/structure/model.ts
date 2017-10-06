@@ -52,12 +52,12 @@ export namespace Unit {
         positions: Data.Positions,
 
         /** Per residue secondary structure assignment. */
-        secondaryStructure: Data.SecondaryStructures,
-
+        secondaryStructure: Data.SecondaryStructures
+    }> {
         '@spatialLookup': any, // TODO
         '@boundingSphere': Readonly<{ center: Vec3, radius: number }>,
         '@bonds': Data.Bonds
-    }> { }
+    }
 
     export namespace Conformation {
         export function spatialLookup(conformation: Conformation): any {
@@ -77,6 +77,7 @@ export namespace Unit {
         | { kind: 'identity' }
         | { kind: 'symmetry', id: string, hkl: Vec3 }
         | { kind: 'assembly', index: number }
+        | { kind: 'custom' }
 
     export interface Operator extends Readonly<{
         kind: OperatorKind,
@@ -93,12 +94,12 @@ export interface Model extends Readonly<{
     units: Unit[],
 
     structure: { [id: number]: Unit.Structure },
-    conformation: { [id: number]: Unit.Conformation },
-
+    conformation: { [id: number]: Unit.Conformation }
+}> {
     '@unitLookup'?: Unit.SpatialLookup,
     /** bonds between units */
     '@unitBonds'?: Data.Bonds
-}> { }
+}
 
 export namespace Model {
     export function unitLookup(model: Model): Unit.SpatialLookup {
@@ -134,7 +135,7 @@ export namespace Atom {
         return { _uint32: new Uint32Array(data), _float64: new Float64Array(data) };
     }());
 
-    export function emptyLocation(): Reference { return { unit: 0, atom: 0 }; }
+    export function emptyRef(): Reference { return { unit: 0, atom: 0 }; }
 
     export function packRef(location: Reference) {
         _uint32[0] = location.unit;
@@ -143,7 +144,7 @@ export namespace Atom {
     }
 
     export function unpackRef(ref: PackedReference) {
-        return updateRef(ref, emptyLocation());
+        return updateRef(ref, emptyRef());
     }
 
     export function updateRef(ref: PackedReference, location: Reference): Reference {
@@ -156,7 +157,7 @@ export namespace Atom {
 
 export interface Selector<T> {
     '@type': T,
-    create(m: Model, u: number): (a: number, v?: T) => T
+    create(m: Model, u: number): Selector.Field<T>
 }
 
 export function Selector<T>(create: (m: Model, u: number) => (a: number, v?: T) => T): Selector<T> {
