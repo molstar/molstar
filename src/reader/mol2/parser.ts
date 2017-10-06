@@ -6,6 +6,17 @@ import Result from '../result'
 import Computation from '../../utils/computation' ////////// not using this
 
 
+/*////////////////////////// NOTES //////////////////////////////
+    Not using async, wait, promises, computation, chunker.
+    Formatting is not clear, different exmaples mol2 files has different field sizes, so making
+columns using col() is not possible. Need to implement checks for optional columns, but not clear 
+about the names of each entry in a row in the example files.
+    Don't know when to use str and when to use pooledStr
+    Unlike gro file, mol2 file don't save 'hasSomthing' properties in the header-like Molecule 
+///////////////////////////////////////////////////////////////*/
+
+
+
 
 interface State {
     tokenizer: Tokenizer,
