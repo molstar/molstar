@@ -3,13 +3,17 @@ import FixedColumn from '../common/text/column/fixed'
 import { ColumnType, UndefinedColumn } from '../common/column'
 import * as Schema from './schema'
 import Result from '../result'
-//import Computation from '../../utils/computation'
+import Computation from '../../utils/computation' ////////// not using this
+
+
 
 interface State {
     tokenizer: Tokenizer,
     molecule: Schema.Molecule,
     ///////////// not including Computation.chunker /////////////
 }
+
+
 
 function createEmptyMolecule(): Schema.Molecule {
     return {
@@ -26,6 +30,9 @@ function createEmptyMolecule(): Schema.Molecule {
     };
 }
 
+
+
+
 function State(tokenizer: Tokenizer): State { //////////// not having ctx: Computation.Context as a parameter //////////////
     return {
         tokenizer,
@@ -34,9 +41,10 @@ function State(tokenizer: Tokenizer): State { //////////// not having ctx: Compu
     };
 }
 
-/**
- * title string (free format string, optional time in ps after 't=')
- */
+
+
+
+
 function handleMolecule(state: State) {
     const { tokenizer, molecule } = state;
     
@@ -63,74 +71,122 @@ function handleMolecule(state: State) {
 
 }
 
-/**
- * This format is fixed, ie. all columns are in a fixed position.
- * Optionally (for now only yet with trjconv) you can write gro files
- * with any number of decimal places, the format will then be n+5
- * positions with n decimal places (n+1 for velocities) in stead
- * of 8 with 3 (with 4 for velocities). Upon reading, the precision
- * will be inferred from the distance between the decimal points
- * (which will be n+5). Columns contain the following information
- * (from left to right):
- *     residue number (5 positions, integer)
- *     residue name (5 characters)
- *     atom name (5 characters)
- *     atom number (5 positions, integer)
- *     position (in nm, x y z in 3 columns, each 8 positions with 3 decimal places)
- *     velocity (in nm/ps (or km/s), x y z in 3 columns, each 8 positions with 4 decimal places)
- */
+
+
+
+
 function handleAtoms(state: State): Schema.Atoms {
     const { tokenizer, molecule } = state;
 
     ////////// not using readLinesAsync /////////
     const lines =  Tokenizer.readLines(tokenizer, molecule.num_atoms);
 
+    // default all false
+    const hasSubst_id = false;
+    const hasSubst_name = false;
+    const hasCharge = false;
+    const hasStatus_bit = false;
+
+    /*
     const pO = 20;
     const pW = state.header.precision.position + 5;
     const vO = pO + 3 * pW;
     const vW = state.header.precision.velocity + 4;
+    */
 
-    const col = FixedColumn({ data: tokenizer.data, lines, rowCount: state.numberOfAtoms });
+    const col = FixedColumn(lines);
+    const undefInt = UndefinedColumn(molecule.num_atoms, ColumnType.int);
+    const undefFloat = UndefinedColumn(molecule.num_atoms, ColumnType.float);
+    const undefStr = UndefinedColumn(molecule.num_atoms, ColumnType.str);
+    const undefPooledStr = UndefinedColumn(molecule.num_atoms, ColumnType.pooledStr);
 
+    /////// wanted to have const undef = UndefinedColumn(molecule.num_atoms) like col, but failed
+
+    /////// some unclear about the formatting, like the field sizes
     const ret = {
         count: molecule.num_atoms,
-        atom_id: col(0, 0, ColumnType.int),
-        atom_name: col(0, 0, ColumnType.str),
-        x: col(0, 0, ColumnType.float),
+        atom_id: col(0, 7, ColumnType.int),
+        atom_name: col(7, 9, ColumnType.str), ////// don't know use str or pooledStr
+        x: col(16, 10, ColumnType.float),
+        y: col(26, 10, ColumnType.float),
+        z: col(36, 10, ColumnType.float),
+        atom_type: col(46, 0, ColumnType.str), ////// don't know use str or pooledStr //////// don't know which is the atom_type
+        // optional properties
+        subst_id: hasSubst_id ? col(0, 0, ColumnType.int) : undefInt, 
+        subst_name: hasSubst_name ? col(0, 0, ColumnType.str) : undefStr,///////// don't know use str or pooledStr
+        charge: hasCharge ? col(0, 0, ColumnType.float) : undefFloat, //////// don't know use int or float
+        status_bit: hasStatus_bit ? col(0, 0, ColumnType.pooledStr) : undefPooledStr, ////////// don't know use str or pooledStr
     };
 
     return ret;
 }
 
-/**
- * box vectors (free format, space separated reals), values:
- * v1(x) v2(y) v3(z) v1(y) v1(z) v2(x) v2(z) v3(x) v3(y),
- * the last 6 values may be omitted (they will be set to zero).
- * Gromacs only supports boxes with v1(y)=v1(z)=v2(z)=0.
- */
-function handleBoxVectors(state: State) {
-    const { tokenizer } = state;
-    markLine(tokenizer);
-    const values = getTokenString(tokenizer).trim().split(/\s+/g);
-    state.header.box = [+values[0], +values[1], +values[2]];
+
+
+
+function handleBonds(state: State): Schema.Bonds {
+    const { tokenizer, molecule } = state;
+
+    ////////// not using readLinesAsync /////////
+    const lines =  Tokenizer.readLines(tokenizer, molecule.num_bonds);
+
+    // default all false
+    const hasStatus_bit = false;
+
+    /*
+    const pO = 20;
+    const pW = state.header.precision.position + 5;
+    const vO = pO + 3 * pW;
+    const vW = state.header.precision.velocity + 4;
+    */
+
+    const col = FixedColumn(lines);
+    const undefInt = UndefinedColumn(molecule.num_bonds, ColumnType.int);
+    const undefFloat = UndefinedColumn(molecule.num_bonds, ColumnType.float);
+    const undefStr = UndefinedColumn(molecule.num_bonds, ColumnType.str);
+    const undefPooledStr = UndefinedColumn(molecule.num_bonds, ColumnType.pooledStr);
+
+    /////// wanted to have const undef = UndefinedColumn(molecule.num_atoms) like col, but failed
+
+    /////// some unclear about the formatting, like the field sizes
+    const ret = {
+        count: molecule.num_bonds,
+        bond_id: col(0, 6, ColumnType.int),
+        origin_atom_id: col(6, 6, ColumnType.int), 
+        target_atom_id: col(12, 6, ColumnType.int),
+        bond_type: col(18, 5, ColumnType.str), ///////// don't know use str or pooledStr
+        // optional properties
+        status_bits: hasStatus_bit ? col(0, 0, ColumnType.str) : undefStr, ///////// don't know use str or pooledStr
+    };
+
+    return ret;
 }
 
-function parseInternal(data: string): Result<Schema.File> {
-    const tokenizer = TokenizerState(data);
+
+
+
+//////// not using async here
+function parseInternal(data: string): Result<Schema.File> { /////// not having ctx as a parameter, and not returning Promise
+    const tokenizer = Tokenizer(data);
 
     const structures: Schema.Structure[] = [];
     while (tokenizer.position < data.length) {
-        const state = createState(tokenizer);
+        const state = State(tokenizer);//////////different
         handleMolecule(state);
         const atoms = handleAtoms(state);
-        handleBoxVectors(state);
-        structures.push({ header: state.header, atoms });
+        const bonds = handleBonds(state);
+        structures.push({ molecule: state.molecule, atoms, bonds });
     }
 
     const result: Schema.File = { structures };
     return Result.success(result);
 }
 
+
+
+
+
+///////// diffrent than gro parser
 export function parse(data: string) {
     return parseInternal(data);
 }
