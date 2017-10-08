@@ -5,10 +5,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as BinaryColumn from '../common/binary/column'
 import FixedColumn from '../common/text/column/fixed'
 import TokenColumn from '../common/text/column/token'
-import { ColumnType } from '../common/column'
+import { ColumnType, typedArrayWindow } from '../common/column'
 
 const lines = [
     '1.123 abc',
@@ -65,8 +64,8 @@ describe('token text column', () => {
 describe('binary column', () => {
     it('window works', () => {
         const xs = new Float64Array([1, 2, 3, 4]);
-        const w1 = BinaryColumn.typedArrayWindow(xs, { start: 1 });
-        const w2 = BinaryColumn.typedArrayWindow(xs, { start: 2, end: 4 });
+        const w1 = typedArrayWindow(xs, { start: 1 });
+        const w2 = typedArrayWindow(xs, { start: 2, end: 4 });
 
         expect(w1.length).toBe(3);
         for (let i = 0; i < w1.length; i++) expect(w1[i]).toBe(xs[i + 1]);
