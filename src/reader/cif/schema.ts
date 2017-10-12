@@ -101,6 +101,7 @@ export namespace Field {
         }
     }
 
+    // spec argument is to allow for specialised implementation for undefined fields
     function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>): Schema<T> {
         return { type: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || Data.DefaultUndefinedField, alias: spec && spec.alias };
     }
