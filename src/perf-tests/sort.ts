@@ -95,9 +95,9 @@ function heapSort(arr: number[]) {
 }
 
 function createTestData(n: number) {
-    const data = new Int32Array(n); //new Array(n);
+    const data = []; //new Int32Array(n); //new Array(n);
     for (let i = 0; i < n; i++) {
-        data[i] = (n * Math.random());// | 0;
+        data[i] = (n * Math.random()) | 0;
     }
     return data;
 
@@ -142,18 +142,19 @@ function partition3(xs: number[], l: number, r: number) {
 }
 
 function partition3_1(xs: number[], l: number, r: number) {
+    'use strict';
     const v = medianPivot(xs, l, r);
     // console.log('P', v);
     // console.log('I', xs.slice(l, r + 1));
     let equals = l, tail = r;
 
-    while (xs[tail] > v) --tail;
+    while (xs[tail] > v)--tail;
     for (let i = l; i <= tail; i++) {
         const t = xs[i];
         if (t > v) {
             swap(xs, i, tail);
             tail--;
-            while (xs[tail] > v) --tail;
+            while (xs[tail] > v)--tail;
             i--;
         } else if (t === v) {
             swap(xs, i, equals);
@@ -170,6 +171,8 @@ function partition3_1(xs: number[], l: number, r: number) {
 }
 
 function insertionSort(xs: number[], start: number, end: number) {
+    'use strict';
+
     for (let i = start + 1; i <= end; i++) {
         const key = xs[i];
         let j = i - 1;
@@ -182,6 +185,8 @@ function insertionSort(xs: number[], start: number, end: number) {
 }
 
 function quickSort(xs: number[], low: number, high: number) {
+    'use strict';
+
     while (low < high) {
         if (high - low < 16) {
             insertionSort(xs, low, high);
@@ -211,6 +216,97 @@ function checkSorted(arr: ArrayLike<number>) {
     console.log('sorted');
 }
 
+function defaultCmp(a: number, b: number) {
+    if (a > b) return 1
+    if (a < b) return -1
+    return 0
+}
+
+function quicksortCmp(arr: number[], cmp: any, bb: number, ee: number) {
+    cmp = cmp || defaultCmp
+    var begin = bb || 0
+    var end = (ee || arr.length) - 1
+
+    var stack = []
+    var sp = -1
+    var left = begin
+    var right = end
+    var tmp = 0.0
+    //var tmp2 = 0.0
+
+    // function swap(a: number, b: number) {
+    //     tmp2 = arr[a]
+    //     arr[a] = arr[b]
+    //     arr[b] = tmp2
+    // }
+
+    var i, j
+
+    while (true) {
+        if (right - left <= 25) {
+            for (j = left + 1; j <= right; ++j) {
+                tmp = arr[j]
+                i = j - 1
+
+                while (i >= left && cmp(arr[i], tmp) > 0) {
+                    arr[i + 1] = arr[i]
+                    --i
+                }
+
+                arr[i + 1] = tmp
+            }
+
+            if (sp === -1) break
+
+            right = stack[sp--] // ?
+            left = stack[sp--]
+        } else {
+            var median = (left + right) >> 1
+
+            i = left + 1
+            j = right
+
+            swap(arr, median, i)
+
+            if (cmp(arr[left], arr[right]) > 0) {
+                swap(arr, left, right)
+            }
+
+            if (cmp(arr[i], arr[right]) > 0) {
+                swap(arr, i, right)
+            }
+
+            if (cmp(arr[left], arr[i]) > 0) {
+                swap(arr, left, i)
+            }
+
+            tmp = arr[i]
+
+            while (true) {
+                do i++; while (cmp(arr[i], tmp) < 0)
+                do j--; while (cmp(arr[j], tmp) > 0)
+                if (j < i) break
+                swap(arr, i, j)
+            }
+
+            arr[left + 1] = arr[j]
+            arr[j] = tmp
+
+            if (right - i + 1 >= j - left) {
+                stack[++sp] = i
+                stack[++sp] = right
+                right = j - 1
+            } else {
+                stack[++sp] = left
+                stack[++sp] = j - 1
+                left = i
+            }
+        }
+    }
+
+    return arr
+}
+
 (function test() {
     // console.log(medianPivot([1, 2, 3], 0, 2))
     // console.log(medianPivot([1, 3, 2], 0, 2))
@@ -219,7 +315,7 @@ function checkSorted(arr: ArrayLike<number>) {
     // console.log(medianPivot([2, 3, 1], 0, 2))
     // console.log(medianPivot([3, 2, 1], 0, 2))
 
-    const n = 10000;
+    const n = 1000;
 
     Array.prototype.sort.call(createTestData(n), (a: number, b: number) => a - b);
     mergeSort(createTestData(n));
@@ -230,6 +326,9 @@ function checkSorted(arr: ArrayLike<number>) {
 
     sd = createTestData(n);
     quickSort(sd as any, 0, sd.length - 1);
+
+    sd = createTestData(n);
+    quicksortCmp(sd as any, void 0, 0, sd.length - 1);
 
     //console.log(sd);
 
@@ -268,7 +367,7 @@ function checkSorted(arr: ArrayLike<number>) {
     console.timeEnd('qs-sorted');
     checkSorted(sd);
 
-    const reverseSorted = new Int32Array(n);
+    let reverseSorted = new Int32Array(n);
     for (let i = 0; i < n; i++) {
         reverseSorted[i] = sd[n - i - 1];
     }
@@ -278,7 +377,68 @@ function checkSorted(arr: ArrayLike<number>) {
     console.timeEnd('qs-reverse-sorted');
     checkSorted(reverseSorted);
 
+    reverseSorted = new Int32Array(n);
+    for (let i = 0; i < n; i++) {
+        reverseSorted[i] = sd[n - i - 1];
+    }
+
+    console.time('qs-reverse-sorted');
+    quickSort(reverseSorted as any, 0, reverseSorted.length - 1);
+    console.timeEnd('qs-reverse-sorted');
+    checkSorted(reverseSorted);
+
+    sd = createTestData(n);
+    checkSorted(sd);
+    console.time('qs');
+    quickSort(sd as any, 0, sd.length - 1);
+    console.timeEnd('qs');
+    checkSorted(sd);
+
     console.log('swap count', swapCount);
+
+    console.log('--------------');
+
+    //console.log('quick', sd);
+
+    sd = createTestData(n);
+    checkSorted(sd);
+    console.time('qs-a');
+    quicksortCmp(sd as any, void 0, 0, sd.length - 1);
+    console.timeEnd('qs-a');
+    checkSorted(sd);
+
+    console.time('qs-a-sorted');
+    quicksortCmp(sd as any, void 0, 0, sd.length - 1);
+    console.timeEnd('qs-a-sorted');
+    checkSorted(sd);
+
+    reverseSorted = new Int32Array(n);
+    for (let i = 0; i < n; i++) {
+        reverseSorted[i] = sd[n - i - 1];
+    }
+
+    console.time('qs-a-reverse-sorted');
+    quicksortCmp(reverseSorted as any, void 0, 0, reverseSorted.length - 1);
+    console.timeEnd('qs-a-reverse-sorted');
+    checkSorted(reverseSorted);
+
+    reverseSorted = new Int32Array(n);
+    for (let i = 0; i < n; i++) {
+        reverseSorted[i] = sd[n - i - 1];
+    }
+
+    console.time('qs-a-reverse-sorted');
+    quicksortCmp(reverseSorted as any, void 0, 0, reverseSorted.length - 1);
+    console.timeEnd('qs-a-reverse-sorted');
+    checkSorted(reverseSorted);
+
+    sd = createTestData(n);
+    checkSorted(sd);
+    console.time('qs-a');
+    quicksortCmp(sd as any, void 0, 0, sd.length - 1);
+    console.timeEnd('qs-a');
+    //console.log(sd);
+    checkSorted(sd);
 
     console.log('--------------');
 

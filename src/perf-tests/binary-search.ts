@@ -36,6 +36,11 @@ function setSearch(set: Set<number>, val: number) {
     return set.has(val);
 }
 
+type Mask = { min: number, max: number, mask: ArrayLike<number> }
+function maskSearch({ min, max, mask }: Mask, val: number) {
+    return val >= min && val <= max && !!mask[val - min];
+}
+
 function prepare(list: ArrayLike<number>) {
     const obj = Object.create(null), set = new Set<number>();
     for (let i = 0; i < list.length; i++) {
@@ -66,6 +71,22 @@ function prepareObj(list: ArrayLike<number>) {
     return obj;
 }
 
+function prepareMask(list: ArrayLike<number>): Mask {
+    let max = Number.NEGATIVE_INFINITY, min = Number.POSITIVE_INFINITY;
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        if (max < v) max = v;
+        if (min > v) min = v;
+    }
+    const mask = new Uint8Array(max - min + 1);
+    for (let i = 0; i < list.length; i++) {
+        const v = list[i];
+        mask[v - min] = 1;
+    }
+
+    return { min, max, mask };
+}
+
 function testBinary(list: ArrayLike<number>, points: ArrayLike<number>) {
     let r = 0;
     for (let i = 0, _i = points.length; i < _i; i++) {
@@ -90,21 +111,33 @@ function testSet(set: Set<number>, points: ArrayLike<number>) {
     return r;
 }
 
+function testMask(mask: Mask, points: ArrayLike<number>) {
+    let r = 0;
+    for (let i = 0, _i = points.length; i < _i; i++) {
+        if (maskSearch(mask, points[i])) r += points[i];
+    }
+    return r;
+}
+
 function run(f: () => number, n: number) {
     for (let i = 0; i < n; i++) f();
 }
 
 (function () {
-    const size = 100000;
+    const size = 10000;
     const list = createData(size);
     const queryPoints = createData(size);
 
     let obj = prepareObj(list);
     let set = prepareSet(list);
+    let mask = prepareMask(list);
 
     console.log('list', testBinary(list, queryPoints));
     console.log('obj', testObj(obj, queryPoints));
     console.log('set', testSet(set, queryPoints));
+    console.log('mask', testMask(mask, queryPoints));
+
+    console.log('----------------------')
 
     console.time('obj');
     run(() => testObj(obj, queryPoints), 100);
@@ -118,6 +151,12 @@ function run(f: () => number, n: number) {
     run(() => testBinary(list, queryPoints), 100);
     console.timeEnd('bin-search');
 
+    console.time('mask-search');
+    run(() => testMask(mask, queryPoints), 100);
+    console.timeEnd('mask-search');
+
+    console.log('----------------------')
+
     console.time('prepare-obj');
     run(() => prepareObj(list), 1);
     console.timeEnd('prepare-obj');
@@ -125,4 +164,8 @@ function run(f: () => number, n: number) {
     console.time('prepare-set');
     run(() => prepareSet(list).size, 1);
     console.timeEnd('prepare-set');
+
+    console.time('prepare-mask');
+    run(() => prepareMask(list).min, 1);
+    console.timeEnd('prepare-mask');
 }())
