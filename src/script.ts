@@ -11,6 +11,8 @@ import * as fs from 'fs'
 import Gro from './reader/gro/parser'
 import CIF from './reader/cif/index'
 
+import { getSchema } from './reader/cif/schema/utils'
+
 const file = '1crn.gro'
 // const file = 'water.gro'
 // const file = 'test.gro'
@@ -148,8 +150,9 @@ async function runDic(input: string | Uint8Array) {
         return;
     }
 
-    const data = parsed.result.blocks[0];
-    console.log(util.inspect(data.saveFrames, {showHidden: false, depth: 3}))
+    const schema = getSchema(parsed.result.blocks[0])
+    // console.log(util.inspect(schema, {showHidden: false, depth: 1}))
+    console.log(util.inspect(Object.keys(schema).length, {showHidden: false, depth: 1}))
 }
 
 export function _dic() {
