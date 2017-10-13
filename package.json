@@ -13,7 +13,8 @@
     "test": "./node_modules/.bin/jest",
     "dist": "./node_modules/.bin/uglifyjs build/js/molio.dev.js -cm > dist/molio.js && cp build/js/molio.esm.js dist/molio.esm.js",
     "script": "./node_modules/.bin/rollup build/js/src/script.js -e fs -f cjs -o build/js/script.js",
-    "runscript": "npm run script && node build/js/script.js"
+    "runscript": "npm run script && node build/js/script.js",
+    "download-dics": "./node_modules/.bin/download -o build/dics http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic && ./node_modules/.bin/download -o build/dics http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_ddl.dic"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -29,7 +30,8 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^21.1.2",
-    "@types/node": "^8.0.32",
+    "@types/node": "^8.0.34",
+    "download-cli": "^1.0.5",
     "jest": "^21.2.1",
     "rollup": "^0.50.0",
     "rollup-plugin-buble": "^0.16.0",
@@ -37,7 +39,7 @@
     "rollup-plugin-json": "^2.3.0",
     "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-watch": "^4.3.1",
-    "ts-jest": "^21.0.1",
+    "ts-jest": "^21.1.2",
     "tslint": "^5.7.0",
     "typescript": "^2.5.3",
     "uglify-js": "^3.1.3"
