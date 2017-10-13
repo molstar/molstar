@@ -63,38 +63,87 @@ function getFieldType (type: string) {
     return str
 }
 
+type SafeFrameCategories = { [category: string]: Data.SafeFrame }
+type SafeFrameLinks = { [k: string]: string }
+
+interface SafeFrameData {
+    categories: SafeFrameCategories
+    links: SafeFrameLinks
+}
+
+function getCode (d: Data.SafeFrame, ctx: SafeFrameData): string|undefined {
+    const { categories, links } = ctx
+
+    const item_type = d.categories['_item_type']
+    if (item_type) {
+        const code = item_type.getField('code')
+        if (code) {
+            return code.str(0)
+        } else {
+            console.log(`item_type.code not found for '${d.header}'`)
+        }
+    } else {
+        if (d.header in links) {
+            return getCode(categories[links[d.header]], ctx)
+        } else {
+            console.log(`no links found for '${d.header}'`)
+        }
+    }
+}
+
 export function getSchema (dic: Data.Block) {  // todo Block needs to be specialized with safe frames as well
     const schema: { [category: string]: Category.Schema } = {}
 
+    const categories: SafeFrameCategories = {}
+    const links: SafeFrameLinks = {}
     dic.saveFrames.forEach(d => {
-        if (d.header[0] !== '_') {
-            schema[d.header] = {}
-        } else {
-            const categoryName = d.header.substring(1, d.header.indexOf('.'))
-            const itemName = d.header.substring(d.header.indexOf('.') + 1)
-            let fields
-            if (categoryName in schema) {
-                fields = schema[categoryName]
-            } else {
-                fields = {}
-                schema[categoryName] = fields
-            }
-            // console.log(util.inspect(d.categories, {showHidden: false, depth: 1}))
-            const item_type = d.categories['_item_type']
-            if (item_type) {
-                const code = item_type.getField('code')
-                if (code) {
-                    fields[itemName] = getFieldType(code.str(0))
-                } else {
-                    console.log(`item_type.code not found for '${d.header}'`)
+        if (d.header[0] !== '_') return
+        categories[d.header] = d
+        const item_linked = d.categories['_item_linked']
+        if (item_linked) {
+            const child_name = item_linked.getField('child_name')
+            const parent_name = item_linked.getField('parent_name')
+            if (child_name && parent_name) {
+                for (let i = 0; i < item_linked.rowCount; ++i) {
+                    const childName = child_name.str(i)
+                    const parentName = parent_name.str(i)
+                    if (childName in links && links[childName] !== parentName) {
+                        console.log(`${childName} linked to ${links[childName]}, ignoring link to ${parentName}`)
+                    }
+                    links[childName] = parentName
                 }
-            } else {
-                // TODO check for _item_linked.parent_name and use its type
-                console.log(`item_type not found for '${d.header}'`)
             }
+        }
+    })
 
+    Object.keys(categories).forEach(categoryName => {
+        const d = categories[categoryName]
+        const itemName = d.header.substring(d.header.indexOf('.') + 1)
+        let fields
+        if (categoryName in schema) {
+            fields = schema[categoryName]
+        } else {
+            fields = {}
+            schema[categoryName] = fields
+        }
+
+        const code = getCode(d, { categories, links })
+        if (code) {
+            fields[itemName] = getFieldType(code)
+        } else {
+            console.log(`could not determine code for '${d.header}'`)
         }
     })
 
     return schema
 }
+
+// TODO
+// support controlled vocabulary as a specialization string type field
+// in the example below the string type would be `Y|N`
+// _item_type.code               ucode
+    // loop_
+    // _item_enumeration.value
+    // _item_enumeration.detail
+          // Y  'Yes'
+          // N  'No'

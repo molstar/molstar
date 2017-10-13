@@ -156,7 +156,7 @@ async function runDic(input: string | Uint8Array) {
 }
 
 export function _dic() {
-    let path = '../test/mmcif_pdbx_v50.dic'
+    let path = './build/dics/mmcif_pdbx_v50.dic'
     fs.readFile(path, 'utf8', function (err, input) {
         if (err) {
             return console.log(err);
