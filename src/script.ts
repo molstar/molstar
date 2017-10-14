@@ -151,8 +151,8 @@ async function runDic(input: string | Uint8Array) {
     }
 
     const schema = getSchema(parsed.result.blocks[0])
-    // console.log(util.inspect(schema, {showHidden: false, depth: 1}))
-    console.log(util.inspect(Object.keys(schema).length, {showHidden: false, depth: 1}))
+    console.log(util.inspect(schema, {showHidden: false, depth: 3}))
+    // console.log(util.inspect(Object.keys(schema).length, {showHidden: false, depth: 1}))
 }
 
 export function _dic() {

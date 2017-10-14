@@ -1,6 +1,6 @@
 
 // import dic from './dic'
-import { Field, Category } from '../schema'
+import { Field/*, Category*/ } from '../schema'
 import * as Data from '../data-model'
 
 const pooledStr = Field.pooledStr()
@@ -8,7 +8,7 @@ const str = Field.str()
 const int = Field.int()
 const float = Field.float()
 
-function getFieldType (type: string) {
+export function getFieldType (type: string) {
     switch (type) {
         case 'code':
         case 'ucode':
@@ -71,28 +71,53 @@ interface SafeFrameData {
     links: SafeFrameLinks
 }
 
-function getCode (d: Data.SafeFrame, ctx: SafeFrameData): string|undefined {
+// get field from given or linked category
+function getField ( category: string, field: string, d: Data.SafeFrame, ctx: SafeFrameData): Data.Field|undefined {
     const { categories, links } = ctx
 
-    const item_type = d.categories['_item_type']
-    if (item_type) {
-        const code = item_type.getField('code')
-        if (code) {
-            return code.str(0)
-        } else {
-            console.log(`item_type.code not found for '${d.header}'`)
-        }
+    const cat = d.categories[category]
+    if (cat) {
+        return cat.getField(field)
     } else {
         if (d.header in links) {
-            return getCode(categories[links[d.header]], ctx)
+            return getField(category, field, categories[links[d.header]], ctx)
         } else {
-            console.log(`no links found for '${d.header}'`)
+            // console.log(`no links found for '${d.header}'`)
         }
     }
 }
 
+function getEnums (d: Data.SafeFrame, ctx: SafeFrameData): string[]|undefined {
+    const value = getField('_item_enumeration', 'value', d, ctx)
+    if (value) {
+        const enums: string[] = []
+        for (let i = 0; i < value.rowCount; ++i) {
+            enums.push(value.str(i))
+            // console.log(value.str(i))
+        }
+        return enums
+    } else {
+        // console.log(`item_enumeration.value not found for '${d.header}'`)
+    }
+}
+
+function getCode (d: Data.SafeFrame, ctx: SafeFrameData): string|undefined {
+    const code = getField('_item_type', 'code', d, ctx)
+    if (code) {
+        let c = code.str(0)
+        if (c === 'ucode') {
+            const enums = getEnums(d, ctx)
+            if (enums) c += `: ${enums.join('|')}`
+        }
+        return c
+    } else {
+        console.log(`item_type.code not found for '${d.header}'`)
+    }
+}
+
 export function getSchema (dic: Data.Block) {  // todo Block needs to be specialized with safe frames as well
-    const schema: { [category: string]: Category.Schema } = {}
+    // const schema: { [category: string]: Category.Schema } = {}
+    const schema: { [category: string]: { [k: string]: string } } = {}
 
     const categories: SafeFrameCategories = {}
     const links: SafeFrameLinks = {}
@@ -116,8 +141,9 @@ export function getSchema (dic: Data.Block) {  // todo Block needs to be special
         }
     })
 
-    Object.keys(categories).forEach(categoryName => {
-        const d = categories[categoryName]
+    Object.keys(categories).forEach(fullName => {
+        const d = categories[fullName]
+        const categoryName = d.header.substring(0, d.header.indexOf('.'))
         const itemName = d.header.substring(d.header.indexOf('.') + 1)
         let fields
         if (categoryName in schema) {
@@ -129,7 +155,7 @@ export function getSchema (dic: Data.Block) {  // todo Block needs to be special
 
         const code = getCode(d, { categories, links })
         if (code) {
-            fields[itemName] = getFieldType(code)
+            fields[itemName] = code // getFieldType(code)
         } else {
             console.log(`could not determine code for '${d.header}'`)
         }
@@ -137,13 +163,3 @@ export function getSchema (dic: Data.Block) {  // todo Block needs to be special
 
     return schema
 }
-
-// TODO
-// support controlled vocabulary as a specialization string type field
-// in the example below the string type would be `Y|N`
-// _item_type.code               ucode
-    // loop_
-    // _item_enumeration.value
-    // _item_enumeration.detail
-          // Y  'Yes'
-          // N  'No'
