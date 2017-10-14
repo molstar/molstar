@@ -15,6 +15,12 @@ This is obviously not strongly typed + the "fields" dont know what type they are
 type FieldSchema<T> = { T: T /* remember the type */, createColumn: CIFField => Column<T> }
 ```
 
+where column is just a function that for a given row returns a value of ``T``:
+
+```ts
+type Column<T> = (row: number) => T
+```
+
 Category schema is just an object whose properties are all instances of "field schemas", its "shape" has the type:
 
 ```ts
@@ -25,8 +31,8 @@ We can declare our first category "schema":
 
 ```ts
 const my_category = {
-  num_field: { T: 0 as number, createColumn: f => Column(f => f.getNumber) }
-  str_field: { T: '' as string, createColumn: f => Column(f => f.getString) }
+  num_field: { T: 0 as number, createColumn: f => f.getNumber }
+  str_field: { T: '' as string, createColumn: f => f.getString }
 }
 ```
 
@@ -50,10 +56,17 @@ function toTypedCategory<Schema extends CategorySchema>(schema: Schema, category
         const field = category(key);
         typedCategory[key] = field 
             ? schema[key].createFolumn(field)
-            : UndefinedColumn; // a column that always returns 0 or empty string depending on type
+            : UndefinedColumn(schema[key].T); // a column that always returns 0 or empty string depending on type
     }
     return typedCategory;
 }
+```
+
+This transforms the ''untyped'' ``Category`` to some typed category and gives us code-completion for CIF files:
+
+```ts
+const typed = toTypedCategory(my_category, ...);
+typed.n /* shows code completion for num_field */
 ```
 
 And that's all there is to it. Extending the types to the "block" level is left as an exercise to the reader.
