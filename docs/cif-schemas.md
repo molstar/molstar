@@ -6,7 +6,7 @@ CIF representation (simplified):
 ```ts
 type Block = (name: string) => Category | undefined
 type Category = (name: string) => CIFField | undefined
-type CIFField = { getNumber: (row) => number, getString: (row) => string }
+type CIFField = { rowCount: number, getNumber: (row) => number, getString: (row) => string }
 ```
 
 This is obviously not strongly typed + the "fields" dont know what type they are. To solve this, we create a type to describe what a field contains and how to map it to a column (which is "typed"):
@@ -15,10 +15,10 @@ This is obviously not strongly typed + the "fields" dont know what type they are
 type FieldSchema<T> = { T: T /* remember the type */, createColumn: CIFField => Column<T> }
 ```
 
-where column is just a function that for a given row returns a value of ``T``:
+where column is just a simple interface returns a value of ``T`` for a given row:
 
 ```ts
-type Column<T> = (row: number) => T
+type Column<T> = { rowCount: number, get: (row: number) => T }
 ```
 
 Category schema is just an object whose properties are all instances of "field schemas", its "shape" has the type:
@@ -31,8 +31,8 @@ We can declare our first category "schema":
 
 ```ts
 const my_category = {
-  num_field: { T: 0 as number, createColumn: f => f.getNumber }
-  str_field: { T: '' as string, createColumn: f => f.getString }
+  num_field: { T: 0 as number, createColumn: f => ({ rowCount: f.rowCount, get: f.getNumber }) }
+  str_field: { T: '' as string, createColumn: f => ({ rowCount: f.rowCount, get: f.getString }) }
 }
 ```
 
@@ -44,12 +44,12 @@ Given a category schema, we need to construct a type that defines the typed cate
 type TypedCategory<Schema extends CategorySchema> = { [F in keyof Schema]: Column<Schema[F]['T']> }
 ```
 
-In other words, the type ``TypedCategory`` has a property of type ``Column<_>`` for each property of the schema. ``Schema[F]['T']`` just says: extract type of property called ``T`` from property ``F`` in ``Schema``. ``Schema extends CategorySchema`` says that all properties of ``Schema`` must be of type ``FieldSchema<any>``.
+In other words, the type ``TypedCategory`` has a property of type ``Column<_>`` for each property of the schema. ``Schema[F]['T']`` just says: extract the type of property called ``T`` from property ``F`` in ``Schema`` (see [mapped types in Typescript](https://www.typescriptlang.org/docs/handbook/advanced-types.html)). ``Schema extends CategorySchema`` says that all properties of ``Schema`` must be of type ``FieldSchema<any>``.
 
 Finally, we just define a mapping, ``toTypedCategory``:
 
 ```ts
-function toTypedCategory<Schema extends CategorySchema>(schema: Schema, category: Category): TypedCategory<Shape> {
+function toTypedCategory<Schema extends CategorySchema>(schema: Schema, category: Category): TypedCategory<Schema> {
     const typedCategory: any = {};
     for (const key in Object.keys(schema)) {
         // remember a category is just a function that assigns a Field to a name
@@ -67,6 +67,7 @@ This transforms the ''untyped'' ``Category`` to some typed category and gives us
 ```ts
 const typed = toTypedCategory(my_category, ...);
 typed.n /* shows code completion for num_field */
+const num = typed.num_field.get(0); /* num has type number number */
 ```
 
 And that's all there is to it. Extending the types to the "block" level is left as an exercise to the reader.
