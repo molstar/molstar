@@ -1,6 +1,6 @@
 
 // import dic from './dic'
-import { Field/*, Category*/ } from '../schema'
+import { Field, Block, Category } from '../schema'
 import * as Data from '../data-model'
 
 const pooledStr = Field.pooledStr()
@@ -87,28 +87,28 @@ function getField ( category: string, field: string, d: Data.SafeFrame, ctx: Saf
     }
 }
 
-function getEnums (d: Data.SafeFrame, ctx: SafeFrameData): string[]|undefined {
-    const value = getField('_item_enumeration', 'value', d, ctx)
-    if (value) {
-        const enums: string[] = []
-        for (let i = 0; i < value.rowCount; ++i) {
-            enums.push(value.str(i))
-            // console.log(value.str(i))
-        }
-        return enums
-    } else {
-        // console.log(`item_enumeration.value not found for '${d.header}'`)
-    }
-}
+// function getEnums (d: Data.SafeFrame, ctx: SafeFrameData): string[]|undefined {
+//     const value = getField('_item_enumeration', 'value', d, ctx)
+//     if (value) {
+//         const enums: string[] = []
+//         for (let i = 0; i < value.rowCount; ++i) {
+//             enums.push(value.str(i))
+//             // console.log(value.str(i))
+//         }
+//         return enums
+//     } else {
+//         // console.log(`item_enumeration.value not found for '${d.header}'`)
+//     }
+// }
 
 function getCode (d: Data.SafeFrame, ctx: SafeFrameData): string|undefined {
     const code = getField('_item_type', 'code', d, ctx)
     if (code) {
         let c = code.str(0)
-        if (c === 'ucode') {
-            const enums = getEnums(d, ctx)
-            if (enums) c += `: ${enums.join('|')}`
-        }
+        // if (c === 'ucode') {
+        //     const enums = getEnums(d, ctx)
+        //     if (enums) c += `: ${enums.join('|')}`
+        // }
         return c
     } else {
         console.log(`item_type.code not found for '${d.header}'`)
@@ -116,8 +116,7 @@ function getCode (d: Data.SafeFrame, ctx: SafeFrameData): string|undefined {
 }
 
 export function getSchema (dic: Data.Block) {  // todo Block needs to be specialized with safe frames as well
-    // const schema: { [category: string]: Category.Schema } = {}
-    const schema: { [category: string]: { [k: string]: string } } = {}
+    const schema: Block.Schema = {}  // { [category: string]: Category.Schema } = {}
 
     const categories: SafeFrameCategories = {}
     const links: SafeFrameLinks = {}
@@ -143,7 +142,7 @@ export function getSchema (dic: Data.Block) {  // todo Block needs to be special
 
     Object.keys(categories).forEach(fullName => {
         const d = categories[fullName]
-        const categoryName = d.header.substring(0, d.header.indexOf('.'))
+        const categoryName = d.header.substring(1, d.header.indexOf('.'))
         const itemName = d.header.substring(d.header.indexOf('.') + 1)
         let fields
         if (categoryName in schema) {
@@ -155,11 +154,11 @@ export function getSchema (dic: Data.Block) {  // todo Block needs to be special
 
         const code = getCode(d, { categories, links })
         if (code) {
-            fields[itemName] = code // getFieldType(code)
+            fields[itemName] = getFieldType(code)
         } else {
             console.log(`could not determine code for '${d.header}'`)
         }
     })
 
-    return schema
+    return schema as Block.Instance<any>
 }
