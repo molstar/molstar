@@ -8,9 +8,13 @@
 import * as util from 'util'
 import * as fs from 'fs'
 
+require('util.promisify').shim();
+const readFileAsync = util.promisify(fs.readFile);
+
 import Gro from './reader/gro/parser'
 import CIF from './reader/cif/index'
 
+import { apply as applySchema } from './reader/cif/schema'
 import { getSchema } from './reader/cif/schema/utils'
 
 const file = '1crn.gro'
@@ -76,13 +80,9 @@ async function runGro(input: string) {
     console.log(residueNumber.length, residueNumber[0], residueNumber[residueNumber.length - 1])
 }
 
-export function _gro() {
-    fs.readFile(`./examples/${file}`, 'utf8', function (err, input) {
-        if (err) {
-            return console.log(err);
-        }
-        runGro(input)
-    });
+export async function _gro() {
+    const input = await readFileAsync(`./examples/${file}`, 'utf8')
+    runGro(input)
 }
 
 // _gro()
@@ -108,35 +108,38 @@ async function runCIF(input: string | Uint8Array) {
     console.log(mmcif.atom_site.Cartn_x.value(0));
     console.log(mmcif.entity.type.toArray());
     console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
+
+    const schema = await _dic()
+    if (schema) {
+        const mmcif2 = applySchema(schema, data)
+        // console.log(util.inspect(mmcif2.atom_site, {showHidden: false, depth: 3}))
+        console.log(mmcif2.atom_site.Cartn_x.value(0));
+        console.log(mmcif2.entity.type.toArray());
+        // console.log(mmcif2.pdbx_struct_oper_list.matrix.value(0)); // TODO
+    } else {
+        console.log('error getting mmcif schema from dic')
+    }
 }
 
-export function _cif() {
+export async function _cif() {
     let path = `./examples/1cbs_updated.cif`;
-    path = '../test/3j3q.cif'  // lets have a relative path for big test files
-    fs.readFile(path, 'utf8', function (err, input) {
-        if (err) {
-            return console.log(err);
-        }
-        console.log('------------------');
-        console.log('Text CIF:');
-        runCIF(input);
-    });
+    // path = '../test/3j3q.cif'  // lets have a relative path for big test files
+    const input = await readFileAsync(path, 'utf8')
+    console.log('------------------');
+    console.log('Text CIF:');
+    runCIF(input);
 
     path = `./examples/1cbs_full.bcif`;
     // const path = 'c:/test/quick/3j3q.cif';
-    fs.readFile(path, function (err, input) {
-        if (err) {
-            return console.log(err);
-        }
-        console.log('------------------');
-        console.log('BinaryCIF:');
-        const data = new Uint8Array(input.byteLength);
-        for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
-        runCIF(input);
-    });
+    const input2 = await readFileAsync(path)
+    console.log('------------------');
+    console.log('BinaryCIF:');
+    const data = new Uint8Array(input2.byteLength);
+    for (let i = 0; i < input2.byteLength; i++) data[i] = input2[i];
+    runCIF(input2);
 }
 
-// _cif();
+_cif();
 
 async function runDic(input: string | Uint8Array) {
     console.time('parseDic');
@@ -151,23 +154,21 @@ async function runDic(input: string | Uint8Array) {
     }
 
     const schema = getSchema(parsed.result.blocks[0])
-    // console.log(util.inspect(schema, {showHidden: false, depth: 1}))
-    console.log(util.inspect(Object.keys(schema).length, {showHidden: false, depth: 1}))
+    console.log(util.inspect(schema, {showHidden: false, depth: 3}))
+    // console.log(util.inspect(Object.keys(schema).length, {showHidden: false, depth: 1}))
+
+    return schema
 }
 
-export function _dic() {
-    let path = '../test/mmcif_pdbx_v50.dic'
-    fs.readFile(path, 'utf8', function (err, input) {
-        if (err) {
-            return console.log(err);
-        }
-        console.log('------------------');
-        console.log('Text DIC:');
-        runDic(input);
-    });
+export async function _dic() {
+    let path = './build/dics/mmcif_pdbx_v50.dic'
+    const input = await readFileAsync(path, 'utf8')
+    console.log('------------------');
+    console.log('Text DIC:');
+    return runDic(input);
 }
 
-_dic();
+// _dic();
 
 import Computation from './utils/computation'
 const comp = Computation.create(async ctx => {
