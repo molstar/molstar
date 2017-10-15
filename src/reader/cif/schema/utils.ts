@@ -118,6 +118,10 @@ function getCode (d: Data.Frame, ctx: SafeFrameData): string|undefined {
 export function getSchema (dic: Data.Block) {  // todo Block needs to be specialized with safe frames as well
     const schema: FrameSchema = {}  // { [category: string]: Category.Schema } = {}
 
+    // TODO: for fields with finite allowed values, generate:
+    // type FieldValue = 'a' | 'b' | 'c'
+    // const catetegory = { field: <type> as Field.Schema<FieldValue> }
+
     const categories: SafeFrameCategories = {}
     const links: SafeFrameLinks = {}
     dic.saveFrames.forEach(d => {
