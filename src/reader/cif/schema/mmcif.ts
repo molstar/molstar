@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Field, Block } from '../schema'
+import { Field, TypedFrame } from '../schema'
 
 const pooledStr = Field.pooledStr();
 const str = Field.str();
@@ -243,5 +243,5 @@ const mmCIF = {
     pdbx_struct_mod_residue,
     atom_site
 };
-type mmCIF = Block.Instance<typeof mmCIF>
+type mmCIF = TypedFrame<typeof mmCIF>
 export default mmCIF;

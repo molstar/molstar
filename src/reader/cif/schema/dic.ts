@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Field, Block } from '../schema'
+import { Field, TypedFrame } from '../schema'
 
 const str = Field.str()
 const float = Field.float()
@@ -69,5 +69,5 @@ const dic = {
     item_units_conversion
 }
 
-type dic = Block.Instance<typeof dic>
+type dic = TypedFrame<typeof dic>
 export default dic

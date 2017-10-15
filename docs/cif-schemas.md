@@ -4,18 +4,18 @@ How CIF schemas work
 CIF representation (simplified):
 
 ```ts
-type Block = (name: string) => Category | undefined
-type Category = (name: string) => CIFField | undefined
-type CIFField = { rowCount: number, getNumber: (row) => number, getString: (row) => string }
+type Frame = (name: string) => Category | undefined // Frame is either a data block or a save frame
+type Category = (name: string) => Field | undefined
+type Field = { rowCount: number, getNumber: (row) => number, getString: (row) => string }
 ```
 
-This is obviously not strongly typed + the "fields" dont know what type they are. To solve this, we create a type to describe what a field contains and how to map it to a column (which is "typed"):
+This is obviously not strongly typed and the "fields" don't know what type they are. To solve this, we create a type to describe what a field contains and how to map it to a "typed column":
 
 ```ts
-type FieldSchema<T> = { T: T /* remember the type */, createColumn: CIFField => Column<T> }
+type FieldSchema<T> = { T: T /* remember the type */, createColumn: (field: Field) => Column<T> }
 ```
 
-where column is just a simple interface returns a value of ``T`` for a given row:
+where column is just a simple interface that returns a value of ``T`` for a given row:
 
 ```ts
 type Column<T> = { rowCount: number, get: (row: number) => T }
@@ -70,7 +70,9 @@ typed.n /* shows code completion for num_field */
 const num = typed.num_field.get(0); /* num has type number number */
 ```
 
-And that's all there is to it. Extending the types to the "block" level is left as an exercise to the reader.
+And that's all there is to it. Extending the types to the "frame" level is left as an exercise to the reader.
+
+The advantage of this approach is that the types are generated directly from the data. This means we only need to define them once (as opposed to defining the data interfaces separately) and on top of that, the "schemas" also serve as a template for how to actually performs the transformation to the typed version of CIF (again without the need to do this "manually" except the one time definition of the schema).
 
 ----------------
 

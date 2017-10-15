@@ -14,7 +14,7 @@ const readFileAsync = util.promisify(fs.readFile);
 import Gro from './reader/gro/parser'
 import CIF from './reader/cif/index'
 
-import { apply as applySchema } from './reader/cif/schema'
+import { toTypedFrame as applySchema } from './reader/cif/schema'
 import { getSchema } from './reader/cif/schema/utils'
 
 const file = '1crn.gro'
