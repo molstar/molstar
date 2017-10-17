@@ -1,6 +1,6 @@
 
 // import dic from './dic'
-import { Field, Block, Category } from '../schema'
+import { Field, FrameSchema } from '../schema'
 import * as Data from '../data-model'
 
 const pooledStr = Field.pooledStr()
@@ -63,7 +63,7 @@ export function getFieldType (type: string) {
     return str
 }
 
-type SafeFrameCategories = { [category: string]: Data.SafeFrame }
+type SafeFrameCategories = { [category: string]: Data.Frame }
 type SafeFrameLinks = { [k: string]: string }
 
 interface SafeFrameData {
@@ -72,7 +72,7 @@ interface SafeFrameData {
 }
 
 // get field from given or linked category
-function getField ( category: string, field: string, d: Data.SafeFrame, ctx: SafeFrameData): Data.Field|undefined {
+function getField ( category: string, field: string, d: Data.Frame, ctx: SafeFrameData): Data.Field|undefined {
     const { categories, links } = ctx
 
     const cat = d.categories[category]
@@ -101,7 +101,7 @@ function getField ( category: string, field: string, d: Data.SafeFrame, ctx: Saf
 //     }
 // }
 
-function getCode (d: Data.SafeFrame, ctx: SafeFrameData): string|undefined {
+function getCode (d: Data.Frame, ctx: SafeFrameData): string|undefined {
     const code = getField('_item_type', 'code', d, ctx)
     if (code) {
         let c = code.str(0)
@@ -116,7 +116,11 @@ function getCode (d: Data.SafeFrame, ctx: SafeFrameData): string|undefined {
 }
 
 export function getSchema (dic: Data.Block) {  // todo Block needs to be specialized with safe frames as well
-    const schema: Block.Schema = {}  // { [category: string]: Category.Schema } = {}
+    const schema: FrameSchema = {}  // { [category: string]: Category.Schema } = {}
+
+    // TODO: for fields with finite allowed values, generate:
+    // type FieldValue = 'a' | 'b' | 'c'
+    // const catetegory = { field: <type> as Field.Schema<FieldValue> }
 
     const categories: SafeFrameCategories = {}
     const links: SafeFrameLinks = {}
@@ -160,5 +164,5 @@ export function getSchema (dic: Data.Block) {  // todo Block needs to be special
         }
     })
 
-    return schema as Block.Instance<any>
+    return schema;
 }

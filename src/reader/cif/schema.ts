@@ -25,35 +25,30 @@ import StringPool from '../../utils/short-string-pool'
 
 //////////////////////////////////////////////
 
-export function apply<Schema extends Block.Schema>(schema: Schema, block: Data.Block): Block.Instance<Schema> {
-    return createBlock(schema, block) as Block.Instance<Schema>;
+export function toTypedFrame<Schema extends FrameSchema>(schema: Schema, frame: Data.Frame): TypedFrame<Schema> {
+    return createTypedFrame(schema, frame) as TypedFrame<Schema>;
 }
 
-export type Block<Categories> = Categories & {
+export function toTypedCategory<Schema extends CategorySchema>(schema: Schema, category: Data.Category): TypedCategory<Schema> {
+    return new _TypedCategory(category, schema, true) as TypedCategory<any>;
+}
+
+export type FrameSchema = { [category: string]: CategorySchema }
+export type TypedFrame<Schema extends FrameSchema> = {
     readonly _header?: string,
-    /** For accessing 'non-standard' categories */
-    _getCategory(name: string): Data.Category | undefined
-}
+    readonly _frame: Data.Frame
+} & { [C in keyof Schema]: TypedCategory<Schema[C]> }
 
-export namespace Block {
-    export type Schema = { [category: string]: Category.Schema }
-    export type Instance<T extends Schema> = Block<{ [C in keyof T]: Category.Instance<T[C]> }>
-}
 
-export type Category<Fields> = Fields & {
+export type CategorySchema = { [field: string]: Field.Schema<any> }
+export type TypedCategory<Schema extends CategorySchema> = {
     readonly _rowCount: number,
     readonly _isDefined: boolean,
-    /** For accessing 'non-standard' fields */
-    _getField(name: string): Data.Field | undefined
-}
-
-export namespace Category {
-    export type Schema = { [field: string]: Field.Schema<any> }
-    export type Instance<T extends Schema> = Category<{ [F in keyof T]: Column.Column<T[F]['type']> }>
-}
+    readonly _category: Data.Category
+} & { [F in keyof Schema]: Column.Column<Schema[F]['T']> }
 
 export namespace Field {
-    export interface Schema<T> { type: T, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
+    export interface Schema<T> { T: T, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
     export interface Spec { undefinedField?: (c: number) => Data.Field, alias?: string }
 
     export function alias(name: string): Schema<any> { return { alias: name } as any; }
@@ -103,24 +98,22 @@ export namespace Field {
 
     // spec argument is to allow for specialised implementation for undefined fields
     function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>): Schema<T> {
-        return { type: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || Data.DefaultUndefinedField, alias: spec && spec.alias };
+        return { T: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || Data.DefaultUndefinedField, alias: spec && spec.alias };
     }
 }
 
-class _Block implements Block<any> { // tslint:disable-line:class-name
-    header = this._block.header;
-    getCategory(name: string) { return this._block.categories[name]; }
-    constructor(private _block: Data.Block, schema: Block.Schema) {
+class _TypedFrame implements TypedFrame<any> { // tslint:disable-line:class-name
+    header = this._frame.header;
+    constructor(public _frame: Data.Frame, schema: FrameSchema) {
         for (const k of Object.keys(schema)) {
-            Object.defineProperty(this, k, { value: createCategory(k, schema[k], _block), enumerable: true, writable: false, configurable: false });
+            Object.defineProperty(this, k, { value: createTypedCategory(k, schema[k], _frame), enumerable: true, writable: false, configurable: false });
         }
     }
 }
 
-class _Category implements Category<any> { // tslint:disable-line:class-name
+class _TypedCategory implements TypedCategory<any> { // tslint:disable-line:class-name
     _rowCount = this._category.rowCount;
-    _getField(name: string) { return this._category.getField(name); }
-    constructor(private _category: Data.Category, schema: Category.Schema, public _isDefined: boolean) {
+    constructor(public _category: Data.Category, schema: CategorySchema, public _isDefined: boolean) {
         const fieldKeys = Object.keys(schema).filter(k => k !== '@alias');
         const cache = Object.create(null);
         for (const k of fieldKeys) {
@@ -140,13 +133,13 @@ class _Category implements Category<any> { // tslint:disable-line:class-name
     }
 }
 
-function createBlock(schema: Block.Schema, block: Data.Block): any {
-    return new _Block(block, schema);
+function createTypedFrame(schema: FrameSchema, frame: Data.Frame): any {
+    return new _TypedFrame(frame, schema);
 }
 
-function createCategory(key: string, schema: Category.Schema, block: Data.Block) {
+function createTypedCategory(key: string, schema: CategorySchema, frame: Data.Frame) {
     const alias = (schema['@alias'] && schema['@alias'].alias) || key;
     const name = alias[0] === '_' ? alias : '_' + alias;
-    const cat = block.categories[name];
-    return new _Category(cat || Data.Category.Empty, schema, !!cat);
+    const cat = frame.categories[name];
+    return new _TypedCategory(cat || Data.Category.Empty, schema, !!cat);
 }
