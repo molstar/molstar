@@ -1,12 +1,13 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "es5",
         "alwaysStrict": true,
         "noImplicitAny": true,
         "noImplicitThis": true,
         "sourceMap": false,
         "noUnusedLocals": true,
         "strictNullChecks": true,
+        //"downlevelIteration": true,
         "lib": [ "es6", "dom" ],
         "outDir": "build/js/src"
     },
