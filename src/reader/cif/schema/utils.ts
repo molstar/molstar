@@ -1,17 +1,16 @@
 
 // import dic from './dic'
-import { Field, FrameSchema } from '../schema'
 import * as Data from '../data-model'
 
-const pooledStr = Field.pooledStr()
-const str = Field.str()
-const int = Field.int()
-const float = Field.float()
-
-export function getFieldType (type: string) {
+export function getFieldType (type: string, values?: string[]) {
     switch (type) {
         case 'code':
         case 'ucode':
+            if (values && values.length) {
+                return `str as Field.Schema<'${values.join("'|'")}'>`
+            } else {
+                return 'str'
+            }
         case 'line':
         case 'uline':
         case 'text':
@@ -47,32 +46,32 @@ export function getFieldType (type: string) {
         case 'boolean':
         case 'symmetry_operation':
         case 'date_dep':
-            return str
+            return 'str'
         case 'uchar3':
         case 'uchar1':
         case 'symop':
-            return pooledStr
+            return 'pooledStr'
         case 'int':
         case 'non_negative_int':
         case 'positive_int':
-            return int
+            return 'int'
         case 'float':
-            return float
+            return 'float'
     }
     console.log(`unknown type '${type}'`)
-    return str
+    return 'str'
 }
 
-type SafeFrameCategories = { [category: string]: Data.Frame }
-type SafeFrameLinks = { [k: string]: string }
+type FrameCategories = { [category: string]: Data.Frame }
+type FrameLinks = { [k: string]: string }
 
-interface SafeFrameData {
-    categories: SafeFrameCategories
-    links: SafeFrameLinks
+interface FrameData {
+    categories: FrameCategories
+    links: FrameLinks
 }
 
 // get field from given or linked category
-function getField ( category: string, field: string, d: Data.Frame, ctx: SafeFrameData): Data.Field|undefined {
+function getField ( category: string, field: string, d: Data.Frame, ctx: FrameData): Data.Field|undefined {
     const { categories, links } = ctx
 
     const cat = d.categories[category]
@@ -87,43 +86,64 @@ function getField ( category: string, field: string, d: Data.Frame, ctx: SafeFra
     }
 }
 
-// function getEnums (d: Data.SafeFrame, ctx: SafeFrameData): string[]|undefined {
-//     const value = getField('_item_enumeration', 'value', d, ctx)
-//     if (value) {
-//         const enums: string[] = []
-//         for (let i = 0; i < value.rowCount; ++i) {
-//             enums.push(value.str(i))
-//             // console.log(value.str(i))
-//         }
-//         return enums
-//     } else {
-//         // console.log(`item_enumeration.value not found for '${d.header}'`)
-//     }
-// }
+function getEnums (d: Data.Frame, ctx: FrameData): string[]|undefined {
+    const value = getField('_item_enumeration', 'value', d, ctx)
+    if (value) {
+        const enums: string[] = []
+        for (let i = 0; i < value.rowCount; ++i) {
+            enums.push(value.str(i))
+            // console.log(value.str(i))
+        }
+        return enums
+    } else {
+        // console.log(`item_enumeration.value not found for '${d.header}'`)
+    }
+}
 
-function getCode (d: Data.Frame, ctx: SafeFrameData): string|undefined {
+function getCode (d: Data.Frame, ctx: FrameData): [string, string[]]|undefined {
     const code = getField('_item_type', 'code', d, ctx)
     if (code) {
         let c = code.str(0)
-        // if (c === 'ucode') {
-        //     const enums = getEnums(d, ctx)
-        //     if (enums) c += `: ${enums.join('|')}`
-        // }
-        return c
+        let e = []
+        if (c === 'ucode') {
+            const enums = getEnums(d, ctx)
+            if (enums) e.push(...enums)
+        }
+        return [c, e]
     } else {
         console.log(`item_type.code not found for '${d.header}'`)
     }
 }
 
-export function getSchema (dic: Data.Block) {  // todo Block needs to be specialized with safe frames as well
-    const schema: FrameSchema = {}  // { [category: string]: Category.Schema } = {}
+const header = `/**
+ * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Your friendly code generator
+ */
+
+import { Field, TypedFrame } from '../schema'
+
+const pooledStr = Field.pooledStr();
+const str = Field.str();
+const int = Field.int();
+const float = Field.float();`
+
+const footer = `
+type mmCIF = TypedFrame<typeof mmCIF>
+export default mmCIF;`
+
+export function generateSchema (dic: Data.Block) {  // todo Block needs to be specialized with safe frames as well
+    // const schema: FrameSchema = {}  // { [category: string]: Category.Schema } = {}
+    const schema: { [category: string]: { [field: string]: string } } = {}
+
+    const codeLines: string[] = []
 
     // TODO: for fields with finite allowed values, generate:
     // type FieldValue = 'a' | 'b' | 'c'
     // const catetegory = { field: <type> as Field.Schema<FieldValue> }
 
-    const categories: SafeFrameCategories = {}
-    const links: SafeFrameLinks = {}
+    const categories: FrameCategories = {}
+    const links: FrameLinks = {}
     dic.saveFrames.forEach(d => {
         if (d.header[0] !== '_') return
         categories[d.header] = d
@@ -158,11 +178,26 @@ export function getSchema (dic: Data.Block) {  // todo Block needs to be special
 
         const code = getCode(d, { categories, links })
         if (code) {
-            fields[itemName] = getFieldType(code)
+            fields[itemName] = getFieldType(code[0], code[1])
         } else {
             console.log(`could not determine code for '${d.header}'`)
         }
     })
 
-    return schema;
+    schema.entry = { id: 'str' }
+
+    codeLines.push(`const mmCIF = {`)
+    Object.keys(schema).forEach(category => {
+        codeLines.push(`\t${category}: {`)
+        const fields = schema[category]
+        Object.keys(fields).forEach(field => {
+            const type = fields[field]
+            // TODO: check if quoting is required
+            codeLines.push(`\t\t'${field}': ${type},`)
+        })
+        codeLines.push('\t},')
+    })
+    codeLines.push('}')
+
+    return `${header}\n\n${codeLines.join('\n')}\n${footer}`
 }

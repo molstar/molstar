@@ -10,12 +10,13 @@ import * as fs from 'fs'
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
+const writeFileAsync = util.promisify(fs.writeFile);
 
 import Gro from './reader/gro/parser'
 import CIF from './reader/cif/index'
 
-import { toTypedFrame as applySchema } from './reader/cif/schema'
-import { getSchema } from './reader/cif/schema/utils'
+// import { toTypedFrame as applySchema } from './reader/cif/schema'
+import { generateSchema } from './reader/cif/schema/utils'
 
 const file = '1crn.gro'
 // const file = 'water.gro'
@@ -109,16 +110,16 @@ async function runCIF(input: string | Uint8Array) {
     console.log(mmcif.entity.type.toArray());
     console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
 
-    const schema = await _dic()
-    if (schema) {
-        const mmcif2 = applySchema(schema, data)
-        // console.log(util.inspect(mmcif2.atom_site, {showHidden: false, depth: 3}))
-        console.log(mmcif2.atom_site.Cartn_x.value(0));
-        console.log(mmcif2.entity.type.toArray());
-        // console.log(mmcif2.pdbx_struct_oper_list.matrix.value(0)); // TODO
-    } else {
-        console.log('error getting mmcif schema from dic')
-    }
+    // const schema = await _dic()
+    // if (schema) {
+    //     const mmcif2 = applySchema(schema, data)
+    //     // console.log(util.inspect(mmcif2.atom_site, {showHidden: false, depth: 3}))
+    //     console.log(mmcif2.atom_site.Cartn_x.value(0));
+    //     console.log(mmcif2.entity.type.toArray());
+    //     // console.log(mmcif2.pdbx_struct_oper_list.matrix.value(0)); // TODO
+    // } else {
+    //     console.log('error getting mmcif schema from dic')
+    // }
 }
 
 export async function _cif() {
@@ -153,9 +154,11 @@ async function runDic(input: string | Uint8Array) {
         return;
     }
 
-    const schema = getSchema(parsed.result.blocks[0])
-    console.log(util.inspect(schema, {showHidden: false, depth: 3}))
+    const schema = generateSchema(parsed.result.blocks[0])
+    // console.log(schema)
     // console.log(util.inspect(Object.keys(schema).length, {showHidden: false, depth: 1}))
+
+    await writeFileAsync('./src/reader/cif/schema/mmcif-gen.ts', schema, 'utf8')
 
     return schema
 }
@@ -168,7 +171,7 @@ export async function _dic() {
     return runDic(input);
 }
 
-// _dic();
+_dic();
 
 import Computation from './utils/computation'
 const comp = Computation.create(async ctx => {
