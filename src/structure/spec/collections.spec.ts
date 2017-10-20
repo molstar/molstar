@@ -82,10 +82,10 @@ describe('qsort-array generic', () => {
             // [ 3, 1, 6, 4, 4, 6, 4, 2, 6, 1, 2, 3 ];
             if (randomize) {
                 for (let i = 0; i < 10; i++) {
-                    expect(Sort.sort(shuffleArray(data), data.length, Sort.arrayLess, Sort.arraySwap)).toEqual(data);
+                    expect(Sort.sort(shuffleArray(data), 0, data.length, Sort.arrayLess, Sort.arraySwap)).toEqual(data);
                 }
             } else {
-                expect(Sort.sort([...data], data.length, Sort.arrayLess, Sort.arraySwap)).toEqual(data);
+                expect(Sort.sort([...data], 0, data.length, Sort.arrayLess, Sort.arraySwap)).toEqual(data);
             }
         });
     }
@@ -108,10 +108,10 @@ describe('qsort-dual array', () => {
             // [ 3, 1, 6, 4, 4, 6, 4, 2, 6, 1, 2, 3 ];
             if (randomize) {
                 for (let i = 0; i < 10; i++) {
-                    expect(Sort.sort(shuffle(src, len, clone, swap), len, cmp, swap)).toEqual(data);
+                    expect(Sort.sort(shuffle(src, len, clone, swap), 0, len, cmp, swap)).toEqual(data);
                 }
             } else {
-                expect(Sort.sort(clone(src), len, cmp, swap)).toEqual(data);
+                expect(Sort.sort(clone(src), 0, len, cmp, swap)).toEqual(data);
             }
         });
     }
