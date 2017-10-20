@@ -10,28 +10,25 @@
  * "Idiomatic" usage:
  *
  * const it = ...;
- * for (let v = it.reset(data).nextValue(); !it.done; v = it.nextValue()) { ... }
+ * for (let v = it.nextValue(); !it.done; v = it.nextValue()) { ... }
  */
-interface Iterator<T, Data = any> {
-    [Symbol.iterator](): Iterator<T, Data>,
+interface Iterator<T> {
+    [Symbol.iterator](): Iterator<T>,
     readonly done: boolean,
     readonly value: T,
     next(): { done: boolean, value: T },
-
-    reset(data: Data): Iterator<T, Data>,
     nextValue(): T
 }
 
-class __EmptyIterator implements Iterator<any, any> { // tslint:disable-line:class-name
+class EmptyIteratorImpl implements Iterator<any> {
     [Symbol.iterator]() { return this; }
     done = true;
     value = void 0;
     next() { return this; }
     nextValue() { return this.value; }
-    reset(value: undefined) { return this; }
 }
 
-class __SingletonIterator<T> implements Iterator<T, T> { // tslint:disable-line:class-name
+class SingletonIteratorImpl<T> implements Iterator<T> {
     private yielded = false;
 
     [Symbol.iterator]() { return this; }
@@ -39,13 +36,10 @@ class __SingletonIterator<T> implements Iterator<T, T> { // tslint:disable-line:
     value: T;
     next() { this.done = this.yielded; this.yielded = true; return this; }
     nextValue() { return this.next().value; }
-    reset(value: T) { this.value = value; this.done = false; this.yielded = false; return this; }
-
     constructor(value: T) { this.value = value; }
 }
 
-
-class __ArrayIterator<T> implements Iterator<T, ArrayLike<T>> { // tslint:disable-line:class-name
+class ArrayIteratorImpl<T> implements Iterator<T> {
     private xs: ArrayLike<T> = [];
     private index: number = -1;
     private length: number = 0;
@@ -63,7 +57,7 @@ class __ArrayIterator<T> implements Iterator<T, ArrayLike<T>> { // tslint:disabl
 
     nextValue() { return this.next().value; }
 
-    reset(xs: ArrayLike<T>) {
+    constructor(xs: ArrayLike<T>) {
         this.length = xs.length;
         this.done = false;
         this.xs = xs;
@@ -72,47 +66,37 @@ class __ArrayIterator<T> implements Iterator<T, ArrayLike<T>> { // tslint:disabl
     }
 }
 
-type Range = { min: number, max: number }
-class __RangeIterator implements Iterator<number, Range> { // tslint:disable-line:class-name
-    private min: number;
-    private max: number;
-
+class RangeIteratorImpl implements Iterator<number> {
     [Symbol.iterator]() { return this; };
     done = true;
     value: number;
 
     next() {
         ++this.value;
-        this.done = this.value >= this.max;
+        this.done = this.value > this.max;
         return this;
     }
 
     nextValue() { return this.next().value;  }
 
-    reset({ min, max}: Range) {
-        this.min = min;
-        this.max = max;
+    constructor(min: number, private max: number) {
         this.value = min - 1;
         this.done = false;
         return this;
     }
-
-    constructor(bounds: Range) { this.reset(bounds); }
 }
 
-export const EmptyIterator: Iterator<any> = new __EmptyIterator();
-export function SingletonIterator<T>(value: T): Iterator<T, T> { return new __SingletonIterator(value); }
-export function ArrayIterator<T>(xs?: ArrayLike<T>): Iterator<T, ArrayLike<T>> {
-    const ret = new __ArrayIterator<T>();
-    if (xs) ret.reset(xs);
-    return ret;
-}
-export function RangeIterator(bounds?: Range): Iterator<number, Range> { return new __RangeIterator(bounds || { min: 0, max: 0 }); }
+namespace Iterator {
+    export const Empty: Iterator<any> = new EmptyIteratorImpl();
+    export function Singleton<T>(value: T): Iterator<T> { return new SingletonIteratorImpl(value); }
+    export function Array<T>(xs: ArrayLike<T>): Iterator<T> { return new ArrayIteratorImpl<T>(xs); }
+    export function Range(min: number, max: number): Iterator<number> { return new RangeIteratorImpl(min, max); }
 
-export function toArray<T>(it: Iterator<T>): T[] {
-    const ret = [];
-    for (let v = it.nextValue(); !it.done; v = it.nextValue()) ret[ret.length] = v;
-    return ret;
+    export function toArray<T>(it: Iterator<T>): T[] {
+        const ret = [];
+        for (let v = it.nextValue(); !it.done; v = it.nextValue()) ret[ret.length] = v;
+        return ret;
+    }
 }
 
 export default Iterator
