@@ -20,25 +20,6 @@ interface Iterator<T> {
     nextValue(): T
 }
 
-class EmptyIteratorImpl implements Iterator<any> {
-    [Symbol.iterator]() { return this; }
-    done = true;
-    value = void 0;
-    next() { return this; }
-    nextValue() { return this.value; }
-}
-
-class SingletonIteratorImpl<T> implements Iterator<T> {
-    private yielded = false;
-
-    [Symbol.iterator]() { return this; }
-    done = false;
-    value: T;
-    next() { this.done = this.yielded; this.yielded = true; return this; }
-    nextValue() { return this.next().value; }
-    constructor(value: T) { this.value = value; }
-}
-
 class ArrayIteratorImpl<T> implements Iterator<T> {
     private xs: ArrayLike<T> = [];
     private index: number = -1;
@@ -87,9 +68,9 @@ class RangeIteratorImpl implements Iterator<number> {
 }
 
 namespace Iterator {
-    export const Empty: Iterator<any> = new EmptyIteratorImpl();
-    export function Singleton<T>(value: T): Iterator<T> { return new SingletonIteratorImpl(value); }
+    export const Empty: Iterator<any> = new RangeIteratorImpl(0, -1);
     export function Array<T>(xs: ArrayLike<T>): Iterator<T> { return new ArrayIteratorImpl<T>(xs); }
+    export function Value(value: number): Iterator<number> { return new RangeIteratorImpl(value, value); }
     export function Range(min: number, max: number): Iterator<number> { return new RangeIteratorImpl(min, max); }
 
     export function toArray<T>(it: Iterator<T>): T[] {
