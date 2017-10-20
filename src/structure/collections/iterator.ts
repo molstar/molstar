@@ -5,64 +5,72 @@
  */
 
 /**
- * ES6 compatible mutable iterator. Use with care. 
+ * ES6 compatible iterator.
  *
- * "Idiomatic" usage:
+ * "Idiomatic" usage is to use the move function, because it does not make any allocations.
  *
  * const it = ...;
- * for (let v = it.nextValue(); !it.done; v = it.nextValue()) { ... }
+ * for (let v = it.move(); it.hasNext; v = it.move()) { ... }
  */
 interface Iterator<T> {
     [Symbol.iterator](): Iterator<T>,
-    readonly done: boolean,
-    readonly value: T,
+    readonly hasNext: boolean,
     next(): { done: boolean, value: T },
-    nextValue(): T
+    move(): T
 }
 
 class ArrayIteratorImpl<T> implements Iterator<T> {
     private xs: ArrayLike<T> = [];
     private index: number = -1;
     private length: number = 0;
+    private lastValue: T;
 
     [Symbol.iterator]() { return this; };
-    done = true;
-    value: T = void 0 as any;
+    hasNext: boolean;
 
     next() {
-        const index = ++this.index;
-        if (index < this.length) this.value = this.xs[index];
-        else this.done = true;
-        return this;
+        const value = this.move();
+        return { value, done: !this.hasNext };
     }
 
-    nextValue() { return this.next().value; }
+    move() {
+        const index = ++this.index;
+        if (index < this.length) this.lastValue = this.xs[index];
+        else this.hasNext = false;
+        return this.lastValue;
+    }
 
     constructor(xs: ArrayLike<T>) {
         this.length = xs.length;
-        this.done = false;
+        this.hasNext = xs.length > 0;
         this.xs = xs;
         this.index = -1;
+        // try to avoid deoptimization with undefined values
+        this.lastValue = xs.length > 0 ? xs[0] : void 0 as any;
         return this;
     }
 }
 
 class RangeIteratorImpl implements Iterator<number> {
+    private value: number;
+
     [Symbol.iterator]() { return this; };
-    done = true;
-    value: number;
+    hasNext: boolean;
 
     next() {
-        ++this.value;
-        this.done = this.value > this.max;
-        return this;
+        const value = this.value;
+        return { value, done: !this.hasNext }
     }
 
-    nextValue() { return this.next().value;  }
+    move() {
+        ++this.value;
+        this.hasNext = this.value <= this.max;
+        return this.value;
+    }
 
     constructor(min: number, private max: number) {
         this.value = min - 1;
-        this.done = false;
+        this.hasNext = max >= min;
         return this;
     }
 }
@@ -75,7 +83,7 @@ namespace Iterator {
 
     export function toArray<T>(it: Iterator<T>): T[] {
         const ret = [];
-        for (let v = it.nextValue(); !it.done; v = it.nextValue()) ret[ret.length] = v;
+        for (let v = it.move(); it.hasNext; v = it.move()) ret[ret.length] = v;
         return ret;
     }
 }
