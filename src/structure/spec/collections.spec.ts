@@ -50,7 +50,8 @@ function shuffleArray(data: any[]) {
 }
 
 describe('qsort-array asc', () => {
-    const data0 = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const data0 = new Array(50);
+    for (let i = 0; i < data0.length; i++) data0[i] = i;
     const data1 = [1, 1, 2, 2, 3, 3, 4, 4, 4, 6, 6, 6];
 
     function test(name: string, data: any[], randomize: boolean) {
@@ -72,7 +73,8 @@ describe('qsort-array asc', () => {
 })
 
 describe('qsort-array generic', () => {
-    const data0 = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const data0 = new Array(50);
+    for (let i = 0; i < data0.length; i++) data0[i] = i;
     const data1 = [1, 1, 2, 2, 3, 3, 4, 4, 4, 6, 6, 6];
 
     function test(name: string, data: any[], randomize: boolean) {

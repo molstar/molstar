@@ -84,9 +84,24 @@ function partitionArrayAsc(data: number[], parts: number[], l: number, r: number
     parts[1] = tail;
 }
 
+function insertionSort({ data, cmp, swap }: Ctx, start: number, end: number) {
+    for (let i = start + 1; i <= end; i++) {
+        let j = i - 1;
+        while (j >= start && cmp(data, j, j + 1) > 0) {
+            swap(data, j, j + 1);
+            j = j - 1;
+        }
+    }
+}
+
 function quickSort(ctx: Ctx, low: number, high: number) {
     const { parts } = ctx;
     while (low < high) {
+        if (high - low < 16) {
+            insertionSort(ctx, low, high);
+            return;
+        }
+
         partitionGeneric(ctx, low, high);
         const li = parts[0], ri = parts[1];
 
@@ -100,11 +115,11 @@ function quickSort(ctx: Ctx, low: number, high: number) {
     }
 }
 
-function insertionSort(data: number[], start: number, end: number) {
+function insertionSortArrayAsc(data: number[], start: number, end: number) {
     for (let i = start + 1; i <= end; i++) {
         const key = data[i];
         let j = i - 1;
-        while (j >= 0 && data[j] > key) {
+        while (j >= start && data[j] > key) {
             data[j + 1] = data[j];
             j = j - 1;
         }
@@ -115,7 +130,7 @@ function insertionSort(data: number[], start: number, end: number) {
 function quickSortArrayAsc(data: number[], parts: number[], low: number, high: number) {
     while (low < high) {
         if (high - low < 16) {
-            insertionSort(data, low, high);
+            insertionSortArrayAsc(data, low, high);
             return;
         }
 
