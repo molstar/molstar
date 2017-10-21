@@ -38,7 +38,7 @@ class LinkedIndexImpl implements LinkedIndex {
     }
 
     has(i: number) {
-        return this.prev[i] >= 0 || this.next[i] >= 0;
+        return this.prev[i] >= 0 || this.next[i] >= 0 || this.head === i;
     }
 
     constructor(size: number) {

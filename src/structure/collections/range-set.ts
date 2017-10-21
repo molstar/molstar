@@ -32,6 +32,7 @@ namespace RangeSet {
         if (size > 2) hash = 31 * hash + a.elementAt(size >> 1);
         return hash;
     }
+    // TODO: possibly add more hash functions to allow for multilevel hashing.
 
     export function areEqual(a: RangeSet, b: RangeSet) {
         if (a === b) return true;

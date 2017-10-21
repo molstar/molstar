@@ -8,6 +8,7 @@ import Iterator from '../collections/iterator'
 import IntPair from '../collections/int-pair'
 import * as Sort from '../collections/sort'
 import RangeSet from '../collections/range-set'
+import LinkedIndex from '../collections/linked-index'
 
 describe('basic iterators', () => {
     function check<T>(name: string, iter: Iterator<T>, expected: T[]) {
@@ -102,7 +103,7 @@ describe('qsort-dual array', () => {
     const cmp: Sort.Comparer<typeof data> = (data, i, j) => data.xs[i] - data.xs[j];
     const swap: Sort.Swapper<typeof data> = (data, i, j) => { Sort.arraySwap(data.xs, i, j); Sort.arraySwap(data.ys, i, j); }
     const clone = (d: typeof data) => ({ xs: [...d.xs], ys: [...d.ys] })
- 
+
     function test(name: string, src: typeof data, randomize: boolean) {
         it(name, () => {
             // [ 3, 1, 6, 4, 4, 6, 4, 2, 6, 1, 2, 3 ];
@@ -185,4 +186,47 @@ describe('range set', () => {
     testEq('intersect RR2', RangeSet.intersect(range, RangeSet.ofRange(3, 5)), [3, 4]);
     testEq('intersect RA', RangeSet.intersect(range, arr), [1, 3]);
     testEq('intersect AA', RangeSet.intersect(arr, RangeSet.ofSortedArray([2, 3, 4, 6, 7])), [3, 6]);
+});
+
+describe('linked-index', () => {
+    it('initial state', () => {
+        const index = LinkedIndex(2);
+        expect(index.head).toBe(0);
+        expect(index.has(0)).toBe(true);
+        expect(index.has(1)).toBe(true);
+    });
+
+    it('singleton', () => {
+        const index = LinkedIndex(1);
+        expect(index.head).toBe(0);
+        expect(index.has(0)).toBe(true);
+        index.remove(0);
+        expect(index.head).toBe(-1);
+        expect(index.has(0)).toBe(false);
+    });
+
+    it('remove 0', () => {
+        const index = LinkedIndex(2);
+        index.remove(0);
+        expect(index.head).toBe(1);
+        expect(index.has(0)).toBe(false);
+        expect(index.has(1)).toBe(true);
+    });
+
+    it('remove 1', () => {
+        const index = LinkedIndex(2);
+        index.remove(1);
+        expect(index.head).toBe(0);
+        expect(index.has(0)).toBe(true);
+        expect(index.has(1)).toBe(false);
+    });
+
+    it('remove 01', () => {
+        const index = LinkedIndex(2);
+        index.remove(0);
+        index.remove(1);
+        expect(index.head).toBe(-1);
+        expect(index.has(0)).toBe(false);
+        expect(index.has(1)).toBe(false);
+    });
 });
