@@ -137,6 +137,12 @@ describe('range set', () => {
     testEq('range', range, [1, 2, 3, 4]);
     testEq('sorted array', arr, [1, 3, 6]);
 
+    expect(RangeSet.areEqual(empty, singleton)).toBe(false);
+    expect(RangeSet.areEqual(singleton, singleton)).toBe(true);
+    expect(RangeSet.areEqual(range, singleton)).toBe(false);
+    expect(RangeSet.areEqual(arr, RangeSet.ofSortedArray([1, 3, 6]))).toBe(true);
+    expect(RangeSet.areEqual(arr, RangeSet.ofSortedArray([1, 4, 6]))).toBe(false);
+
     expect(empty.has(10)).toBe(false);
     expect(empty.indexOf(10)).toBe(-1);
 

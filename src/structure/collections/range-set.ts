@@ -21,6 +21,29 @@ namespace RangeSet {
         toArray(): ArrayLike<number>
     }
 
+    export function hashCode(a: RangeSet) {
+        // hash of tuple (size, min, max, mid)
+        const { size } = a;
+        let hash = 23;
+        if (!size) return hash;
+        hash = 31 * hash + size;
+        hash = 31 * hash + a.elementAt(0);
+        hash = 31 * hash + a.elementAt(size - 1);
+        if (size > 2) hash = 31 * hash + a.elementAt(size >> 1);
+        return hash;
+    }
+
+    export function areEqual(a: RangeSet, b: RangeSet) {
+        if (a === b) return true;
+        if (a instanceof RangeImpl) {
+            if (b instanceof RangeImpl) return a.min === b.min && a.max === b.max;
+            return equalAR(b as ArrayImpl, a);
+        } else if (b instanceof RangeImpl) {
+            return equalAR(a as ArrayImpl, b);
+        }
+        return equalAA(a as ArrayImpl, b as ArrayImpl);
+    }
+
     export function union(a: RangeSet, b: RangeSet) {
         if (a instanceof RangeImpl) {
             if (b instanceof RangeImpl) return unionRR(a, b);
@@ -107,6 +130,20 @@ namespace RangeSet {
         return -1;
     }
 
+    function equalAR(a: ArrayImpl, b: RangeImpl) {
+        return a.size === b.size && a.min === b.min && a.max === b.max;
+    }
+
+    function equalAA(a: ArrayImpl, b: ArrayImpl) {
+        if (a.size !== b.size || a.min !== b.min || a.max !== b.max) return false;
+        const { size, values: xs } = a;
+        const { values: ys } = b;
+        for (let i = 0; i < size; i++) {
+            if (xs[i] !== ys[i]) return false;
+        }
+        return true;
+    }
+
     function areRangesIntersecting(a: Impl, b: Impl) {
         return a.size > 0 && b.size > 0 && a.max >= b.min && a.min <= b.max;
     }
@@ -149,6 +186,8 @@ namespace RangeSet {
 
     function unionAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
         const la = xs.length, lb = ys.length;
+
+        // sorted list merge.
 
         let i = 0, j = 0, resultSize = 0;
         while (i < la && j < lb) {
@@ -202,6 +241,8 @@ namespace RangeSet {
 
     function intersectAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
         const la = xs.length, lb = ys.length;
+
+        // a variation on sorted list merge.
 
         let i = 0, j = 0, resultSize = 0;
         while (i < la && j < lb) {
