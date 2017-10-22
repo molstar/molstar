@@ -10,11 +10,11 @@
  * "Idiomatic" usage is to use the move function, because it does not make any allocations.
  *
  * const it = ...;
- * for (let v = it.move(); it.hasNext; v = it.move()) { ... }
+ * for (let v = it.move(); !it.done; v = it.move()) { ... }
  */
 interface Iterator<T> {
     [Symbol.iterator](): Iterator<T>,
-    readonly hasNext: boolean,
+    readonly done: boolean,
     next(): { done: boolean, value: T },
     move(): T
 }
@@ -25,24 +25,24 @@ class ArrayIteratorImpl<T> implements Iterator<T> {
     private length: number = 0;
     private lastValue: T;
 
-    [Symbol.iterator]() { return this; };
-    hasNext: boolean;
+    [Symbol.iterator]() { return new ArrayIteratorImpl(this.xs); };
+    done: boolean;
 
     next() {
         const value = this.move();
-        return { value, done: !this.hasNext };
+        return { value, done: this.done };
     }
 
     move() {
         const index = ++this.index;
         if (index < this.length) this.lastValue = this.xs[index];
-        else this.hasNext = false;
+        else this.done = true;
         return this.lastValue;
     }
 
     constructor(xs: ArrayLike<T>) {
         this.length = xs.length;
-        this.hasNext = xs.length > 0;
+        this.done = xs.length === 0;
         this.xs = xs;
         this.index = -1;
         // try to avoid deoptimization with undefined values
@@ -54,23 +54,23 @@ class ArrayIteratorImpl<T> implements Iterator<T> {
 class RangeIteratorImpl implements Iterator<number> {
     private value: number;
 
-    [Symbol.iterator]() { return this; };
-    hasNext: boolean;
+    [Symbol.iterator]() { return new RangeIteratorImpl(this.min, this.max); };
+    done: boolean;
 
     next() {
-        const value = this.value;
-        return { value, done: !this.hasNext }
+        const value = this.move();
+        return { value, done: this.done }
     }
 
     move() {
         ++this.value;
-        this.hasNext = this.value <= this.max;
+        this.done = this.value > this.max;
         return this.value;
     }
 
-    constructor(min: number, private max: number) {
+    constructor(private min: number, private max: number) {
         this.value = min - 1;
-        this.hasNext = max >= min;
+        this.done = max < min;
         return this;
     }
 }
@@ -80,12 +80,6 @@ namespace Iterator {
     export function Array<T>(xs: ArrayLike<T>): Iterator<T> { return new ArrayIteratorImpl<T>(xs); }
     export function Value(value: number): Iterator<number> { return new RangeIteratorImpl(value, value); }
     export function Range(min: number, max: number): Iterator<number> { return new RangeIteratorImpl(min, max); }
-
-    export function toArray<T>(it: Iterator<T>): T[] {
-        const ret = [];
-        for (let v = it.move(); it.hasNext; v = it.move()) ret[ret.length] = v;
-        return ret;
-    }
 }
 
 export default Iterator

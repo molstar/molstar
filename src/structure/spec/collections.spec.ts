@@ -9,11 +9,19 @@ import IntPair from '../collections/int-pair'
 import * as Sort from '../collections/sort'
 import OrderedSet from '../collections/ordered-set'
 import LinkedIndex from '../collections/linked-index'
+import MultiSet from '../collections/multi-set'
+
+
+function iteratorToArray<T>(it: Iterator<T>): T[] {
+    const ret = [];
+    for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = v;
+    return ret;
+}
 
 describe('basic iterators', () => {
     function check<T>(name: string, iter: Iterator<T>, expected: T[]) {
         it(name, () => {
-            expect(Iterator.toArray(iter)).toEqual(expected);
+            expect(iteratorToArray(iter)).toEqual(expected);
         });
     }
 
@@ -28,7 +36,7 @@ describe('int pair', () => {
         const p = IntPair.zero();
         for (let i = 0; i < 10; i++) {
             for (let j = -10; j < 5; j++) {
-                const t = IntPair.set(i, j);
+                const t = IntPair.set1(i, j);
                 IntPair.get(t, p);
                 expect(p.fst).toBe(i);
                 expect(p.snd).toBe(j);
@@ -124,7 +132,7 @@ describe('range set', () => {
     function testEq(name: string, set: OrderedSet, expected: number[]) {
         it(name, () => {
             // copy the arrays to ensure "compatibility" between typed and native arrays
-            expect(Array.prototype.slice.call(Iterator.toArray(set.elements()))).toEqual(Array.prototype.slice.call(expected));
+            expect(Array.prototype.slice.call(iteratorToArray(set.elements()))).toEqual(Array.prototype.slice.call(expected));
         });
     }
 
@@ -259,4 +267,39 @@ describe('linked-index', () => {
         expect(index.has(0)).toBe(false);
         expect(index.has(1)).toBe(false);
     });
+});
+
+describe('multiset', () => {
+    const p = (i: number, j: number) => IntPair.create(i, j);
+    const r = (i: number, j: number) => IntPair.set1(i, j);
+
+    function iteratorPairsToArray(it: Iterator<IntPair>): IntPair[] {
+        const ret = [];
+        for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = IntPair.create(v.fst, v.snd);
+        return ret;
+    }
+
+    it('singleton pair', () => {
+        const set = MultiSet.create(p(10, 11));
+        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(10, 11)]);
+    });
+
+    it('singleton number', () => {
+        const set = MultiSet.create(r(10, 11));
+        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(10, 11)]);
+    });
+
+    it('multi', () => {
+        const set = MultiSet.create({
+            1: OrderedSet.ofSortedArray([4, 6, 7]),
+            3: OrderedSet.ofRange(0, 1),
+        });
+        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
+    });
+
+    it('packed pairs', () => {
+        const set = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(0, 1), p(0, 2), p(0, 6), p(1, 3)]);
+    });
+
 });
