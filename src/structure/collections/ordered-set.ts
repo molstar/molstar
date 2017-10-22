@@ -109,7 +109,7 @@ namespace OrderedSet {
             return unionAR(b as ArrayImpl, a);
         } else if (b instanceof RangeImpl) {
             return unionAR(a as ArrayImpl, b);
-        } else return unionAA((a as ArrayImpl).values, (b as ArrayImpl).values);
+        } else return unionAA(a as ArrayImpl, b as ArrayImpl);
     }
 
     export function intersect(a: OrderedSet, b: OrderedSet) {
@@ -121,6 +121,19 @@ namespace OrderedSet {
         } else {
             if (!areRangesIntersecting(a, b)) return Empty;
             return intersectAA((a as ArrayImpl).values, (b as ArrayImpl).values);
+        }
+    }
+
+    export function subtract(a: OrderedSet, b: OrderedSet) {
+        if (!areRangesIntersecting(a, b)) return a;
+
+        if (a instanceof RangeImpl) {
+            if (b instanceof RangeImpl) return substractRR(a, b);
+            return subtractRA(a, (b as ArrayImpl).values);
+        } else if (b instanceof RangeImpl) {
+            return subtractAR(a as ArrayImpl, b);
+        } else {
+            return subtractAA(a as ArrayImpl, b as ArrayImpl);
         }
     }
 }
@@ -147,6 +160,38 @@ function binarySearch(xs: ArrayLike<number>, value: number) {
     return -1;
 }
 
+function binarySearchIndex(xs: ArrayLike<number>, value: number) {
+    let min = 0, max = xs.length - 1;
+    while (min < max) {
+        const mid = (min + max) >> 1;
+        const v = xs[mid];
+        if (value < v) max = mid - 1;
+        else if (value > v) min = mid + 1;
+        else return mid;
+    }
+    if (min > max) return max + 1;
+    return xs[min] >= value ? min : min + 1;
+}
+
+const _maxIntRangeRet = { i: 0, j: 0, endA: 0, endB: 0 };
+function getMaxIntersectionRange(xs: ArrayLike<number>, ys: ArrayLike<number>) {
+    const la = xs.length - 1, lb = ys.length - 1;
+    _maxIntRangeRet.i = binarySearchIndex(xs, ys[0]);
+    _maxIntRangeRet.j = binarySearchIndex(ys, xs[0]);
+    _maxIntRangeRet.endA = Math.min(binarySearchIndex(xs, ys[lb]), la);
+    _maxIntRangeRet.endB = Math.min(binarySearchIndex(ys, xs[la]), lb);
+    return _maxIntRangeRet;
+}
+
+const _startEndRet = { start: 0, end: 0 };
+function getStartEnd(xs: ArrayLike<number>, min: number, max: number) {
+    _startEndRet.start = binarySearchIndex(xs, min);
+    let end = binarySearchIndex(xs, max);
+    if (xs[end] === max) end++;
+    _startEndRet.end = end;
+    return _startEndRet;
+}
+
 function equalAR(a: ArrayImpl, b: RangeImpl) {
     return a.size === b.size && a.min === b.min && a.max === b.max;
 }
@@ -162,9 +207,8 @@ function equalAA(a: ArrayImpl, b: ArrayImpl) {
 }
 
 function areIntersectingAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
-    const la = xs.length, lb = ys.length;
-    let i = 0, j = 0;
-    while (i < la && j < lb) {
+    let { i, j, endA, endB } = getMaxIntersectionRange(xs, ys);
+    while (i <= endA && j <= endB) {
         const x = xs[i], y = ys[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -174,15 +218,19 @@ function areIntersectingAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
 }
 
 function isSubsetAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
-    const la = xs.length, lb = ys.length;
-    let i = 0, j = 0, equal = 0;
-    while (i < la && j < lb) {
+    const lenB = ys.length;
+    let { i, j, endA, endB } = getMaxIntersectionRange(xs, ys);
+    // the 2nd array must be able to advance by at least lenB elements
+    if (endB - j + 1 < lenB || endA - j + 1 < lenB) return false;
+
+    let equal = 0;
+    while (i <= endA && j <= endB) {
         const x = xs[i], y = ys[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { i++; j++; equal++; }
     }
-    return equal === lb;
+    return equal === lenB;
 }
 
 function areRangesIntersecting(a: OrderedSet, b: OrderedSet) {
@@ -215,11 +263,7 @@ function unionAR(a: ArrayImpl, b: RangeImpl) {
 
     const xs = a.values;
     const { min, max } = b;
-
-    let start = 0, end = xs.length - 1;
-    while (xs[start] < min) { start++; }
-    while (xs[end] > max) { end--; }
-    end++;
+    const { start, end } = getStartEnd(xs, min, max);
 
     const size = start + (xs.length - end) + b.size;
     const indices = new Int32Array(size);
@@ -231,33 +275,50 @@ function unionAR(a: ArrayImpl, b: RangeImpl) {
     return OrderedSet.ofSortedArray(indices);
 }
 
-function unionAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
-    const la = xs.length, lb = ys.length;
+function unionAA(a: ArrayImpl, b: ArrayImpl) {
+    const xs = a.values, ys = b.values;
+    const lenA = xs.length, lenB = ys.length;
 
-    // sorted list merge.
-
-    let i = 0, j = 0, resultSize = 0;
-    while (i < la && j < lb) {
+    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(xs, ys);
+    let i = sI, j = sJ;
+    let commonCount = 0;
+    while (i <= endA && j <= endB) {
         const x = xs[i], y = ys[j];
-        resultSize++;
         if (x < y) { i++; }
         else if (x > y) { j++; }
-        else { i++; j++; }
+        else { i++; j++; commonCount++; }
     }
-    resultSize += Math.max(la - i, lb - j);
 
-    const indices = new Int32Array(resultSize);
+    if (!commonCount) return a;
+    if (commonCount >= lenA) return OrderedSet.Empty
+
+    const resultSize = lenA + lenB - commonCount;
+    const l = Math.min(min(a), min(b)), r = Math.max(max(a), max(b));
+    // is this just a range?
+    if (resultSize === r - l + 1) {
+        return OrderedSet.ofRange(l, r);
+    }
+
+    const indices = new Int32Array(lenA + lenB - commonCount);
     let offset = 0;
-    i = 0;
-    j = 0;
-    while (i < la && j < lb) {
+
+    // insert the "prefixes"
+    for (let k = 0; k < sI; k++) indices[offset++] = xs[k];
+    for (let k = 0; k < sJ; k++) indices[offset++] = xs[k];
+
+    // insert the common part
+    i = sI;
+    j = sJ;
+    while (i <= endA && j <= endB) {
         const x = xs[i], y = ys[j];
         if (x < y) { indices[offset++] = x; i++; }
         else if (x > y) { indices[offset++] = y; j++; }
         else { indices[offset++] = x; i++; j++; }
     }
-    for (; i < la; i++) { indices[offset++] = xs[i]; }
-    for (; j < lb; j++) { indices[offset++] = ys[j]; }
+
+    // insert the "tail"
+    for (; i < lenA; i++) indices[offset++] = xs[i];
+    for (; j < lenB; j++) indices[offset++] = ys[j];
 
     return OrderedSet.ofSortedArray(indices);
 }
@@ -268,31 +329,26 @@ function intersectRR(a: RangeImpl, b: RangeImpl) {
 }
 
 function intersectAR(a: ArrayImpl, r: RangeImpl) {
-    const xs = a.values;
-    let resultSize = 0;
-    for (let i = 0, _i = xs.length; i < _i; i++) {
-        if (r.has(xs[i])) resultSize++;
-    }
+    if (!r.size) return OrderedSet.Empty;
 
+    const xs = a.values;
+    const { start, end } = getStartEnd(xs, r.min, r.max);
+    const resultSize = end - start;
     if (!resultSize) return OrderedSet.Empty;
 
     const indices = new Int32Array(resultSize);
     let offset = 0;
-
-    for (let i = 0, _i = xs.length; i < _i; i++) {
-        if (r.has(xs[i])) indices[offset++] = xs[i];
+    for (let i = start; i < end; i++) {
+        indices[offset++] = xs[i];
     }
-
     return OrderedSet.ofSortedArray(indices);
 }
 
 function intersectAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
-    const la = xs.length, lb = ys.length;
-
-    // a variation on sorted list merge.
-
-    let i = 0, j = 0, resultSize = 0;
-    while (i < la && j < lb) {
+    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(xs, ys);
+    let i = sI, j = sJ;
+    let resultSize = 0;
+    while (i <= endA && j <= endB) {
         const x = xs[i], y = ys[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -303,14 +359,106 @@ function intersectAA(xs: ArrayLike<number>, ys: ArrayLike<number>) {
 
     const indices = new Int32Array(resultSize);
     let offset = 0;
-    i = 0;
-    j = 0;
-    while (i < la && j < lb) {
+    i = sI;
+    j = sJ;
+    while (i <= endA && j <= endB) {
         const x = xs[i], y = ys[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { indices[offset++] = x; i++; j++; }
     }
+
+    return OrderedSet.ofSortedArray(indices);
+}
+
+function substractRR(a: RangeImpl, b: RangeImpl) {
+    if (a.size === 0 || b.size === 0) return a;
+    // is A subset of B? ==> Empty
+    if (isRangeSubset(b, a)) return OrderedSet.Empty;
+    if (isRangeSubset(a, b)) {
+        // this splits the interval into two, gotta represent it as a set.
+        const l = b.min - a.min, r = a.max - b.max;
+        const ret = new Int32Array(l + r);
+        let offset = 0;
+        for (let i = 0; i < l; i++) ret[offset++] = a.min + i;
+        for (let i = 1; i <= r; i++) ret[offset++] = b.max + i;
+        return OrderedSet.ofSortedArray(ret);
+    }
+    // non intersecting ranges are handled by top-level substract.
+    // at this point, b either contains a.min or a.max, but not both.
+    if (a.min < b.min) return OrderedSet.ofRange(a.min, b.min - 1);
+    return OrderedSet.ofRange(b.max + 1, a.max);
+}
+
+function subtractAR(a: ArrayImpl, r: RangeImpl) {
+    if (!r.size) return a;
+
+    const xs = a.values;
+    const { min, max } = r;
+    const { start, end } = getStartEnd(xs, min, max);
+    const size = xs.length - (end - start);
+    if (size <= 0) return OrderedSet.Empty;
+    const ret = new Int32Array(size);
+    let offset = 0;
+    for (let i = 0; i < start; i++) ret[offset++] = xs[i];
+    for (let i = end, _i = xs.length; i < _i; i++) ret[offset++] = xs[i];
+    return OrderedSet.ofSortedArray(ret);
+}
+
+function subtractRA(r: RangeImpl, ys: ArrayLike<number>) {
+    if (!r.size) return r;
+
+    const { min, max } = r;
+    const { start, end } = getStartEnd(ys, min, max);
+    const commonCount = end - start;
+    const resultSize = r.size - commonCount;
+    if (resultSize <= 0) return OrderedSet.Empty;
+    const ret = new Int32Array(resultSize);
+    const li = ys.length - 1;
+    const fst = ys[Math.min(start, li)], last = ys[Math.min(end, li)];
+    let offset = 0;
+    for (let i = min; i < fst; i++) ret[offset++] = i;
+    for (let i = fst; i <= last; i++) {
+        if (binarySearch(ys, i) < 0) ret[offset++] = i;
+    }
+    for (let i = last + 1; i <= max; i++) ret[offset++] = i;
+    return OrderedSet.ofSortedArray(ret);
+}
+
+function subtractAA(a: ArrayImpl, b: ArrayImpl) {
+    const xs = a.values, ys = b.values;
+    const lenA = xs.length;
+
+    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(xs, ys);
+    let i = sI, j = sJ;
+    let commonCount = 0;
+    while (i <= endA && j <= endB) {
+        const x = xs[i], y = ys[j];
+        if (x < y) { i++; }
+        else if (x > y) { j++; }
+        else { i++; j++; commonCount++; }
+    }
+
+    if (!commonCount) return a;
+    if (commonCount >= lenA) return OrderedSet.Empty;
+
+    const indices = new Int32Array(lenA - commonCount);
+    let offset = 0;
+
+    // insert the "prefix"
+    for (let k = 0; k < sI; k++) indices[offset++] = xs[k];
+
+    i = sI;
+    j = sJ;
+    while (i <= endA && j <= endB) {
+        const x = xs[i], y = ys[j];
+        if (x < y) { indices[offset++] = x; i++; }
+        else if (x > y) { j++; }
+        else { i++; j++; }
+    }
+
+    // insert the "tail"
+    for (; i < lenA; i++) indices[offset++] = xs[i];
 
     return OrderedSet.ofSortedArray(indices);
 }

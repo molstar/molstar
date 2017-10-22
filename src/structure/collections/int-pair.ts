@@ -25,27 +25,27 @@ namespace IntPair {
     export function create(fst: number, snd: number) { return { fst, snd }; }
     export function zero(): IntPair { return { fst: 0, snd: 0 }; }
 
-    export function set1(fst: number, snd: number): number {
+    export function pack1(fst: number, snd: number): number {
         _int32[0] = fst;
         _int32[1] = snd;
         return _float64[0];
     }
 
-    export function set(p: IntPair): number {
+    export function pack(p: IntPair): number {
         _int32[0] = p.fst;
         _int32[1] = p.snd;
         return _float64[0];
     }
 
-    export function get(packed: number, target: IntPair): IntPair {
+    export function unpack(packed: number, target: IntPair): IntPair {
         _float64[0] = packed;
         target.fst = _int32[0];
         target.snd = _int32[1];
         return target;
     }
 
-    export function get1(packed: number): IntPair {
-        return get(packed, zero());
+    export function unpack1(packed: number): IntPair {
+        return unpack(packed, zero());
     }
 
     export function fst(packed: number): number {

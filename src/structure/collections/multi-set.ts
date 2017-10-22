@@ -37,7 +37,7 @@ namespace MultiSet {
 
     export function create(data: number | ArrayLike<number> | IntPair | { [id: number]: OrderedSet }): MultiSet {
         if (typeof data === 'number') return data;
-        if (IntPair.is(data)) return IntPair.set(data);
+        if (IntPair.is(data)) return IntPair.pack(data);
         if (isArrayLike(data)) return ofPackedPairs(data);
         const keys = [];
         for (const _k of Object.keys(data)) {
@@ -103,37 +103,29 @@ namespace MultiSet {
     }
 
     export function values(set: MultiSet): Iterator<IntPair> {
-        if (typeof set === 'number') return new PairIterator(IntPair.get1(set));
+        if (typeof set === 'number') return new PairIterator(IntPair.unpack1(set));
         return new ElementsIterator(set);
     }
 
     function ofPackedPairs(xs: ArrayLike<number>): MultiSet {
         if (xs.length === 0) return Empty;
-
-        sortArray(xs, IntPair.compareInArray);
+        const sets: { [key: number]: number[] } = Object.create(null);
         const p = IntPair.zero();
-        IntPair.get(xs[0], p);
-        let currentKey = p.fst;
-        let keys = [];
-        let currentSet = [p.snd];
-        let ret = Object.create(null);
-        for (let i = 1, _i = xs.length; i < _i; i++) {
-            IntPair.get(xs[i], p);
-            if (p.fst === currentKey) {
-                currentSet[currentSet.length] = p.snd;
-            } else {
-                ret[currentKey] = OrderedSet.ofSortedArray(currentSet);
-                keys[keys.length] = currentKey;
-
-                currentKey = p.fst;
-                currentSet = [p.snd];
-            }
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            IntPair.unpack(xs[i], p);
+            const set = sets[p.fst];
+            if (set) set[set.length] = p.snd;
+            else sets[p.fst] = [p.snd];
         }
-        ret[currentKey] = OrderedSet.ofSortedArray(currentSet);
-        keys[keys.length] = currentKey;
-        ret.keys = OrderedSet.ofSortedArray(keys);
-        return ret;
+        const ret: { [key: number]: OrderedSet } = Object.create(null);
+        for (const _k of Object.keys(sets)) {
+            const k = +_k;
+            ret[k] = OrderedSet.ofSortedArray(sortArray(sets[k]));
+        }
+        return create(ret);
     }
+
+    // TODO: union, intersection, subtraction
 
     export function union(sets: ArrayLike<MultiSet>): MultiSet {
         return 0 as any;
