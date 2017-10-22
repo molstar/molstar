@@ -24,11 +24,6 @@ class RangeImpl implements Impl {
     size: number;
     has(x: number) { return x >= this.min && x <= this.max; }
     indexOf(x: number) { return x >= this.min && x <= this.max ? x - this.min : -1; }
-    toArray() {
-        const ret = new Array(this.size);
-        for (let i = 0; i < this.size; i++) ret[i] = i + this.min;
-        return ret;
-    }
     elementAt(i: number) { return this.min + i; }
     elements() { return Iterator.Range(this.min, this.max); }
 
@@ -54,6 +49,17 @@ class ArrayImpl implements Impl {
 }
 
 namespace OrderedSet {
+    export function ofSingleton(value: number): OrderedSet { return new RangeImpl(value, value); }
+    export function ofRange(min: number, max: number): OrderedSet { return max < min ? Empty : new RangeImpl(min, max); }
+    /** It is the responsibility of the caller to ensure the array is sorted and contains unique values. */
+    export function ofSortedArray(xs: ArrayLike<number>): OrderedSet {
+        if (!xs.length) return Empty;
+        // check if the array is just a range
+        if (xs[xs.length - 1] - xs[0] + 1 === xs.length) return ofRange(xs[0], xs[xs.length - 1]);
+        return new ArrayImpl(xs);
+    }
+    export const Empty = new RangeImpl(0, -1);
+
     export function isEmpty(a: OrderedSet) { return a.size === 0; }
 
     export function hashCode(a: OrderedSet) {
@@ -117,17 +123,6 @@ namespace OrderedSet {
             return intersectAA((a as ArrayImpl).values, (b as ArrayImpl).values);
         }
     }
-
-    export function ofSingleton(value: number): OrderedSet { return new RangeImpl(value, value); }
-    export function ofRange(min: number, max: number): OrderedSet { return max < min ? Empty : new RangeImpl(min, max); }
-    /** It is the responsibility of the caller to ensure the array is sorted and contains unique values. */
-    export function ofSortedArray(xs: ArrayLike<number>): OrderedSet {
-        if (!xs.length) return Empty;
-        // check if the array is just a range
-        if (xs[xs.length - 1] - xs[0] + 1 === xs.length) return ofRange(xs[0], xs[xs.length - 1]);
-        return new ArrayImpl(xs);
-    }
-    export const Empty = new RangeImpl(0, -1);
 }
 
 function min(a: OrderedSet) { return (a as Impl).min; }
