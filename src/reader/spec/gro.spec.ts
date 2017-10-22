@@ -32,7 +32,6 @@ describe('gro reader', () => {
             console.log(parsed)
             return;
         }
-
         const groFile = parsed.result;
         const data = groFile.structures[0];
 

@@ -25,7 +25,6 @@ export interface Molecule {
     charge_type: string
     status_bits: string
     mol_comment: string
-    ///////////// precisions are not saved for later use, and there is not 'hasSomthing' properties 
 }
 
 export interface Atoms {
