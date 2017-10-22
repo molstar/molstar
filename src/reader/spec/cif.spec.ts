@@ -26,7 +26,7 @@ namespace TestSchema {
 }
 
 describe('schema', () => {
-    const data = Schema.apply(TestSchema.schema, testBlock);
+    const data = Schema.toTypedFrame(TestSchema.schema, testBlock);
     it('property access', () => {
         const { x, name } = data.atoms;
         expect(x.value(0)).toBe(1);

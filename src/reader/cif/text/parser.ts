@@ -554,9 +554,9 @@ async function parseInternal(data: string, ctx: Computation.Context) {
     let inSaveFrame = false
 
     // the next three initial values are never used in valid files
-    let saveFrames: Data.SafeFrame[] = [];
+    let saveFrames: Data.Frame[] = [];
     let saveCategories = Object.create(null);
-    let saveFrame: Data.SafeFrame = Data.SafeFrame(saveCategories, '');
+    let saveFrame: Data.Frame = Data.SafeFrame(saveCategories, '');
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
 

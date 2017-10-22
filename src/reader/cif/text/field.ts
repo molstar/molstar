@@ -44,7 +44,7 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
         float,
         presence,
         areValuesEqual: TokenColumn.areValuesEqualProvider(tokens),
-        stringEquals(row, v) {
+        stringEquals: (row, v) => {
             const s = indices[2 * row];
             const value = v || '';
             if (!value && presence(row) !== Data.ValuePresence.Present) return true;
@@ -55,8 +55,8 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
             }
             return true;
         },
-        toStringArray(params) { return Column.createAndFillArray(rowCount, str, params); },
-        toIntArray(params) { return Column.createAndFillArray(rowCount, int, params); },
-        toFloatArray(params)  { return Column.createAndFillArray(rowCount, float, params); }
+        toStringArray: params => Column.createAndFillArray(rowCount, str, params),
+        toIntArray: params => Column.createAndFillArray(rowCount, int, params),
+        toFloatArray: params => Column.createAndFillArray(rowCount, float, params)
     }
 }

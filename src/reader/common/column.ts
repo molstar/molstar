@@ -37,24 +37,57 @@ export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T)
         isDefined: false,
         rowCount,
         value,
-        isValueDefined(row) { return false; },
-        toArray(params) {
+        isValueDefined: row => false,
+        toArray: params => {
             const { array } = createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(0)
             return array;
         },
-        stringEquals(row, value) { return !value; },
-        areValuesEqual(rowA, rowB) { return true; }
+        stringEquals: (row, value) => !value,
+        areValuesEqual: (rowA, rowB) => true
+    }
+}
+
+export function ArrayColumn<T>(array: ArrayLike<T>): Column<T> {
+    const rowCount = array.length;
+    const value: Column<T>['value'] = row => array[row];
+    const isTyped = isTypedArray(array);
+    return {
+        isDefined: false,
+        rowCount,
+        value,
+        isValueDefined: row => true,
+        toArray: isTyped
+            ? params => typedArrayWindow(array, params) as any as ReadonlyArray<T>
+            : params => {
+                const { start, end } = getArrayBounds(rowCount, params);
+                const ret = new Array(end - start);
+                for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
+                return ret;
+            },
+        stringEquals: isTyped
+            ? (row, value) => (array as any)[row] === +value
+            : (row, value) => {
+                const v = array[row];
+                if (typeof v !== 'string') return '' + v === value;
+                return v === value;
+            },
+        areValuesEqual: (rowA, rowB) => array[rowA] === array[rowB]
     }
 }
 
 /** A helped function for Column.toArray */
+export function getArrayBounds(rowCount: number, params?: ToArrayParams) {
+    const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;
+    const end = params && typeof params.end !== 'undefined' ? Math.min(params.end, rowCount) : rowCount;
+    return { start, end };
+}
+
+/** A helped function for Column.toArray */
 export function createArray(rowCount: number, params?: ToArrayParams) {
-    const { array, start, end } = params || ({} as ToArrayParams);
-    const c = typeof array !== 'undefined' ? array : Array;
-    const s = typeof start !== 'undefined' ? Math.max(Math.min(start, rowCount - 1), 0) : 0;
-    const e = typeof end !== 'undefined' ? Math.min(end, rowCount) : rowCount;
-    return { array: new c(e - s) as any[], start: s, end: e };
+    const c = params && typeof params.array !== 'undefined' ? params.array : Array;
+    const { start, end } = getArrayBounds(rowCount, params);
+    return { array: new c(end - start) as any[], start, end };
 }
 
 /** A helped function for Column.toArray */
@@ -69,4 +102,13 @@ export function createAndFillArray(rowCount: number, value: (row: number) => any
     return fillArrayValues(value, array, start);
 }
 
+export function isTypedArray(data: any) {
+    return data.buffer && typeof data.byteLength === 'number' && data.BYTES_PER_ELEMENT;
+}
 
+export function typedArrayWindow(data: any, params?: ToArrayParams): ReadonlyArray<number> {
+    const { constructor, buffer, length, byteOffset, BYTES_PER_ELEMENT } = data;
+    const { start, end } = getArrayBounds(length, params);
+    if (start === 0 && end === length) return data;
+    return new constructor(buffer, byteOffset + BYTES_PER_ELEMENT * start, Math.min(length, end - start));
+}

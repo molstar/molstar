@@ -15,25 +15,23 @@ export function File(blocks: ArrayLike<Block>, name?: string): File {
     return { name, blocks: blocks as any };
 }
 
-export interface Block {
+export interface Frame {
     readonly header: string,
     readonly categories: Categories
-    readonly saveFrames: SafeFrame[]
 }
 
-export function Block(categories: Categories, header: string, saveFrames: SafeFrame[] = []): Block {
+export interface Block extends Frame {
+    readonly saveFrames: Frame[]
+}
+
+export function Block(categories: Categories, header: string, saveFrames: Frame[] = []): Block {
     if (Object.keys(categories).some(k => k[0] !== '_')) {
         throw new Error(`Category names must start with '_'.`);
     }
     return { header, categories, saveFrames };
 }
 
-export interface SafeFrame {
-    readonly header: string,
-    readonly categories: Categories
-}
-
-export function SafeFrame(categories: Categories, header: string): SafeFrame {
+export function SafeFrame(categories: Categories, header: string): Frame {
     return { header, categories };
 }
 

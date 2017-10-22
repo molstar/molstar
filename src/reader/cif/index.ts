@@ -7,7 +7,7 @@
 import parseText from './text/parser'
 import parseBinary from './binary/parser'
 import { Block } from './data-model'
-import { apply as applySchema } from './schema'
+import { toTypedFrame as applySchema } from './schema'
 import mmCIF from './schema/mmcif'
 
 export default {
