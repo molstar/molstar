@@ -83,12 +83,72 @@ function quickSort(ctx: Ctx, low: number, high: number) {
     }
 }
 
+function partitionArrayAsc(data: number[], parts: number[], l: number, r: number) {
+    let equals = l + 1, tail = r;
+
+    // move the median to the 1st spot
+    arraySwap(data, l, medianPivotIndex(data, arrayLess, l, r));
+    const pivot = data[l];
+
+    while (data[tail] > pivot) { --tail; }
+    for (let i = l + 1; i <= tail; i++) {
+        const v = data[i];
+        if (v > pivot) {
+            arraySwap(data, i, tail);
+            --tail;
+            while (data[tail] > pivot) { --tail; }
+            i--;
+        } else if (v === pivot) {
+            arraySwap(data, i, equals);
+            ++equals;
+        }
+    }
+
+    // move all medians to the correct spots
+    for (let i = l; i < equals; i++) { arraySwap(data, i, l + tail - i); }
+    parts[0] = tail - equals + l + 1;
+    parts[1] = tail;
+}
+
+function insertionSortArrayAsc(data: number[], start: number, end: number) {
+    for (let i = start + 1; i <= end; i++) {
+        const key = data[i];
+        let j = i - 1;
+        while (j >= start && data[j] > key) {
+            data[j + 1] = data[j];
+            j = j - 1;
+        }
+        data[j + 1] = key;
+    }
+}
+
+function quickSortArrayAsc(data: number[], parts: number[], low: number, high: number) {
+    while (low < high) {
+        if (high - low < 16) {
+            insertionSortArrayAsc(data, low, high);
+            return;
+        }
+
+        partitionArrayAsc(data, parts, low, high);
+        const li = parts[0], ri = parts[1];
+
+        if (li - low < high - ri) {
+            quickSortArrayAsc(data, parts, low, li - 1);
+            low = ri + 1;
+        } else {
+            quickSortArrayAsc(data, parts, ri + 1, high);
+            high = li - 1;
+        }
+    }
+}
+
 export function sortArray(data: ArrayLike<number>, cmp: Comparer<ArrayLike<number>> = arrayLess): ArrayLike<number> {
     return sortArrayRange(data, 0, data.length, cmp);
 }
 
 export function sortArrayRange(data: ArrayLike<number>, start: number, end: number, cmp: Comparer<ArrayLike<number>> = arrayLess): ArrayLike<number> {
-    quickSort({ data, cmp, swap: arraySwap, parts: [0, 0] }, start, end - 1);
+    if (cmp === arrayLess) quickSortArrayAsc(data as any, [0, 0], start, end - 1);
+    else quickSort({ data, cmp, swap: arraySwap, parts: [0, 0] }, start, end - 1);
     return data;
 }
 
