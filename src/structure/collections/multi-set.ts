@@ -28,7 +28,7 @@ namespace MultiSet {
         return set.keys;
     }
 
-    export function componentCount(set: MultiSet): OrderedSet {
+    export function getSetCount(set: MultiSet): number {
         if (typeof set === 'number') return 1;
         return OrderedSet.size(set.keys);
     }

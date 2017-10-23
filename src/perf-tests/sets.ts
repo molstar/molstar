@@ -4,7 +4,7 @@ import OrdSet from '../structure/collections/ordered-set'
 import MSet from '../structure/collections/multi-set'
 
 namespace Iteration {
-    const U = 1000, V = 1000;
+    const U = 1000, V = 2500;
 
     const control: number[] = [];
     const sets = Object.create(null);
@@ -51,7 +51,7 @@ namespace Iteration {
 
     export function manual1() {
         let s = 0;
-        for (let i = 0, _i = MSet.componentCount(ms); i < _i; i++) {
+        for (let i = 0, _i = MSet.getSetCount(ms); i < _i; i++) {
             const set = MSet.getSetByIndex(ms, i);
             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
                 s += OrdSet.get(set, j);
