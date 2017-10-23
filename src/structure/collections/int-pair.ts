@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from './iterator'
+import { hash2 } from './hash-functions'
 
 interface IntPair { fst: number, snd: number }
 
@@ -74,6 +74,11 @@ namespace IntPair {
         const x = _int32[0] - _int32_1[0];
         if (x !== 0) return x;
         return _int32[1] - _int32_1[1];
+    }
+
+    export function packedHashCode(packed: number) {
+        _float64[0] = packed;
+        return hash2(_int32[0], _int32[1]);
     }
 }
 

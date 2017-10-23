@@ -201,6 +201,21 @@ describe('range set', () => {
         expect(arr136.indexOf(11)).toBe(-1);
     });
 
+    it('interval range', () => {
+        expect(OrderedSet.getIntervalRange(empty, 9, 11)).toEqual({ start: 0, end: 0 });
+        expect(OrderedSet.getIntervalRange(empty, -9, -6)).toEqual({ start: 0, end: 0 });
+        expect(OrderedSet.getIntervalRange(singleton10, 9, 11)).toEqual({ start: 0, end: 1 });
+        expect(OrderedSet.getIntervalRange(range1_4, 2, 3)).toEqual({ start: 1, end: 3 });
+        expect(OrderedSet.getIntervalRange(range1_4, -10, 2)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet.getIntervalRange(range1_4, -10, 20)).toEqual({ start: 0, end: 4 });
+        expect(OrderedSet.getIntervalRange(range1_4, 3, 20)).toEqual({ start: 2, end: 4 });
+        expect(OrderedSet.getIntervalRange(arr136, 0, 1)).toEqual({ start: 0, end: 1 });
+        expect(OrderedSet.getIntervalRange(arr136, 0, 3)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet.getIntervalRange(arr136, 0, 4)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet.getIntervalRange(arr136, 2, 4)).toEqual({ start: 1, end: 2 });
+        expect(OrderedSet.getIntervalRange(arr136, 2, 7)).toEqual({ start: 1, end: 3 });
+    })
+
     testEq('union ES', OrderedSet.union(empty, singleton10), [10]);
     testEq('union ER', OrderedSet.union(empty, range1_4), [1, 2, 3, 4]);
     testEq('union EA', OrderedSet.union(empty, arr136), [1, 3, 6]);
@@ -298,20 +313,21 @@ describe('multiset', () => {
     const p = (i: number, j: number) => IntPair.create(i, j);
     const r = (i: number, j: number) => IntPair.pack1(i, j);
 
-    function iteratorPairsToArray(it: Iterator<IntPair>): IntPair[] {
+    function setToPairs(set: MultiSet): IntPair[] {
         const ret = [];
+        const it = MultiSet.values(set);
         for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = IntPair.create(v.fst, v.snd);
         return ret;
     }
 
     it('singleton pair', () => {
         const set = MultiSet.create(p(10, 11));
-        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(10, 11)]);
+        expect(setToPairs(set)).toEqual([p(10, 11)]);
     });
 
     it('singleton number', () => {
         const set = MultiSet.create(r(10, 11));
-        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(10, 11)]);
+        expect(setToPairs(set)).toEqual([p(10, 11)]);
     });
 
     it('multi', () => {
@@ -319,12 +335,73 @@ describe('multiset', () => {
             1: OrderedSet.ofSortedArray([4, 6, 7]),
             3: OrderedSet.ofRange(0, 1),
         });
-        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
+        expect(setToPairs(set)).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
     });
 
     it('packed pairs', () => {
         const set = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        expect(iteratorPairsToArray(MultiSet.values(set))).toEqual([p(0, 1), p(0, 2), p(0, 6), p(1, 3)]);
+        expect(setToPairs(set)).toEqual([p(0, 1), p(0, 2), p(0, 6), p(1, 3)]);
     });
 
+    it('equality', () => {
+        const a = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const b = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const c = MultiSet.create([r(1, 3), r(0, 4), r(0, 6), r(0, 2)]);
+        const d = MultiSet.create([r(1, 3)]);
+        const e = MultiSet.create([r(1, 3)]);
+        const f = MultiSet.create([r(3, 3)]);
+
+        expect(MultiSet.areEqual(a, a)).toBe(true);
+        expect(MultiSet.areEqual(a, b)).toBe(true);
+        expect(MultiSet.areEqual(a, c)).toBe(false);
+        expect(MultiSet.areEqual(a, d)).toBe(false);
+        expect(MultiSet.areEqual(d, d)).toBe(true);
+        expect(MultiSet.areEqual(d, e)).toBe(true);
+        expect(MultiSet.areEqual(d, f)).toBe(false);
+    });
+
+    it('are intersecting', () => {
+        const a = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const b = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const c = MultiSet.create([r(1, 3), r(0, 4), r(0, 6), r(0, 2)]);
+        const d = MultiSet.create([r(1, 3)]);
+        const e = MultiSet.create([r(1, 3)]);
+        const f = MultiSet.create([r(3, 3)]);
+        const g = MultiSet.create([r(10, 3), r(8, 1), r(7, 6), r(3, 2)]);
+
+        expect(MultiSet.areIntersecting(a, a)).toBe(true);
+        expect(MultiSet.areIntersecting(a, b)).toBe(true);
+        expect(MultiSet.areIntersecting(a, c)).toBe(true);
+        expect(MultiSet.areIntersecting(a, d)).toBe(true);
+        expect(MultiSet.areIntersecting(a, g)).toBe(false);
+        expect(MultiSet.areIntersecting(d, d)).toBe(true);
+        expect(MultiSet.areIntersecting(d, e)).toBe(true);
+        expect(MultiSet.areIntersecting(d, f)).toBe(false);
+    });
+
+    it('intersection', () => {
+        const a = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const b = MultiSet.create([r(10, 3), r(0, 1), r(0, 6), r(4, 2)]);
+        const c = MultiSet.create([r(1, 3)]);
+        const d = MultiSet.create([r(2, 3)]);
+        expect(MultiSet.intersect(a, a)).toBe(a);
+        expect(setToPairs(MultiSet.intersect(a, b))).toEqual([p(0, 1), p(0, 6)]);
+        expect(setToPairs(MultiSet.intersect(a, c))).toEqual([p(1, 3)]);
+        expect(setToPairs(MultiSet.intersect(c, d))).toEqual([]);
+    });
+
+    it('subtract', () => {
+        const a = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const a1 = MultiSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const b = MultiSet.create([r(10, 3), r(0, 1), r(0, 6), r(4, 2)]);
+        const c = MultiSet.create([r(1, 3)]);
+        const d = MultiSet.create([r(2, 3)]);
+        expect(setToPairs(MultiSet.subtract(a, a))).toEqual([]);
+        expect(setToPairs(MultiSet.subtract(a, a1))).toEqual([]);
+        expect(setToPairs(MultiSet.subtract(a, b))).toEqual([p(0, 2), p(1, 3)]);
+        expect(setToPairs(MultiSet.subtract(c, d))).toEqual([p(1, 3)]);
+        expect(setToPairs(MultiSet.subtract(a, c))).toEqual([p(0, 1), p(0, 2), p(0, 6)]);
+        expect(setToPairs(MultiSet.subtract(c, a))).toEqual([]);
+        expect(setToPairs(MultiSet.subtract(d, a))).toEqual([p(2, 3)]);
+    });
 });

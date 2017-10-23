@@ -5,6 +5,7 @@
  */
 
 import Iterator from './iterator'
+import { hash3, hash4 } from './hash-functions'
 
 /** An immutable ordered set. */
 interface OrderedSet {
@@ -58,20 +59,18 @@ namespace OrderedSet {
         if (xs[xs.length - 1] - xs[0] + 1 === xs.length) return ofRange(xs[0], xs[xs.length - 1]);
         return new ArrayImpl(xs);
     }
-    export const Empty = new RangeImpl(0, -1);
+    export const Empty: OrderedSet = new RangeImpl(0, -1);
 
     export function isEmpty(a: OrderedSet) { return a.size === 0; }
+    export function min(a: OrderedSet) { return (a as Impl).min; }
+    export function max(a: OrderedSet) { return (a as Impl).max; }
 
     export function hashCode(a: OrderedSet) {
         // hash of tuple (size, min, max, mid)
         const { size } = a;
-        let hash = 23;
-        if (!size) return hash;
-        hash = 31 * hash + size;
-        hash = 31 * hash + a.elementAt(0);
-        hash = 31 * hash + a.elementAt(size - 1);
-        if (size > 2) hash = 31 * hash + a.elementAt(size >> 1);
-        return hash;
+        if (!size) return 0;
+        if (size > 2) return hash4(size, a.elementAt(0), a.elementAt(size - 1), a.elementAt(size >> 0));
+        return hash3(size, a.elementAt(0), a.elementAt(size - 1));
     }
     // TODO: possibly add more hash functions to allow for multilevel hashing.
 
@@ -103,7 +102,15 @@ namespace OrderedSet {
         return isSubsetAA((a as ArrayImpl).values, (toTest as ArrayImpl).values);
     }
 
+    export function getIntervalRange(a: OrderedSet, min: number, max: number) {
+        const { start, end } = a instanceof RangeImpl
+            ? getStartEndR(a, min, max)
+            : getStartEndA((a as ArrayImpl).values, min, max);
+        return { start, end };
+    }
+
     export function union(a: OrderedSet, b: OrderedSet) {
+        if (a === b) return a;
         if (a instanceof RangeImpl) {
             if (b instanceof RangeImpl) return unionRR(a, b);
             return unionAR(b as ArrayImpl, a);
@@ -113,6 +120,7 @@ namespace OrderedSet {
     }
 
     export function intersect(a: OrderedSet, b: OrderedSet) {
+        if (a === b) return a;
         if (a instanceof RangeImpl) {
             if (b instanceof RangeImpl) return intersectRR(a, b);
             return intersectAR(b as ArrayImpl, a);
@@ -125,6 +133,7 @@ namespace OrderedSet {
     }
 
     export function subtract(a: OrderedSet, b: OrderedSet) {
+        if (a === b) return Empty;
         if (!areRangesIntersecting(a, b)) return a;
 
         if (a instanceof RangeImpl) {
@@ -184,7 +193,19 @@ function getMaxIntersectionRange(xs: ArrayLike<number>, ys: ArrayLike<number>) {
 }
 
 const _startEndRet = { start: 0, end: 0 };
-function getStartEnd(xs: ArrayLike<number>, min: number, max: number) {
+
+function getStartEndR(r: RangeImpl, min: number, max: number) {
+    if (max < min) {
+        _startEndRet.start = 0;
+        _startEndRet.end = 0;
+        return _startEndRet;
+    }
+    _startEndRet.start = min <= r.max ? Math.max(r.min, min) - r.min : r.size;
+    _startEndRet.end = max >= r.min ? Math.min(r.max, max) - r.min + 1 : r.size;
+    return _startEndRet;
+}
+
+function getStartEndA(xs: ArrayLike<number>, min: number, max: number) {
     _startEndRet.start = binarySearchIndex(xs, min);
     let end = binarySearchIndex(xs, max);
     if (xs[end] === max) end++;
@@ -263,7 +284,7 @@ function unionAR(a: ArrayImpl, b: RangeImpl) {
 
     const xs = a.values;
     const { min, max } = b;
-    const { start, end } = getStartEnd(xs, min, max);
+    const { start, end } = getStartEndA(xs, min, max);
 
     const size = start + (xs.length - end) + b.size;
     const indices = new Int32Array(size);
@@ -332,7 +353,7 @@ function intersectAR(a: ArrayImpl, r: RangeImpl) {
     if (!r.size) return OrderedSet.Empty;
 
     const xs = a.values;
-    const { start, end } = getStartEnd(xs, r.min, r.max);
+    const { start, end } = getStartEndA(xs, r.min, r.max);
     const resultSize = end - start;
     if (!resultSize) return OrderedSet.Empty;
 
@@ -395,7 +416,7 @@ function subtractAR(a: ArrayImpl, r: RangeImpl) {
 
     const xs = a.values;
     const { min, max } = r;
-    const { start, end } = getStartEnd(xs, min, max);
+    const { start, end } = getStartEndA(xs, min, max);
     const size = xs.length - (end - start);
     if (size <= 0) return OrderedSet.Empty;
     const ret = new Int32Array(size);
@@ -409,7 +430,7 @@ function subtractRA(r: RangeImpl, ys: ArrayLike<number>) {
     if (!r.size) return r;
 
     const { min, max } = r;
-    const { start, end } = getStartEnd(ys, min, max);
+    const { start, end } = getStartEndA(ys, min, max);
     const commonCount = end - start;
     const resultSize = r.size - commonCount;
     if (resultSize <= 0) return OrderedSet.Empty;
