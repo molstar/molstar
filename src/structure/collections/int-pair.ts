@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import Iterator from './iterator'
+
 interface IntPair { fst: number, snd: number }
 
 namespace IntPair {

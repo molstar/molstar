@@ -75,10 +75,19 @@ class RangeIteratorImpl implements Iterator<number> {
     }
 }
 
+class ValueIterator<T> implements Iterator<T> {
+    private yielded = false;
+    [Symbol.iterator]() { return new ValueIterator(this.value); };
+    done = false;
+    next() { const value = this.move(); return { value, done: this.done } }
+    move() { this.done = this.yielded; this.yielded = true; return this.value; }
+    constructor(private value: T) { }
+}
+
 namespace Iterator {
     export const Empty: Iterator<any> = new RangeIteratorImpl(0, -1);
     export function Array<T>(xs: ArrayLike<T>): Iterator<T> { return new ArrayIteratorImpl<T>(xs); }
-    export function Value(value: number): Iterator<number> { return new RangeIteratorImpl(value, value); }
+    export function Value<T>(value: T): Iterator<T> { return new ValueIterator(value); }
     export function Range(min: number, max: number): Iterator<number> { return new RangeIteratorImpl(min, max); }
 }
 

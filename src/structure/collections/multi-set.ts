@@ -52,15 +52,6 @@ namespace MultiSet {
         return ret;
     }
 
-    class PairIterator implements Iterator<IntPair> {
-        private yielded = false;
-        [Symbol.iterator]() { return new PairIterator(this.pair); };
-        done = false;
-        next() { const value = this.move(); return { value, done: this.done } }
-        move() { this.done = this.yielded; this.yielded = true; return this.pair; }
-        constructor(private pair: IntPair) { }
-    }
-
     class ElementsIterator implements Iterator<IntPair> {
         private pair = IntPair.zero();
         private unit = 0;
@@ -103,7 +94,7 @@ namespace MultiSet {
     }
 
     export function values(set: MultiSet): Iterator<IntPair> {
-        if (typeof set === 'number') return new PairIterator(IntPair.unpack1(set));
+        if (typeof set === 'number') return Iterator.Value(IntPair.unpack1(set));
         return new ElementsIterator(set);
     }
 
@@ -125,7 +116,7 @@ namespace MultiSet {
         return create(ret);
     }
 
-    // TODO: union, intersection, subtraction
+    // TODO: size, ofObject, hashCode (and cache it), equal, union, intersection, subtraction
 
     export function union(sets: ArrayLike<MultiSet>): MultiSet {
         return 0 as any;
