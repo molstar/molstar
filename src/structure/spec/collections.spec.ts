@@ -131,7 +131,7 @@ describe('qsort-dual array', () => {
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
         const ret = [];
-        for (let i = 0, _i = OrderedSet.size(set); i < _i; i++) ret.push(OrderedSet.elementAt(set, i));
+        for (let i = 0, _i = OrderedSet.size(set); i < _i; i++) ret.push(OrderedSet.get(set, i));
         return ret;
     }
 
@@ -330,6 +330,9 @@ describe('multiset', () => {
     it('singleton pair', () => {
         const set = MultiSet.create(p(10, 11));
         expect(setToPairs(set)).toEqual([p(10, 11)]);
+        expect(MultiSet.has(set, r(10, 11))).toBe(true);
+        expect(MultiSet.has(set, r(11, 11))).toBe(false);
+        expect(MultiSet.get(set, 0)).toBe(r(10, 11));
     });
 
     it('singleton number', () => {
@@ -342,7 +345,32 @@ describe('multiset', () => {
             1: OrderedSet.ofSortedArray([4, 6, 7]),
             3: OrderedSet.ofRange(0, 1),
         });
+        const ret = [p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)];
+        expect(MultiSet.size(set)).toBe(ret.length);
         expect(setToPairs(set)).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
+        expect(MultiSet.has(set, r(10, 11))).toBe(false);
+        expect(MultiSet.has(set, r(3, 0))).toBe(true);
+        expect(MultiSet.has(set, r(1, 7))).toBe(true);
+        for (let i = 0; i < MultiSet.size(set); i++) {
+            expect(MultiSet.get(set, i)).toBe(IntPair.pack(ret[i]));
+        }
+    });
+
+    it('element at', () => {
+        const control = [];
+        const sets = Object.create(null);
+        for (let i = 1; i < 10; i++) {
+            const set = [];
+            for (let j = 1; j < 7; j++) {
+                control[control.length] = r(i * i, j * j + 1);
+                set[set.length] = j * j + 1;
+            }
+            sets[i * i] = OrderedSet.ofSortedArray(set);
+        }
+        const ms = MultiSet.create(sets);
+        for (let i = 0; i < control.length; i++) {
+            expect(IntPair.areEqual(MultiSet.get(ms, i), control[i])).toBe(true);
+        }
     });
 
     it('packed pairs', () => {

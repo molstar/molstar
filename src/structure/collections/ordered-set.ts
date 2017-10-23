@@ -26,7 +26,7 @@ namespace OrderedSet {
     export function size(set: OrderedSet) { return typeof set === 'number' ? sizeR(set) : set.length; }
     export function has(set: OrderedSet, x: number) { return typeof set === 'number' ? hasR(set, x) : hasA(set, x); }
     export function indexOf(set: OrderedSet, x: number) { return typeof set === 'number' ? indexOfR(set, x) : indexOfA(set, x); }
-    export function elementAt(set: OrderedSet, i: number) { return typeof set === 'number' ? elementAtR(set, i) : set[i]; }
+    export function get(set: OrderedSet, i: number) { return typeof set === 'number' ? elementAtR(set, i) : set[i]; }
     export function min(set: OrderedSet) { return typeof set === 'number' ? minR(set) : set[0]; }
     export function max(set: OrderedSet) { return typeof set === 'number' ? maxR(set) : set[set.length - 1]; }
 
@@ -34,8 +34,8 @@ namespace OrderedSet {
         // hash of tuple (size, min, max, mid)
         const s = size(set);
         if (!s) return 0;
-        if (s > 2) return hash4(s, elementAt(set, 0), elementAt(set, s - 1), elementAt(set, s >> 1));
-        return hash3(s, elementAt(set, 0), elementAt(set, s - 1));
+        if (s > 2) return hash4(s, get(set, 0), get(set, s - 1), get(set, s >> 1));
+        return hash3(s, get(set, 0), get(set, s - 1));
     }
     // TODO: possibly add more hash functions to allow for multilevel hashing.
 
@@ -187,7 +187,7 @@ const _startEndRet = { start: 0, end: 0 };
 function getStartEnd(set: OrderedSet, min: number, max: number) {
     _startEndRet.start = S.getInsertionIndex(set, min);
     let end = S.getInsertionIndex(set, max);
-    if (end < S.size(set) && S.elementAt(set, end) === max) end++;
+    if (end < S.size(set) && S.get(set, end) === max) end++;
     _startEndRet.end = end;
     return _startEndRet;
 }

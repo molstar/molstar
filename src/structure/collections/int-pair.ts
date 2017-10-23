@@ -9,6 +9,8 @@ import { hash2 } from './hash-functions'
 interface IntPair { fst: number, snd: number }
 
 namespace IntPair {
+    export interface Packed extends Number { }
+
     const { _int32, _float64, _int32_1, _float64_1 } = (function() {
         const data = new ArrayBuffer(8);
         const data_1 = new ArrayBuffer(8);
@@ -39,30 +41,30 @@ namespace IntPair {
         return _float64[0];
     }
 
-    export function unpack(packed: number, target: IntPair): IntPair {
-        _float64[0] = packed;
+    export function unpack(packed: Packed, target: IntPair): IntPair {
+        _float64[0] = packed as number;
         target.fst = _int32[0];
         target.snd = _int32[1];
         return target;
     }
 
-    export function unpack1(packed: number): IntPair {
+    export function unpack1(packed: Packed): IntPair {
         return unpack(packed, zero());
     }
 
-    export function fst(packed: number): number {
-        _float64[0] = packed;
+    export function fst(packed: Packed): number {
+        _float64[0] = packed as number;
         return _int32[0];
     }
 
-    export function snd(packed: number): number {
-        _float64[0] = packed;
+    export function snd(packed: Packed): number {
+        _float64[0] = packed as number;
         return _int32[1];
     }
 
-    export function areEqual(a: number, b: number) {
-        _float64[0] = a;
-        _float64_1[0] = b;
+    export function areEqual(a: Packed, b: Packed) {
+        _float64[0] = a as number;
+        _float64_1[0] = b as number;
         return _int32[0] === _int32_1[0] && _int32[1] === _int32_1[1];
     }
 
@@ -82,8 +84,8 @@ namespace IntPair {
         return _int32[1] - _int32_1[1];
     }
 
-    export function packedHashCode(packed: number) {
-        _float64[0] = packed;
+    export function packedHashCode(packed: Packed) {
+        _float64[0] = packed as number;
         return hash2(_int32[0], _int32[1]);
     }
 }
