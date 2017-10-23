@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from './ordered-set.1'
+import OrderedSet from './ordered-set'
 import Iterator from './iterator'
 import IntPair from './int-pair'
 import { sortArray } from './sort'
@@ -30,7 +30,7 @@ namespace MultiSet {
 
     export function hasKey(set: MultiSet, key: number): boolean {
         if (typeof set === 'number') return IntPair.fst(set) === key;
-        return set.keys.has(key);
+        return OrderedSet.has(set.keys, key);
     }
 
     export function get(set: MultiSet, key: number): OrderedSet {
@@ -102,6 +102,7 @@ namespace MultiSet {
         private pair = IntPair.zero();
         private unit = 0;
 
+        private keyCount: number;
         private setIndex = -1;
         private currentIndex = 0;
         private currentSize = 0;
@@ -125,7 +126,7 @@ namespace MultiSet {
 
         private advance() {
             const keys = this.elements.keys;
-            if (++this.setIndex >= keys.size) {
+            if (++this.setIndex >= this.keyCount) {
                 this.done = true;
                 return false;
             }
@@ -133,12 +134,13 @@ namespace MultiSet {
             this.pair.fst = this.unit;
             this.currentSet = this.elements[this.unit];
             this.currentIndex = 0;
-            this.currentSize = this.currentSet.size;
+            this.currentSize = OrderedSet.size(this.currentSet);
             return true;
         }
 
         constructor(private elements: MultiSetElements) {
-            this.done = elements.keys.size === 0;
+            this.keyCount = OrderedSet.size(elements.keys);
+            this.done = this.keyCount === 0;
             this.advance();
         }
     }
@@ -159,12 +161,12 @@ function ofObject(data: { [id: number]: OrderedSet }) {
     const keys = [];
     for (const _k of Object.keys(data)) {
         const k = +_k;
-        if (data[k].size > 0) keys[keys.length] = k;
+        if (OrderedSet.size(data[k]) > 0) keys[keys.length] = k;
     }
     if (!keys.length) return MultiSet.Empty;
     if (keys.length === 1) {
         const set = data[keys[0]];
-        if (set.size === 1) return IntPair.pack1(keys[0], set.elementAt(0));
+        if (OrderedSet.size(set) === 1) return IntPair.pack1(keys[0], OrderedSet.elementAt(set, 0));
     }
     return ofObject1(keys, data);
 }
@@ -173,17 +175,17 @@ function ofObject1(keys: number[], data: { [id: number]: OrderedSet }) {
     if (keys.length === 1) {
         const k = keys[0];
         const set = data[k];
-        if (set.size === 1) return IntPair.pack1(k, set.elementAt(0));
+        if (OrderedSet.size(set) === 1) return IntPair.pack1(k, OrderedSet.elementAt(set, 0));
     }
     sortArray(keys);
     return _createObjectOrdered(OrderedSet.ofSortedArray(keys), data);
 }
 
 function ofObjectOrdered(keys: OrderedSet, data: { [id: number]: OrderedSet }) {
-    if (keys.size === 1) {
-        const k = keys.elementAt(0);
+    if (OrderedSet.size(keys) === 1) {
+        const k = OrderedSet.elementAt(keys, 0);
         const set = data[k];
-        if (set.size === 1) return IntPair.pack1(k, set.elementAt(0));
+        if (OrderedSet.size(set) === 1) return IntPair.pack1(k, OrderedSet.elementAt(set, 0));
     }
     return _createObjectOrdered(keys, data);
 }
@@ -192,11 +194,11 @@ function _createObjectOrdered(keys: OrderedSet, data: { [id: number]: OrderedSet
     const ret: MultiSetElements = Object.create(null);
     ret.keys = keys;
     let size = 0;
-    for (let i = 0, _i = keys.size; i < _i; i++) {
-        const k = keys.elementAt(i);
+    for (let i = 0, _i = OrderedSet.size(keys); i < _i; i++) {
+        const k = OrderedSet.elementAt(keys, i);
         const set = data[k];
         ret[k] = set;
-        size += set.size;
+        size += OrderedSet.size(set);
     }
     ret.size = size;
     ret.hashCode = -1;
@@ -248,8 +250,8 @@ function ofPackedPairs(xs: ArrayLike<number>): MultiSet {
 function computeHash(set: MultiSetElements) {
     const { keys } = set;
     let hash = 23;
-    for (let i = 0, _i = keys.size; i < _i; i++) {
-        const k = keys.elementAt(i);
+    for (let i = 0, _i = OrderedSet.size(keys); i < _i; i++) {
+        const k = OrderedSet.elementAt(keys, i);
         hash = (31 * hash + k) | 0;
         hash = (31 * hash + OrderedSet.hashCode(set[k])) | 0;
     }
@@ -265,8 +267,8 @@ function areEqualEE(a: MultiSetElements, b: MultiSetElements) {
 
     const keys = a.keys;
     if (!OrderedSet.areEqual(keys, b.keys)) return false;
-    for (let i = 0, _i = keys.size; i < _i; i++) {
-        const k = keys.elementAt(i);
+    for (let i = 0, _i = OrderedSet.size(keys); i < _i; i++) {
+        const k = OrderedSet.elementAt(keys, i);
         if (!OrderedSet.areEqual(a[k], b[k])) return false;
     }
     return true;
@@ -274,7 +276,7 @@ function areEqualEE(a: MultiSetElements, b: MultiSetElements) {
 
 function areIntersectingNE(a: number, b: MultiSetElements) {
     IntPair.unpack(a, pair);
-    return b.keys.has(pair.fst) && b[pair.fst].has(pair.snd);
+    return OrderedSet.has(b.keys, pair.fst) && OrderedSet.has(b[pair.fst], pair.snd);
 }
 
 function areIntersectingEE(a: MultiSetElements, b: MultiSetElements) {
@@ -283,15 +285,15 @@ function areIntersectingEE(a: MultiSetElements, b: MultiSetElements) {
     if (!OrderedSet.areIntersecting(a.keys, b.keys)) return false;
     const { start, end } = OrderedSet.getIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
     for (let i = start; i < end; i++) {
-        const k = keysA.elementAt(i);
-        if (keysB.has(k) && OrderedSet.areIntersecting(a[k], b[k])) return true;
+        const k = OrderedSet.elementAt(keysA, i);
+        if (OrderedSet.has(keysB, k) && OrderedSet.areIntersecting(a[k], b[k])) return true;
     }
     return false;
 }
 
 function intersectNE(a: number, b: MultiSetElements) {
     IntPair.unpack(a, pair);
-    return b.keys.has(pair.fst) && b[pair.fst].has(pair.snd) ? a : MultiSet.Empty;
+    return OrderedSet.has(b.keys, pair.fst) && OrderedSet.has(b[pair.fst], pair.snd) ? a : MultiSet.Empty;
 }
 
 function intersectEE(a: MultiSetElements, b: MultiSetElements) {
@@ -303,10 +305,10 @@ function intersectEE(a: MultiSetElements, b: MultiSetElements) {
 
     const keys = [], ret = Object.create(null);
     for (let i = start; i < end; i++) {
-        const k = keysA.elementAt(i);
-        if (keysB.has(k)) {
+        const k = OrderedSet.elementAt(keysA, i);
+        if (OrderedSet.has(keysB, k)) {
             const intersection = OrderedSet.intersect(a[k], b[k]);
-            if (intersection.size > 0) {
+            if (OrderedSet.size(intersection) > 0) {
                 keys[keys.length] = k;
                 ret[k] = intersection;
             }
@@ -317,15 +319,15 @@ function intersectEE(a: MultiSetElements, b: MultiSetElements) {
 
 function subtractNE(a: number, b: MultiSetElements) {
     IntPair.unpack(a, pair);
-    return b.keys.has(pair.fst) && b[pair.fst].has(pair.snd) ? MultiSet.Empty : a;
+    return OrderedSet.has(b.keys, pair.fst) && OrderedSet.has(b[pair.fst], pair.snd) ? MultiSet.Empty : a;
 }
 
 function subtractEN(a: MultiSetElements, b: number): MultiSet {
     const aKeys =  a.keys;
     IntPair.unpack(b, pair);
-    if (!aKeys.has(pair.fst) || !a[pair.fst].has(pair.snd)) return a;
+    if (!OrderedSet.has(aKeys, pair.fst) || !OrderedSet.has(a[pair.fst], pair.snd)) return a;
     const set = a[pair.fst];
-    if (set.size === 1) {
+    if (OrderedSet.size(set) === 1) {
         return ofObjectOrdered(OrderedSet.subtract(a.keys, OrderedSet.ofSingleton(pair.fst)), a);
     } else {
         return { ...a, [pair.fst]: OrderedSet.subtract(set, OrderedSet.ofSingleton(pair.snd)), size: a.size - 1, hashCode: -1 }
@@ -341,15 +343,15 @@ function subtractEE(a: MultiSetElements, b: MultiSetElements) {
 
     const keys = [], ret = Object.create(null);
     for (let i = 0; i < start; i++) {
-        const k = keysA.elementAt(i);
+        const k = OrderedSet.elementAt(keysA, i);
         keys[keys.length] = k;
         ret[k] = a[k];
     }
     for (let i = start; i < end; i++) {
-        const k = keysA.elementAt(i);
-        if (keysB.has(k)) {
+        const k = OrderedSet.elementAt(keysA, i);
+        if (OrderedSet.has(keysB, k)) {
             const subtraction = OrderedSet.subtract(a[k], b[k]);
-            if (subtraction.size > 0) {
+            if (OrderedSet.size(subtraction) > 0) {
                 keys[keys.length] = k;
                 ret[k] = subtraction;
             }
@@ -358,8 +360,8 @@ function subtractEE(a: MultiSetElements, b: MultiSetElements) {
             ret[k] = a[k];
         }
     }
-    for (let i = end, _i = keysA.size; i < _i; i++) {
-        const k = keysA.elementAt(i);
+    for (let i = end, _i = OrderedSet.size(keysA); i < _i; i++) {
+        const k = OrderedSet.elementAt(keysA, i);
         keys[keys.length] = k;
         ret[k] = a[k];
     }
@@ -406,8 +408,8 @@ function unionN(sets: ArrayLike<MultiSet>, eCount: { count: number }) {
 
 function unionInto(data: { [key: number]: OrderedSet }, a: MultiSetElements) {
     const keys = a.keys;
-    for (let i = 0, _i = keys.size; i < _i; i++) {
-        const k = keys.elementAt(i);
+    for (let i = 0, _i = OrderedSet.size(keys); i < _i; i++) {
+        const k = OrderedSet.elementAt(keys, i);
         const set = data[k];
         if (set) data[k] = OrderedSet.union(set, a[k]);
         else data[k] = a[k];
