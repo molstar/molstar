@@ -404,4 +404,19 @@ describe('multiset', () => {
         expect(setToPairs(MultiSet.subtract(c, a))).toEqual([]);
         expect(setToPairs(MultiSet.subtract(d, a))).toEqual([p(2, 3)]);
     });
+
+    it('union', () => {
+        const a = MultiSet.create([r(1, 3), r(0, 1)]);
+        const a1 = MultiSet.create([r(1, 3), r(0, 1)]);
+        const b = MultiSet.create([r(10, 3), r(0, 1)]);
+        const c = MultiSet.create([r(1, 3)]);
+        const d = MultiSet.create([r(2, 3)]);
+        expect(MultiSet.unionMany([a])).toBe(a);
+        expect(MultiSet.union(a, a)).toBe(a);
+        expect(setToPairs(MultiSet.union(a, a))).toEqual([p(0, 1), p(1, 3)]);
+        expect(setToPairs(MultiSet.union(a, a1))).toEqual([p(0, 1), p(1, 3)]);
+        expect(setToPairs(MultiSet.union(a, b))).toEqual([p(0, 1), p(1, 3), p(10, 3)]);
+        expect(setToPairs(MultiSet.union(c, d))).toEqual([p(1, 3), p(2, 3)]);
+        expect(setToPairs(MultiSet.unionMany([a, b, c, d]))).toEqual([p(0, 1), p(1, 3), p(2, 3), p(10, 3)]);
+    });
 });

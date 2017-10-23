@@ -90,10 +90,12 @@ namespace MultiSet {
         return subtractEE(a, b);
     }
 
-    // TODO: union
+    export function union(a: MultiSet, b: MultiSet): MultiSet {
+        return findUnion([a, b]);
+    }
 
-    export function union(sets: ArrayLike<MultiSet>): MultiSet {
-        return 0 as any;
+    export function unionMany(sets: ArrayLike<MultiSet>): MultiSet {
+        return findUnion(sets);
     }
 
     class ElementsIterator implements Iterator<IntPair> {
@@ -144,7 +146,6 @@ namespace MultiSet {
 }
 
 const pair = IntPair.zero();
-
 
 function isArrayLike(x: any): x is ArrayLike<number> {
     return x && (typeof x.length === 'number' && (x instanceof Array || !!x.buffer));
@@ -198,6 +199,28 @@ function _createObjectOrdered(keys: OrderedSet, data: { [id: number]: OrderedSet
     return ret;
 }
 
+function getUniqueElements(xs: number[]) {
+    let count = 1;
+    for (let i = 1, _i = xs.length; i < _i; i++) {
+        if (xs[i - 1] !== xs[i]) count++;
+    }
+    const ret = new (xs as any).constructor(count);
+    ret[0] = xs[0];
+    let offset = 1;
+    for (let i = 1, _i = xs.length; i < _i; i++) {
+        if (xs[i - 1] !== xs[i]) ret[offset++] = xs[i];
+    }
+    return ret;
+}
+
+function normalizeArray(xs: number[]) {
+    sortArray(xs);
+    for (let i = 1, _i = xs.length; i < _i; i++) {
+        if (xs[i - 1] === xs[i]) return getUniqueElements(xs);
+    }
+    return xs;
+}
+
 function ofPackedPairs(xs: ArrayLike<number>): MultiSet {
     if (xs.length === 0) return MultiSet.Empty;
     const sets: { [key: number]: number[] } = Object.create(null);
@@ -213,7 +236,7 @@ function ofPackedPairs(xs: ArrayLike<number>): MultiSet {
     for (const _k of Object.keys(sets)) {
         const k = +_k;
         keys[keys.length] = k;
-        ret[k] = OrderedSet.ofSortedArray(sortArray(sets[k]));
+        ret[k] = OrderedSet.ofSortedArray(normalizeArray(sets[k]));
     }
     return ofObject1(keys, ret);
 }
@@ -337,6 +360,64 @@ function subtractEE(a: MultiSetElements, b: MultiSetElements) {
         ret[k] = a[k];
     }
     return ofObjectOrdered(OrderedSet.ofSortedArray(keys), ret);
+}
+
+function findUnion(sets: ArrayLike<MultiSet>) {
+    if (!sets.length) return MultiSet.Empty;
+    if (sets.length === 1) return sets[0];
+    if (sets.length === 2 && sets[0] === sets[1]) return sets[0];
+
+    const eCount = { count: 0 };
+    const ns = unionN(sets, eCount);
+    if (!eCount.count) return ns;
+    const ret = Object.create(null);
+    for (let i = 0, _i = sets.length; i < _i; i++) {
+        const s = sets[i];
+        if (typeof s !== 'number') unionInto(ret, s);
+    }
+    if (MultiSet.size(ns) > 0) {
+        if (typeof ns === 'number') unionIntoN(ret, ns);
+        else unionInto(ret, ns);
+    }
+    return ofObject(ret);
+}
+
+function unionN(sets: ArrayLike<MultiSet>, eCount: { count: number }) {
+    let countN = 0, countE = 0;
+    for (let i = 0, _i = sets.length; i < _i; i++) {
+        if (typeof sets[i] === 'number') countN++;
+        else countE++;
+    }
+    eCount.count = countE;
+    if (!countN) return MultiSet.Empty;
+    if (countN === sets.length) return ofPackedPairs(sets as ArrayLike<number>);
+    const packed = new Float64Array(countN);
+    let offset = 0;
+    for (let i = 0, _i = sets.length; i < _i; i++) {
+        const s = sets[i];
+        if (typeof s === 'number') packed[offset++] = s;
+    }
+    return ofPackedPairs(packed);
+}
+
+function unionInto(data: { [key: number]: OrderedSet }, a: MultiSetElements) {
+    const keys = a.keys;
+    for (let i = 0, _i = keys.size; i < _i; i++) {
+        const k = keys.elementAt(i);
+        const set = data[k];
+        if (set) data[k] = OrderedSet.union(set, a[k]);
+        else data[k] = a[k];
+    }
+}
+
+function unionIntoN(data: { [key: number]: OrderedSet }, a: number) {
+    IntPair.unpack(a, pair);
+    const set = data[pair.fst];
+    if (set) {
+        data[pair.fst] = OrderedSet.union(set, OrderedSet.ofSingleton(pair.snd));
+    } else {
+        data[pair.fst] = OrderedSet.ofSingleton(pair.snd);
+    }
 }
 
 export default MultiSet
