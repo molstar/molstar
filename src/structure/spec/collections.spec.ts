@@ -8,6 +8,7 @@ import Iterator from '../collections/iterator'
 import IntPair from '../collections/int-pair'
 import * as Sort from '../collections/sort'
 import OrderedSet from '../collections/ordered-set'
+import OrderedSet1 from '../collections/ordered-set.1'
 import LinkedIndex from '../collections/linked-index'
 import MultiSet from '../collections/multi-set'
 
@@ -128,11 +129,17 @@ describe('qsort-dual array', () => {
     test('shuffled', data, true);
 })
 
-describe('range set', () => {
+function ordSetToArray(set: OrderedSet) {
+    const ret = [];
+    for (let i = 0; i < set.size; i++) ret.push(set.elementAt(i));
+    return ret;
+}
+
+describe('ordered set', () => {
     function testEq(name: string, set: OrderedSet, expected: number[]) {
         it(name, () => {
             // copy the arrays to ensure "compatibility" between typed and native arrays
-            expect(Array.prototype.slice.call(iteratorToArray(set.elements()))).toEqual(Array.prototype.slice.call(expected));
+            expect(Array.prototype.slice.call(ordSetToArray(set))).toEqual(Array.prototype.slice.call(expected));
         });
     }
 
@@ -265,6 +272,151 @@ describe('range set', () => {
     testEq('subtract AA1', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([2, 3, 4, 6, 7])), [1]);
     testEq('subtract AA2', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([0, 1, 6])), [3]);
 });
+
+describe('ordered set 1', () => {
+    function ordSet1ToArray(set: OrderedSet1) {
+        const ret = [];
+        for (let i = 0, _i = OrderedSet1.size(set); i < _i; i++) ret.push(OrderedSet1.elementAt(set, i));
+        return ret;
+    }
+
+    function testEq(name: string, set: OrderedSet1, expected: number[]) {
+        it(name, () => {
+            // copy the arrays to ensure "compatibility" between typed and native arrays
+            expect(Array.prototype.slice.call(ordSet1ToArray(set))).toEqual(Array.prototype.slice.call(expected));
+        });
+    }
+
+    const empty = OrderedSet1.Empty;
+    const singleton10 = OrderedSet1.ofSingleton(10);
+    const range1_4 = OrderedSet1.ofRange(1, 4);
+    const arr136 = OrderedSet1.ofSortedArray([1, 3, 6]);
+
+    testEq('empty', empty, []);
+    testEq('singleton', singleton10, [10]);
+    testEq('range', range1_4, [1, 2, 3, 4]);
+    testEq('sorted array', arr136, [1, 3, 6]);
+
+    it('equality', () => {
+        expect(OrderedSet1.areEqual(empty, singleton10)).toBe(false);
+        expect(OrderedSet1.areEqual(singleton10, singleton10)).toBe(true);
+        expect(OrderedSet1.areEqual(range1_4, singleton10)).toBe(false);
+        expect(OrderedSet1.areEqual(arr136, OrderedSet1.ofSortedArray([1, 3, 6]))).toBe(true);
+        expect(OrderedSet1.areEqual(arr136, OrderedSet1.ofSortedArray([1, 4, 6]))).toBe(false);
+    });
+
+    it('areIntersecting', () => {
+        expect(OrderedSet1.areIntersecting(range1_4, arr136)).toBe(true);
+        expect(OrderedSet1.areIntersecting(empty, empty)).toBe(true);
+        expect(OrderedSet1.areIntersecting(empty, singleton10)).toBe(false);
+        expect(OrderedSet1.areIntersecting(empty, range1_4)).toBe(false);
+        expect(OrderedSet1.areIntersecting(empty, arr136)).toBe(false);
+    });
+
+    it('isSubset', () => {
+        expect(OrderedSet1.isSubset(singleton10, empty)).toBe(true);
+        expect(OrderedSet1.isSubset(range1_4, empty)).toBe(true);
+        expect(OrderedSet1.isSubset(arr136, empty)).toBe(true);
+        expect(OrderedSet1.isSubset(empty, empty)).toBe(true);
+        expect(OrderedSet1.isSubset(empty, singleton10)).toBe(false);
+        expect(OrderedSet1.isSubset(empty, range1_4)).toBe(false);
+        expect(OrderedSet1.isSubset(empty, arr136)).toBe(false);
+
+        expect(OrderedSet1.isSubset(singleton10, range1_4)).toBe(false);
+        expect(OrderedSet1.isSubset(range1_4, OrderedSet1.ofRange(2, 3))).toBe(true);
+        expect(OrderedSet1.isSubset(arr136, range1_4)).toBe(false);
+        expect(OrderedSet1.isSubset(arr136, arr136)).toBe(true);
+        expect(OrderedSet1.isSubset(arr136, OrderedSet1.ofSortedArray([1, 3]))).toBe(true);
+        expect(OrderedSet1.isSubset(arr136, OrderedSet1.ofSortedArray([1, 3, 7]))).toBe(false);
+        expect(OrderedSet1.isSubset(OrderedSet1.ofSortedArray([0, 1, 2, 3, 7, 10]), OrderedSet1.ofSortedArray([1, 3, 7]))).toBe(true);
+        expect(OrderedSet1.isSubset(arr136, OrderedSet1.ofSortedArray([1, 3, 10, 45]))).toBe(false);
+    });
+
+    it('access/membership', () => {
+        expect(OrderedSet1.has(empty, 10)).toBe(false);
+        expect(OrderedSet1.indexOf(empty, 10)).toBe(-1);
+
+        expect(OrderedSet1.has(singleton10, 10)).toBe(true);
+        expect(OrderedSet1.has(singleton10, 11)).toBe(false);
+        expect(OrderedSet1.indexOf(singleton10, 10)).toBe(0);
+        expect(OrderedSet1.indexOf(singleton10, 11)).toBe(-1);
+
+        expect(OrderedSet1.has(range1_4, 4)).toBe(true);
+        expect(OrderedSet1.has(range1_4, 5)).toBe(false);
+        expect(OrderedSet1.indexOf(range1_4, 4)).toBe(3);
+        expect(OrderedSet1.indexOf(range1_4, 11)).toBe(-1);
+
+        expect(OrderedSet1.has(arr136, 3)).toBe(true);
+        expect(OrderedSet1.has(arr136, 4)).toBe(false);
+        expect(OrderedSet1.indexOf(arr136, 3)).toBe(1);
+        expect(OrderedSet1.indexOf(arr136, 11)).toBe(-1);
+    });
+
+    it('interval range', () => {
+        expect(OrderedSet1.getIntervalRange(empty, 9, 11)).toEqual({ start: 0, end: 0 });
+        expect(OrderedSet1.getIntervalRange(empty, -9, -6)).toEqual({ start: 0, end: 0 });
+        expect(OrderedSet1.getIntervalRange(singleton10, 9, 11)).toEqual({ start: 0, end: 1 });
+        expect(OrderedSet1.getIntervalRange(range1_4, 2, 3)).toEqual({ start: 1, end: 3 });
+        expect(OrderedSet1.getIntervalRange(range1_4, -10, 2)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet1.getIntervalRange(range1_4, -10, 20)).toEqual({ start: 0, end: 4 });
+        expect(OrderedSet1.getIntervalRange(range1_4, 3, 20)).toEqual({ start: 2, end: 4 });
+        expect(OrderedSet1.getIntervalRange(arr136, 0, 1)).toEqual({ start: 0, end: 1 });
+        expect(OrderedSet1.getIntervalRange(arr136, 0, 3)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet1.getIntervalRange(arr136, 0, 4)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet1.getIntervalRange(arr136, 2, 4)).toEqual({ start: 1, end: 2 });
+        expect(OrderedSet1.getIntervalRange(arr136, 2, 7)).toEqual({ start: 1, end: 3 });
+    })
+
+    testEq('union ES', OrderedSet1.union(empty, singleton10), [10]);
+    testEq('union ER', OrderedSet1.union(empty, range1_4), [1, 2, 3, 4]);
+    testEq('union EA', OrderedSet1.union(empty, arr136), [1, 3, 6]);
+    testEq('union SS', OrderedSet1.union(singleton10, OrderedSet1.ofSingleton(16)), [10, 16]);
+    testEq('union SR', OrderedSet1.union(range1_4, singleton10), [1, 2, 3, 4, 10]);
+    testEq('union SA', OrderedSet1.union(arr136, singleton10), [1, 3, 6, 10]);
+    testEq('union SA1', OrderedSet1.union(arr136, OrderedSet1.ofSingleton(3)), [1, 3, 6]);
+    testEq('union RR', OrderedSet1.union(range1_4, range1_4), [1, 2, 3, 4]);
+    testEq('union RR1', OrderedSet1.union(range1_4, OrderedSet1.ofRange(6, 7)), [1, 2, 3, 4, 6, 7]);
+    testEq('union RR2', OrderedSet1.union(range1_4, OrderedSet1.ofRange(3, 5)), [1, 2, 3, 4, 5]);
+    testEq('union RA', OrderedSet1.union(range1_4, arr136), [1, 2, 3, 4, 6]);
+    testEq('union AA', OrderedSet1.union(arr136, OrderedSet1.ofSortedArray([2, 4, 6, 7])), [1, 2, 3, 4, 6, 7]);
+    testEq('union AA1', OrderedSet1.union(arr136, OrderedSet1.ofSortedArray([2, 3, 4, 6, 7])), [1, 2, 3, 4, 6, 7]);
+    testEq('union AA2', OrderedSet1.union(arr136, OrderedSet1.ofSortedArray([2, 4, 5, 6, 7])), [1, 2, 3, 4, 5, 6, 7]);
+
+    testEq('intersect ES', OrderedSet1.intersect(empty, singleton10), []);
+    testEq('intersect ER', OrderedSet1.intersect(empty, range1_4), []);
+    testEq('intersect EA', OrderedSet1.intersect(empty, arr136), []);
+    testEq('intersect SS', OrderedSet1.intersect(singleton10, OrderedSet1.ofSingleton(16)), []);
+    testEq('intersect SS1', OrderedSet1.intersect(singleton10, singleton10), [10]);
+    testEq('intersect SR', OrderedSet1.intersect(range1_4, singleton10), []);
+    testEq('intersect RR', OrderedSet1.intersect(range1_4, range1_4), [1, 2, 3, 4]);
+    testEq('intersect RR2', OrderedSet1.intersect(range1_4, OrderedSet1.ofRange(3, 5)), [3, 4]);
+    testEq('intersect RA', OrderedSet1.intersect(range1_4, arr136), [1, 3]);
+    testEq('intersect AA', OrderedSet1.intersect(arr136, OrderedSet1.ofSortedArray([2, 3, 4, 6, 7])), [3, 6]);
+
+    testEq('subtract ES', OrderedSet1.subtract(empty, singleton10), []);
+    testEq('subtract ER', OrderedSet1.subtract(empty, range1_4), []);
+    testEq('subtract EA', OrderedSet1.subtract(empty, arr136), []);
+    testEq('subtract SS', OrderedSet1.subtract(singleton10, OrderedSet1.ofSingleton(16)), [10]);
+    testEq('subtract SS1', OrderedSet1.subtract(singleton10, singleton10), []);
+    testEq('subtract SR', OrderedSet1.subtract(range1_4, singleton10), [1, 2, 3, 4]);
+    testEq('subtract SR1', OrderedSet1.subtract(range1_4, OrderedSet1.ofSingleton(4)), [1, 2, 3]);
+    testEq('subtract SR2', OrderedSet1.subtract(range1_4, OrderedSet1.ofSingleton(3)), [1, 2, 4]);
+    testEq('subtract RR', OrderedSet1.subtract(range1_4, range1_4), []);
+    testEq('subtract RR1', OrderedSet1.subtract(range1_4, OrderedSet1.ofRange(3, 5)), [1, 2]);
+
+    testEq('subtract RA', OrderedSet1.subtract(range1_4, arr136), [2, 4]);
+    testEq('subtract RA1', OrderedSet1.subtract(range1_4, OrderedSet1.ofSortedArray([0, 1, 2, 3, 4, 7])), []);
+    testEq('subtract RA2', OrderedSet1.subtract(range1_4, OrderedSet1.ofSortedArray([0, 2, 3])), [1, 4]);
+
+    testEq('subtract AR', OrderedSet1.subtract(arr136, range1_4), [6]);
+    testEq('subtract AR1', OrderedSet1.subtract(arr136, OrderedSet1.ofRange(0, 10)), []);
+    testEq('subtract AR1', OrderedSet1.subtract(arr136, OrderedSet1.ofRange(2, 10)), [1]);
+
+    testEq('subtract AA', OrderedSet1.subtract(arr136, arr136), []);
+    testEq('subtract AA1', OrderedSet1.subtract(arr136, OrderedSet1.ofSortedArray([2, 3, 4, 6, 7])), [1]);
+    testEq('subtract AA2', OrderedSet1.subtract(arr136, OrderedSet1.ofSortedArray([0, 1, 6])), [3]);
+});
+
 
 describe('linked-index', () => {
     it('initial state', () => {

@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from './iterator'
 import { hash3, hash4 } from './hash-functions'
 
 /** An immutable ordered set. */
@@ -12,8 +11,7 @@ interface OrderedSet {
     readonly size: number,
     has(x: number): boolean,
     indexOf(x: number): number,
-    elementAt(i: number): number,
-    elements(): Iterator<number>
+    elementAt(i: number): number
 }
 
 interface Impl extends OrderedSet {
@@ -26,7 +24,6 @@ class RangeImpl implements Impl {
     has(x: number) { return x >= this.min && x <= this.max; }
     indexOf(x: number) { return x >= this.min && x <= this.max ? x - this.min : -1; }
     elementAt(i: number) { return this.min + i; }
-    elements() { return Iterator.Range(this.min, this.max); }
 
     constructor(public min: number, public max: number) {
         this.size = max - min + 1;
@@ -40,7 +37,6 @@ class ArrayImpl implements Impl {
     has(x: number) { return x >= this.min && x <= this.max && binarySearch(this.values, x) >= 0; }
     indexOf(x: number) { return x >= this.min && x <= this.max ? binarySearch(this.values, x) : -1; }
     elementAt(i: number) { return this.values[i]; }
-    elements() { return Iterator.Array(this.values); }
 
     constructor(public values: ArrayLike<number>) {
         this.min = values[0];

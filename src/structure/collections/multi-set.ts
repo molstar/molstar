@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from './ordered-set'
+import OrderedSet from './ordered-set.1'
 import Iterator from './iterator'
 import IntPair from './int-pair'
 import { sortArray } from './sort'
@@ -101,8 +101,11 @@ namespace MultiSet {
     class ElementsIterator implements Iterator<IntPair> {
         private pair = IntPair.zero();
         private unit = 0;
-        private currentIndex = -1;
-        private currentIterator: Iterator<number> = Iterator.Empty;
+
+        private setIndex = -1;
+        private currentIndex = 0;
+        private currentSize = 0;
+        private currentSet: OrderedSet = OrderedSet.Empty;
 
         [Symbol.iterator]() { return new ElementsIterator(this.elements); };
         done: boolean;
@@ -111,31 +114,32 @@ namespace MultiSet {
         move() {
             if (this.done) return this.pair;
 
-            let next = this.currentIterator.move();
-            if (this.currentIterator.done) {
-                if (!this.advanceIterator()) {
-                    this.done = true;
-                    return this.pair;
-                }
-                next = this.currentIterator.move();
+            if (this.currentIndex >= this.currentSize) {
+                if (!this.advance()) return this.pair;
             }
 
+            const next = OrderedSet.elementAt(this.currentSet, this.currentIndex++);
             this.pair.snd = next;
             return this.pair;
         }
 
-        private advanceIterator() {
+        private advance() {
             const keys = this.elements.keys;
-            if (++this.currentIndex >= keys.size) return false;
-            this.unit = keys.elementAt(this.currentIndex);
+            if (++this.setIndex >= keys.size) {
+                this.done = true;
+                return false;
+            }
+            this.unit = OrderedSet.elementAt(keys, this.setIndex);
             this.pair.fst = this.unit;
-            this.currentIterator = this.elements[this.unit].elements();
+            this.currentSet = this.elements[this.unit];
+            this.currentIndex = 0;
+            this.currentSize = this.currentSet.size;
             return true;
         }
 
         constructor(private elements: MultiSetElements) {
             this.done = elements.keys.size === 0;
-            this.advanceIterator();
+            this.advance();
         }
     }
 

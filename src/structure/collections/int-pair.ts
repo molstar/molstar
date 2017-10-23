@@ -60,6 +60,12 @@ namespace IntPair {
         return _int32[1];
     }
 
+    export function areEqual(a: number, b: number) {
+        _float64[0] = a;
+        _float64_1[0] = b;
+        return _int32[0] === _int32_1[0] && _int32[1] === _int32_1[1];
+    }
+
     export function compare(a: number, b: number) {
         _float64[0] = a;
         _float64_1[0] = b;
