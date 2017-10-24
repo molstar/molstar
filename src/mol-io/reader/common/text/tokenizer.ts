@@ -6,7 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Computation from '../../../../common/computation'
+import Computation from '../../../../mol-base/computation'
 
 export interface Tokenizer {
     data: string,

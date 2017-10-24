@@ -1,6 +1,6 @@
 import * as B from 'benchmark'
-import IntTuple from '../common/collections/int-tuple'
-import OrdSet from '../common/collections/ordered-set'
+import IntTuple from '../mol-base/collections/int-tuple'
+import OrdSet from '../mol-base/collections/ordered-set'
 import AtomSet from '../mol-data/atom-set'
 
 namespace Iteration {

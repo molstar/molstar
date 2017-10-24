@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../common/collections/ordered-set'
-import Iterator from '../common/collections/iterator'
-import IntTuple from '../common/collections/int-tuple'
-import { sortArray } from '../common/collections/sort'
-import { hash1 } from '../common/collections/hash-functions'
+import OrderedSet from '../mol-base/collections/ordered-set'
+import Iterator from '../mol-base/collections/iterator'
+import IntTuple from '../mol-base/collections/int-tuple'
+import { sortArray } from '../mol-base/collections/sort'
+import { hash1 } from '../mol-base/collections/hash-functions'
 
 /** A map-like representation of integer set */
 interface AtomSet { '@type': 'atom-set' }

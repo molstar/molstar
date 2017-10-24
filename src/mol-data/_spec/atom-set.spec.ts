@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import IntTuple from '../../common/collections/int-tuple'
-import OrderedSet from '../../common/collections/ordered-set'
+import IntTuple from '../../mol-base/collections/int-tuple'
+import OrderedSet from '../../mol-base/collections/ordered-set'
 import AtomSet from '../atom-set'
 
 describe('atom set', () => {

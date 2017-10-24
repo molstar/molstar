@@ -10,7 +10,7 @@ import FixedColumn from '../common/text/column/fixed'
 import { ColumnType, UndefinedColumn } from '../common/column'
 import * as Schema from './schema'
 import Result from '../result'
-import Computation from '../../../common/computation'
+import Computation from '../../../mol-base/computation'
 
 interface State {
     tokenizer: Tokenizer,
