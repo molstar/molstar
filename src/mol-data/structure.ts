@@ -8,15 +8,13 @@ import { Vec3, Mat4 } from '../mol-base/math/linear-algebra'
 import AtomSet from './atom-set'
 import Model from './model'
 
-export type Operator =
-    | { kind: Operator.Kind.Identity }
-    | { kind: Operator.Kind.Symmetry, hkl: number[], index: number, name: string, transform: Mat4, inverse: Mat4 }
-    | { kind: Operator.Kind.Assembly, assemblyName: string, index: number, transform: Mat4, inverse: Mat4 }
-    | { kind: Operator.Kind.Custom, name: string, transform: Mat4, inverse: Mat4 }
-
-export namespace Operator {
-    export enum Kind { Identity, Symmetry, Assembly, Custom }
-}
+export interface Operator extends Readonly<{
+    name: string,
+    hkl: number[], // defaults to [0, 0, 0] where not appropriate
+    transform: Mat4,
+    inverse: Mat4,
+    isIdentity: boolean
+}> { }
 
 export interface Unit extends Readonly<{
     // Structure-level unique identifier of the unit.
