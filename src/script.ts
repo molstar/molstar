@@ -12,11 +12,13 @@ require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
 const writeFileAsync = util.promisify(fs.writeFile);
 
-import Gro from './reader/gro/parser'
-import CIF from './reader/cif/index'
+import Gro from './mol-io/reader/gro/parser'
+import CIF from './mol-io/reader/cif/index'
+
+import Computation from './common/computation'
 
 // import { toTypedFrame as applySchema } from './reader/cif/schema'
-import { generateSchema } from './reader/cif/schema/utils'
+import { generateSchema } from './mol-io/reader/cif/schema/utils'
 
 const file = '1crn.gro'
 // const file = 'water.gro'
@@ -173,7 +175,6 @@ export async function _dic() {
 
 _dic();
 
-import Computation from './utils/computation'
 const comp = Computation.create(async ctx => {
     for (let i = 0; i < 0; i++) {
         await new Promise(res => setTimeout(res, 500));

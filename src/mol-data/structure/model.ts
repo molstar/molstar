@@ -6,7 +6,7 @@
 
 import * as Data from './data'
 import { Selectors } from './selectors'
-import { Vec3, Mat4 } from '../utils/linear-algebra'
+import { Vec3, Mat4 } from '../../common/math/linear-algebra'
 
 let _uid = 0;
 /** Model-related unique identifiers */

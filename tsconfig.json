@@ -9,7 +9,8 @@
         "strictNullChecks": true,
         //"downlevelIteration": true,
         "lib": [ "es6", "dom" ],
-        "outDir": "build/js/src"
+        "outDir": "build/js/src",
+        "baseUrl": "src"
     },
-    "include": [ "src/**/*" ]
+    "include": [ "**/*" ]
 }

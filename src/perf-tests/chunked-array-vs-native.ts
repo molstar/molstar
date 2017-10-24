@@ -1,5 +1,5 @@
 import * as B from 'benchmark'
-import ChunkedArray from '../utils/chunked-array'
+import ChunkedArray from '../common/collections/chunked-array'
 
 function testNative(size: number) {
     const xs = new Array(size);

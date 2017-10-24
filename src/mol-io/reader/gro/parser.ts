@@ -10,7 +10,7 @@ import FixedColumn from '../common/text/column/fixed'
 import { ColumnType, UndefinedColumn } from '../common/column'
 import * as Schema from './schema'
 import Result from '../result'
-import Computation from '../../utils/computation'
+import Computation from '../../../common/computation'
 
 interface State {
     tokenizer: Tokenizer,

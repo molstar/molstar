@@ -26,7 +26,7 @@ import * as Data from '../data-model'
 import Field from './field'
 import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
 import Result from '../../result'
-import Computation from '../../../utils/computation'
+import Computation from '../../../../common/computation'
 
 /**
  * Types of supported mmCIF tokens.
