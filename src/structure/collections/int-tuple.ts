@@ -10,7 +10,7 @@ import { hash2 } from './hash-functions'
  * Represents a pair of two integers as a double,
  * Caution: === does not work, because of NaN, use IntTuple.areEqual for equality
  */
-interface IntTuple extends Number { }
+interface IntTuple { '@type': 'int-tuple' }
 
 namespace IntTuple {
     export interface Unpacked { fst: number, snd: number }
@@ -36,17 +36,17 @@ namespace IntTuple {
     export function pack(fst: number, snd: number): IntTuple {
         _int32[0] = fst;
         _int32[1] = snd;
-        return _float64[0];
+        return _float64[0] as any;
     }
 
     export function pack1(t: Unpacked): IntTuple {
         _int32[0] = t.fst;
         _int32[1] = t.snd;
-        return _float64[0];
+        return _float64[0] as any;
     }
 
     export function unpack(t: IntTuple, target: Unpacked): Unpacked {
-        _float64[0] = t as number;
+        _float64[0] = t as any;
         target.fst = _int32[0];
         target.snd = _int32[1];
         return target;
@@ -57,40 +57,40 @@ namespace IntTuple {
     }
 
     export function fst(t: IntTuple): number {
-        _float64[0] = t as number;
+        _float64[0] = t as any;
         return _int32[0];
     }
 
     export function snd(t: IntTuple): number {
-        _float64[0] = t as number;
+        _float64[0] = t as any;
         return _int32[1];
     }
 
     /** Normal equality does not work, because NaN === NaN ~> false */
     export function areEqual(a: IntTuple, b: IntTuple) {
-        _float64[0] = a as number;
-        _float64_1[0] = b as number;
+        _float64[0] = a as any;
+        _float64_1[0] = b as any;
         return _int32[0] === _int32_1[0] && _int32[1] === _int32_1[1];
     }
 
     export function compare(a: IntTuple, b: IntTuple) {
-        _float64[0] = a as number;
-        _float64_1[0] = b as number;
+        _float64[0] = a as any;
+        _float64_1[0] = b as any;
         const x = _int32[0] - _int32_1[0];
         if (x !== 0) return x;
         return _int32[1] - _int32_1[1];
     }
 
     export function compareInArray(xs: ArrayLike<IntTuple>, i: number, j: number) {
-        _float64[0] = xs[i] as number;
-        _float64_1[0] = xs[j] as number;
+        _float64[0] = xs[i] as any;
+        _float64_1[0] = xs[j] as any;
         const x = _int32[0] - _int32_1[0];
         if (x !== 0) return x;
         return _int32[1] - _int32_1[1];
     }
 
     export function hashCode(t: IntTuple) {
-        _float64[0] = t as number;
+        _float64[0] = t as any;
         return hash2(_int32[0], _int32[1]);
     }
 }

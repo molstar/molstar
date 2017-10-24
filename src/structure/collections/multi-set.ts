@@ -210,7 +210,7 @@ function valuesI(set: MultiSetImpl): Iterator<IntTuple.Unpacked> {
     return new ElementsIterator(set as MultiSetElements);
 }
 
-function isArrayLike(x: any): x is ArrayLike<number> {
+function isArrayLike(x: any): x is ArrayLike<IntTuple> {
     return x && (typeof x.length === 'number' && (x instanceof Array || !!x.buffer));
 }
 
@@ -321,10 +321,10 @@ function getOffsetIndex(xs: ArrayLike<number>, value: number) {
     return value < xs[min] ? min - 1 : min;
 }
 
-function getAtE(set: MultiSetElements, i: number) {
+function getAtE(set: MultiSetElements, i: number): IntTuple {
     const { offsets, keys } = set;
     const o = getOffsetIndex(offsets, i);
-    if (o >= offsets.length - 1) return 0;
+    if (o >= offsets.length - 1) return 0 as any;
     const k = OrderedSet.getAt(keys, o);
     const e = OrderedSet.getAt(set[k], i - offsets[o]);
     return IntTuple.pack(k, e);
@@ -480,7 +480,7 @@ function findUnion(sets: ArrayLike<MultiSetImpl>) {
         if (typeof s !== 'number') unionInto(ret, s as MultiSetElements);
     }
     if (sizeI(ns as MultiSetImpl) > 0) {
-        if (typeof ns === 'number') unionIntoN(ret, ns);
+        if (typeof ns === 'number') unionIntoN(ret, ns as any);
         else unionInto(ret, ns as MultiSetElements);
     }
     return ofObject(ret);
@@ -494,14 +494,14 @@ function unionN(sets: ArrayLike<MultiSetImpl>, eCount: { count: number }) {
     }
     eCount.count = countE;
     if (!countN) return MultiSet.Empty;
-    if (countN === sets.length) return ofTuples(sets as ArrayLike<number>);
+    if (countN === sets.length) return ofTuples(sets as ArrayLike<IntTuple>);
     const packed = new Float64Array(countN);
     let offset = 0;
     for (let i = 0, _i = sets.length; i < _i; i++) {
         const s = sets[i];
         if (typeof s === 'number') packed[offset++] = s;
     }
-    return ofTuples(packed);
+    return ofTuples(packed as any);
 }
 
 function unionInto(data: { [key: number]: OrderedSet }, a: MultiSetElements) {

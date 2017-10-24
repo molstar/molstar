@@ -269,7 +269,7 @@ function unionRR(a: Range, b: Range) {
     if (!sizeA) return b;
     if (!sizeB) return a;
     const minA = minR(a), minB = minR(b);
-    if (areRangesIntersecting(a as number, b as number)) return OrderedSet.ofRange(Math.min(minA, minB), Math.max(maxR(a), maxR(b)));
+    if (areRangesIntersecting(a, b)) return OrderedSet.ofRange(Math.min(minA, minB), Math.max(maxR(a), maxR(b)));
     let lSize, lMin, rSize, rMin;
     if (minR(a) < minR(b)) { lSize = sizeA; lMin = minA; rSize = sizeB; rMin = minB; }
     else { lSize = sizeB; lMin = minB; rSize = sizeA; rMin = minA; }
