@@ -44,3 +44,11 @@ export function hash4(i: number, j: number, k: number, l: number) {
     a = a ^ (a >> 11);
     return a;
 }
+
+/**
+ * A unique number for each pair of integers
+ * Biggest representable pair is (67108863, 67108863) (limit imposed by Number.MAX_SAFE_INTEGER)
+ */
+export function cantorPairing(a: number, b: number) {
+    return (a + b) * (a + b + 1) / 2 + b;
+}

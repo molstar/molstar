@@ -5,7 +5,7 @@
  */
 
 import Iterator from '../collections/iterator'
-import IntPair from '../collections/int-pair'
+import IntTuple from '../collections/int-tuple'
 import * as Sort from '../collections/sort'
 import OrderedSet from '../collections/ordered-set'
 import LinkedIndex from '../collections/linked-index'
@@ -33,11 +33,11 @@ describe('basic iterators', () => {
 
 describe('int pair', () => {
     it('works', () => {
-        const p = IntPair.zero();
+        const p = IntTuple.zero();
         for (let i = 0; i < 10; i++) {
             for (let j = -10; j < 5; j++) {
-                const t = IntPair.pack1(i, j);
-                IntPair.unpack(t, p);
+                const t = IntTuple.pack(i, j);
+                IntTuple.unpack(t, p);
                 expect(p.fst).toBe(i);
                 expect(p.snd).toBe(j);
             }
@@ -131,7 +131,7 @@ describe('qsort-dual array', () => {
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
         const ret = [];
-        for (let i = 0, _i = OrderedSet.size(set); i < _i; i++) ret.push(OrderedSet.get(set, i));
+        for (let i = 0, _i = OrderedSet.size(set); i < _i; i++) ret.push(OrderedSet.getAt(set, i));
         return ret;
     }
 
@@ -317,13 +317,13 @@ describe('linked-index', () => {
 });
 
 describe('multiset', () => {
-    const p = (i: number, j: number) => IntPair.create(i, j);
-    const r = (i: number, j: number) => IntPair.pack1(i, j);
+    const p = (i: number, j: number) => IntTuple.create(i, j);
+    const r = (i: number, j: number) => IntTuple.pack(i, j);
 
-    function setToPairs(set: MultiSet): IntPair[] {
+    function setToPairs(set: MultiSet): ArrayLike<IntTuple.Unpacked> {
         const ret = [];
         const it = MultiSet.values(set);
-        for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = IntPair.create(v.fst, v.snd);
+        for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = IntTuple.create(v.fst, v.snd);
         return ret;
     }
 
@@ -332,7 +332,8 @@ describe('multiset', () => {
         expect(setToPairs(set)).toEqual([p(10, 11)]);
         expect(MultiSet.has(set, r(10, 11))).toBe(true);
         expect(MultiSet.has(set, r(11, 11))).toBe(false);
-        expect(MultiSet.get(set, 0)).toBe(r(10, 11));
+        expect(MultiSet.getAt(set, 0)).toBe(r(10, 11));
+        expect(MultiSet.size(set)).toBe(1);
     });
 
     it('singleton number', () => {
@@ -352,12 +353,12 @@ describe('multiset', () => {
         expect(MultiSet.has(set, r(3, 0))).toBe(true);
         expect(MultiSet.has(set, r(1, 7))).toBe(true);
         for (let i = 0; i < MultiSet.size(set); i++) {
-            expect(MultiSet.get(set, i)).toBe(IntPair.pack(ret[i]));
+            expect(MultiSet.getAt(set, i)).toBe(IntTuple.pack1(ret[i]));
         }
     });
 
-    it('element at', () => {
-        const control = [];
+    it('element at / index of', () => {
+        const control: IntTuple[] = [];
         const sets = Object.create(null);
         for (let i = 1; i < 10; i++) {
             const set = [];
@@ -369,7 +370,11 @@ describe('multiset', () => {
         }
         const ms = MultiSet.create(sets);
         for (let i = 0; i < control.length; i++) {
-            expect(IntPair.areEqual(MultiSet.get(ms, i), control[i])).toBe(true);
+            expect(IntTuple.areEqual(MultiSet.getAt(ms, i), control[i])).toBe(true);
+        }
+
+        for (let i = 0; i < control.length; i++) {
+            expect(MultiSet.indexOf(ms, control[i])).toBe(i);
         }
     });
 

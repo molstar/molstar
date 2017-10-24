@@ -4,135 +4,156 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import IntPair from './int-pair'
+import IntTuple from './int-tuple'
 import { hash3, hash4 } from './hash-functions'
 
-type Nums = ArrayLike<number>
-type OrderedSet = number | Nums
-
 /** An immutable ordered set. */
+interface OrderedSet { '@type': 'int-ordered-set' }
+
 namespace OrderedSet {
-    export function ofSingleton(value: number): OrderedSet { return IntPair.pack1(value, value); }
-    export function ofRange(min: number, max: number): OrderedSet { return max < min ? Empty : IntPair.pack1(min, max); }
+    export const Empty: OrderedSet = IntTuple.pack(0, -1) as any;
+    export function ofSingleton(value: number): OrderedSet { return IntTuple.pack(value, value) as any; }
+    export function ofRange(min: number, max: number): OrderedSet { return max < min ? Empty : IntTuple.pack(min, max) as any; }
     /** It is the responsibility of the caller to ensure the array is sorted and contains unique values. */
-    export function ofSortedArray(xs: Nums): OrderedSet {
+    export function ofSortedArray(xs: SortedArray): OrderedSet {
         if (!xs.length) return Empty;
         // check if the array is just a range
         if (xs[xs.length - 1] - xs[0] + 1 === xs.length) return ofRange(xs[0], xs[xs.length - 1]);
-        return xs;
-    }
-    export const Empty: OrderedSet = IntPair.pack1(0, -1);
-
-    export function size(set: OrderedSet) { return typeof set === 'number' ? sizeR(set) : set.length; }
-    export function has(set: OrderedSet, x: number) { return typeof set === 'number' ? hasR(set, x) : hasA(set, x); }
-    export function indexOf(set: OrderedSet, x: number) { return typeof set === 'number' ? indexOfR(set, x) : indexOfA(set, x); }
-    export function get(set: OrderedSet, i: number) { return typeof set === 'number' ? elementAtR(set, i) : set[i]; }
-    export function min(set: OrderedSet) { return typeof set === 'number' ? minR(set) : set[0]; }
-    export function max(set: OrderedSet) { return typeof set === 'number' ? maxR(set) : set[set.length - 1]; }
-
-    export function hashCode(set: OrderedSet) {
-        // hash of tuple (size, min, max, mid)
-        const s = size(set);
-        if (!s) return 0;
-        if (s > 2) return hash4(s, get(set, 0), get(set, s - 1), get(set, s >> 1));
-        return hash3(s, get(set, 0), get(set, s - 1));
-    }
-    // TODO: possibly add more hash functions to allow for multilevel hashing.
-
-    export function areEqual(a: OrderedSet, b: OrderedSet) {
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return equalRR(a, b);
-            return false;
-        } else if (typeof b === 'number') return false;
-        else if (a === b) return true;
-        return equalAA(a, b);
+        return xs as any;
     }
 
-    export function areIntersecting(a: OrderedSet, b: OrderedSet) {
-        // if at least one is "range", they must now intersect
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return equalRR(a, b) || areRangesIntersecting(a, b);
-            return areRangesIntersecting(a, b);
-        }
-        if (!areRangesIntersecting(a, b)) return false;
-        else if (typeof b === 'number') return false;
-        if (a === b) return true;
-        return areIntersectingAA(a, b);
+    export const size: (set: OrderedSet) => number = sizeI as any;
+    export const has: (set: OrderedSet, x: number) => boolean = hasI as any;
+    export const indexOf: (set: OrderedSet, x: number) => number = indexOfI as any;
+    export const getAt: (set: OrderedSet, i: number) => number = getAtI as any;
+    export const min: (set: OrderedSet) => number = minI as any;
+    export const max: (set: OrderedSet) => number = maxI as any;
+    export const hashCode: (set: OrderedSet) => number = hashCodeI as any;
+
+    export const areEqual: BinaryTest = areEqualI as any;
+    export const areIntersecting: BinaryTest = areIntersectingI as any;
+    export const isSubset: BinaryTest = isSubsetI as any;
+
+    export const union: BinaryOp = unionI as any;
+    export const intersect: BinaryOp = intersectI as any;
+    export const subtract: BinaryOp = subtractI as any;
+
+    export const getInsertionIndex: (set: OrderedSet, x: number) => number = getInsertionIndexI as any;
+    export const getIntervalRange: (set: OrderedSet, min: number, max: number) => { start: number, end: number } = getIntervalRangeI as any;
+}
+
+export default OrderedSet
+
+/** Long and painful implementation starts here */
+
+type BinaryTest = (a: OrderedSet, b: OrderedSet) => boolean
+type BinaryOp = (a: OrderedSet, b: OrderedSet) => OrderedSet
+
+type Range = IntTuple
+type SortedArray = ArrayLike<number>
+type OrderedSetImpl = Range | SortedArray
+
+function sizeI(set: OrderedSetImpl) { return typeof set === 'number' ? sizeR(set) : (set as SortedArray).length; }
+function hasI(set: OrderedSetImpl, x: number) { return typeof set === 'number' ? hasR(set, x) : hasA(set as SortedArray, x); }
+function indexOfI(set: OrderedSetImpl, x: number) { return typeof set === 'number' ? indexOfR(set, x) : indexOfA(set as SortedArray, x); }
+function getAtI(set: OrderedSetImpl, i: number) { return typeof set === 'number' ? elementAtR(set, i) : (set as SortedArray)[i]; }
+function minI(set: OrderedSetImpl) { return typeof set === 'number' ? minR(set) : (set as SortedArray)[0]; }
+function maxI(set: OrderedSetImpl) { return typeof set === 'number' ? maxR(set) : (set as SortedArray)[(set as SortedArray).length - 1]; }
+
+function hashCodeI(set: OrderedSetImpl) {
+    // hash of tuple (size, min, max, mid)
+    const s = sizeI(set);
+    if (!s) return 0;
+    if (s > 2) return hash4(s, getAtI(set, 0), getAtI(set, s - 1), getAtI(set, s >> 1));
+    return hash3(s, getAtI(set, 0), getAtI(set, s - 1));
+}
+// TODO: possibly add more hash functions to allow for multilevel hashing.
+
+function areEqualI(a: OrderedSetImpl, b: OrderedSetImpl) {
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return equalRR(a, b);
+        return false;
+    } else if (typeof b === 'number') return false;
+    return equalAA(a as SortedArray, b as SortedArray);
+}
+
+function areIntersectingI(a: OrderedSetImpl, b: OrderedSetImpl) {
+    // if at least one is "range", they must now intersect
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return equalRR(a, b) || areRangesIntersecting(a, b);
+        return areRangesIntersecting(a, b);
     }
+    if (!areRangesIntersecting(a, b)) return false;
+    else if (typeof b === 'number') return false;
+    return areIntersectingAA(a as SortedArray, b as SortedArray);
+}
 
-    /** Check if the 2nd argument is a subset of the 1st */
-    export function isSubset(set: OrderedSet, toTest: OrderedSet) {
-        if (set === toTest) return true;
-        if (!isRangeSubset(set, toTest)) return false;
-        const testSize = size(toTest);
-        if (typeof set === 'number' || !testSize) return true;
-        if (typeof toTest === 'number') return indexOf(set, maxR(toTest)) - indexOf(set, minR(toTest)) + 1 === testSize;
-        return isSubsetAA(set, toTest);
-    }
+/** Check if the 2nd argument is a subset of the 1st */
+function isSubsetI(set: OrderedSetImpl, toTest: OrderedSetImpl) {
+    if (!isRangeSubset(set, toTest)) return false;
+    const testSize = sizeI(toTest);
+    if (typeof set === 'number' || !testSize) return true;
+    if (typeof toTest === 'number') return indexOfI(set, maxR(toTest)) - indexOfI(set, minR(toTest)) + 1 === testSize;
+    return isSubsetAA(set as SortedArray, toTest as SortedArray);
+}
 
-    export function getInsertionIndex(set: OrderedSet, x: number) {
-        return typeof set === 'number' ? rangeSearchIndex(set, x) : binarySearchIndex(set, x);
-    }
+function getInsertionIndexI(set: OrderedSetImpl, x: number) {
+    return typeof set === 'number' ? rangeSearchIndex(set, x) : binarySearchIndex(set as SortedArray, x);
+}
 
-    export function getIntervalRange(set: OrderedSet, min: number, max: number) {
-        const { start, end } = getStartEnd(set, min, max);
-        return { start, end };
-    }
+function getIntervalRangeI(set: OrderedSetImpl, min: number, max: number) {
+    const { start, end } = getStartEnd(set, min, max);
+    return { start, end };
+}
 
-    export function union(a: OrderedSet, b: OrderedSet) {
-        if (a === b) return a;
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return unionRR(a, b);
-            return unionAR(b, a);
-        } else if (typeof b === 'number') {
-            return unionAR(a, b);
-        } else return unionAA(a, b);
-    }
+function unionI(a: OrderedSetImpl, b: OrderedSetImpl) {
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return unionRR(a, b);
+        return unionAR(b as SortedArray, a);
+    } else if (typeof b === 'number') {
+        return unionAR(a as SortedArray, b);
+    } else return unionAA(a as SortedArray, b as SortedArray);
+}
 
-    export function intersect(a: OrderedSet, b: OrderedSet) {
-        if (a === b) return a;
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return intersectRR(a, b);
-            return intersectAR(b, a);
-        } else if (typeof b === 'number') {
-            return intersectAR(a, b);
-        } else {
-            if (!areRangesIntersecting(a, b)) return Empty;
-            return intersectAA(a, b);
-        }
-    }
-
-    export function subtract(a: OrderedSet, b: OrderedSet) {
-        if (a === b) return Empty;
-        if (!areRangesIntersecting(a, b)) return a;
-
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return substractRR(a, b);
-            return subtractRA(a, b);
-        } else if (typeof b === 'number') {
-            return subtractAR(a, b);
-        } else {
-            return subtractAA(a, b);
-        }
+function intersectI(a: OrderedSetImpl, b: OrderedSetImpl) {
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return intersectRR(a, b);
+        return intersectAR(b as SortedArray, a);
+    } else if (typeof b === 'number') {
+        return intersectAR(a as SortedArray, b);
+    } else {
+        if (!areRangesIntersecting(a, b)) return OrderedSet.Empty;
+        return intersectAA(a as SortedArray, b as SortedArray);
     }
 }
 
-import S = OrderedSet
+function subtractI(a: OrderedSetImpl, b: OrderedSetImpl) {
+    if (!areRangesIntersecting(a, b)) return a;
 
-const minR = IntPair.fst
-const maxR = IntPair.snd
-const equalRR = IntPair.areEqual
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return substractRR(a, b);
+        return subtractRA(a, b as SortedArray);
+    } else if (typeof b === 'number') {
+        return subtractAR(a as SortedArray, b);
+    } else {
+        return subtractAA(a as SortedArray, b as SortedArray);
+    }
+}
 
-const _eR = IntPair.zero();
-function sizeR(set: number) { IntPair.unpack(set, _eR); return _eR.snd - _eR.fst + 1; }
-function hasR(set: number, x: number) { IntPair.unpack(set, _eR); return x >= _eR.fst && x <= _eR.snd; }
-function indexOfR(set: number, x: number) { IntPair.unpack(set, _eR); return x >= _eR.fst && x <= _eR.snd ? x - _eR.fst : -1; }
-function elementAtR(set: number, i: number) { return IntPair.fst(set) + i; }
+const minR = IntTuple.fst
+const maxR = IntTuple.snd
+const equalRR = IntTuple.areEqual
 
-function hasA(set: Nums, x: number) { return x >= set[0] && x <= set[set.length - 1] && binarySearch(set, x) >= 0; }
-function indexOfA(set: Nums, x: number) { return x >= set[0] && x <= set[set.length - 1] ? binarySearch(set, x) : -1; }
+const _eR = IntTuple.zero();
+function sizeR(set: Range) { IntTuple.unpack(set, _eR); return _eR.snd - _eR.fst + 1; }
+function hasR(set: Range, x: number) { IntTuple.unpack(set, _eR); return x >= _eR.fst && x <= _eR.snd; }
+function indexOfR(set: Range, x: number) { IntTuple.unpack(set, _eR); return x >= _eR.fst && x <= _eR.snd ? x - _eR.fst : -1; }
+function elementAtR(set: Range, i: number) { return IntTuple.fst(set) + i; }
 
-function binarySearch(xs: Nums, value: number) {
+function hasA(set: SortedArray, x: number) { return x >= set[0] && x <= set[set.length - 1] && binarySearch(set, x) >= 0; }
+function indexOfA(set: SortedArray, x: number) { return x >= set[0] && x <= set[set.length - 1] ? binarySearch(set, x) : -1; }
+
+function binarySearch(xs: SortedArray, value: number) {
     let min = 0, max = xs.length - 1;
     while (min <= max) {
         if (min + 11 > max) {
@@ -151,7 +172,7 @@ function binarySearch(xs: Nums, value: number) {
     return -1;
 }
 
-function binarySearchIndex(xs: Nums, value: number) {
+function binarySearchIndex(xs: SortedArray, value: number) {
     let min = 0, max = xs.length - 1;
     while (min < max) {
         const mid = (min + max) >> 1;
@@ -164,16 +185,16 @@ function binarySearchIndex(xs: Nums, value: number) {
     return xs[min] >= value ? min : min + 1;
 }
 
-const _rsiR = IntPair.zero();
-function rangeSearchIndex(r: number, value: number) {
-    IntPair.unpack(r, _rsiR);
+const _rsiR = IntTuple.zero();
+function rangeSearchIndex(r: Range, value: number) {
+    IntTuple.unpack(r, _rsiR);
     if (value < _rsiR.fst) return 0;
     if (value > _rsiR.snd) return _rsiR.snd - _rsiR.fst + 1;
     return value - _rsiR.fst;
 }
 
 const _maxIntRangeRet = { i: 0, j: 0, endA: 0, endB: 0 };
-function getMaxIntersectionRange(xs: Nums, ys: Nums) {
+function getMaxIntersectionRange(xs: SortedArray, ys: SortedArray) {
     const la = xs.length - 1, lb = ys.length - 1;
     _maxIntRangeRet.i = binarySearchIndex(xs, ys[0]);
     _maxIntRangeRet.j = binarySearchIndex(ys, xs[0]);
@@ -184,15 +205,16 @@ function getMaxIntersectionRange(xs: Nums, ys: Nums) {
 
 const _startEndRet = { start: 0, end: 0 };
 
-function getStartEnd(set: OrderedSet, min: number, max: number) {
-    _startEndRet.start = S.getInsertionIndex(set, min);
-    let end = S.getInsertionIndex(set, max);
-    if (end < S.size(set) && S.get(set, end) === max) end++;
+function getStartEnd(set: OrderedSetImpl, min: number, max: number) {
+    _startEndRet.start = getInsertionIndexI(set, min);
+    let end = getInsertionIndexI(set, max);
+    if (end < sizeI(set) && getAtI(set, end) === max) end++;
     _startEndRet.end = end;
     return _startEndRet;
 }
 
-function equalAA(a: Nums, b: Nums) {
+function equalAA(a: SortedArray, b: SortedArray) {
+    if (a === b) return true;
     let size = a.length;
     if (a.length !== b.length || a[0] !== b[0] || a[size - 1] !== b[size - 1]) return false;
     for (let i = 0; i < size; i++) {
@@ -201,7 +223,9 @@ function equalAA(a: Nums, b: Nums) {
     return true;
 }
 
-function areIntersectingAA(xs: Nums, ys: Nums) {
+function areIntersectingAA(xs: SortedArray, ys: SortedArray) {
+    if (xs === ys) return true;
+
     let { i, j, endA, endB } = getMaxIntersectionRange(xs, ys);
     while (i <= endA && j <= endB) {
         const x = xs[i], y = ys[j];
@@ -212,7 +236,9 @@ function areIntersectingAA(xs: Nums, ys: Nums) {
     return false;
 }
 
-function isSubsetAA(xs: Nums, ys: Nums) {
+function isSubsetAA(xs: SortedArray, ys: SortedArray) {
+    if (xs === ys) return true;
+
     const lenB = ys.length;
     let { i, j, endA, endB } = getMaxIntersectionRange(xs, ys);
     // the 2nd array must be able to advance by at least lenB elements
@@ -228,44 +254,45 @@ function isSubsetAA(xs: Nums, ys: Nums) {
     return equal === lenB;
 }
 
-function areRangesIntersecting(a: OrderedSet, b: OrderedSet) {
-    return S.size(a) > 0 && S.size(b) > 0 && S.max(a) >= S.min(b) && S.min(a) <= S.max(b);
+function areRangesIntersecting(a: OrderedSetImpl, b: OrderedSetImpl) {
+    return sizeI(a) > 0 && sizeI(b) > 0 && maxI(a) >= minI(b) && minI(a) <= maxI(b);
 }
 
-function isRangeSubset(a: OrderedSet, b: OrderedSet) {
-    if (!S.size(a)) return S.size(b) === 0;
-    if (!S.size(b)) return true;
-    return S.min(a) <= S.min(b) && S.max(a) >= S.max(b);
+function isRangeSubset(a: OrderedSetImpl, b: OrderedSetImpl) {
+    if (!sizeI(a)) return sizeI(b) === 0;
+    if (!sizeI(b)) return true;
+    return minI(a) <= minI(b) && maxI(a) >= maxI(b);
 }
 
-function unionRR(a: number, b: number) {
-    const sizeA = S.size(a), sizeB = S.size(b);
+function unionRR(a: Range, b: Range) {
+    if (IntTuple.areEqual(a, b)) return a;
+
+    const sizeA = sizeR(a), sizeB = sizeR(b);
     if (!sizeA) return b;
     if (!sizeB) return a;
     const minA = minR(a), minB = minR(b);
-    if (areRangesIntersecting(a, b)) return S.ofRange(Math.min(minA, minB), Math.max(maxR(a), maxR(b)));
+    if (areRangesIntersecting(a as number, b as number)) return OrderedSet.ofRange(Math.min(minA, minB), Math.max(maxR(a), maxR(b)));
     let lSize, lMin, rSize, rMin;
     if (minR(a) < minR(b)) { lSize = sizeA; lMin = minA; rSize = sizeB; rMin = minB; }
     else { lSize = sizeB; lMin = minB; rSize = sizeA; rMin = minA; }
     const arr = new Int32Array(sizeA + sizeB);
     for (let i = 0; i < lSize; i++) arr[i] = i + lMin;
     for (let i = 0; i < rSize; i++) arr[i + lSize] = i + rMin;
-    return S.ofSortedArray(arr);
+    return OrderedSet.ofSortedArray(arr);
 }
 
-const _uAR = IntPair.zero();
-function unionAR(a: Nums, b: number) {
-    const bSize = S.size(b);
+const _uAR = IntTuple.zero();
+function unionAR(a: SortedArray, b: Range) {
+    const bSize = sizeI(b);
     if (!bSize) return a;
     // is the array fully contained in the range?
     if (isRangeSubset(b, a)) return b;
 
-    IntPair.unpack(b, _uAR);
+    IntTuple.unpack(b, _uAR);
     const min = _uAR.fst, max = _uAR.snd;
     const { start, end } = getStartEnd(a, min, max);
 
-    const size = start + (a.length - end) + bSize;
-    const indices = new Int32Array(size);
+    const indices = new Int32Array(start + (a.length - end) + bSize);
     let offset = 0;
     for (let i = 0; i < start; i++) indices[offset++] = a[i];
     for (let i = min; i <= max; i++) indices[offset++] = i;
@@ -274,7 +301,9 @@ function unionAR(a: Nums, b: number) {
     return OrderedSet.ofSortedArray(indices);
 }
 
-function unionAA(a: Nums, b: Nums) {
+function unionAA(a: SortedArray, b: SortedArray) {
+    if (a === b) return a;
+
     const lenA = a.length, lenB = b.length;
 
     let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(a, b);
@@ -321,20 +350,21 @@ function unionAA(a: Nums, b: Nums) {
     return OrderedSet.ofSortedArray(indices);
 }
 
-const _iRA = IntPair.zero(), _iRB = IntPair.zero();
-function intersectRR(a: number, b: number) {
+const _iRA = IntTuple.zero(), _iRB = IntTuple.zero();
+function intersectRR(a: Range, b: Range) {
     if (!areRangesIntersecting(a, b)) return OrderedSet.Empty;
+    if (IntTuple.areEqual(a, b)) return a;
 
-    IntPair.unpack(a, _iRA);
-    IntPair.unpack(b, _iRB);
+    IntTuple.unpack(a, _iRA);
+    IntTuple.unpack(b, _iRB);
     return OrderedSet.ofRange(Math.max(_iRA.fst, _iRB.fst), Math.min(_iRA.snd, _iRB.snd));
 }
 
-const _iAR = IntPair.zero();
-function intersectAR(a: Nums, r: number) {
-    if (!S.size(r)) return OrderedSet.Empty;
+const _iAR = IntTuple.zero();
+function intersectAR(a: SortedArray, r: Range) {
+    if (!sizeI(r)) return OrderedSet.Empty;
 
-    IntPair.unpack(r, _iAR);
+    IntTuple.unpack(r, _iAR);
     const { start, end } = getStartEnd(a, _iAR.fst, _iAR.snd);
     const resultSize = end - start;
     if (!resultSize) return OrderedSet.Empty;
@@ -347,7 +377,9 @@ function intersectAR(a: Nums, r: number) {
     return OrderedSet.ofSortedArray(indices);
 }
 
-function intersectAA(xs: Nums, ys: Nums) {
+function intersectAA(xs: SortedArray, ys: SortedArray) {
+    if (xs === ys) return xs;
+
     let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(xs, ys);
     let i = sI, j = sJ;
     let resultSize = 0;
@@ -374,10 +406,12 @@ function intersectAA(xs: Nums, ys: Nums) {
     return OrderedSet.ofSortedArray(indices);
 }
 
-const _sRA = IntPair.zero(), _sRB = IntPair.zero();
-function substractRR(a: number, b: number) {
-    IntPair.unpack(a, _sRA);
-    IntPair.unpack(b, _sRB);
+const _sRA = IntTuple.zero(), _sRB = IntTuple.zero();
+function substractRR(a: Range, b: Range) {
+    if (IntTuple.areEqual(a, b)) return OrderedSet.Empty;
+
+    IntTuple.unpack(a, _sRA);
+    IntTuple.unpack(b, _sRB);
 
     if (_sRA.snd < _sRA.fst || _sRB.snd < _sRB.fst) return a;
     // is A subset of B? ==> Empty
@@ -397,9 +431,11 @@ function substractRR(a: number, b: number) {
     return OrderedSet.ofRange(_sRB.snd + 1, _sRA.snd);
 }
 
-const _sAR = IntPair.zero();
-function subtractAR(a: Nums, r: number) {
-    IntPair.unpack(r, _sAR);
+const _sAR = IntTuple.zero();
+function subtractAR(a: SortedArray, b: Range) {
+    IntTuple.unpack(b, _sAR);
+
+    // is empty?
     if (_sAR.snd < _sAR.fst) return a;
 
     const min = _sAR.fst, max = _sAR.snd;
@@ -413,10 +449,12 @@ function subtractAR(a: Nums, r: number) {
     return OrderedSet.ofSortedArray(ret);
 }
 
-const _sAR1 = IntPair.zero();
-function subtractRA(r: number, b: Nums) {
-    IntPair.unpack(r, _sAR1);
-    if (_sAR1.snd < _sAR1.fst) return r;
+const _sAR1 = IntTuple.zero();
+function subtractRA(a: Range, b: SortedArray) {
+    IntTuple.unpack(a, _sAR1);
+
+    // is empty?
+    if (_sAR1.snd < _sAR1.fst) return a;
 
     const min = _sAR1.fst, max = _sAR1.snd;
     const rSize = max - min + 1;
@@ -436,7 +474,9 @@ function subtractRA(r: number, b: Nums) {
     return OrderedSet.ofSortedArray(ret);
 }
 
-function subtractAA(a: Nums, b: Nums) {
+function subtractAA(a: SortedArray, b: SortedArray) {
+    if (a === b) return OrderedSet.Empty;
+
     const lenA = a.length;
 
     let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(a, b);
@@ -472,5 +512,3 @@ function subtractAA(a: Nums, b: Nums) {
 
     return OrderedSet.ofSortedArray(indices);
 }
-
-export default OrderedSet
