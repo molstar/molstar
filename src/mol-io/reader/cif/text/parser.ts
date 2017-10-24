@@ -567,7 +567,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
         // Data block
         if (token === CifTokenType.Data) {
             if (inSaveFrame) {
-                return error(tokenizer.lineNumber, "Unexpected data block inside a save frame.");
+                return error(tokenizer.lineNumber, 'Unexpected data block inside a save frame.');
             }
             if (Object.keys(blockCategories).length > 0) {
                 dataBlocks.push(Data.Block(blockCategories, blockHeader, saveFrames));
@@ -586,7 +586,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
                 inSaveFrame = false;
             } else {
                 if (inSaveFrame) {
-                    return error(tokenizer.lineNumber, "Save frames cannot be nested.");
+                    return error(tokenizer.lineNumber, 'Save frames cannot be nested.');
                 }
                 inSaveFrame = true;
                 saveCategories = Object.create(null);
@@ -613,7 +613,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
 
     // Check if the latest save frame was closed.
     if (inSaveFrame) {
-        return error(tokenizer.lineNumber, "Unfinished save frame (`" + saveFrame.header + "`).");
+        return error(tokenizer.lineNumber, 'Unfinished save frame (`' + saveFrame.header + '`).');
     }
 
     if (Object.keys(blockCategories).length > 0) {
