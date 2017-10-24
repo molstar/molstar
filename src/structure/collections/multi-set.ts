@@ -11,177 +11,204 @@ import { sortArray } from './sort'
 import { hash1 } from './hash-functions'
 
 /** A map-like representation of integer set */
-interface MultiSet { /*'@type': 'int-multi-set'*/ }
+interface MultiSet { '@type': 'int-multi-set' }
 
 namespace MultiSet {
     export const Empty: MultiSet = { offsets: [0], hashCode: 0, keys: OrderedSet.Empty } as MultiSetElements as any;
 
     export function create(data: IntTuple | ArrayLike<IntTuple> | IntTuple | { [id: number]: OrderedSet }): MultiSet {
         if (typeof data === 'number') return data;
-        if (IntTuple.is(data)) return IntTuple.pack1(data) as number;
-        if (isArrayLike(data)) return ofTuples(data);
-        return ofObject(data as { [id: number]: OrderedSet });
+        if (IntTuple.is(data)) return IntTuple.pack1(data) as any;
+        if (isArrayLike(data)) return ofTuples(data) as any;
+        return ofObject(data as { [id: number]: OrderedSet }) as any;
     }
 
-    export function keys(set: MultiSet): OrderedSet {
-        if (typeof set === 'number') return OrderedSet.ofSingleton(set);
-        return (set as MultiSetElements).keys;
-    }
+    export const keys: (set: MultiSet) => OrderedSet = keysI as any;
+    export const keyCount: (set: MultiSet) => number = keyCountI as any;
+    export const hasKey: (set: MultiSet, key: number) => boolean = hasKeyI as any;
+    export const geyKey: (set: MultiSet, i: number) => number = getKeyI as any;
+    export const getByKey: (set: MultiSet, key: number) => OrderedSet = getByKeyI as any;
+    export const getByIndex: (set: MultiSet, i: number) => OrderedSet = getByIndexI as any;
+    export const has: (set: MultiSet, x: IntTuple) => boolean = hasI as any;
+    export const indexOf: (set: MultiSet, x: IntTuple) => number = indexOfI as any;
+    export const getAt: (set: MultiSet, i: number) => IntTuple = getAtI as any;
+    export const values: (set: MultiSet) => Iterator<IntTuple.Unpacked> = valuesI as any;
 
-    export function keyCount(set: MultiSet): number {
-        if (typeof set === 'number') return 1;
-        return OrderedSet.size((set as MultiSetElements).keys);
-    }
+    export const size: (set: MultiSet) => number = sizeI as any;
+    export const hashCode: (set: MultiSet) => number = hashCodeI as any;
 
-    export function hasKey(set: MultiSet, key: number): boolean {
-        if (typeof set === 'number') return IntTuple.fst(set) === key;
-        return OrderedSet.has((set as MultiSetElements).keys, key);
-    }
+    export const areEqual: (a: MultiSet, b: MultiSet) => boolean = areEqualI as any;
+    export const areIntersecting: (a: MultiSet, b: MultiSet) => boolean = areIntersectingI as any;
 
-    export function getKey(set: MultiSet, index: number): number {
-        if (typeof set === 'number') return IntTuple.fst(set);
-        return OrderedSet.getAt((set as MultiSetElements).keys, index);
-    }
+    export const union: (a: MultiSet, b: MultiSet) => MultiSet = unionI as any;
+    export const unionMany: (sets: MultiSet[]) => MultiSet = unionManyI as any;
+    export const intersect: (a: MultiSet, b: MultiSet) => MultiSet = intersectI as any;
+    export const subtract: (a: MultiSet, b: MultiSet) => MultiSet = subtractI as any;
+}
 
-    export function has(set: MultiSet, t: IntTuple): boolean {
-        if (typeof set === 'number') return IntTuple.areEqual(t, set);
-        IntTuple.unpack(t, _hasP);
-        return OrderedSet.has((set as MultiSetElements).keys, _hasP.fst) ? OrderedSet.has((set as MultiSetElements)[_hasP.fst], _hasP.snd) : false;
-    }
-    const _hasP = IntTuple.zero();
+export default MultiSet
 
-    export function getByKey(set: MultiSet, key: number): OrderedSet {
-        if (typeof set === 'number') {
-            IntTuple.unpack(set, _gS);
-            return _gS.fst === key ? OrderedSet.ofSingleton(_gS.snd) : OrderedSet.Empty;
+/** Long and painful implementation starts here */
+
+interface MultiSetElements { [id: number]: OrderedSet, offsets: number[], hashCode: number, keys: OrderedSet }
+type MultiSetImpl = IntTuple | MultiSetElements
+
+function keysI(set: MultiSetImpl): OrderedSet {
+    if (typeof set === 'number') return OrderedSet.ofSingleton(set);
+    return (set as MultiSetElements).keys;
+}
+
+function keyCountI(set: MultiSetImpl): number {
+    if (typeof set === 'number') return 1;
+    return OrderedSet.size((set as MultiSetElements).keys);
+}
+
+function hasKeyI(set: MultiSetImpl, key: number): boolean {
+    if (typeof set === 'number') return IntTuple.fst(set) === key;
+    return OrderedSet.has((set as MultiSetElements).keys, key);
+}
+
+function getKeyI(set: MultiSetImpl, index: number): number {
+    if (typeof set === 'number') return IntTuple.fst(set);
+    return OrderedSet.getAt((set as MultiSetElements).keys, index);
+}
+
+function hasI(set: MultiSetImpl, t: IntTuple): boolean {
+    if (typeof set === 'number') return IntTuple.areEqual(t, set);
+    IntTuple.unpack(t, _hasP);
+    return OrderedSet.has((set as MultiSetElements).keys, _hasP.fst) ? OrderedSet.has((set as MultiSetElements)[_hasP.fst], _hasP.snd) : false;
+}
+const _hasP = IntTuple.zero();
+
+function getByKeyI(set: MultiSetImpl, key: number): OrderedSet {
+    if (typeof set === 'number') {
+        IntTuple.unpack(set, _gS);
+        return _gS.fst === key ? OrderedSet.ofSingleton(_gS.snd) : OrderedSet.Empty;
+    }
+    return OrderedSet.has((set as MultiSetElements).keys, key) ? (set as MultiSetElements)[key] : OrderedSet.Empty;
+}
+const _gS = IntTuple.zero();
+
+function getByIndexI(set: MultiSetImpl, index: number): OrderedSet {
+    if (typeof set === 'number') return index === 0 ? OrderedSet.ofSingleton(IntTuple.snd(set)) : OrderedSet.Empty;
+    const key = OrderedSet.getAt((set as MultiSetElements).keys, index);
+    return (set as MultiSetElements)[key] || OrderedSet.Empty;
+}
+
+function getAtI(set: MultiSetImpl, i: number): IntTuple {
+    if (typeof set === 'number') return set;
+    return getAtE(set as MultiSetElements, i);
+}
+
+function indexOfI(set: MultiSetImpl, t: IntTuple) {
+    if (typeof set === 'number') return IntTuple.areEqual(set, t) ? 0 : -1;
+    return indexOfE(set as MultiSetElements, t);
+}
+
+/** Number elements in the "child" sets */
+function sizeI(set: MultiSetImpl) {
+    if (typeof set === 'number') return 1;
+    return (set as MultiSetElements).offsets[(set as MultiSetElements).offsets.length - 1];
+}
+
+function hashCodeI(set: MultiSetImpl) {
+    if (typeof set === 'number') return IntTuple.hashCode(set);
+    if ((set as MultiSetElements).hashCode !== -1) return (set as MultiSetElements).hashCode;
+    return computeHash((set as MultiSetElements));
+}
+
+function areEqualI(a: MultiSetImpl, b: MultiSetImpl) {
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return IntTuple.areEqual(a, b);
+        return false;
+    }
+    if (typeof b === 'number') return false;
+    return areEqualEE(a as MultiSetElements, b as MultiSetElements);
+}
+
+function areIntersectingI(a: MultiSetImpl, b: MultiSetImpl) {
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return IntTuple.areEqual(a, b);
+        return areIntersectingNE(a, b as MultiSetElements);
+    }
+    if (typeof b === 'number') return areIntersectingNE(b, a as MultiSetElements);
+    return areIntersectingEE(a as MultiSetElements, b as MultiSetElements);
+}
+
+function intersectI(a: MultiSetImpl, b: MultiSetImpl) {
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return IntTuple.areEqual(a, b) ? a : MultiSet.Empty;
+        return intersectNE(a, b as MultiSetElements);
+    }
+    if (typeof b === 'number') return intersectNE(b, a as MultiSetElements);
+    return intersectEE(a as MultiSetElements, b as MultiSetElements);
+}
+
+function subtractI(a: MultiSetImpl, b: MultiSetImpl) {
+    if (typeof a === 'number') {
+        if (typeof b === 'number') return IntTuple.areEqual(a, b) ? MultiSet.Empty : a;
+        return subtractNE(a, b as MultiSetElements);
+    }
+    if (typeof b === 'number') return subtractEN(a as MultiSetElements, b);
+    return subtractEE(a as MultiSetElements, b as MultiSetElements);
+}
+
+function unionI(a: MultiSetImpl, b: MultiSetImpl) {
+    return findUnion([a, b]);
+}
+
+function unionManyI(sets: ArrayLike<MultiSetImpl>) {
+    return findUnion(sets);
+}
+
+class ElementsIterator implements Iterator<IntTuple.Unpacked> {
+    private pair = IntTuple.zero();
+
+    private keyCount: number;
+    private setIndex = -1;
+    private currentIndex = 0;
+    private currentSize = 0;
+    private currentSet: OrderedSet = OrderedSet.Empty;
+
+    [Symbol.iterator]() { return new ElementsIterator(this.elements); };
+    done: boolean;
+    next() { const value = this.move(); return { value, done: this.done } }
+
+    move() {
+        if (this.done) return this.pair;
+
+        if (this.currentIndex >= this.currentSize) {
+            if (!this.advance()) return this.pair;
         }
-        return OrderedSet.has((set as MultiSetElements).keys, key) ? (set as MultiSetElements)[key] : OrderedSet.Empty;
-    }
-    const _gS = IntTuple.zero();
 
-    export function getByIndex(set: MultiSet, index: number): OrderedSet {
-        if (typeof set === 'number') return index === 0 ? OrderedSet.ofSingleton(IntTuple.snd(set)) : OrderedSet.Empty;
-        const key = OrderedSet.getAt((set as MultiSetElements).keys, index);
-        return (set as MultiSetElements)[key] || OrderedSet.Empty;
+        this.pair.snd = OrderedSet.getAt(this.currentSet, this.currentIndex++);
+        return this.pair;
     }
 
-    export function getAt(set: MultiSet, i: number): IntTuple {
-        if (typeof set === 'number') return set;
-        return getAtE(set as MultiSetElements, i);
-    }
-
-    export function indexOf(set: MultiSet, t: IntTuple) {
-        if (typeof set === 'number') return IntTuple.areEqual(set, t) ? 0 : -1;
-        return indexOfE(set as MultiSetElements, t);
-    }
-
-    /** Number elements in the "child" sets */
-    export function size(set: MultiSet) {
-        if (typeof set === 'number') return 1;
-        return (set as MultiSetElements).offsets[(set as MultiSetElements).offsets.length - 1];
-    }
-
-    export function hashCode(set: MultiSet) {
-        if (typeof set === 'number') return IntTuple.hashCode(set);
-        if ((set as MultiSetElements).hashCode !== -1) return (set as MultiSetElements).hashCode;
-        return computeHash((set as MultiSetElements));
-    }
-
-    export function areEqual(a: MultiSet, b: MultiSet): boolean {
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return IntTuple.areEqual(a, b);
+    private advance() {
+        if (++this.setIndex >= this.keyCount) {
+            this.done = true;
             return false;
         }
-        if (typeof b === 'number') return false;
-        return areEqualEE(a as MultiSetElements, b as MultiSetElements);
+        const unit = OrderedSet.getAt(this.elements.keys, this.setIndex);
+        this.pair.fst = unit;
+        this.currentSet = this.elements[unit];
+        this.currentIndex = 0;
+        this.currentSize = OrderedSet.size(this.currentSet);
+        return true;
     }
 
-    export function areIntersecting(a: MultiSet, b: MultiSet): boolean {
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return IntTuple.areEqual(a, b);
-            return areIntersectingNE(a, b as MultiSetElements);
-        }
-        if (typeof b === 'number') return areIntersectingNE(b, a as MultiSetElements);
-        return areIntersectingEE(a as MultiSetElements, b as MultiSetElements);
-    }
-
-    export function intersect(a: MultiSet, b: MultiSet): MultiSet {
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return IntTuple.areEqual(a, b) ? a : Empty;
-            return intersectNE(a, b as MultiSetElements);
-        }
-        if (typeof b === 'number') return intersectNE(b, a as MultiSetElements);
-        return intersectEE(a as MultiSetElements, b as MultiSetElements);
-    }
-
-    export function subtract(a: MultiSet, b: MultiSet): MultiSet {
-        if (typeof a === 'number') {
-            if (typeof b === 'number') return IntTuple.areEqual(a, b) ? Empty : a;
-            return subtractNE(a, b as MultiSetElements);
-        }
-        if (typeof b === 'number') return subtractEN(a as MultiSetElements, b);
-        return subtractEE(a as MultiSetElements, b as MultiSetElements);
-    }
-
-    export function union(a: MultiSet, b: MultiSet): MultiSet {
-        return findUnion([a, b]);
-    }
-
-    export function unionMany(sets: ArrayLike<MultiSet>): MultiSet {
-        return findUnion(sets);
-    }
-
-    class ElementsIterator implements Iterator<IntTuple.Unpacked> {
-        private pair = IntTuple.zero();
-
-        private keyCount: number;
-        private setIndex = -1;
-        private currentIndex = 0;
-        private currentSize = 0;
-        private currentSet: OrderedSet = OrderedSet.Empty;
-
-        [Symbol.iterator]() { return new ElementsIterator(this.elements); };
-        done: boolean;
-        next() { const value = this.move(); return { value, done: this.done } }
-
-        move() {
-            if (this.done) return this.pair;
-
-            if (this.currentIndex >= this.currentSize) {
-                if (!this.advance()) return this.pair;
-            }
-
-            this.pair.snd = OrderedSet.getAt(this.currentSet, this.currentIndex++);
-            return this.pair;
-        }
-
-        private advance() {
-            if (++this.setIndex >= this.keyCount) {
-                this.done = true;
-                return false;
-            }
-            const unit = OrderedSet.getAt(this.elements.keys, this.setIndex);
-            this.pair.fst = unit;
-            this.currentSet = this.elements[unit];
-            this.currentIndex = 0;
-            this.currentSize = OrderedSet.size(this.currentSet);
-            return true;
-        }
-
-        constructor(private elements: MultiSetElements) {
-            this.keyCount = OrderedSet.size(elements.keys);
-            this.done = this.keyCount === 0;
-            this.advance();
-        }
-    }
-
-    export function values(set: MultiSet): Iterator<IntTuple.Unpacked> {
-        if (typeof set === 'number') return Iterator.Value(IntTuple.unpack1(set));
-        return new ElementsIterator(set as MultiSetElements);
+    constructor(private elements: MultiSetElements) {
+        this.keyCount = OrderedSet.size(elements.keys);
+        this.done = this.keyCount === 0;
+        this.advance();
     }
 }
 
-interface MultiSetElements { [id: number]: OrderedSet, offsets: number[], hashCode: number, keys: OrderedSet }
+function valuesI(set: MultiSetImpl): Iterator<IntTuple.Unpacked> {
+    if (typeof set === 'number') return Iterator.Value(IntTuple.unpack1(set));
+    return new ElementsIterator(set as MultiSetElements);
+}
 
 function isArrayLike(x: any): x is ArrayLike<number> {
     return x && (typeof x.length === 'number' && (x instanceof Array || !!x.buffer));
@@ -259,7 +286,7 @@ function normalizeArray(xs: number[]) {
     return xs;
 }
 
-function ofTuples(xs: ArrayLike<IntTuple>): MultiSet {
+function ofTuples(xs: ArrayLike<IntTuple>) {
     if (xs.length === 0) return MultiSet.Empty;
     const sets: { [key: number]: number[] } = Object.create(null);
     const p = IntTuple.zero();
@@ -322,7 +349,7 @@ function computeHash(set: MultiSetElements) {
         hash = (31 * hash + k) | 0;
         hash = (31 * hash + OrderedSet.hashCode(set[k])) | 0;
     }
-    hash = (31 * hash + MultiSet.size(set)) | 0;
+    hash = (31 * hash + sizeI(set)) | 0;
     hash = hash1(hash);
     set.hashCode = hash;
     return hash;
@@ -330,7 +357,7 @@ function computeHash(set: MultiSetElements) {
 
 function areEqualEE(a: MultiSetElements, b: MultiSetElements) {
     if (a === b) return true;
-    if (MultiSet.size(a) !== MultiSet.size(a)) return false;
+    if (sizeI(a) !== sizeI(a)) return false;
 
     const keys = a.keys;
     if (!OrderedSet.areEqual(keys, b.keys)) return false;
@@ -393,7 +420,7 @@ function subtractNE(a: IntTuple, b: MultiSetElements) {
 }
 
 const _sEN = IntTuple.zero();
-function subtractEN(a: MultiSetElements, b: IntTuple): MultiSet {
+function subtractEN(a: MultiSetElements, b: IntTuple): MultiSetImpl {
     const aKeys =  a.keys;
     IntTuple.unpack(b, _sEN);
     if (!OrderedSet.has(aKeys, _sEN.fst) || !OrderedSet.has(a[_sEN.fst], _sEN.snd)) return a;
@@ -439,10 +466,10 @@ function subtractEE(a: MultiSetElements, b: MultiSetElements) {
     return ofObjectOrdered(OrderedSet.ofSortedArray(keys), ret);
 }
 
-function findUnion(sets: ArrayLike<MultiSet>) {
+function findUnion(sets: ArrayLike<MultiSetImpl>) {
     if (!sets.length) return MultiSet.Empty;
     if (sets.length === 1) return sets[0];
-    if (sets.length === 2 && MultiSet.areEqual(sets[0], sets[1])) return sets[0];
+    if (sets.length === 2 && areEqualI(sets[0], sets[1])) return sets[0];
 
     const eCount = { count: 0 };
     const ns = unionN(sets, eCount);
@@ -452,14 +479,14 @@ function findUnion(sets: ArrayLike<MultiSet>) {
         const s = sets[i];
         if (typeof s !== 'number') unionInto(ret, s as MultiSetElements);
     }
-    if (MultiSet.size(ns) > 0) {
+    if (sizeI(ns as MultiSetImpl) > 0) {
         if (typeof ns === 'number') unionIntoN(ret, ns);
         else unionInto(ret, ns as MultiSetElements);
     }
     return ofObject(ret);
 }
 
-function unionN(sets: ArrayLike<MultiSet>, eCount: { count: number }) {
+function unionN(sets: ArrayLike<MultiSetImpl>, eCount: { count: number }) {
     let countN = 0, countE = 0;
     for (let i = 0, _i = sets.length; i < _i; i++) {
         if (typeof sets[i] === 'number') countN++;
@@ -497,5 +524,3 @@ function unionIntoN(data: { [key: number]: OrderedSet }, a: IntTuple) {
         data[_uIN.fst] = OrderedSet.ofSingleton(_uIN.snd);
     }
 }
-
-export default MultiSet

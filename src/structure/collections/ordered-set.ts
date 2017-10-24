@@ -22,21 +22,22 @@ namespace OrderedSet {
         return xs as any;
     }
 
-    export const size: (set: OrderedSet) => number = sizeI as any;
     export const has: (set: OrderedSet, x: number) => boolean = hasI as any;
     export const indexOf: (set: OrderedSet, x: number) => number = indexOfI as any;
     export const getAt: (set: OrderedSet, i: number) => number = getAtI as any;
+
     export const min: (set: OrderedSet) => number = minI as any;
     export const max: (set: OrderedSet) => number = maxI as any;
+    export const size: (set: OrderedSet) => number = sizeI as any;
     export const hashCode: (set: OrderedSet) => number = hashCodeI as any;
 
-    export const areEqual: BinaryTest = areEqualI as any;
-    export const areIntersecting: BinaryTest = areIntersectingI as any;
-    export const isSubset: BinaryTest = isSubsetI as any;
+    export const areEqual: (a: OrderedSet, b: OrderedSet) => boolean = areEqualI as any;
+    export const areIntersecting: (a: OrderedSet, b: OrderedSet) => boolean = areIntersectingI as any;
+    export const isSubset: (a: OrderedSet, b: OrderedSet) => boolean = isSubsetI as any;
 
-    export const union: BinaryOp = unionI as any;
-    export const intersect: BinaryOp = intersectI as any;
-    export const subtract: BinaryOp = subtractI as any;
+    export const union: (a: OrderedSet, b: OrderedSet) => OrderedSet = unionI as any;
+    export const intersect: (a: OrderedSet, b: OrderedSet) => OrderedSet = intersectI as any;
+    export const subtract: (a: OrderedSet, b: OrderedSet) => OrderedSet = subtractI as any;
 
     export const getInsertionIndex: (set: OrderedSet, x: number) => number = getInsertionIndexI as any;
     export const getIntervalRange: (set: OrderedSet, min: number, max: number) => { start: number, end: number } = getIntervalRangeI as any;
@@ -45,9 +46,6 @@ namespace OrderedSet {
 export default OrderedSet
 
 /** Long and painful implementation starts here */
-
-type BinaryTest = (a: OrderedSet, b: OrderedSet) => boolean
-type BinaryOp = (a: OrderedSet, b: OrderedSet) => OrderedSet
 
 type Range = IntTuple
 type SortedArray = ArrayLike<number>
