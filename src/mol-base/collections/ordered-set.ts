@@ -217,8 +217,8 @@ function getStartEnd(set: OrderedSetImpl, min: number, max: number) {
 
 function equalAA(a: SortedArray, b: SortedArray) {
     if (a === b) return true;
-    let size = a.length;
-    if (a.length !== b.length || a[0] !== b[0] || a[size - 1] !== b[size - 1]) return false;
+    const size = a.length;
+    if (size !== b.length || a[0] !== b[0] || a[size - 1] !== b[size - 1]) return false;
     for (let i = 0; i < size; i++) {
         if (a[i] !== b[i]) return false;
     }
@@ -334,7 +334,7 @@ function unionAA(a: SortedArray, b: SortedArray) {
 
     // insert the "prefixes"
     for (let k = 0; k < sI; k++) indices[offset++] = a[k];
-    for (let k = 0; k < sJ; k++) indices[offset++] = a[k];
+    for (let k = 0; k < sJ; k++) indices[offset++] = b[k];
 
     // insert the common part
     i = sI;

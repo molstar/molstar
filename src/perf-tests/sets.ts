@@ -3,7 +3,7 @@ import IntTuple from '../mol-base/collections/int-tuple'
 import OrdSet from '../mol-base/collections/ordered-set'
 import AtomSet from '../mol-data/atom-set'
 
-namespace Iteration {
+export namespace Iteration {
     const U = 1000, V = 2500;
 
     const control: number[] = [];
@@ -59,20 +59,145 @@ namespace Iteration {
         }
         return s;
     }
+
+    export function run() {
+        const suite = new B.Suite();
+
+        // const values: number[] = [];
+        // for (let i = 0; i < 1000000; i++) values[i] = (Math.random() * 1000) | 0;
+
+        console.log(Iteration.native(), Iteration.iterators(), Iteration.elementAt(), Iteration.manual(), Iteration.manual1());
+
+        suite
+            .add('native', () => Iteration.native())
+            .add('iterators', () => Iteration.iterators())
+            .add('manual', () => Iteration.manual())
+            .add('manual1', () => Iteration.manual1())
+            .add('el at', () => Iteration.elementAt())
+            .on('cycle', (e: any) => console.log(String(e.target)))
+            .run();
+    }
 }
 
-const suite = new B.Suite();
+export namespace Union {
+    function createArray(n: number) {
+        const data = new Int32Array(n);
+        let c = (Math.random() * 100) | 0;
+        for (let i = 0; i < n; i++) {
+            data[i] = c;
+            c += 1 + (Math.random() * 100) | 0
+        }
+        return data;
+    }
 
-// const values: number[] = [];
-// for (let i = 0; i < 1000000; i++) values[i] = (Math.random() * 1000) | 0;
+    function rangeArray(o: number, n: number) {
+        const data = new Int32Array(n);
+        for (let i = 0; i < n; i++) {
+            data[i] = o + i;
+        }
+        return data;
+    }
 
-console.log(Iteration.native(), Iteration.iterators(), Iteration.elementAt(), Iteration.manual(), Iteration.manual1());
+    function createData(array: ArrayLike<number>) {
+        const obj = Object.create(null);
+        const set = new Set<number>();
+        for (let i = 0; i < array.length; i++) {
+            const a = array[i];
+            obj[a] = 1;
+            set.add(a);
+        }
 
-suite
-    .add('native', () => Iteration.native())
-    .add('iterators', () => Iteration.iterators())
-    .add('manual', () => Iteration.manual())
-    .add('manual1', () => Iteration.manual1())
-    .add('el at', () => Iteration.elementAt())
-    .on('cycle', (e: any) => console.log(String(e.target)))
-    .run();
+        return { ordSet: OrdSet.ofSortedArray(array), obj, set }
+    }
+
+    function unionOS(a: OrdSet, b: OrdSet) {
+        return OrdSet.union(a, b);
+    }
+
+    function intOS(a: OrdSet, b: OrdSet) {
+        return OrdSet.intersect(a, b);
+    }
+
+    function unionO(a: object, b: object) {
+        const ret = Object.create(null);
+        for (const k of Object.keys(a)) ret[k] = 1;
+        for (const k of Object.keys(b)) ret[k] = 1;
+        return ret;
+    }
+
+    function intO(a: object, b: object) {
+        const ret = Object.create(null);
+        for (const k of Object.keys(a)) if ((b as any)[k]) ret[k] = 1;
+        return ret;
+    }
+
+    function _setAdd(this: Set<number>, x: number) { this.add(x) }
+    function unionS(a: Set<number>, b: Set<number>) {
+        const ret = new Set<number>();
+        a.forEach(_setAdd, ret);
+        b.forEach(_setAdd, ret);
+        return ret;
+    }
+
+    function _setInt(this: { set: Set<number>, other: Set<number> }, x: number) { if (this.other.has(x)) this.set.add(x) }
+    function intS(a: Set<number>, b: Set<number>) {
+        if (a.size < b.size) {
+            const ctx = { set: new Set<number>(), other: b };
+            a.forEach(_setInt, ctx);
+            return ctx.set;
+        } else {
+            const ctx = { set: new Set<number>(), other: a };
+            b.forEach(_setInt, ctx);
+            return ctx.set;
+        }
+    }
+
+    export function run() {
+        const suite = new B.Suite();
+
+        // const values: number[] = [];
+        // for (let i = 0; i < 1000000; i++) values[i] = (Math.random() * 1000) | 0;
+
+        const randomArray = createArray(100);
+        const { ordSet: osA, set: sA, obj: oA } = createData(randomArray);
+        const { ordSet: osB, set: sB, obj: oB } = createData(randomArray);
+
+        console.log(OrdSet.size(unionOS(osA, osB)), Object.keys(unionO(oA, oB)).length, unionS(sA, sB).size);
+        console.log(OrdSet.size(intOS(osA, osB)), Object.keys(intO(oA, oB)).length, intS(sA, sB).size);
+
+        suite
+            .add('u ord set', () => unionOS(osA, osB))
+            .add('u obj', () => unionO(oA, oB))
+            .add('u ES6 set', () => unionS(sA, sB))
+            .add('i ord set', () => intOS(osA, osB))
+            .add('i obj', () => intO(oA, oB))
+            .add('i ES6 set', () => intS(sA, sB))
+            .on('cycle', (e: any) => console.log(String(e.target)))
+            .run();
+    }
+
+    export function runR() {
+        const suite = new B.Suite();
+
+        const rangeA = rangeArray(145, 1000);
+        const rangeB = rangeArray(456, 1000);
+
+        const { ordSet: osA, set: sA, obj: oA } = createData(rangeA);
+        const { ordSet: osB, set: sB, obj: oB } = createData(rangeB);
+
+        console.log(OrdSet.size(unionOS(osA, osB)), Object.keys(unionO(oA, oB)).length, unionS(sA, sB).size);
+        console.log(OrdSet.size(intOS(osA, osB)), Object.keys(intO(oA, oB)).length, intS(sA, sB).size);
+
+        suite
+            .add('u ord set', () => unionOS(osA, osB))
+            .add('u obj', () => unionO(oA, oB))
+            .add('u ES6 set', () => unionS(sA, sB))
+            .add('i ord set', () => intOS(osA, osB))
+            .add('i obj', () => intO(oA, oB))
+            .add('i ES6 set', () => intS(sA, sB))
+            .on('cycle', (e: any) => console.log(String(e.target)))
+            .run();
+    }
+}
+
+Union.runR();
