@@ -428,7 +428,8 @@ function substractRR(a: Range, b: Range) {
     if (isRangeSubset(a, b)) {
         // this splits the interval into two, gotta represent it as a set.
         const l = _sRB.fst - _sRA.fst, r = _sRA.snd - _sRB.snd;
-        // TODO: check if l === 0 || r === 0 ==> result would be a range
+        if (l <= 0) return OrderedSet.ofRange(_sRB.snd + 1, _sRB.snd + r);
+        if (r <= 0) return OrderedSet.ofRange(_sRA.fst, _sRA.fst + l - 1);
         const ret = new Int32Array(l + r);
         let offset = 0;
         for (let i = 0; i < l; i++) ret[offset++] = _sRA.fst + i;
