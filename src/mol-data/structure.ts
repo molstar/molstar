@@ -21,7 +21,7 @@ export interface Unit extends Readonly<{
     id: number,
 
     // Each unit can only contain atoms from a single "chain"
-    // the reason for this is to make symmetry and assembly transforms fast
+    // the reason for this is to make certain basic data transforms fast
     // without having to look at the actual contents of the unit
     // multiple units can point to the same chain
     chainIndex: number,
@@ -30,7 +30,7 @@ export interface Unit extends Readonly<{
     model: Model,
 
     // Determines the operation applied to this unit.
-    // The transform and and inverse a baked into the "getPosition" function
+    // The transform and and inverse are baked into the "getPosition" function
     operator: Operator
 }> {
     // returns the untransformed position. Used for spatial queries.

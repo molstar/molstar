@@ -8,6 +8,11 @@
 
 interface Model {
 
+    // Incremented when data changes
+    dataVersion: number,
+
+    // Incremented when the underlying conformation changes
+    conformationVersion: number,
 }
 
 export default Model

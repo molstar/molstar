@@ -152,7 +152,11 @@ function hasA(set: SortedArray, x: number) { return x >= set[0] && x <= set[set.
 function indexOfA(set: SortedArray, x: number) { return x >= set[0] && x <= set[set.length - 1] ? binarySearch(set, x) : -1; }
 
 function binarySearch(xs: SortedArray, value: number) {
-    let min = 0, max = xs.length - 1;
+    return binarySearchRange(xs, value, 0, xs.length);
+}
+
+function binarySearchRange(xs: SortedArray, value: number, start: number, end: number) {
+    let min = start, max = end - 1;
     while (min <= max) {
         if (min + 11 > max) {
             for (let i = min; i <= max; i++) {
@@ -234,17 +238,17 @@ function areIntersectingAA(xs: SortedArray, ys: SortedArray) {
     return false;
 }
 
-function isSubsetAA(xs: SortedArray, ys: SortedArray) {
-    if (xs === ys) return true;
+function isSubsetAA(a: SortedArray, b: SortedArray) {
+    if (a === b) return true;
 
-    const lenB = ys.length;
-    let { i, j, endA, endB } = getMaxIntersectionRange(xs, ys);
-    // the 2nd array must be able to advance by at least lenB elements
-    if (endB - j + 1 < lenB || endA - j + 1 < lenB) return false;
+    const lenB = b.length;
+    let { i, j, endA, endB } = getMaxIntersectionRange(a, b);
+    // must be able to advance by lenB elements
+    if (endB - j + 1 < lenB || endA - i + 1 < lenB) return false;
 
     let equal = 0;
     while (i <= endA && j <= endB) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { i++; j++; equal++; }
@@ -302,8 +306,6 @@ function unionAR(a: SortedArray, b: Range) {
 function unionAA(a: SortedArray, b: SortedArray) {
     if (a === b) return a;
 
-    const lenA = a.length, lenB = b.length;
-
     let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(a, b);
     let i = sI, j = sJ;
     let commonCount = 0;
@@ -314,8 +316,11 @@ function unionAA(a: SortedArray, b: SortedArray) {
         else { i++; j++; commonCount++; }
     }
 
-    if (!commonCount) return a;
-    if (commonCount >= lenA) return OrderedSet.Empty
+    const lenA = a.length, lenB = b.length;
+    // A === B || B is subset of A ==> A
+    if ((commonCount === lenA && commonCount === lenB) || commonCount === lenB) return a;
+    // A is subset of B ===> B
+    if (commonCount === lenA) return b;
 
     const resultSize = lenA + lenB - commonCount;
     const l = Math.min(a[0], b[0]), r = Math.max(a[lenA - 1], b[lenB - 1]);
@@ -375,27 +380,33 @@ function intersectAR(a: SortedArray, r: Range) {
     return OrderedSet.ofSortedArray(indices);
 }
 
-function intersectAA(xs: SortedArray, ys: SortedArray) {
-    if (xs === ys) return xs;
+function intersectAA(a: SortedArray, b: SortedArray) {
+    if (a === b) return a;
 
-    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(xs, ys);
+    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(a, b);
     let i = sI, j = sJ;
-    let resultSize = 0;
+    let commonCount = 0;
     while (i <= endA && j <= endB) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
-        else { i++; j++; resultSize++; }
+        else { i++; j++; commonCount++; }
     }
 
-    if (!resultSize) return OrderedSet.Empty;
+    const lenA = a.length, lenB = b.length;
+    // no common elements
+    if (!commonCount) return OrderedSet.Empty;
+    // A === B || B is subset of A ==> B
+    if ((commonCount === lenA && commonCount === lenB) || commonCount === lenB) return b;
+    // A is subset of B ==> A
+    if (commonCount === lenA) return a;
 
-    const indices = new Int32Array(resultSize);
+    const indices = new Int32Array(commonCount);
     let offset = 0;
     i = sI;
     j = sJ;
     while (i <= endA && j <= endB) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { indices[offset++] = x; i++; j++; }
@@ -417,6 +428,7 @@ function substractRR(a: Range, b: Range) {
     if (isRangeSubset(a, b)) {
         // this splits the interval into two, gotta represent it as a set.
         const l = _sRB.fst - _sRA.fst, r = _sRA.snd - _sRB.snd;
+        // TODO: check if l === 0 || r === 0 ==> result would be a range
         const ret = new Int32Array(l + r);
         let offset = 0;
         for (let i = 0; i < l; i++) ret[offset++] = _sRA.fst + i;
@@ -439,7 +451,11 @@ function subtractAR(a: SortedArray, b: Range) {
     const min = _sAR.fst, max = _sAR.snd;
     const { start, end } = getStartEnd(a, min, max);
     const size = a.length - (end - start);
+    // A is subset of B
     if (size <= 0) return OrderedSet.Empty;
+    // No common elements
+    if (size === a.length) return a;
+
     const ret = new Int32Array(size);
     let offset = 0;
     for (let i = 0; i < start; i++) ret[offset++] = a[i];
@@ -458,15 +474,21 @@ function subtractRA(a: Range, b: SortedArray) {
     const rSize = max - min + 1;
     const { start, end } = getStartEnd(b, min, max);
     const commonCount = end - start;
+
+    // No common elements.
+    if (commonCount === 0) return a;
+
     const resultSize = rSize - commonCount;
+    // A is subset of B
     if (resultSize <= 0) return OrderedSet.Empty;
+
     const ret = new Int32Array(resultSize);
     const li = b.length - 1;
     const fst = b[Math.min(start, li)], last = b[Math.min(end, li)];
     let offset = 0;
     for (let i = min; i < fst; i++) ret[offset++] = i;
     for (let i = fst; i <= last; i++) {
-        if (binarySearch(b, i) < 0) ret[offset++] = i;
+        if (binarySearchRange(b, i, start, end) < 0) ret[offset++] = i;
     }
     for (let i = last + 1; i <= max; i++) ret[offset++] = i;
     return OrderedSet.ofSortedArray(ret);
@@ -487,7 +509,9 @@ function subtractAA(a: SortedArray, b: SortedArray) {
         else { i++; j++; commonCount++; }
     }
 
+    // A isnt intersecting B ===> A
     if (!commonCount) return a;
+    // A === B || A is subset of B ===> Empty
     if (commonCount >= lenA) return OrderedSet.Empty;
 
     const indices = new Int32Array(lenA - commonCount);
