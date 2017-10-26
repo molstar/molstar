@@ -14,7 +14,7 @@ describe('atom set', () => {
 
     function setToPairs(set: AtomSet): ArrayLike<IntTuple.Unpacked> {
         const ret = [];
-        const it = AtomSet.values(set);
+        const it = AtomSet.atoms(set);
         for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = IntTuple.create(v.fst, v.snd);
         return ret;
     }
@@ -22,10 +22,10 @@ describe('atom set', () => {
     it('singleton pair', () => {
         const set = AtomSet.create(p(10, 11));
         expect(setToPairs(set)).toEqual([p(10, 11)]);
-        expect(AtomSet.has(set, r(10, 11))).toBe(true);
-        expect(AtomSet.has(set, r(11, 11))).toBe(false);
-        expect(AtomSet.getAt(set, 0)).toBe(r(10, 11));
-        expect(AtomSet.size(set)).toBe(1);
+        expect(AtomSet.hasAtom(set, r(10, 11))).toBe(true);
+        expect(AtomSet.hasAtom(set, r(11, 11))).toBe(false);
+        expect(AtomSet.getAtomAt(set, 0)).toBe(r(10, 11));
+        expect(AtomSet.atomCount(set)).toBe(1);
     });
 
     it('singleton number', () => {
@@ -39,13 +39,13 @@ describe('atom set', () => {
             3: OrderedSet.ofRange(0, 1),
         });
         const ret = [p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)];
-        expect(AtomSet.size(set)).toBe(ret.length);
+        expect(AtomSet.atomCount(set)).toBe(ret.length);
         expect(setToPairs(set)).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
-        expect(AtomSet.has(set, r(10, 11))).toBe(false);
-        expect(AtomSet.has(set, r(3, 0))).toBe(true);
-        expect(AtomSet.has(set, r(1, 7))).toBe(true);
-        for (let i = 0; i < AtomSet.size(set); i++) {
-            expect(AtomSet.getAt(set, i)).toBe(IntTuple.pack1(ret[i]));
+        expect(AtomSet.hasAtom(set, r(10, 11))).toBe(false);
+        expect(AtomSet.hasAtom(set, r(3, 0))).toBe(true);
+        expect(AtomSet.hasAtom(set, r(1, 7))).toBe(true);
+        for (let i = 0; i < AtomSet.atomCount(set); i++) {
+            expect(AtomSet.getAtomAt(set, i)).toBe(IntTuple.pack1(ret[i]));
         }
     });
 
@@ -62,11 +62,11 @@ describe('atom set', () => {
         }
         const ms = AtomSet.create(sets);
         for (let i = 0; i < control.length; i++) {
-            expect(IntTuple.areEqual(AtomSet.getAt(ms, i), control[i])).toBe(true);
+            expect(IntTuple.areEqual(AtomSet.getAtomAt(ms, i), control[i])).toBe(true);
         }
 
         for (let i = 0; i < control.length; i++) {
-            expect(AtomSet.indexOf(ms, control[i])).toBe(i);
+            expect(AtomSet.indexOfAtom(ms, control[i])).toBe(i);
         }
     });
 

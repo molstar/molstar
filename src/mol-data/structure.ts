@@ -11,9 +11,11 @@ import Conformation from './conformation'
 
 export interface Operator extends Readonly<{
     name: string,
-    hkl: number[], // defaults to [0, 0, 0] where not appropriate
+    hkl: number[], // defaults to [0, 0, 0] for non symmetry entries
     transform: Mat4,
+    // cache the inverse of the transform
     inverse: Mat4,
+    // optimize the identity case
     isIdentity: boolean
 }> { }
 
@@ -21,15 +23,10 @@ export interface Unit extends Readonly<{
     // Structure-level unique identifier of the unit.
     id: number,
 
-    // Each unit can only contain atoms from a single "chain"
-    // the reason for this is to make certain basic data transforms fast
-    // without having to look at the actual contents of the unit
-    // multiple units can point to the same chain
-    chainIndex: number,
-
     // Provides access to the underlying data.
     model: Model,
 
+    // Separate the conformation from the data for faster/more straightforward dynamics
     conformation: Conformation,
 
     // Determines the operation applied to this unit.
@@ -43,12 +40,16 @@ export interface Unit extends Readonly<{
     getPosition(atom: number, slot: Vec3): Vec3
 }
 
-export interface Structure { units: { [id: number]: Unit }, atoms: AtomSet }
+export interface Structure extends Readonly<{
+    units: Readonly<{ [id: number]: Unit }>,
+    atoms: AtomSet
+}> { }
 
 export namespace Structure {
     export const Empty: Structure = { units: {}, atoms: AtomSet.Empty };
+
+    // TODO: "lift" atom set operators
+    // TODO: "diff"
 }
 
 export default Structure
-// export interface Selection { structure: Structure, sets: AtomSet[] }
-// type SelectionImpl = Structure | Structure[]

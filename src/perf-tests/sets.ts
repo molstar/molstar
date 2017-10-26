@@ -26,20 +26,20 @@ export namespace Iteration {
 
     export function iterators() {
         let s = 0;
-        const it = AtomSet.values(ms);
+        const it = AtomSet.atoms(ms);
         for (let v = it.move(); !it.done; v = it.move()) s += v.snd;
         return s;
     }
 
     export function elementAt() {
         let s = 0;
-        for (let i = 0, _i = AtomSet.size(ms); i < _i; i++) s += IntTuple.snd(AtomSet.getAt(ms, i));
+        for (let i = 0, _i = AtomSet.atomCount(ms); i < _i; i++) s += IntTuple.snd(AtomSet.getAtomAt(ms, i));
         return s;
     }
 
     export function manual() {
         let s = 0;
-        const keys = AtomSet.keys(ms);
+        const keys = AtomSet.units(ms);
         for (let i = 0, _i = OrdSet.size(keys); i < _i; i++) {
             const set = AtomSet.getByKey(ms, OrdSet.getAt(keys, i));
             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
@@ -51,7 +51,7 @@ export namespace Iteration {
 
     export function manual1() {
         let s = 0;
-        for (let i = 0, _i = AtomSet.keyCount(ms); i < _i; i++) {
+        for (let i = 0, _i = AtomSet.unitCount(ms); i < _i; i++) {
             const set = AtomSet.getByIndex(ms, i);
             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
                 s += OrdSet.getAt(set, j);
@@ -237,7 +237,7 @@ export function testSegments() {
 
     for (let s = it.move(); !it.done; s = it.move()) {
         for (let j = s.start; j < s.end; j++) {
-            console.log(`${s.segmentIndex}: ${OrdSet.getAt(data, j)}`);
+            console.log(`${s.segment}: ${OrdSet.getAt(data, j)}`);
         }
     }
 }

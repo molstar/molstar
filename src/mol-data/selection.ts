@@ -6,4 +6,18 @@
 
 import Structure from './structure'
 
-export type Selection = Structure | Structure[]
+type Selection =
+    | Structure // each atom is interpreted as a singleton structure
+    | Structure[]
+
+namespace Selection {
+    export const structureCount: (sel: Selection) => number = 0 as any;
+    export const union: (sel: Selection) => Structure = 0 as any;
+    export const getAt: (sel: Selection, i: number) => Structure = 0 as any;
+
+    // TODO: 'structure iterator'
+    // TODO: selection builders (linear / unique)
+    // TODO: spatial lookup
+}
+
+export default Selection

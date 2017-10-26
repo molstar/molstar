@@ -284,9 +284,9 @@ describe('ordered set', () => {
         const t = Object.create(null);
         for (let s = it.move(); !it.done; s = it.move()) {
             for (let j = s.start; j < s.end; j++) {
-                const x = t[s.segmentIndex];
+                const x = t[s.segment];
                 const v = OrderedSet.getAt(data, j);
-                if (!x) t[s.segmentIndex] = [v];
+                if (!x) t[s.segment] = [v];
                 else x[x.length] = v;
             }
         }
