@@ -35,7 +35,7 @@ export interface Column<T> {
 }
 
 export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T): Column<T['@type']> {
-    const value: Column<T['@type']>['value'] = type.kind === 'str' ? row => '' : row => 0;
+    const value: Column<T['@type']>['value'] = type.isString ? row => '' : row => 0;
     return {
         '@type': type,
         isDefined: false,
