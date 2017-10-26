@@ -155,12 +155,8 @@ export namespace Union {
     export function run() {
         const suite = new B.Suite();
 
-        // const values: number[] = [];
-        // for (let i = 0; i < 1000000; i++) values[i] = (Math.random() * 1000) | 0;
-
-        const randomArray = createArray(100);
-        const { ordSet: osA, set: sA, obj: oA } = createData(randomArray);
-        const { ordSet: osB, set: sB, obj: oB } = createData(randomArray);
+        const { ordSet: osA, set: sA, obj: oA } = createData(createArray(1000));
+        const { ordSet: osB, set: sB, obj: oB } = createData(createArray(1000));
 
         console.log(OrdSet.size(unionOS(osA, osB)), Object.keys(unionO(oA, oB)).length, unionS(sA, sB).size);
         console.log(OrdSet.size(intOS(osA, osB)), Object.keys(intO(oA, oB)).length, intS(sA, sB).size);
@@ -245,3 +241,5 @@ export function testSegments() {
         }
     }
 }
+
+Union.run();

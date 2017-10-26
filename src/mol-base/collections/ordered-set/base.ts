@@ -177,13 +177,13 @@ function rangeSearchIndex(r: Range, value: number) {
     return value - _rsiR.fst;
 }
 
-const _maxIntRangeRet = { i: 0, j: 0, endA: 0, endB: 0 };
+const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };
 function getMaxIntersectionRange(xs: SortedArray, ys: SortedArray) {
-    const la = xs.length - 1, lb = ys.length - 1;
-    _maxIntRangeRet.i = binarySearchPredIndex(xs, ys[0]);
-    _maxIntRangeRet.j = binarySearchPredIndex(ys, xs[0]);
-    _maxIntRangeRet.endA = Math.min(binarySearchPredIndex(xs, ys[lb]), la);
-    _maxIntRangeRet.endB = Math.min(binarySearchPredIndex(ys, xs[la]), lb);
+    _maxIntRangeRet.startI = binarySearchPredIndex(xs, ys[0]);
+    _maxIntRangeRet.startJ = binarySearchPredIndex(ys, xs[0]);
+    _maxIntRangeRet.endI = binarySearchPredIndex(xs, ys[ys.length - 1] + 1);
+    _maxIntRangeRet.endJ = binarySearchPredIndex(ys, xs[xs.length - 1] + 1);
+
     return _maxIntRangeRet;
 }
 
@@ -207,8 +207,8 @@ function equalAA(a: SortedArray, b: SortedArray) {
 function areIntersectingAA(xs: SortedArray, ys: SortedArray) {
     if (xs === ys) return true;
 
-    let { i, j, endA, endB } = getMaxIntersectionRange(xs, ys);
-    while (i <= endA && j <= endB) {
+    let { startI: i, startJ: j, endI, endJ } = getMaxIntersectionRange(xs, ys);
+    while (i < endI && j < endJ) {
         const x = xs[i], y = ys[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -221,12 +221,12 @@ function isSubsetAA(a: SortedArray, b: SortedArray) {
     if (a === b) return true;
 
     const lenB = b.length;
-    let { i, j, endA, endB } = getMaxIntersectionRange(a, b);
+    let { startI: i, startJ: j, endI, endJ } = getMaxIntersectionRange(a, b);
     // must be able to advance by lenB elements
-    if (endB - j + 1 < lenB || endA - i + 1 < lenB) return false;
+    if (endJ - j < lenB || endI - i < lenB) return false;
 
     let equal = 0;
-    while (i <= endA && j <= endB) {
+    while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -285,10 +285,10 @@ function unionAR(a: SortedArray, b: Range) {
 function unionAA(a: SortedArray, b: SortedArray) {
     if (a === b) return a;
 
-    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(a, b);
+    const { startI: sI, startJ: sJ, endI, endJ } = getMaxIntersectionRange(a, b);
     let i = sI, j = sJ;
     let commonCount = 0;
-    while (i <= endA && j <= endB) {
+    while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -318,7 +318,7 @@ function unionAA(a: SortedArray, b: SortedArray) {
     // insert the common part
     i = sI;
     j = sJ;
-    while (i <= endA && j <= endB) {
+    while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { indices[offset++] = x; i++; }
         else if (x > y) { indices[offset++] = y; j++; }
@@ -362,10 +362,10 @@ function intersectAR(a: SortedArray, r: Range) {
 function intersectAA(a: SortedArray, b: SortedArray) {
     if (a === b) return a;
 
-    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(a, b);
+    const { startI: sI, startJ: sJ, endI, endJ } = getMaxIntersectionRange(a, b);
     let i = sI, j = sJ;
     let commonCount = 0;
-    while (i <= endA && j <= endB) {
+    while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -384,7 +384,7 @@ function intersectAA(a: SortedArray, b: SortedArray) {
     let offset = 0;
     i = sI;
     j = sJ;
-    while (i <= endA && j <= endB) {
+    while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -479,10 +479,10 @@ function subtractAA(a: SortedArray, b: SortedArray) {
 
     const lenA = a.length;
 
-    let { i: sI, j: sJ, endA, endB } = getMaxIntersectionRange(a, b);
+    const { startI: sI, startJ: sJ, endI, endJ } = getMaxIntersectionRange(a, b);
     let i = sI, j = sJ;
     let commonCount = 0;
-    while (i <= endA && j <= endB) {
+    while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
@@ -502,7 +502,7 @@ function subtractAA(a: SortedArray, b: SortedArray) {
 
     i = sI;
     j = sJ;
-    while (i <= endA && j <= endB) {
+    while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { indices[offset++] = x; i++; }
         else if (x > y) { j++; }

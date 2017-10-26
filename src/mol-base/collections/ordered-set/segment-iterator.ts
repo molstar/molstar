@@ -22,7 +22,7 @@ class SegmentIterator implements Iterator<{ segmentIndex: number } & OrderedSet.
     }
 
     move() {
-        this.done = this.segmentRange.end <= this.segmentRange.start || this.setRange.end <= this.setRange.start;
+        this.done = this.segmentRange.end <= this.segmentRange.start;
         while (!this.done) {
             if (!this.updateValue()) {
                 this.updateSegmentRange();
@@ -52,7 +52,7 @@ class SegmentIterator implements Iterator<{ segmentIndex: number } & OrderedSet.
         const min = OrderedSet.getAt(this.set, this.setRange.start), max = OrderedSet.getAt(this.set, this.setRange.end - 1);
         this.segmentRange.start = this.getSegmentIndex(min);
         this.segmentRange.end = this.getSegmentIndex(max) + 1;
-        this.done = this.segmentRange.end <= this.segmentRange.start || this.setRange.end <= this.setRange.start;
+        this.done = this.segmentRange.end <= this.segmentRange.start;
     }
 
     constructor(private segments: OrderedSet, private set: OrderedSet) {
