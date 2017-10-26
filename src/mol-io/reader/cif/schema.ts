@@ -59,9 +59,10 @@ export namespace Field {
     export function vector(rows: number, spec?: Spec) { return createSchema(spec, Vector(rows)); }
     export function matrix(rows: number, cols: number, spec?: Spec) { return createSchema(spec, Matrix(rows, cols)); }
 
-    function create<T>(field: Data.Field, value: (row: number) => T, toArray: Column.Column<T>['toArray']): Column.Column<T> {
+    function create<T>(type: Column.ColumnType, field: Data.Field, value: (row: number) => T, toArray: Column.Column<T>['toArray']): Column.Column<T> {
         const presence = field.presence;
         return {
+            '@type': type,
             isDefined: field.isDefined,
             rowCount: field.rowCount,
             value,
@@ -76,23 +77,23 @@ export namespace Field {
         const pool = StringPool.create();
         const value = (row: number) => StringPool.get(pool, field.str(row));
         const array = (params?: Column.ToArrayParams) => Column.createAndFillArray(field.rowCount, value, params);
-        return create<string>(field, value, array);
+        return create<string>(Column.ColumnType.str, field, value, array);
     }
-    function Str(field: Data.Field) { return create(field, field.str, field.toStringArray); }
-    function Int(field: Data.Field) { return create(field, field.int, field.toIntArray); }
-    function Float(field: Data.Field) { return create(field, field.float, field.toFloatArray); }
+    function Str(field: Data.Field) { return create(Column.ColumnType.str, field, field.str, field.toStringArray); }
+    function Int(field: Data.Field) { return create(Column.ColumnType.int, field, field.int, field.toIntArray); }
+    function Float(field: Data.Field) { return create(Column.ColumnType.float, field, field.float, field.toFloatArray); }
 
     function Vector(rows: number) {
         return function(field: Data.Field, category: Data.Category, key: string) {
             const value = (row: number) => Data.getVector(category, key, rows, row);
-            return create(field, value, params => Column.createAndFillArray(field.rowCount, value, params));
+            return create(Column.ColumnType.vector, field, value, params => Column.createAndFillArray(field.rowCount, value, params));
         }
     }
 
     function Matrix(rows: number, cols: number) {
         return function(field: Data.Field, category: Data.Category, key: string) {
             const value = (row: number) => Data.getMatrix(category, key, rows, cols, row);
-            return create(field, value, params => Column.createAndFillArray(field.rowCount, value, params));
+            return create(Column.ColumnType.matrix, field, value, params => Column.createAndFillArray(field.rowCount, value, params));
         }
     }
 

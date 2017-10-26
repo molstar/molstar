@@ -24,7 +24,11 @@ class Builder {
 
     beginUnit() { this.currentUnit = []; }
     addToUnit(a: number) { this.currentUnit[this.currentUnit.length] = a; }
-    commitUnit(u: number) { if (this.currentUnit.length === 0) return; this.keys[this.keys.length] = u; this.units[u] = this.currentUnit; }
+    commitUnit(u: number) {
+        if (this.currentUnit.length === 0) return;
+        this.keys[this.keys.length] = u;
+        this.units[u] = this.currentUnit;
+    }
 
     getSet(): AtomSet {
         const sets: { [key: number]: OrderedSet } = Object.create(null);

@@ -4,13 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export type ColumnType = typeof ColumnType.str | typeof ColumnType.pooledStr | typeof ColumnType.int | typeof ColumnType.float
+export type ColumnType = typeof ColumnType.str | typeof ColumnType.int | typeof ColumnType.float | typeof ColumnType.vector | typeof ColumnType.matrix
 
 export namespace ColumnType {
-    export const str = { '@type': '' as string, kind: 'str' as 'str' };
-    export const pooledStr = { '@type': '' as string, kind: 'pooled-str' as 'pooled-str' };
-    export const int = { '@type': 0 as number, kind: 'int' as 'int' };
-    export const float = { '@type': 0 as number, kind: 'float' as 'float' };
+    export const str = { '@type': '' as string, kind: 'str' as 'str', isScalar: false };
+    export const int = { '@type': 0 as number, kind: 'int' as 'int', isScalar: true };
+    export const float = { '@type': 0 as number, kind: 'float' as 'float', isScalar: true };
+    export const vector = { '@type': [] as number[], kind: 'vector' as 'vector', isScalar: false };
+    export const matrix = { '@type': [] as number[][], kind: 'matrix' as 'matrix', isScalar: false };
 }
 
 export interface ToArrayParams {
@@ -22,6 +23,7 @@ export interface ToArrayParams {
 }
 
 export interface Column<T> {
+    readonly '@type': ColumnType,
     readonly isDefined: boolean,
     readonly rowCount: number,
     value(row: number): T,
@@ -34,6 +36,7 @@ export interface Column<T> {
 export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T): Column<T['@type']> {
     const value: Column<T['@type']>['value'] = type.kind === 'str' ? row => '' : row => 0;
     return {
+        '@type': type,
         isDefined: false,
         rowCount,
         value,
@@ -48,32 +51,46 @@ export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T)
     }
 }
 
-export function ArrayColumn<T>(array: ArrayLike<T>): Column<T> {
+export interface ArrayColumnSpec<T extends ColumnType> {
+    array: ArrayLike<T['@type']>,
+    type: T,
+    isValueDefined?: (row: number) => boolean
+}
+
+export function ArrayColumn<T extends ColumnType>({ array, type, isValueDefined }: ArrayColumnSpec<T>): Column<T['@type']> {
     const rowCount = array.length;
-    const value: Column<T>['value'] = row => array[row];
+    const value: Column<T['@type']>['value'] = row => array[row];
     const isTyped = isTypedArray(array);
     return {
-        isDefined: false,
+        '@type': type,
+        isDefined: true,
         rowCount,
         value,
-        isValueDefined: row => true,
+        isValueDefined: isValueDefined ? isValueDefined : row => true,
         toArray: isTyped
             ? params => typedArrayWindow(array, params) as any as ReadonlyArray<T>
             : params => {
                 const { start, end } = getArrayBounds(rowCount, params);
-                const ret = new Array(end - start);
+                if (start === 0 && end === array.length) return array as ReadonlyArray<T['@type']>;
+                const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
                 for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
                 return ret;
             },
         stringEquals: isTyped
             ? (row, value) => (array as any)[row] === +value
-            : (row, value) => {
-                const v = array[row];
-                if (typeof v !== 'string') return '' + v === value;
-                return v === value;
-            },
+            : type.kind === 'str'
+            ? (row, value) => array[row] === value
+            : type.isScalar
+            ? (row, value) => array[row] === '' + value
+            : (row, value) => false,
         areValuesEqual: (rowA, rowB) => array[rowA] === array[rowB]
     }
+}
+
+/** Makes the column backned by an array. Useful for columns that accessed often. */
+export function toArrayColumn<T>(c: Column<T>): Column<T> {
+    if (!c.isDefined) return UndefinedColumn(c.rowCount, c['@type']) as any as Column<T>;
+    return ArrayColumn({ array: c.toArray(), type: c['@type'] as any, isValueDefined: c.isValueDefined });
 }
 
 /** A helped function for Column.toArray */
