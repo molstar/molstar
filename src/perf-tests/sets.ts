@@ -234,4 +234,14 @@ export namespace Build {
     }
 }
 
-Build.run();
+export function testSegments() {
+    const data = OrdSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
+    const segs = OrdSet.ofSortedArray([0, 4, 10, 12, 13, 15, 25]);
+    const it = OrdSet.segments(segs, data);
+
+    for (let s = it.move(); !it.done; s = it.move()) {
+        for (let j = s.start; j < s.end; j++) {
+            console.log(`${s.segmentIndex}: ${OrdSet.getAt(data, j)}`);
+        }
+    }
+}

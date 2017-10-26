@@ -4,4 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// TODO: define basic hierarchy, sec. structure. etc.
+interface Common {
+
+}
+
+export default Common

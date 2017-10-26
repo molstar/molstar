@@ -47,7 +47,6 @@ class ArrayIteratorImpl<T> implements Iterator<T> {
         this.index = -1;
         // try to avoid deoptimization with undefined values
         this.lastValue = xs.length > 0 ? xs[0] : void 0 as any;
-        return this;
     }
 }
 
@@ -71,7 +70,6 @@ class RangeIteratorImpl implements Iterator<number> {
     constructor(private min: number, private max: number) {
         this.value = min - 1;
         this.done = max < min;
-        return this;
     }
 }
 

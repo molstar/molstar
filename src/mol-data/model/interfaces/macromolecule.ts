@@ -4,4 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// TODO: map parts of mmCIF schema to create interfaces
+interface Macromolecule {
+
+}
+
+export default Macromolecule
