@@ -4,9 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// TODO: define property accessor intefaces, graphs, spatial lookups and what have you.
-
-interface Model {
-}
-
-export default Model
+// TODO: map parts of mmCIF schema to create interfaces

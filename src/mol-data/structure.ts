@@ -7,6 +7,7 @@
 import { Vec3, Mat4 } from '../mol-base/math/linear-algebra'
 import AtomSet from './atom-set'
 import Model from './model'
+import Conformation from './conformation'
 
 export interface Operator extends Readonly<{
     name: string,
@@ -28,6 +29,8 @@ export interface Unit extends Readonly<{
 
     // Provides access to the underlying data.
     model: Model,
+
+    conformation: Conformation,
 
     // Determines the operation applied to this unit.
     // The transform and and inverse are baked into the "getPosition" function

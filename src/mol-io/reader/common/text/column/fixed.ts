@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, ColumnType, createAndFillArray } from '../../column'
+import { Column, ColumnType, createAndFillArray } from '../../../../../mol-base/collections/column'
 import { trimStr, Tokens } from '../tokenizer'
 import { parseIntSkipLeadingWhitespace, parseFloatSkipLeadingWhitespace } from '../number-parser'
 import StringPool from '../../../../utils/short-string-pool'

@@ -4,9 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// TODO: define property accessor intefaces, graphs, spatial lookups and what have you.
-
-interface Model {
-}
-
-export default Model
+// TODO: define basic hierarchy, sec. structure. etc.

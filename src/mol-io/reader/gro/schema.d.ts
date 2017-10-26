@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from '../common/column'
+import { Column } from '../../../mol-base/collections/column'
 
 export interface Header {
     title: string,

@@ -5,7 +5,7 @@
  */
 
 import * as Data from './data-model'
-import * as Column from '../common/column'
+import * as Column from '../../../mol-base/collections/column'
 import StringPool from '../../utils/short-string-pool'
 
 /**

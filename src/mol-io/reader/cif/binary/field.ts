@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Column from '../../common/column'
+import * as Column from '../../../../mol-base/collections/column'
 import * as Data from '../data-model'
 import { EncodedColumn } from './encoding'
 import decode from './decoder'

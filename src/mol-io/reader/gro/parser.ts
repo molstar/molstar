@@ -7,7 +7,7 @@
 
 import Tokenizer from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
-import { ColumnType, UndefinedColumn } from '../common/column'
+import { ColumnType, UndefinedColumn } from '../../../mol-base/collections/column'
 import * as Schema from './schema'
 import Result from '../result'
 import Computation from '../../../mol-base/computation'

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Column from '../common/column'
+import * as Column from '../../../mol-base/collections/column'
 
 export interface File {
     readonly name?: string,

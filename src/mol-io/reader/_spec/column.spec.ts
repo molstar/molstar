@@ -7,7 +7,7 @@
 
 import FixedColumn from '../common/text/column/fixed'
 import TokenColumn from '../common/text/column/token'
-import { ColumnType, typedArrayWindow } from '../common/column'
+import { ColumnType, typedArrayWindow } from '../../../mol-base/collections/column'
 
 const lines = [
     '1.123 abc',
