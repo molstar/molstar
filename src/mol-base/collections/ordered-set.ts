@@ -8,6 +8,7 @@ import * as Base from './ordered-set/base'
 import SegmentIterator from './ordered-set/segment-iterator'
 
 namespace OrderedSet {
+    /** Range of indices to be iterated as start <= i < end. */
     export interface IndexRange { start: number, end: number }
     export function IndexRange(start?: number, end?: number): IndexRange { return { start: start || 0, end: end || 0 }; }
 
@@ -34,11 +35,11 @@ namespace OrderedSet {
     export const intersect: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.intersect as any;
     export const subtract: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.subtract as any;
 
-    export const getPredIndex: (set: OrderedSet, x: number) => number = Base.getPredIndex as any;
-    export const getPredIndexInRange: (set: OrderedSet, x: number, range: IndexRange) => number = Base.getPredIndexInRange as any;
-    export const getIntervalRange: (set: OrderedSet, min: number, max: number) => IndexRange = Base.getIntervalRange as any;
+    export const findPredecessorIndex: (set: OrderedSet, x: number) => number = Base.getPredIndex as any;
+    export const findPredecessorIndexInRange: (set: OrderedSet, x: number, range: IndexRange) => number = Base.getPredIndexInRange as any;
+    export const findIntervalRange: (set: OrderedSet, min: number, max: number) => IndexRange = Base.getIntervalRange as any;
 
-    export const segments = SegmentIterator
+    export const segments = SegmentIterator;
 }
 
 interface OrderedSet { '@type': 'int-ordered-set' }

@@ -36,12 +36,12 @@ class SegmentIterator implements Iterator<{ segment: number } & OrderedSet.Index
 
     private getSegmentIndex(value: number) {
         if (value >= this.last) return -1;
-        return OrderedSet.getPredIndex(this.segments, value - 1);
+        return OrderedSet.findPredecessorIndex(this.segments, value - 1);
     }
 
     private updateValue() {
         const segmentEnd = OrderedSet.getAt(this.segments, this.segmentRange.start + 1);
-        const setEnd = OrderedSet.getPredIndexInRange(this.set, segmentEnd, this.setRange);
+        const setEnd = OrderedSet.findPredecessorIndexInRange(this.set, segmentEnd, this.setRange);
         this.value.start = this.setRange.start;
         this.value.end = setEnd;
         this.setRange.start = setEnd;

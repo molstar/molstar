@@ -353,7 +353,7 @@ function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
     if (a === b) return true;
     const keysA = a.keys, keysB = b.keys;
     if (!OrderedSet.areIntersecting(a.keys, b.keys)) return false;
-    const { start, end } = OrderedSet.getIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const { start, end } = OrderedSet.findIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
     for (let i = start; i < end; i++) {
         const k = OrderedSet.getAt(keysA, i);
         if (OrderedSet.has(keysB, k) && OrderedSet.areIntersecting(a[k], b[k])) return true;
@@ -372,7 +372,7 @@ function intersectEE(a: AtomSetElements, b: AtomSetElements) {
 
     const keysA = a.keys, keysB = b.keys;
     if (!OrderedSet.areIntersecting(a.keys, b.keys)) return Empty;
-    const { start, end } = OrderedSet.getIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const { start, end } = OrderedSet.findIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
 
     const keys = [], ret = Object.create(null);
     for (let i = start; i < end; i++) {
@@ -412,7 +412,7 @@ function subtractEE(a: AtomSetElements, b: AtomSetElements) {
 
     const keysA = a.keys, keysB = b.keys;
     if (!OrderedSet.areIntersecting(a.keys, b.keys)) return Empty;
-    const { start, end } = OrderedSet.getIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const { start, end } = OrderedSet.findIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
 
     const keys = [], ret = Object.create(null);
     for (let i = 0; i < start; i++) {

@@ -208,18 +208,18 @@ describe('ordered set', () => {
     });
 
     it('interval range', () => {
-        expect(OrderedSet.getIntervalRange(empty, 9, 11)).toEqual({ start: 0, end: 0 });
-        expect(OrderedSet.getIntervalRange(empty, -9, -6)).toEqual({ start: 0, end: 0 });
-        expect(OrderedSet.getIntervalRange(singleton10, 9, 11)).toEqual({ start: 0, end: 1 });
-        expect(OrderedSet.getIntervalRange(range1_4, 2, 3)).toEqual({ start: 1, end: 3 });
-        expect(OrderedSet.getIntervalRange(range1_4, -10, 2)).toEqual({ start: 0, end: 2 });
-        expect(OrderedSet.getIntervalRange(range1_4, -10, 20)).toEqual({ start: 0, end: 4 });
-        expect(OrderedSet.getIntervalRange(range1_4, 3, 20)).toEqual({ start: 2, end: 4 });
-        expect(OrderedSet.getIntervalRange(arr136, 0, 1)).toEqual({ start: 0, end: 1 });
-        expect(OrderedSet.getIntervalRange(arr136, 0, 3)).toEqual({ start: 0, end: 2 });
-        expect(OrderedSet.getIntervalRange(arr136, 0, 4)).toEqual({ start: 0, end: 2 });
-        expect(OrderedSet.getIntervalRange(arr136, 2, 4)).toEqual({ start: 1, end: 2 });
-        expect(OrderedSet.getIntervalRange(arr136, 2, 7)).toEqual({ start: 1, end: 3 });
+        expect(OrderedSet.findIntervalRange(empty, 9, 11)).toEqual({ start: 0, end: 0 });
+        expect(OrderedSet.findIntervalRange(empty, -9, -6)).toEqual({ start: 0, end: 0 });
+        expect(OrderedSet.findIntervalRange(singleton10, 9, 11)).toEqual({ start: 0, end: 1 });
+        expect(OrderedSet.findIntervalRange(range1_4, 2, 3)).toEqual({ start: 1, end: 3 });
+        expect(OrderedSet.findIntervalRange(range1_4, -10, 2)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet.findIntervalRange(range1_4, -10, 20)).toEqual({ start: 0, end: 4 });
+        expect(OrderedSet.findIntervalRange(range1_4, 3, 20)).toEqual({ start: 2, end: 4 });
+        expect(OrderedSet.findIntervalRange(arr136, 0, 1)).toEqual({ start: 0, end: 1 });
+        expect(OrderedSet.findIntervalRange(arr136, 0, 3)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet.findIntervalRange(arr136, 0, 4)).toEqual({ start: 0, end: 2 });
+        expect(OrderedSet.findIntervalRange(arr136, 2, 4)).toEqual({ start: 1, end: 2 });
+        expect(OrderedSet.findIntervalRange(arr136, 2, 7)).toEqual({ start: 1, end: 3 });
     })
 
     testEq('union ES', OrderedSet.union(empty, singleton10), [10]);
