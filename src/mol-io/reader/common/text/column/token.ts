@@ -30,6 +30,7 @@ export function TokenColumn<T extends ColumnType>(tokens: Tokens, type: T): Colu
         : row => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
 
     return {
+        '@type': type,
         isDefined: true,
         rowCount,
         value,

@@ -42,6 +42,7 @@ export function FixedColumn<T extends ColumnType>(lines: Tokens, offset: number,
         return parseFloatSkipLeadingWhitespace(data, s, s + width);
     };
     return {
+        '@type': type,
         isDefined: true,
         rowCount,
         value,

@@ -4,14 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export type ColumnType = typeof ColumnType.str | typeof ColumnType.int | typeof ColumnType.float | typeof ColumnType.vector | typeof ColumnType.matrix
+export type ColumnType = typeof ColumnType.str | typeof ColumnType.pooledStr | typeof ColumnType.int | typeof ColumnType.float | typeof ColumnType.vector | typeof ColumnType.matrix
 
 export namespace ColumnType {
-    export const str = { '@type': '' as string, kind: 'str' as 'str', isScalar: false };
-    export const int = { '@type': 0 as number, kind: 'int' as 'int', isScalar: true };
-    export const float = { '@type': 0 as number, kind: 'float' as 'float', isScalar: true };
-    export const vector = { '@type': [] as number[], kind: 'vector' as 'vector', isScalar: false };
-    export const matrix = { '@type': [] as number[][], kind: 'matrix' as 'matrix', isScalar: false };
+    export const str = { '@type': '' as string, kind: 'str' as 'str', isScalar: false, isString: true };
+    export const pooledStr = { '@type': '' as string, kind: 'pooled-str' as 'pooled-str', isScalar: false, isString: true };
+    export const int = { '@type': 0 as number, kind: 'int' as 'int', isScalar: true, isString: false };
+    export const float = { '@type': 0 as number, kind: 'float' as 'float', isScalar: true, isString: false };
+    export const vector = { '@type': [] as number[], kind: 'vector' as 'vector', isScalar: false, isString: false };
+    export const matrix = { '@type': [] as number[][], kind: 'matrix' as 'matrix', isScalar: false, isString: false };
 }
 
 export interface ToArrayParams {
@@ -76,12 +77,10 @@ export function ArrayColumn<T extends ColumnType>({ array, type, isValueDefined 
                 for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
                 return ret;
             },
-        stringEquals: isTyped
+        stringEquals: type.isScalar
             ? (row, value) => (array as any)[row] === +value
-            : type.kind === 'str'
+            : type.isString
             ? (row, value) => array[row] === value
-            : type.isScalar
-            ? (row, value) => array[row] === '' + value
             : (row, value) => false,
         areValuesEqual: (rowA, rowB) => array[rowA] === array[rowB]
     }
