@@ -47,9 +47,8 @@ export interface Structure { units: { [id: number]: Unit }, atoms: AtomSet }
 
 export namespace Structure {
     export const Empty: Structure = { units: {}, atoms: AtomSet.Empty };
-
-    export enum Algebra { AddUnit, RemoveUnit, UpdateConformation /* specify which units map to which */ }
 }
 
+export default Structure
 // export interface Selection { structure: Structure, sets: AtomSet[] }
 // type SelectionImpl = Structure | Structure[]
