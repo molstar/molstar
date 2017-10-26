@@ -200,4 +200,38 @@ export namespace Union {
     }
 }
 
-Union.runR();
+export namespace Build {
+    function createSorted() {
+        const b = AtomSet.SortedBuilder(AtomSet.Empty);
+        for (let i = 0; i < 100; i++) {
+            for (let j = 0; j < 100; j++) {
+                b.add(i, j);
+            }
+        }
+        return b.getSet();
+    }
+
+    function createByUnit() {
+        const b = AtomSet.SortedBuilder(AtomSet.Empty);
+        for (let i = 0; i < 100; i++) {
+            b.beginUnit();
+            for (let j = 0; j < 100; j++) {
+                b.addToUnit(j);
+            }
+            b.commitUnit(i);
+        }
+        return b.getSet();
+    }
+
+
+    export function run() {
+        const suite = new B.Suite();
+        suite
+            .add('create sorted', () => createSorted())
+            .add('create by unit', () => createByUnit())
+            .on('cycle', (e: any) => console.log(String(e.target)))
+            .run();
+    }
+}
+
+Build.run();
