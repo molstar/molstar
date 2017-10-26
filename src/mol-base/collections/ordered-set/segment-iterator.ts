@@ -41,7 +41,7 @@ class SegmentIterator implements Iterator<{ segmentIndex: number } & OrderedSet.
 
     private updateValue() {
         const segmentEnd = OrderedSet.getAt(this.segments, this.segmentRange.start + 1);
-        const end = OrderedSet.getPredIndex1(this.set, segmentEnd, this.setRange.start, this.setRange.end);
+        const end = OrderedSet.getPredIndexInRange(this.set, segmentEnd, this.setRange);
         this.value.start = this.setRange.start;
         this.value.end = end;
         this.setRange.start = end;

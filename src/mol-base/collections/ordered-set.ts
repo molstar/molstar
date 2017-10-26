@@ -35,9 +35,8 @@ namespace OrderedSet {
     export const subtract: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.subtract as any;
 
     export const getPredIndex: (set: OrderedSet, x: number) => number = Base.getPredIndex as any;
-    export const getPredIndex1: (set: OrderedSet, x: number, start: number, end: number) => number = Base.getPredIndex1 as any;
-    export const getIntervalRange: (set: OrderedSet, min: number, max: number) => IndexRange = (set, min, max) => Base.getIntervalRange(set as any, min, max, IndexRange());
-    export const getIntervalRange1: (set: OrderedSet, min: number, max: number, target: IndexRange) => IndexRange = Base.getIntervalRange as any;
+    export const getPredIndexInRange: (set: OrderedSet, x: number, range: IndexRange) => number = Base.getPredIndexInRange as any;
+    export const getIntervalRange: (set: OrderedSet, min: number, max: number) => IndexRange = Base.getIntervalRange as any;
 
     export const segments = SegmentIterator
 }

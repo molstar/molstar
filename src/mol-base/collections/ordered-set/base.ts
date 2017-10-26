@@ -70,15 +70,16 @@ export function getPredIndex(set: OrderedSetImpl, x: number) {
     return typeof set === 'number' ? rangeSearchIndex(set, x) : binarySearchPredIndex(set as SortedArray, x);
 }
 
-export function getPredIndex1(set: OrderedSetImpl, x: number, start: number, end: number) {
-    return typeof set === 'number' ? rangeSearchIndex(set, x) : binarySearchPredIndexRange(set as SortedArray, x, start, end);
+export function getPredIndexInRange(set: OrderedSetImpl, x: number, { start, end }: { start: number, end: number }) {
+    if (typeof set === 'number') {
+        const ret = rangeSearchIndex(set, x);
+        return ret <= start ? start : ret >= end ? end : ret;
+     } else return binarySearchPredIndexRange(set as SortedArray, x, start, end);
 }
 
-export function getIntervalRange(set: OrderedSetImpl, min: number, max: number, range: { start: number, end: number }) {
+export function getIntervalRange(set: OrderedSetImpl, min: number, max: number) {
     const { start, end } = getStartEnd(set, min, max);
-    range.start = start;
-    range.end = end;
-    return range;
+    return { start, end };
 }
 
 export function union(a: OrderedSetImpl, b: OrderedSetImpl) {
