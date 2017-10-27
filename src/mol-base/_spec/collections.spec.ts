@@ -10,6 +10,8 @@ import * as Sort from '../collections/sort'
 import OrderedSet from '../collections/ordered-set'
 import LinkedIndex from '../collections/linked-index'
 import EquivalenceClasses from '../collections/equivalence-classes'
+import Interval from '../collections/interval'
+import SortedArray from '../collections/sorted-array'
 
 function iteratorToArray<T>(it: Iterator<T>): T[] {
     const ret = [];
@@ -124,6 +126,114 @@ describe('qsort-dual array', () => {
     test('sorted', data, false);
     test('shuffled', data, true);
 })
+
+describe('interval', () => {
+    function testI(name: string, a: Interval, b: Interval) {
+        it(name, () => expect(Interval.areEqual(a, b)).toBe(true));
+    }
+
+    function test(name: string, a: any, b: any) {
+        it(name, () => expect(a).toEqual(b));
+    }
+
+    const e = Interval.Empty;
+    const r05 = Interval.ofRange(0, 5);
+    const se05 = Interval.ofBounds(0, 5);
+
+    test('size', Interval.size(e), 0);
+    test('size', Interval.size(r05), 6);
+    test('size', Interval.size(se05), 5);
+
+    test('min/max', [Interval.min(e), Interval.max(e)], [0, -1]);
+    test('min/max', [Interval.min(r05), Interval.max(r05)], [0, 5]);
+    test('min/max', [Interval.min(se05), Interval.max(se05)], [0, 4]);
+
+    test('start/end', [Interval.start(e), Interval.end(e)], [0, 0]);
+    test('start/end', [Interval.start(r05), Interval.end(r05)], [0, 6]);
+    test('start/end', [Interval.start(se05), Interval.end(se05)], [0, 5]);
+
+    test('has', Interval.has(e, 5), false);
+    test('has', Interval.has(r05, 5), true);
+    test('has', Interval.has(r05, 6), false);
+    test('has', Interval.has(r05, -1), false);
+    test('has', Interval.has(se05, 5), false);
+    test('has', Interval.has(se05, 4), true);
+
+    test('indexOf', Interval.indexOf(e, 5), -1);
+    test('indexOf', Interval.indexOf(r05, 5), 5);
+    test('indexOf', Interval.indexOf(r05, 6), -1);
+
+    test('getAt', Interval.getAt(r05, 5), 5);
+
+    test('areEqual', Interval.areEqual(r05, se05), false);
+    test('areIntersecting1', Interval.areIntersecting(r05, se05), true);
+    test('areIntersecting2', Interval.areIntersecting(r05, e), false);
+    test('areIntersecting3', Interval.areIntersecting(e, r05), false);
+    test('areIntersecting4', Interval.areIntersecting(e, e), true);
+
+    test('areIntersecting5', Interval.areIntersecting(Interval.ofRange(0, 5), Interval.ofRange(-4, 3)), true);
+    test('areIntersecting6', Interval.areIntersecting(Interval.ofRange(0, 5), Interval.ofRange(-4, -3)), false);
+    test('areIntersecting7', Interval.areIntersecting(Interval.ofRange(0, 5), Interval.ofRange(1, 2)), true);
+    test('areIntersecting8', Interval.areIntersecting(Interval.ofRange(0, 5), Interval.ofRange(3, 6)), true);
+
+    test('isSubInterval', Interval.isSubInterval(Interval.ofRange(0, 5), Interval.ofRange(3, 6)), false);
+    test('isSubInterval', Interval.isSubInterval(Interval.ofRange(0, 5), Interval.ofRange(3, 5)), true);
+
+    testI('intersect', Interval.intersect(Interval.ofRange(0, 5), Interval.ofRange(-4, 3)), Interval.ofRange(0, 3));
+    testI('intersect1', Interval.intersect(Interval.ofRange(0, 5), Interval.ofRange(1, 3)), Interval.ofRange(1, 3));
+    testI('intersect2', Interval.intersect(Interval.ofRange(0, 5), Interval.ofRange(3, 5)), Interval.ofRange(3, 5));
+    testI('intersect3', Interval.intersect(Interval.ofRange(0, 5), Interval.ofRange(-4, -3)), Interval.Empty);
+
+    test('predIndex1', Interval.findPredecessorIndex(r05, 5), 5);
+    test('predIndex2', Interval.findPredecessorIndex(r05, -1), 0);
+    test('predIndex3', Interval.findPredecessorIndex(r05, 6), 6);
+    test('predIndexInt', Interval.findPredecessorIndexInInterval(r05, 0, Interval.ofRange(2, 3)), 2);
+    test('predIndexInt1', Interval.findPredecessorIndexInInterval(r05, 4, Interval.ofRange(2, 3)), 4);
+
+    testI('findRange', Interval.findRange(r05, 2, 3), Interval.ofRange(2, 3));
+});
+
+describe('sortedArray', () => {
+    function testI(name: string, a: Interval, b: Interval) {
+        it(name, () => expect(Interval.areEqual(a, b)).toBe(true));
+    }
+
+    function test(name: string, a: any, b: any) {
+        it(name, () => expect(a).toEqual(b));
+    }
+
+    const a1234 = SortedArray.ofSortedArray([1, 2, 3, 4]);
+    const a2468 = SortedArray.ofSortedArray([2, 4, 6, 8]);
+
+    test('size', SortedArray.size(a1234), 4);
+
+    test('min/max', [SortedArray.min(a1234), SortedArray.max(a1234)], [1, 4]);
+    test('start/end', [SortedArray.start(a1234), SortedArray.end(a1234)], [1, 5]);
+
+    test('has', SortedArray.has(a1234, 5), false);
+    test('has', SortedArray.has(a1234, 4), true);
+
+    it('has-all', () => {
+        for (let i = 1; i <= 4; i++) expect(SortedArray.has(a1234, i)).toBe(true);
+    });
+
+    test('indexOf', SortedArray.indexOf(a2468, 5), -1);
+    test('indexOf', SortedArray.indexOf(a2468, 2), 0);
+
+    test('getAt', SortedArray.getAt(a2468, 1), 4);
+
+    test('areEqual', SortedArray.areEqual(a2468, a2468), true);
+    test('areEqual1', SortedArray.areEqual(a2468, SortedArray.create([4, 2, 8, 6])), true);
+    test('areEqual2', SortedArray.areEqual(a1234, a2468), false);
+
+    test('predIndex1', SortedArray.findPredecessorIndex(a1234, 5), 4);
+    test('predIndex2', SortedArray.findPredecessorIndex(a1234, 2), 1);
+    test('predIndex3', SortedArray.findPredecessorIndex(a2468, 4), 1);
+    test('predIndex4', SortedArray.findPredecessorIndex(a2468, 3), 1);
+    test('predIndexInt', SortedArray.findPredecessorIndexInInterval(a1234, 0, Interval.ofRange(2, 3)), 2);
+
+    testI('findRange', SortedArray.findRange(a2468, 2, 4), Interval.ofRange(0, 1));
+});
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
