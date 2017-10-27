@@ -32,13 +32,11 @@ describe('basic iterators', () => {
 
 describe('int pair', () => {
     it('works', () => {
-        const p = IntTuple.zero();
         for (let i = 0; i < 10; i++) {
             for (let j = -10; j < 5; j++) {
-                const t = IntTuple.pack(i, j);
-                IntTuple.unpack(t, p);
-                expect(p.fst).toBe(i);
-                expect(p.snd).toBe(j);
+                const t = IntTuple.create(i, j);
+                expect(IntTuple.fst(t)).toBe(i);
+                expect(IntTuple.snd(t)).toBe(j);
             }
         }
     })

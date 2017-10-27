@@ -11,9 +11,9 @@ type Range = IntTuple
 type SortedArray = ArrayLike<number>
 type OrderedSetImpl = Range | SortedArray
 
-export const Empty: OrderedSetImpl = IntTuple.pack(0, -1) as any;
-export function ofSingleton(value: number): OrderedSetImpl { return IntTuple.pack(value, value) as any; }
-export function ofRange(min: number, max: number): OrderedSetImpl { return max < min ? Empty : IntTuple.pack(min, max) as any; }
+export const Empty: OrderedSetImpl = IntTuple.create(0, -1) as any;
+export function ofSingleton(value: number): OrderedSetImpl { return IntTuple.create(value, value) as any; }
+export function ofRange(min: number, max: number): OrderedSetImpl { return max < min ? Empty : IntTuple.create(min, max) as any; }
 /** It is the responsibility of the caller to ensure the array is sorted and contains unique values. */
 export function ofSortedArray(xs: SortedArray): OrderedSetImpl {
     if (!xs.length) return Empty;
@@ -120,10 +120,9 @@ const minR = IntTuple.fst
 const maxR = IntTuple.snd
 const equalRR = IntTuple.areEqual
 
-const _eR = IntTuple.zero();
-function sizeR(set: Range) { IntTuple.unpack(set, _eR); return _eR.snd - _eR.fst + 1; }
-function hasR(set: Range, x: number) { IntTuple.unpack(set, _eR); return x >= _eR.fst && x <= _eR.snd; }
-function indexOfR(set: Range, x: number) { IntTuple.unpack(set, _eR); return x >= _eR.fst && x <= _eR.snd ? x - _eR.fst : -1; }
+function sizeR(set: Range) { return maxR(set) - minR(set) + 1; }
+function hasR(set: Range, x: number) { return x >= minR(set) && x <= maxR(set); }
+function indexOfR(set: Range, x: number) { const m = minR(set); return x >= m && x <= maxR(set) ? x - m : -1; }
 function elementAtR(set: Range, i: number) { return IntTuple.fst(set) + i; }
 
 function hasA(set: SortedArray, x: number) { return x >= set[0] && x <= set[set.length - 1] && binarySearch(set, x) >= 0; }
@@ -169,12 +168,12 @@ function binarySearchPredIndexRange(xs: SortedArray, value: number, start: numbe
     return xs[min] >= value ? min : min + 1;
 }
 
-const _rsiR = IntTuple.zero();
 function rangeSearchIndex(r: Range, value: number) {
-    IntTuple.unpack(r, _rsiR);
-    if (value < _rsiR.fst) return 0;
-    if (value > _rsiR.snd) return _rsiR.snd - _rsiR.fst + 1;
-    return value - _rsiR.fst;
+    const min = minR(r);
+    if (value < min) return 0;
+    const max = maxR(r);
+    if (value > max) return max - min + 1;
+    return value - min;
 }
 
 const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };
@@ -262,15 +261,13 @@ function unionRR(a: Range, b: Range) {
     return ofSortedArray(arr);
 }
 
-const _uAR = IntTuple.zero();
 function unionAR(a: SortedArray, b: Range) {
     const bSize = size(b);
     if (!bSize) return a;
     // is the array fully contained in the range?
     if (isRangeSubset(b, a)) return b;
 
-    IntTuple.unpack(b, _uAR);
-    const min = _uAR.fst, max = _uAR.snd;
+    const min = minR(b), max = maxR(b);
     const { start, end } = getStartEnd(a, min, max);
 
     const indices = new Int32Array(start + (a.length - end) + bSize);
@@ -332,22 +329,16 @@ function unionAA(a: SortedArray, b: SortedArray) {
     return ofSortedArray(indices);
 }
 
-const _iRA = IntTuple.zero(), _iRB = IntTuple.zero();
 function intersectRR(a: Range, b: Range) {
     if (!areRangesIntersecting(a, b)) return Empty;
     if (IntTuple.areEqual(a, b)) return a;
-
-    IntTuple.unpack(a, _iRA);
-    IntTuple.unpack(b, _iRB);
-    return ofRange(Math.max(_iRA.fst, _iRB.fst), Math.min(_iRA.snd, _iRB.snd));
+    return ofRange(Math.max(minR(a), minR(b)), Math.min(maxR(a), maxR(b)));
 }
 
-const _iAR = IntTuple.zero();
 function intersectAR(a: SortedArray, r: Range) {
     if (!size(r)) return Empty;
 
-    IntTuple.unpack(r, _iAR);
-    const { start, end } = getStartEnd(a, _iAR.fst, _iAR.snd);
+    const { start, end } = getStartEnd(a, minR(r), maxR(r));
     const resultSize = end - start;
     if (!resultSize) return Empty;
 
@@ -394,41 +385,37 @@ function intersectAA(a: SortedArray, b: SortedArray) {
     return ofSortedArray(indices);
 }
 
-const _sRA = IntTuple.zero(), _sRB = IntTuple.zero();
 function substractRR(a: Range, b: Range) {
     if (IntTuple.areEqual(a, b)) return Empty;
 
-    IntTuple.unpack(a, _sRA);
-    IntTuple.unpack(b, _sRB);
+    const minA = minR(a), maxA = maxR(a);
+    const minB = minR(b), maxB = maxR(b);
 
-    if (_sRA.snd < _sRA.fst || _sRB.snd < _sRB.fst) return a;
+    if (maxA < minA || maxB < minB) return a;
     // is A subset of B? ==> Empty
     if (isRangeSubset(b, a)) return Empty;
     if (isRangeSubset(a, b)) {
         // this splits the interval into two, gotta represent it as a set.
-        const l = _sRB.fst - _sRA.fst, r = _sRA.snd - _sRB.snd;
-        if (l <= 0) return ofRange(_sRB.snd + 1, _sRB.snd + r);
-        if (r <= 0) return ofRange(_sRA.fst, _sRA.fst + l - 1);
+        const l = minB - minA, r = maxA - maxB;
+        if (l <= 0) return ofRange(maxB + 1, maxB + r);
+        if (r <= 0) return ofRange(minA, minA + l - 1);
         const ret = new Int32Array(l + r);
         let offset = 0;
-        for (let i = 0; i < l; i++) ret[offset++] = _sRA.fst + i;
-        for (let i = 1; i <= r; i++) ret[offset++] = _sRB.snd + i;
+        for (let i = 0; i < l; i++) ret[offset++] = minA + i;
+        for (let i = 1; i <= r; i++) ret[offset++] = maxB + i;
         return ofSortedArray(ret);
     }
     // non intersecting ranges are handled by top-level substract.
     // at this point, b either contains rA.fst or rA.snd, but not both.
-    if (_sRA.fst < _sRB.fst) return ofRange(_sRA.fst, _sRB.fst - 1);
-    return ofRange(_sRB.snd + 1, _sRA.snd);
+    if (minA < minB) return ofRange(minA, minB - 1);
+    return ofRange(maxB + 1, maxA);
 }
 
-const _sAR = IntTuple.zero();
 function subtractAR(a: SortedArray, b: Range) {
-    IntTuple.unpack(b, _sAR);
-
     // is empty?
-    if (_sAR.snd < _sAR.fst) return a;
+    const min = minR(b), max = maxR(b);
+    if (max < min) return a;
 
-    const min = _sAR.fst, max = _sAR.snd;
     const { start, end } = getStartEnd(a, min, max);
     const resultSize = a.length - (end - start);
     // A is subset of B
@@ -443,14 +430,12 @@ function subtractAR(a: SortedArray, b: Range) {
     return ofSortedArray(ret);
 }
 
-const _sAR1 = IntTuple.zero();
 function subtractRA(a: Range, b: SortedArray) {
-    IntTuple.unpack(a, _sAR1);
+    const min = minR(a), max = maxR(a);
 
     // is empty?
-    if (_sAR1.snd < _sAR1.fst) return a;
+    if (max < min) return a;
 
-    const min = _sAR1.fst, max = _sAR1.snd;
     const rSize = max - min + 1;
     const { start, end } = getStartEnd(b, min, max);
     const commonCount = end - start;

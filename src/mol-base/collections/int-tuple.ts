@@ -13,7 +13,7 @@ import { hash2 } from './hash-functions'
 interface IntTuple { '@type': 'int-tuple' }
 
 namespace IntTuple {
-    export interface Unpacked { fst: number, snd: number }
+    export const Zero: IntTuple = 0 as any;
 
     const { _int32, _float64, _int32_1, _float64_1 } = (function() {
         const data = new ArrayBuffer(8);
@@ -26,34 +26,14 @@ namespace IntTuple {
         };
     }());
 
-    export function is(x: any): x is Unpacked {
-        return !!x && typeof x.fst === 'number' && typeof x.snd === 'number';
+    export function is(x: any): x is IntTuple {
+        return typeof x === 'number';
     }
 
-    export function create(fst: number, snd: number) { return { fst, snd }; }
-    export function zero(): Unpacked { return { fst: 0, snd: 0 }; }
-
-    export function pack(fst: number, snd: number): IntTuple {
+    export function create(fst: number, snd: number): IntTuple {
         _int32[0] = fst;
         _int32[1] = snd;
         return _float64[0] as any;
-    }
-
-    export function pack1(t: Unpacked): IntTuple {
-        _int32[0] = t.fst;
-        _int32[1] = t.snd;
-        return _float64[0] as any;
-    }
-
-    export function unpack(t: IntTuple, target: Unpacked): Unpacked {
-        _float64[0] = t as any;
-        target.fst = _int32[0];
-        target.snd = _int32[1];
-        return target;
-    }
-
-    export function unpack1(packed: IntTuple): Unpacked {
-        return unpack(packed, zero());
     }
 
     export function fst(t: IntTuple): number {

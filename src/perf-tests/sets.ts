@@ -27,7 +27,7 @@ export namespace Iteration {
     export function iterators() {
         let s = 0;
         const it = AtomSet.atoms(ms);
-        for (let v = it.move(); !it.done; v = it.move()) s += v.snd;
+        for (let v = it.move(); !it.done; v = it.move()) s += IntTuple.snd(v);
         return s;
     }
 
@@ -230,6 +230,43 @@ export namespace Build {
     }
 }
 
+export namespace Tuples {
+    function createData(n: number) {
+        const ret: IntTuple[] = new Float64Array(n) as any;
+        for (let i = 0; i < n; i++) {
+            ret[i] = IntTuple.create(i, i * i + 1);
+        }
+        return ret;
+    }
+
+    function sum1(data: ArrayLike<IntTuple>) {
+        let s = 0;
+        for (let i = 0, _i = data.length; i < _i; i++) {
+            s += IntTuple.fst(data[i]) + IntTuple.snd(data[i]);
+        }
+        return s;
+    }
+
+    function sum2(data: ArrayLike<IntTuple>) {
+        let s = 0;
+        for (let i = 0, _i = data.length; i < _i; i++) {
+            const t = data[i];
+            s += IntTuple.fst(t) + IntTuple.snd(t);
+        }
+        return s;
+    }
+
+    export function run() {
+        const suite = new B.Suite();
+        const data = createData(10000);
+        suite
+            .add('sum fst/snd', () => sum1(data))
+            .add('sum fst/snd 1', () => sum2(data))
+            .on('cycle', (e: any) => console.log(String(e.target)))
+            .run();
+    }
+}
+
 export function testSegments() {
     const data = OrdSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
     const segs = OrdSet.ofSortedArray([0, 4, 10, 12, 13, 15, 25]);
@@ -242,4 +279,10 @@ export function testSegments() {
     }
 }
 
-Union.run();
+Tuples.run();
+
+// interface AA { kind: 'a' }
+// //interface BB { kind: 'b' }
+// interface AB { kind: 'a' | 'b' }
+// declare const a: AA;
+// export const ab: AB = a;

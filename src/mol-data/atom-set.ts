@@ -27,7 +27,7 @@ namespace AtomSet {
     export const hasAtom: (set: AtomSet, x: IntTuple) => boolean = Base.hasTuple as any;
     export const indexOfAtom: (set: AtomSet, x: IntTuple) => number = Base.indexOf as any;
     export const getAtomAt: (set: AtomSet, i: number) => IntTuple = Base.getAt as any;
-    export const atoms: (set: AtomSet) => Iterator<IntTuple.Unpacked> = Base.values as any;
+    export const atoms: (set: AtomSet) => Iterator<IntTuple> = Base.values as any;
 
     export const atomCount: (set: AtomSet) => number = Base.size as any;
 

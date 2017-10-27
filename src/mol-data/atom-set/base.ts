@@ -17,9 +17,8 @@ export type AtomSetImpl = IntTuple | AtomSetElements
 
 export const Empty: AtomSetImpl = { offsets: [0], hashCode: 0, keys: OrderedSet.Empty };
 
-export function create(data: IntTuple | ArrayLike<IntTuple> | IntTuple | { [id: number]: OrderedSet }): AtomSetImpl {
-    if (typeof data === 'number') return data;
-    if (IntTuple.is(data)) return IntTuple.pack1(data);
+export function create(data: IntTuple | ArrayLike<IntTuple> | { [id: number]: OrderedSet }): AtomSetImpl {
+    if (typeof data === 'number' || IntTuple.is(data)) return data;
     if (isArrayLike(data)) return ofTuples(data);
     return ofObject(data as { [id: number]: OrderedSet });
 }
@@ -50,19 +49,17 @@ export function getKey(set: AtomSetImpl, index: number): number {
 
 export function hasTuple(set: AtomSetImpl, t: IntTuple): boolean {
     if (typeof set === 'number') return IntTuple.areEqual(t, set);
-    IntTuple.unpack(t, _hasP);
-    return OrderedSet.has((set as AtomSetElements).keys, _hasP.fst) ? OrderedSet.has((set as AtomSetElements)[_hasP.fst], _hasP.snd) : false;
+    const unit = IntTuple.fst(t);
+    return OrderedSet.has((set as AtomSetElements).keys, unit)
+        ? OrderedSet.has((set as AtomSetElements)[unit], IntTuple.snd(t)) : false;
 }
-const _hasP = IntTuple.zero();
 
 export function getByKey(set: AtomSetImpl, key: number): OrderedSet {
     if (typeof set === 'number') {
-        IntTuple.unpack(set, _gS);
-        return _gS.fst === key ? OrderedSet.ofSingleton(_gS.snd) : OrderedSet.Empty;
+        return IntTuple.fst(set) === key ? OrderedSet.ofSingleton(IntTuple.snd(set)) : OrderedSet.Empty;
     }
     return OrderedSet.has((set as AtomSetElements).keys, key) ? (set as AtomSetElements)[key] : OrderedSet.Empty;
 }
-const _gS = IntTuple.zero();
 
 export function getByIndex(set: AtomSetImpl, index: number): OrderedSet {
     if (typeof set === 'number') return index === 0 ? OrderedSet.ofSingleton(IntTuple.snd(set)) : OrderedSet.Empty;
@@ -136,9 +133,8 @@ export function unionMany(sets: ArrayLike<AtomSetImpl>) {
     return findUnion(sets);
 }
 
-class ElementsIterator implements Iterator<IntTuple.Unpacked> {
-    private pair = IntTuple.zero();
-
+class ElementsIterator implements Iterator<IntTuple> {
+    private unit: number = 0;
     private keyCount: number;
     private setIndex = -1;
     private currentIndex = 0;
@@ -150,14 +146,13 @@ class ElementsIterator implements Iterator<IntTuple.Unpacked> {
     next() { const value = this.move(); return { value, done: this.done } }
 
     move() {
-        if (this.done) return this.pair;
+        if (this.done) return IntTuple.Zero;
 
         if (this.currentIndex >= this.currentSize) {
-            if (!this.advance()) return this.pair;
+            if (!this.advance()) return IntTuple.Zero;
         }
 
-        this.pair.snd = OrderedSet.getAt(this.currentSet, this.currentIndex++);
-        return this.pair;
+        return IntTuple.create(this.unit, OrderedSet.getAt(this.currentSet, this.currentIndex++));
     }
 
     private advance() {
@@ -165,9 +160,8 @@ class ElementsIterator implements Iterator<IntTuple.Unpacked> {
             this.done = true;
             return false;
         }
-        const unit = OrderedSet.getAt(this.elements.keys, this.setIndex);
-        this.pair.fst = unit;
-        this.currentSet = this.elements[unit];
+        this.unit = OrderedSet.getAt(this.elements.keys, this.setIndex);
+        this.currentSet = this.elements[this.unit];
         this.currentIndex = 0;
         this.currentSize = OrderedSet.size(this.currentSet);
         return true;
@@ -180,8 +174,8 @@ class ElementsIterator implements Iterator<IntTuple.Unpacked> {
     }
 }
 
-export function values(set: AtomSetImpl): Iterator<IntTuple.Unpacked> {
-    if (typeof set === 'number') return Iterator.Value(IntTuple.unpack1(set));
+export function values(set: AtomSetImpl): Iterator<IntTuple> {
+    if (typeof set === 'number') return Iterator.Value(set as IntTuple);
     return new ElementsIterator(set as AtomSetElements);
 }
 
@@ -198,7 +192,7 @@ function ofObject(data: { [id: number]: OrderedSet }) {
     if (!keys.length) return Empty;
     if (keys.length === 1) {
         const set = data[keys[0]];
-        if (OrderedSet.size(set) === 1) return IntTuple.pack(keys[0], OrderedSet.getAt(set, 0));
+        if (OrderedSet.size(set) === 1) return IntTuple.create(keys[0], OrderedSet.getAt(set, 0));
     }
     return ofObject1(keys, data);
 }
@@ -207,7 +201,7 @@ function ofObject1(keys: number[], data: { [id: number]: OrderedSet }) {
     if (keys.length === 1) {
         const k = keys[0];
         const set = data[k];
-        if (OrderedSet.size(set) === 1) return IntTuple.pack(k, OrderedSet.getAt(set, 0));
+        if (OrderedSet.size(set) === 1) return IntTuple.create(k, OrderedSet.getAt(set, 0));
     }
     sortArray(keys);
     return _createObjectOrdered(OrderedSet.ofSortedArray(keys), data);
@@ -217,7 +211,7 @@ function ofObjectOrdered(keys: OrderedSet, data: { [id: number]: OrderedSet }) {
     if (OrderedSet.size(keys) === 1) {
         const k = OrderedSet.getAt(keys, 0);
         const set = data[k];
-        if (OrderedSet.size(set) === 1) return IntTuple.pack(k, OrderedSet.getAt(set, 0));
+        if (OrderedSet.size(set) === 1) return IntTuple.create(k, OrderedSet.getAt(set, 0));
     }
     return _createObjectOrdered(keys, data);
 }
@@ -264,12 +258,12 @@ function normalizeArray(xs: number[]) {
 function ofTuples(xs: ArrayLike<IntTuple>) {
     if (xs.length === 0) return Empty;
     const sets: { [key: number]: number[] } = Object.create(null);
-    const p = IntTuple.zero();
     for (let i = 0, _i = xs.length; i < _i; i++) {
-        IntTuple.unpack(xs[i], p);
-        const set = sets[p.fst];
-        if (set) set[set.length] = p.snd;
-        else sets[p.fst] = [p.snd];
+        const x = xs[i];
+        const u = IntTuple.fst(x), v = IntTuple.snd(x);
+        const set = sets[u];
+        if (set) set[set.length] = v;
+        else sets[u] = [v];
     }
     const ret: { [key: number]: OrderedSet } = Object.create(null);
     const keys = [];
@@ -302,16 +296,15 @@ function getAtE(set: AtomSetElements, i: number): IntTuple {
     if (o >= offsets.length - 1) return 0 as any;
     const k = OrderedSet.getAt(keys, o);
     const e = OrderedSet.getAt(set[k], i - offsets[o]);
-    return IntTuple.pack(k, e);
+    return IntTuple.create(k, e);
 }
 
-const _iOE = IntTuple.zero();
 function indexOfE(set: AtomSetElements, t: IntTuple) {
-    IntTuple.unpack(t, _iOE);
     const { keys } = set;
-    const setIdx = OrderedSet.indexOf(keys, _iOE.fst);
+    const u = IntTuple.fst(t);
+    const setIdx = OrderedSet.indexOf(keys, u);
     if (setIdx < 0) return -1;
-    const o = OrderedSet.indexOf(set[_iOE.fst], _iOE.snd);
+    const o = OrderedSet.indexOf(set[u], IntTuple.snd(t));
     if (o < 0) return -1;
     return set.offsets[setIdx] + o;
 }
@@ -343,10 +336,9 @@ function areEqualEE(a: AtomSetElements, b: AtomSetElements) {
     return true;
 }
 
-const _aeP = IntTuple.zero();
 function areIntersectingNE(a: IntTuple, b: AtomSetElements) {
-    IntTuple.unpack(a, _aeP);
-    return OrderedSet.has(b.keys, _aeP.fst) && OrderedSet.has(b[_aeP.fst], _aeP.snd);
+    const u = IntTuple.fst(a);
+    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], IntTuple.snd(a));
 }
 
 function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
@@ -361,10 +353,9 @@ function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
     return false;
 }
 
-const _nP = IntTuple.zero();
 function intersectNE(a: IntTuple, b: AtomSetElements) {
-    IntTuple.unpack(a, _nP);
-    return OrderedSet.has(b.keys, _nP.fst) && OrderedSet.has(b[_nP.fst], _nP.snd) ? a : Empty;
+    const u = IntTuple.fst(a);
+    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], IntTuple.snd(a)) ? a : Empty;
 }
 
 function intersectEE(a: AtomSetElements, b: AtomSetElements) {
@@ -388,22 +379,28 @@ function intersectEE(a: AtomSetElements, b: AtomSetElements) {
     return ofObjectOrdered(OrderedSet.ofSortedArray(keys), ret);
 }
 
-const _sNE = IntTuple.zero();
 function subtractNE(a: IntTuple, b: AtomSetElements) {
-    IntTuple.unpack(a, _sNE);
-    return OrderedSet.has(b.keys, _sNE.fst) && OrderedSet.has(b[_sNE.fst], _sNE.snd) ? Empty : a;
+    const u = IntTuple.fst(a);
+    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], IntTuple.snd(a)) ? Empty : a;
 }
 
-const _sEN = IntTuple.zero();
 function subtractEN(a: AtomSetElements, b: IntTuple): AtomSetImpl {
     const aKeys =  a.keys;
-    IntTuple.unpack(b, _sEN);
-    if (!OrderedSet.has(aKeys, _sEN.fst) || !OrderedSet.has(a[_sEN.fst], _sEN.snd)) return a;
-    const set = a[_sEN.fst];
+    const u = IntTuple.fst(b), v = IntTuple.snd(b);
+    if (!OrderedSet.has(aKeys, u) || !OrderedSet.has(a[u], v)) return a;
+    const set = a[u];
     if (OrderedSet.size(set) === 1) {
-        return ofObjectOrdered(OrderedSet.subtract(a.keys, OrderedSet.ofSingleton(_sEN.fst)), a);
+        // remove the entire unit.
+        return ofObjectOrdered(OrderedSet.subtract(a.keys, OrderedSet.ofSingleton(u)), a);
     } else {
-        return ofObjectOrdered(OrderedSet.subtract(set, OrderedSet.ofSingleton(_sEN.snd)), a);
+        const ret: { [key: number]: OrderedSet } = Object.create(null);
+        for (let i = 0, _i = OrderedSet.size(a.keys); i < _i; i++) {
+            const k = OrderedSet.getAt(a.keys, i);
+            if (k === u) {
+                ret[k] = OrderedSet.subtract(set, OrderedSet.ofSingleton(v));
+            } else ret[k] = a[k];
+        }
+        return ofObjectOrdered(a.keys, ret);
     }
 }
 
@@ -489,13 +486,12 @@ function unionInto(data: { [key: number]: OrderedSet }, a: AtomSetElements) {
     }
 }
 
-const _uIN = IntTuple.zero();
 function unionIntoN(data: { [key: number]: OrderedSet }, a: IntTuple) {
-    IntTuple.unpack(a, _uIN);
-    const set = data[_uIN.fst];
+    const u = IntTuple.fst(a);
+    const set = data[u];
     if (set) {
-        data[_uIN.fst] = OrderedSet.union(set, OrderedSet.ofSingleton(_uIN.snd));
+        data[u] = OrderedSet.union(set, OrderedSet.ofSingleton(IntTuple.snd(a)));
     } else {
-        data[_uIN.fst] = OrderedSet.ofSingleton(_uIN.snd);
+        data[u] = OrderedSet.ofSingleton(IntTuple.snd(a));
     }
 }

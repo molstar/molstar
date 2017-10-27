@@ -10,26 +10,25 @@ import AtomSet from '../atom-set'
 
 describe('atom set', () => {
     const p = (i: number, j: number) => IntTuple.create(i, j);
-    const r = (i: number, j: number) => IntTuple.pack(i, j);
 
-    function setToPairs(set: AtomSet): ArrayLike<IntTuple.Unpacked> {
-        const ret = [];
+    function setToPairs(set: AtomSet): ArrayLike<IntTuple> {
+        const ret: IntTuple[] = [];
         const it = AtomSet.atoms(set);
-        for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = IntTuple.create(v.fst, v.snd);
+        for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = v;
         return ret;
     }
 
     it('singleton pair', () => {
         const set = AtomSet.create(p(10, 11));
         expect(setToPairs(set)).toEqual([p(10, 11)]);
-        expect(AtomSet.hasAtom(set, r(10, 11))).toBe(true);
-        expect(AtomSet.hasAtom(set, r(11, 11))).toBe(false);
-        expect(AtomSet.getAtomAt(set, 0)).toBe(r(10, 11));
+        expect(AtomSet.hasAtom(set, p(10, 11))).toBe(true);
+        expect(AtomSet.hasAtom(set, p(11, 11))).toBe(false);
+        expect(AtomSet.getAtomAt(set, 0)).toBe(p(10, 11));
         expect(AtomSet.atomCount(set)).toBe(1);
     });
 
     it('singleton number', () => {
-        const set = AtomSet.create(r(10, 11));
+        const set = AtomSet.create(p(10, 11));
         expect(setToPairs(set)).toEqual([p(10, 11)]);
     });
 
@@ -41,11 +40,11 @@ describe('atom set', () => {
         const ret = [p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)];
         expect(AtomSet.atomCount(set)).toBe(ret.length);
         expect(setToPairs(set)).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
-        expect(AtomSet.hasAtom(set, r(10, 11))).toBe(false);
-        expect(AtomSet.hasAtom(set, r(3, 0))).toBe(true);
-        expect(AtomSet.hasAtom(set, r(1, 7))).toBe(true);
+        expect(AtomSet.hasAtom(set, p(10, 11))).toBe(false);
+        expect(AtomSet.hasAtom(set, p(3, 0))).toBe(true);
+        expect(AtomSet.hasAtom(set, p(1, 7))).toBe(true);
         for (let i = 0; i < AtomSet.atomCount(set); i++) {
-            expect(AtomSet.getAtomAt(set, i)).toBe(IntTuple.pack1(ret[i]));
+            expect(IntTuple.areEqual(AtomSet.getAtomAt(set, i), ret[i])).toBe(true);
         }
     });
 
@@ -55,7 +54,7 @@ describe('atom set', () => {
         for (let i = 1; i < 10; i++) {
             const set = [];
             for (let j = 1; j < 7; j++) {
-                control[control.length] = r(i * i, j * j + 1);
+                control[control.length] = p(i * i, j * j + 1);
                 set[set.length] = j * j + 1;
             }
             sets[i * i] = OrderedSet.ofSortedArray(set);
@@ -71,17 +70,17 @@ describe('atom set', () => {
     });
 
     it('packed pairs', () => {
-        const set = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
+        const set = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
         expect(setToPairs(set)).toEqual([p(0, 1), p(0, 2), p(0, 6), p(1, 3)]);
     });
 
     it('equality', () => {
-        const a = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        const b = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        const c = AtomSet.create([r(1, 3), r(0, 4), r(0, 6), r(0, 2)]);
-        const d = AtomSet.create([r(1, 3)]);
-        const e = AtomSet.create([r(1, 3)]);
-        const f = AtomSet.create([r(3, 3)]);
+        const a = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
+        const b = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
+        const c = AtomSet.create([p(1, 3), p(0, 4), p(0, 6), p(0, 2)]);
+        const d = AtomSet.create([p(1, 3)]);
+        const e = AtomSet.create([p(1, 3)]);
+        const f = AtomSet.create([p(3, 3)]);
 
         expect(AtomSet.areEqual(a, a)).toBe(true);
         expect(AtomSet.areEqual(a, b)).toBe(true);
@@ -93,13 +92,13 @@ describe('atom set', () => {
     });
 
     it('are intersecting', () => {
-        const a = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        const b = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        const c = AtomSet.create([r(1, 3), r(0, 4), r(0, 6), r(0, 2)]);
-        const d = AtomSet.create([r(1, 3)]);
-        const e = AtomSet.create([r(1, 3)]);
-        const f = AtomSet.create([r(3, 3)]);
-        const g = AtomSet.create([r(10, 3), r(8, 1), r(7, 6), r(3, 2)]);
+        const a = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
+        const b = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
+        const c = AtomSet.create([p(1, 3), p(0, 4), p(0, 6), p(0, 2)]);
+        const d = AtomSet.create([p(1, 3)]);
+        const e = AtomSet.create([p(1, 3)]);
+        const f = AtomSet.create([p(3, 3)]);
+        const g = AtomSet.create([p(10, 3), p(8, 1), p(7, 6), p(3, 2)]);
 
         expect(AtomSet.areIntersecting(a, a)).toBe(true);
         expect(AtomSet.areIntersecting(a, b)).toBe(true);
@@ -112,10 +111,10 @@ describe('atom set', () => {
     });
 
     it('intersection', () => {
-        const a = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        const b = AtomSet.create([r(10, 3), r(0, 1), r(0, 6), r(4, 2)]);
-        const c = AtomSet.create([r(1, 3)]);
-        const d = AtomSet.create([r(2, 3)]);
+        const a = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
+        const b = AtomSet.create([p(10, 3), p(0, 1), p(0, 6), p(4, 2)]);
+        const c = AtomSet.create([p(1, 3)]);
+        const d = AtomSet.create([p(2, 3)]);
         expect(AtomSet.intersect(a, a)).toBe(a);
         expect(setToPairs(AtomSet.intersect(a, b))).toEqual([p(0, 1), p(0, 6)]);
         expect(setToPairs(AtomSet.intersect(a, c))).toEqual([p(1, 3)]);
@@ -123,11 +122,11 @@ describe('atom set', () => {
     });
 
     it('subtract', () => {
-        const a = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        const a1 = AtomSet.create([r(1, 3), r(0, 1), r(0, 6), r(0, 2)]);
-        const b = AtomSet.create([r(10, 3), r(0, 1), r(0, 6), r(4, 2)]);
-        const c = AtomSet.create([r(1, 3)]);
-        const d = AtomSet.create([r(2, 3)]);
+        const a = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
+        const a1 = AtomSet.create([p(1, 3), p(0, 1), p(0, 6), p(0, 2)]);
+        const b = AtomSet.create([p(10, 3), p(0, 1), p(0, 6), p(4, 2)]);
+        const c = AtomSet.create([p(1, 3)]);
+        const d = AtomSet.create([p(2, 3)]);
         expect(setToPairs(AtomSet.subtract(a, a))).toEqual([]);
         expect(setToPairs(AtomSet.subtract(a, a1))).toEqual([]);
         expect(setToPairs(AtomSet.subtract(a, b))).toEqual([p(0, 2), p(1, 3)]);
@@ -138,11 +137,11 @@ describe('atom set', () => {
     });
 
     it('union', () => {
-        const a = AtomSet.create([r(1, 3), r(0, 1)]);
-        const a1 = AtomSet.create([r(1, 3), r(0, 1)]);
-        const b = AtomSet.create([r(10, 3), r(0, 1)]);
-        const c = AtomSet.create([r(1, 3)]);
-        const d = AtomSet.create([r(2, 3)]);
+        const a = AtomSet.create([p(1, 3), p(0, 1)]);
+        const a1 = AtomSet.create([p(1, 3), p(0, 1)]);
+        const b = AtomSet.create([p(10, 3), p(0, 1)]);
+        const c = AtomSet.create([p(1, 3)]);
+        const d = AtomSet.create([p(2, 3)]);
         expect(AtomSet.unionMany([a])).toBe(a);
         expect(AtomSet.union(a, a)).toBe(a);
         expect(setToPairs(AtomSet.union(a, a))).toEqual([p(0, 1), p(1, 3)]);
