@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../ordered-set'
-import Interval from '../interval'
-import Segmentation from '../segmentation'
-import SortedArray from '../sorted-array'
+import OrderedSet from '../integer/ordered-set'
+import Interval from '../integer/interval'
+import Segmentation from '../integer/segmentation'
+import SortedArray from '../integer/sorted-array'
 
 describe('segments', () => {
     const data = OrderedSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);

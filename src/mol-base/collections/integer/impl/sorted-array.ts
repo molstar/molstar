@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { sortArray } from '../sort'
-import { hash3, hash4 } from '../hash-functions'
+import { sortArray } from '../../sort'
+import { hash3, hash4 } from '../../hash-functions'
 import Interval from '../interval'
 
 type Nums = ArrayLike<number>

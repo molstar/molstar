@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import IntTuple from '../int-tuple'
+import IntTuple from '../integer/tuple'
 
 describe('int pair', () => {
     it('works', () => {

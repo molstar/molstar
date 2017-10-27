@@ -4,10 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-//import * as Base from './ordered-set/base'
 import * as Base from './impl/ordered-set'
 import Interval from './interval'
-import SegmentIterator from './ordered-set/segment-iterator'
 
 namespace OrderedSet {
     export const Empty: OrderedSet = Base.Empty as any;

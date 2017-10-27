@@ -5,7 +5,7 @@
  */
 
 import AtomSet from '../atom-set'
-import OrderedSet from '../../mol-base/collections/ordered-set'
+import OrderedSet from '../../mol-base/collections/integer/ordered-set'
 import { sortArray } from '../../mol-base/collections/sort'
 
 class Builder {

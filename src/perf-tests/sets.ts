@@ -1,9 +1,9 @@
 import * as B from 'benchmark'
-import IntTuple from '../mol-base/collections/int-tuple'
-import OrdSet from '../mol-base/collections/ordered-set'
+import Tuple from '../mol-base/collections/integer/tuple'
+import OrdSet from '../mol-base/collections/integer/ordered-set'
 import AtomSet from '../mol-data/atom-set'
-import Segmentation from '../mol-base/collections/segmentation'
-import SortedArray from '../mol-base/collections/sorted-array'
+import Segmentation from '../mol-base/collections/integer/segmentation'
+import SortedArray from '../mol-base/collections/integer/sorted-array'
 
 export namespace Iteration {
     const U = 1000, V = 2500;
@@ -29,13 +29,13 @@ export namespace Iteration {
     export function iterators() {
         let s = 0;
         const it = AtomSet.atoms(ms);
-        for (let v = it.move(); !it.done; v = it.move()) s += IntTuple.snd(v);
+        for (let v = it.move(); !it.done; v = it.move()) s += Tuple.snd(v);
         return s;
     }
 
     export function elementAt() {
         let s = 0;
-        for (let i = 0, _i = AtomSet.atomCount(ms); i < _i; i++) s += IntTuple.snd(AtomSet.getAtomAt(ms, i));
+        for (let i = 0, _i = AtomSet.atomCount(ms); i < _i; i++) s += Tuple.snd(AtomSet.getAtomAt(ms, i));
         return s;
     }
 
@@ -234,26 +234,26 @@ export namespace Build {
 
 export namespace Tuples {
     function createData(n: number) {
-        const ret: IntTuple[] = new Float64Array(n) as any;
+        const ret: Tuple[] = new Float64Array(n) as any;
         for (let i = 0; i < n; i++) {
-            ret[i] = IntTuple.create(i, i * i + 1);
+            ret[i] = Tuple.create(i, i * i + 1);
         }
         return ret;
     }
 
-    function sum1(data: ArrayLike<IntTuple>) {
+    function sum1(data: ArrayLike<Tuple>) {
         let s = 0;
         for (let i = 0, _i = data.length; i < _i; i++) {
-            s += IntTuple.fst(data[i]) + IntTuple.snd(data[i]);
+            s += Tuple.fst(data[i]) + Tuple.snd(data[i]);
         }
         return s;
     }
 
-    function sum2(data: ArrayLike<IntTuple>) {
+    function sum2(data: ArrayLike<Tuple>) {
         let s = 0;
         for (let i = 0, _i = data.length; i < _i; i++) {
             const t = data[i];
-            s += IntTuple.fst(t) + IntTuple.snd(t);
+            s += Tuple.fst(t) + Tuple.snd(t);
         }
         return s;
     }

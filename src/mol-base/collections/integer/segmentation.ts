@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from './iterator'
+import Iterator from '../iterator'
 import Interval from './interval'
 import OrderedSet from './ordered-set'
 import SortedArray from './sorted-array'

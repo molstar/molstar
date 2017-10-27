@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../mol-base/collections/ordered-set'
+import OrderedSet from '../mol-base/collections/integer/ordered-set'
 import Iterator from '../mol-base/collections/iterator'
-import IntTuple from '../mol-base/collections/int-tuple'
+import Tuple from '../mol-base/collections/integer/tuple'
 import * as Base from './atom-set/base'
 import createBuilder from './atom-set/builder'
 
@@ -14,7 +14,7 @@ import createBuilder from './atom-set/builder'
 namespace AtomSet {
     export const Empty: AtomSet = Base.Empty as any;
 
-    export const create: (data: IntTuple | ArrayLike<IntTuple> | IntTuple | { [id: number]: OrderedSet }) => AtomSet = Base.create as any;
+    export const create: (data: Tuple | ArrayLike<Tuple> | Tuple | { [id: number]: OrderedSet }) => AtomSet = Base.create as any;
 
     export const units: (set: AtomSet) => OrderedSet = Base.getKeys as any;
     export const unitCount: (set: AtomSet) => number = Base.keyCount as any;
@@ -24,10 +24,10 @@ namespace AtomSet {
     export const getByKey: (set: AtomSet, key: number) => OrderedSet = Base.getByKey as any;
     export const getByIndex: (set: AtomSet, i: number) => OrderedSet = Base.getByIndex as any;
 
-    export const hasAtom: (set: AtomSet, x: IntTuple) => boolean = Base.hasTuple as any;
-    export const indexOfAtom: (set: AtomSet, x: IntTuple) => number = Base.indexOf as any;
-    export const getAtomAt: (set: AtomSet, i: number) => IntTuple = Base.getAt as any;
-    export const atoms: (set: AtomSet) => Iterator<IntTuple> = Base.values as any;
+    export const hasAtom: (set: AtomSet, x: Tuple) => boolean = Base.hasTuple as any;
+    export const indexOfAtom: (set: AtomSet, x: Tuple) => number = Base.indexOf as any;
+    export const getAtomAt: (set: AtomSet, i: number) => Tuple = Base.getAt as any;
+    export const atoms: (set: AtomSet) => Iterator<Tuple> = Base.values as any;
 
     export const atomCount: (set: AtomSet) => number = Base.size as any;
 
