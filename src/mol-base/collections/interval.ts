@@ -9,6 +9,7 @@ import * as Impl from './impl/interval'
 namespace Interval {
     export const Empty: Interval = Impl.Empty as any;
 
+    export const ofSingleton: (value: number) => Interval = (v) => Impl.ofRange(v, v) as any;
     /** Create interval [min, max] */
     export const ofRange: (min: number, max: number) => Interval = Impl.ofRange as any;
     /** Create interval [min, max) */

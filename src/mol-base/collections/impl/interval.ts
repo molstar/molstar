@@ -7,8 +7,8 @@
 import IntTuple from '../int-tuple'
 
 export const Empty = IntTuple.Zero;
-export function ofRange(min: number, max: number) { return max < min ? Empty : IntTuple.create(min, max + 1); }
-export function ofBounds(min: number, max: number) { return max <= min ? Empty : IntTuple.create(min, max); }
+export function ofRange(min: number, max: number) { return max < min ? IntTuple.create(min, min) : IntTuple.create(min, max + 1); }
+export function ofBounds(min: number, max: number) { return max <= min ? IntTuple.create(min, min) : IntTuple.create(min, max); }
 export const is = IntTuple.is;
 
 export const start = IntTuple.fst;

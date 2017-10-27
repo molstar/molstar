@@ -6,14 +6,17 @@
 
 import Iterator from '../iterator'
 import OrderedSet from '../ordered-set'
+import Interval from '../interval'
 
-class SegmentIterator implements Iterator<{ segment: number } & OrderedSet.IndexRange> {
-    private segmentRange = OrderedSet.IndexRange();
-    private setRange = OrderedSet.IndexRange();
+class SegmentIterator implements Iterator<{ segment: number, start: number, end: number }> {
+    private segmentStart = 0;
+    private segmentEnd = 0;
+    // private segmentRange = Interval.Empty;
+    private setRange = Interval.Empty;
     private value = { segment: 0, start: 0, end: 0 };
     private last: number = 0;
 
-    [Symbol.iterator]() { return new SegmentIterator(this.segments, this.set, this.start, this.end); };
+    [Symbol.iterator]() { return new SegmentIterator(this.segments, this.set, this.inputRange); };
     done: boolean = false;
 
     next() {
@@ -22,12 +25,12 @@ class SegmentIterator implements Iterator<{ segment: number } & OrderedSet.Index
     }
 
     move() {
-        this.done = this.segmentRange.end <= this.segmentRange.start;
+        this.done = this.segmentEnd <= this.segmentStart;
         while (!this.done) {
             if (!this.updateValue()) {
                 this.updateSegmentRange();
             } else {
-                this.value.segment = this.segmentRange.start++;
+                this.value.segment = this.segmentStart++;
                 break;
             }
         }
@@ -40,33 +43,34 @@ class SegmentIterator implements Iterator<{ segment: number } & OrderedSet.Index
     }
 
     private updateValue() {
-        const segmentEnd = OrderedSet.getAt(this.segments, this.segmentRange.start + 1);
+        const segmentEnd = OrderedSet.getAt(this.segments, this.segmentStart + 1);
         const setEnd = OrderedSet.findPredecessorIndexInRange(this.set, segmentEnd, this.setRange);
-        this.value.start = this.setRange.start;
+        this.value.start = Interval.start(this.setRange);
         this.value.end = setEnd;
-        this.setRange.start = setEnd;
+        this.setRange = Interval.ofBounds(setEnd, Interval.end(this.setRange))
+        //this.setRange.start = setEnd;
+        //throw '';
         return setEnd > this.value.start;
     }
 
     private updateSegmentRange() {
-        const min = OrderedSet.getAt(this.set, this.setRange.start), max = OrderedSet.getAt(this.set, this.setRange.end - 1);
-        this.segmentRange.start = this.getSegmentIndex(min);
-        this.segmentRange.end = this.getSegmentIndex(max) + 1;
-        this.done = this.segmentRange.end <= this.segmentRange.start;
+        const min = OrderedSet.getAt(this.set, Interval.min(this.setRange));
+        const max = OrderedSet.getAt(this.set, Interval.max(this.setRange));
+        this.segmentStart = this.getSegmentIndex(min);
+        this.segmentEnd = this.getSegmentIndex(max) + 1;
+        this.done = this.segmentEnd <= this.segmentStart;
     }
 
-    constructor(private segments: OrderedSet, private set: OrderedSet, private start: number, private end: number) {
+    constructor(private segments: OrderedSet, private set: OrderedSet, private inputRange: Interval) {
         this.last = OrderedSet.max(segments);
-        this.setRange.start = start;
-        this.setRange.end = end;
+        this.setRange = inputRange;
         this.updateSegmentRange();
     }
 }
 
-function createIterator(segments: OrderedSet, set: OrderedSet, range?: OrderedSet.IndexRange) {
-    const start = !!range ? range.start : 0;
-    const end = !!range ? range.end : OrderedSet.size(set);
-    return new SegmentIterator(segments, set, start, end);
+function createIterator(segments: OrderedSet, set: OrderedSet, range?: Interval) {
+    const int = typeof range !== 'undefined' ? range : Interval.ofBounds(0, OrderedSet.size(set));
+    return new SegmentIterator(segments, set, int);
 }
 
 export default createIterator

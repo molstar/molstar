@@ -7,6 +7,7 @@
 import OrderedSet from '../../mol-base/collections/ordered-set'
 import Iterator from '../../mol-base/collections/iterator'
 import IntTuple from '../../mol-base/collections/int-tuple'
+import Interval from '../../mol-base/collections/interval'
 import { sortArray } from '../../mol-base/collections/sort'
 import { hash1 } from '../../mol-base/collections/hash-functions'
 
@@ -345,7 +346,8 @@ function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
     if (a === b) return true;
     const keysA = a.keys, keysB = b.keys;
     if (!OrderedSet.areIntersecting(a.keys, b.keys)) return false;
-    const { start, end } = OrderedSet.findIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const r = OrderedSet.findRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const start = Interval.start(r), end = Interval.end(r);
     for (let i = start; i < end; i++) {
         const k = OrderedSet.getAt(keysA, i);
         if (OrderedSet.has(keysB, k) && OrderedSet.areIntersecting(a[k], b[k])) return true;
@@ -363,7 +365,8 @@ function intersectEE(a: AtomSetElements, b: AtomSetElements) {
 
     const keysA = a.keys, keysB = b.keys;
     if (!OrderedSet.areIntersecting(a.keys, b.keys)) return Empty;
-    const { start, end } = OrderedSet.findIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const r = OrderedSet.findRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const start = Interval.start(r), end = Interval.end(r);
 
     const keys = [], ret = Object.create(null);
     for (let i = start; i < end; i++) {
@@ -409,7 +412,8 @@ function subtractEE(a: AtomSetElements, b: AtomSetElements) {
 
     const keysA = a.keys, keysB = b.keys;
     if (!OrderedSet.areIntersecting(a.keys, b.keys)) return Empty;
-    const { start, end } = OrderedSet.findIntervalRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const r = OrderedSet.findRange(keysA, OrderedSet.min(keysB), OrderedSet.max(keysB));
+    const start = Interval.start(r), end = Interval.end(r);
 
     const keys = [], ret = Object.create(null);
     for (let i = 0; i < start; i++) {

@@ -4,14 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Base from './ordered-set/base'
+//import * as Base from './ordered-set/base'
+import * as Base from './impl/ordered-set'
+import Interval from './interval'
 import SegmentIterator from './ordered-set/segment-iterator'
 
 namespace OrderedSet {
-    /** Range of indices to be iterated as start <= i < end. */
-    export interface IndexRange { start: number, end: number }
-    export function IndexRange(start?: number, end?: number): IndexRange { return { start: start || 0, end: end || 0 }; }
-
     export const Empty: OrderedSet = Base.Empty as any;
     export const ofSingleton: (value: number) => OrderedSet = Base.ofSingleton as any;
     export const ofRange: (min: number, max: number) => OrderedSet = Base.ofRange as any;
@@ -22,8 +20,8 @@ namespace OrderedSet {
     export const indexOf: (set: OrderedSet, x: number) => number = Base.indexOf as any;
     export const getAt: (set: OrderedSet, i: number) => number = Base.getAt as any;
 
-    export const min: (set: OrderedSet) => number = Base.minValue as any;
-    export const max: (set: OrderedSet) => number = Base.maxValue as any;
+    export const min: (set: OrderedSet) => number = Base.min as any;
+    export const max: (set: OrderedSet) => number = Base.max as any;
     export const size: (set: OrderedSet) => number = Base.size as any;
     export const hashCode: (set: OrderedSet) => number = Base.hashCode as any;
 
@@ -35,9 +33,9 @@ namespace OrderedSet {
     export const intersect: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.intersect as any;
     export const subtract: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.subtract as any;
 
-    export const findPredecessorIndex: (set: OrderedSet, x: number) => number = Base.getPredIndex as any;
-    export const findPredecessorIndexInRange: (set: OrderedSet, x: number, range: IndexRange) => number = Base.getPredIndexInRange as any;
-    export const findIntervalRange: (set: OrderedSet, min: number, max: number) => IndexRange = Base.getIntervalRange as any;
+    export const findPredecessorIndex: (set: OrderedSet, x: number) => number = Base.findPredecessorIndex as any;
+    export const findPredecessorIndexInRange: (set: OrderedSet, x: number, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
+    export const findRange: (set: OrderedSet, min: number, max: number) => Interval = Base.findRange as any;
 
     export const segments = SegmentIterator;
 }

@@ -279,7 +279,9 @@ export function testSegments() {
     }
 }
 
-Tuples.run();
+testSegments();
+
+//Tuples.run();
 
 // interface AA { kind: 'a' }
 // //interface BB { kind: 'b' }

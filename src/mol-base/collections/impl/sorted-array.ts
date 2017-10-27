@@ -34,6 +34,11 @@ export function indexOf(xs: Nums, v: number) {
     const l = xs.length;
     return l === 0 ? -1 : xs[0] <= v && v <= xs[l - 1] ? binarySearchRange(xs, v, 0, l) : -1;
 }
+export function indexOfInterval(xs: Nums, v: number, bounds: Interval) {
+    const l = xs.length;
+    const s = Interval.start(bounds), e = Interval.end(bounds);
+    return l === 0 || e <= s ? -1 : xs[s] <= v && v <= xs[e - 1] ? binarySearchRange(xs, v, s, e) : -1;
+}
 export function has(xs: Nums, v: number) { return indexOf(xs, v) >= 0; }
 
 export function getAt(xs: Nums, i: number) { return xs[i]; }

@@ -14,22 +14,25 @@ namespace SortedArray {
     export const ofSortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofSortedArray as any;
     export const is: (v: any) => v is Interval = Impl.is as any;
 
-    export const has: (interval: SortedArray, x: number) => boolean = Impl.has as any;
-    export const indexOf: (interval: SortedArray, x: number) => number = Impl.indexOf as any;
-    export const getAt: (interval: SortedArray, i: number) => number = Impl.getAt as any;
+    export const values: (array: SortedArray) => ArrayLike<number> = (xs) => xs as any;
 
-    export const start: (interval: SortedArray) => number = Impl.start as any;
-    export const end: (interval: SortedArray) => number = Impl.end as any;
-    export const min: (interval: SortedArray) => number = Impl.min as any;
-    export const max: (interval: SortedArray) => number = Impl.max as any;
-    export const size: (interval: SortedArray) => number = Impl.size as any;
-    export const hashCode: (interval: SortedArray) => number = Impl.hashCode as any;
+    export const has: (array: SortedArray, x: number) => boolean = Impl.has as any;
+    export const indexOf: (array: SortedArray, x: number) => number = Impl.indexOf as any;
+    export const indexOfInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.indexOfInterval as any;
+    export const getAt: (array: SortedArray, i: number) => number = Impl.getAt as any;
+
+    export const start: (array: SortedArray) => number = Impl.start as any;
+    export const end: (array: SortedArray) => number = Impl.end as any;
+    export const min: (array: SortedArray) => number = Impl.min as any;
+    export const max: (array: SortedArray) => number = Impl.max as any;
+    export const size: (array: SortedArray) => number = Impl.size as any;
+    export const hashCode: (array: SortedArray) => number = Impl.hashCode as any;
 
     export const areEqual: (a: SortedArray, b: SortedArray) => boolean = Impl.areEqual as any;
 
-    export const findPredecessorIndex: (interval: SortedArray, x: number) => number = Impl.findPredecessorIndex as any;
-    export const findPredecessorIndexInInterval: (interval: SortedArray, x: number, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
-    export const findRange: (interval: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
+    export const findPredecessorIndex: (array: SortedArray, x: number) => number = Impl.findPredecessorIndex as any;
+    export const findPredecessorIndexInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
+    export const findRange: (array: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
 }
 
 interface SortedArray { '@type': 'int-sorted-array' }
