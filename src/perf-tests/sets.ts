@@ -2,6 +2,8 @@ import * as B from 'benchmark'
 import IntTuple from '../mol-base/collections/int-tuple'
 import OrdSet from '../mol-base/collections/ordered-set'
 import AtomSet from '../mol-data/atom-set'
+import Segmentation from '../mol-base/collections/segmentation'
+import SortedArray from '../mol-base/collections/sorted-array'
 
 export namespace Iteration {
     const U = 1000, V = 2500;
@@ -269,12 +271,12 @@ export namespace Tuples {
 
 export function testSegments() {
     const data = OrdSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
-    const segs = OrdSet.ofSortedArray([0, 4, 10, 12, 13, 15, 25]);
-    const it = OrdSet.segments(segs, data);
+    const segs = Segmentation.create(SortedArray.ofSortedArray([0, 4, 10, 12, 13, 15, 25]), []);
+    const it = Segmentation.segments(segs, data);
 
     for (let s = it.move(); !it.done; s = it.move()) {
         for (let j = s.start; j < s.end; j++) {
-            console.log(`${s.segment}: ${OrdSet.getAt(data, j)}`);
+            console.log(`${s.index}: ${OrdSet.getAt(data, j)}`);
         }
     }
 }

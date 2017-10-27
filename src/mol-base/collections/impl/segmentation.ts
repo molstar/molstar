@@ -7,13 +7,30 @@
 import Iterator from '../iterator'
 import OrderedSet from '../ordered-set'
 import Interval from '../interval'
+import SortedArray from '../sorted-array'
+import Segs from '../segmentation'
 
-class SegmentIterator implements Iterator<{ segment: number, start: number, end: number }> {
+type Segmentation = { segments: OrderedSet, segmentIndex: ArrayLike<number> }
+
+export function create(segments: SortedArray, segmentIndex: ArrayLike<number>): Segmentation {
+    return { segments, segmentIndex };
+}
+
+export function getSegment({ segmentIndex }: Segmentation, value: number) {
+    return segmentIndex[value];
+}
+
+export function projectValue({ segments }: Segmentation, set: OrderedSet, value: number): Interval {
+    const last = OrderedSet.max(segments);
+    const idx = value >= last ? -1 : OrderedSet.findPredecessorIndex(segments, value - 1);
+    return OrderedSet.findRange(set, OrderedSet.getAt(segments, idx), OrderedSet.getAt(segments, idx + 1) - 1);
+}
+
+class SegmentIterator implements Iterator<Segs.Segment> {
     private segmentStart = 0;
     private segmentEnd = 0;
-    // private segmentRange = Interval.Empty;
     private setRange = Interval.Empty;
-    private value = { segment: 0, start: 0, end: 0 };
+    private value: Segs.Segment = { index: 0, start: 0, end: 0 };
     private last: number = 0;
 
     [Symbol.iterator]() { return new SegmentIterator(this.segments, this.set, this.inputRange); };
@@ -30,7 +47,7 @@ class SegmentIterator implements Iterator<{ segment: number, start: number, end:
             if (!this.updateValue()) {
                 this.updateSegmentRange();
             } else {
-                this.value.segment = this.segmentStart++;
+                this.value.index = this.segmentStart++;
                 break;
             }
         }
@@ -48,8 +65,6 @@ class SegmentIterator implements Iterator<{ segment: number, start: number, end:
         this.value.start = Interval.start(this.setRange);
         this.value.end = setEnd;
         this.setRange = Interval.ofBounds(setEnd, Interval.end(this.setRange))
-        //this.setRange.start = setEnd;
-        //throw '';
         return setEnd > this.value.start;
     }
 
@@ -68,9 +83,7 @@ class SegmentIterator implements Iterator<{ segment: number, start: number, end:
     }
 }
 
-function createIterator(segments: OrderedSet, set: OrderedSet, range?: Interval) {
+export function segments(segs: Segmentation, set: OrderedSet, range?: Interval) {
     const int = typeof range !== 'undefined' ? range : Interval.ofBounds(0, OrderedSet.size(set));
-    return new SegmentIterator(segments, set, int);
+    return new SegmentIterator(segs.segments, set, int);
 }
-
-export default createIterator

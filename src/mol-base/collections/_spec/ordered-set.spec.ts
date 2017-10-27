@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../collections/ordered-set'
-import Interval from '../collections/interval'
+import OrderedSet from '../ordered-set'
+import Interval from '../interval'
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {
@@ -157,22 +157,4 @@ describe('ordered set', () => {
     testEq('subtract AA', OrderedSet.subtract(arr136, arr136), []);
     testEq('subtract AA1', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([2, 3, 4, 6, 7])), [1]);
     testEq('subtract AA2', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([0, 1, 6])), [3]);
-
-    it('segments', () => {
-        const data = OrderedSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
-        const segs = OrderedSet.ofSortedArray([0, 4, 10, 12, 13, 15, 25]);
-        const it = OrderedSet.segments(segs, data);
-
-        const t = Object.create(null);
-        for (let s = it.move(); !it.done; s = it.move()) {
-            for (let j = s.start; j < s.end; j++) {
-                const x = t[s.segment];
-                const v = OrderedSet.getAt(data, j);
-                if (!x) t[s.segment] = [v];
-                else x[x.length] = v;
-            }
-        }
-
-        expect(t).toEqual({ 1: [4, 9], 2: [10, 11], 4: [14], 5: [15, 16] });
-    });
 });
