@@ -10,12 +10,10 @@
  * "Idiomatic" usage is to use the move function, because it does not make any allocations.
  *
  * const it = ...;
- * for (let v = it.move(); !it.done; v = it.move()) { ... }
+ * while (it.hasNext) { const v = it.move(); ... } 
  */
 interface Iterator<T> {
-    [Symbol.iterator](): Iterator<T>,
-    readonly done: boolean,
-    next(): { done: boolean, value: T },
+    readonly hasNext: boolean,
     move(): T
 }
 
@@ -25,24 +23,18 @@ class ArrayIteratorImpl<T> implements Iterator<T> {
     private length: number = 0;
     private lastValue: T;
 
-    [Symbol.iterator]() { return new ArrayIteratorImpl(this.xs); };
-    done: boolean;
-
-    next() {
-        const value = this.move();
-        return { value, done: this.done };
-    }
+    hasNext: boolean;
 
     move() {
-        const index = ++this.index;
-        if (index < this.length) this.lastValue = this.xs[index];
-        else this.done = true;
+        ++this.index;
+        this.lastValue = this.xs[this.index];
+        this.hasNext = this.index < this.length - 1;
         return this.lastValue;
     }
 
     constructor(xs: ArrayLike<T>) {
         this.length = xs.length;
-        this.done = xs.length === 0;
+        this.hasNext = xs.length > 0;
         this.xs = xs;
         this.index = -1;
         // try to avoid deoptimization with undefined values
@@ -53,32 +45,23 @@ class ArrayIteratorImpl<T> implements Iterator<T> {
 class RangeIteratorImpl implements Iterator<number> {
     private value: number;
 
-    [Symbol.iterator]() { return new RangeIteratorImpl(this.min, this.max); };
-    done: boolean;
-
-    next() {
-        const value = this.move();
-        return { value, done: this.done }
-    }
+    hasNext: boolean;
 
     move() {
         ++this.value;
-        this.done = this.value > this.max;
+        this.hasNext = this.value < this.max;
         return this.value;
     }
 
-    constructor(private min: number, private max: number) {
+    constructor(min: number, private max: number) {
         this.value = min - 1;
-        this.done = max < min;
+        this.hasNext = max >= min;
     }
 }
 
 class ValueIterator<T> implements Iterator<T> {
-    private yielded = false;
-    [Symbol.iterator]() { return new ValueIterator(this.value); };
-    done = false;
-    next() { const value = this.move(); return { value, done: this.done } }
-    move() { this.done = this.yielded; this.yielded = true; return this.value; }
+    hasNext = true;
+    move() { this.hasNext = false; return this.value; }
     constructor(private value: T) { }
 }
 

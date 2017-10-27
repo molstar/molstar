@@ -29,7 +29,10 @@ export namespace Iteration {
     export function iterators() {
         let s = 0;
         const it = AtomSet.atoms(ms);
-        for (let v = it.move(); !it.done; v = it.move()) s += Tuple.snd(v);
+        while (it.hasNext) {
+            const v = it.move();
+            s += Tuple.snd(v);
+        }
         return s;
     }
 
@@ -274,7 +277,8 @@ export function testSegments() {
     const segs = Segmentation.create(SortedArray.ofSortedArray([0, 4, 10, 12, 13, 15, 25]), []);
     const it = Segmentation.segments(segs, data);
 
-    for (let s = it.move(); !it.done; s = it.move()) {
+    while (it.hasNext) {
+        const s = it.move();
         for (let j = s.start; j < s.end; j++) {
             console.log(`${s.index}: ${OrdSet.getAt(data, j)}`);
         }

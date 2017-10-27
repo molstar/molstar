@@ -8,7 +8,10 @@ import Iterator from '../iterator'
 
 function iteratorToArray<T>(it: Iterator<T>): T[] {
     const ret = [];
-    for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = v;
+    while (it.hasNext) {
+        const v = it.move();
+        ret[ret.length] = v;
+    }
     return ret;
 }
 

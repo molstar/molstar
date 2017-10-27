@@ -22,7 +22,8 @@ describe('segments', () => {
         const it = Segmentation.segments(segs, data);
 
         const t = Object.create(null);
-        for (let s = it.move(); !it.done; s = it.move()) {
+        while (it.hasNext) {
+            const s = it.move();
             for (let j = s.start; j < s.end; j++) {
                 const x = t[s.index];
                 const v = OrderedSet.getAt(data, j);

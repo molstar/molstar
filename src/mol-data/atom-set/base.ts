@@ -142,23 +142,18 @@ class ElementsIterator implements Iterator<Tuple> {
     private currentSize = 0;
     private currentSet: OrderedSet = OrderedSet.Empty;
 
-    [Symbol.iterator]() { return new ElementsIterator(this.elements); };
-    done: boolean;
-    next() { const value = this.move(); return { value, done: this.done } }
+    hasNext: boolean = false;
 
     move() {
-        if (this.done) return Tuple.Zero;
-
-        if (this.currentIndex >= this.currentSize) {
-            if (!this.advance()) return Tuple.Zero;
-        }
-
-        return Tuple.create(this.unit, OrderedSet.getAt(this.currentSet, this.currentIndex++));
+        if (!this.hasNext) return Tuple.Zero;
+        const ret = Tuple.create(this.unit, OrderedSet.getAt(this.currentSet, this.currentIndex++));
+        if (this.currentIndex >= this.currentSize) this.advance();
+        return ret;
     }
 
     private advance() {
         if (++this.setIndex >= this.keyCount) {
-            this.done = true;
+            this.hasNext = false;
             return false;
         }
         this.unit = OrderedSet.getAt(this.elements.keys, this.setIndex);
@@ -170,7 +165,7 @@ class ElementsIterator implements Iterator<Tuple> {
 
     constructor(private elements: AtomSetElements) {
         this.keyCount = OrderedSet.size(elements.keys);
-        this.done = this.keyCount === 0;
+        this.hasNext = this.keyCount > 0;
         this.advance();
     }
 }

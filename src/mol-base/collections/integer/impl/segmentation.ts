@@ -33,21 +33,15 @@ class SegmentIterator implements Iterator<Segs.Segment> {
     private value: Segs.Segment = { index: 0, start: 0, end: 0 };
     private last: number = 0;
 
-    [Symbol.iterator]() { return new SegmentIterator(this.segments, this.set, this.inputRange); };
-    done: boolean = false;
-
-    next() {
-        const value = this.move();
-        return { value, done: this.done }
-    }
+    hasNext: boolean = false;
 
     move() {
-        this.done = this.segmentEnd <= this.segmentStart;
-        while (!this.done) {
+        while (this.hasNext) {
             if (!this.updateValue()) {
                 this.updateSegmentRange();
             } else {
                 this.value.index = this.segmentStart++;
+                this.hasNext = this.segmentEnd > this.segmentStart;
                 break;
             }
         }
@@ -73,10 +67,10 @@ class SegmentIterator implements Iterator<Segs.Segment> {
         const max = OrderedSet.getAt(this.set, Interval.max(this.setRange));
         this.segmentStart = this.getSegmentIndex(min);
         this.segmentEnd = this.getSegmentIndex(max) + 1;
-        this.done = this.segmentEnd <= this.segmentStart;
+        this.hasNext = this.segmentEnd > this.segmentStart;
     }
 
-    constructor(private segments: OrderedSet, private set: OrderedSet, private inputRange: Interval) {
+    constructor(private segments: OrderedSet, private set: OrderedSet, inputRange: Interval) {
         this.last = OrderedSet.max(segments);
         this.setRange = inputRange;
         this.updateSegmentRange();

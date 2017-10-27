@@ -14,7 +14,9 @@ describe('atom set', () => {
     function setToPairs(set: AtomSet): ArrayLike<IntTuple> {
         const ret: IntTuple[] = [];
         const it = AtomSet.atoms(set);
-        for (let v = it.move(); !it.done; v = it.move()) ret[ret.length] = v;
+        while (it.hasNext) {
+            ret[ret.length] = it.move();
+        }
         return ret;
     }
 

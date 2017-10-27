@@ -1,4 +1,5 @@
 import * as B from 'benchmark'
+import It from '../mol-base/collections/iterator'
 
 function createData(n: number) {
     const data = [];//new Int32Array(n);
@@ -10,7 +11,7 @@ function createData(n: number) {
     return data;
 }
 
-namespace Iterators {
+export namespace Iterators {
     const data = createData(100000);
 
     export function forLoop() {
@@ -31,13 +32,13 @@ namespace Iterators {
 
     export function forEach() {
         const ctx = { sum: 0 };
-        data.forEach(function(this: typeof ctx, v: number) { this.sum += v }, ctx);
+        data.forEach(function (this: typeof ctx, v: number) { this.sum += v }, ctx);
         return ctx.sum;
     }
 
     export function forEachAllParams() {
         const ctx = { sum: 0 };
-        data.forEach(function(this: typeof ctx, v: number, _: any, __: any) { this.sum += v }, ctx);
+        data.forEach(function (this: typeof ctx, v: number, _: any, __: any) { this.sum += v }, ctx);
         return ctx.sum;
     }
 
@@ -200,28 +201,34 @@ namespace Iterators {
         }
         return sum;
     }
+
+    export function run() {
+        const suite = new B.Suite();
+
+        suite
+            .add('for', () => Iterators.forLoop())
+            .add('forOf', () => Iterators.forOf())
+            .add('forEach', () => Iterators.forEach())
+            .add('forEach all params', () => Iterators.forEachAllParams())
+            .add('forEachClosure', () => Iterators.forEachClosure())
+            .add('forEachClosure all', () => Iterators.forEachClosureAll())
+            .add('forEachClosure all function', () => Iterators.forEachClosureAllFunction())
+            .add('mutableIterator ES6', () => Iterators.mutableES6Iterator())
+            //.add('mutableIteratorOf ES6', () => Iterators.mutableES6IteratorOf())
+            .add('immutableIterator ES6', () => Iterators.immutableES6Iterator())
+            //.add('immutableIteratorOf ES6', () => Iterators.immutableES6IteratorOf())
+            .add('mutableIterator', () => Iterators.mutableIterator())
+            .on('cycle', (e: any) => {
+                console.log(String(e.target));
+            })
+            // .on('complete', function (this: any) {
+            //     console.log('Fastest is ' + this.filter('fastest').map('name'));
+            // })
+            .run();
+    }
 }
 
-
-const suite = new B.Suite();
-
-suite
-    .add('for', () => Iterators.forLoop())
-    .add('forOf', () => Iterators.forOf())
-    .add('forEach', () => Iterators.forEach())
-    .add('forEach all params', () => Iterators.forEachAllParams())
-    .add('forEachClosure', () => Iterators.forEachClosure())
-    .add('forEachClosure all', () => Iterators.forEachClosureAll())
-    .add('forEachClosure all function', () => Iterators.forEachClosureAllFunction())
-    .add('mutableIterator ES6', () => Iterators.mutableES6Iterator())
-    //.add('mutableIteratorOf ES6', () => Iterators.mutableES6IteratorOf())
-    .add('immutableIterator ES6', () => Iterators.immutableES6Iterator())
-    //.add('immutableIteratorOf ES6', () => Iterators.immutableES6IteratorOf())
-    .add('mutableIterator', () => Iterators.mutableIterator())
-    .on('cycle', (e: any) => {
-        console.log(String(e.target));
-    })
-    // .on('complete', function (this: any) {
-    //     console.log('Fastest is ' + this.filter('fastest').map('name'));
-    // })
-    .run();
+const it = It.Array([1, 2, 3]);
+while (it.hasNext) {
+    console.log(it.move());
+}
