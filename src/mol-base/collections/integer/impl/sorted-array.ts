@@ -15,7 +15,7 @@ export function ofSortedArray(xs: Nums) {
     return xs;
 }
 export function ofUnsortedArray(xs: Nums) { sortArray(xs); return xs; }
-export function is(xs: any): xs is Nums { return xs && (xs instanceof Array || !!xs.buffer); }
+export function is(xs: any): xs is Nums { return xs && (Array.isArray(xs) || !!xs.buffer); }
 
 export function start(xs: Nums) { return xs[0]; }
 export function end(xs: Nums) { return xs[xs.length - 1] + 1;  }

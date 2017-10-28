@@ -176,7 +176,7 @@ export function values(set: AtomSetImpl): Iterator<Atom> {
 }
 
 function isArrayLike(x: any): x is ArrayLike<Atom> {
-    return x && (typeof x.length === 'number' && (x instanceof Array || !!x.buffer));
+    return x && (typeof x.length === 'number' && (Array.isArray(x) || !!x.buffer));
 }
 
 function ofObject(data: { [id: number]: OrderedSet }) {
