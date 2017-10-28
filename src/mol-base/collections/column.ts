@@ -35,6 +35,13 @@ namespace Column {
         end?: number
     }
 
+    export interface LambdaSpec<T extends Type> {
+        value: (row: number) => T['@type'],
+        rowCount: number,
+        type: T,
+        valueKind?: (row: number) => ValueKind,
+    }
+
     export interface ArraySpec<T extends Type> {
         array: ArrayLike<T['@type']>,
         type: T,
@@ -49,6 +56,10 @@ namespace Column {
 
     export function ofConst<T extends Type>(v: T['@type'], rowCount: number, type: T): Column<T['@type']> {
         return constColumn(v, rowCount, type, ValueKind.Present);
+    }
+
+    export function ofLambda<T extends Type>(spec: LambdaSpec<T>): Column<T['@type']> {
+        return lambdaColumn(spec);
     }
 
     export function ofArray<T extends Column.Type>(spec: Column.ArraySpec<T>): Column<T['@type']> {
@@ -89,6 +100,28 @@ function constColumn<T extends Column.Type>(v: T['@type'], rowCount: number, typ
                 ? (row, value) => +value === v
                 : (row, value) => false,
         areValuesEqual: (rowA, rowB) => true
+    }
+}
+
+function lambdaColumn<T extends Column.Type>({ value, valueKind, rowCount, type }: Column.LambdaSpec<T>): Column<T['@type']> {
+    return {
+        '@type': type,
+        '@array': void 0,
+        isDefined: true,
+        rowCount,
+        value,
+        valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
+        toArray: params => {
+            const { array, start } = createArray(rowCount, params);
+            for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(i + start);
+            return array;
+        },
+        stringEquals: type.kind === 'str'
+            ? (row, v) => value(row) === v
+            : type.kind === 'float' || type.kind === 'int'
+            ? (row, v) => value(row) === +v
+            : (row, value) => false,
+        areValuesEqual: (rowA, rowB) => value(rowA) === value(rowB)
     }
 }
 
