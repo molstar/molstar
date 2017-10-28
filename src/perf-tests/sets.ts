@@ -1,7 +1,7 @@
 import * as B from 'benchmark'
 import Tuple from '../mol-base/collections/integer/tuple'
 import OrdSet from '../mol-base/collections/integer/ordered-set'
-import AtomSet from '../mol-data/atom-set'
+import AtomSet from '../mol-data/structure/atom-set'
 import Segmentation from '../mol-base/collections/integer/segmentation'
 
 export namespace Iteration {
@@ -203,8 +203,8 @@ export namespace Union {
 export namespace Build {
     function createSorted() {
         const b = AtomSet.SortedBuilder(AtomSet.Empty);
-        for (let i = 0; i < 100; i++) {
-            for (let j = 0; j < 100; j++) {
+        for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 1000; j++) {
                 b.add(i, j);
             }
         }
@@ -213,9 +213,9 @@ export namespace Build {
 
     function createByUnit() {
         const b = AtomSet.SortedBuilder(AtomSet.Empty);
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 10; i++) {
             b.beginUnit();
-            for (let j = 0; j < 100; j++) {
+            for (let j = 0; j < 1000; j++) {
                 b.addToUnit(j);
             }
             b.commitUnit(i);
@@ -284,7 +284,9 @@ export function testSegments() {
     }
 }
 
-testSegments();
+Build.run();
+
+//testSegments();
 
 //Tuples.run();
 

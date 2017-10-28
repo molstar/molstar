@@ -14,6 +14,7 @@ export const Empty: OrderedSetImpl = I.Empty;
 
 export const ofSingleton = I.ofSingleton
 export const ofRange = I.ofRange
+export const ofBounds = I.ofBounds
 
 export function ofSortedArray(xs: Nums): OrderedSetImpl {
     if (!xs.length) return Empty;

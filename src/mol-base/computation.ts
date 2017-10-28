@@ -5,7 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Scheduler from './scheduler'
+import Scheduler from './utils/scheduler'
+import timeNow from './utils/time'
 
 interface Computation<A> {
     (ctx?: Computation.Context): Promise<A>
@@ -79,22 +80,7 @@ namespace Computation {
         return ret;
     }
 
-    declare var process: any;
-    declare var window: any;
-
-    export const now: () => number = (function () {
-        if (typeof window !== 'undefined' && window.performance) {
-            const perf = window.performance;
-            return () => perf.now();
-        } else if (typeof process !== 'undefined' && process.hrtime !== 'undefined') {
-            return () => {
-                let t = process.hrtime();
-                return t[0] * 1000 + t[1] / 1000000;
-            };
-        } else {
-            return () => +new Date();
-        }
-    }());
+    export const now = timeNow;
 
     /** A utility for splitting large computations into smaller parts. */
     export interface Chunker {

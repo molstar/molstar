@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Tuple from '../mol-base/collections/integer/tuple'
+import Tuple from '../../mol-base/collections/integer/tuple'
 
 /** Atom pointer */
 interface Atom { '@type': Tuple['@type'] }

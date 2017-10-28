@@ -5,8 +5,9 @@
  */
 
 import * as Formats from './model/formats'
-import CommonInterface from './model/common'
-import MacromoleculeInterface from './model/macromolecule'
+import CommonProperties from './model/common'
+import MacromoleculeProperties from './model/macromolecule'
+import Conformation from './model/conformation'
 import Segmentation from '../mol-base/collections/integer/segmentation'
 
 /**
@@ -15,10 +16,19 @@ import Segmentation from '../mol-base/collections/integer/segmentation'
  * "Atoms" are integers in the range [0, atomCount).
  */
 interface Model extends Readonly<{
+    id: string,
+
     sourceData: Formats.RawData,
 
-    common: CommonInterface,
-    macromolecule: MacromoleculeInterface
+    common: CommonProperties,
+    macromolecule: MacromoleculeProperties,
+    conformation: Conformation,
+
+    // used for diffing.
+    version: {
+        data: number,
+        conformation: number
+    },
 
     atomCount: number,
     segments: Readonly<{

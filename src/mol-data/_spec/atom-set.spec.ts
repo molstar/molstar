@@ -5,8 +5,8 @@
  */
 
 import OrderedSet from '../../mol-base/collections/integer/ordered-set'
-import AtomSet from '../atom-set'
-import Atom from '../atom'
+import AtomSet from '../structure/atom-set'
+import Atom from '../structure/atom'
 
 describe('atom set', () => {
     const p = (i: number, j: number) => Atom.create(i, j);

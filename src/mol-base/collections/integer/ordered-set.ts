@@ -11,6 +11,7 @@ namespace OrderedSet {
     export const Empty: OrderedSet = Base.Empty as any;
     export const ofSingleton: (value: number) => OrderedSet = Base.ofSingleton as any;
     export const ofRange: (min: number, max: number) => OrderedSet = Base.ofRange as any;
+    export const ofBounds: (min: number, max: number) => OrderedSet = Base.ofBounds as any;
     /** It is the responsibility of the caller to ensure the array is sorted and contains unique values. */
     export const ofSortedArray: (xs: ArrayLike<number>) => OrderedSet = Base.ofSortedArray as any;
 

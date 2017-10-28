@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../mol-base/collections/integer/ordered-set'
-import Iterator from '../mol-base/collections/iterator'
+import OrderedSet from '../../mol-base/collections/integer/ordered-set'
+import Iterator from '../../mol-base/collections/iterator'
 import Atom from './atom'
 import * as Base from './atom-set/base'
 import createBuilder from './atom-set/builder'
