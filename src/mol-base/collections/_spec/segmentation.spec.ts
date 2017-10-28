@@ -20,11 +20,10 @@ describe('segments', () => {
     });
 
     it('map', () => {
-        const segs = Segmentation.create([1, 2, 3]);
+        const segs = Segmentation.create([0, 1, 2]);
         expect(segs.segmentMap).toEqual(new Int32Array([0, 1]));
-        expect(segs.offset).toEqual(1);
-        expect(Segmentation.getSegment(segs, 1)).toBe(0);
-        expect(Segmentation.getSegment(segs, 2)).toBe(1);
+        expect(Segmentation.getSegment(segs, 0)).toBe(0);
+        expect(Segmentation.getSegment(segs, 1)).toBe(1);
     })
 
     it('iteration', () => {

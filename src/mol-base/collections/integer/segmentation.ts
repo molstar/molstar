@@ -24,7 +24,6 @@ namespace Segmentation {
 interface Segmentation {
     '@type': 'segmentation',
     readonly segmentMap: ArrayLike<number>,
-    readonly offset: number,
     readonly count: number
 }
 

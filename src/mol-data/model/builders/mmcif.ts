@@ -21,10 +21,11 @@ function findModelBounds(data: mmCIF, startIndex: number) {
 
 function segment(data: mmCIF, bounds: Interval) {
     const start = Interval.start(bounds), end = Interval.end(bounds);
-    const residues = [start], chains = [start];
+    const residues = [0], chains = [0], entities = [0];
 
     const { label_entity_id, auth_asym_id, auth_seq_id, pdbx_PDB_ins_code } = data.atom_site;
 
+    let offset = 1;
     for (let i = start + 1; i < end; i++) {
         const newEntity = !label_entity_id.areValuesEqual(i - 1, i);
         const newChain = newEntity || !auth_asym_id.areValuesEqual(i - 1, i);
@@ -32,31 +33,43 @@ function segment(data: mmCIF, bounds: Interval) {
             || !auth_seq_id.areValuesEqual(i - 1, i)
             || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i);
 
-        if (newResidue) residues[residues.length] = i;
-        if (newChain) chains[chains.length] = i;
+        if (newEntity) entities[entities.length] = offset;
+        if (newResidue) residues[residues.length] = offset;
+        if (newChain) chains[chains.length] = offset;
+        offset++;
     }
 
-    residues[residues.length] = end;
-    chains[chains.length] = end;
+    residues[residues.length] = offset;
+    chains[chains.length] = offset;
+    entities[entities.length] = offset;
 
-    return { residues: Segmentation.create(residues), chains: Segmentation.create(chains) };
+    return {
+        residues: Segmentation.create(residues),
+        chains: Segmentation.create(chains),
+        entities: Segmentation.create(entities)
+    };
 }
 
 function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
     const segments = segment(data, bounds);
     return {
-        data: raw,
+        sourceData: raw,
         common: 0 as any,
         macromolecule: 0 as any,
+        atomCount: Interval.size(bounds),
         residues: segments.residues,
-        chains: segments.chains
+        chains: segments.chains,
+        entities: segments.entities
     };
 }
 
-function getModels(data: mmCIF): ArrayLike<Model> {
+function buildModels(data: mmCIF): ArrayLike<Model> {
     const raw: RawData = { source: 'mmCIF', data };
     const models: Model[] = [];
     const atomCount = data.atom_site._rowCount;
+
+    if (atomCount === 0) return models;
+
     let modelStart = 0;
     while (modelStart < atomCount) {
         const bounds = findModelBounds(data, modelStart);
@@ -67,9 +80,4 @@ function getModels(data: mmCIF): ArrayLike<Model> {
     return models;
 }
 
-export default getModels;
-
-// function createStructure() {
-
-// }
-
+export default buildModels;

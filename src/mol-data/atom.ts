@@ -6,6 +6,7 @@
 
 import Tuple from '../mol-base/collections/integer/tuple'
 
+/** Atom pointer */
 interface Atom { '@type': Tuple['@type'] }
 
 namespace Atom {

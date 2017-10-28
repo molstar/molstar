@@ -17,7 +17,7 @@ import CIF from './mol-io/reader/cif'
 
 import Computation from './mol-base/computation'
 
-import createModels from './mol-data/model/formats/mmcif'
+import buildModels from './mol-data/model/builders/mmcif'
 
 // import { toTypedFrame as applySchema } from './reader/cif/schema'
 import { generateSchema } from './mol-io/reader/cif/schema/utils'
@@ -115,7 +115,7 @@ async function runCIF(input: string | Uint8Array) {
     console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
 
     console.time('createModels');
-    const models = createModels(mmcif);
+    const models = buildModels(mmcif);
     console.timeEnd('createModels');
     console.log(models[0].common);
 
