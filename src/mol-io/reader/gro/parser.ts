@@ -7,7 +7,7 @@
 
 import Tokenizer from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
-import { ColumnType, UndefinedColumn } from '../../../mol-base/collections/column'
+import Column from '../../../mol-base/collections/column'
 import * as Schema from './schema'
 import Result from '../result'
 import Computation from '../../../mol-base/computation'
@@ -106,20 +106,20 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
     const vW = state.header.precision.velocity + 4;
 
     const col = FixedColumn(lines);
-    const undef = UndefinedColumn(state.numberOfAtoms, ColumnType.float);
+    const undef = Column.Undefined(state.numberOfAtoms, Column.Type.float);
 
     const ret = {
         count: state.numberOfAtoms,
-        residueNumber: col(0, 5, ColumnType.int),
-        residueName: col(5, 5, ColumnType.pooledStr),
-        atomName: col(10, 5, ColumnType.pooledStr),
-        atomNumber: col(15, 5, ColumnType.int),
-        x: col(pO, pW, ColumnType.float),
-        y: col(pO + pW, pW, ColumnType.float),
-        z: col(pO + 2 * pW, pW, ColumnType.float),
-        vx: hasVelocities ? col(vO, vW, ColumnType.float) : undef,
-        vy: hasVelocities ? col(vO + vW, vW, ColumnType.float) : undef,
-        vz: hasVelocities ? col(vO + 2 * vW, vW, ColumnType.float) : undef,
+        residueNumber: col(0, 5, Column.Type.int),
+        residueName: col(5, 5, Column.Type.str),
+        atomName: col(10, 5, Column.Type.str),
+        atomNumber: col(15, 5, Column.Type.int),
+        x: col(pO, pW, Column.Type.float),
+        y: col(pO + pW, pW, Column.Type.float),
+        z: col(pO + 2 * pW, pW, Column.Type.float),
+        vx: hasVelocities ? col(vO, vW, Column.Type.float) : undef,
+        vy: hasVelocities ? col(vO + vW, vW, Column.Type.float) : undef,
+        vz: hasVelocities ? col(vO + 2 * vW, vW, Column.Type.float) : undef,
     };
 
     return ret;

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Column from '../../../mol-base/collections/column'
+import Column, { createArray } from '../../../mol-base/collections/column'
 
 export interface File {
     readonly name?: string,
@@ -50,12 +50,6 @@ export namespace Category {
     export const Empty: Category = { rowCount: 0, getField(name: string) { return void 0; } };
 }
 
-export const enum ValuePresence {
-    Present = 0,
-    NotSpecified = 1,
-    Unknown = 2
-}
-
 /**
  * Implementation note:
  * Always implement this as a "plain" object so that the functions are "closures"
@@ -63,6 +57,7 @@ export const enum ValuePresence {
  * additional closures.
  */
 export interface Field {
+    readonly '@array': ArrayLike<any> | undefined
     readonly isDefined: boolean,
     readonly rowCount: number,
 
@@ -70,7 +65,7 @@ export interface Field {
     int(row: number): number,
     float(row: number): number,
 
-    presence(row: number): ValuePresence,
+    valueKind(row: number): Column.ValueKind,
 
     areValuesEqual(rowA: number, rowB: number): boolean,
     stringEquals(row: number, value: string): boolean,
@@ -82,19 +77,20 @@ export interface Field {
 
 export function DefaultUndefinedField(rowCount: number): Field {
     return {
+        '@array': void 0,
         isDefined: false,
         rowCount,
         str: row => '',
         int: row => 0,
         float: row => 0,
 
-        presence: row => ValuePresence.NotSpecified,
+        valueKind: row => Column.ValueKind.NotPresent,
         areValuesEqual: (rowA, rowB) => true,
         stringEquals: (row, value) => value === null,
 
-        toStringArray: (p) => Column.createArray(rowCount, p).array,
-        toIntArray: (p) => Column.createArray(rowCount, p).array,
-        toFloatArray: (p) => Column.createArray(rowCount, p).array
+        toStringArray: (p) => createArray(rowCount, p).array,
+        toIntArray: (p) => createArray(rowCount, p).array,
+        toFloatArray: (p) => createArray(rowCount, p).array
     };
 }
 

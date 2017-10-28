@@ -4,37 +4,34 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, ColumnType, createAndFillArray } from '../../../../../mol-base/collections/column'
+import Column, { createAndFillArray } from '../../../../../mol-base/collections/column'
 import { Tokens } from '../tokenizer'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../number-parser'
-import StringPool from '../../../../utils/short-string-pool'
 
 export default function TokenColumnProvider(tokens: Tokens) {
-    return function<T extends ColumnType>(type: T) {
+    return function<T extends Column.Type>(type: T) {
         return TokenColumn(tokens, type);
     }
 }
 
-export function TokenColumn<T extends ColumnType>(tokens: Tokens, type: T): Column<T['@type']> {
+export function TokenColumn<T extends Column.Type>(tokens: Tokens, type: T): Column<T['@type']> {
     const { data, indices, count: rowCount } = tokens;
     const { kind } = type;
-    const pool = kind === 'pooled-str' ? StringPool.create() : void 0;
 
     const value: Column<T['@type']>['value'] =
           kind === 'str'
         ? row => data.substring(indices[2 * row], indices[2 * row + 1])
-        : kind === 'pooled-str'
-        ? row => StringPool.get(pool!, data.substring(indices[2 * row], indices[2 * row + 1]))
         : kind === 'int'
         ? row => fastParseInt(data, indices[2 * row], indices[2 * row + 1]) || 0
         : row => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
 
     return {
         '@type': type,
+        '@array': void 0,
         isDefined: true,
         rowCount,
         value,
-        isValueDefined: row => true,
+        valueKind: row => Column.ValueKind.Present,
         toArray: params => createAndFillArray(rowCount, value, params),
         stringEquals: (row, v) => {
             const s = indices[2 * row];

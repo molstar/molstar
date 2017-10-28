@@ -7,7 +7,7 @@
 
 import FixedColumn from '../common/text/column/fixed'
 import TokenColumn from '../common/text/column/token'
-import { ColumnType, typedArrayWindow } from '../../../mol-base/collections/column'
+import Column, { typedArrayWindow } from '../../../mol-base/collections/column'
 
 const lines = [
     '1.123 abc',
@@ -32,8 +32,8 @@ const linesTokens = (function () {
 
 describe('fixed text column', () => {
     const col = FixedColumn({ data: linesData, indices: linesTokens, count: lines.length });
-    const col1 = col(0, 5, ColumnType.float);
-    const col2 = col(5, 4, ColumnType.str);
+    const col1 = col(0, 5, Column.Type.float);
+    const col2 = col(5, 4, Column.Type.str);
     it('number', () => {
         expect(col1.value(0)).toBe(1.123);
         expect(col1.value(1)).toBe(1.0);
@@ -53,7 +53,7 @@ describe('fixed text column', () => {
 describe('token text column', () => {
     const tokensData = '321';
     const col = TokenColumn({ data: tokensData, indices: [0, 1, 1, 2, 2, 3], count: 3 });
-    const col1 = col(ColumnType.int);
+    const col1 = col(Column.Type.int);
     it('number', () => {
         expect(col1.value(0)).toBe(3);
         expect(col1.value(1)).toBe(2);

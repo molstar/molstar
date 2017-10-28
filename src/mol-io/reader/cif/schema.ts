@@ -5,8 +5,7 @@
  */
 
 import * as Data from './data-model'
-import * as Column from '../../../mol-base/collections/column'
-import StringPool from '../../utils/short-string-pool'
+import Column, { createAndFillArray } from '../../../mol-base/collections/column'
 
 /**
  * A schema defines the shape of categories and fields.
@@ -45,60 +44,53 @@ export type TypedCategory<Schema extends CategorySchema> = {
     readonly _rowCount: number,
     readonly _isDefined: boolean,
     readonly _category: Data.Category
-} & { [F in keyof Schema]: Column.Column<Schema[F]['T']> }
+} & { [F in keyof Schema]: Column<Schema[F]['T']> }
 
 export namespace Field {
-    export interface Schema<T> { T: T, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
+    export interface Schema<T> { T: T, ctor: (field: Data.Field, category: Data.Category, key: string) => Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
     export interface Spec { undefinedField?: (c: number) => Data.Field, alias?: string }
 
     export function alias(name: string): Schema<any> { return { alias: name } as any; }
-    export function pooledStr(spec?: Spec) { return createSchema(spec, PooledStr); }
     export function str(spec?: Spec) { return createSchema(spec, Str); }
     export function int(spec?: Spec) { return createSchema(spec, Int); }
     export function float(spec?: Spec) { return createSchema(spec, Float); }
     export function vector(rows: number, spec?: Spec) { return createSchema(spec, Vector(rows)); }
     export function matrix(rows: number, cols: number, spec?: Spec) { return createSchema(spec, Matrix(rows, cols)); }
 
-    function create<T>(type: Column.ColumnType, field: Data.Field, value: (row: number) => T, toArray: Column.Column<T>['toArray']): Column.Column<T> {
-        const presence = field.presence;
+    function create<T>(type: Column.Type, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
         return {
             '@type': type,
+            '@array': field['@array'],
             isDefined: field.isDefined,
             rowCount: field.rowCount,
             value,
-            isValueDefined: row => presence(row) === Data.ValuePresence.Present,
+            valueKind: field.valueKind,
             stringEquals: field.stringEquals,
             areValuesEqual: field.areValuesEqual,
             toArray
         };
     }
 
-    function PooledStr(field: Data.Field) {
-        const pool = StringPool.create();
-        const value = (row: number) => StringPool.get(pool, field.str(row));
-        const array = (params?: Column.ToArrayParams) => Column.createAndFillArray(field.rowCount, value, params);
-        return create<string>(Column.ColumnType.str, field, value, array);
-    }
-    function Str(field: Data.Field) { return create(Column.ColumnType.str, field, field.str, field.toStringArray); }
-    function Int(field: Data.Field) { return create(Column.ColumnType.int, field, field.int, field.toIntArray); }
-    function Float(field: Data.Field) { return create(Column.ColumnType.float, field, field.float, field.toFloatArray); }
+    function Str(field: Data.Field) { return create(Column.Type.str, field, field.str, field.toStringArray); }
+    function Int(field: Data.Field) { return create(Column.Type.int, field, field.int, field.toIntArray); }
+    function Float(field: Data.Field) { return create(Column.Type.float, field, field.float, field.toFloatArray); }
 
     function Vector(rows: number) {
         return function(field: Data.Field, category: Data.Category, key: string) {
             const value = (row: number) => Data.getVector(category, key, rows, row);
-            return create(Column.ColumnType.vector, field, value, params => Column.createAndFillArray(field.rowCount, value, params));
+            return create(Column.Type.vector, field, value, params => createAndFillArray(field.rowCount, value, params));
         }
     }
 
     function Matrix(rows: number, cols: number) {
         return function(field: Data.Field, category: Data.Category, key: string) {
             const value = (row: number) => Data.getMatrix(category, key, rows, cols, row);
-            return create(Column.ColumnType.matrix, field, value, params => Column.createAndFillArray(field.rowCount, value, params));
+            return create(Column.Type.matrix, field, value, params => createAndFillArray(field.rowCount, value, params));
         }
     }
 
     // spec argument is to allow for specialised implementation for undefined fields
-    function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field, category: Data.Category, key: string) => Column.Column<T>): Schema<T> {
+    function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field, category: Data.Category, key: string) => Column<T>): Schema<T> {
         return { T: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || Data.DefaultUndefinedField, alias: spec && spec.alias };
     }
 }

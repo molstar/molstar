@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Column from '../../../../mol-base/collections/column'
+import Column, { createAndFillArray } from '../../../../mol-base/collections/column'
 import * as TokenColumn from '../../common/text/column/token'
 import { Tokens } from '../../common/text/tokenizer'
 import * as Data from '../data-model'
@@ -27,27 +27,28 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
         return fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
     };
 
-    const presence: Data.Field['presence'] = row => {
+    const valueKind: Data.Field['valueKind'] = row => {
         const s = indices[2 * row];
-        if (indices[2 * row + 1] - s !== 1) return Data.ValuePresence.Present;
+        if (indices[2 * row + 1] - s !== 1) return Column.ValueKind.Present;
         const v = data.charCodeAt(s);
-        if (v === 46 /* . */) return Data.ValuePresence.NotSpecified;
-        if (v === 63 /* ? */) return Data.ValuePresence.Unknown;
-        return Data.ValuePresence.Present;
+        if (v === 46 /* . */) return Column.ValueKind.NotPresent;
+        if (v === 63 /* ? */) return Column.ValueKind.Unknown;
+        return Column.ValueKind.Present;
     };
 
     return {
+        '@array': void 0,
         isDefined: true,
         rowCount,
         str,
         int,
         float,
-        presence,
+        valueKind,
         areValuesEqual: TokenColumn.areValuesEqualProvider(tokens),
         stringEquals: (row, v) => {
             const s = indices[2 * row];
             const value = v || '';
-            if (!value && presence(row) !== Data.ValuePresence.Present) return true;
+            if (!value && valueKind(row) !== Column.ValueKind.Present) return true;
             const len = value.length;
             if (len !== indices[2 * row + 1] - s) return false;
             for (let i = 0; i < len; i++) {
@@ -55,8 +56,8 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
             }
             return true;
         },
-        toStringArray: params => Column.createAndFillArray(rowCount, str, params),
-        toIntArray: params => Column.createAndFillArray(rowCount, int, params),
-        toFloatArray: params => Column.createAndFillArray(rowCount, float, params)
+        toStringArray: params => createAndFillArray(rowCount, str, params),
+        toIntArray: params => createAndFillArray(rowCount, int, params),
+        toFloatArray: params => createAndFillArray(rowCount, float, params)
     }
 }

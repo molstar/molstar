@@ -4,94 +4,119 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export type ColumnType = typeof ColumnType.str | typeof ColumnType.pooledStr | typeof ColumnType.int | typeof ColumnType.float | typeof ColumnType.vector | typeof ColumnType.matrix
+interface Column<T> {
+    readonly '@type': Column.Type,
+    readonly '@array': ArrayLike<any> | undefined,
 
-export namespace ColumnType {
-    export const str = { '@type': '' as string, kind: 'str' as 'str', isScalar: false, isString: true };
-    export const pooledStr = { '@type': '' as string, kind: 'pooled-str' as 'pooled-str', isScalar: false, isString: true };
-    export const int = { '@type': 0 as number, kind: 'int' as 'int', isScalar: true, isString: false };
-    export const float = { '@type': 0 as number, kind: 'float' as 'float', isScalar: true, isString: false };
-    export const vector = { '@type': [] as number[], kind: 'vector' as 'vector', isScalar: false, isString: false };
-    export const matrix = { '@type': [] as number[][], kind: 'matrix' as 'matrix', isScalar: false, isString: false };
-}
-
-export interface ToArrayParams {
-    array?: { new(size: number): ArrayLike<number> },
-    /** First row */
-    start?: number,
-    /** Last row (exclusive) */
-    end?: number
-}
-
-export interface Column<T> {
-    readonly '@type': ColumnType,
     readonly isDefined: boolean,
     readonly rowCount: number,
     value(row: number): T,
-    isValueDefined(row: number): boolean,
-    toArray(params?: ToArrayParams): ReadonlyArray<T>,
+    valueKind(row: number): Column.ValueKind,
+    toArray(params?: Column.ToArrayParams): ReadonlyArray<T>,
     stringEquals(row: number, value: string): boolean,
     areValuesEqual(rowA: number, rowB: number): boolean
 }
 
-export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T): Column<T['@type']> {
-    const v = type.isString ? '' : 0;
-    const value: Column<T['@type']>['value'] = type.isString ? row => '' : row => 0;
-    return {
-        '@type': type,
-        isDefined: false,
-        rowCount,
-        value,
-        isValueDefined: row => false,
-        toArray: params => {
-            const { array } = createArray(rowCount, params);
-            for (let i = 0, _i = array.length; i < _i; i++) array[i] = v;
-            return array;
-        },
-        stringEquals: (row, value) => !value,
-        areValuesEqual: (rowA, rowB) => true
+namespace Column {
+    export type Type = typeof Type.str | typeof Type.int | typeof Type.float | typeof Type.vector | typeof Type.matrix
+
+    export namespace Type {
+        export const str = { '@type': '' as string, kind: 'str' as 'str' };
+        export const int = { '@type': 0 as number, kind: 'int' as 'int' };
+        export const float = { '@type': 0 as number, kind: 'float' as 'float' };
+        export const vector = { '@type': [] as number[], kind: 'vector' as 'vector' };
+        export const matrix = { '@type': [] as number[][], kind: 'matrix' as 'matrix' };
+    }
+
+    export interface ToArrayParams {
+        array?: { new(size: number): ArrayLike<number> },
+        start?: number,
+        /** Last row (exclusive) */
+        end?: number
+    }
+
+    export interface ArraySpec<T extends Type> {
+        array: ArrayLike<T['@type']>,
+        type: T,
+        valueKind?: (row: number) => ValueKind
+    }
+
+    export const enum ValueKind { Present = 0, NotPresent = 1, Unknown = 2 }
+
+    export function Undefined<T extends Type>(rowCount: number, type: T): Column<T['@type']> {
+        return constColumn(type['@type'], rowCount, type, ValueKind.NotPresent);
+    }
+
+    export function ofConst<T extends Type>(v: T['@type'], rowCount: number, type: T): Column<T['@type']> {
+        return constColumn(v, rowCount, type, ValueKind.Present);
+    }
+
+    export function ofArray<T extends Column.Type>(spec: Column.ArraySpec<T>): Column<T['@type']> {
+        return arrayColumn(spec);
+    }
+
+    export function window<T>(column: Column<T>, start: number, end: number) {
+        return windowColumn(column, start, end);
+    }
+
+    /** Makes the column backned by an array. Useful for columns that accessed often. */
+    export function asArrayColumn<T>(c: Column<T>, array?: ToArrayParams['array']): Column<T> {
+        if (c['@array']) return c;
+        if (!c.isDefined) return Undefined(c.rowCount, c['@type']) as any as Column<T>;
+        return arrayColumn({ array: c.toArray({ array }), type: c['@type'] as any, valueKind: c.valueKind });
     }
 }
 
-export function ConstColumn<T extends ColumnType>(v: T['@type'], rowCount: number, type: T): Column<T['@type']> {
+export default Column;
+
+function constColumn<T extends Column.Type>(v: T['@type'], rowCount: number, type: T, valueKind: Column.ValueKind): Column<T['@type']> {
     const value: Column<T['@type']>['value'] = row => v;
     return {
         '@type': type,
-        isDefined: true,
+        '@array': void 0,
+        isDefined: valueKind === Column.ValueKind.Present,
         rowCount,
         value,
-        isValueDefined: row => false,
+        valueKind: row => valueKind,
         toArray: params => {
             const { array } = createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = v;
             return array;
         },
-        stringEquals: type.isString
+        stringEquals: type.kind === 'str'
             ? (row, value) => value === v
-            : type.isScalar
-            ? (row, value) => +value === v
-            : (row, value) => false,
+            : type.kind === 'float' || type.kind === 'int'
+                ? (row, value) => +value === v
+                : (row, value) => false,
         areValuesEqual: (rowA, rowB) => true
     }
 }
 
-export interface ArrayColumnSpec<T extends ColumnType> {
-    array: ArrayLike<T['@type']>,
-    type: T,
-    isValueDefined?: (row: number) => boolean
-}
-
-export function ArrayColumn<T extends ColumnType>({ array, type, isValueDefined }: ArrayColumnSpec<T>): Column<T['@type']> {
+function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.ArraySpec<T>): Column<T['@type']> {
     const rowCount = array.length;
-    const value: Column<T['@type']>['value'] = row => array[row];
+    const value: Column<T['@type']>['value'] = type.kind === 'str'
+        ? row => { const v = array[row]; return typeof v === 'string' ? v : '' + v; }
+        : row => array[row];
+
     const isTyped = isTypedArray(array);
     return {
         '@type': type,
+        '@array': array,
         isDefined: true,
         rowCount,
         value,
-        isValueDefined: isValueDefined ? isValueDefined : row => true,
-        toArray: isTyped
+        valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
+        toArray: type.kind === 'str'
+            ? params => {
+                const { start, end } = getArrayBounds(rowCount, params);
+                const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
+                for (let i = 0, _i = end - start; i < _i; i++) {
+                    const v = array[start + i];
+                    ret[i] = typeof v === 'string' ? v : '' + v;
+                }
+                return ret;
+            }
+            : isTyped
             ? params => typedArrayWindow(array, params) as any as ReadonlyArray<T>
             : params => {
                 const { start, end } = getArrayBounds(rowCount, params);
@@ -100,30 +125,56 @@ export function ArrayColumn<T extends ColumnType>({ array, type, isValueDefined 
                 for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
                 return ret;
             },
-        stringEquals: type.isScalar
+        stringEquals: type.kind === 'int' || type.kind === 'float'
             ? (row, value) => (array as any)[row] === +value
-            : type.isString
-            ? (row, value) => array[row] === value
+            : type.kind === 'str'
+            ? (row, value) => { const v = array[row]; return typeof v === 'string' ? v === value : +v === +value; }
             : (row, value) => false,
         areValuesEqual: (rowA, rowB) => array[rowA] === array[rowB]
     }
 }
 
-/** Makes the column backned by an array. Useful for columns that accessed often. */
-export function toArrayColumn<T>(c: Column<T>): Column<T> {
-    if (!c.isDefined) return UndefinedColumn(c.rowCount, c['@type']) as any as Column<T>;
-    return ArrayColumn({ array: c.toArray(), type: c['@type'] as any, isValueDefined: c.isValueDefined });
+function windowColumn<T>(column: Column<T>, start: number, end: number) {
+    if (!column.isDefined) return Column.Undefined(end - start, column['@type']);
+    if (column['@array'] && isTypedArray(column['@array'])) return windowTyped(column, start, end);
+    return windowFull(column, start, end);
+}
+
+function windowTyped<T>(c: Column<T>, start: number, end: number): Column<T> {
+    const array = typedArrayWindow(c['@array'], { start, end });
+    return arrayColumn({ array, type: c['@type'], valueKind: c.valueKind }) as any;
+}
+
+function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
+    const v = c.value, vk = c.valueKind, se = c.stringEquals, ave = c.areValuesEqual;
+    const value: Column<T>['value'] = start === 0 ? v : row => v(row + start);
+    const rowCount = end - start;
+    return {
+        '@type': c['@type'],
+        '@array': void 0,
+        isDefined: c.isDefined,
+        rowCount,
+        value,
+        valueKind: start === 0 ? vk : row => vk(row + start),
+        toArray: params => {
+            const { array } = createArray(rowCount, params);
+            for (let i = 0, _i = array.length; i < _i; i++) array[i] = v(i + start);
+            return array;
+        },
+        stringEquals: start === 0 ? se : (row, value) => se(row + start, value),
+        areValuesEqual: start === 0 ? ave : (rowA, rowB) => ave(rowA + start, rowB + start)
+    };
 }
 
 /** A helped function for Column.toArray */
-export function getArrayBounds(rowCount: number, params?: ToArrayParams) {
+export function getArrayBounds(rowCount: number, params?: Column.ToArrayParams) {
     const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;
     const end = params && typeof params.end !== 'undefined' ? Math.min(params.end, rowCount) : rowCount;
     return { start, end };
 }
 
 /** A helped function for Column.toArray */
-export function createArray(rowCount: number, params?: ToArrayParams) {
+export function createArray(rowCount: number, params?: Column.ToArrayParams) {
     const c = params && typeof params.array !== 'undefined' ? params.array : Array;
     const { start, end } = getArrayBounds(rowCount, params);
     return { array: new c(end - start) as any[], start, end };
@@ -136,16 +187,16 @@ export function fillArrayValues(value: (row: number) => any, target: any[], star
 }
 
 /** A helped function for Column.toArray */
-export function createAndFillArray(rowCount: number, value: (row: number) => any, params?: ToArrayParams) {
+export function createAndFillArray(rowCount: number, value: (row: number) => any, params?: Column.ToArrayParams) {
     const { array, start } = createArray(rowCount, params);
     return fillArrayValues(value, array, start);
 }
 
-export function isTypedArray(data: any) {
-    return data.buffer && typeof data.byteLength === 'number' && data.BYTES_PER_ELEMENT;
+export function isTypedArray(data: any): boolean {
+    return !!data.buffer && typeof data.byteLength === 'number' && typeof data.BYTES_PER_ELEMENT === 'number';
 }
 
-export function typedArrayWindow(data: any, params?: ToArrayParams): ReadonlyArray<number> {
+export function typedArrayWindow(data: any, params?: Column.ToArrayParams): ReadonlyArray<number> {
     const { constructor, buffer, length, byteOffset, BYTES_PER_ELEMENT } = data;
     const { start, end } = getArrayBounds(length, params);
     if (start === 0 && end === length) return data;
