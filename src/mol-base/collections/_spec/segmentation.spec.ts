@@ -7,16 +7,25 @@
 import OrderedSet from '../integer/ordered-set'
 import Interval from '../integer/interval'
 import Segmentation from '../integer/segmentation'
-import SortedArray from '../integer/sorted-array'
 
 describe('segments', () => {
     const data = OrderedSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
-    const segs = Segmentation.create(SortedArray.ofSortedArray([0, 4, 10, 12, 13, 15, 25]), [])
+    const segs = Segmentation.create([0, 4, 10, 12, 13, 15, 25]);
+
+    it('size', () => expect(Segmentation.count(segs)).toBe(6));
 
     it('project', () => {
         const p = Segmentation.projectValue(segs, data, 4);
         expect(p).toBe(Interval.ofBounds(0, 2))
     });
+
+    it('map', () => {
+        const segs = Segmentation.create([1, 2, 3]);
+        expect(segs.segmentMap).toEqual(new Int32Array([0, 1]));
+        expect(segs.offset).toEqual(1);
+        expect(Segmentation.getSegment(segs, 1)).toBe(0);
+        expect(Segmentation.getSegment(segs, 2)).toBe(1);
+    })
 
     it('iteration', () => {
         const it = Segmentation.segments(segs, data);

@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import parseText from './text/parser'
-import parseBinary from './binary/parser'
-import { Block } from './data-model'
-import { toTypedFrame as applySchema } from './schema'
-import mmCIF from './schema/mmcif'
+import parseText from './cif/text/parser'
+import parseBinary from './cif/binary/parser'
+import { Block } from './cif/data-model'
+import { toTypedFrame as applySchema } from './cif/schema'
+import mmCIF from './cif/schema/mmcif'
 
 export default {
     parseText,
@@ -19,4 +19,4 @@ export default {
     }
 }
 
-export * from './data-model'
+export * from './cif/data-model'

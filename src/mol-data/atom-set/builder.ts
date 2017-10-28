@@ -40,7 +40,7 @@ class Builder {
                 sets[k] = OrderedSet.ofSingleton(unit[0]);
             } else {
                 const set = OrderedSet.ofSortedArray(unit);
-                const parentSet = AtomSet.getByKey(this.parent, k);
+                const parentSet = AtomSet.unitGetById(this.parent, k);
                 sets[k] = OrderedSet.areEqual(set, parentSet) ? parentSet : set;
             }
         }

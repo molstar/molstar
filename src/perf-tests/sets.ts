@@ -3,7 +3,6 @@ import Tuple from '../mol-base/collections/integer/tuple'
 import OrdSet from '../mol-base/collections/integer/ordered-set'
 import AtomSet from '../mol-data/atom-set'
 import Segmentation from '../mol-base/collections/integer/segmentation'
-import SortedArray from '../mol-base/collections/integer/sorted-array'
 
 export namespace Iteration {
     const U = 1000, V = 2500;
@@ -38,15 +37,15 @@ export namespace Iteration {
 
     export function elementAt() {
         let s = 0;
-        for (let i = 0, _i = AtomSet.atomCount(ms); i < _i; i++) s += Tuple.snd(AtomSet.getAtomAt(ms, i));
+        for (let i = 0, _i = AtomSet.atomCount(ms); i < _i; i++) s += Tuple.snd(AtomSet.atomGetAt(ms, i));
         return s;
     }
 
     export function manual() {
         let s = 0;
-        const keys = AtomSet.units(ms);
+        const keys = AtomSet.unitIds(ms);
         for (let i = 0, _i = OrdSet.size(keys); i < _i; i++) {
-            const set = AtomSet.getByKey(ms, OrdSet.getAt(keys, i));
+            const set = AtomSet.unitGetById(ms, OrdSet.getAt(keys, i));
             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
                 s += OrdSet.getAt(set, j);
             }
@@ -57,7 +56,7 @@ export namespace Iteration {
     export function manual1() {
         let s = 0;
         for (let i = 0, _i = AtomSet.unitCount(ms); i < _i; i++) {
-            const set = AtomSet.getByIndex(ms, i);
+            const set = AtomSet.unitGetByIndex(ms, i);
             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
                 s += OrdSet.getAt(set, j);
             }
@@ -274,7 +273,7 @@ export namespace Tuples {
 
 export function testSegments() {
     const data = OrdSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
-    const segs = Segmentation.create(SortedArray.ofSortedArray([0, 4, 10, 12, 13, 15, 25]), []);
+    const segs = Segmentation.create([0, 4, 10, 12, 13, 15, 25]);
     const it = Segmentation.segments(segs, data);
 
     while (it.hasNext) {

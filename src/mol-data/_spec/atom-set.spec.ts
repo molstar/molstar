@@ -4,15 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import IntTuple from '../../mol-base/collections/integer/tuple'
 import OrderedSet from '../../mol-base/collections/integer/ordered-set'
 import AtomSet from '../atom-set'
+import Atom from '../atom'
 
 describe('atom set', () => {
-    const p = (i: number, j: number) => IntTuple.create(i, j);
+    const p = (i: number, j: number) => Atom.create(i, j);
 
-    function setToPairs(set: AtomSet): ArrayLike<IntTuple> {
-        const ret: IntTuple[] = [];
+    function setToPairs(set: AtomSet): ArrayLike<Atom> {
+        const ret: Atom[] = [];
         const it = AtomSet.atoms(set);
         while (it.hasNext) {
             ret[ret.length] = it.move();
@@ -23,9 +23,9 @@ describe('atom set', () => {
     it('singleton pair', () => {
         const set = AtomSet.create(p(10, 11));
         expect(setToPairs(set)).toEqual([p(10, 11)]);
-        expect(AtomSet.hasAtom(set, p(10, 11))).toBe(true);
-        expect(AtomSet.hasAtom(set, p(11, 11))).toBe(false);
-        expect(AtomSet.getAtomAt(set, 0)).toBe(p(10, 11));
+        expect(AtomSet.atomHas(set, p(10, 11))).toBe(true);
+        expect(AtomSet.atomHas(set, p(11, 11))).toBe(false);
+        expect(AtomSet.atomGetAt(set, 0)).toBe(p(10, 11));
         expect(AtomSet.atomCount(set)).toBe(1);
     });
 
@@ -42,16 +42,16 @@ describe('atom set', () => {
         const ret = [p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)];
         expect(AtomSet.atomCount(set)).toBe(ret.length);
         expect(setToPairs(set)).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
-        expect(AtomSet.hasAtom(set, p(10, 11))).toBe(false);
-        expect(AtomSet.hasAtom(set, p(3, 0))).toBe(true);
-        expect(AtomSet.hasAtom(set, p(1, 7))).toBe(true);
+        expect(AtomSet.atomHas(set, p(10, 11))).toBe(false);
+        expect(AtomSet.atomHas(set, p(3, 0))).toBe(true);
+        expect(AtomSet.atomHas(set, p(1, 7))).toBe(true);
         for (let i = 0; i < AtomSet.atomCount(set); i++) {
-            expect(IntTuple.areEqual(AtomSet.getAtomAt(set, i), ret[i])).toBe(true);
+            expect(Atom.areEqual(AtomSet.atomGetAt(set, i), ret[i])).toBe(true);
         }
     });
 
     it('element at / index of', () => {
-        const control: IntTuple[] = [];
+        const control: Atom[] = [];
         const sets = Object.create(null);
         for (let i = 1; i < 10; i++) {
             const set = [];
@@ -63,11 +63,11 @@ describe('atom set', () => {
         }
         const ms = AtomSet.create(sets);
         for (let i = 0; i < control.length; i++) {
-            expect(IntTuple.areEqual(AtomSet.getAtomAt(ms, i), control[i])).toBe(true);
+            expect(Atom.areEqual(AtomSet.atomGetAt(ms, i), control[i])).toBe(true);
         }
 
         for (let i = 0; i < control.length; i++) {
-            expect(AtomSet.indexOfAtom(ms, control[i])).toBe(i);
+            expect(AtomSet.atomIndexOf(ms, control[i])).toBe(i);
         }
     });
 
@@ -129,6 +129,7 @@ describe('atom set', () => {
         const b = AtomSet.create([p(10, 3), p(0, 1), p(0, 6), p(4, 2)]);
         const c = AtomSet.create([p(1, 3)]);
         const d = AtomSet.create([p(2, 3)]);
+        const e = AtomSet.create([p(0, 2)]);
         expect(setToPairs(AtomSet.subtract(a, a))).toEqual([]);
         expect(setToPairs(AtomSet.subtract(a, a1))).toEqual([]);
         expect(setToPairs(AtomSet.subtract(a, b))).toEqual([p(0, 2), p(1, 3)]);
@@ -136,6 +137,7 @@ describe('atom set', () => {
         expect(setToPairs(AtomSet.subtract(a, c))).toEqual([p(0, 1), p(0, 2), p(0, 6)]);
         expect(setToPairs(AtomSet.subtract(c, a))).toEqual([]);
         expect(setToPairs(AtomSet.subtract(d, a))).toEqual([p(2, 3)]);
+        expect(setToPairs(AtomSet.subtract(a, e))).toEqual([p(0, 1), p(0, 6), p(1, 3)]);
     });
 
     it('union', () => {

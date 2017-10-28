@@ -37,7 +37,7 @@ describe('sortedArray', () => {
     test('getAt', SortedArray.getAt(a2468, 1), 4);
 
     test('areEqual', SortedArray.areEqual(a2468, a2468), true);
-    test('areEqual1', SortedArray.areEqual(a2468, SortedArray.create([4, 2, 8, 6])), true);
+    test('areEqual1', SortedArray.areEqual(a2468, SortedArray.ofUnsortedArray([4, 2, 8, 6])), true);
     test('areEqual2', SortedArray.areEqual(a1234, a2468), false);
 
     test('predIndex1', SortedArray.findPredecessorIndex(a1234, 5), 4);

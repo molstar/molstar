@@ -6,21 +6,21 @@
 
 import OrderedSet from '../../mol-base/collections/integer/ordered-set'
 import Iterator from '../../mol-base/collections/iterator'
-import Tuple from '../../mol-base/collections/integer/tuple'
 import Interval from '../../mol-base/collections/integer/interval'
 import { sortArray } from '../../mol-base/collections/sort'
 import { hash1 } from '../../mol-base/collections/hash-functions'
+import Atom from '../atom'
 
 /** Long and painful implementation starts here */
 
 export interface AtomSetElements { [id: number]: OrderedSet, offsets: number[], hashCode: number, keys: OrderedSet }
-export type AtomSetImpl = Tuple | AtomSetElements
+export type AtomSetImpl = Atom | AtomSetElements
 
 export const Empty: AtomSetImpl = { offsets: [0], hashCode: 0, keys: OrderedSet.Empty };
 
-export function create(data: Tuple | ArrayLike<Tuple> | { [id: number]: OrderedSet }): AtomSetImpl {
-    if (typeof data === 'number' || Tuple.is(data)) return data;
-    if (isArrayLike(data)) return ofTuples(data);
+export function create(data: Atom | ArrayLike<Atom> | { [id: number]: OrderedSet }): AtomSetImpl {
+    if (typeof data === 'number' || Atom.is(data)) return data;
+    if (isArrayLike(data)) return ofAtoms(data);
     return ofObject(data as { [id: number]: OrderedSet });
 }
 
@@ -39,42 +39,42 @@ export function keyCount(set: AtomSetImpl): number {
 }
 
 export function hasKey(set: AtomSetImpl, key: number): boolean {
-    if (typeof set === 'number') return Tuple.fst(set) === key;
+    if (typeof set === 'number') return Atom.unit(set) === key;
     return OrderedSet.has((set as AtomSetElements).keys, key);
 }
 
 export function getKey(set: AtomSetImpl, index: number): number {
-    if (typeof set === 'number') return Tuple.fst(set);
+    if (typeof set === 'number') return Atom.unit(set);
     return OrderedSet.getAt((set as AtomSetElements).keys, index);
 }
 
-export function hasTuple(set: AtomSetImpl, t: Tuple): boolean {
-    if (typeof set === 'number') return Tuple.areEqual(t, set);
-    const unit = Tuple.fst(t);
+export function hasAtom(set: AtomSetImpl, t: Atom): boolean {
+    if (typeof set === 'number') return Atom.areEqual(t, set);
+    const unit = Atom.unit(t);
     return OrderedSet.has((set as AtomSetElements).keys, unit)
-        ? OrderedSet.has((set as AtomSetElements)[unit], Tuple.snd(t)) : false;
+        ? OrderedSet.has((set as AtomSetElements)[unit], Atom.index(t)) : false;
 }
 
 export function getByKey(set: AtomSetImpl, key: number): OrderedSet {
     if (typeof set === 'number') {
-        return Tuple.fst(set) === key ? OrderedSet.ofSingleton(Tuple.snd(set)) : OrderedSet.Empty;
+        return Atom.unit(set) === key ? OrderedSet.ofSingleton(Atom.index(set)) : OrderedSet.Empty;
     }
     return OrderedSet.has((set as AtomSetElements).keys, key) ? (set as AtomSetElements)[key] : OrderedSet.Empty;
 }
 
 export function getByIndex(set: AtomSetImpl, index: number): OrderedSet {
-    if (typeof set === 'number') return index === 0 ? OrderedSet.ofSingleton(Tuple.snd(set)) : OrderedSet.Empty;
+    if (typeof set === 'number') return index === 0 ? OrderedSet.ofSingleton(Atom.index(set)) : OrderedSet.Empty;
     const key = OrderedSet.getAt((set as AtomSetElements).keys, index);
     return (set as AtomSetElements)[key] || OrderedSet.Empty;
 }
 
-export function getAt(set: AtomSetImpl, i: number): Tuple {
+export function getAt(set: AtomSetImpl, i: number): Atom {
     if (typeof set === 'number') return set;
     return getAtE(set as AtomSetElements, i);
 }
 
-export function indexOf(set: AtomSetImpl, t: Tuple) {
-    if (typeof set === 'number') return Tuple.areEqual(set, t) ? 0 : -1;
+export function indexOf(set: AtomSetImpl, t: Atom) {
+    if (typeof set === 'number') return Atom.areEqual(set, t) ? 0 : -1;
     return indexOfE(set as AtomSetElements, t);
 }
 
@@ -85,14 +85,14 @@ export function size(set: AtomSetImpl) {
 }
 
 export function hashCode(set: AtomSetImpl) {
-    if (typeof set === 'number') return Tuple.hashCode(set);
+    if (typeof set === 'number') return Atom.hashCode(set);
     if ((set as AtomSetElements).hashCode !== -1) return (set as AtomSetElements).hashCode;
     return computeHash((set as AtomSetElements));
 }
 
 export function areEqual(a: AtomSetImpl, b: AtomSetImpl) {
     if (typeof a === 'number') {
-        if (typeof b === 'number') return Tuple.areEqual(a, b);
+        if (typeof b === 'number') return Atom.areEqual(a, b);
         return false;
     }
     if (typeof b === 'number') return false;
@@ -101,7 +101,7 @@ export function areEqual(a: AtomSetImpl, b: AtomSetImpl) {
 
 export function areIntersecting(a: AtomSetImpl, b: AtomSetImpl) {
     if (typeof a === 'number') {
-        if (typeof b === 'number') return Tuple.areEqual(a, b);
+        if (typeof b === 'number') return Atom.areEqual(a, b);
         return areIntersectingNE(a, b as AtomSetElements);
     }
     if (typeof b === 'number') return areIntersectingNE(b, a as AtomSetElements);
@@ -110,7 +110,7 @@ export function areIntersecting(a: AtomSetImpl, b: AtomSetImpl) {
 
 export function intersect(a: AtomSetImpl, b: AtomSetImpl) {
     if (typeof a === 'number') {
-        if (typeof b === 'number') return Tuple.areEqual(a, b) ? a : Empty;
+        if (typeof b === 'number') return Atom.areEqual(a, b) ? a : Empty;
         return intersectNE(a, b as AtomSetElements);
     }
     if (typeof b === 'number') return intersectNE(b, a as AtomSetElements);
@@ -119,7 +119,7 @@ export function intersect(a: AtomSetImpl, b: AtomSetImpl) {
 
 export function subtract(a: AtomSetImpl, b: AtomSetImpl) {
     if (typeof a === 'number') {
-        if (typeof b === 'number') return Tuple.areEqual(a, b) ? Empty : a;
+        if (typeof b === 'number') return Atom.areEqual(a, b) ? Empty : a;
         return subtractNE(a, b as AtomSetElements);
     }
     if (typeof b === 'number') return subtractEN(a as AtomSetElements, b);
@@ -134,7 +134,7 @@ export function unionMany(sets: ArrayLike<AtomSetImpl>) {
     return findUnion(sets);
 }
 
-class ElementsIterator implements Iterator<Tuple> {
+class ElementsIterator implements Iterator<Atom> {
     private unit: number = 0;
     private keyCount: number;
     private setIndex = -1;
@@ -145,8 +145,8 @@ class ElementsIterator implements Iterator<Tuple> {
     hasNext: boolean = false;
 
     move() {
-        if (!this.hasNext) return Tuple.Zero;
-        const ret = Tuple.create(this.unit, OrderedSet.getAt(this.currentSet, this.currentIndex++));
+        if (!this.hasNext) return Atom.Zero;
+        const ret = Atom.create(this.unit, OrderedSet.getAt(this.currentSet, this.currentIndex++));
         if (this.currentIndex >= this.currentSize) this.advance();
         return ret;
     }
@@ -170,12 +170,12 @@ class ElementsIterator implements Iterator<Tuple> {
     }
 }
 
-export function values(set: AtomSetImpl): Iterator<Tuple> {
-    if (typeof set === 'number') return Iterator.Value(set as Tuple);
+export function values(set: AtomSetImpl): Iterator<Atom> {
+    if (typeof set === 'number') return Iterator.Value(set as Atom);
     return new ElementsIterator(set as AtomSetElements);
 }
 
-function isArrayLike(x: any): x is ArrayLike<Tuple> {
+function isArrayLike(x: any): x is ArrayLike<Atom> {
     return x && (typeof x.length === 'number' && (x instanceof Array || !!x.buffer));
 }
 
@@ -188,7 +188,7 @@ function ofObject(data: { [id: number]: OrderedSet }) {
     if (!keys.length) return Empty;
     if (keys.length === 1) {
         const set = data[keys[0]];
-        if (OrderedSet.size(set) === 1) return Tuple.create(keys[0], OrderedSet.getAt(set, 0));
+        if (OrderedSet.size(set) === 1) return Atom.create(keys[0], OrderedSet.getAt(set, 0));
     }
     return ofObject1(keys, data);
 }
@@ -197,7 +197,7 @@ function ofObject1(keys: number[], data: { [id: number]: OrderedSet }) {
     if (keys.length === 1) {
         const k = keys[0];
         const set = data[k];
-        if (OrderedSet.size(set) === 1) return Tuple.create(k, OrderedSet.getAt(set, 0));
+        if (OrderedSet.size(set) === 1) return Atom.create(k, OrderedSet.getAt(set, 0));
     }
     sortArray(keys);
     return _createObjectOrdered(OrderedSet.ofSortedArray(keys), data);
@@ -207,7 +207,7 @@ function ofObjectOrdered(keys: OrderedSet, data: { [id: number]: OrderedSet }) {
     if (OrderedSet.size(keys) === 1) {
         const k = OrderedSet.getAt(keys, 0);
         const set = data[k];
-        if (OrderedSet.size(set) === 1) return Tuple.create(k, OrderedSet.getAt(set, 0));
+        if (OrderedSet.size(set) === 1) return Atom.create(k, OrderedSet.getAt(set, 0));
     }
     return _createObjectOrdered(keys, data);
 }
@@ -251,12 +251,12 @@ function normalizeArray(xs: number[]) {
     return xs;
 }
 
-function ofTuples(xs: ArrayLike<Tuple>) {
+function ofAtoms(xs: ArrayLike<Atom>) {
     if (xs.length === 0) return Empty;
     const sets: { [key: number]: number[] } = Object.create(null);
     for (let i = 0, _i = xs.length; i < _i; i++) {
         const x = xs[i];
-        const u = Tuple.fst(x), v = Tuple.snd(x);
+        const u = Atom.unit(x), v = Atom.index(x);
         const set = sets[u];
         if (set) set[set.length] = v;
         else sets[u] = [v];
@@ -286,21 +286,21 @@ function getOffsetIndex(xs: ArrayLike<number>, value: number) {
     return value < xs[min] ? min - 1 : min;
 }
 
-function getAtE(set: AtomSetElements, i: number): Tuple {
+function getAtE(set: AtomSetElements, i: number): Atom {
     const { offsets, keys } = set;
     const o = getOffsetIndex(offsets, i);
     if (o >= offsets.length - 1) return 0 as any;
     const k = OrderedSet.getAt(keys, o);
     const e = OrderedSet.getAt(set[k], i - offsets[o]);
-    return Tuple.create(k, e);
+    return Atom.create(k, e);
 }
 
-function indexOfE(set: AtomSetElements, t: Tuple) {
+function indexOfE(set: AtomSetElements, t: Atom) {
     const { keys } = set;
-    const u = Tuple.fst(t);
+    const u = Atom.unit(t);
     const setIdx = OrderedSet.indexOf(keys, u);
     if (setIdx < 0) return -1;
-    const o = OrderedSet.indexOf(set[u], Tuple.snd(t));
+    const o = OrderedSet.indexOf(set[u], Atom.index(t));
     if (o < 0) return -1;
     return set.offsets[setIdx] + o;
 }
@@ -332,9 +332,9 @@ function areEqualEE(a: AtomSetElements, b: AtomSetElements) {
     return true;
 }
 
-function areIntersectingNE(a: Tuple, b: AtomSetElements) {
-    const u = Tuple.fst(a);
-    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], Tuple.snd(a));
+function areIntersectingNE(a: Atom, b: AtomSetElements) {
+    const u = Atom.unit(a);
+    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], Atom.index(a));
 }
 
 function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
@@ -350,9 +350,9 @@ function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
     return false;
 }
 
-function intersectNE(a: Tuple, b: AtomSetElements) {
-    const u = Tuple.fst(a);
-    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], Tuple.snd(a)) ? a : Empty;
+function intersectNE(a: Atom, b: AtomSetElements) {
+    const u = Atom.unit(a);
+    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], Atom.index(a)) ? a : Empty;
 }
 
 function intersectEE(a: AtomSetElements, b: AtomSetElements) {
@@ -377,14 +377,14 @@ function intersectEE(a: AtomSetElements, b: AtomSetElements) {
     return ofObjectOrdered(OrderedSet.ofSortedArray(keys), ret);
 }
 
-function subtractNE(a: Tuple, b: AtomSetElements) {
-    const u = Tuple.fst(a);
-    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], Tuple.snd(a)) ? Empty : a;
+function subtractNE(a: Atom, b: AtomSetElements) {
+    const u = Atom.unit(a);
+    return OrderedSet.has(b.keys, u) && OrderedSet.has(b[u], Atom.index(a)) ? Empty : a;
 }
 
-function subtractEN(a: AtomSetElements, b: Tuple): AtomSetImpl {
+function subtractEN(a: AtomSetElements, b: Atom): AtomSetImpl {
     const aKeys =  a.keys;
-    const u = Tuple.fst(b), v = Tuple.snd(b);
+    const u = Atom.unit(b), v = Atom.index(b);
     if (!OrderedSet.has(aKeys, u) || !OrderedSet.has(a[u], v)) return a;
     const set = a[u];
     if (OrderedSet.size(set) === 1) {
@@ -465,14 +465,14 @@ function unionN(sets: ArrayLike<AtomSetImpl>, eCount: { count: number }) {
     }
     eCount.count = countE;
     if (!countN) return Empty;
-    if (countN === sets.length) return ofTuples(sets as ArrayLike<Tuple>);
+    if (countN === sets.length) return ofAtoms(sets as ArrayLike<Atom>);
     const packed = new Float64Array(countN);
     let offset = 0;
     for (let i = 0, _i = sets.length; i < _i; i++) {
         const s = sets[i];
         if (typeof s === 'number') packed[offset++] = s;
     }
-    return ofTuples(packed as any);
+    return ofAtoms(packed as any);
 }
 
 function unionInto(data: { [key: number]: OrderedSet }, a: AtomSetElements) {
@@ -485,12 +485,12 @@ function unionInto(data: { [key: number]: OrderedSet }, a: AtomSetElements) {
     }
 }
 
-function unionIntoN(data: { [key: number]: OrderedSet }, a: Tuple) {
-    const u = Tuple.fst(a);
+function unionIntoN(data: { [key: number]: OrderedSet }, a: Atom) {
+    const u = Atom.unit(a);
     const set = data[u];
     if (set) {
-        data[u] = OrderedSet.union(set, OrderedSet.ofSingleton(Tuple.snd(a)));
+        data[u] = OrderedSet.union(set, OrderedSet.ofSingleton(Atom.index(a)));
     } else {
-        data[u] = OrderedSet.ofSingleton(Tuple.snd(a));
+        data[u] = OrderedSet.ofSingleton(Atom.index(a));
     }
 }

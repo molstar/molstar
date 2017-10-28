@@ -7,20 +7,25 @@
 import Iterator from '../iterator'
 import Interval from './interval'
 import OrderedSet from './ordered-set'
-import SortedArray from './sorted-array'
 import * as Impl from './impl/segmentation'
 
 namespace Segmentation {
     export interface Segment { index: number, start: number, end: number }
 
-    export const create: (segs: SortedArray, segIndex: ArrayLike<number>) => Segmentation = Impl.create as any;
+    export const create: (segs: ArrayLike<number>) => Segmentation = Impl.create as any;
 
+    export const count: (segs: Segmentation) => number = Impl.count as any;
     export const getSegment: (segs: Segmentation, value: number) => number = Impl.getSegment as any;
     export const projectValue: (segs: Segmentation, set: OrderedSet, value: number) => Interval = Impl.projectValue as any;
 
     export const segments: (segs: Segmentation, set: OrderedSet, range?: Interval) => Iterator<Segment> = Impl.segments as any;
 }
 
-interface Segmentation { '@type': 'segmentation' }
+interface Segmentation {
+    '@type': 'segmentation',
+    readonly segmentMap: ArrayLike<number>,
+    readonly offset: number,
+    readonly count: number
+}
 
 export default Segmentation

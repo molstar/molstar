@@ -10,15 +10,22 @@ import Interval from '../interval'
 import SortedArray from '../sorted-array'
 import Segs from '../segmentation'
 
-type Segmentation = { segments: OrderedSet, segmentIndex: ArrayLike<number> }
+type Segmentation = { segments: SortedArray, segmentMap: ArrayLike<number>, offset: number, count: number }
 
-export function create(segments: SortedArray, segmentIndex: ArrayLike<number>): Segmentation {
-    return { segments, segmentIndex };
+export function create(values: ArrayLike<number>): Segmentation {
+    const segments = SortedArray.ofSortedArray(values);
+    const min = SortedArray.min(segments), max = SortedArray.max(segments);
+    const segmentMap = new Int32Array(max - min);
+    for (let i = 0, _i = values.length - 1; i < _i; i++) {
+        for (let j = values[i] - min, _j = values[i + 1] - min; j < _j; j++) {
+            segmentMap[j] = i;
+        }
+    }
+    return { segments, segmentMap, offset: min, count: values.length - 1 };
 }
 
-export function getSegment({ segmentIndex }: Segmentation, value: number) {
-    return segmentIndex[value];
-}
+export function count({ count }: Segmentation) { return count; }
+export function getSegment({ segmentMap, offset }: Segmentation, value: number) { return segmentMap[value - offset]; }
 
 export function projectValue({ segments }: Segmentation, set: OrderedSet, value: number): Interval {
     const last = OrderedSet.max(segments);

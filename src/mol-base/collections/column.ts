@@ -35,6 +35,7 @@ export interface Column<T> {
 }
 
 export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T): Column<T['@type']> {
+    const v = type.isString ? '' : 0;
     const value: Column<T['@type']>['value'] = type.isString ? row => '' : row => 0;
     return {
         '@type': type,
@@ -44,10 +45,32 @@ export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T)
         isValueDefined: row => false,
         toArray: params => {
             const { array } = createArray(rowCount, params);
-            for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(0)
+            for (let i = 0, _i = array.length; i < _i; i++) array[i] = v;
             return array;
         },
         stringEquals: (row, value) => !value,
+        areValuesEqual: (rowA, rowB) => true
+    }
+}
+
+export function SingleValueColumn<T extends ColumnType>(v: T['@type'], rowCount: number, type: T): Column<T['@type']> {
+    const value: Column<T['@type']>['value'] = row => v;
+    return {
+        '@type': type,
+        isDefined: true,
+        rowCount,
+        value,
+        isValueDefined: row => false,
+        toArray: params => {
+            const { array } = createArray(rowCount, params);
+            for (let i = 0, _i = array.length; i < _i; i++) array[i] = v;
+            return array;
+        },
+        stringEquals: type.isString
+            ? (row, value) => value === v
+            : type.isScalar
+            ? (row, value) => +value === v
+            : (row, value) => false,
         areValuesEqual: (rowA, rowB) => true
     }
 }

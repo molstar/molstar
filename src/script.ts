@@ -13,9 +13,11 @@ const readFileAsync = util.promisify(fs.readFile);
 const writeFileAsync = util.promisify(fs.writeFile);
 
 import Gro from './mol-io/reader/gro/parser'
-import CIF from './mol-io/reader/cif/index'
+import CIF from './mol-io/reader/cif'
 
 import Computation from './mol-base/computation'
+
+import createModels from './mol-data/model/formats/mmcif'
 
 // import { toTypedFrame as applySchema } from './reader/cif/schema'
 import { generateSchema } from './mol-io/reader/cif/schema/utils'
@@ -111,6 +113,11 @@ async function runCIF(input: string | Uint8Array) {
     console.log(mmcif.atom_site.Cartn_x.value(0));
     console.log(mmcif.entity.type.toArray());
     console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
+
+    console.time('createModels');
+    const models = createModels(mmcif);
+    console.timeEnd('createModels');
+    console.log(models[0].common);
 
     // const schema = await _dic()
     // if (schema) {

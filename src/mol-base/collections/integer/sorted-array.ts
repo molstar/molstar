@@ -8,9 +8,7 @@ import * as Impl from './impl/sorted-array'
 import Interval from './interval'
 
 namespace SortedArray {
-    /** Create interval [min, max] */
-    export const create: (xs: ArrayLike<number>) => SortedArray = Impl.ofUnsortedArray as any;
-    /** Create interval [min, max) */
+    export const ofUnsortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofUnsortedArray as any;
     export const ofSortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofSortedArray as any;
     export const is: (v: any) => v is Interval = Impl.is as any;
 
