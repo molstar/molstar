@@ -40,6 +40,7 @@ export interface Unit extends Readonly<{
     getPosition(atom: number, slot: Vec3): Vec3
 }
 
+// TODO: do "single model" version of the structure?
 export interface Structure extends Readonly<{
     units: Readonly<{ [id: number]: Unit }>,
     atoms: AtomSet

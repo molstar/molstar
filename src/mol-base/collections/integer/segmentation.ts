@@ -18,7 +18,8 @@ namespace Segmentation {
     export const getSegment: (segs: Segmentation, value: number) => number = Impl.getSegment as any;
     export const projectValue: (segs: Segmentation, set: OrderedSet, value: number) => Interval = Impl.projectValue as any;
 
-    export const segments: (segs: Segmentation, set: OrderedSet, range?: Interval) => Iterator<Segment> = Impl.segments as any;
+    // Segment iterator that mutates a single segment object to mark all the segments.
+    export const transientSegments: (segs: Segmentation, set: OrderedSet, range?: Interval) => Iterator<Segment> = Impl.segments as any;
 }
 
 interface Segmentation {

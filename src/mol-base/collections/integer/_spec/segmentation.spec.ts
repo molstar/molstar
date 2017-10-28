@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../integer/ordered-set'
-import Interval from '../integer/interval'
-import Segmentation from '../integer/segmentation'
+import OrderedSet from '../ordered-set'
+import Interval from '../interval'
+import Segmentation from '../segmentation'
 
 describe('segments', () => {
     const data = OrderedSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
@@ -27,7 +27,7 @@ describe('segments', () => {
     })
 
     it('iteration', () => {
-        const it = Segmentation.segments(segs, data);
+        const it = Segmentation.transientSegments(segs, data);
 
         const t = Object.create(null);
         while (it.hasNext) {

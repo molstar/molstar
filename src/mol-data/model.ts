@@ -14,16 +14,18 @@ import Segmentation from '../mol-base/collections/integer/segmentation'
  *
  * "Atoms" are integers in the range [0, atomCount).
  */
-interface Model {
+interface Model extends Readonly<{
     sourceData: Formats.RawData,
 
     common: CommonInterface,
     macromolecule: MacromoleculeInterface
 
     atomCount: number,
-    chains: Segmentation,
-    residues: Segmentation,
-    entities: Segmentation
-}
+    segments: Readonly<{
+        chains: Segmentation,
+        residues: Segmentation,
+        entities: Segmentation
+    }>
+}> { }
 
 export default Model

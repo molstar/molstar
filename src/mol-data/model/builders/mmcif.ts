@@ -57,9 +57,7 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
         common: 0 as any,
         macromolecule: 0 as any,
         atomCount: Interval.size(bounds),
-        residues: segments.residues,
-        chains: segments.chains,
-        entities: segments.entities
+        segments
     };
 }
 

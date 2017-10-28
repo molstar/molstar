@@ -53,7 +53,7 @@ export function UndefinedColumn<T extends ColumnType>(rowCount: number, type: T)
     }
 }
 
-export function SingleValueColumn<T extends ColumnType>(v: T['@type'], rowCount: number, type: T): Column<T['@type']> {
+export function ConstColumn<T extends ColumnType>(v: T['@type'], rowCount: number, type: T): Column<T['@type']> {
     const value: Column<T['@type']>['value'] = row => v;
     return {
         '@type': type,

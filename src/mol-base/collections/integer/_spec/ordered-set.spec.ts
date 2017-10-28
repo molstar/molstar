@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../integer/ordered-set'
-import Interval from '../integer/interval'
+import OrderedSet from '../ordered-set'
+import Interval from '../interval'
 
 describe('ordered set', () => {
     function ordSetToArray(set: OrderedSet) {

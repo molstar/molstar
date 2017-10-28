@@ -274,7 +274,7 @@ export namespace Tuples {
 export function testSegments() {
     const data = OrdSet.ofSortedArray([4, 9, 10, 11, 14, 15, 16]);
     const segs = Segmentation.create([0, 4, 10, 12, 13, 15, 25]);
-    const it = Segmentation.segments(segs, data);
+    const it = Segmentation.transientSegments(segs, data);
 
     while (it.hasNext) {
         const s = it.move();
