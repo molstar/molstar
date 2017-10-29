@@ -25,12 +25,18 @@ namespace SortedArray {
     export const hashCode: (array: SortedArray) => number = Impl.hashCode as any;
 
     export const areEqual: (a: SortedArray, b: SortedArray) => boolean = Impl.areEqual as any;
+    export const areIntersecting: (a: SortedArray, b: SortedArray) => boolean = Impl.areIntersecting as any;
+    export const isSubset: (a: SortedArray, b: SortedArray) => boolean = Impl.isSubset as any;
+
+    export const union: (a: SortedArray, b: SortedArray) => SortedArray = Impl.union as any;
+    export const intersect: (a: SortedArray, b: SortedArray) => SortedArray = Impl.intersect as any;
+    export const subtract: (a: SortedArray, b: SortedArray) => SortedArray = Impl.subtract as any;
 
     export const findPredecessorIndex: (array: SortedArray, x: number) => number = Impl.findPredecessorIndex as any;
     export const findPredecessorIndexInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
     export const findRange: (array: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
 }
 
-interface SortedArray extends ReadonlyArray<number> { '@type': 'int-sorted-array' }
+interface SortedArray extends ArrayLike<number> { '@type': 'int-sorted-array' }
 
 export default SortedArray
