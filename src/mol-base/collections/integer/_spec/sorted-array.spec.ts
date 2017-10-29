@@ -34,7 +34,7 @@ describe('sortedArray', () => {
     test('indexOf', SortedArray.indexOf(a2468, 5), -1);
     test('indexOf', SortedArray.indexOf(a2468, 2), 0);
 
-    test('getAt', SortedArray.getAt(a2468, 1), 4);
+    test('getAt', a2468[1], 4);
 
     test('areEqual', SortedArray.areEqual(a2468, a2468), true);
     test('areEqual1', SortedArray.areEqual(a2468, SortedArray.ofUnsortedArray([4, 2, 8, 6])), true);

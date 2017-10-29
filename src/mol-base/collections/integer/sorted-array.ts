@@ -8,14 +8,16 @@ import * as Impl from './impl/sorted-array'
 import Interval from './interval'
 
 namespace SortedArray {
+    export const Empty: SortedArray = Impl.Empty as any;
     export const ofUnsortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofUnsortedArray as any;
+    export const ofSingleton: (v: number) => SortedArray = Impl.ofSingleton as any;
     export const ofSortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofSortedArray as any;
     export const is: (v: any) => v is Interval = Impl.is as any;
 
     export const has: (array: SortedArray, x: number) => boolean = Impl.has as any;
     export const indexOf: (array: SortedArray, x: number) => number = Impl.indexOf as any;
     export const indexOfInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.indexOfInterval as any;
-    export const getAt: (array: SortedArray, i: number) => number = Impl.getAt as any;
+    //export const getAt: (array: SortedArray, i: number) => number = Impl.getAt as any;
 
     export const start: (array: SortedArray) => number = Impl.start as any;
     export const end: (array: SortedArray) => number = Impl.end as any;

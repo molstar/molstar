@@ -13,10 +13,8 @@ type Nums = ArrayLike<number>
 
 export const Empty: Nums = []
 
-export function ofSortedArray(xs: Nums) {
-    if (xs.length < 1) throw new Error('Sorted arrays must be non-empty.');
-    return xs;
-}
+export function ofSingleton(v: number) { return [v]; }
+export function ofSortedArray(xs: Nums) { return xs; }
 export function ofUnsortedArray(xs: Nums) { sortArray(xs); return xs; }
 export function is(xs: any): xs is Nums { return xs && (Array.isArray(xs) || !!xs.buffer); }
 
@@ -257,7 +255,7 @@ export function subtract(a: Nums, b: Nums) {
 
 const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };
 // for small sets, just gets the whole range, for large sets does a bunch of binary searches
-export function getSuitableIntersectionRange(a: Nums, b: Nums) {
+function getSuitableIntersectionRange(a: Nums, b: Nums) {
     const la = a.length, lb = b.length;
     const ratio = la / lb;
     if (ratio <= 0.5 || ratio >= 2 || (la >= 128 && lb >= 128)) {

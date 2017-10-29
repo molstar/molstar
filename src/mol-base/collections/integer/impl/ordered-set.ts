@@ -26,7 +26,7 @@ export function ofSortedArray(xs: Nums): OrderedSetImpl {
 export function size(set: OrderedSetImpl) { return I.is(set) ? I.size(set) : S.size(set); }
 export function has(set: OrderedSetImpl, x: number) { return I.is(set) ? I.has(set, x) : S.has(set, x); }
 export function indexOf(set: OrderedSetImpl, x: number) { return I.is(set) ? I.indexOf(set, x) : S.indexOf(set, x); }
-export function getAt(set: OrderedSetImpl, i: number) { return I.is(set) ? I.getAt(set, i) : S.getAt(set, i); }
+export function getAt(set: OrderedSetImpl, i: number) { return I.is(set) ? I.getAt(set, i) : set[i]; }
 export function min(set: OrderedSetImpl) { return I.is(set) ? I.min(set) : S.min(set); }
 export function max(set: OrderedSetImpl) { return I.is(set) ? I.max(set) : S.max(set); }
 
