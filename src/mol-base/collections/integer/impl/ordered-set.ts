@@ -95,11 +95,21 @@ export function subtract(a: OrderedSetImpl, b: OrderedSetImpl) {
 }
 
 const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };
-function getMaxIntersectionRange(a: S, b: S) {
-    _maxIntRangeRet.startI = S.findPredecessorIndex(a, S.start(b));
-    _maxIntRangeRet.startJ = S.findPredecessorIndex(b, S.start(a));
-    _maxIntRangeRet.endI = S.findPredecessorIndex(a, S.end(b));
-    _maxIntRangeRet.endJ = S.findPredecessorIndex(b, S.end(a));
+// for small sets, just gets the whole range, for large sets does a bunch of binary searches
+function getSuitableIntersectionRange(a: S, b: S) {
+    const la = a.length, lb = b.length;
+    const ratio = la / lb;
+    if (ratio <= 0.5 || ratio >= 2 || (la >= 128 && lb >= 128)) {
+        _maxIntRangeRet.startI = S.findPredecessorIndex(a, S.start(b));
+        _maxIntRangeRet.startJ = S.findPredecessorIndex(b, S.start(a));
+        _maxIntRangeRet.endI = S.findPredecessorIndex(a, S.end(b));
+        _maxIntRangeRet.endJ = S.findPredecessorIndex(b, S.end(a));
+    } else {
+        _maxIntRangeRet.startI = 0;
+        _maxIntRangeRet.startJ = 0;
+        _maxIntRangeRet.endI = la;
+        _maxIntRangeRet.endJ = lb;
+    }
     return _maxIntRangeRet;
 }
 
@@ -112,10 +122,9 @@ function areIntersectingSI(a: S, b: I) {
 function areIntersectingSS(a: S, b: S) {
     if (a === b) return true;
 
-    const xs = S.values(a), ys = S.values(b);
-    let { startI: i, startJ: j, endI, endJ } = getMaxIntersectionRange(a, b);
+    let { startI: i, startJ: j, endI, endJ } = getSuitableIntersectionRange(a, b);
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else return true;
@@ -142,15 +151,14 @@ function isSubsetIS(a: I, b: S) {
 function isSubsetSS(a: S, b: S) {
     if (a === b) return true;
 
-    const xs = S.values(a), ys = S.values(b);
-    const lenB = ys.length;
-    let { startI: i, startJ: j, endI, endJ } = getMaxIntersectionRange(a, b);
+    const lenB = b.length;
+    let { startI: i, startJ: j, endI, endJ } = getSuitableIntersectionRange(a, b);
     // must be able to advance by lenB elements
     if (endJ - j < lenB || endI - i < lenB) return false;
 
     let equal = 0;
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { i++; j++; equal++; }
@@ -196,12 +204,11 @@ function unionSI(a: S, b: I) {
     const min = I.min(b), max = I.max(b);
     const r = S.findRange(a, min, max);
     const start = I.start(r), end = I.end(r);
-    const xs = S.values(a);
-    const indices = new Int32Array(start + (xs.length - end) + bSize);
+    const indices = new Int32Array(start + (a.length - end) + bSize);
     let offset = 0;
-    for (let i = 0; i < start; i++) indices[offset++] = xs[i];
+    for (let i = 0; i < start; i++) indices[offset++] = a[i];
     for (let i = min; i <= max; i++) indices[offset++] = i;
-    for (let i = end, _i = xs.length; i < _i; i++) indices[offset] = xs[i];
+    for (let i = end, _i = a.length; i < _i; i++) indices[offset] = a[i];
 
     return ofSortedArray(indices);
 }
@@ -209,25 +216,24 @@ function unionSI(a: S, b: I) {
 function unionSS(a: S, b: S) {
     if (a === b) return a;
 
-    const xs = S.values(a), ys = S.values(b);
-    const { startI: sI, startJ: sJ, endI, endJ } = getMaxIntersectionRange(a, b);
+    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
     let i = sI, j = sJ;
     let commonCount = 0;
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { i++; j++; commonCount++; }
     }
 
-    const lenA = xs.length, lenB = ys.length;
+    const lenA = a.length, lenB = b.length;
     // A === B || B is subset of A ==> A
-    if ((commonCount === lenA && commonCount === lenB) || commonCount === lenB) return xs;
+    if ((commonCount === lenA && commonCount === lenB) || commonCount === lenB) return a;
     // A is subset of B ===> B
-    if (commonCount === lenA) return ys;
+    if (commonCount === lenA) return b;
 
     const resultSize = lenA + lenB - commonCount;
-    const l = Math.min(xs[0], ys[0]), r = Math.max(xs[lenA - 1], ys[lenB - 1]);
+    const l = Math.min(a[0], b[0]), r = Math.max(a[lenA - 1], b[lenB - 1]);
     // is this just a range?
     if (resultSize === r - l + 1) {
         return I.ofRange(l, r);
@@ -237,22 +243,22 @@ function unionSS(a: S, b: S) {
     let offset = 0;
 
     // insert the "prefixes"
-    for (let k = 0; k < sI; k++) indices[offset++] = xs[k];
-    for (let k = 0; k < sJ; k++) indices[offset++] = ys[k];
+    for (let k = 0; k < sI; k++) indices[offset++] = a[k];
+    for (let k = 0; k < sJ; k++) indices[offset++] = b[k];
 
     // insert the common part
     i = sI;
     j = sJ;
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { indices[offset++] = x; i++; }
         else if (x > y) { indices[offset++] = y; j++; }
         else { indices[offset++] = x; i++; j++; }
     }
 
     // insert the "tail"
-    for (; i < lenA; i++) indices[offset++] = xs[i];
-    for (; j < lenB; j++) indices[offset++] = ys[j];
+    for (; i < lenA; i++) indices[offset++] = a[i];
+    for (; j < lenB; j++) indices[offset++] = b[j];
 
     return ofSortedArray(indices);
 }
@@ -265,11 +271,10 @@ function intersectSI(a: S, b: I) {
     const resultSize = end - start;
     if (!resultSize) return Empty;
 
-    const xs = S.values(a);
     const indices = new Int32Array(resultSize);
     let offset = 0;
     for (let i = start; i < end; i++) {
-        indices[offset++] = xs[i];
+        indices[offset++] = a[i];
     }
     return ofSortedArray(indices);
 }
@@ -277,18 +282,17 @@ function intersectSI(a: S, b: I) {
 function intersectSS(a: S, b: S) {
     if (a === b) return a;
 
-    const xs = S.values(a), ys = S.values(b);
-    const { startI: sI, startJ: sJ, endI, endJ } = getMaxIntersectionRange(a, b);
+    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
     let i = sI, j = sJ;
     let commonCount = 0;
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { i++; j++; commonCount++; }
     }
 
-    const lenA = xs.length, lenB = ys.length;
+    const lenA = a.length, lenB = b.length;
     // no common elements
     if (!commonCount) return Empty;
     // A === B || B is subset of A ==> B
@@ -301,7 +305,7 @@ function intersectSS(a: S, b: S) {
     i = sI;
     j = sJ;
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { indices[offset++] = x; i++; j++; }
@@ -340,19 +344,18 @@ function subtractSI(a: S, b: I) {
     // is empty?
     if (max < min) return a;
 
-    const xs = S.values(a);
     const r = S.findRange(a, min, max);
     const start = I.start(r), end = I.end(r);
-    const resultSize = xs.length - (end - start);
+    const resultSize = a.length - (end - start);
     // A is subset of B
     if (resultSize <= 0) return Empty;
     // No common elements
-    if (resultSize === xs.length) return xs;
+    if (resultSize === a.length) return a;
 
     const ret = new Int32Array(resultSize);
     let offset = 0;
-    for (let i = 0; i < start; i++) ret[offset++] = xs[i];
-    for (let i = end, _i = xs.length; i < _i; i++) ret[offset++] = xs[i];
+    for (let i = 0; i < start; i++) ret[offset++] = a[i];
+    for (let i = end, _i = a.length; i < _i; i++) ret[offset++] = a[i];
     return ofSortedArray(ret);
 }
 
@@ -374,10 +377,9 @@ function subtractIS(a: I, b: S) {
     // A is subset of B
     if (resultSize <= 0) return Empty;
 
-    const xs = S.values(b);
     const ret = new Int32Array(resultSize);
-    const li = xs.length - 1;
-    const fst = xs[Math.min(start, li)], last = xs[Math.min(end, li)];
+    const li = b.length - 1;
+    const fst = b[Math.min(start, li)], last = b[Math.min(end, li)];
     let offset = 0;
     for (let i = min; i < fst; i++) ret[offset++] = i;
     for (let i = fst; i <= last; i++) {
@@ -390,21 +392,19 @@ function subtractIS(a: I, b: S) {
 function subtractSS(a: S, b: S) {
     if (a === b) return Empty;
 
-    const xs = S.values(a), ys = S.values(b);
-    const lenA = xs.length;
-
-    const { startI: sI, startJ: sJ, endI, endJ } = getMaxIntersectionRange(a, b);
+    const lenA = a.length;
+    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
     let i = sI, j = sJ;
     let commonCount = 0;
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { i++; }
         else if (x > y) { j++; }
         else { i++; j++; commonCount++; }
     }
 
     // A isnt intersecting B ===> A
-    if (!commonCount) return xs;
+    if (!commonCount) return a;
     // A === B || A is subset of B ===> Empty
     if (commonCount >= lenA) return Empty;
 
@@ -412,19 +412,19 @@ function subtractSS(a: S, b: S) {
     let offset = 0;
 
     // insert the "prefix"
-    for (let k = 0; k < sI; k++) indices[offset++] = xs[k];
+    for (let k = 0; k < sI; k++) indices[offset++] = a[k];
 
     i = sI;
     j = sJ;
     while (i < endI && j < endJ) {
-        const x = xs[i], y = ys[j];
+        const x = a[i], y = b[j];
         if (x < y) { indices[offset++] = x; i++; }
         else if (x > y) { j++; }
         else { i++; j++; }
     }
 
     // insert the "tail"
-    for (; i < lenA; i++) indices[offset++] = xs[i];
+    for (; i < lenA; i++) indices[offset++] = a[i];
 
     return ofSortedArray(indices);
 }

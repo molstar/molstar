@@ -12,8 +12,6 @@ namespace SortedArray {
     export const ofSortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofSortedArray as any;
     export const is: (v: any) => v is Interval = Impl.is as any;
 
-    export const values: (array: SortedArray) => ArrayLike<number> = (xs) => xs as any;
-
     export const has: (array: SortedArray, x: number) => boolean = Impl.has as any;
     export const indexOf: (array: SortedArray, x: number) => number = Impl.indexOf as any;
     export const indexOfInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.indexOfInterval as any;
@@ -33,6 +31,6 @@ namespace SortedArray {
     export const findRange: (array: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
 }
 
-interface SortedArray { '@type': 'int-sorted-array' }
+interface SortedArray extends ReadonlyArray<number> { '@type': 'int-sorted-array' }
 
 export default SortedArray
