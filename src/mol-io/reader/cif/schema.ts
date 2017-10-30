@@ -24,8 +24,8 @@ import Column, { createAndFillArray } from '../../../mol-base/collections/column
 
 //////////////////////////////////////////////
 
-export function toTypedFrame<Schema extends FrameSchema>(schema: Schema, frame: Data.Frame): TypedFrame<Schema> {
-    return createTypedFrame(schema, frame) as TypedFrame<Schema>;
+export function toTypedFrame<Schema extends FrameSchema, Frame extends TypedFrame<Schema> = TypedFrame<Schema>>(schema: Schema, frame: Data.Frame): Frame {
+    return createTypedFrame(schema, frame) as Frame;
 }
 
 export function toTypedCategory<Schema extends CategorySchema>(schema: Schema, category: Data.Category): TypedCategory<Schema> {
@@ -33,13 +33,14 @@ export function toTypedCategory<Schema extends CategorySchema>(schema: Schema, c
 }
 
 export type FrameSchema = { [category: string]: CategorySchema }
+export type TypedFrameShape<Schema extends FrameSchema> = { [C in keyof Schema]: TypedCategoryShape<Schema[C]> }
 export type TypedFrame<Schema extends FrameSchema> = {
     readonly _header?: string,
     readonly _frame: Data.Frame
 } & { [C in keyof Schema]: TypedCategory<Schema[C]> }
 
-
 export type CategorySchema = { [field: string]: Field.Schema<any> }
+export type TypedCategoryShape<Schema extends CategorySchema> = { [F in keyof Schema]: Column<Schema[F]['T']> }
 export type TypedCategory<Schema extends CategorySchema> = {
     readonly _rowCount: number,
     readonly _isDefined: boolean,

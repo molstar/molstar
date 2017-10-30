@@ -5,7 +5,7 @@
  */
 
 import { RawData } from '../formats'
-import mmCIF from '../../../mol-io/reader/cif/schema/mmcif'
+import { Frame as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 import Model from '../../model'
 import Interval from '../../../mol-base/collections/integer/interval'
 import Segmentation from '../../../mol-base/collections/integer/segmentation'
@@ -57,7 +57,8 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
     return {
         id: uuId(),
         sourceData: raw,
-        common: 0 as any,
+        model_num: 0, // TODO: fix
+        //common: 0 as any,
         macromolecule: 0 as any,
         conformation: 0 as any,
         version: { data: 0, conformation: 0 },

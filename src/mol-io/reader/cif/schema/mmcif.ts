@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Field, TypedFrame } from '../schema'
+import { Field, TypedFrame, TypedFrameShape } from '../schema'
 
 const str = Field.str();
 const int = Field.int();
@@ -14,9 +14,11 @@ const entry = {
     id: str
 }
 
+type EntityType = 'polymer' | 'non-polymer' | 'water'
+
 const entity = {
     id: str,
-    type: str as Field.Schema<'polymer' | 'non-polymer' | 'water'>,
+    type: str as Field.Schema<EntityType>,
     src_method: str,
     pdbx_description: str,
     formula_weight: float,
@@ -225,7 +227,7 @@ const atom_site = {
     pdbx_PDB_model_num: int
 }
 
-const mmCIF = {
+export const Schema = {
     entry,
     entity,
     exptl,
@@ -242,5 +244,6 @@ const mmCIF = {
     pdbx_struct_mod_residue,
     atom_site
 };
-type mmCIF = TypedFrame<typeof mmCIF>
-export default mmCIF;
+
+export interface Frame extends TypedFrame<typeof Schema> { }
+export interface Shape extends TypedFrameShape<typeof Schema> { }

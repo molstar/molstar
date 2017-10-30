@@ -5,9 +5,9 @@
  */
 
 import * as Formats from './model/formats'
-import CommonProperties from './model/common'
-import MacromoleculeProperties from './model/macromolecule'
-import Conformation from './model/conformation'
+//import CommonProperties from './model/properties/common'
+import MacromoleculeProperties from './model/properties/macromolecule'
+import Conformation from './model/properties/conformation'
 import Segmentation from '../mol-base/collections/integer/segmentation'
 
 /**
@@ -18,9 +18,11 @@ import Segmentation from '../mol-base/collections/integer/segmentation'
 interface Model extends Readonly<{
     id: string,
 
+    model_num: number,
+
     sourceData: Formats.RawData,
 
-    common: CommonProperties,
+    //common: CommonProperties,
     macromolecule: MacromoleculeProperties,
     conformation: Conformation,
 

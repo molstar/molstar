@@ -117,7 +117,7 @@ async function runCIF(input: string | Uint8Array) {
     console.time('createModels');
     const models = buildModels(mmcif);
     console.timeEnd('createModels');
-    console.log(models[0].common);
+    console.log(models[0].id);
 
     // const schema = await _dic()
     // if (schema) {

@@ -6,16 +6,16 @@
 
 import parseText from './cif/text/parser'
 import parseBinary from './cif/binary/parser'
-import { Block } from './cif/data-model'
+import { Frame } from './cif/data-model'
 import { toTypedFrame as applySchema } from './cif/schema'
-import mmCIF from './cif/schema/mmcif'
+import { Schema as mmCIF_Schema, Frame as mmCIF_Frame } from './cif/schema/mmcif'
 
 export default {
     parseText,
     parseBinary,
     applySchema,
     schema: {
-        mmCIF: (block: Block) => applySchema(mmCIF, block)
+        mmCIF: (frame: Frame) => applySchema<typeof mmCIF_Schema, mmCIF_Frame>(mmCIF_Schema, frame)
     }
 }
 
