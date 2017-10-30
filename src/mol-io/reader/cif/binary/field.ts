@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { isTypedArray, createAndFillArray, typedArrayWindow } from '../../../../mol-base/collections/column'
+import Column, { ColumnHelpers } from '../../../../mol-base/collections/column'
 import * as Data from '../data-model'
 import { EncodedColumn } from './encoding'
 import decode from './decoder'
@@ -13,7 +13,7 @@ import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../co
 export default function Field(column: EncodedColumn): Data.Field {
     const mask = column.mask ? decode(column.mask) as number[] : void 0;
     const data = decode(column.data);
-    const isNumeric = isTypedArray(data);
+    const isNumeric = ColumnHelpers.isTypedArray(data);
 
     const str: Data.Field['str'] = isNumeric
         ? mask
@@ -46,13 +46,12 @@ export default function Field(column: EncodedColumn): Data.Field {
         float,
         valueKind,
         areValuesEqual: (rowA, rowB) => data[rowA] === data[rowB],
-        stringEquals: (row, v) => str(row) === v,
-        toStringArray: params => createAndFillArray(rowCount, str, params),
+        toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
         toIntArray: isNumeric
-            ? params => typedArrayWindow(data, params)
-            : params => createAndFillArray(rowCount, int, params),
+            ? params => ColumnHelpers.typedArrayWindow(data, params)
+            : params => ColumnHelpers.createAndFillArray(rowCount, int, params),
         toFloatArray: isNumeric
-            ? params => typedArrayWindow(data, params)
-            : params => createAndFillArray(rowCount, float, params)
+            ? params => ColumnHelpers.typedArrayWindow(data, params)
+            : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
     };
 }

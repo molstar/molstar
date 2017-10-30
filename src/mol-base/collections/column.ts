@@ -89,6 +89,11 @@ namespace Column {
         return columnPermutation(column, indices, checkIndentity);
     }
 
+    /** A map of the 1st occurence of each value. */
+    export function createFirstIndexMap<T>(column: Column<T>) {
+        return createFirstIndexMapOfColumn(column);
+    }
+
     /** Makes the column backned by an array. Useful for columns that accessed often. */
     export function asArrayColumn<T>(c: Column<T>, array?: ToArrayParams['array']): Column<T> {
         if (c['@array']) return c;
@@ -98,6 +103,15 @@ namespace Column {
 }
 
 export default Column;
+
+function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> | undefined {
+    const map = new Map<T, number>();
+    for (let i = 0, _i = c.rowCount; i < _i; i++) {
+        const v = c.value(i);
+        if (!map.has(v)) return map.set(c.value(i), i);
+    }
+    return map;
+}
 
 function constColumn<T extends Column.Type>(v: T['T'], rowCount: number, type: T, valueKind: Column.ValueKind): Column<T['T']> {
     const value: Column<T['T']>['value'] = row => v;
@@ -109,7 +123,7 @@ function constColumn<T extends Column.Type>(v: T['T'], rowCount: number, type: T
         value,
         valueKind: row => valueKind,
         toArray: params => {
-            const { array } = createArray(rowCount, params);
+            const { array } = ColumnHelpers.createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = v;
             return array;
         },
@@ -126,7 +140,7 @@ function lambdaColumn<T extends Column.Type>({ value, valueKind, rowCount, type 
         value,
         valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
         toArray: params => {
-            const { array, start } = createArray(rowCount, params);
+            const { array, start } = ColumnHelpers.createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(i + start);
             return array;
         },
@@ -140,7 +154,7 @@ function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.A
         ? row => { const v = array[row]; return typeof v === 'string' ? v : '' + v; }
         : row => array[row];
 
-    const isTyped = isTypedArray(array);
+    const isTyped = ColumnHelpers.isTypedArray(array);
     return {
         '@type': type,
         '@array': array,
@@ -150,7 +164,7 @@ function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.A
         valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
         toArray: type.kind === 'str'
             ? params => {
-                const { start, end } = getArrayBounds(rowCount, params);
+                const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
                 const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
                 for (let i = 0, _i = end - start; i < _i; i++) {
                     const v = array[start + i];
@@ -159,9 +173,9 @@ function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.A
                 return ret;
             }
             : isTyped
-            ? params => typedArrayWindow(array, params) as any as ReadonlyArray<T>
+            ? params => ColumnHelpers.typedArrayWindow(array, params) as any as ReadonlyArray<T>
             : params => {
-                const { start, end } = getArrayBounds(rowCount, params);
+                const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
                 if (start === 0 && end === array.length) return array as ReadonlyArray<T['T']>;
                 const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
                 for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
@@ -173,12 +187,12 @@ function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.A
 
 function windowColumn<T>(column: Column<T>, start: number, end: number) {
     if (!column.isDefined) return Column.Undefined(end - start, column['@type']);
-    if (column['@array'] && isTypedArray(column['@array'])) return windowTyped(column, start, end);
+    if (column['@array'] && ColumnHelpers.isTypedArray(column['@array'])) return windowTyped(column, start, end);
     return windowFull(column, start, end);
 }
 
 function windowTyped<T>(c: Column<T>, start: number, end: number): Column<T> {
-    const array = typedArrayWindow(c['@array'], { start, end });
+    const array = ColumnHelpers.typedArrayWindow(c['@array'], { start, end });
     return arrayColumn({ array, type: c['@type'], valueKind: c.valueKind }) as any;
 }
 
@@ -194,7 +208,7 @@ function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
         value,
         valueKind: start === 0 ? vk : row => vk(row + start),
         toArray: params => {
-            const { array } = createArray(rowCount, params);
+            const { array } = ColumnHelpers.createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = v(i + start);
             return array;
         },
@@ -202,19 +216,25 @@ function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
     };
 }
 
+function isIdentity(map: ArrayLike<number>) {
+    for (let i = 0, _i = map.length; i < _i; i++) {
+        if (map[i] !== i) return false;
+    }
+    return true;
+}
+
 function columnPermutation<T>(c: Column<T>, map: ArrayLike<number>, checkIdentity: boolean): Column<T> {
     if (!c.isDefined) return c;
-    if (checkIdentity) {
-        let isIdentity = true;
-        for (let i = 0, _i = map.length; i < _i; i++) {
-            if (map[i] !== i) {
-                isIdentity = false;
-                break;
-            }
-        }
-        if (isIdentity) return c;
-    }
+    if (checkIdentity && isIdentity(map)) return c;
+    if (!c['@array']) return permutationArray(c, map);
     return permutationFull(c, map);
+}
+
+function permutationArray<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
+    const array = c['@array']!;
+    const ret = new (array as any).constructor(c.rowCount);
+    for (let i = 0, _i = c.rowCount; i < _i; i++) ret[i] = array[map[i]];
+    return arrayColumn({ array: ret, type: c['@type'], valueKind: c.valueKind });
 }
 
 function permutationFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
@@ -229,7 +249,7 @@ function permutationFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
         value,
         valueKind: row => vk(map[row]),
         toArray: params => {
-            const { array } = createArray(rowCount, params);
+            const { array } = ColumnHelpers.createArray(rowCount, params);
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = v(map[i]);
             return array;
         },
@@ -237,39 +257,37 @@ function permutationFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
     };
 }
 
-/** A helped function for Column.toArray */
-export function getArrayBounds(rowCount: number, params?: Column.ToArrayParams) {
-    const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;
-    const end = params && typeof params.end !== 'undefined' ? Math.min(params.end, rowCount) : rowCount;
-    return { start, end };
-}
+export namespace ColumnHelpers {
+    export function getArrayBounds(rowCount: number, params?: Column.ToArrayParams) {
+        const start = params && typeof params.start !== 'undefined' ? Math.max(Math.min(params.start, rowCount - 1), 0) : 0;
+        const end = params && typeof params.end !== 'undefined' ? Math.min(params.end, rowCount) : rowCount;
+        return { start, end };
+    }
 
-/** A helped function for Column.toArray */
-export function createArray(rowCount: number, params?: Column.ToArrayParams) {
-    const c = params && typeof params.array !== 'undefined' ? params.array : Array;
-    const { start, end } = getArrayBounds(rowCount, params);
-    return { array: new c(end - start) as any[], start, end };
-}
+    export function createArray(rowCount: number, params?: Column.ToArrayParams) {
+        const c = params && typeof params.array !== 'undefined' ? params.array : Array;
+        const { start, end } = getArrayBounds(rowCount, params);
+        return { array: new c(end - start) as any[], start, end };
+    }
 
-/** A helped function for Column.toArray */
-export function fillArrayValues(value: (row: number) => any, target: any[], start: number) {
-    for (let i = 0, _e = target.length; i < _e; i++) target[i] = value(start + i);
-    return target;
-}
+    export function fillArrayValues(value: (row: number) => any, target: any[], start: number) {
+        for (let i = 0, _e = target.length; i < _e; i++) target[i] = value(start + i);
+        return target;
+    }
 
-/** A helped function for Column.toArray */
-export function createAndFillArray(rowCount: number, value: (row: number) => any, params?: Column.ToArrayParams) {
-    const { array, start } = createArray(rowCount, params);
-    return fillArrayValues(value, array, start);
-}
+    export function createAndFillArray(rowCount: number, value: (row: number) => any, params?: Column.ToArrayParams) {
+        const { array, start } = createArray(rowCount, params);
+        return fillArrayValues(value, array, start);
+    }
 
-export function isTypedArray(data: any): boolean {
-    return !!data.buffer && typeof data.byteLength === 'number' && typeof data.BYTES_PER_ELEMENT === 'number';
-}
+    export function isTypedArray(data: any): boolean {
+        return !!data.buffer && typeof data.byteLength === 'number' && typeof data.BYTES_PER_ELEMENT === 'number';
+    }
 
-export function typedArrayWindow(data: any, params?: Column.ToArrayParams): ReadonlyArray<number> {
-    const { constructor, buffer, length, byteOffset, BYTES_PER_ELEMENT } = data;
-    const { start, end } = getArrayBounds(length, params);
-    if (start === 0 && end === length) return data;
-    return new constructor(buffer, byteOffset + BYTES_PER_ELEMENT * start, Math.min(length, end - start));
+    export function typedArrayWindow(data: any, params?: Column.ToArrayParams): ReadonlyArray<number> {
+        const { constructor, buffer, length, byteOffset, BYTES_PER_ELEMENT } = data;
+        const { start, end } = getArrayBounds(length, params);
+        if (start === 0 && end === length) return data;
+        return new constructor(buffer, byteOffset + BYTES_PER_ELEMENT * start, Math.min(length, end - start));
+    }
 }

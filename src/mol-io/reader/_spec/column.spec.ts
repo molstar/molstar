@@ -7,7 +7,7 @@
 
 import FixedColumn from '../common/text/column/fixed'
 import TokenColumn from '../common/text/column/token'
-import Column, { typedArrayWindow } from '../../../mol-base/collections/column'
+import Column, { ColumnHelpers } from '../../../mol-base/collections/column'
 
 const lines = [
     '1.123 abc',
@@ -64,8 +64,8 @@ describe('token text column', () => {
 describe('binary column', () => {
     it('window works', () => {
         const xs = new Float64Array([1, 2, 3, 4]);
-        const w1 = typedArrayWindow(xs, { start: 1 });
-        const w2 = typedArrayWindow(xs, { start: 2, end: 4 });
+        const w1 = ColumnHelpers.typedArrayWindow(xs, { start: 1 });
+        const w2 = ColumnHelpers.typedArrayWindow(xs, { start: 2, end: 4 });
 
         expect(w1.length).toBe(3);
         for (let i = 0; i < w1.length; i++) expect(w1[i]).toBe(xs[i + 1]);

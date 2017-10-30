@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { createAndFillArray } from '../../../../../mol-base/collections/column'
+import Column, { ColumnHelpers } from '../../../../../mol-base/collections/column'
 import { Tokens } from '../tokenizer'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../number-parser'
 
@@ -32,7 +32,7 @@ export function TokenColumn<T extends Column.Type>(tokens: Tokens, type: T): Col
         rowCount,
         value,
         valueKind: row => Column.ValueKind.Present,
-        toArray: params => createAndFillArray(rowCount, value, params),
+        toArray: params => ColumnHelpers.createAndFillArray(rowCount, value, params),
         areValuesEqual: areValuesEqualProvider(tokens)
     };
 }

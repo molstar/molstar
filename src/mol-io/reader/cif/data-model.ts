@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { createArray } from '../../../mol-base/collections/column'
+import Column from '../../../mol-base/collections/column'
 
 export interface File {
     readonly name?: string,
@@ -68,30 +68,10 @@ export interface Field {
     valueKind(row: number): Column.ValueKind,
 
     areValuesEqual(rowA: number, rowB: number): boolean,
-    stringEquals(row: number, value: string): boolean,
 
     toStringArray(params?: Column.ToArrayParams): ReadonlyArray<string>,
     toIntArray(params?: Column.ToArrayParams): ReadonlyArray<number>,
     toFloatArray(params?: Column.ToArrayParams): ReadonlyArray<number>
-}
-
-export function DefaultUndefinedField(rowCount: number): Field {
-    return {
-        '@array': void 0,
-        isDefined: false,
-        rowCount,
-        str: row => '',
-        int: row => 0,
-        float: row => 0,
-
-        valueKind: row => Column.ValueKind.NotPresent,
-        areValuesEqual: (rowA, rowB) => true,
-        stringEquals: (row, value) => value === null,
-
-        toStringArray: (p) => createArray(rowCount, p).array,
-        toIntArray: (p) => createArray(rowCount, p).array,
-        toFloatArray: (p) => createArray(rowCount, p).array
-    };
 }
 
 export function getMatrix(category: Category, field: string, rows: number, cols: number, row: number) {

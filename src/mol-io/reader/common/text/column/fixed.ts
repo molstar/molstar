@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { createAndFillArray } from '../../../../../mol-base/collections/column'
+import Column, { ColumnHelpers } from '../../../../../mol-base/collections/column'
 import { trimStr, Tokens } from '../tokenizer'
 import { parseIntSkipLeadingWhitespace, parseFloatSkipLeadingWhitespace } from '../number-parser'
 
@@ -40,7 +40,7 @@ export function FixedColumn<T extends Column.Type>(lines: Tokens, offset: number
         rowCount,
         value,
         valueKind: row => Column.ValueKind.Present,
-        toArray: params => createAndFillArray(rowCount, value, params),
+        toArray: params => ColumnHelpers.createAndFillArray(rowCount, value, params),
         areValuesEqual: (rowA, rowB) => value(rowA) === value(rowB)
     };
 }

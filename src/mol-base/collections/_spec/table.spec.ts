@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { isTypedArray } from '../column'
+import Column, { ColumnHelpers } from '../column'
 import Table from '../table'
 
 describe('column', () => {
@@ -32,7 +32,7 @@ describe('column', () => {
     it('typed', () => {
         expect(typedWindow.value(0)).toBe(2);
         expect(typedWindow.rowCount).toBe(2);
-        expect(isTypedArray(typedWindow.toArray())).toBe(true);
+        expect(ColumnHelpers.isTypedArray(typedWindow.toArray())).toBe(true);
     });
 
     it('numStr', () => {

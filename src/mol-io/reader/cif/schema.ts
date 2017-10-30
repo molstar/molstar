@@ -5,7 +5,7 @@
  */
 
 import * as Data from './data-model'
-import Column, { createAndFillArray } from '../../../mol-base/collections/column'
+import Column, { ColumnHelpers } from '../../../mol-base/collections/column'
 import Table from '../../../mol-base/collections/table'
 
 export function toTypedFrame<Schema extends FrameSchema, Frame extends TypedFrame<Schema> = TypedFrame<Schema>>(schema: Schema, frame: Data.Frame): Frame {
@@ -34,12 +34,12 @@ function getColumnCtor(t: Column.Type): ColumnCtor {
         case 'vector': return (f, c, k) => {
             const dim = t.dim;
             const value = (row: number) => Data.getVector(c, k, dim, row);
-            return createColumn(t, f, value, params => createAndFillArray(f.rowCount, value, params));
+            return createColumn(t, f, value, params => ColumnHelpers.createAndFillArray(f.rowCount, value, params));
         }
         case 'matrix': return (f, c, k) => {
             const rows = t.rows, cols = t.cols;
             const value = (row: number) => Data.getMatrix(c, k, rows, cols, row);
-            return createColumn(t, f, value, params => createAndFillArray(f.rowCount, value, params));
+            return createColumn(t, f, value, params => ColumnHelpers.createAndFillArray(f.rowCount, value, params));
         }
     }
 }

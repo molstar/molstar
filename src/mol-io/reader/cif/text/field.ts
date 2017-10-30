@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { createAndFillArray } from '../../../../mol-base/collections/column'
+import Column, { ColumnHelpers } from '../../../../mol-base/collections/column'
 import * as TokenColumn from '../../common/text/column/token'
 import { Tokens } from '../../common/text/tokenizer'
 import * as Data from '../data-model'
@@ -45,19 +45,8 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
         float,
         valueKind,
         areValuesEqual: TokenColumn.areValuesEqualProvider(tokens),
-        stringEquals: (row, v) => {
-            const s = indices[2 * row];
-            const value = v || '';
-            if (!value && valueKind(row) !== Column.ValueKind.Present) return true;
-            const len = value.length;
-            if (len !== indices[2 * row + 1] - s) return false;
-            for (let i = 0; i < len; i++) {
-                if (data.charCodeAt(i + s) !== value.charCodeAt(i)) return false;
-            }
-            return true;
-        },
-        toStringArray: params => createAndFillArray(rowCount, str, params),
-        toIntArray: params => createAndFillArray(rowCount, int, params),
-        toFloatArray: params => createAndFillArray(rowCount, float, params)
+        toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
+        toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
+        toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
     }
 }

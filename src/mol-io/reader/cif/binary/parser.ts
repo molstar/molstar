@@ -25,7 +25,7 @@ function Category(data: Encoding.EncodedCategory): Data.Category {
         rowCount: data.rowCount,
         getField(name) {
             const col = map[name];
-            return col ? Field(col) : Data.DefaultUndefinedField(data.rowCount);
+            return col ? Field(col) : void 0;
         }
     }
 }
