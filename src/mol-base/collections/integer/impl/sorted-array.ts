@@ -258,7 +258,7 @@ const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };
 function getSuitableIntersectionRange(a: Nums, b: Nums) {
     const la = a.length, lb = b.length;
     const ratio = la / lb;
-    if (ratio <= 0.5 || ratio >= 2 || (la >= 128 && lb >= 128)) {
+    if (la >= 128 || lb >= 128 || ratio <= 0.34 || ratio >= 2.99) {
         _maxIntRangeRet.startI = findPredecessorIndex(a, start(b));
         _maxIntRangeRet.startJ = findPredecessorIndex(b, start(a));
         _maxIntRangeRet.endI = findPredecessorIndex(a, end(b));
