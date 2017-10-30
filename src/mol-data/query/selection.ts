@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Structure from './structure'
+import Structure from './../structure'
 
 type Selection =
     | Structure // each atom is interpreted as a singleton structure

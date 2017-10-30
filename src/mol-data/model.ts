@@ -6,7 +6,7 @@
 
 import * as Formats from './model/formats'
 //import CommonProperties from './model/properties/common'
-import MacromoleculeProperties from './model/properties/macromolecule'
+import HierarchyProperties from './model/properties/hierarchy'
 import Conformation from './model/properties/conformation'
 import Segmentation from '../mol-base/collections/integer/segmentation'
 
@@ -23,7 +23,7 @@ interface Model extends Readonly<{
     sourceData: Formats.RawData,
 
     //common: CommonProperties,
-    macromolecule: MacromoleculeProperties,
+    macromolecule: HierarchyProperties,
     conformation: Conformation,
 
     // used for diffing.

@@ -4,9 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Structure from './structure'
-import Selection from './query/selection'
+// TODO: symmetry and assebmlies descriptors
 
-interface Query { (s: Structure): Selection }
-
-export default Query
+//import Column from '../../../mol-base/collections/column'
