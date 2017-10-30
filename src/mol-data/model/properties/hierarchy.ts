@@ -5,7 +5,8 @@
  */
 
 import Column from '../../../mol-base/collections/column'
-import { Shape as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
+import Table from '../../../mol-base/collections/table'
+import { Schema as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 
 export interface ElementSymbol extends String { '@type': 'element-symbol' }
 export function ElementSymbol(s: string): ElementSymbol {
@@ -13,50 +14,55 @@ export function ElementSymbol(s: string): ElementSymbol {
     return s.toUpperCase() as any;
 }
 
-type Key = { key: Column<number> }
+export const AtomsSchema = {
+    type_symbol: Column.Type.aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
+    label_atom_id: mmCIF.atom_site.label_atom_id,
+    auth_atom_id: mmCIF.atom_site.auth_atom_id,
+    label_alt_id: mmCIF.atom_site.label_alt_id,
+    pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge,
+    occupancy: mmCIF.atom_site.occupancy,
+    B_iso_or_equiv: mmCIF.atom_site.B_iso_or_equiv,
 
-type _Atoms = Pick<mmCIF['atom_site'],
-    | 'type_symbol'
-    | 'label_atom_id'
-    | 'auth_atom_id'
-    | 'label_alt_id'
-    | 'pdbx_formal_charge'
-    | 'occupancy'
-    | 'B_iso_or_equiv'>
-    & Key
-export interface Atoms extends _Atoms {
-    source_row: Column<number>
+    key: Column.Type.int,
+    source_row: Column.Type.int,
+};
+
+export interface Atoms extends Table<typeof AtomsSchema> { }
+
+export const ResiduesSchema = {
+    group_PDB: mmCIF.atom_site.group_PDB,
+    label_comp_id: mmCIF.atom_site.label_comp_id,
+    auth_comp_id: mmCIF.atom_site.auth_comp_id,
+    label_seq_id: mmCIF.atom_site.label_seq_id,
+    auth_seq_id: mmCIF.atom_site.auth_seq_id,
+    pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code,
+
+    key: Column.Type.int
+};
+
+export interface Residues extends Table<typeof AtomsSchema> { }
+
+export const ChainsSchema = {
+    label_asym_id: mmCIF.atom_site.label_asym_id,
+    auth_asym_id: mmCIF.atom_site.auth_asym_id,
+    auth_comp_id: mmCIF.atom_site.auth_comp_id,
+    label_entity_id: mmCIF.atom_site.label_entity_id,
+    pdbx_PDB_model_num: mmCIF.atom_site.pdbx_PDB_model_num,
+
+    key: Column.Type.int,
+    entityIndex: Column.Type.int
 }
 
-type _Residues = Pick<mmCIF['atom_site'],
-    | 'group_PDB'
-    | 'label_comp_id'
-    | 'auth_comp_id'
-    | 'label_seq_id'
-    | 'auth_seq_id'
-    | 'pdbx_PDB_ins_code'>
-    & Key
-export interface Residues extends _Residues { }
+export interface Chains extends Table<typeof ChainsSchema> { }
 
-type _Chains = Pick<mmCIF['atom_site'],
-    | 'label_asym_id'
-    | 'auth_asym_id'
-    | 'auth_comp_id'
-    | 'label_entity_id'
-    | 'pdbx_PDB_model_num'>
-    & Key
-export interface Chains extends _Chains {
-    enityDataIndex: Column<number>
-}
-
-type _EntityData = mmCIF['entity']
-export interface EntityData extends _EntityData { }
+export const EntitySchema = mmCIF['entity']
+export interface Entities extends Table<typeof EntitySchema> { }
 
 export interface Macromolecule {
     atoms: Atoms,
     residues: Residues,
     chains: Chains,
-    entityData: EntityData
+    entities: Entities
 }
 
 export default Macromolecule

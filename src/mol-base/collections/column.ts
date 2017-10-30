@@ -17,18 +17,24 @@ interface Column<T> {
 }
 
 namespace Column {
-    export type Type = typeof Type.str | typeof Type.int | typeof Type.float | Type.Vector | Type.Matrix
+    export type Type<T = any> = Type.Str | Type.Int | Type.Float | Type.Vector | Type.Matrix | Type.Aliased<T>
 
     export namespace Type {
-        export const str = { T: '' as string, kind: 'str' as 'str' };
-        export const int = { T: 0 as number, kind: 'int' as 'int' };
-        export const float = { T: 0 as number, kind: 'float' as 'float' };
-
+        export type Str = { T: string, kind: 'str' }
+        export type Int = { T: number, kind: 'int' }
+        export type Float = { T: number, kind: 'float' }
         export type Vector = { T: number[], dim: number, kind: 'vector' };
         export type Matrix = { T: number[][], rows: number, cols: number, kind: 'matrix' };
+        export type Aliased<T> = { T: T } & { kind: 'str' | 'int' | 'float' }
+
+        export const str: Str = { T: '', kind: 'str' };
+        export const int: Int = { T: 0, kind: 'int' };
+        export const float: Float = { T: 0, kind: 'float' };
+
 
         export function vector(dim: number): Vector { return { T: [] as number[], dim, kind: 'vector' }; }
         export function matrix(rows: number, cols: number): Matrix { return { T: [] as number[][], rows, cols, kind: 'matrix' }; }
+        export function aliased<T>(t: Type): Aliased<T> { return t as any as Aliased<T>; }
     }
 
     export interface ToArrayParams {

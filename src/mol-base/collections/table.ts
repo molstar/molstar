@@ -9,10 +9,21 @@ import { sortArray } from './sort'
 
 type Table<Schema extends Table.Schema> = { readonly _rowCount: number, readonly _columns: ReadonlyArray<string> } & Table.Columns<Schema>
 
+/** An immutable table */
 namespace Table {
     export type Schema = { [field: string]: Column.Type }
     export type Columns<S extends Schema> = { [C in keyof S]: Column<S[C]['T']> }
     export type Row<S extends Schema> = { [C in keyof S]: S[C]['T'] }
+    export type Arrays<S extends Schema> = { [C in keyof S]: ArrayLike<S[C]['T']> }
+
+    export function pickColumns<S extends Schema, T extends S>(schema: S, table: Table<T>): Table<S> {
+        const ret = Object.create(null);
+        const keys = Object.keys(schema);
+        ret._rowCount = table._rowCount;
+        ret._columns = keys;
+        for (const k of keys) ret[k] = table[k];
+        return ret;
+    }
 
     export function ofColumns<S extends Schema, R extends Table<S> = Table<S>>(columns: Columns<S>): R {
         const _columns = Object.keys(columns);
@@ -26,13 +37,24 @@ namespace Table {
         const columns = Object.keys(schema);
         ret._rowCount = rowCount;
         ret._columns = columns;
-        for (const k of Object.keys(schema)) {
+        for (const k of columns) {
             (ret as any)[k] = Column.ofLambda({
                 rowCount,
                 type: schema[k],
                 value: r => rows[r][k],
                 valueKind: r => typeof rows[r][k] === 'undefined' ? Column.ValueKind.NotPresent : Column.ValueKind.Present
             })
+        }
+        return ret as R;
+    }
+
+    export function ofArrays<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, arrays: Arrays<S>): R {
+        const ret = Object.create(null);
+        const columns = Object.keys(schema);
+        ret._rowCount = arrays[columns[0]].length;
+        ret._columns = columns;
+        for (const k of Object.keys(schema)) {
+            (ret as any)[k] = Column.ofArray({ array: arrays[k], type: schema[k] })
         }
         return ret as R;
     }

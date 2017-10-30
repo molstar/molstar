@@ -69,6 +69,27 @@ describe('table', () => {
         expect(t.n.toArray()).toEqual(['row1', 'row2']);
     });
 
+    it('ofArrays', () => {
+        const t = Table.ofArrays<typeof schema>(schema, {
+            x: [10, -1],
+            n: ['row1', 'row2'],
+        });
+        expect(t.x.toArray()).toEqual([10, -1]);
+        expect(t.n.toArray()).toEqual(['row1', 'row2']);
+    });
+
+    it('pickColumns', () => {
+        const t = Table.ofColumns<typeof schema>({
+            x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
+            n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
+        });
+        const s = { x: Column.Type.int };
+        const picked = Table.pickColumns(s, t);
+        expect(picked._columns).toEqual(['x']);
+        expect(picked._rowCount).toEqual(2);
+        expect(picked.x.toArray()).toEqual([10, -1]);
+    });
+
     it('sort', () => {
         const t = Table.ofColumns<typeof schema>({
             x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),

@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Field, TypedFrame } from '../schema'
+import { Types, TypedFrame } from '../schema'
 
-const str = Field.str()
-const float = Field.float()
+const str = Types.str
+const float = Types.float
 
 const datablock = {
     id: str,
@@ -58,7 +58,7 @@ const item_units_conversion = {
 
 // TODO save frame dic schema
 
-const dic = {
+export const Schema = {
     datablock,
     dictionary,
     dictionary_history,
@@ -69,5 +69,7 @@ const dic = {
     item_units_conversion
 }
 
-type dic = TypedFrame<typeof dic>
-export default dic
+export interface Frame extends TypedFrame<typeof Schema> { }
+
+// type dic = TypedFrame<typeof dic>
+//export default dic

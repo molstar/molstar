@@ -6,93 +6,56 @@
 
 import * as Data from './data-model'
 import Column, { createAndFillArray } from '../../../mol-base/collections/column'
-
-/**
- * A schema defines the shape of categories and fields.
- *
- * @example:
- * const atom_site = {
- *   '@alias': '_atom_site',
- *   label_atom_id: Field.str(),
- *   Cartn_x: Field.float(),
- *   Cartn_y: Field.float(),
- *   Cartn_z: Field.float(),
- * }
- *
- * const mmCIF = { atom_site };
- */
-
-//////////////////////////////////////////////
+import Table from '../../../mol-base/collections/table'
 
 export function toTypedFrame<Schema extends FrameSchema, Frame extends TypedFrame<Schema> = TypedFrame<Schema>>(schema: Schema, frame: Data.Frame): Frame {
     return createTypedFrame(schema, frame) as Frame;
 }
 
-export function toTypedCategory<Schema extends CategorySchema>(schema: Schema, category: Data.Category): TypedCategory<Schema> {
-    return new _TypedCategory(category, schema, true) as TypedCategory<any>;
+export function toTable<Schema extends Table.Schema, R extends Table<Schema> = Table<Schema>>(schema: Schema, category: Data.Category): R {
+    return new _TypedCategory(category, schema, true) as any;
 }
 
-export type FrameSchema = { [category: string]: CategorySchema }
-export type TypedFrameShape<Schema extends FrameSchema> = { [C in keyof Schema]: TypedCategoryShape<Schema[C]> }
+export const Types = Column.Type
+
+export type FrameSchema = { [category: string]: Table.Schema }
 export type TypedFrame<Schema extends FrameSchema> = {
     readonly _header?: string,
     readonly _frame: Data.Frame
-} & { [C in keyof Schema]: TypedCategory<Schema[C]> }
+} & { [C in keyof Schema]: Table<Schema[C]> }
 
-export type CategorySchema = { [field: string]: Field.Schema<any> }
-export type TypedCategoryShape<Schema extends CategorySchema> = { [F in keyof Schema]: Column<Schema[F]['T']> }
-export type TypedCategory<Schema extends CategorySchema> = {
-    readonly _rowCount: number,
-    readonly _isDefined: boolean,
-    readonly _category: Data.Category
-} & { [F in keyof Schema]: Column<Schema[F]['T']> }
+type ColumnCtor = (field: Data.Field, category: Data.Category, key: string) => Column<any>
 
-export namespace Field {
-    export interface Schema<T> { T: T, ctor: (field: Data.Field, category: Data.Category, key: string) => Column<T>, undefinedField: (c: number) => Data.Field, alias?: string };
-    export interface Spec { undefinedField?: (c: number) => Data.Field, alias?: string }
-
-    export function alias(name: string): Schema<any> { return { alias: name } as any; }
-    export function str(spec?: Spec) { return createSchema(spec, Str); }
-    export function int(spec?: Spec) { return createSchema(spec, Int); }
-    export function float(spec?: Spec) { return createSchema(spec, Float); }
-    export function vector(rows: number, spec?: Spec) { return createSchema(spec, Vector(rows)); }
-    export function matrix(rows: number, cols: number, spec?: Spec) { return createSchema(spec, Matrix(rows, cols)); }
-
-    function create<T>(type: Column.Type, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
-        return {
-            '@type': type,
-            '@array': field['@array'],
-            isDefined: field.isDefined,
-            rowCount: field.rowCount,
-            value,
-            valueKind: field.valueKind,
-            areValuesEqual: field.areValuesEqual,
-            toArray
-        };
-    }
-
-    function Str(field: Data.Field) { return create(Column.Type.str, field, field.str, field.toStringArray); }
-    function Int(field: Data.Field) { return create(Column.Type.int, field, field.int, field.toIntArray); }
-    function Float(field: Data.Field) { return create(Column.Type.float, field, field.float, field.toFloatArray); }
-
-    function Vector(rows: number) {
-        return function(field: Data.Field, category: Data.Category, key: string) {
-            const value = (row: number) => Data.getVector(category, key, rows, row);
-            return create(Column.Type.vector(rows), field, value, params => createAndFillArray(field.rowCount, value, params));
+function getColumnCtor(t: Column.Type): ColumnCtor {
+    switch (t.kind) {
+        case 'str': return (f, c, k) => createColumn(Column.Type.str, f, f.str, f.toStringArray);
+        case 'int': return (f, c, k) => createColumn(Column.Type.int, f, f.int, f.toIntArray);
+        case 'float': return (f, c, k) => createColumn(Column.Type.float, f, f.float, f.toFloatArray);
+        case 'vector': return (f, c, k) => {
+            const dim = t.dim;
+            const value = (row: number) => Data.getVector(c, k, dim, row);
+            return createColumn(t, f, value, params => createAndFillArray(f.rowCount, value, params));
+        }
+        case 'matrix': return (f, c, k) => {
+            const rows = t.rows, cols = t.cols;
+            const value = (row: number) => Data.getMatrix(c, k, rows, cols, row);
+            return createColumn(t, f, value, params => createAndFillArray(f.rowCount, value, params));
         }
     }
+}
 
-    function Matrix(rows: number, cols: number) {
-        return function(field: Data.Field, category: Data.Category, key: string) {
-            const value = (row: number) => Data.getMatrix(category, key, rows, cols, row);
-            return create(Column.Type.matrix(rows, cols), field, value, params => createAndFillArray(field.rowCount, value, params));
-        }
-    }
 
-    // spec argument is to allow for specialised implementation for undefined fields
-    function createSchema<T>(spec: Spec | undefined, ctor: (field: Data.Field, category: Data.Category, key: string) => Column<T>): Schema<T> {
-        return { T: 0 as any, ctor, undefinedField: (spec && spec.undefinedField) || Data.DefaultUndefinedField, alias: spec && spec.alias };
-    }
+function createColumn<T>(type: Column.Type, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
+    return {
+        '@type': type,
+        '@array': field['@array'],
+        isDefined: field.isDefined,
+        rowCount: field.rowCount,
+        value,
+        valueKind: field.valueKind,
+        areValuesEqual: field.areValuesEqual,
+        toArray
+    };
 }
 
 class _TypedFrame implements TypedFrame<any> { // tslint:disable-line:class-name
@@ -104,19 +67,21 @@ class _TypedFrame implements TypedFrame<any> { // tslint:disable-line:class-name
     }
 }
 
-class _TypedCategory implements TypedCategory<any> { // tslint:disable-line:class-name
+class _TypedCategory implements Table<any> { // tslint:disable-line:class-name
     _rowCount = this._category.rowCount;
-    constructor(public _category: Data.Category, schema: CategorySchema, public _isDefined: boolean) {
-        const fieldKeys = Object.keys(schema).filter(k => k !== '@alias');
+    _columns: ReadonlyArray<string>;
+    constructor(public _category: Data.Category, schema: Table.Schema, public _isDefined: boolean) {
+        const fieldKeys = Object.keys(schema);
+        this._columns = fieldKeys;
         const cache = Object.create(null);
         for (const k of fieldKeys) {
-            const s = schema[k];
+            const cType = schema[k];
+            const ctor = getColumnCtor(cType);
             Object.defineProperty(this, k, {
                 get: function() {
                     if (cache[k]) return cache[k];
-                    const name = s.alias || k;
-                    const field = _category.getField(name) || s.undefinedField(_category.rowCount);
-                    cache[k] = s.ctor(field, _category, name);
+                    const field = _category.getField(k);
+                    cache[k] = !!field ? ctor(field, _category, k) : Column.Undefined(_category.rowCount, cType);
                     return cache[k];
                 },
                 enumerable: true,
@@ -130,9 +95,7 @@ function createTypedFrame(schema: FrameSchema, frame: Data.Frame): any {
     return new _TypedFrame(frame, schema);
 }
 
-function createTypedCategory(key: string, schema: CategorySchema, frame: Data.Frame) {
-    const alias = (schema['@alias'] && schema['@alias'].alias) || key;
-    const name = alias[0] === '_' ? alias : '_' + alias;
-    const cat = frame.categories[name];
+function createTypedCategory(key: string, schema: Table.Schema, frame: Data.Frame) {
+    const cat = frame.categories[key[0] === '_' ? key : '_' + key];
     return new _TypedCategory(cat || Data.Category.Empty, schema, !!cat);
 }

@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Field, TypedFrame, TypedFrameShape } from '../schema'
+import { Types, TypedFrame } from '../schema'
 
-const str = Field.str();
-const int = Field.int();
-const float = Field.float();
+const str = Types.str;
+const int = Types.int;
+const float = Types.float;
 
 const entry = {
     id: str
@@ -18,7 +18,7 @@ type EntityType = 'polymer' | 'non-polymer' | 'water'
 
 const entity = {
     id: str,
-    type: str as Field.Schema<EntityType>,
+    type: Types.aliased<EntityType>(str),
     src_method: str,
     pdbx_description: str,
     formula_weight: float,
@@ -48,8 +48,8 @@ const cell = {
 
 const symmetry = {
     entry_id: str,
-    space_group_name_HM: Field.str({ alias: 'space_group_name_H-M' }),
-    pdbx_full_space_group_name_HM: Field.str({ alias: 'pdbx_full_space_group_name_H-M' }),
+    'space_group_name_H-M': str,
+    'pdbx_full_space_group_name_H': str,
     cell_setting: str,
     Int_Tables_number: int,
     space_group_name_Hall: str
@@ -117,7 +117,7 @@ type BondValueOrder =
 
 const struct_conn = {
     id: str,
-    conn_type_id: str as Field.Schema<StructConnTypeId>,
+    conn_type_id: Types.aliased<StructConnTypeId>(str),
     pdbx_PDB_id: str,
     ptnr1_label_asym_id: str,
     ptnr1_label_comp_id: str,
@@ -148,11 +148,11 @@ const struct_conn = {
     pdbx_ptnr3_PDB_ins_code: str,
     details: str,
     pdbx_dist_value: float,
-    pdbx_value_order: str as Field.Schema<BondValueOrder>
+    pdbx_value_order: Types.aliased<BondValueOrder>(str)
 }
 
 const struct_conn_type = {
-    id: str as Field.Schema<StructConnTypeId>,
+    id: Types.aliased<StructConnTypeId>(str),
     criteria: str,
     reference: str
 }
@@ -161,10 +161,10 @@ const chem_comp_bond = {
     comp_id: str,
     pdbx_stereo_config: str,
     pdbx_ordinal: int,
-    pdbx_aromatic_flag: str as Field.Schema<'Y' | 'N'>,
+    pdbx_aromatic_flag: Types.aliased<'Y' | 'N'>(str),
     atom_id_1: str,
     atom_id_2: str,
-    value_order: str as Field.Schema<BondValueOrder>
+    value_order: Types.aliased<BondValueOrder>(str)
 }
 
 const pdbx_struct_assembly = {
@@ -186,8 +186,8 @@ const pdbx_struct_oper_list = {
     type: str,
     name: str,
     symmetry_operation: str,
-    matrix: Field.matrix(3, 3),
-    vector: Field.vector(3)
+    matrix: Types.matrix(3, 3),
+    vector: Types.vector(3)
 }
 
 const pdbx_struct_mod_residue = {
@@ -246,4 +246,3 @@ export const Schema = {
 };
 
 export interface Frame extends TypedFrame<typeof Schema> { }
-export interface Shape extends TypedFrameShape<typeof Schema> { }

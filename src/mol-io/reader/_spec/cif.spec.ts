@@ -21,7 +21,7 @@ const testBlock = Data.Block({
 }, 'test');
 
 namespace TestSchema {
-    export const atoms = { x: Schema.Field.int(), name: Schema.Field.str() }
+    export const atoms = { x: Schema.Types.int, name: Schema.Types.str }
     export const schema = { atoms }
 }
 
