@@ -66,7 +66,6 @@ export namespace Field {
             rowCount: field.rowCount,
             value,
             valueKind: field.valueKind,
-            stringEquals: field.stringEquals,
             areValuesEqual: field.areValuesEqual,
             toArray
         };
@@ -79,14 +78,14 @@ export namespace Field {
     function Vector(rows: number) {
         return function(field: Data.Field, category: Data.Category, key: string) {
             const value = (row: number) => Data.getVector(category, key, rows, row);
-            return create(Column.Type.vector, field, value, params => createAndFillArray(field.rowCount, value, params));
+            return create(Column.Type.vector(rows), field, value, params => createAndFillArray(field.rowCount, value, params));
         }
     }
 
     function Matrix(rows: number, cols: number) {
         return function(field: Data.Field, category: Data.Category, key: string) {
             const value = (row: number) => Data.getMatrix(category, key, rows, cols, row);
-            return create(Column.Type.matrix, field, value, params => createAndFillArray(field.rowCount, value, params));
+            return create(Column.Type.matrix(rows, cols), field, value, params => createAndFillArray(field.rowCount, value, params));
         }
     }
 

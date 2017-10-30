@@ -13,19 +13,22 @@ interface Column<T> {
     value(row: number): T,
     valueKind(row: number): Column.ValueKind,
     toArray(params?: Column.ToArrayParams): ReadonlyArray<T>,
-    stringEquals(row: number, value: string): boolean,
     areValuesEqual(rowA: number, rowB: number): boolean
 }
 
 namespace Column {
-    export type Type = typeof Type.str | typeof Type.int | typeof Type.float | typeof Type.vector | typeof Type.matrix
+    export type Type = typeof Type.str | typeof Type.int | typeof Type.float | Type.Vector | Type.Matrix
 
     export namespace Type {
-        export const str = { '@type': '' as string, kind: 'str' as 'str' };
-        export const int = { '@type': 0 as number, kind: 'int' as 'int' };
-        export const float = { '@type': 0 as number, kind: 'float' as 'float' };
-        export const vector = { '@type': [] as number[], kind: 'vector' as 'vector' };
-        export const matrix = { '@type': [] as number[][], kind: 'matrix' as 'matrix' };
+        export const str = { T: '' as string, kind: 'str' as 'str' };
+        export const int = { T: 0 as number, kind: 'int' as 'int' };
+        export const float = { T: 0 as number, kind: 'float' as 'float' };
+
+        export type Vector = { T: number[], dim: number, kind: 'vector' };
+        export type Matrix = { T: number[][], rows: number, cols: number, kind: 'matrix' };
+
+        export function vector(dim: number): Vector { return { T: [] as number[], dim, kind: 'vector' }; }
+        export function matrix(rows: number, cols: number): Matrix { return { T: [] as number[][], rows, cols, kind: 'matrix' }; }
     }
 
     export interface ToArrayParams {
@@ -36,38 +39,48 @@ namespace Column {
     }
 
     export interface LambdaSpec<T extends Type> {
-        value: (row: number) => T['@type'],
+        value: (row: number) => T['T'],
         rowCount: number,
         type: T,
         valueKind?: (row: number) => ValueKind,
     }
 
     export interface ArraySpec<T extends Type> {
-        array: ArrayLike<T['@type']>,
+        array: ArrayLike<T['T']>,
         type: T,
         valueKind?: (row: number) => ValueKind
     }
 
-    export const enum ValueKind { Present = 0, NotPresent = 1, Unknown = 2 }
-
-    export function Undefined<T extends Type>(rowCount: number, type: T): Column<T['@type']> {
-        return constColumn(type['@type'], rowCount, type, ValueKind.NotPresent);
+    export interface MapSpec<S extends Type, T extends Type> {
+        f: (v: S['T']) => T['T'],
+        type: T,
+        valueKind?: (row: number) => ValueKind,
     }
 
-    export function ofConst<T extends Type>(v: T['@type'], rowCount: number, type: T): Column<T['@type']> {
+    export const enum ValueKind { Present = 0, NotPresent = 1, Unknown = 2 }
+
+    export function Undefined<T extends Type>(rowCount: number, type: T): Column<T['T']> {
+        return constColumn(type['T'], rowCount, type, ValueKind.NotPresent);
+    }
+
+    export function ofConst<T extends Type>(v: T['T'], rowCount: number, type: T): Column<T['T']> {
         return constColumn(v, rowCount, type, ValueKind.Present);
     }
 
-    export function ofLambda<T extends Type>(spec: LambdaSpec<T>): Column<T['@type']> {
+    export function ofLambda<T extends Type>(spec: LambdaSpec<T>): Column<T['T']> {
         return lambdaColumn(spec);
     }
 
-    export function ofArray<T extends Column.Type>(spec: Column.ArraySpec<T>): Column<T['@type']> {
+    export function ofArray<T extends Column.Type>(spec: Column.ArraySpec<T>): Column<T['T']> {
         return arrayColumn(spec);
     }
 
     export function window<T>(column: Column<T>, start: number, end: number) {
         return windowColumn(column, start, end);
+    }
+
+    export function permutation<T>(column: Column<T>, indices: ArrayLike<number>, checkIndentity = true) {
+        return columnPermutation(column, indices, checkIndentity);
     }
 
     /** Makes the column backned by an array. Useful for columns that accessed often. */
@@ -80,8 +93,8 @@ namespace Column {
 
 export default Column;
 
-function constColumn<T extends Column.Type>(v: T['@type'], rowCount: number, type: T, valueKind: Column.ValueKind): Column<T['@type']> {
-    const value: Column<T['@type']>['value'] = row => v;
+function constColumn<T extends Column.Type>(v: T['T'], rowCount: number, type: T, valueKind: Column.ValueKind): Column<T['T']> {
+    const value: Column<T['T']>['value'] = row => v;
     return {
         '@type': type,
         '@array': void 0,
@@ -94,16 +107,11 @@ function constColumn<T extends Column.Type>(v: T['@type'], rowCount: number, typ
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = v;
             return array;
         },
-        stringEquals: type.kind === 'str'
-            ? (row, value) => value === v
-            : type.kind === 'float' || type.kind === 'int'
-                ? (row, value) => +value === v
-                : (row, value) => false,
         areValuesEqual: (rowA, rowB) => true
     }
 }
 
-function lambdaColumn<T extends Column.Type>({ value, valueKind, rowCount, type }: Column.LambdaSpec<T>): Column<T['@type']> {
+function lambdaColumn<T extends Column.Type>({ value, valueKind, rowCount, type }: Column.LambdaSpec<T>): Column<T['T']> {
     return {
         '@type': type,
         '@array': void 0,
@@ -116,18 +124,13 @@ function lambdaColumn<T extends Column.Type>({ value, valueKind, rowCount, type 
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = value(i + start);
             return array;
         },
-        stringEquals: type.kind === 'str'
-            ? (row, v) => value(row) === v
-            : type.kind === 'float' || type.kind === 'int'
-            ? (row, v) => value(row) === +v
-            : (row, value) => false,
         areValuesEqual: (rowA, rowB) => value(rowA) === value(rowB)
     }
 }
 
-function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.ArraySpec<T>): Column<T['@type']> {
+function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.ArraySpec<T>): Column<T['T']> {
     const rowCount = array.length;
-    const value: Column<T['@type']>['value'] = type.kind === 'str'
+    const value: Column<T['T']>['value'] = type.kind === 'str'
         ? row => { const v = array[row]; return typeof v === 'string' ? v : '' + v; }
         : row => array[row];
 
@@ -153,16 +156,11 @@ function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.A
             ? params => typedArrayWindow(array, params) as any as ReadonlyArray<T>
             : params => {
                 const { start, end } = getArrayBounds(rowCount, params);
-                if (start === 0 && end === array.length) return array as ReadonlyArray<T['@type']>;
+                if (start === 0 && end === array.length) return array as ReadonlyArray<T['T']>;
                 const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
                 for (let i = 0, _i = end - start; i < _i; i++) ret[i] = array[start + i];
                 return ret;
             },
-        stringEquals: type.kind === 'int' || type.kind === 'float'
-            ? (row, value) => (array as any)[row] === +value
-            : type.kind === 'str'
-            ? (row, value) => { const v = array[row]; return typeof v === 'string' ? v === value : +v === +value; }
-            : (row, value) => false,
         areValuesEqual: (rowA, rowB) => array[rowA] === array[rowB]
     }
 }
@@ -179,7 +177,7 @@ function windowTyped<T>(c: Column<T>, start: number, end: number): Column<T> {
 }
 
 function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
-    const v = c.value, vk = c.valueKind, se = c.stringEquals, ave = c.areValuesEqual;
+    const v = c.value, vk = c.valueKind, ave = c.areValuesEqual;
     const value: Column<T>['value'] = start === 0 ? v : row => v(row + start);
     const rowCount = end - start;
     return {
@@ -194,8 +192,42 @@ function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
             for (let i = 0, _i = array.length; i < _i; i++) array[i] = v(i + start);
             return array;
         },
-        stringEquals: start === 0 ? se : (row, value) => se(row + start, value),
         areValuesEqual: start === 0 ? ave : (rowA, rowB) => ave(rowA + start, rowB + start)
+    };
+}
+
+function columnPermutation<T>(c: Column<T>, map: ArrayLike<number>, checkIdentity: boolean): Column<T> {
+    if (!c.isDefined) return c;
+    if (checkIdentity) {
+        let isIdentity = true;
+        for (let i = 0, _i = map.length; i < _i; i++) {
+            if (map[i] !== i) {
+                isIdentity = false;
+                break;
+            }
+        }
+        if (isIdentity) return c;
+    }
+    return permutationFull(c, map);
+}
+
+function permutationFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
+    const v = c.value, vk = c.valueKind, ave = c.areValuesEqual;
+    const value: Column<T>['value'] = row => v(map[row]);
+    const rowCount = c.rowCount;
+    return {
+        '@type': c['@type'],
+        '@array': void 0,
+        isDefined: c.isDefined,
+        rowCount,
+        value,
+        valueKind: row => vk(map[row]),
+        toArray: params => {
+            const { array } = createArray(rowCount, params);
+            for (let i = 0, _i = array.length; i < _i; i++) array[i] = v(map[i]);
+            return array;
+        },
+        areValuesEqual: (rowA, rowB) => ave(map[rowA], map[rowB])
     };
 }
 

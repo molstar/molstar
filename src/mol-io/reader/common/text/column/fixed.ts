@@ -14,11 +14,11 @@ export default function FixedColumnProvider(lines: Tokens) {
     }
 }
 
-export function FixedColumn<T extends Column.Type>(lines: Tokens, offset: number, width: number, type: T): Column<T['@type']> {
+export function FixedColumn<T extends Column.Type>(lines: Tokens, offset: number, width: number, type: T): Column<T['T']> {
     const { data, indices, count: rowCount } = lines;
     const { kind } = type;
 
-    const value: Column<T['@type']>['value'] = kind === 'str' ? row => {
+    const value: Column<T['T']>['value'] = kind === 'str' ? row => {
         let s = indices[2 * row] + offset, le = indices[2 * row + 1];
         if (s >= le) return '';
         let e = s + width;
@@ -41,7 +41,6 @@ export function FixedColumn<T extends Column.Type>(lines: Tokens, offset: number
         value,
         valueKind: row => Column.ValueKind.Present,
         toArray: params => createAndFillArray(rowCount, value, params),
-        stringEquals: (row, v) => value(row) === v,
         areValuesEqual: (rowA, rowB) => value(rowA) === value(rowB)
     };
 }

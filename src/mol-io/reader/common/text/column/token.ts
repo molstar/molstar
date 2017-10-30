@@ -14,11 +14,11 @@ export default function TokenColumnProvider(tokens: Tokens) {
     }
 }
 
-export function TokenColumn<T extends Column.Type>(tokens: Tokens, type: T): Column<T['@type']> {
+export function TokenColumn<T extends Column.Type>(tokens: Tokens, type: T): Column<T['T']> {
     const { data, indices, count: rowCount } = tokens;
     const { kind } = type;
 
-    const value: Column<T['@type']>['value'] =
+    const value: Column<T['T']>['value'] =
           kind === 'str'
         ? row => data.substring(indices[2 * row], indices[2 * row + 1])
         : kind === 'int'
@@ -33,16 +33,6 @@ export function TokenColumn<T extends Column.Type>(tokens: Tokens, type: T): Col
         value,
         valueKind: row => Column.ValueKind.Present,
         toArray: params => createAndFillArray(rowCount, value, params),
-        stringEquals: (row, v) => {
-            const s = indices[2 * row];
-            const value = v || '';
-            const len = value.length;
-            if (len !== indices[2 * row + 1] - s) return false;
-            for (let i = 0; i < len; i++) {
-                if (data.charCodeAt(i + s) !== value.charCodeAt(i)) return false;
-            }
-            return true;
-        },
         areValuesEqual: areValuesEqualProvider(tokens)
     };
 }
