@@ -8,10 +8,10 @@ import Column from '../../../mol-base/collections/column'
 import Table from '../../../mol-base/collections/table'
 import { Schema as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 
+const _esCache = Object.create(null);
 export interface ElementSymbol extends String { '@type': 'element-symbol' }
 export function ElementSymbol(s: string): ElementSymbol {
-    // TODO: optimize?
-    return s.toUpperCase() as any;
+    return _esCache[s] || (_esCache[s] = s.toUpperCase());
 }
 
 export const AtomsSchema = {

@@ -15,13 +15,18 @@ namespace Table {
     export type Columns<S extends Schema> = { [C in keyof S]: Column<S[C]['T']> }
     export type Row<S extends Schema> = { [C in keyof S]: S[C]['T'] }
     export type Arrays<S extends Schema> = { [C in keyof S]: ArrayLike<S[C]['T']> }
+    export type PartialTable<S extends Table.Schema> = { readonly _rowCount: number, readonly _columns: ReadonlyArray<string> } & { [C in keyof S]?: Column<S[C]['T']> }
 
-    export function pickColumns<S extends Schema, T extends S>(schema: S, table: Table<T>): Table<S> {
+    export function pickColumns<S extends Schema>(schema: S, table: PartialTable<S>, guard: Partial<Columns<S>> = {}): Table<S> {
         const ret = Object.create(null);
         const keys = Object.keys(schema);
         ret._rowCount = table._rowCount;
         ret._columns = keys;
-        for (const k of keys) ret[k] = table[k];
+        for (const k of keys) {
+            if (!!table[k]) ret[k] = table[k];
+            else if (!!guard[k]) ret[k] = guard[k];
+            else throw Error(`Cannot find column '${k}'.`);
+        }
         return ret;
     }
 

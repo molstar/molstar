@@ -83,11 +83,12 @@ describe('table', () => {
             x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
             n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
         });
-        const s = { x: Column.Type.int };
-        const picked = Table.pickColumns(s, t);
-        expect(picked._columns).toEqual(['x']);
+        const s = { x: Column.Type.int, y: Column.Type.int };
+        const picked = Table.pickColumns(s, t, { y: Column.ofArray({ array: [3, 4], type: Column.Type.int })});
+        expect(picked._columns).toEqual(['x', 'y']);
         expect(picked._rowCount).toEqual(2);
         expect(picked.x.toArray()).toEqual([10, -1]);
+        expect(picked.y.toArray()).toEqual([3, 4]);
     });
 
     it('sort', () => {
