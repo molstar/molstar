@@ -6,6 +6,7 @@
 
 import Column from '../../../mol-base/collections/column'
 import Table from '../../../mol-base/collections/table'
+import Segmentation from '../../../mol-base/collections/integer/segmentation'
 import { Schema as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 
 const _esCache = Object.create(null);
@@ -35,7 +36,7 @@ export const ResiduesSchema = {
     pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code
 };
 
-export interface Residues extends Table<typeof AtomsSchema> { }
+export interface Residues extends Table<typeof ResiduesSchema> { }
 
 export const ChainsSchema = {
     label_asym_id: mmCIF.atom_site.label_asym_id,
@@ -57,10 +58,15 @@ export interface HierarchyData {
     entities: Entities
 }
 
+export interface HierarchySegmentation {
+    residues: Segmentation,
+    chains: Segmentation
+}
+
 export interface HierarchyKeys {
     // indicate whether the keys form an increasing sequence (in other words, the residues are sorted).
     // monotonous sequences enable for example faster secodnary structure assignment.
-    isMonotonous: number,
+    isMonotonous: boolean,
 
     // assign a key to each residue index.
     residue: ArrayLike<number>,
@@ -71,8 +77,8 @@ export interface HierarchyKeys {
     entity: ArrayLike<number>,
 
     findEntity(id: string): number,
-    findChain(entityId: string, label_asym_id: string): number,
-    findResidue(entityId: string, label_asym_id: string, label_comp_id: string, label_seq_id: number, pdbx_PDB_ins_code: string): number
+    findChain(entityId: string, auth_asym_id: string): number,
+    findResidue(entityId: string, auth_asym_id: string, auth_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }
 
 export interface Hierarchy extends HierarchyData {

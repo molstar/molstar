@@ -94,7 +94,7 @@ class SegmentIterator implements Iterator<Segs.Segment> {
     }
 }
 
-export function segments(segs: Segmentation, set: OrderedSet, range?: Interval) {
-    const int = typeof range !== 'undefined' ? range : Interval.ofBounds(0, OrderedSet.size(set));
+export function segments(segs: Segmentation, set: OrderedSet, segment?: Segs.Segment) {
+    const int = typeof segment !== 'undefined' ? Interval.ofBounds(segment.start, segment.end) : Interval.ofBounds(0, OrderedSet.size(set));
     return new SegmentIterator(segs.segments, set, int);
 }

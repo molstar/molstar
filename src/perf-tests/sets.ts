@@ -284,7 +284,56 @@ export function testSegments() {
     }
 }
 
-Build.run();
+export namespace ObjectVsMap {
+    function objCreate(keys: string[]) {
+        const m = Object.create(null);
+        m.x = 0;
+        delete m.x;
+        for (let i = 0, _i = keys.length; i < _i; i++) {
+            m[keys[i]] = i * i;
+        }
+        return m;
+    }
+
+    function mapCreate(keys: string[]) {
+        const m = new Map<string, number>();
+        for (let i = 0, _i = keys.length; i < _i; i++) {
+            m.set(keys[i], i * i);
+        }
+        return m;
+    }
+
+    function objQuery(keys: string[], n: number, obj: any) {
+        let ret = 0;
+        for (let i = 0; i < n; i++) ret += obj[keys[i % n]];
+        return ret;
+    }
+
+    function mapQuery(keys: string[], n: number, map: Map<string, number>) {
+        let ret = 0;
+        for (let i = 0; i < n; i++) ret += map.get(keys[i % n])!;
+        return ret;
+    }
+
+    export function run() {
+        const suite = new B.Suite();
+        const keys: string[] = [];
+        for (let i = 0; i < 1000; i++) keys[i] = 'k' + i;
+
+        const N = 100000;
+        const obj = objCreate(keys);
+        const map = mapCreate(keys);
+        suite
+            .add('c obj', () => objCreate(keys))
+            .add('c map', () => mapCreate(keys))
+            .add('q obj', () => objQuery(keys, N, obj))
+            .add('q map', () => mapQuery(keys, N, map))
+            .on('cycle', (e: any) => console.log(String(e.target)))
+            .run();
+    }
+}
+
+ObjectVsMap.run();
 
 //testSegments();
 

@@ -109,7 +109,7 @@ namespace Column {
 
 export default Column;
 
-function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> | undefined {
+function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> {
     const map = new Map<T, number>();
     for (let i = 0, _i = c.rowCount; i < _i; i++) {
         const v = c.value(i);
