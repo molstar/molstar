@@ -32,7 +32,6 @@ namespace Column {
         export const int: Int = { T: 0, kind: 'int' };
         export const float: Float = { T: 0, kind: 'float' };
 
-
         export function vector(dim: number): Vector { return { T: [] as number[], dim, kind: 'vector' }; }
         export function matrix(rows: number, cols: number): Matrix { return { T: [] as number[][], rows, cols, kind: 'matrix' }; }
         export function aliased<T>(t: Type): Aliased<T> { return t as any as Aliased<T>; }
@@ -97,6 +96,10 @@ namespace Column {
 
     export function mapToArray<T, S>(column: Column<T>, f: (v: T) => S, ctor?: ArrayCtor<S>): ArrayLike<S> {
         return mapToArrayImpl(column, f, ctor || Array);
+    }
+
+    export function areEqual<T>(a: Column<T>, b: Column<T>) {
+        return areColumnsEqual(a, b);
     }
 
     /** Makes the column backned by an array. Useful for columns that accessed often. */
@@ -267,6 +270,28 @@ function mapToArrayImpl<T, S>(c: Column<T>, f: (v: T) => S, ctor: Column.ArrayCt
     const ret = new ctor(c.rowCount) as any;
     for (let i = 0, _i = c.rowCount; i < _i; i++) ret[i] = f(c.value(i));
     return ret;
+}
+
+function areColumnsEqual(a: Column<any>, b: Column<any>) {
+    if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a['@type'].kind !== b['@type'].kind) return false;
+    if (!!a['@array'] && !!b['@array']) return areArraysEqual(a, b);
+    return areValuesEqual(a, b);
+}
+
+function areArraysEqual(a: Column<any>, b: Column<any>) {
+    const xs = a['@array']!, ys = b['@array']!;
+    for (let i = 0, _i = a.rowCount; i < _i; i++) {
+        if (xs[i] !== ys[i]) return false;
+    }
+    return true;
+}
+
+function areValuesEqual(a: Column<any>, b: Column<any>) {
+    const va = a.value, vb = b.value;
+    for (let i = 0, _i = a.rowCount; i < _i; i++) {
+        if (va(i) !== vb(i)) return false;
+    }
+    return true;
 }
 
 export namespace ColumnHelpers {

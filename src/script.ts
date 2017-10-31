@@ -118,17 +118,20 @@ async function runCIF(input: string | Uint8Array) {
     const models = buildModels(mmcif);
     console.timeEnd('createModels');
 
-    console.log(models[0].hierarchy.isMonotonous);
-    console.log(models[0].hierarchy.atoms.type_symbol.value(0));
-    console.log(models[0].hierarchy.atoms.id.value(1));
-    console.log(models[0].hierarchy.residues.auth_comp_id.value(0));
-    console.log(models[0].hierarchy.residues.auth_comp_id.value(1));
-    console.log(models[0].hierarchy.chains.auth_asym_id.value(0));
-    console.log(models[0].hierarchy.chains.auth_asym_id.value(1));
-    console.log(models[0].hierarchy.chains.label_asym_id.value(1));
-    console.log(models[0].conformation.x[0]);
-    console.log(models[0].conformation.y[0]);
-    console.log(models[0].conformation.z[0]);
+    for (let i = 0; i < models.length; i++) {
+        console.log(models[i].version);
+    }
+
+    // console.log(models[0].hierarchy.isMonotonous);
+    // console.log(models[0].hierarchy.atoms.type_symbol.value(0));
+    // console.log(models[0].hierarchy.residues.auth_comp_id.value(0));
+    // console.log(models[0].hierarchy.residues.auth_comp_id.value(1));
+    // console.log(models[0].hierarchy.chains.auth_asym_id.value(0));
+    // console.log(models[0].hierarchy.chains.auth_asym_id.value(1));
+    // console.log(models[0].hierarchy.chains.label_asym_id.value(1));
+    // console.log(models[0].conformation.x[0]);
+    // console.log(models[0].conformation.y[0]);
+    // console.log(models[0].conformation.z[0]);
 
     // const schema = await _dic()
     // if (schema) {
@@ -143,7 +146,7 @@ async function runCIF(input: string | Uint8Array) {
 }
 
 export async function _cif() {
-    let path = `./examples/1cbs_updated.cif`;
+    let path = `./examples/1grm_updated.cif`;
     // path = '../test/3j3q.cif'  // lets have a relative path for big test files
     const input = await readFileAsync(path, 'utf8')
     console.log('------------------');

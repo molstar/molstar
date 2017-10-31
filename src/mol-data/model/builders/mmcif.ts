@@ -11,7 +11,7 @@ import Column from '../../../mol-base/collections/column'
 import Table from '../../../mol-base/collections/table'
 import Interval from '../../../mol-base/collections/integer/interval'
 import Segmentation from '../../../mol-base/collections/integer/segmentation'
-import uuId from '../../../mol-base/utils/uuid'
+import { newUUID } from '../../../mol-base/utils/uuid'
 import * as Hierarchy from '../properties/hierarchy'
 import Conformation from '../properties/conformation'
 import findHierarchyKeys from '../utils/hierarchy-keys'
@@ -45,18 +45,15 @@ function findHierarchyOffsets(data: mmCIF, bounds: Interval) {
     return { residues, chains };
 }
 
-function createHierarchyData(data: mmCIF, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): Hierarchy.HierarchyData {
+function createHierarchyData(data: mmCIF, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): Hierarchy.Data {
     const { atom_site } = data;
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const atoms = Table.ofColumns<Hierarchy.AtomsSchema>({
-        id: Column.window(atom_site.id, start, end),
         type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), Hierarchy.ElementSymbol), type: Column.Type.aliased<Hierarchy.ElementSymbol>(Column.Type.str) }),
         label_atom_id: Column.window(atom_site.label_atom_id, start, end),
         auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),
         label_alt_id: Column.window(atom_site.label_alt_id, start, end),
-        pdbx_formal_charge: Column.window(atom_site.pdbx_formal_charge, start, end),
-        occupancy: Column.window(atom_site.occupancy, start, end),
-        B_iso_or_equiv: Column.window(atom_site.B_iso_or_equiv, start, end),
+        pdbx_formal_charge: Column.window(atom_site.pdbx_formal_charge, start, end)
     });
     const residues = Table.view(atom_site, Hierarchy.ResiduesSchema, offsets.residues);
     const chains = Table.view(atom_site, Hierarchy.ChainsSchema, offsets.chains);
@@ -67,29 +64,47 @@ function getConformation(data: mmCIF, bounds: Interval): Conformation {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const { atom_site } = data;
     return {
+        id: Column.window(atom_site.id, start, end),
+        occupancy: Column.window(atom_site.occupancy, start, end),
+        B_iso_or_equiv: Column.window(atom_site.B_iso_or_equiv, start, end),
         x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
         y: atom_site.Cartn_y.toArray({ array: Float32Array, start, end }),
         z: atom_site.Cartn_z.toArray({ array: Float32Array, start, end }),
     }
 }
 
-function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
-    const hierarchyOffsets = findHierarchyOffsets(data, bounds);
+function isHierarchyDataEqual(a: Hierarchy.Hierarchy, b: Hierarchy.Data) {
+    // need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
+    return Table.areEqual(a.chains as Table<Hierarchy.ChainsSchema>, b.chains as Table<Hierarchy.ChainsSchema>)
+        && Table.areEqual(a.residues as Table<Hierarchy.ResiduesSchema>, b.residues as Table<Hierarchy.ResiduesSchema>)
+        && Table.areEqual(a.atoms as Table<Hierarchy.AtomsSchema>, b.atoms as Table<Hierarchy.AtomsSchema>)
+}
 
-    const hierarchySegments: Hierarchy.HierarchySegmentation = {
+function createModel(raw: RawData, data: mmCIF, bounds: Interval, previous?: Model): Model {
+    const hierarchyOffsets = findHierarchyOffsets(data, bounds);
+    const hierarchyData = createHierarchyData(data, bounds, hierarchyOffsets);
+
+    if (previous && isHierarchyDataEqual(previous.hierarchy, hierarchyData)) {
+        return {
+            ...previous,
+            conformation: getConformation(data, bounds),
+            version: { data: previous.version.data, conformation: newUUID() }
+        };
+    }
+
+    const hierarchySegments: Hierarchy.Segments = {
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
-    const hierarchyData = createHierarchyData(data, bounds, hierarchyOffsets);
     const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
 
     return {
-        id: uuId(),
+        id: newUUID(),
         sourceData: raw,
         model_num: data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
         conformation: getConformation(data, bounds),
-        version: { data: 0, conformation: 0 },
+        version: { data: newUUID(), conformation: newUUID() },
         atomCount: Interval.size(bounds)
     };
 }
@@ -104,7 +119,7 @@ function buildModels(data: mmCIF): ArrayLike<Model> {
     let modelStart = 0;
     while (modelStart < atomCount) {
         const bounds = findModelBounds(data, modelStart);
-        const model = createModel(raw, data, bounds);
+        const model = createModel(raw, data, bounds, models.length > 0 ? models[models.length - 1] : void 0);
         models.push(model);
         modelStart = Interval.end(bounds);
     }

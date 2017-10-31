@@ -98,6 +98,20 @@ namespace Table {
         }
         return ret;
     }
+
+    export function areEqual<T extends Table<Schema>>(a: T, b: T) {
+        if (a._rowCount !== b._rowCount) return false;
+        if (a._columns.length !== b._columns.length) return false;
+        for (const c of a._columns) {
+            if (!b[c]) return false;
+        }
+
+        for (const c of a._columns) {
+            if (!Column.areEqual(a[c], b[c])) return false;
+        }
+
+        return true;
+    }
 }
 
 export default Table

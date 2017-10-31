@@ -7,6 +7,7 @@
 import * as Formats from './model/formats'
 import HierarchyProperties from './model/properties/hierarchy'
 import ConformationProperties from './model/properties/conformation'
+import UUID from '../mol-base/utils/uuid'
 
 /**
  * Interface to the "source data" of the molecule.
@@ -14,7 +15,7 @@ import ConformationProperties from './model/properties/conformation'
  * "Atoms" are integers in the range [0, atomCount).
  */
 interface Model extends Readonly<{
-    id: string,
+    id: UUID,
 
     model_num: number,
 
@@ -25,8 +26,8 @@ interface Model extends Readonly<{
 
     // used for diffing.
     version: {
-        data: number,
-        conformation: number
+        data: UUID,
+        conformation: UUID
     },
 
     atomCount: number

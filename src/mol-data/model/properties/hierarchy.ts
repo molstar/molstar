@@ -6,7 +6,7 @@
 
 import Column from '../../../mol-base/collections/column'
 import Table from '../../../mol-base/collections/table'
-import Segmentation from '../../../mol-base/collections/integer/segmentation'
+import IntervalSegmentation from '../../../mol-base/collections/integer/segmentation'
 import { Schema as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 
 const _esCache = Object.create(null);
@@ -16,18 +16,16 @@ export function ElementSymbol(s: string): ElementSymbol {
 }
 
 export const AtomsSchema = {
-    id: mmCIF.atom_site.id,
     type_symbol: Column.Type.aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
     label_atom_id: mmCIF.atom_site.label_atom_id,
     auth_atom_id: mmCIF.atom_site.auth_atom_id,
     label_alt_id: mmCIF.atom_site.label_alt_id,
-    pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge,
-    occupancy: mmCIF.atom_site.occupancy,
-    B_iso_or_equiv: mmCIF.atom_site.B_iso_or_equiv
+    pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge
+    // id, occupancy and B_iso_or_equiv are part of conformation
 };
 
 export type AtomsSchema = typeof AtomsSchema
-export interface Atoms extends Table<typeof AtomsSchema> { }
+export interface Atoms extends Table<AtomsSchema> { }
 
 export const ResiduesSchema = {
     group_PDB: mmCIF.atom_site.group_PDB,
@@ -37,36 +35,37 @@ export const ResiduesSchema = {
     auth_seq_id: mmCIF.atom_site.auth_seq_id,
     pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code
 };
-
-export interface Residues extends Table<typeof ResiduesSchema> { }
+export type ResiduesSchema = typeof ResiduesSchema
+export interface Residues extends Table<ResiduesSchema> { }
 
 export const ChainsSchema = {
     label_asym_id: mmCIF.atom_site.label_asym_id,
     auth_asym_id: mmCIF.atom_site.auth_asym_id,
     auth_comp_id: mmCIF.atom_site.auth_comp_id,
-    label_entity_id: mmCIF.atom_site.label_entity_id,
-    pdbx_PDB_model_num: mmCIF.atom_site.pdbx_PDB_model_num
+    label_entity_id: mmCIF.atom_site.label_entity_id
 }
-
-export interface Chains extends Table<typeof ChainsSchema> { }
+export type ChainsSchema = typeof ChainsSchema
+export interface Chains extends Table<ChainsSchema> { }
 
 export const EntitySchema = mmCIF['entity']
-export interface Entities extends Table<typeof EntitySchema> { }
+export type EntitySchema = typeof EntitySchema
+export interface Entities extends Table<EntitySchema> { }
 
-export interface HierarchyData {
+export interface Data {
     atoms: Atoms,
     residues: Residues,
     chains: Chains,
     entities: Entities
 }
 
-export interface HierarchySegmentation {
-    residueSegments: Segmentation,
-    chainSegments: Segmentation
+export interface Segments {
+    residueSegments: IntervalSegmentation,
+    chainSegments: IntervalSegmentation
 }
 
-export interface HierarchyKeys {
-    // indicate whether the keys form an increasing sequence (in other words, the residues are sorted).
+export interface Keys {
+    // indicate whether the keys form an increasing sequence and within each chain, sequence numbers 
+    // are in increasing order.
     // monotonous sequences enable for example faster secodnary structure assignment.
     isMonotonous: boolean,
 
@@ -83,7 +82,7 @@ export interface HierarchyKeys {
     findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }
 
-type _Hierarchy = HierarchyData & HierarchySegmentation & HierarchyKeys
+type _Hierarchy = Data & Segments & Keys
 export interface Hierarchy extends _Hierarchy { }
 
 export default Hierarchy

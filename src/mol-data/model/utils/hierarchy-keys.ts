@@ -5,7 +5,7 @@
  */
 
 import Column from '../../../mol-base/collections/column'
-import { HierarchyData, HierarchySegmentation, HierarchyKeys } from '../properties/hierarchy'
+import { Data, Segments, Keys } from '../properties/hierarchy'
 import Segmentation from '../../../mol-base/collections/integer/segmentation'
 import Interval from '../../../mol-base/collections/integer/interval'
 
@@ -28,14 +28,14 @@ function getElementSubstructureKeyMap(map: Map<number, Map<string, number>>, key
 }
 
 function createLookUp(entity: Map<string, number>, chain: Map<number, Map<string, number>>, residue: Map<number, Map<string, number>>) {
-    const findEntityKey: HierarchyKeys['findEntityKey'] = (id) => entity.has(id) ? entity.get(id)! : -1;
-    const findChainKey: HierarchyKeys['findChainKey'] = (e, c) => {
+    const findEntityKey: Keys['findEntityKey'] = (id) => entity.has(id) ? entity.get(id)! : -1;
+    const findChainKey: Keys['findChainKey'] = (e, c) => {
         if (!entity.has(e)) return -1;
         const cm = chain.get(entity.get(e)!)!;
         if (!cm.has(c)) return -1;
         return cm.get(c)!;
     }
-    const findResidueKey: HierarchyKeys['findResidueKey'] = (e, c, name, seq, ins) => {
+    const findResidueKey: Keys['findResidueKey'] = (e, c, name, seq, ins) => {
         if (!entity.has(e)) return -1;
         const cm = chain.get(entity.get(e)!)!;
         if (!cm.has(c)) return -1;
@@ -47,7 +47,7 @@ function createLookUp(entity: Map<string, number>, chain: Map<number, Map<string
     return { findEntityKey, findChainKey, findResidueKey };
 }
 
-function isMonotonous(xs: ArrayLike<number>) {
+function checkMonotonous(xs: ArrayLike<number>) {
     for (let i = 1, _i = xs.length; i < _i; i++) {
         if (xs[i] < xs[i - 1]) {
             return false;
@@ -56,7 +56,7 @@ function isMonotonous(xs: ArrayLike<number>) {
     return true;
 }
 
-function create(data: HierarchyData, segments: HierarchySegmentation): HierarchyKeys {
+function create(data: Data, segments: Segments): Keys {
     const { chains, residues, entities } = data;
 
     const entityMap = Column.createFirstIndexMap(entities.id);
@@ -72,8 +72,9 @@ function create(data: HierarchyData, segments: HierarchySegmentation): Hierarchy
 
     const atomSet = Interval.ofBounds(0, data.atoms._rowCount);
 
-    const chainsIt = Segmentation.transientSegments(segments.chainSegments,atomSet);
+    let isMonotonous = true;
 
+    const chainsIt = Segmentation.transientSegments(segments.chainSegments, atomSet);
     while (chainsIt.hasNext) {
         const chainSegment = chainsIt.move();
         const cI = chainSegment.index;
@@ -87,9 +88,13 @@ function create(data: HierarchyData, segments: HierarchySegmentation): Hierarchy
 
         const residueMap = getElementSubstructureKeyMap(residueMaps, cKey);
         const residuesIt = Segmentation.transientSegments(segments.residueSegments, atomSet, chainSegment);
+        let last_seq_id = Number.NEGATIVE_INFINITY;
         while (residuesIt.hasNext) {
             const residueSegment = residuesIt.move();
             const rI = residueSegment.index;
+            const seq_id = auth_seq_id.value(rI);
+            if (seq_id < last_seq_id) isMonotonous = false;
+            last_seq_id = seq_id;
             const residueId = getResidueId(label_comp_id.value(rI), auth_seq_id.value(rI), pdbx_PDB_ins_code.value(rI));
             residueKey[rI] = getElementKey(residueMap, residueId, residueCounter);
         }
@@ -98,7 +103,7 @@ function create(data: HierarchyData, segments: HierarchySegmentation): Hierarchy
     const { findEntityKey, findChainKey, findResidueKey } = createLookUp(entityMap, chainMaps, residueMaps);
 
     return {
-        isMonotonous: isMonotonous(entityKey) && isMonotonous(chainKey) && isMonotonous(residueKey),
+        isMonotonous: isMonotonous && checkMonotonous(entityKey) && checkMonotonous(chainKey) && checkMonotonous(residueKey),
         residueKey: residueKey,
         chainKey: chainKey,
         entityKey: entityKey,
