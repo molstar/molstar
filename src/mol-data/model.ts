@@ -7,7 +7,6 @@
 import * as Formats from './model/formats'
 import HierarchyProperties from './model/properties/hierarchy'
 import ConformationProperties from './model/properties/conformation'
-import Segmentation from '../mol-base/collections/integer/segmentation'
 
 /**
  * Interface to the "source data" of the molecule.
@@ -30,11 +29,7 @@ interface Model extends Readonly<{
         conformation: number
     },
 
-    atomCount: number,
-    segments: Readonly<{
-        chains: Segmentation,
-        residues: Segmentation
-    }>
+    atomCount: number
 }> { }
 
 export default Model

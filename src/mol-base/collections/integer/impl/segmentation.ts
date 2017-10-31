@@ -54,12 +54,12 @@ class SegmentIterator implements Iterator<Segs.Segment> {
 
     move() {
         while (this.hasNext) {
-            if (!this.updateValue()) {
-                this.updateSegmentRange();
-            } else {
+            if (this.updateValue()) {
                 this.value.index = this.segmentStart++;
-                this.hasNext = this.segmentEnd > this.segmentStart;
+                this.hasNext = this.segmentEnd >= this.segmentStart && Interval.size(this.setRange) > 0;
                 break;
+            } else {
+                this.updateSegmentRange();
             }
         }
         return this.value;
@@ -75,16 +75,24 @@ class SegmentIterator implements Iterator<Segs.Segment> {
         const setEnd = OrderedSet.findPredecessorIndexInRange(this.set, segmentEnd, this.setRange);
         this.value.start = Interval.start(this.setRange);
         this.value.end = setEnd;
-        this.setRange = Interval.ofBounds(setEnd, Interval.end(this.setRange))
+        const rEnd = Interval.end(this.setRange);
+        this.setRange = Interval.ofBounds(setEnd, rEnd);
         return setEnd > this.value.start;
     }
 
     private updateSegmentRange() {
+        const sMin = Interval.min(this.setRange), sMax = Interval.max(this.setRange);
+        if (sMax < sMin) {
+            this.hasNext = false;
+            return;
+        }
+
         const min = OrderedSet.getAt(this.set, Interval.min(this.setRange));
         const max = OrderedSet.getAt(this.set, Interval.max(this.setRange));
+
         this.segmentStart = this.getSegmentIndex(min);
         this.segmentEnd = this.getSegmentIndex(max) + 1;
-        this.hasNext = this.segmentEnd > this.segmentStart;
+        this.hasNext = this.segmentEnd >= this.segmentStart && Interval.size(this.setRange) > 0;
     }
 
     constructor(private segments: OrderedSet, private set: OrderedSet, inputRange: Interval) {

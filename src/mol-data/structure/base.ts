@@ -24,7 +24,7 @@ class Builder {
 export const Empty: Structure = { units: {}, atoms: AtomSet.Empty };
 
 export function ofModel(model: Model): Structure {
-    const chains = model.segments.chains;
+    const chains = model.hierarchy.chainSegments;
     const builder = new Builder();
 
     for (let c = 0; c < chains.count; c++) {

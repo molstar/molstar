@@ -117,7 +117,15 @@ async function runCIF(input: string | Uint8Array) {
     console.time('createModels');
     const models = buildModels(mmcif);
     console.timeEnd('createModels');
-    console.log(models[0].id);
+
+    console.log(models[0].hierarchy.isMonotonous);
+    console.log(models[0].hierarchy.atoms.type_symbol.value(0));
+    console.log(models[0].hierarchy.atoms.id.value(1));
+    console.log(models[0].hierarchy.residues.auth_comp_id.value(0));
+    console.log(models[0].hierarchy.residues.auth_comp_id.value(1));
+    console.log(models[0].hierarchy.chains.auth_asym_id.value(0));
+    console.log(models[0].hierarchy.chains.auth_asym_id.value(1));
+    console.log(models[0].hierarchy.chains.label_asym_id.value(1));
 
     // const schema = await _dic()
     // if (schema) {

@@ -58,10 +58,21 @@ namespace Table {
         const columns = Object.keys(schema);
         ret._rowCount = arrays[columns[0]].length;
         ret._columns = columns;
-        for (const k of Object.keys(schema)) {
+        for (const k of columns) {
             (ret as any)[k] = Column.ofArray({ array: arrays[k], type: schema[k] })
         }
         return ret as R;
+    }
+
+    export function view<S extends Schema, R extends Schema>(table: Table<S>, schema: R, view: ArrayLike<number>) {
+        const ret = Object.create(null);
+        const columns = Object.keys(schema);
+        ret._rowCount = view.length;
+        ret._columns = columns;
+        for (const k of columns) {
+            (ret as any)[k] = Column.view(table[k], view);
+        }
+        return ret as Table<R>;
     }
 
     /** Sort and return a new table */

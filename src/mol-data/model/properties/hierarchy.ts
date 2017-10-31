@@ -16,6 +16,7 @@ export function ElementSymbol(s: string): ElementSymbol {
 }
 
 export const AtomsSchema = {
+    id: mmCIF.atom_site.id,
     type_symbol: Column.Type.aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
     label_atom_id: mmCIF.atom_site.label_atom_id,
     auth_atom_id: mmCIF.atom_site.auth_atom_id,
@@ -25,6 +26,7 @@ export const AtomsSchema = {
     B_iso_or_equiv: mmCIF.atom_site.B_iso_or_equiv
 };
 
+export type AtomsSchema = typeof AtomsSchema
 export interface Atoms extends Table<typeof AtomsSchema> { }
 
 export const ResiduesSchema = {
@@ -59,8 +61,8 @@ export interface HierarchyData {
 }
 
 export interface HierarchySegmentation {
-    residues: Segmentation,
-    chains: Segmentation
+    residueSegments: Segmentation,
+    chainSegments: Segmentation
 }
 
 export interface HierarchyKeys {
@@ -69,20 +71,19 @@ export interface HierarchyKeys {
     isMonotonous: boolean,
 
     // assign a key to each residue index.
-    residue: ArrayLike<number>,
+    residueKey: ArrayLike<number>,
     // assign a key to each chain index
-    chain: ArrayLike<number>,
+    chainKey: ArrayLike<number>,
     // assigne a key to each chain index
     // also index to the Entities table.
-    entity: ArrayLike<number>,
+    entityKey: ArrayLike<number>,
 
-    findEntity(id: string): number,
-    findChain(entityId: string, auth_asym_id: string): number,
-    findResidue(entityId: string, auth_asym_id: string, auth_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
+    findEntityKey(id: string): number,
+    findChainKey(entityId: string, label_asym_id: string): number,
+    findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }
 
-export interface Hierarchy extends HierarchyData {
-    keys: HierarchyKeys
-}
+type _Hierarchy = HierarchyData & HierarchySegmentation & HierarchyKeys
+export interface Hierarchy extends _Hierarchy { }
 
 export default Hierarchy

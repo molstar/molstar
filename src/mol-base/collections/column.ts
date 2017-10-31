@@ -87,7 +87,7 @@ namespace Column {
     }
 
     export function view<T>(column: Column<T>, indices: ArrayLike<number>, checkIndentity = true) {
-        return columnPermutation(column, indices, checkIndentity);
+        return columnView(column, indices, checkIndentity);
     }
 
     /** A map of the 1st occurence of each value. */
@@ -192,7 +192,7 @@ function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.A
 
 function windowColumn<T>(column: Column<T>, start: number, end: number) {
     if (!column.isDefined) return Column.Undefined(end - start, column['@type']);
-    if (column['@array'] && ColumnHelpers.isTypedArray(column['@array'])) return windowTyped(column, start, end);
+    if (!!column['@array'] && ColumnHelpers.isTypedArray(column['@array'])) return windowTyped(column, start, end);
     return windowFull(column, start, end);
 }
 
@@ -229,10 +229,10 @@ function isIdentity(map: ArrayLike<number>, rowCount: number) {
     return true;
 }
 
-function columnPermutation<T>(c: Column<T>, map: ArrayLike<number>, checkIdentity: boolean): Column<T> {
+function columnView<T>(c: Column<T>, map: ArrayLike<number>, checkIdentity: boolean): Column<T> {
     if (!c.isDefined) return c;
     if (checkIdentity && isIdentity(map, c.rowCount)) return c;
-    if (!c['@array']) return arrayView(c, map);
+    if (!!c['@array']) return arrayView(c, map);
     return viewFull(c, map);
 }
 

@@ -28,14 +28,14 @@ function getElementSubstructureKeyMap(map: Map<number, Map<string, number>>, key
 }
 
 function createLookUp(entity: Map<string, number>, chain: Map<number, Map<string, number>>, residue: Map<number, Map<string, number>>) {
-    const findEntity: HierarchyKeys['findEntity'] = (id) => entity.has(id) ? entity.get(id)! : -1;
-    const findChain: HierarchyKeys['findChain'] = (e, c) => {
+    const findEntityKey: HierarchyKeys['findEntityKey'] = (id) => entity.has(id) ? entity.get(id)! : -1;
+    const findChainKey: HierarchyKeys['findChainKey'] = (e, c) => {
         if (!entity.has(e)) return -1;
         const cm = chain.get(entity.get(e)!)!;
         if (!cm.has(c)) return -1;
         return cm.get(c)!;
     }
-    const findResidue: HierarchyKeys['findResidue'] = (e, c, name, seq, ins) => {
+    const findResidueKey: HierarchyKeys['findResidueKey'] = (e, c, name, seq, ins) => {
         if (!entity.has(e)) return -1;
         const cm = chain.get(entity.get(e)!)!;
         if (!cm.has(c)) return -1;
@@ -44,12 +44,14 @@ function createLookUp(entity: Map<string, number>, chain: Map<number, Map<string
         if (!rm.has(id)) return -1;
         return rm.get(id)!;
     }
-    return { findEntity, findChain, findResidue };
+    return { findEntityKey, findChainKey, findResidueKey };
 }
 
 function isMonotonous(xs: ArrayLike<number>) {
     for (let i = 1, _i = xs.length; i < _i; i++) {
-        if (xs[i] < xs[i - 1]) return false;
+        if (xs[i] < xs[i - 1]) {
+            return false;
+        }
     }
     return true;
 }
@@ -65,40 +67,44 @@ function create(data: HierarchyData, segments: HierarchySegmentation): Hierarchy
     const chainKey = new Int32Array(chains._rowCount);
     const entityKey = new Int32Array(chains._rowCount);
 
-    const { auth_comp_id, auth_seq_id, pdbx_PDB_ins_code } = data.residues;
-    const { label_entity_id, auth_asym_id } = data.chains;
+    const { label_comp_id, auth_seq_id, pdbx_PDB_ins_code } = data.residues;
+    const { label_entity_id, label_asym_id } = data.chains;
 
-    const chainsIt = Segmentation.transientSegments(segments.chains, Interval.ofBounds(0, data.atoms._rowCount));
+    const atomSet = Interval.ofBounds(0, data.atoms._rowCount);
+
+    const chainsIt = Segmentation.transientSegments(segments.chainSegments,atomSet);
+
     while (chainsIt.hasNext) {
         const chainSegment = chainsIt.move();
-        const residuesIt = Segmentation.transientSegments(segments.residues, Interval.ofBounds(chainSegment.start, chainSegment.end));
         const cI = chainSegment.index;
 
         const eKey = entityMap.get(label_entity_id.value(cI)) || 0;
         const chainMap = getElementSubstructureKeyMap(chainMaps, eKey);
-        const cKey = getElementKey(chainMap, auth_asym_id.value(cI), chainCounter);
+        const cKey = getElementKey(chainMap, label_asym_id.value(cI), chainCounter);
 
         chainKey[cI] = cKey;
         entityKey[cI] = eKey;
 
         const residueMap = getElementSubstructureKeyMap(residueMaps, cKey);
+        const residuesIt = Segmentation.transientSegments(segments.residueSegments, atomSet, chainSegment);
         while (residuesIt.hasNext) {
-            const rI = residuesIt.move().index;
-            const residueId = getResidueId(auth_comp_id.value(rI), auth_seq_id.value(rI), pdbx_PDB_ins_code.value(rI));
+            const residueSegment = residuesIt.move();
+            const rI = residueSegment.index;
+            const residueId = getResidueId(label_comp_id.value(rI), auth_seq_id.value(rI), pdbx_PDB_ins_code.value(rI));
             residueKey[rI] = getElementKey(residueMap, residueId, residueCounter);
         }
     }
 
-    const { findEntity, findChain, findResidue } = createLookUp(entityMap, chainMaps, residueMaps);
+    const { findEntityKey, findChainKey, findResidueKey } = createLookUp(entityMap, chainMaps, residueMaps);
 
     return {
         isMonotonous: isMonotonous(entityKey) && isMonotonous(chainKey) && isMonotonous(residueKey),
-        residue: residueKey,
-        chain: chainKey,
-        entity: entityKey,
-        findEntity,
-        findChain,
-        findResidue
+        residueKey: residueKey,
+        chainKey: chainKey,
+        entityKey: entityKey,
+        findEntityKey,
+        findChainKey,
+        findResidueKey
     };
 }
 

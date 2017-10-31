@@ -7,10 +7,13 @@
 import { RawData } from '../formats'
 import { Frame as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 import Model from '../../model'
-//import Column from '../../../mol-base/collections/column'
+import Column from '../../../mol-base/collections/column'
+import Table from '../../../mol-base/collections/table'
 import Interval from '../../../mol-base/collections/integer/interval'
 import Segmentation from '../../../mol-base/collections/integer/segmentation'
 import uuId from '../../../mol-base/utils/uuid'
+import * as Hierarchy from '../properties/hierarchy'
+import findHierarchyKeys from '../utils/hierarchy-keys'
 
 function findModelBounds(data: mmCIF, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -21,7 +24,7 @@ function findModelBounds(data: mmCIF, startIndex: number) {
     return Interval.ofBounds(startIndex, endIndex);
 }
 
-function segmentOffsets(data: mmCIF, bounds: Interval) {
+function findHierarchyOffsets(data: mmCIF, bounds: Interval) {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const residues = [start], chains = [start];
 
@@ -41,21 +44,42 @@ function segmentOffsets(data: mmCIF, bounds: Interval) {
     return { residues, chains };
 }
 
+function createHierarchyData(data: mmCIF, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): Hierarchy.HierarchyData {
+    const { atom_site } = data;
+    const start = Interval.start(bounds), end = Interval.end(bounds);
+    const atoms = Table.ofColumns<Hierarchy.AtomsSchema>({
+        id: Column.window(atom_site.id, start, end),
+        type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), Hierarchy.ElementSymbol), type: Column.Type.aliased<Hierarchy.ElementSymbol>(Column.Type.str) }),
+        label_atom_id: Column.window(atom_site.label_atom_id, start, end),
+        auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),
+        label_alt_id: Column.window(atom_site.label_alt_id, start, end),
+        pdbx_formal_charge: Column.window(atom_site.pdbx_formal_charge, start, end),
+        occupancy: Column.window(atom_site.occupancy, start, end),
+        B_iso_or_equiv: Column.window(atom_site.B_iso_or_equiv, start, end),
+    });
+    const residues = Table.view(atom_site, Hierarchy.ResiduesSchema, offsets.residues);
+    const chains = Table.view(atom_site, Hierarchy.ChainsSchema, offsets.chains);
+    return { atoms, residues, chains, entities: data.entity };
+}
+
 function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
-    const segments = segmentOffsets(data, bounds);
+    const hierarchyOffsets = findHierarchyOffsets(data, bounds);
+
+    const hierarchySegments: Hierarchy.HierarchySegmentation = {
+        residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
+        chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
+    }
+    const hierarchyData = createHierarchyData(data, bounds, hierarchyOffsets);
+    const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
+
     return {
         id: uuId(),
         sourceData: raw,
-        model_num: 0, // TODO: fix
-        //common: 0 as any,
-        hierarchy: 0 as any,
+        model_num: data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
+        hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
         conformation: 0 as any,
         version: { data: 0, conformation: 0 },
-        atomCount: Interval.size(bounds),
-        segments: {
-            residues: Segmentation.ofOffsets(segments.residues, bounds),
-            chains: Segmentation.ofOffsets(segments.chains, bounds),
-        }
+        atomCount: Interval.size(bounds)
     };
 }
 

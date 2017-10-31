@@ -96,6 +96,18 @@ describe('table', () => {
         expect(picked.y.toArray()).toEqual([3, 4]);
     });
 
+    it('view', () => {
+        const t = Table.ofColumns<typeof schema>({
+            x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
+            n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
+        });
+        const s = { x: Column.Type.int };
+        const view = Table.view(t, s, [1]);
+        expect(view._columns).toEqual(['x']);
+        expect(view._rowCount).toEqual(1);
+        expect(view.x.toArray()).toEqual([-1]);
+    });
+
     it('sort', () => {
         const t = Table.ofColumns<typeof schema>({
             x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
