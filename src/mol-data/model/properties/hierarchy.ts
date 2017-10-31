@@ -32,9 +32,7 @@ export const ResiduesSchema = {
     auth_comp_id: mmCIF.atom_site.auth_comp_id,
     label_seq_id: mmCIF.atom_site.label_seq_id,
     auth_seq_id: mmCIF.atom_site.auth_seq_id,
-    pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code,
-
-    key: Column.Type.int
+    pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code
 };
 
 export interface Residues extends Table<typeof AtomsSchema> { }
@@ -44,10 +42,7 @@ export const ChainsSchema = {
     auth_asym_id: mmCIF.atom_site.auth_asym_id,
     auth_comp_id: mmCIF.atom_site.auth_comp_id,
     label_entity_id: mmCIF.atom_site.label_entity_id,
-    pdbx_PDB_model_num: mmCIF.atom_site.pdbx_PDB_model_num,
-
-    key: Column.Type.int,
-    entityIndex: Column.Type.int
+    pdbx_PDB_model_num: mmCIF.atom_site.pdbx_PDB_model_num
 }
 
 export interface Chains extends Table<typeof ChainsSchema> { }
@@ -55,11 +50,33 @@ export interface Chains extends Table<typeof ChainsSchema> { }
 export const EntitySchema = mmCIF['entity']
 export interface Entities extends Table<typeof EntitySchema> { }
 
-export interface Macromolecule {
+export interface HierarchyData {
     atoms: Atoms,
     residues: Residues,
     chains: Chains,
     entities: Entities
 }
 
-export default Macromolecule
+export interface HierarchyKeys {
+    // indicate whether the keys form an increasing sequence (in other words, the residues are sorted).
+    // monotonous sequences enable for example faster secodnary structure assignment.
+    isMonotonous: number,
+
+    // assign a key to each residue index.
+    residue: ArrayLike<number>,
+    // assign a key to each chain index
+    chain: ArrayLike<number>,
+    // assigne a key to each chain index
+    // also index to the Entities table.
+    entity: ArrayLike<number>,
+
+    findEntity(id: string): number,
+    findChain(entityId: string, label_asym_id: string): number,
+    findResidue(entityId: string, label_asym_id: string, label_comp_id: string, label_seq_id: number, pdbx_PDB_ins_code: string): number
+}
+
+export interface Hierarchy extends HierarchyData {
+    keys: HierarchyKeys
+}
+
+export default Hierarchy

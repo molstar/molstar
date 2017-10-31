@@ -3,3 +3,5 @@
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
+
+// TODO add access to things like MOL2 charge ...

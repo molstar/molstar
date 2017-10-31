@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SecondaryStructureFlag as SSF } from './secondary-structure'
-import BitFlags from '../../../mol-base/utils/bit-flags'
+import { SecondaryStructureType } from '../constants'
 import Segmentation from '../../../mol-base/collections/integer/segmentation'
 
 interface Positions {
@@ -15,14 +14,14 @@ interface Positions {
 }
 
 interface SecondaryStructure {
-    ofResidue: ArrayLike<BitFlags<SSF>>,
-    // atom segmentation
+    ofResidue: ArrayLike<SecondaryStructureType>,
+    // atom segmentation??
     segments: Segmentation
 }
 
 interface Conformation {
     positions: Positions,
-    secondaryStructureType: SecondaryStructure
+    secondaryStructure: SecondaryStructure
 }
 
 export default Conformation

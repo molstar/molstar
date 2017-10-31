@@ -14,7 +14,7 @@ const entry = {
     id: str
 }
 
-type EntityType = 'polymer' | 'non-polymer' | 'water'
+type EntityType = 'polymer' | 'non-polymer' | 'water' | 'macrolide'
 
 const entity = {
     id: str,

@@ -48,7 +48,7 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
         sourceData: raw,
         model_num: 0, // TODO: fix
         //common: 0 as any,
-        macromolecule: 0 as any,
+        hierarchy: 0 as any,
         conformation: 0 as any,
         version: { data: 0, conformation: 0 },
         atomCount: Interval.size(bounds),
