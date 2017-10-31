@@ -126,6 +126,9 @@ async function runCIF(input: string | Uint8Array) {
     console.log(models[0].hierarchy.chains.auth_asym_id.value(0));
     console.log(models[0].hierarchy.chains.auth_asym_id.value(1));
     console.log(models[0].hierarchy.chains.label_asym_id.value(1));
+    console.log(models[0].conformation.x[0]);
+    console.log(models[0].conformation.y[0]);
+    console.log(models[0].conformation.z[0]);
 
     // const schema = await _dic()
     // if (schema) {

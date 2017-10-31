@@ -4,24 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SecondaryStructureType } from '../constants'
-import Segmentation from '../../../mol-base/collections/integer/segmentation'
-
-interface Positions {
+interface Conformation {
     x: ArrayLike<number>,
     y: ArrayLike<number>,
     z: ArrayLike<number>
-}
-
-interface SecondaryStructure {
-    ofResidue: ArrayLike<SecondaryStructureType>,
-    // atom segmentation??
-    segments: Segmentation
-}
-
-interface Conformation {
-    positions: Positions,
-    secondaryStructure: SecondaryStructure
 }
 
 export default Conformation

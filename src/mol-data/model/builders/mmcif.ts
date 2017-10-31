@@ -13,6 +13,7 @@ import Interval from '../../../mol-base/collections/integer/interval'
 import Segmentation from '../../../mol-base/collections/integer/segmentation'
 import uuId from '../../../mol-base/utils/uuid'
 import * as Hierarchy from '../properties/hierarchy'
+import Conformation from '../properties/conformation'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 
 function findModelBounds(data: mmCIF, startIndex: number) {
@@ -62,6 +63,16 @@ function createHierarchyData(data: mmCIF, bounds: Interval, offsets: { residues:
     return { atoms, residues, chains, entities: data.entity };
 }
 
+function getConformation(data: mmCIF, bounds: Interval): Conformation {
+    const start = Interval.start(bounds), end = Interval.end(bounds);
+    const { atom_site } = data;
+    return {
+        x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
+        y: atom_site.Cartn_y.toArray({ array: Float32Array, start, end }),
+        z: atom_site.Cartn_z.toArray({ array: Float32Array, start, end }),
+    }
+}
+
 function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
     const hierarchyOffsets = findHierarchyOffsets(data, bounds);
 
@@ -77,7 +88,7 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval): Model {
         sourceData: raw,
         model_num: data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
-        conformation: 0 as any,
+        conformation: getConformation(data, bounds),
         version: { data: 0, conformation: 0 },
         atomCount: Interval.size(bounds)
     };
