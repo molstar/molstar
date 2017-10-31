@@ -43,6 +43,10 @@ describe('column', () => {
     it('permutation', () => {
         expect(Column.permutation(arr, [1, 0, 3, 2]).toArray()).toEqual([2, 1, 4, 3]);
     });
+
+    it('map to array', () => {
+        expect(Column.mapToArray(arrWindow, x => x + 1)).toEqual([3, 4]);
+    });
 })
 
 describe('table', () => {

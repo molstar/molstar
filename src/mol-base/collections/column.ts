@@ -94,6 +94,10 @@ namespace Column {
         return createFirstIndexMapOfColumn(column);
     }
 
+    export function mapToArray<T, S>(column: Column<T>, f: (v: T) => S, ctor?: { new(size: number): ArrayLike<number> }): ArrayLike<S> {
+        return mapToArrayImpl(column, f, ctor || Array);
+    }
+
     /** Makes the column backned by an array. Useful for columns that accessed often. */
     export function asArrayColumn<T>(c: Column<T>, array?: ToArrayParams['array']): Column<T> {
         if (c['@array']) return c;
@@ -255,6 +259,12 @@ function permutationFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
         },
         areValuesEqual: (rowA, rowB) => ave(map[rowA], map[rowB])
     };
+}
+
+function mapToArrayImpl<T, S>(c: Column<T>, f: (v: T) => S, ctor: { new(size: number): ArrayLike<number> }): ArrayLike<S> {
+    const ret = new ctor(c.rowCount) as any;
+    for (let i = 0, _i = c.rowCount; i < _i; i++) ret[i] = f(c.value(i));
+    return ret;
 }
 
 export namespace ColumnHelpers {

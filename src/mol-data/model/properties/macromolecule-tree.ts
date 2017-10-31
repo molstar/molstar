@@ -21,10 +21,7 @@ export const AtomsSchema = {
     label_alt_id: mmCIF.atom_site.label_alt_id,
     pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge,
     occupancy: mmCIF.atom_site.occupancy,
-    B_iso_or_equiv: mmCIF.atom_site.B_iso_or_equiv,
-
-    key: Column.Type.int,
-    source_row: Column.Type.int,
+    B_iso_or_equiv: mmCIF.atom_site.B_iso_or_equiv
 };
 
 export interface Atoms extends Table<typeof AtomsSchema> { }
