@@ -13,6 +13,7 @@ namespace Segmentation {
     export interface Segment { index: number, start: number, end: number }
 
     export const create: (segs: ArrayLike<number>) => Segmentation = Impl.create as any;
+    export const ofOffsets: (offsets: ArrayLike<number>, bounds: Interval) => Segmentation = Impl.ofOffsets as any;
 
     export const count: (segs: Segmentation) => number = Impl.count as any;
     export const getSegment: (segs: Segmentation, value: number) => number = Impl.getSegment as any;

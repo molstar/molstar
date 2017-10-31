@@ -83,7 +83,7 @@ namespace Table {
         ret._rowCount = table._rowCount;
         ret._columns = table._columns;
         for (const c of table._columns) {
-            ret[c] = Column.permutation((table as any)[c], indices, false);
+            ret[c] = Column.view((table as any)[c], indices, false);
         }
         return ret;
     }

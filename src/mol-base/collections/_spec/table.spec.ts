@@ -40,8 +40,9 @@ describe('column', () => {
         expect(numStr.toArray()).toEqual(['1', '2']);
     });
 
-    it('permutation', () => {
-        expect(Column.permutation(arr, [1, 0, 3, 2]).toArray()).toEqual([2, 1, 4, 3]);
+    it('view', () => {
+        expect(Column.view(arr, [1, 0, 3, 2]).toArray()).toEqual([2, 1, 4, 3]);
+        expect(Column.view(arr, [1, 3]).toArray()).toEqual([2, 4]);
     });
 
     it('map to array', () => {

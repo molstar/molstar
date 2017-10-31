@@ -5,9 +5,8 @@
  */
 
 import * as Formats from './model/formats'
-//import CommonProperties from './model/properties/common'
-import MacromoleculeTree from './model/properties/macromolecule-tree'
-import Conformation from './model/properties/conformation'
+import MacromoleculeData from './model/data/macromolecule'
+import ConformationData from './model/data/conformation'
 import Segmentation from '../mol-base/collections/integer/segmentation'
 
 /**
@@ -22,9 +21,8 @@ interface Model extends Readonly<{
 
     sourceData: Formats.RawData,
 
-    //common: CommonProperties,
-    macromolecule: MacromoleculeTree,
-    conformation: Conformation,
+    macromolecule: MacromoleculeData,
+    conformation: ConformationData,
 
     // used for diffing.
     version: {
@@ -35,8 +33,7 @@ interface Model extends Readonly<{
     atomCount: number,
     segments: Readonly<{
         chains: Segmentation,
-        residues: Segmentation,
-        entities: Segmentation
+        residues: Segmentation
     }>
 }> { }
 

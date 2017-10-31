@@ -69,9 +69,9 @@ export interface Field {
 
     areValuesEqual(rowA: number, rowB: number): boolean,
 
-    toStringArray(params?: Column.ToArrayParams): ReadonlyArray<string>,
-    toIntArray(params?: Column.ToArrayParams): ReadonlyArray<number>,
-    toFloatArray(params?: Column.ToArrayParams): ReadonlyArray<number>
+    toStringArray(params?: Column.ToArrayParams<string>): ReadonlyArray<string>,
+    toIntArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>,
+    toFloatArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>
 }
 
 export function getMatrix(category: Category, field: string, rows: number, cols: number, row: number) {

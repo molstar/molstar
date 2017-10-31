@@ -10,7 +10,7 @@ import Interval from '../interval'
 import SortedArray from '../sorted-array'
 import Segs from '../segmentation'
 
-type Segmentation = { segments: SortedArray, segmentMap: ArrayLike<number>, count: number }
+type Segmentation = { segments: SortedArray, segmentMap: Int32Array, count: number }
 
 export function create(values: ArrayLike<number>): Segmentation {
     const segments = SortedArray.ofSortedArray(values);
@@ -22,6 +22,16 @@ export function create(values: ArrayLike<number>): Segmentation {
         }
     }
     return { segments, segmentMap, count: values.length - 1 };
+}
+
+export function ofOffsets(offsets: ArrayLike<number>, bounds: Interval): Segmentation {
+    const s = Interval.start(bounds);
+    const segments = new Int32Array(offsets.length + 1);
+    for (let i = 0, _i = offsets.length; i < _i; i++) {
+        segments[i] = offsets[i] - s;
+    }
+    segments[offsets.length] = Interval.end(bounds) - s;
+    return create(segments);
 }
 
 export function count({ count }: Segmentation) { return count; }
