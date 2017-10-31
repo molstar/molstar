@@ -13,7 +13,7 @@ import * as Base from './structure/base'
 
 // TODO: do "single model" version of the structure?
 export interface Structure extends Readonly<{
-    units: Readonly<{ [id: number]: Unit }>,
+    units: { readonly [id: number]: Unit },
     atoms: AtomSet
 }> { }
 

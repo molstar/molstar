@@ -9,6 +9,11 @@ import HierarchyProperties from './model/properties/hierarchy'
 import ConformationProperties from './model/properties/conformation'
 import UUID from '../mol-base/utils/uuid'
 
+export interface Version {
+    hierarchy: UUID,
+    conformation: UUID
+}
+
 /**
  * Interface to the "source data" of the molecule.
  *
@@ -25,10 +30,7 @@ interface Model extends Readonly<{
     conformation: ConformationProperties,
 
     // used for diffing.
-    version: {
-        data: UUID,
-        conformation: UUID
-    },
+    version: Version,
 
     atomCount: number
 }> { }

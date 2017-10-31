@@ -104,9 +104,9 @@ function create(data: Data, segments: Segments): Keys {
 
     return {
         isMonotonous: isMonotonous && checkMonotonous(entityKey) && checkMonotonous(chainKey) && checkMonotonous(residueKey),
-        residueKey: residueKey,
-        chainKey: chainKey,
-        entityKey: entityKey,
+        residueKey: Column.ofIntArray(residueKey),
+        chainKey: Column.ofIntArray(chainKey),
+        entityKey: Column.ofIntArray(entityKey),
         findEntityKey,
         findChainKey,
         findResidueKey

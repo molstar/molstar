@@ -16,7 +16,11 @@ interface Unit extends Readonly<{
 
     // Determines the operation applied to this unit.
     // The transform and and inverse are baked into the "getPosition" function
-    operator: Operator
+    operator: Operator,
+
+    // Cache residue and chain indices for fast access.
+    residueIndex: ArrayLike<number>,
+    chainIndex: ArrayLike<number>
 }> {
     // // returns the untransformed position. Used for spatial queries.
     // getInvariantPosition(atom: number, slot: Vec3): Vec3
@@ -27,7 +31,8 @@ interface Unit extends Readonly<{
 
 namespace Unit {
     export function create(model: Model, operator: Operator): Unit {
-        return { id: nextUnitId(), model, operator };
+        const h = model.hierarchy;
+        return { id: nextUnitId(), model, operator, residueIndex: h.residueSegments.segmentMap, chainIndex: h.chainSegments.segmentMap };
     }
 }
 

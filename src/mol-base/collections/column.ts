@@ -81,6 +81,18 @@ namespace Column {
         return arrayColumn(spec);
     }
 
+    export function ofIntArray(array: ArrayLike<number>) {
+        return arrayColumn({ array, type: Type.int });
+    }
+
+    export function ofFloatArray(array: ArrayLike<number>) {
+        return arrayColumn({ array, type: Type.float });
+    }
+
+    export function ofStringArray(array: ArrayLike<string>) {
+        return arrayColumn({ array, type: Type.str });
+    }
+
     export function window<T>(column: Column<T>, start: number, end: number) {
         return windowColumn(column, start, end);
     }

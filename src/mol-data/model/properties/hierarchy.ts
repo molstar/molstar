@@ -70,12 +70,12 @@ export interface Keys {
     isMonotonous: boolean,
 
     // assign a key to each residue index.
-    residueKey: ArrayLike<number>,
+    residueKey: Column<number>,
     // assign a key to each chain index
-    chainKey: ArrayLike<number>,
+    chainKey: Column<number>,
     // assigne a key to each chain index
     // also index to the Entities table.
-    entityKey: ArrayLike<number>,
+    entityKey: Column<number>,
 
     findEntityKey(id: string): number,
     findChainKey(entityId: string, label_asym_id: string): number,

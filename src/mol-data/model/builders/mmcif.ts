@@ -88,7 +88,7 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval, previous?: Mod
         return {
             ...previous,
             conformation: getConformation(data, bounds),
-            version: { data: previous.version.data, conformation: newUUID() }
+            version: { hierarchy: previous.version.hierarchy, conformation: newUUID() }
         };
     }
 
@@ -104,7 +104,7 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval, previous?: Mod
         model_num: data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
         conformation: getConformation(data, bounds),
-        version: { data: newUUID(), conformation: newUUID() },
+        version: { hierarchy: newUUID(), conformation: newUUID() },
         atomCount: Interval.size(bounds)
     };
 }
