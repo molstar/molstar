@@ -47,4 +47,7 @@ describe('sortedArray', () => {
     test('predIndexInt', SortedArray.findPredecessorIndexInInterval(a1234, 0, Interval.ofRange(2, 3)), 2);
 
     testI('findRange', SortedArray.findRange(a2468, 2, 4), Interval.ofRange(0, 1));
+
+    // console.log(Interval.findPredecessorIndexInInterval(Interval.ofBounds(0, 3), 2, Interval.ofBounds(0, 3)))
+    // console.log(SortedArray.findPredecessorIndexInInterval(SortedArray.ofSortedArray([0, 1, 2]), 2, Interval.ofBounds(0, 3)))
 });

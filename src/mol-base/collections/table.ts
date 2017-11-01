@@ -75,6 +75,10 @@ namespace Table {
         return ret as Table<R>;
     }
 
+    export function columnToArray<S extends Schema>(table: Table<S>, name: keyof S, array?: Column.ArrayCtor<any>) {
+        table[name] = Column.asArrayColumn(table[name], array);
+    }
+
     /** Sort and return a new table */
     export function sort<T extends Table<S>, S extends Schema>(table: T, cmp: (i: number, j: number) => number) {
         const indices = new Int32Array(table._rowCount);

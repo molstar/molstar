@@ -43,9 +43,9 @@ export function projectValue({ segments }: Segmentation, set: OrderedSet, value:
     return OrderedSet.findRange(set, OrderedSet.getAt(segments, idx), OrderedSet.getAt(segments, idx + 1) - 1);
 }
 
-class SegmentIterator implements Iterator<Segs.Segment> {
-    private segmentStart = 0;
-    private segmentEnd = 0;
+export class SegmentIterator implements Iterator<Segs.Segment> {
+    private segmentMin = 0;
+    private segmentMax = 0;
     private setRange = Interval.Empty;
     private value: Segs.Segment = { index: 0, start: 0, end: 0 };
     private last: number = 0;
@@ -55,8 +55,8 @@ class SegmentIterator implements Iterator<Segs.Segment> {
     move() {
         while (this.hasNext) {
             if (this.updateValue()) {
-                this.value.index = this.segmentStart++;
-                this.hasNext = this.segmentEnd >= this.segmentStart && Interval.size(this.setRange) > 0;
+                this.value.index = this.segmentMin++;
+                this.hasNext = this.segmentMax >= this.segmentMin && Interval.size(this.setRange) > 0;
                 break;
             } else {
                 this.updateSegmentRange();
@@ -67,11 +67,11 @@ class SegmentIterator implements Iterator<Segs.Segment> {
 
     private getSegmentIndex(value: number) {
         if (value >= this.last) return -1;
-        return OrderedSet.findPredecessorIndex(this.segments, value - 1);
+        return SortedArray.findPredecessorIndex(this.segments, value + 1) - 1;
     }
 
     private updateValue() {
-        const segmentEnd = OrderedSet.getAt(this.segments, this.segmentStart + 1);
+        const segmentEnd = this.segments[this.segmentMin + 1];
         const setEnd = OrderedSet.findPredecessorIndexInRange(this.set, segmentEnd, this.setRange);
         this.value.start = Interval.start(this.setRange);
         this.value.end = setEnd;
@@ -87,16 +87,15 @@ class SegmentIterator implements Iterator<Segs.Segment> {
             return;
         }
 
-        const min = OrderedSet.getAt(this.set, Interval.min(this.setRange));
-        const max = OrderedSet.getAt(this.set, Interval.max(this.setRange));
-
-        this.segmentStart = this.getSegmentIndex(min);
-        this.segmentEnd = this.getSegmentIndex(max) + 1;
-        this.hasNext = this.segmentEnd >= this.segmentStart && Interval.size(this.setRange) > 0;
+        const min = OrderedSet.getAt(this.set, sMin);
+        const max = OrderedSet.getAt(this.set, sMax);
+        this.segmentMin = this.getSegmentIndex(min);
+        this.segmentMax = this.getSegmentIndex(max);
+        this.hasNext = this.segmentMax >= this.segmentMin && Interval.size(this.setRange) > 0;
     }
 
-    constructor(private segments: OrderedSet, private set: OrderedSet, inputRange: Interval) {
-        this.last = OrderedSet.max(segments);
+    constructor(private segments: SortedArray, private set: OrderedSet, inputRange: Interval) {
+        this.last = SortedArray.max(segments);
         this.setRange = inputRange;
         this.updateSegmentRange();
     }

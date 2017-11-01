@@ -54,8 +54,11 @@ function createHierarchyData(data: mmCIF, bounds: Interval, offsets: { residues:
         auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),
         label_alt_id: Column.window(atom_site.label_alt_id, start, end),
         pdbx_formal_charge: Column.window(atom_site.pdbx_formal_charge, start, end)
-    });
+    } as any);
     const residues = Table.view(atom_site, Hierarchy.ResiduesSchema, offsets.residues);
+    // Optimize the numeric columns
+    Table.columnToArray(residues, 'label_seq_id', Int32Array);
+    Table.columnToArray(residues, 'auth_seq_id', Int32Array);
     const chains = Table.view(atom_site, Hierarchy.ChainsSchema, offsets.chains);
     return { atoms, residues, chains, entities: data.entity };
 }
@@ -68,9 +71,9 @@ function getConformation(data: mmCIF, bounds: Interval): Conformation {
         atomId: Column.window(atom_site.id, start, end),
         occupancy: Column.window(atom_site.occupancy, start, end),
         B_iso_or_equiv: Column.window(atom_site.B_iso_or_equiv, start, end),
-        x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
-        y: atom_site.Cartn_y.toArray({ array: Float32Array, start, end }),
-        z: atom_site.Cartn_z.toArray({ array: Float32Array, start, end }),
+        __x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
+        __y: atom_site.Cartn_y.toArray({ array: Float32Array, start, end }),
+        __z: atom_site.Cartn_z.toArray({ array: Float32Array, start, end }),
     }
 }
 

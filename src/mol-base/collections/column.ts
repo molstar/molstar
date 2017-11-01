@@ -212,7 +212,7 @@ function windowColumn<T>(column: Column<T>, start: number, end: number) {
 }
 
 function windowTyped<T>(c: Column<T>, start: number, end: number): Column<T> {
-    const array = ColumnHelpers.typedArrayWindow(c['@array'], { start, end });
+    const array = ColumnHelpers.typedArrayWindow(c['@array'], { start, end });    
     return arrayColumn({ array, type: c['@type'], valueKind: c.valueKind }) as any;
 }
 

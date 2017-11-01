@@ -63,8 +63,10 @@ export function findPredecessorIndex(xs: Nums, v: number) {
 
 export function findPredecessorIndexInInterval(xs: Nums, v: number, bounds: Interval) {
     const s = Interval.start(bounds), e = Interval.end(bounds);
-    if (v <= xs[s]) return s;
+    const sv = xs[s];
+    if (v <= sv) return s;
     if (e > s && v > xs[e - 1]) return e;
+    if (v - sv <= 11) return linearSearchPredInRange(xs, v, s + 1, e);
     return binarySearchPredIndexRange(xs, v, s, e);
 }
 
@@ -94,6 +96,12 @@ function binarySearchRange(xs: Nums, value: number, start: number, end: number) 
 function binarySearchPredIndexRange(xs: Nums, value: number, start: number, end: number) {
     let min = start, max = end - 1;
     while (min < max) {
+        if (min + 11 > max) {
+            for (let i = min; i <= max; i++) {
+                if (value <= xs[i]) return i;
+            }
+            return max + 1;
+        }
         const mid = (min + max) >> 1;
         const v = xs[mid];
         if (value < v) max = mid - 1;
@@ -102,6 +110,13 @@ function binarySearchPredIndexRange(xs: Nums, value: number, start: number, end:
     }
     if (min > max) return max + 1;
     return xs[min] >= value ? min : min + 1;
+}
+
+function linearSearchPredInRange(xs: Nums, value: number, start: number, end: number) {
+    for (let i = start; i < end; i++) {
+        if (value <= xs[i]) return i;
+    }
+    return end;
 }
 
 export function areIntersecting(a: Nums, b: Nums) {

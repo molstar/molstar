@@ -196,20 +196,19 @@ function stringArray(data: Uint8Array, encoding: Encoding.StringArray) {
     let str = encoding.stringData;
     let offsets = decode({ encoding: encoding.offsetEncoding, data: encoding.offsets });
     let indices = decode({ encoding: encoding.dataEncoding, data });
-    let cache: any = Object.create(null);
+    let cache = [];
     let result = new Array(indices.length);
     let offset = 0;
     for (let i of indices) {
         if (i < 0) {
-            result[offset++] = null;
-            continue;
-        }
-        let v = cache[i];
-        if (v === void 0) {
-            v = str.substring(offsets[i], offsets[i + 1]);
+            result[offset++] = '';
+        } else if (i >= cache.length) {
+            const v = str.substring(offsets[i], offsets[i + 1]);
             cache[i] = v;
+            result[offset++] = v
+        } else {
+            result[offset++] = cache[i];
         }
-        result[offset++] = v;
     }
     return result;
 }

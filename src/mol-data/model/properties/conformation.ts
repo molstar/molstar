@@ -18,9 +18,9 @@ interface Conformation {
     occupancy: Column<number>,
     B_iso_or_equiv: Column<number>
 
-    x: ArrayLike<number>,
-    y: ArrayLike<number>,
-    z: ArrayLike<number>
+    __x: ArrayLike<number>,
+    __y: ArrayLike<number>,
+    __z: ArrayLike<number>
 }
 
 export default Conformation

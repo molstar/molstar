@@ -20,7 +20,9 @@ interface Unit extends Readonly<{
 
     // Cache residue and chain indices for fast access.
     residueIndex: ArrayLike<number>,
-    chainIndex: ArrayLike<number>
+    chainIndex: ArrayLike<number>,
+    hierarchy: Model['hierarchy'],
+    conformation: Model['conformation']
 }> {
     // // returns the untransformed position. Used for spatial queries.
     // getInvariantPosition(atom: number, slot: Vec3): Vec3
@@ -32,7 +34,15 @@ interface Unit extends Readonly<{
 namespace Unit {
     export function create(model: Model, operator: Operator): Unit {
         const h = model.hierarchy;
-        return { id: nextUnitId(), model, operator, residueIndex: h.residueSegments.segmentMap, chainIndex: h.chainSegments.segmentMap };
+        return {
+            id: nextUnitId(),
+            model,
+            operator,
+            residueIndex: h.residueSegments.segmentMap,
+            chainIndex: h.chainSegments.segmentMap,
+            hierarchy: model.hierarchy,
+            conformation: model.conformation
+        };
     }
 }
 
