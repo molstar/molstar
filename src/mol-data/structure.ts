@@ -12,12 +12,12 @@ import * as Base from './structure/base'
 //import Operator from './structure/operator'
 
 // TODO: do "single model" version of the structure?
-export interface Structure extends Readonly<{
+interface Structure extends Readonly<{
     units: { readonly [id: number]: Unit },
     atoms: AtomSet
 }> { }
 
-export namespace Structure {
+namespace Structure {
     export const Empty = Base.Empty;
     export const ofModel = Base.ofModel;
 

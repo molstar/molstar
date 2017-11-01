@@ -248,7 +248,7 @@ function subtractIS(a: I, b: S) {
     let offset = 0;
     for (let i = min; i < fst; i++) ret[offset++] = i;
     for (let i = fst; i <= last; i++) {
-        if (S.indexOfInterval(b, i, interval) < 0) ret[offset++] = i;
+        if (S.indexOfInInterval(b, i, interval) < 0) ret[offset++] = i;
     }
     for (let i = last + 1; i <= max; i++) ret[offset++] = i;
     return ofSortedArray(ret);

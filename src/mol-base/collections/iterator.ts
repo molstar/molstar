@@ -5,12 +5,10 @@
  */
 
 /**
- * ES6 compatible iterator.
- *
- * "Idiomatic" usage is to use the move function, because it does not make any allocations.
+ * "Idiomatic" usage:
  *
  * const it = ...;
- * while (it.hasNext) { const v = it.move(); ... } 
+ * while (it.hasNext) { const v = it.move(); ... }
  */
 interface Iterator<T> {
     readonly hasNext: boolean,

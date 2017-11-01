@@ -5,6 +5,8 @@
  */
 
 import Tuple from '../../mol-base/collections/integer/tuple'
+import Unit from './unit'
+import Structure from '../structure'
 
 /** Atom pointer */
 interface Atom { '@type': Tuple['@type'] }
@@ -17,6 +19,17 @@ namespace Atom {
     export const index: (a: Atom) => number = Tuple.snd;
     export const areEqual: (a: Atom, b: Atom) => boolean = Tuple.areEqual;
     export const hashCode: (a: Atom) => number = Tuple.hashCode;
+
+    /** All the information required to access atom properties */
+    export interface Location { unit: Unit, atom: number }
+    export function Location(): Location { return { unit: {} as any, atom: 0 }; }
+    export interface Property<T> { (location: Location): T }
+    export interface Predicate extends Property<boolean> { }
+
+    export function setLocation(structure: Structure, l: Location, atom: Atom) {
+        l.unit = structure.units[unit(atom)];
+        l.atom = index(atom);
+    }
 }
 
 export default Atom

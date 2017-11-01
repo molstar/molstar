@@ -11,7 +11,7 @@ import Operator from './operator'
 import AtomSet from './atom-set'
 import OrderedSet from '../../mol-base/collections/integer/ordered-set'
 
-class Builder {
+export class StructureBuilder {
     private units = Object.create(null);
     private atoms = Object.create(null);
 
@@ -25,7 +25,7 @@ export const Empty: Structure = { units: {}, atoms: AtomSet.Empty };
 
 export function ofModel(model: Model): Structure {
     const chains = model.hierarchy.chainSegments;
-    const builder = new Builder();
+    const builder = new StructureBuilder();
 
     for (let c = 0; c < chains.count; c++) {
         const unit = Unit.create(model, Operator.Identity);

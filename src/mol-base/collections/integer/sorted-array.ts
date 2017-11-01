@@ -16,8 +16,7 @@ namespace SortedArray {
 
     export const has: (array: SortedArray, x: number) => boolean = Impl.has as any;
     export const indexOf: (array: SortedArray, x: number) => number = Impl.indexOf as any;
-    export const indexOfInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.indexOfInterval as any;
-    //export const getAt: (array: SortedArray, i: number) => number = Impl.getAt as any;
+    export const indexOfInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.indexOfInInterval as any;
 
     export const start: (array: SortedArray) => number = Impl.start as any;
     export const end: (array: SortedArray) => number = Impl.end as any;
