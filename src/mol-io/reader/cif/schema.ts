@@ -60,6 +60,7 @@ function createColumn<T>(type: Column.Type, field: Data.Field, value: (row: numb
 
 class _TypedFrame implements TypedFrame<any> { // tslint:disable-line:class-name
     header = this._frame.header;
+    [k: string]: any;
     constructor(public _frame: Data.Frame, schema: FrameSchema) {
         for (const k of Object.keys(schema)) {
             Object.defineProperty(this, k, { value: createTypedCategory(k, schema[k], _frame), enumerable: true, writable: false, configurable: false });
@@ -70,6 +71,7 @@ class _TypedFrame implements TypedFrame<any> { // tslint:disable-line:class-name
 class _TypedCategory implements Table<any> { // tslint:disable-line:class-name
     _rowCount = this._category.rowCount;
     _columns: ReadonlyArray<string>;
+    [k: string]: any;
     constructor(public _category: Data.Category, schema: Table.Schema, public _isDefined: boolean) {
         const fieldKeys = Object.keys(schema);
         this._columns = fieldKeys;

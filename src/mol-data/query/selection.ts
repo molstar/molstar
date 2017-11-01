@@ -18,6 +18,7 @@ namespace Selection {
     // TODO: 'structure iterator'
     // TODO: selection builders (linear / unique)
     // TODO: spatial lookup
+    // TODO: If all structures in a selection are "singletons", collapse them into a single structure
 }
 
 export default Selection
