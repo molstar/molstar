@@ -20,12 +20,16 @@ function checkVersions(min: number[], current: number[]) {
 
 function Category(data: Encoding.EncodedCategory): Data.Category {
     const map = Object.create(null);
+    const cache = Object.create(null);
     for (const col of data.columns) map[col.name] = col;
     return {
         rowCount: data.rowCount,
         getField(name) {
             const col = map[name];
-            return col ? Field(col) : void 0;
+            if (!col) return void 0;
+            if (!!cache[name]) return cache[name];
+            cache[name] = Field(col);
+            return cache[name];
         }
     }
 }

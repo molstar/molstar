@@ -10,6 +10,10 @@ import { EncodedColumn } from './encoding'
 import decode from './decoder'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
 
+function wrap(o: Data.Field) {
+    return { ...o };
+}
+
 export default function Field(column: EncodedColumn): Data.Field {
     const mask = column.mask ? decode(column.mask) as number[] : void 0;
     const data = decode(column.data);
@@ -37,7 +41,7 @@ export default function Field(column: EncodedColumn): Data.Field {
 
     const rowCount = data.length;
 
-    return {
+    return wrap({
         '@array': data,
         isDefined: true,
         rowCount,
@@ -53,5 +57,23 @@ export default function Field(column: EncodedColumn): Data.Field {
         toFloatArray: isNumeric
             ? params => ColumnHelpers.typedArrayWindow(data, params)
             : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
-    };
+    });
 }
+
+// return wrap({
+//     '@array': data,
+//     isDefined: true,
+//     rowCount,
+//     str: str as any,
+//     int,
+//     float,
+//     valueKind,
+//     areValuesEqual: (rowA, rowB) => data[rowA] === data[rowB],
+//     toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
+//     toIntArray: isNumeric
+//         ? params => ColumnHelpers.typedArrayWindow(data, params)
+//         : params => ColumnHelpers.createAndFillArray(rowCount, int, params),
+//     toFloatArray: isNumeric
+//         ? params => ColumnHelpers.typedArrayWindow(data, params)
+//         : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
+// });

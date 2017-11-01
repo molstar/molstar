@@ -64,7 +64,8 @@ function getConformation(data: mmCIF, bounds: Interval): Conformation {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const { atom_site } = data;
     return {
-        id: Column.window(atom_site.id, start, end),
+        id: newUUID(),
+        atomId: Column.window(atom_site.id, start, end),
         occupancy: Column.window(atom_site.occupancy, start, end),
         B_iso_or_equiv: Column.window(atom_site.B_iso_or_equiv, start, end),
         x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
@@ -87,8 +88,7 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval, previous?: Mod
     if (previous && isHierarchyDataEqual(previous.hierarchy, hierarchyData)) {
         return {
             ...previous,
-            conformation: getConformation(data, bounds),
-            version: { hierarchy: previous.version.hierarchy, conformation: newUUID() }
+            conformation: getConformation(data, bounds)
         };
     }
 
@@ -104,12 +104,11 @@ function createModel(raw: RawData, data: mmCIF, bounds: Interval, previous?: Mod
         model_num: data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
         conformation: getConformation(data, bounds),
-        version: { hierarchy: newUUID(), conformation: newUUID() },
         atomCount: Interval.size(bounds)
     };
 }
 
-function buildModels(data: mmCIF): ArrayLike<Model> {
+function buildModels(data: mmCIF): ReadonlyArray<Model> {
     const raw: RawData = { source: 'mmCIF', data };
     const models: Model[] = [];
     const atomCount = data.atom_site._rowCount;

@@ -5,12 +5,15 @@
  */
 
 import Column from '../../../mol-base/collections/column'
+import UUID from '../../../mol-base/utils/uuid'
 
 interface Conformation {
+    id: UUID,
+
     // ID is part of conformation because mmCIF is a leaky abstraction
     // thats assigns different atom ids to corresponding atoms in different models
     // ... go figure.
-    id: Column<number>,
+    atomId: Column<number>,
 
     occupancy: Column<number>,
     B_iso_or_equiv: Column<number>

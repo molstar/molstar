@@ -4,6 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import SortedArray from '../../mol-base/collections/integer/sorted-array'
 import OrderedSet from '../../mol-base/collections/integer/ordered-set'
 import Iterator from '../../mol-base/collections/iterator'
 import Atom from './atom'
@@ -17,7 +18,7 @@ namespace AtomSet {
     export const create: (data: Atom | ArrayLike<Atom> | { [unitId: number]: OrderedSet }) => AtomSet = Base.create as any;
 
     export const unitCount: (set: AtomSet) => number = Base.keyCount as any;
-    export const unitIds: (set: AtomSet) => OrderedSet = Base.getKeys as any;
+    export const unitIds: (set: AtomSet) => SortedArray = Base.getKeys as any;
     export const unitHas: (set: AtomSet, id: number) => boolean = Base.hasKey as any;
     export const unitGetId: (set: AtomSet, i: number) => number = Base.getKey as any;
 

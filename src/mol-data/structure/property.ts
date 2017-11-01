@@ -25,7 +25,7 @@ namespace Property {
         chainIndex: number
     }
 
-    export function create(structure?: Structure, unit?: Unit): Location {
+    export function createLocation(structure?: Structure, unit?: Unit): Location {
         return {
             structure: structure!,
             unit: unit!,
@@ -44,6 +44,8 @@ namespace Property {
         l.residueIndex = u.residueIndex[i];
         l.chainIndex = u.chainIndex[i];
     }
+
+    export function naive<T>(p: Property<T>) { return p; }
 
     export function cachedAtomColumn<T>(col: (model: Model) => Column<T>): Property<T> {
         let lastUnit: Unit | undefined = void 0;

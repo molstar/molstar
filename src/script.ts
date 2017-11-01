@@ -119,7 +119,7 @@ async function runCIF(input: string | Uint8Array) {
     console.timeEnd('createModels');
 
     for (let i = 0; i < models.length; i++) {
-        console.log(models[i].version);
+        console.log(models[i].id);
     }
 
     // console.log(models[0].hierarchy.isMonotonous);

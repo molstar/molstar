@@ -29,9 +29,6 @@ interface Model extends Readonly<{
     hierarchy: HierarchyProperties,
     conformation: ConformationProperties,
 
-    // used for diffing.
-    version: Version,
-
     atomCount: number
 }> { }
 
