@@ -8,6 +8,7 @@ import * as Formats from './model/formats'
 import HierarchyProperties from './model/properties/hierarchy'
 import ConformationProperties from './model/properties/conformation'
 import UUID from '../mol-base/utils/uuid'
+import buildMmCIF from './model/builders/mmcif'
 
 export interface Version {
     hierarchy: UUID,
@@ -22,7 +23,7 @@ export interface Version {
 interface Model extends Readonly<{
     id: UUID,
 
-    model_num: number,
+    modelNum: number,
 
     sourceData: Formats.RawData,
 
@@ -31,5 +32,9 @@ interface Model extends Readonly<{
 
     atomCount: number
 }> { }
+
+namespace Model {
+    export const ofMmCIF = buildMmCIF;
+}
 
 export default Model
