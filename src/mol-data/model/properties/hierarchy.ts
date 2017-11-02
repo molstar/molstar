@@ -6,7 +6,7 @@
 
 import Column from '../../../mol-base/collections/column'
 import Table from '../../../mol-base/collections/table'
-import IntervalSegmentation from '../../../mol-base/collections/integer/segmentation'
+import { Segmentation } from '../../../mol-base/collections/integer'
 import { Schema as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 
 const _esCache = Object.create(null);
@@ -59,8 +59,8 @@ export interface Data {
 }
 
 export interface Segments {
-    residueSegments: IntervalSegmentation,
-    chainSegments: IntervalSegmentation
+    residueSegments: Segmentation,
+    chainSegments: Segmentation
 }
 
 export interface Keys {

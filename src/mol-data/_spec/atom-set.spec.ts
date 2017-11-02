@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../../mol-base/collections/integer/ordered-set'
-import AtomSet from '../structure/atom-set'
+import { OrderedSet } from '../../mol-base/collections/integer'
+import AtomSet from '../structure/atom/set'
 import Atom from '../structure/atom'
 
 describe('atom set', () => {

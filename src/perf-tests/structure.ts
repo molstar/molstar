@@ -11,11 +11,8 @@ import * as fs from 'fs'
 import CIF from '../mol-io/reader/cif'
 
 import Model from '../mol-data/Model'
-import Structure from '../mol-data/structure'
-import OrdSet from '../mol-base/collections/integer/ordered-set'
-import Atom from '../mol-data/structure/atom'
-import AtomSet from '../mol-data/structure/atom-set'
-import Segmentation from '../mol-base/collections/integer/segmentation'
+import { Structure, Atom, AtomSet } from '../mol-data/structure'
+import { OrderedSet as OrdSet, Segmentation } from '../mol-base/collections/integer'
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);

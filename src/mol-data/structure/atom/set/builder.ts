@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import AtomSet from '../atom-set'
-import OrderedSet from '../../../mol-base/collections/integer/ordered-set'
-import { sortArray } from '../../../mol-base/collections/sort'
+import AtomSet from '../set'
+import { OrderedSet } from '../../../../mol-base/collections/integer'
+import { sortArray } from '../../../../mol-base/collections/sort'
 
 class Builder {
     private keys: number[] = [];

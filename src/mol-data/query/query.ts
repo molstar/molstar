@@ -4,9 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure } from './structure'
-import Selection from './query/selection'
+import { Structure } from '../structure'
+import Selection from './selection'
 
 interface Query { (s: Structure): Selection }
-
 export default Query

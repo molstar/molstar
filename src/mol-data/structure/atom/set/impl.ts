@@ -4,13 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import OrderedSet from '../../../mol-base/collections/integer/ordered-set'
-import SortedArray from '../../../mol-base/collections/integer/sorted-array'
-import Iterator from '../../../mol-base/collections/iterator'
-import Interval from '../../../mol-base/collections/integer/interval'
-import { sortArray } from '../../../mol-base/collections/sort'
-import { hash1 } from '../../../mol-base/collections/hash-functions'
-import Atom from '../atom'
+import { SortedArray, Interval, Iterator, OrderedSet } from '../../../../mol-base/collections/integer'
+import { sortArray } from '../../../../mol-base/collections/sort'
+import { hash1 } from '../../../../mol-base/collections/hash-functions'
+import Atom from '../../atom'
 
 /** Long and painful implementation starts here */
 

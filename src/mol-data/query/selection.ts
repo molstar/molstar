@@ -6,9 +6,7 @@
 
 import Iterator from '../../mol-base/collections/iterator'
 import HashSet from '../../mol-base/collections/hash-set'
-import Structure from './../structure'
-import Atom from './../structure/atom'
-import AtomSet from './../structure/atom-set'
+import { Structure, Atom, AtomSet } from '../structure'
 
 type Selection =
     | Structure // each atom is interpreted as a singleton structure

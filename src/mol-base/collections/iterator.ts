@@ -21,7 +21,7 @@ class ArrayIteratorImpl<T> implements Iterator<T> {
     private length: number = 0;
     private lastValue: T;
 
-    hasNext: boolean;
+    hasNext: boolean = false;
 
     move() {
         ++this.index;
@@ -41,9 +41,8 @@ class ArrayIteratorImpl<T> implements Iterator<T> {
 }
 
 class RangeIteratorImpl implements Iterator<number> {
-    private value: number;
-
-    hasNext: boolean;
+    private value: number = 0;
+    hasNext: boolean = false;
 
     move() {
         ++this.value;
@@ -64,7 +63,7 @@ class ValueIterator<T> implements Iterator<T> {
 }
 
 class MapIteratorImpl<T, R> implements Iterator<R> {
-    hasNext: boolean;
+    hasNext: boolean = false;
 
     move() {
         const v = this.f(this.base.move());
@@ -77,12 +76,36 @@ class MapIteratorImpl<T, R> implements Iterator<R> {
     }
 }
 
+class FilterIteratorImpl<T> implements Iterator<T> {
+    private next: T;
+    hasNext: boolean;
+
+    move() {
+        const ret = this.next;
+        this.hasNext = this.findNext();
+        return ret;
+    }
+
+    private findNext() {
+        while (this.base.hasNext) {
+            this.next = this.base.move();
+            if (this.p(this.next)) return true;
+        }
+        return false;
+    }
+
+    constructor(private base: Iterator<T>, private p: (v: T) => boolean) {
+        this.hasNext = this.findNext();
+    }
+}
+
 namespace Iterator {
     export const Empty: Iterator<any> = new RangeIteratorImpl(0, -1);
     export function Array<T>(xs: ArrayLike<T>): Iterator<T> { return new ArrayIteratorImpl<T>(xs); }
     export function Value<T>(value: T): Iterator<T> { return new ValueIterator(value); }
     export function Range(min: number, max: number): Iterator<number> { return new RangeIteratorImpl(min, max); }
     export function map<T, R>(base: Iterator<T>, f: (v: T) => R): Iterator<R> { return new MapIteratorImpl(base, f); }
+    export function filter<T>(base: Iterator<T>, p: (v: T) => boolean): Iterator<T> { return new FilterIteratorImpl(base, p); }
 }
 
 export default Iterator

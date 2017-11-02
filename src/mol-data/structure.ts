@@ -4,24 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-//import { Vec3 } from '../mol-base/math/linear-algebra'
-import AtomSet from './structure/atom-set'
+import Atom from './structure/atom'
+import AtomSet from './structure/atom/set'
+import Structure from './structure/structure'
+import Operator from './structure/operator'
 import Unit from './structure/unit'
-import * as Base from './structure/base'
-//import Model from './model'
-//import Operator from './structure/operator'
 
-// TODO: do "single model" version of the structure?
-interface Structure extends Readonly<{
-    units: { readonly [id: number]: Unit },
-    atoms: AtomSet
-}> { }
-
-namespace Structure {
-    export const Empty = Base.Empty;
-    export const ofModel = Base.ofModel;
-    // TODO: "lift" atom set operators
-    // TODO: "diff"
-}
-
-export default Structure
+export { Atom, AtomSet, Structure, Operator, Unit }

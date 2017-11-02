@@ -8,7 +8,6 @@
 // secondary structure is also a computed property
 
 // import { SecondaryStructureType } from '../constants'
-// import Segmentation from '../../../mol-base/collections/integer/segmentation'
 
 
 // interface SecondaryStructure {
