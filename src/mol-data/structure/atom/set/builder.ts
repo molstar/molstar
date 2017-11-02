@@ -33,20 +33,24 @@ class Builder {
     getSet(): AtomSet {
         const sets: { [key: number]: OrderedSet } = Object.create(null);
 
+        let allEqual = this.keys.length === AtomSet.unitCount(this.parent);
+
         for (let i = 0, _i = this.keys.length; i < _i; i++) {
             const k = this.keys[i];
             const unit = this.units[k];
             const l = unit.length;
             if (!this.sorted && l > 1) sortArray(unit);
-            if (l === 1) {
-                sets[k] = OrderedSet.ofSingleton(unit[0]);
+
+            const set = l === 1 ? OrderedSet.ofSingleton(unit[0]) : OrderedSet.ofSortedArray(unit);
+            const parentSet = AtomSet.unitGetById(this.parent, k);
+            if (OrderedSet.areEqual(set, parentSet)) {
+                sets[k] = parentSet;
             } else {
-                const set = OrderedSet.ofSortedArray(unit);
-                const parentSet = AtomSet.unitGetById(this.parent, k);
-                sets[k] = OrderedSet.areEqual(set, parentSet) ? parentSet : set;
+                sets[k] = set;
+                allEqual = false;
             }
         }
-        return AtomSet.create(sets);
+        return allEqual ? this.parent : AtomSet.create(sets);
     }
 
     constructor(private parent: AtomSet, private sorted: boolean) { }

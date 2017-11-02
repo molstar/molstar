@@ -30,6 +30,8 @@ namespace Atom {
         l.unit = structure.units[unit(atom)];
         l.atom = index(atom);
     }
+
+    export function property<T>(p: Property<T>) { return p; }
 }
 
 export default Atom

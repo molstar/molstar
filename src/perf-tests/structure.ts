@@ -12,6 +12,7 @@ import CIF from '../mol-io/reader/cif'
 
 import Model from '../mol-data/Model'
 import { Structure, Atom, AtomSet } from '../mol-data/structure'
+import * as Q from '../mol-data/query'
 import { OrderedSet as OrdSet, Segmentation } from '../mol-base/collections/integer'
 
 require('util.promisify').shim();
@@ -237,8 +238,8 @@ export namespace PropertyAccess {
     // }
 
     export async function run() {
-        //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
+        const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
+        //const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
         //const { structures, models } = await readCIF('e:/test/quick/3j3q_updated.cif');
 
         console.log('parsed');
@@ -252,6 +253,13 @@ export namespace PropertyAccess {
         //console.log(sumProperty(structures[0], Property.cachedAtomColumn(m => m.conformation.atomId)));
         console.log(sumDirect(structures[0]));
         console.log('r', sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])));
+
+        //const authSeqId = Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]));
+
+        const auth_seq_id = Q.props.residue.auth_seq_id;
+        const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
+        const qr = q(structures[0]);
+        console.log(qr);
 
         //const col = models[0].conformation.atomId.value;
         const suite = new B.Suite();

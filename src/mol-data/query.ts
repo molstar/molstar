@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure } from './structure'
 import Selection from './query/selection'
+import Query from './query/query'
+import * as generators from './query/generators'
+import * as props from './query/properties'
 
-interface Query { (s: Structure): Selection }
-
-export default Query
+export { Selection, Query, generators, props }
