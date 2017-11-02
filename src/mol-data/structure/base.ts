@@ -18,7 +18,7 @@ export class StructureBuilder {
     addUnit(unit: Unit) { this.units[unit.id] = unit; }
     addAtoms(unitId: number, atoms: OrderedSet) { this.atoms[unitId] = atoms; }
 
-    getStructure(): Structure { return { units: this.units, atoms: AtomSet.create(this.atoms) } }
+    getStructure(): Structure { return { units: this.units, atoms: AtomSet.create(this.atoms) }; }
 }
 
 export const Empty: Structure = { units: {}, atoms: AtomSet.Empty };

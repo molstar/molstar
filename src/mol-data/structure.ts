@@ -20,7 +20,6 @@ interface Structure extends Readonly<{
 namespace Structure {
     export const Empty = Base.Empty;
     export const ofModel = Base.ofModel;
-
     // TODO: "lift" atom set operators
     // TODO: "diff"
 }

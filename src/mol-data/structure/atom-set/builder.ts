@@ -22,7 +22,7 @@ class Builder {
         }
     }
 
-    beginUnit() { this.currentUnit = []; }
+    beginUnit() { this.currentUnit = this.currentUnit.length > 0 ? [] : this.currentUnit; }
     addToUnit(a: number) { this.currentUnit[this.currentUnit.length] = a; }
     commitUnit(u: number) {
         if (this.currentUnit.length === 0) return;
@@ -32,7 +32,9 @@ class Builder {
 
     getSet(): AtomSet {
         const sets: { [key: number]: OrderedSet } = Object.create(null);
-        for (const k of this.keys) {
+
+        for (let i = 0, _i = this.keys.length; i < _i; i++) {
+            const k = this.keys[i];
             const unit = this.units[k];
             const l = unit.length;
             if (!this.sorted && l > 1) sortArray(unit);

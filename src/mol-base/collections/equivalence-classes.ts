@@ -19,9 +19,10 @@ class EquivalenceClassesImpl<K, V> {
 
     add(key: K, a: V) {
         const hash = this.getHash(a);
-        if (this.byHash[hash]) {
+        if (!!this.byHash[hash]) {
             const groups = this.byHash[hash];
-            for (const group of groups) {
+            for (let i = 0, _i = groups.length; i < _i; i++) {
+                const group = groups[i];
                 if (this.areEqual(a, group.value)) {
                     group.keys[group.keys.length] = key;
                     return group.id;

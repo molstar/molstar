@@ -16,10 +16,10 @@ class HashSetImpl<T> implements SetLike<T> {
 
     add(a: T) {
         const hash = this.getHash(a);
-        if (this.byHash[hash]) {
+        if (!!this.byHash[hash]) {
             const xs = this.byHash[hash];
-            for (const x of xs) {
-                if (this.areEqual(a, x)) return false;
+            for (let i = 0, _i = xs.length; i < _i; i++) {
+                if (this.areEqual(a, xs[i])) return false;
             }
             xs[xs.length] = a;
             this.size++;
@@ -34,8 +34,9 @@ class HashSetImpl<T> implements SetLike<T> {
     has(v: T) {
         const hash = this.getHash(v);
         if (!this.byHash[hash]) return false;
-        for (const x of this.byHash[hash]) {
-            if (this.areEqual(v, x)) return true;
+        const xs = this.byHash[hash];
+        for (let i = 0, _i = xs.length; i < _i; i++) {
+            if (this.areEqual(v, xs[i])) return true;
         }
         return false;
     }

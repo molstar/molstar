@@ -63,11 +63,26 @@ class ValueIterator<T> implements Iterator<T> {
     constructor(private value: T) { }
 }
 
+class MapIteratorImpl<T, R> implements Iterator<R> {
+    hasNext: boolean;
+
+    move() {
+        const v = this.f(this.base.move());
+        this.hasNext = this.base.hasNext;
+        return v;
+    }
+
+    constructor(private base: Iterator<T>, private f: (v: T) => R) {
+        this.hasNext = base.hasNext;
+    }
+}
+
 namespace Iterator {
     export const Empty: Iterator<any> = new RangeIteratorImpl(0, -1);
     export function Array<T>(xs: ArrayLike<T>): Iterator<T> { return new ArrayIteratorImpl<T>(xs); }
     export function Value<T>(value: T): Iterator<T> { return new ValueIterator(value); }
     export function Range(min: number, max: number): Iterator<number> { return new RangeIteratorImpl(min, max); }
+    export function map<T, R>(base: Iterator<T>, f: (v: T) => R): Iterator<R> { return new MapIteratorImpl(base, f); }
 }
 
 export default Iterator

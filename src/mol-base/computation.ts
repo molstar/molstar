@@ -181,7 +181,9 @@ class ObservableContext implements Computation.Context {
 
         if (this.observers) {
             const p = { ...this.progress };
-            for (const o of this.observers) Scheduler.immediate(o, p);
+            for (let i = 0, _i = this.observers.length; i < _i; i++) {
+                Scheduler.immediate(this.observers[i], p);
+            }
         }
 
         this.lastDelta = time - this.lastUpdated;

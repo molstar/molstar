@@ -284,7 +284,8 @@ function encodeInternal(value: any, view: DataView, bytes: Uint8Array, offset: n
             }
         }
         else {
-            for (let key of keys!) {
+            for (let i = 0, _i = keys!.length; i < _i; i++) {
+                const key = keys![i];
                 size += encodeInternal(key, view, bytes, offset + size);
                 size += encodeInternal(value[key], view, bytes, offset + size);
             }

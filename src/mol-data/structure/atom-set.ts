@@ -49,6 +49,6 @@ namespace AtomSet {
     // TODO: add "parent" property? how to avoid using too much memory? Transitive parents? Parent unlinking?
 }
 
-interface AtomSet { '@type': 'atom-set' }
+interface AtomSet { '@type': 'atom-set' | Atom['@type'] }
 
 export default AtomSet

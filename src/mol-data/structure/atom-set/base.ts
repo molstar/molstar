@@ -181,8 +181,10 @@ function isArrayLike(x: any): x is ArrayLike<Atom> {
 
 function ofObject(data: { [id: number]: OrderedSet }) {
     const keys = [];
-    for (const _k of Object.keys(data)) {
-        const k = +_k;
+
+    const _keys = Object.keys(data);
+    for (let i = 0, _i = _keys.length; i < _i; i++) {
+        const k = +_keys[i];
         if (OrderedSet.size(data[k]) > 0) keys[keys.length] = k;
     }
     if (!keys.length) return Empty;
@@ -263,8 +265,9 @@ function ofAtoms(xs: ArrayLike<Atom>) {
     }
     const ret: { [key: number]: OrderedSet } = Object.create(null);
     const keys = [];
-    for (const _k of Object.keys(sets)) {
-        const k = +_k;
+    const _keys = Object.keys(sets);
+    for (let i = 0, _i = _keys.length; i < _i; i++) {
+        const k = +_keys[i];
         keys[keys.length] = k;
         ret[k] = OrderedSet.ofSortedArray(normalizeArray(sets[k]));
     }
