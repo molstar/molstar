@@ -228,7 +228,7 @@ const atom_site = {
     pdbx_PDB_model_num: int
 }
 
-export const Schema = {
+export const mmCIF_Schema = {
     entry,
     entity,
     exptl,
@@ -246,5 +246,5 @@ export const Schema = {
     atom_site
 };
 
-export type Schema = typeof Schema;
-export interface Database extends Database<typeof Schema> { }
+export type mmCIF_Schema = typeof mmCIF_Schema;
+export interface mmCIF_Database extends Database<mmCIF_Schema> { }

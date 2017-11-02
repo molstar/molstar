@@ -4,8 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Model from './model/model'
-import * as Constants from './model/constants'
-import Format from './model/format'
-
-export { Model, Constants, Format }
+export * from './structure/model'
+export * from './structure/structure'
+export * from './structure/query'

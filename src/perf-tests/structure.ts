@@ -10,9 +10,7 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Model } from 'mol-data/structure/model'
-import { Structure, Atom, AtomSet } from 'mol-data/structure/structure'
-import * as Q from 'mol-data/structure/query'
+import { Structure, Model, Queries as Q, Atom, AtomSet } from 'mol-data/structure'
 import { OrderedSet as OrdSet, Segmentation } from 'mol-base/collections/integer'
 
 require('util.promisify').shim();
@@ -92,6 +90,7 @@ export namespace PropertyAccess {
 
         let s = 0;
 
+        let vA = 0, cC = 0, rC = 0;
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unit = units[unitIds[i]];
             l.unit = unit;
@@ -100,17 +99,25 @@ export namespace PropertyAccess {
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
             const residues = unit.hierarchy.residueSegments;
             while (chainsIt.hasNext) {
+                cC++;
+
                 const chainSegment = chainsIt.move();
                 const residuesIt = Segmentation.transientSegments(residues, set, chainSegment);
                 while (residuesIt.hasNext) {
+                    rC++;
                     const residueSegment = residuesIt.move();
+                    // l.atom = OrdSet.getAt(set, residueSegment.start);
+                    // console.log(unit.hierarchy.residues.auth_comp_id.value(unit.residueIndex[l.atom]), l.atom, OrdSet.getAt(set, residueSegment.end))
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
                         l.atom = OrdSet.getAt(set, j);
+                        vA++;
                         s += p(l);
                     }
                 }
             }
         }
+
+        console.log('seg atom count', vA, cC, rC);
 
         return s;
     }
@@ -228,8 +235,8 @@ export namespace PropertyAccess {
     // }
 
     export async function run() {
-        const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        //const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
+        //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
+        const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
         //const { structures, models } = await readCIF('e:/test/quick/3j3q_updated.cif');
 
         console.log('parsed');
@@ -237,6 +244,7 @@ export namespace PropertyAccess {
         console.log(baseline(models[0]));
         console.log(sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
         console.log(sumPropertySegmented(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
+
         //console.log(sumPropertySegmentedMutable(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
         console.log(sumPropertyAtomSetIt(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
         //console.log(sumProperty(structures[0], Property.cachedAtomColumn(m => m.conformation.atomId)));
@@ -245,25 +253,33 @@ export namespace PropertyAccess {
 
         //const authSeqId = Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]));
 
-        const auth_seq_id = Q.props.residue.auth_seq_id;
-        const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
-        const qr = q(structures[0]);
-        console.log(qr);
+        //const auth_seq_id = Q.props.residue.auth_seq_id;
+        const auth_comp_id = Q.props.residue.auth_comp_id;
+        //const auth_asym_id = Q.props.chain.auth_asym_id;
+        //const set =  new Set(['A', 'B', 'C', 'D']);
+        //const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
+        const q = Q.generators.atomGroups({ atomTest: l => auth_comp_id(l) === 'ALA' });
+        const q1 = Q.generators.atomGroups({ residueTest: l => auth_comp_id(l) === 'ALA' });
+        //const q2 = Q.generators.atomGroups({ chainTest: l => set.has(auth_asym_id(l)),  residueTest: l => auth_comp_id(l) === 'ALA' });
+        q(structures[0]);
+        q1(structures[0]);
+        //console.log(q1(structures[0]));
 
         //const col = models[0].conformation.atomId.value;
         const suite = new B.Suite();
         suite
+            .add('test q', () => q1(structures[0]))
             //.add('test int', () => sumProperty(structures[0], l => col(l.atom)))
-            .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
+            // .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
 
-            .add('baseline', () =>  baseline(models[0]))
-            .add('direct', () =>  sumDirect(structures[0]))
+            // .add('baseline', () =>  baseline(models[0]))
+            // .add('direct', () =>  sumDirect(structures[0]))
             //.add('normal int', () => sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)))
             //.add('atom set it int', () => sumPropertyAtomSetIt(structures[0], l => l.unit.conformation.atomId.value(l.atom)))
             // .add('segmented faster int', () => sumPropertySegmented(structures[0], l => l.unit.conformation.atomId.value(l.atom)))
             // .add('faster int', () => sumProperty(structures[0], l => l.unit.conformation.atomId.value(l.atom)))
-            .add('segmented faster _x', () => sumPropertySegmented(structures[0], l => l.unit.conformation.__x[l.atom]))
-            .add('faster _x', () => sumProperty(structures[0], l => l.unit.conformation.__x[l.atom] +  l.unit.conformation.__y[l.atom] +  l.unit.conformation.__z[l.atom]))
+            //.add('segmented faster _x', () => sumPropertySegmented(structures[0], l => l.unit.conformation.__x[l.atom]))
+            //.add('faster _x', () => sumProperty(structures[0], l => l.unit.conformation.__x[l.atom] +  l.unit.conformation.__y[l.atom] +  l.unit.conformation.__z[l.atom]))
             //.add('segmented mut faster int', () => sumPropertySegmentedMutable(structures[0], l => l.unit.conformation.atomId.value(l.atom)))
             //.add('normal shortcut int', () => sumProperty(structures[0], l => l.conformation.atomId.value(l.atom)))
             //.add('cached int', () => sumProperty(structures[0], Property.cachedAtomColumn(m => m.conformation.atomId)))

@@ -17,7 +17,8 @@ export const atom = {
 }
 
 export const residue = {
-    auth_seq_id: Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]))
+    auth_seq_id: Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])),
+    auth_comp_id: Atom.property(l => l.unit.hierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.atom]))
 }
 
 export const chain = {

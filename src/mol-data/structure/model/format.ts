@@ -4,11 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Database as mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif'
-
-export interface mmCIF { kind: 'mmCIF', data: mmCIF_Database }
+import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif'
 
 type Format =
-    | mmCIF
+    | Format.mmCIF
+
+namespace Format {
+    export interface mmCIF { kind: 'mmCIF', data: mmCIF_Database }
+}
 
 export default Format

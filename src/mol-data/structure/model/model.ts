@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import DataFormat from './data-format'
+import UUID from 'mol-base/utils/uuid'
+import Format from './format'
 import HierarchyProperties from './properties/hierarchy'
 import ConformationProperties from './properties/conformation'
-import UUID from 'mol-base/utils/uuid'
+import from_mmCIF from './formats/mmcif'
 
-import buildMmCIF from './builders/mmcif'
 
 /**
  * Interface to the "source data" of the molecule.
@@ -21,7 +21,7 @@ interface Model extends Readonly<{
 
     modelNum: number,
 
-    sourceData: DataFormat,
+    sourceData: Format,
 
     hierarchy: HierarchyProperties,
     conformation: ConformationProperties,
@@ -30,9 +30,9 @@ interface Model extends Readonly<{
 }> { }
 
 namespace Model {
-    export function create(format: DataFormat) {
+    export function create(format: Format) {
         switch (format.kind) {
-            case 'mmCIF': return buildMmCIF(format);
+            case 'mmCIF': return from_mmCIF(format);
         }
     }
 }

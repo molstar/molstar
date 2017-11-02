@@ -60,7 +60,7 @@ const item_units_conversion = {
 
 // TODO save frame dic schema
 
-export const Schema = {
+export const CIFDictionary_Schema = {
     datablock,
     dictionary,
     dictionary_history,
@@ -71,5 +71,5 @@ export const Schema = {
     item_units_conversion
 }
 
-export type Schema = typeof Schema;
-export interface Database extends Database.Tables<typeof Schema> { }
+export type CIFDictionary_Schema = typeof CIFDictionary_Schema;
+export interface CIFDictionary_Database extends Database.Tables<CIFDictionary_Schema> { }

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Model } from '../model'
+import { Model, Format } from '../model'
 import Unit from './unit'
 import Operator from './operator'
 import AtomSet from './atom/set'
@@ -17,6 +17,11 @@ interface Structure extends Readonly<{
 
 namespace Structure {
     export const Empty = { units: {}, atoms: AtomSet.Empty };
+
+    export function ofData(format: Format) {
+        const models = Model.create(format);
+        return models.map(ofModel);
+    }
 
     export function ofModel(model: Model): Structure {
         const chains = model.hierarchy.chainSegments;

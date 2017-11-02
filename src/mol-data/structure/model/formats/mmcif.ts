@@ -4,16 +4,18 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { mmCIF } from '../data-format'
+import Format from '../format'
 import Model from '../model'
+import * as Hierarchy from '../properties/hierarchy'
+import Conformation from '../properties/conformation'
 import { Column, Table } from 'mol-base/collections/database'
 import { Interval, Segmentation } from 'mol-base/collections/integer'
 import { newUUID } from 'mol-base/utils/uuid'
-import * as Hierarchy from '../properties/hierarchy'
-import Conformation from '../properties/conformation'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 
-function findModelBounds({ data }: mmCIF, startIndex: number) {
+import mmCIF_Format = Format.mmCIF
+
+function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
     const atomCount = num.rowCount;
     if (!num.isDefined) return Interval.ofBounds(startIndex, atomCount);
@@ -22,7 +24,7 @@ function findModelBounds({ data }: mmCIF, startIndex: number) {
     return Interval.ofBounds(startIndex, endIndex);
 }
 
-function findHierarchyOffsets({ data }: mmCIF, bounds: Interval) {
+function findHierarchyOffsets({ data }: mmCIF_Format, bounds: Interval) {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const residues = [start], chains = [start];
 
@@ -37,12 +39,11 @@ function findHierarchyOffsets({ data }: mmCIF, bounds: Interval) {
 
         if (newResidue) residues[residues.length] = i;
         if (newChain) chains[chains.length] = i;
-    }
-
+    }    
     return { residues, chains };
 }
 
-function createHierarchyData({ data }: mmCIF, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): Hierarchy.Data {
+function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): Hierarchy.Data {
     const { atom_site } = data;
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const atoms = Table.ofColumns(Hierarchy.AtomsSchema, {
@@ -60,7 +61,7 @@ function createHierarchyData({ data }: mmCIF, bounds: Interval, offsets: { resid
     return { atoms, residues, chains, entities: data.entity };
 }
 
-function getConformation({ data }: mmCIF, bounds: Interval): Conformation {
+function getConformation({ data }: mmCIF_Format, bounds: Interval): Conformation {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const { atom_site } = data;
     return {
@@ -81,7 +82,7 @@ function isHierarchyDataEqual(a: Hierarchy.Hierarchy, b: Hierarchy.Data) {
         && Table.areEqual(a.atoms as Table<Hierarchy.AtomsSchema>, b.atoms as Table<Hierarchy.AtomsSchema>)
 }
 
-function createModel(format: mmCIF, bounds: Interval, previous?: Model): Model {
+function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): Model {
     const hierarchyOffsets = findHierarchyOffsets(format, bounds);
     const hierarchyData = createHierarchyData(format, bounds, hierarchyOffsets);
 
@@ -97,7 +98,6 @@ function createModel(format: mmCIF, bounds: Interval, previous?: Model): Model {
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
     const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
-
     return {
         id: newUUID(),
         sourceData: format,
@@ -108,7 +108,7 @@ function createModel(format: mmCIF, bounds: Interval, previous?: Model): Model {
     };
 }
 
-function buildModels(format: mmCIF): ReadonlyArray<Model> {
+function buildModels(format: mmCIF_Format): ReadonlyArray<Model> {
     const models: Model[] = [];
     const atomCount = format.data.atom_site._rowCount;
 

@@ -43,11 +43,12 @@ export function findPredecessorIndex(int: Tuple, v: number) {
 }
 
 export function findPredecessorIndexInInterval(int: Tuple, v: number, bounds: Tuple) {
-    const bS = start(bounds)
-    if (v <= bS) return bS;
+    const bS = start(bounds);
+    const s = start(int);
+    if (v <= bS + s) return bS;
     const bE = end(bounds);
-    if (v >= bE) return bE;
-    return v - start(int);
+    if (v >= bE + s) return bE;
+    return v - s;
 }
 
 export function findRange(int: Tuple, min: number, max: number) {

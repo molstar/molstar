@@ -6,7 +6,7 @@
 
 import { Column, Table } from 'mol-base/collections/database'
 import { Segmentation } from 'mol-base/collections/integer'
-import { Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
+import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 
 const _esCache = Object.create(null);
 export interface ElementSymbol extends String { '@type': 'element-symbol' }

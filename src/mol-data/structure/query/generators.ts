@@ -5,10 +5,9 @@
  */
 
 import Query from './query'
-//import Selection from './selection'
 import * as P from './properties'
 import { AtomSet, Atom } from '../structure'
-import { OrderedSet } from 'mol-base/collections/integer'
+import { OrderedSet, Segmentation } from 'mol-base/collections/integer'
 
 export interface AtomGroupsSpec {
     entityTest: Atom.Predicate,
@@ -62,16 +61,49 @@ function atomGroupsLinear(atomTest: Atom.Predicate): Query {
 
 function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsSpec): Query {
     return structure => {
+        const { atoms, units } = structure;
+        const unitIds = AtomSet.unitIds(atoms);
+        const l = Atom.Location();
+        const builder = AtomSet.Builder(atoms);
 
+        for (let i = 0, _i = unitIds.length; i < _i; i++) {
+            const unitId = unitIds[i];
+            const unit = units[unitId];
+            l.unit = unit;
+            const set = AtomSet.unitGetByIndex(atoms, i);
 
-        throw 'nyi'
+            builder.beginUnit();
+            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
+            const residues = unit.hierarchy.residueSegments;
+            while (chainsIt.hasNext) {
+                const chainSegment = chainsIt.move();
+                l.atom = OrderedSet.getAt(set, chainSegment.start);
+                // test entity and chain
+                if (!entityTest(l) || !chainTest(l)) continue;
+
+                const residuesIt = Segmentation.transientSegments(residues, set, chainSegment);
+                while (residuesIt.hasNext) {
+                    const residueSegment = residuesIt.move();
+                    l.atom = OrderedSet.getAt(set, residueSegment.start);
+
+                    // test residue
+                    if (!residueTest(l)) continue;
+
+                    for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
+                        l.atom = OrderedSet.getAt(set, j);
+                        if (atomTest(l)) builder.addToUnit(l.atom);
+                    }
+                }
+            }
+            builder.commitUnit(unitId);
+        }
+
+        return { units, atoms: builder.getSet() };
     };
 }
 
 function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsSpec): Query {
     return structure => {
-
-
         throw 'nyi'
     };
 }

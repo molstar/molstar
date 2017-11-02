@@ -91,6 +91,7 @@ export class SegmentIterator implements Iterator<Segs.Segment> {
         const max = OrderedSet.getAt(this.set, sMax);
         this.segmentMin = this.getSegmentIndex(min);
         this.segmentMax = this.getSegmentIndex(max);
+
         this.hasNext = this.segmentMax >= this.segmentMin && Interval.size(this.setRange) > 0;
     }
 

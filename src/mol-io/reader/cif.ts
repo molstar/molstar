@@ -8,7 +8,7 @@ import parseText from './cif/text/parser'
 import parseBinary from './cif/binary/parser'
 import { Frame } from './cif/data-model'
 import { toDatabase } from './cif/schema'
-import { Schema as mmCIF_Schema, Database as mmCIF_Database } from './cif/schema/mmcif'
+import { mmCIF_Schema, mmCIF_Database } from './cif/schema/mmcif'
 
 export default {
     parseText,

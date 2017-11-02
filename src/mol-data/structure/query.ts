@@ -9,4 +9,9 @@ import Query from './query/query'
 import * as generators from './query/generators'
 import * as props from './query/properties'
 
-export { Selection, Query, generators, props }
+export const Queries = {
+    generators,
+    props
+}
+
+export { Selection, Query }
