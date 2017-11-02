@@ -262,7 +262,12 @@ export namespace PropertyAccess {
         const q1 = Q.generators.atomGroups({ residueTest: l => auth_comp_id(l) === 'ALA' });
         //const q2 = Q.generators.atomGroups({ chainTest: l => set.has(auth_asym_id(l)),  residueTest: l => auth_comp_id(l) === 'ALA' });
         q(structures[0]);
+        console.time('q1')
         q1(structures[0]);
+        console.timeEnd('q1')
+        console.time('q1')
+        q1(structures[0]);
+        console.timeEnd('q1')
         //console.log(q1(structures[0]));
 
         //const col = models[0].conformation.atomId.value;

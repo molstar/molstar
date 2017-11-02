@@ -72,7 +72,7 @@ export class SegmentIterator implements Iterator<Segs.Segment> {
 
     private updateValue() {
         const segmentEnd = this.segments[this.segmentMin + 1];
-        const setEnd = OrderedSet.findPredecessorIndexInRange(this.set, segmentEnd, this.setRange);
+        const setEnd = OrderedSet.findPredecessorIndexInInterval(this.set, segmentEnd, this.setRange);
         this.value.start = Interval.start(this.setRange);
         this.value.end = setEnd;
         const rEnd = Interval.end(this.setRange);

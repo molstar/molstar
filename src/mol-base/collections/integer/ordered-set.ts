@@ -33,7 +33,7 @@ namespace OrderedSet {
     export const subtract: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.subtract as any;
 
     export const findPredecessorIndex: (set: OrderedSet, x: number) => number = Base.findPredecessorIndex as any;
-    export const findPredecessorIndexInRange: (set: OrderedSet, x: number, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
+    export const findPredecessorIndexInInterval: (set: OrderedSet, x: number, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
     export const findRange: (set: OrderedSet, min: number, max: number) => Interval = Base.findRange as any;
 }
 
