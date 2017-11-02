@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Model from '../model'
+import { Model } from '../model'
 import Operator from './operator'
 
 interface Unit extends Readonly<{

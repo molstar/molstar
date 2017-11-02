@@ -10,7 +10,7 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from '../mol-io/reader/cif'
 
-import Model from '../mol-data/Model'
+import { Model } from '../mol-data/Model'
 import { Structure, Atom, AtomSet } from '../mol-data/structure'
 import * as Q from '../mol-data/query'
 import { OrderedSet as OrdSet, Segmentation } from '../mol-base/collections/integer'
@@ -47,7 +47,7 @@ export async function readCIF(path: string) {
     const mmcif = CIF.schema.mmCIF(data);
     console.timeEnd('schema')
     console.time('buildModels')
-    const models = Model.ofMmCIF(mmcif);
+    const models = Model.create({ kind: 'mmCIF', data: mmcif });
     console.timeEnd('buildModels')
     const structures = models.map(Structure.ofModel);
 

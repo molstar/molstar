@@ -6,5 +6,9 @@
 
 import { Frame as mmCIF_Frame } from '../../mol-io/reader/cif/schema/mmcif'
 
-export type RawData =
-    | { source: 'mmCIF', data: mmCIF_Frame }
+export interface mmCIF { kind: 'mmCIF', data: mmCIF_Frame }
+
+type Format =
+    | mmCIF
+
+export default Format

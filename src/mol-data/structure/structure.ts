@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Model from '../model'
+import { Model } from '../model'
 import Unit from './unit'
 import Operator from './operator'
 import AtomSet from './atom/set'

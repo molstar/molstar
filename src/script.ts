@@ -115,7 +115,7 @@ async function runCIF(input: string | Uint8Array) {
     console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
 
     console.time('createModels');
-    const models = buildModels(mmcif);
+    const models = buildModels({ kind: 'mmCIF', data: mmcif });
     console.timeEnd('createModels');
 
     for (let i = 0; i < models.length; i++) {
