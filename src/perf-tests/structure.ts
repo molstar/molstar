@@ -55,16 +55,6 @@ export async function readCIF(path: string) {
 }
 
 export namespace PropertyAccess {
-    function baselineRaw(model: Model) {
-        const atom_site = model.sourceData.data._frame.categories['_atom_site'];
-        const id = atom_site.getField('id')!.int;
-        let s = 0;
-        for (let i = 0, _i = atom_site.rowCount; i < _i; i++) {
-            s += id(i);
-        }
-        return s;
-    }
-
     function baseline(model: Model) {
         const atom_site = model.sourceData.data.atom_site;
         const id = atom_site.id.value;
@@ -245,7 +235,6 @@ export namespace PropertyAccess {
         console.log('parsed');
 
         console.log(baseline(models[0]));
-        console.log(baselineRaw(models[0]));
         console.log(sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
         console.log(sumPropertySegmented(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
         //console.log(sumPropertySegmentedMutable(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
@@ -265,7 +254,6 @@ export namespace PropertyAccess {
         const suite = new B.Suite();
         suite
             //.add('test int', () => sumProperty(structures[0], l => col(l.atom)))
-            // .add('baseline raw', () =>  baselineRaw(models[0]))
             .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
 
             .add('baseline', () =>  baseline(models[0]))

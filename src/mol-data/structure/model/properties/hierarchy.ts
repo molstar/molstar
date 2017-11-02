@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, Table } from 'mol-base/collections/table'
+import { Column, Table } from 'mol-base/collections/database'
 import { Segmentation } from 'mol-base/collections/integer'
 import { Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 
@@ -63,7 +63,7 @@ export interface Segments {
 }
 
 export interface Keys {
-    // indicate whether the keys form an increasing sequence and within each chain, sequence numbers 
+    // indicate whether the keys form an increasing sequence and within each chain, sequence numbers
     // are in increasing order.
     // monotonous sequences enable for example faster secodnary structure assignment.
     isMonotonous: boolean,

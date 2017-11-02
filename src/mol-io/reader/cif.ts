@@ -7,15 +7,15 @@
 import parseText from './cif/text/parser'
 import parseBinary from './cif/binary/parser'
 import { Frame } from './cif/data-model'
-import { toTypedFrame as applySchema } from './cif/schema'
-import { Schema as mmCIF_Schema, Frame as mmCIF_Frame } from './cif/schema/mmcif'
+import { toDatabase } from './cif/schema'
+import { Schema as mmCIF_Schema, Database as mmCIF_Database } from './cif/schema/mmcif'
 
 export default {
     parseText,
     parseBinary,
-    applySchema,
+    toDatabase,
     schema: {
-        mmCIF: (frame: Frame) => applySchema<typeof mmCIF_Schema, mmCIF_Frame>(mmCIF_Schema, frame)
+        mmCIF: (frame: Frame) => toDatabase<mmCIF_Schema, mmCIF_Database>(mmCIF_Schema, frame)
     }
 }
 

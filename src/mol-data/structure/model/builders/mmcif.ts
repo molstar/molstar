@@ -6,7 +6,7 @@
 
 import { mmCIF } from '../data-format'
 import Model from '../model'
-import { Column, Table } from 'mol-base/collections/table'
+import { Column, Table } from 'mol-base/collections/database'
 import { Interval, Segmentation } from 'mol-base/collections/integer'
 import { newUUID } from 'mol-base/utils/uuid'
 import * as Hierarchy from '../properties/hierarchy'
@@ -45,7 +45,7 @@ function findHierarchyOffsets({ data }: mmCIF, bounds: Interval) {
 function createHierarchyData({ data }: mmCIF, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): Hierarchy.Data {
     const { atom_site } = data;
     const start = Interval.start(bounds), end = Interval.end(bounds);
-    const atoms = Table.ofColumns<Hierarchy.AtomsSchema>({
+    const atoms = Table.ofColumns(Hierarchy.AtomsSchema, {
         type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), Hierarchy.ElementSymbol), type: Column.Type.aliased<Hierarchy.ElementSymbol>(Column.Type.str) }),
         label_atom_id: Column.window(atom_site.label_atom_id, start, end),
         auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),

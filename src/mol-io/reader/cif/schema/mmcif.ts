@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Types, TypedFrame } from '../schema'
+import { Database, Column } from 'mol-base/collections/database'
+import Types = Column.Type
 
 const str = Types.str;
 const int = Types.int;
@@ -245,4 +246,5 @@ export const Schema = {
     atom_site
 };
 
-export interface Frame extends TypedFrame<typeof Schema> { }
+export type Schema = typeof Schema;
+export interface Database extends Database<typeof Schema> { }

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column } from 'mol-base/collections/table'
+import { Column } from 'mol-base/collections/database'
 
 // Full format http://chemyang.ccnu.edu.cn/ccb/server/AIMMS/mol2.pdf
 // there are many records but for now ignore (pass over) all but the following

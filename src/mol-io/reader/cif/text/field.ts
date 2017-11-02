@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column, ColumnHelpers } from 'mol-base/collections/table'
+import { Column, ColumnHelpers } from 'mol-base/collections/database'
 import * as TokenColumn from '../../common/text/column/token'
 import { Tokens } from '../../common/text/tokenizer'
 import * as Data from '../data-model'

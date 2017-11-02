@@ -7,6 +7,7 @@
 import * as Data from '../cif/data-model'
 import TextField from '../cif/text/field'
 import * as Schema from '../cif/schema'
+import { Column } from 'mol-base/collections/database'
 
 const columnData = `123abc`;
 
@@ -21,20 +22,20 @@ const testBlock = Data.Block({
 }, 'test');
 
 namespace TestSchema {
-    export const atoms = { x: Schema.Types.int, name: Schema.Types.str }
+    export const atoms = { x: Column.Type.int, name: Column.Type.str }
     export const schema = { atoms }
 }
 
 describe('schema', () => {
-    const data = Schema.toTypedFrame(TestSchema.schema, testBlock);
+    const db = Schema.toDatabase(TestSchema.schema, testBlock);
     it('property access', () => {
-        const { x, name } = data.atoms;
+        const { x, name } = db.atoms;
         expect(x.value(0)).toBe(1);
         expect(name.value(1)).toBe('b');
     });
 
     it('toArray', () => {
-        const ret = data.atoms.x.toArray({ array: Int32Array });
+        const ret = db.atoms.x.toArray({ array: Int32Array });
         expect(ret.length).toBe(3);
         expect(ret[0]).toBe(1);
         expect(ret[1]).toBe(2);

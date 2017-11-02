@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-base/collections/table'
+import { Column } from 'mol-base/collections/database'
 import { Data, Segments, Keys } from '../properties/hierarchy'
 import { Interval, Segmentation } from 'mol-base/collections/integer'
 

@@ -4,7 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Types, TypedFrame } from '../schema'
+import { Database, Column } from 'mol-base/collections/database'
+import Types = Column.Type
+
 
 const str = Types.str
 const float = Types.float
@@ -69,7 +71,5 @@ export const Schema = {
     item_units_conversion
 }
 
-export interface Frame extends TypedFrame<typeof Schema> { }
-
-// type dic = TypedFrame<typeof dic>
-//export default dic
+export type Schema = typeof Schema;
+export interface Database extends Database.Tables<typeof Schema> { }
