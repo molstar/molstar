@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { ColumnHelpers } from 'mol-base/collections/column'
+import { Column, ColumnHelpers } from 'mol-base/collections/table'
 import { trimStr, Tokens } from '../tokenizer'
 import { parseIntSkipLeadingWhitespace, parseFloatSkipLeadingWhitespace } from '../number-parser'
 

@@ -24,6 +24,7 @@
     "transform": {
       "\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },
+    "moduleDirectories": ["node_modules", "build/node_modules"], 
     "testRegex": "\\.spec\\.ts$"
   },
   "author": "",

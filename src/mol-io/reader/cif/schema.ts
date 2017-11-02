@@ -5,8 +5,7 @@
  */
 
 import * as Data from './data-model'
-import Column, { ColumnHelpers } from 'mol-base/collections/column'
-import Table from 'mol-base/collections/table'
+import { Table, Column, ColumnHelpers } from 'mol-base/collections/table'
 
 export function toTypedFrame<Schema extends FrameSchema, Frame extends TypedFrame<Schema> = TypedFrame<Schema>>(schema: Schema, frame: Data.Frame): Frame {
     return createTypedFrame(schema, frame) as Frame;

@@ -6,8 +6,7 @@
 
 import { mmCIF } from '../data-format'
 import Model from '../model'
-import Column from 'mol-base/collections/column'
-import Table from 'mol-base/collections/table'
+import { Column, Table } from 'mol-base/collections/table'
 import { Interval, Segmentation } from 'mol-base/collections/integer'
 import { newUUID } from 'mol-base/utils/uuid'
 import * as Hierarchy from '../properties/hierarchy'

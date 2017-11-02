@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column from 'mol-base/collections/column'
-import Table from 'mol-base/collections/table'
+import { Column, Table } from 'mol-base/collections/table'
 import { Segmentation } from 'mol-base/collections/integer'
 import { Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 

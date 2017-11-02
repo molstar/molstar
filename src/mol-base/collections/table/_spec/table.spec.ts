@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { ColumnHelpers } from '../column'
+import * as ColumnHelpers from '../column-helpers'
+import Column from '../column'
 import Table from '../table'
 
 describe('column', () => {
