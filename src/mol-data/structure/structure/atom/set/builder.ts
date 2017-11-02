@@ -5,8 +5,8 @@
  */
 
 import AtomSet from '../set'
-import { OrderedSet } from '../../../../mol-base/collections/integer'
-import { sortArray } from '../../../../mol-base/collections/sort'
+import { OrderedSet } from '../../../../../mol-base/collections/integer'
+import { sortArray } from '../../../../../mol-base/collections/sort'
 
 class Builder {
     private keys: number[] = [];

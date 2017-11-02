@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Tuple } from '../../mol-base/collections/integer'
+import { Tuple } from '../../../mol-base/collections/integer'
 import Unit from './unit'
 import Structure from './structure'
 

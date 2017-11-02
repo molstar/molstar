@@ -17,7 +17,7 @@ import CIF from './mol-io/reader/cif'
 
 import Computation from './mol-base/computation'
 
-import buildModels from './mol-data/model/builders/mmcif'
+import buildModels from './mol-data/structure/model/builders/mmcif'
 
 // import { toTypedFrame as applySchema } from './reader/cif/schema'
 import { generateSchema } from './mol-io/reader/cif/schema/utils'

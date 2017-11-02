@@ -5,12 +5,11 @@
  */
 
 import { mmCIF } from '../data-format'
-//import { Frame as mmCIF } from '../../../mol-io/reader/cif/schema/mmcif'
 import Model from '../model'
-import Column from '../../../mol-base/collections/column'
-import Table from '../../../mol-base/collections/table'
-import { Interval, Segmentation } from '../../../mol-base/collections/integer'
-import { newUUID } from '../../../mol-base/utils/uuid'
+import Column from '../../../../mol-base/collections/column'
+import Table from '../../../../mol-base/collections/table'
+import { Interval, Segmentation } from '../../../../mol-base/collections/integer'
+import { newUUID } from '../../../../mol-base/utils/uuid'
 import * as Hierarchy from '../properties/hierarchy'
 import Conformation from '../properties/conformation'
 import findHierarchyKeys from '../utils/hierarchy-keys'

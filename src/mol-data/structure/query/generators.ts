@@ -8,7 +8,7 @@ import Query from './query'
 //import Selection from './selection'
 import * as P from './properties'
 import { AtomSet, Atom } from '../structure'
-import { OrderedSet } from '../../mol-base/collections/integer'
+import { OrderedSet } from '../../../mol-base/collections/integer'
 
 export interface AtomGroupsSpec {
     entityTest: Atom.Predicate,

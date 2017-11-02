@@ -10,9 +10,9 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from '../mol-io/reader/cif'
 
-import { Model } from '../mol-data/Model'
-import { Structure, Atom, AtomSet } from '../mol-data/structure'
-import * as Q from '../mol-data/query'
+import { Model } from '../mol-data/structure/model'
+import { Structure, Atom, AtomSet } from '../mol-data/structure/structure'
+import * as Q from '../mol-data/structure/query'
 import { OrderedSet as OrdSet, Segmentation } from '../mol-base/collections/integer'
 
 require('util.promisify').shim();

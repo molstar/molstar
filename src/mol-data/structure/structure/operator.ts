@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4 } from '../../mol-base/math/linear-algebra'
+import { Mat4 } from '../../../mol-base/math/linear-algebra'
 
 interface Operator extends Readonly<{
     name: string,
