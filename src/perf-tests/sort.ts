@@ -1,5 +1,5 @@
 import * as B from 'benchmark'
-import * as Sort from '../mol-base/collections/sort'
+import * as Sort from 'mol-base/collections/sort'
 
 function shuffle(a: number[]) {
     for (let i = a.length - 1; i > 0; i--) {

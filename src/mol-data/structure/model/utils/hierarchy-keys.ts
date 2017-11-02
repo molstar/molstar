@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column from '../../../../mol-base/collections/column'
+import Column from 'mol-base/collections/column'
 import { Data, Segments, Keys } from '../properties/hierarchy'
-import { Interval, Segmentation } from '../../../../mol-base/collections/integer'
+import { Interval, Segmentation } from 'mol-base/collections/integer'
 
 function getResidueId(comp_id: string, seq_id: number, ins_code: string) {
     return `${comp_id} ${seq_id} ${ins_code}`;

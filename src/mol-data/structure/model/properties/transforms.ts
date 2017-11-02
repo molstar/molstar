@@ -6,4 +6,4 @@
 
 // TODO: symmetry and assebmlies descriptors
 
-//import Column from '../../../mol-base/collections/column'
+//import Column from 'mol-base/collections/column'

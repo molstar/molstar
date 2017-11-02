@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from '../../../mol-base/collections/iterator'
-import HashSet from '../../../mol-base/collections/hash-set'
+import Iterator from 'mol-base/collections/iterator'
+import HashSet from 'mol-base/collections/hash-set'
 import { Structure, Atom, AtomSet } from '../structure'
 
 type Selection =

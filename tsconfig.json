@@ -10,8 +10,13 @@
         "strictFunctionTypes": true,
         //"downlevelIteration": true,
         "lib": [ "es6", "dom" ],
-        "outDir": "build/js/src",
-        "baseUrl": "src"
+        "outDir": "build/node_modules",
+        "baseUrl": "src",
+        "paths": {
+            "mol-base": ["./mol-base"],
+            "mol-data": ["./mol-data"],
+            "mol-io": ["./mol-io"]
+        }
     },
     "include": [ "**/*" ]
 }

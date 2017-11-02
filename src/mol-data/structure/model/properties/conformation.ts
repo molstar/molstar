@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column from '../../../../mol-base/collections/column'
-import UUID from '../../../../mol-base/utils/uuid'
+import Column from 'mol-base/collections/column'
+import UUID from 'mol-base/utils/uuid'
 
 interface Conformation {
     id: UUID,

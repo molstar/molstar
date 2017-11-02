@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import BitFlags from '../../../mol-base/utils/bit-flags'
+import BitFlags from 'mol-base/utils/bit-flags'
 
 export const enum EntityType {
     Unknown = 'unknown',

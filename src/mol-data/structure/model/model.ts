@@ -7,7 +7,7 @@
 import DataFormat from './data-format'
 import HierarchyProperties from './properties/hierarchy'
 import ConformationProperties from './properties/conformation'
-import UUID from '../../../mol-base/utils/uuid'
+import UUID from 'mol-base/utils/uuid'
 
 import buildMmCIF from './builders/mmcif'
 

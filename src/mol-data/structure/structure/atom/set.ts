@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedSet, SortedArray, Iterator } from '../../../../mol-base/collections/integer'
+import { OrderedSet, SortedArray, Iterator } from 'mol-base/collections/integer'
 import Atom from '../atom'
 import * as Impl from './set/impl'
 import createBuilder from './set/builder'

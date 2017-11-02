@@ -1,5 +1,5 @@
 import * as B from 'benchmark'
-import C from '../mol-base/collections/column'
+import C from 'mol-base/collections/column'
 
 export namespace Column {
     function createData(n: number) {

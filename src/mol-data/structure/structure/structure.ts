@@ -8,7 +8,7 @@ import { Model } from '../model'
 import Unit from './unit'
 import Operator from './operator'
 import AtomSet from './atom/set'
-import { OrderedSet } from '../../../mol-base/collections/integer'
+import { OrderedSet } from 'mol-base/collections/integer'
 
 interface Structure extends Readonly<{
     units: { readonly [id: number]: Unit },

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Column, { ColumnHelpers } from '../../../../../mol-base/collections/column'
+import Column, { ColumnHelpers } from 'mol-base/collections/column'
 import { Tokens } from '../tokenizer'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../number-parser'
 

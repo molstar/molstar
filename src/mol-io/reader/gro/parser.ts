@@ -7,10 +7,10 @@
 
 import Tokenizer from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
-import Column from '../../../mol-base/collections/column'
+import Column from 'mol-base/collections/column'
 import * as Schema from './schema'
 import Result from '../result'
-import Computation from '../../../mol-base/computation'
+import Computation from 'mol-base/computation'
 
 interface State {
     tokenizer: Tokenizer,
