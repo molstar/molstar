@@ -74,6 +74,8 @@ And that's all there is to it. Extending the types to the "frame" level is left 
 
 The advantage of this approach is that the types are generated directly from the data. This means we only need to define them once (as opposed to defining the data interfaces separately) and on top of that, the "schemas" also serve as a template for how to actually performs the transformation to the typed version of CIF (again without the need to do this "manually" except the one time definition of the schema).
 
+This concept is further abstracted as `mol-base/collections/database`.
+
 ----------------
 
 
