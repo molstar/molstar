@@ -1,7 +1,7 @@
 {
-  "name": "molio",
+  "name": "mol-star",
   "version": "0.1.0",
-  "description": "Parsers for molecular data.",
+  "description": "Comprehensive molecular library.",
   "main": "dist/molio.js",
   "module": "dist/molio.esm.js",
   "types": "src/index.d.ts",

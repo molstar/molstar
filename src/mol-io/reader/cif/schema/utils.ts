@@ -116,7 +116,7 @@ function getCode (d: Data.Frame, ctx: FrameData): [string, string[]]|undefined {
 }
 
 const header = `/**
- * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Your friendly code generator
  */

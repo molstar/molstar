@@ -1,10 +1,10 @@
 /**
- * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4 } from 'mol-base/math/linear-algebra'
+import { Mat4 } from 'mol-base/math/linear-algebra-3d'
 
 interface Operator extends Readonly<{
     name: string,

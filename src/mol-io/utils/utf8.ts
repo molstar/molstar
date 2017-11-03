@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from https://github.com/rcsb/mmtf-javascript
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
