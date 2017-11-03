@@ -1,3 +1,0 @@
-- Make a writer that takes a database and produces a CIF/BinaryCIF file.
-- Make a more generic writer that takes Iterator<Key> and column spec with value: (ctx: Ctx, key: Key) => number | string | undefined /* NotPresent */ | null /* unknown */
-  - This will work with Structure.atomLocations for atom_site

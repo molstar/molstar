@@ -6,7 +6,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-
 interface StringBuilder {
     current: string[],
     offset: number,
@@ -63,7 +62,11 @@ namespace StringBuilder {
     }
 
     export function whitespace(builder: StringBuilder, len: number) {
-        if (len > 0) write(builder, __paddingSpaces[len]);
+        if (len > 0) writeSafe(builder, __paddingSpaces[len]);
+    }
+
+    export function whitespace1(builder: StringBuilder) {
+        writeSafe(builder, ' ');
     }
 
     export function write(builder: StringBuilder, val: string) {
@@ -106,6 +109,10 @@ namespace StringBuilder {
 
     export function writeInteger(builder: StringBuilder, val: number) {
         writeSafe(builder, '' + val);
+    }
+
+    export function writeIntegerAndSpace(builder: StringBuilder, val: number) {
+        writeSafe(builder, '' + val + ' ');
     }
 
     export function writeIntegerPadLeft(builder: StringBuilder, val: number, totalWidth: number) {
