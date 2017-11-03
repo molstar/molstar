@@ -60,7 +60,7 @@ export default class TextCIFEncoder<Context> implements Enc.CIFEncoder<string, C
     }
 }
 
-function writeValue(builder: StringBuilder, data: any, key: any, f: Enc.FieldDefinition): boolean {
+function writeValue(builder: StringBuilder, data: any, key: any, f: Enc.FieldDefinition<any, any>): boolean {
     const kind = f.valueKind;
     const p = kind ? kind(key, data) : Column.ValueKind.Present;
     if (p !== Column.ValueKind.Present) {
