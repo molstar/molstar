@@ -16,9 +16,9 @@
  * furnished to do so, subject to the following conditions:
  */
 
-export type Mat4 = number[]
-export type Vec3 = number[]
-export type Vec4 = number[]
+export interface Mat4 { [d: number]: number, '@type': 'mat4' }
+export interface Vec3 { [d: number]: number, '@type': 'vec3' | 'vec4' }
+export interface Vec4 { [d: number]: number, '@type': 'vec4' }
 
 const enum EPSILON { Value = 0.000001 }
 
@@ -30,15 +30,15 @@ export function Mat4() {
  * Stores a 4x4 matrix in a column major (j * 4 + i indexing) format.
  */
 export namespace Mat4 {
-    export function zero(): number[] {
+    export function zero(): Mat4 {
         // force double backing array by 0.1.
         const ret = [0.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         ret[0] = 0.0;
-        return ret;
+        return ret as any;
     }
 
-    export function identity(): number[] {
-        let out = zero();
+    export function identity(): Mat4 {
+        const out = zero();
         out[0] = 1;
         out[1] = 0;
         out[2] = 0;
@@ -58,7 +58,7 @@ export namespace Mat4 {
         return out;
     }
 
-    export function fromIdentity(mat: number[]): number[] {
+    export function setIdentity(mat: Mat4): Mat4 {
         mat[0] = 1;
         mat[1] = 0;
         mat[2] = 0;
@@ -78,18 +78,18 @@ export namespace Mat4 {
         return mat;
     }
 
-    export function ofRows(rows: number[][]): number[] {
-        let out = zero(), i: number, j: number, r: number[];
-        for (i = 0; i < 4; i++) {
-            r = rows[i];
-            for (j = 0; j < 4; j++) {
+    export function ofRows(rows: number[][]): Mat4 {
+        const out = zero();
+        for (let i = 0; i < 4; i++) {
+            const r = rows[i];
+            for (let j = 0; j < 4; j++) {
                 out[4 * j + i] = r[j];
             }
         }
         return out;
     }
 
-    export function areEqual(a: number[], b: number[], eps: number) {
+    export function areEqual(a: Mat4, b: Mat4, eps: number) {
         for (let i = 0; i < 16; i++) {
             if (Math.abs(a[i] - b[i]) > eps) {
                 return false;
@@ -98,11 +98,11 @@ export namespace Mat4 {
         return true;
     }
 
-    export function setValue(a: number[], i: number, j: number, value: number) {
+    export function setValue(a: Mat4, i: number, j: number, value: number) {
         a[4 * j + i] = value;
     }
 
-    export function copy(out: number[], a: number[]) {
+    export function copy(out: Mat4, a: Mat4) {
         out[0] = a[0];
         out[1] = a[1];
         out[2] = a[2];
@@ -122,12 +122,12 @@ export namespace Mat4 {
         return out;
     }
 
-    export function clone(a: number[]) {
+    export function clone(a: Mat4) {
         return Mat4.copy(Mat4.zero(), a);
     }
 
-    export function invert(out: number[], a: number[]) {
-        let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+    export function invert(out: Mat4, a: Mat4) {
+        const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
             a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
             a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
             a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15],
@@ -143,13 +143,13 @@ export namespace Mat4 {
             b08 = a20 * a33 - a23 * a30,
             b09 = a21 * a32 - a22 * a31,
             b10 = a21 * a33 - a23 * a31,
-            b11 = a22 * a33 - a23 * a32,
+            b11 = a22 * a33 - a23 * a32;
 
-            // Calculate the determinant
-            det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+        // Calculate the determinant
+        let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
         if (!det) {
-            return null;
+            return Number.NaN;
         }
         det = 1.0 / det;
 
@@ -173,8 +173,8 @@ export namespace Mat4 {
         return out;
     }
 
-    export function mul(out: number[], a: number[], b: number[]) {
-        let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+    export function mul(out: Mat4, a: Mat4, b: Mat4) {
+        const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
             a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
             a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
             a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
@@ -206,13 +206,13 @@ export namespace Mat4 {
         return out;
     }
 
-    export function mul3(out: number[], a: number[], b: number[], c: number[]) {
+    export function mul3(out: Mat4, a: Mat4, b: Mat4, c: Mat4) {
         return mul(out, mul(out, a, b), c);
     }
 
-    export function translate(out: number[], a: number[], v: number[]) {
-        let x = v[0], y = v[1], z = v[2],
-            a00: number, a01: number, a02: number, a03: number,
+    export function translate(out: Mat4, a: Mat4, v: Mat4) {
+        const x = v[0], y = v[1], z = v[2];
+        let a00: number, a01: number, a02: number, a03: number,
             a10: number, a11: number, a12: number, a13: number,
             a20: number, a21: number, a22: number, a23: number;
 
@@ -239,7 +239,7 @@ export namespace Mat4 {
         return out;
     }
 
-    export function fromTranslation(out: number[], v: number[]) {
+    export function fromTranslation(out: Mat4, v: Mat4) {
         out[0] = 1;
         out[1] = 0;
         out[2] = 0;
@@ -259,7 +259,7 @@ export namespace Mat4 {
         return out;
     }
 
-    export function rotate(out: number[], a: number[], rad: number, axis: number[]) {
+    export function rotate(out: Mat4, a: Mat4, rad: number, axis: Mat4) {
         let x = axis[0], y = axis[1], z = axis[2],
             len = Math.sqrt(x * x + y * y + z * z),
             s, c, t,
@@ -270,7 +270,9 @@ export namespace Mat4 {
             b10, b11, b12,
             b20, b21, b22;
 
-        if (Math.abs(len) < EPSILON.Value) { return null; }
+        if (Math.abs(len) < EPSILON.Value) {
+            return Mat4.identity();
+        }
 
         len = 1 / len;
         x *= len;
@@ -313,12 +315,12 @@ export namespace Mat4 {
         return out;
     }
 
-    export function fromRotation(out: number[], rad: number, axis: number[]) {
+    export function fromRotation(out: Mat4, rad: number, axis: Vec3) {
         let x = axis[0], y = axis[1], z = axis[2],
             len = Math.sqrt(x * x + y * y + z * z),
             s, c, t;
 
-        if (Math.abs(len) < EPSILON.Value) { return fromIdentity(out); }
+        if (Math.abs(len) < EPSILON.Value) { return setIdentity(out); }
 
         len = 1 / len;
         x *= len;
@@ -349,8 +351,8 @@ export namespace Mat4 {
         return out;
     }
 
-    export function scale(out: number[], a: number[], v: number[]) {
-        let x = v[0], y = v[1], z = v[2];
+    export function scale(out: Mat4, a: Mat4, v: Vec3) {
+        const x = v[0], y = v[1], z = v[2];
 
         out[0] = a[0] * x;
         out[1] = a[1] * x;
@@ -371,7 +373,7 @@ export namespace Mat4 {
         return out;
     }
 
-    export function fromScaling(out: number[], v: number[]) {
+    export function fromScaling(out: Mat4, v: Vec3) {
         out[0] = v[0];
         out[1] = 0;
         out[2] = 0;
@@ -391,7 +393,7 @@ export namespace Mat4 {
         return out;
     }
 
-    export function makeTable(m: number[]) {
+    export function makeTable(m: Mat4) {
         let ret = '';
         for (let i = 0; i < 4; i++) {
             for (let j = 0; j < 4; j++) {
@@ -403,8 +405,8 @@ export namespace Mat4 {
         return ret;
     }
 
-    export function determinant(a: number[]) {
-        let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+    export function determinant(a: Mat4) {
+        const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
             a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
             a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
             a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15],
@@ -427,113 +429,109 @@ export namespace Mat4 {
     }
 }
 
-export function Vec3(x?: number, y?: number, z?: number) {
-    return Vec3.fromValues(x || 0, y || 0, z || 0);
-}
-
 export namespace Vec3 {
-    export function zero() {
-        let out = [0.1, 0.0, 0.0];
+    export function zero(): Vec3 {
+        const out = [0.1, 0.0, 0.0];
         out[0] = 0;
-        return out;
+        return out as any;
     }
 
-    export function clone(a: number[]) {
-        let out = zero();
+    export function clone(a: Vec3): Vec3 {
+        const out = zero();
         out[0] = a[0];
         out[1] = a[1];
         out[2] = a[2];
         return out;
     }
 
-    export function fromObj(v: { x: number, y: number, z: number }) {
-        return fromValues(v.x, v.y, v.z);
+    export function fromObj(v: { x: number, y: number, z: number }): Vec3 {
+        return create(v.x, v.y, v.z);
     }
 
-    export function toObj(v: number[]) {
+    export function toObj(v: Vec3) {
         return { x: v[0], y: v[1], z: v[2] };
     }
 
-    export function fromValues(x: number, y: number, z: number) {
-        let out = zero();
+    export function create(x: number, y: number, z: number): Vec3 {
+        const out = zero();
         out[0] = x;
         out[1] = y;
         out[2] = z;
         return out;
     }
 
-    export function set(out: number[], x: number, y: number, z: number) {
+    export function set(out: Vec3, x: number, y: number, z: number): Vec3 {
         out[0] = x;
         out[1] = y;
         out[2] = z;
         return out;
     }
 
-    export function copy(out: number[], a: number[]) {
+    export function copy(out: Vec3, a: Vec3) {
         out[0] = a[0];
         out[1] = a[1];
         out[2] = a[2];
         return out;
     }
 
-    export function add(out: number[], a: number[], b: number[]) {
+    export function add(out: Vec3, a: Vec3, b: Vec3) {
         out[0] = a[0] + b[0];
         out[1] = a[1] + b[1];
         out[2] = a[2] + b[2];
         return out;
     }
 
-    export function sub(out: number[], a: number[], b: number[]) {
+    export function sub(out: Vec3, a: Vec3, b: Vec3) {
         out[0] = a[0] - b[0];
         out[1] = a[1] - b[1];
         out[2] = a[2] - b[2];
         return out;
     }
 
-    export function scale(out: number[], a: number[], b: number) {
+    export function scale(out: Vec3, a: Vec3, b: number) {
         out[0] = a[0] * b;
         out[1] = a[1] * b;
         out[2] = a[2] * b;
         return out;
     }
 
-    export function scaleAndAdd(out: number[], a: number[], b: number[], scale: number) {
+    export function scaleAndAdd(out: Vec3, a: Vec3, b: Vec3, scale: number) {
         out[0] = a[0] + (b[0] * scale);
         out[1] = a[1] + (b[1] * scale);
         out[2] = a[2] + (b[2] * scale);
         return out;
     }
 
-    export function distance(a: number[], b: number[]) {
-        let x = b[0] - a[0],
+    export function distance(a: Vec3, b: Vec3) {
+        const x = b[0] - a[0],
             y = b[1] - a[1],
             z = b[2] - a[2];
         return Math.sqrt(x * x + y * y + z * z);
     }
 
-    export function squaredDistance(a: number[], b: number[]) {
-        let x = b[0] - a[0],
+    export function squaredDistance(a: Vec3, b: Vec3) {
+        const x = b[0] - a[0],
             y = b[1] - a[1],
             z = b[2] - a[2];
         return x * x + y * y + z * z;
     }
 
-    export function magnitude(a: number[]) {
-        let x = a[0],
+    export function magnitude(a: Vec3) {
+        const x = a[0],
             y = a[1],
             z = a[2];
         return Math.sqrt(x * x + y * y + z * z);
     }
 
-    export function squaredMagnitude(a: number[]) {
-        let x = a[0],
+    export function squaredMagnitude(a: Vec3) {
+        const x = a[0],
             y = a[1],
             z = a[2];
         return x * x + y * y + z * z;
     }
 
-    export function normalize(out: number[], a: number[]) {
-        let x = a[0],
+    export function normalize(out: Vec3, a: Vec3) {
+        const x = a[0],
             y = a[1],
             z = a[2];
         let len = x * x + y * y + z * z;
@@ -546,12 +544,12 @@ export namespace Vec3 {
         return out;
     }
 
-    export function dot(a: number[], b: number[]) {
+    export function dot(a: Vec3, b: Vec3) {
         return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     }
 
-    export function cross(out: number[], a: number[], b: number[]) {
-        let ax = a[0], ay = a[1], az = a[2],
+    export function cross(out: Vec3, a: Vec3, b: Vec3) {
+        const ax = a[0], ay = a[1], az = a[2],
             bx = b[0], by = b[1], bz = b[2];
 
         out[0] = ay * bz - az * by;
@@ -560,8 +558,8 @@ export namespace Vec3 {
         return out;
     }
 
-    export function lerp(out: number[], a: number[], b: number[], t: number) {
-        let ax = a[0],
+    export function lerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
+        const ax = a[0],
             ay = a[1],
             az = a[2];
         out[0] = ax + t * (b[0] - ax);
@@ -570,8 +568,8 @@ export namespace Vec3 {
         return out;
     }
 
-    export function transformMat4(out: number[], a: number[], m: number[]) {
-        let x = a[0], y = a[1], z = a[2],
+    export function transformMat4(out: Vec3, a: Vec3, m: number[]) {
+        const x = a[0], y = a[1], z = a[2],
             w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
         out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
         out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
@@ -580,14 +578,14 @@ export namespace Vec3 {
     }
 
     const angleTempA = zero(), angleTempB = zero();
-    export function angle(a: number[], b: number[]) {
+    export function angle(a: Vec3, b: Vec3) {
         copy(angleTempA, a);
         copy(angleTempB, b);
 
         normalize(angleTempA, angleTempA);
         normalize(angleTempB, angleTempB);
 
-        let cosine = dot(angleTempA, angleTempB);
+        const cosine = dot(angleTempA, angleTempB);
 
         if (cosine > 1.0) {
             return 0;
@@ -602,26 +600,22 @@ export namespace Vec3 {
     const rotTemp = zero();
     export function makeRotation(mat: Mat4, a: Vec3, b: Vec3): Mat4 {
         const by = angle(a, b);
-        if (Math.abs(by) < 0.0001) return Mat4.fromIdentity(mat);
+        if (Math.abs(by) < 0.0001) return Mat4.setIdentity(mat);
         const axis = cross(rotTemp, a, b);
         return Mat4.fromRotation(mat, by, axis);
     }
 }
 
-export function Vec4(x?: number, y?: number, z?: number, w?: number) {
-    return Vec4.fromValues(x || 0, y || 0, z || 0, w || 0);
-}
-
 export namespace Vec4 {
-    export function zero(): number[] {
+    export function zero(): Vec4 {
         // force double backing array by 0.1.
         const ret = [0.1, 0, 0, 0];
         ret[0] = 0.0;
-        return ret;
+        return ret as any;
     }
 
-    export function clone(a: number[]) {
-        let out = zero();
+    export function clone(a: Vec4) {
+        const out = zero();
         out[0] = a[0];
         out[1] = a[1];
         out[2] = a[2];
@@ -629,8 +623,8 @@ export namespace Vec4 {
         return out;
     }
 
-    export function fromValues(x: number, y: number, z: number, w: number) {
-        let out = zero();
+    export function create(x: number, y: number, z: number, w: number) {
+        const out = zero();
         out[0] = x;
         out[1] = y;
         out[2] = z;
@@ -638,7 +632,7 @@ export namespace Vec4 {
         return out;
     }
 
-    export function set(out: number[], x: number, y: number, z: number, w: number) {
+    export function set(out: Vec4, x: number, y: number, z: number, w: number) {
         out[0] = x;
         out[1] = y;
         out[2] = z;
@@ -646,40 +640,40 @@ export namespace Vec4 {
         return out;
     }
 
-    export function distance(a: number[], b: number[]) {
-        let x = b[0] - a[0],
+    export function distance(a: Vec4, b: Vec4) {
+        const x = b[0] - a[0],
             y = b[1] - a[1],
             z = b[2] - a[2],
             w = b[3] - a[3];
         return Math.sqrt(x * x + y * y + z * z + w * w);
     }
 
-    export function squaredDistance(a: number[], b: number[]) {
-        let x = b[0] - a[0],
+    export function squaredDistance(a: Vec4, b: Vec4) {
+        const x = b[0] - a[0],
             y = b[1] - a[1],
             z = b[2] - a[2],
             w = b[3] - a[3];
         return x * x + y * y + z * z + w * w;
     }
 
-    export function norm(a: number[]) {
-        let x = a[0],
+    export function norm(a: Vec4) {
+        const x = a[0],
             y = a[1],
             z = a[2],
             w = a[3];
         return Math.sqrt(x * x + y * y + z * z + w * w);
     }
 
-    export function squaredNorm(a: number[]) {
-        let x = a[0],
+    export function squaredNorm(a: Vec4) {
+        const x = a[0],
             y = a[1],
             z = a[2],
             w = a[3];
         return x * x + y * y + z * z + w * w;
     }
 
-    export function transform(out: number[], a: number[], m: number[]) {
-        let x = a[0], y = a[1], z = a[2], w = a[3];
+    export function transform(out: Vec4, a: Vec4, m: Mat4) {
+        const x = a[0], y = a[1], z = a[2], w = a[3];
         out[0] = m[0] * x + m[4] * y + m[8] * z + m[12] * w;
         out[1] = m[1] * x + m[5] * y + m[9] * z + m[13] * w;
         out[2] = m[2] * x + m[6] * y + m[10] * z + m[14] * w;
