@@ -28,7 +28,7 @@ namespace Atom {
     export interface Property<T> { (location: Location): T }
     export interface Predicate extends Property<boolean> { }
 
-    export function setLocation(structure: Structure, l: Location, atom: Atom) {
+    export function updateLocation(structure: Structure, l: Location, atom: Atom) {
         l.unit = structure.units[unit(atom)];
         l.atom = index(atom);
     }

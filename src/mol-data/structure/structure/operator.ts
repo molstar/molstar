@@ -9,7 +9,7 @@ import { Mat4 } from 'mol-base/math/linear-algebra-3d'
 interface Operator extends Readonly<{
     name: string,
     hkl: number[], // defaults to [0, 0, 0] for non symmetry entries
-    transform: Mat4,
+    matrix: Mat4,
     // cache the inverse of the transform
     inverse: Mat4,
     // optimize the identity case
@@ -17,7 +17,7 @@ interface Operator extends Readonly<{
 }> { }
 
 namespace Operator {
-    export const Identity: Operator = { name: '1_555', hkl: [0, 0, 0], transform: Mat4.identity(), inverse: Mat4.identity(), isIdentity: true };
+    export const Identity: Operator = { name: '1_555', hkl: [0, 0, 0], matrix: Mat4.identity(), inverse: Mat4.identity(), isIdentity: true };
 }
 
 export default Operator

@@ -13,6 +13,10 @@ const constant = {
 }
 
 const atom = {
+    x: Atom.property(l => l.unit.x(l.atom)),
+    y: Atom.property(l => l.unit.y(l.atom)),
+    z: Atom.property(l => l.unit.z(l.atom)),
+
     type_symbol: Atom.property(l => l.unit.hierarchy.atoms.type_symbol.value(l.atom))
 }
 

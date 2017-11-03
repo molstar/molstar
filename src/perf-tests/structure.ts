@@ -251,6 +251,13 @@ export namespace PropertyAccess {
         console.log(sumDirect(structures[0]));
         console.log('r', sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])));
 
+        console.time('atom.x');
+        console.log('atom.x', sumProperty(structures[0], Q.props.atom.x));
+        console.timeEnd('atom.x');
+        console.time('__x')
+        console.log('__x', sumProperty(structures[0], l => l.unit.conformation.__x[l.atom]));
+        console.timeEnd('__x')
+
         //const authSeqId = Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]));
 
         //const auth_seq_id = Q.props.residue.auth_seq_id;
@@ -277,7 +284,7 @@ export namespace PropertyAccess {
         console.time('q2')
         const q2r = q2(structures[0]);
         console.timeEnd('q2')
-        console.log(Selection.structureCount(q2r))
+        console.log(Selection.structureCount(q2r));
         //console.log(q1(structures[0]));
 
         //const col = models[0].conformation.atomId.value;
