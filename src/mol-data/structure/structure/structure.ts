@@ -8,7 +8,8 @@ import { Model, Format } from '../model'
 import Unit from './unit'
 import Operator from './operator'
 import AtomSet from './atom/set'
-import { OrderedSet } from 'mol-base/collections/integer'
+import Atom from './atom'
+import { OrderedSet, Iterator } from 'mol-base/collections/integer'
 
 interface Structure extends Readonly<{
     units: { readonly [id: number]: Unit },
@@ -59,6 +60,12 @@ namespace Structure {
 
     export function Builder(): Builder { return new BuilderImpl(); }
 
+    /** Transient = location gets overwritten when move() is called. */
+    export function atomLocationsTransient(s: Structure): Iterator<Atom.Location> {
+        const l = Atom.Location();
+        const update = Atom.updateLocation;
+        return Iterator.map(AtomSet.atoms(s.atoms), a => update(s, l, a));
+    }
 
     // TODO: "lift" atom set operators?
     // TODO: "diff"

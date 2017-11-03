@@ -35,7 +35,6 @@ export interface Residues extends Table<ResiduesSchema> { }
 export const ChainsSchema = {
     label_asym_id: mmCIF.atom_site.label_asym_id,
     auth_asym_id: mmCIF.atom_site.auth_asym_id,
-    auth_comp_id: mmCIF.atom_site.auth_comp_id,
     label_entity_id: mmCIF.atom_site.label_entity_id
 }
 export type ChainsSchema = typeof ChainsSchema

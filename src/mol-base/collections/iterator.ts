@@ -106,6 +106,15 @@ namespace Iterator {
     export function Range(min: number, max: number): Iterator<number> { return new RangeIteratorImpl(min, max); }
     export function map<T, R>(base: Iterator<T>, f: (v: T) => R): Iterator<R> { return new MapIteratorImpl(base, f); }
     export function filter<T>(base: Iterator<T>, p: (v: T) => boolean): Iterator<T> { return new FilterIteratorImpl(base, p); }
+
+    // f can return non-undefined falsy value to stop the iteration.
+    export function forEach<T, Ctx>(it: Iterator<T>, f: (v: T, ctx: Ctx) => boolean | void, ctx: Ctx): Ctx {
+        while (it.hasNext) {
+            const c = f(it.move(), ctx);
+            if (typeof c !== 'undefined' && !c) return ctx;
+        }
+        return ctx;
+    }
 }
 
 export default Iterator

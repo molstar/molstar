@@ -31,6 +31,7 @@ namespace Atom {
     export function updateLocation(structure: Structure, l: Location, atom: Atom) {
         l.unit = structure.units[unit(atom)];
         l.atom = index(atom);
+        return l;
     }
 
     export function property<T>(p: Property<T>) { return p; }
