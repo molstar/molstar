@@ -74,14 +74,14 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
 
             builder.beginUnit();
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
-            const residues = unit.hierarchy.residueSegments;
+            const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
                 l.atom = OrderedSet.getAt(set, chainSegment.start);
                 // test entity and chain
                 if (!entityTest(l) || !chainTest(l)) continue;
 
-                const residuesIt = Segmentation.transientSegments(residues, set, chainSegment);
+                residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
                     const residueSegment = residuesIt.move();
                     l.atom = OrderedSet.getAt(set, residueSegment.start);

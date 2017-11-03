@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from '../iterator'
 import Interval from './interval'
 import OrderedSet from './ordered-set'
 import * as Impl from './impl/segmentation'
@@ -20,7 +19,7 @@ namespace Segmentation {
     export const projectValue: (segs: Segmentation, set: OrderedSet, value: number) => Interval = Impl.projectValue as any;
 
     // Segment iterator that mutates a single segment object to mark all the segments.
-    export const transientSegments: (segs: Segmentation, set: OrderedSet, segment?: Segment) => Iterator<Segment> = Impl.segments as any;
+    export const transientSegments: (segs: Segmentation, set: OrderedSet, segment?: Segment) => Impl.SegmentIterator = Impl.segments as any;
 }
 
 interface Segmentation {
