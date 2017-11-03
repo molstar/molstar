@@ -8,7 +8,7 @@
         "no-var-keyword": true,
         "ordered-imports": [false],
         "trailing-comma": [false],
-        "class-name": true,
+        "class-name": false,
         "comment-format": [
             true,
             "check-space"

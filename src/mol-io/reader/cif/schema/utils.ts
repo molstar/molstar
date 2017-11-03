@@ -7,7 +7,7 @@ export function getFieldType (type: string, values?: string[]) {
         case 'code':
         case 'ucode':
             if (values && values.length) {
-                return `str as Field.Schema<'${values.join("'|'")}'>`
+                return `str as Field.Schema<'${values.join(`'|'`)}'>`
             } else {
                 return 'str'
             }

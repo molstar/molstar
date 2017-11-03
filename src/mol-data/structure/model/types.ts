@@ -7,6 +7,12 @@
 
 import BitFlags from 'mol-base/utils/bit-flags'
 
+const _esCache = Object.create(null);
+export interface ElementSymbol extends String { '@type': 'element-symbol' }
+export function ElementSymbol(s: string): ElementSymbol {
+    return _esCache[s] || (_esCache[s] = s.toUpperCase());
+}
+
 export const enum EntityType {
     Unknown = 'unknown',
     Polymer = 'polymer',

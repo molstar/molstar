@@ -7,12 +7,7 @@
 import { Column, Table } from 'mol-base/collections/database'
 import { Segmentation } from 'mol-base/collections/integer'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
-
-const _esCache = Object.create(null);
-export interface ElementSymbol extends String { '@type': 'element-symbol' }
-export function ElementSymbol(s: string): ElementSymbol {
-    return _esCache[s] || (_esCache[s] = s.toUpperCase());
-}
+import { ElementSymbol} from '../types'
 
 export const AtomsSchema = {
     type_symbol: Column.Type.aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),

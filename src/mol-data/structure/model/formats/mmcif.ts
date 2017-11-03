@@ -4,14 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { newUUID } from 'mol-base/utils/uuid'
+import { Column, Table } from 'mol-base/collections/database'
+import { Interval, Segmentation } from 'mol-base/collections/integer'
 import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
 import Conformation from '../properties/conformation'
-import { Column, Table } from 'mol-base/collections/database'
-import { Interval, Segmentation } from 'mol-base/collections/integer'
-import { newUUID } from 'mol-base/utils/uuid'
 import findHierarchyKeys from '../utils/hierarchy-keys'
+import { ElementSymbol} from '../types'
 
 import mmCIF_Format = Format.mmCIF
 
@@ -47,7 +48,7 @@ function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: 
     const { atom_site } = data;
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const atoms = Table.ofColumns(Hierarchy.AtomsSchema, {
-        type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), Hierarchy.ElementSymbol), type: Column.Type.aliased<Hierarchy.ElementSymbol>(Column.Type.str) }),
+        type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), ElementSymbol), type: Column.Type.aliased<ElementSymbol>(Column.Type.str) }),
         label_atom_id: Column.window(atom_site.label_atom_id, start, end),
         auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),
         label_alt_id: Column.window(atom_site.label_alt_id, start, end),

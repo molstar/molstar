@@ -5,7 +5,7 @@
  */
 
 import Model from './model/model'
-import * as Constants from './model/constants'
+import * as Types from './model/types'
 import Format from './model/format'
 
-export { Model, Constants, Format }
+export { Model, Types, Format }

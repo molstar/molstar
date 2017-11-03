@@ -8,7 +8,7 @@ import { Atom } from '../structure'
 import P from './properties'
 
 namespace Predicates {
-    interface SetLike<A> { has(v: A): boolean }
+    export interface SetLike<A> { has(v: A): boolean }
     function isSetLike<A>(x: any): x is SetLike<A> { return !!x && !!x.has }
 
     export function eq<A>(p: Atom.Property<A>, value: A): Atom.Predicate { return l => p(l) === value; }
@@ -21,6 +21,7 @@ namespace Predicates {
         if (isSetLike(values)) {
             return l => values.has(p(l));
         } else {
+            if (values.length === 0) return P.constant.false;
             const set = new Set<A>();
             for (let i = 0; i < values.length; i++) set.add(values[i]);
             return l => set.has(p(l));

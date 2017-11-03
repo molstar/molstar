@@ -259,12 +259,13 @@ export namespace PropertyAccess {
         //const set =  new Set(['A', 'B', 'C', 'D']);
         //const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
         const q = Q.generators.atoms({ atomTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA') });
+        const P = Q.props
         //const q0 = Q.generators.atoms({ atomTest: l => auth_comp_id(l) === 'ALA' });
         const q1 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' });
         const q2 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA', groupBy: Q.props.residue.key });
         const q3 = Q.generators.atoms({
-            chainTest: Q.pred.inSet(Q.props.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
-            residueTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA')
+            chainTest: Q.pred.inSet(P.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
+            residueTest: Q.pred.eq(P.residue.auth_comp_id, 'ALA')
         });
         q(structures[0]);
         console.time('q1')
