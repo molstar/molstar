@@ -6,21 +6,33 @@
 
 import { Atom } from '../structure'
 
-export const constant = {
+const constant = {
     true: Atom.property(l => true),
     false: Atom.property(l => false),
     zero: Atom.property(l => 0)
 }
 
-export const atom = {
+const atom = {
     type_symbol: Atom.property(l => l.unit.hierarchy.atoms.type_symbol.value(l.atom))
 }
 
-export const residue = {
+const residue = {
+    key: Atom.property(l => l.unit.hierarchy.residueKey.value(l.unit.residueIndex[l.atom])),
+
     auth_seq_id: Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])),
     auth_comp_id: Atom.property(l => l.unit.hierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.atom]))
 }
 
-export const chain = {
+const chain = {
     auth_asym_id: Atom.property(l => l.unit.hierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.atom]))
 }
+
+const Properties = {
+    constant,
+    atom,
+    residue,
+    chain
+}
+
+type Properties = typeof Properties
+export default Properties

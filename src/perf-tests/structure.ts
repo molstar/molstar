@@ -10,7 +10,7 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Atom, AtomSet } from 'mol-data/structure'
+import { Structure, Model, Queries as Q, Atom, AtomSet, Selection } from 'mol-data/structure'
 import { OrderedSet as OrdSet, Segmentation } from 'mol-base/collections/integer'
 
 require('util.promisify').shim();
@@ -235,8 +235,8 @@ export namespace PropertyAccess {
     // }
 
     export async function run() {
-        const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        //const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
+        //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
+        const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
         //const { structures, models } = await readCIF('e:/test/quick/3j3q_updated.cif');
 
         console.log('parsed');
@@ -258,9 +258,14 @@ export namespace PropertyAccess {
         //const auth_asym_id = Q.props.chain.auth_asym_id;
         //const set =  new Set(['A', 'B', 'C', 'D']);
         //const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
-        const q = Q.generators.atomGroups({ atomTest: l => auth_comp_id(l) === 'ALA' });
-        const q1 = Q.generators.atomGroups({ residueTest: l => auth_comp_id(l) === 'ALA' });
-        //const q2 = Q.generators.atomGroups({ chainTest: l => set.has(auth_asym_id(l)),  residueTest: l => auth_comp_id(l) === 'ALA' });
+        const q = Q.generators.atoms({ atomTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA') });
+        //const q0 = Q.generators.atoms({ atomTest: l => auth_comp_id(l) === 'ALA' });
+        const q1 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' });
+        const q2 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA', groupBy: Q.props.residue.key });
+        const q3 = Q.generators.atoms({
+            chainTest: Q.pred.inSet(Q.props.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
+            residueTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA')
+        });
         q(structures[0]);
         console.time('q1')
         q1(structures[0]);
@@ -268,12 +273,19 @@ export namespace PropertyAccess {
         console.time('q1')
         q1(structures[0]);
         console.timeEnd('q1')
+        console.time('q2')
+        const q2r = q2(structures[0]);
+        console.timeEnd('q2')
+        console.log(Selection.structureCount(q2r))
         //console.log(q1(structures[0]));
 
         //const col = models[0].conformation.atomId.value;
         const suite = new B.Suite();
         suite
-            .add('test q', () => q1(structures[0]))
+            //.add('test q', () => q1(structures[0]))
+            //.add('test q', () => q(structures[0]))
+            .add('test q1', () => q1(structures[0]))
+            .add('test q3', () => q3(structures[0]))
             //.add('test int', () => sumProperty(structures[0], l => col(l.atom)))
             // .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
 
