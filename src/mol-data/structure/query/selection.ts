@@ -27,20 +27,20 @@ namespace Selection {
         if (!sel.length) return Structure.Empty;
         const sets = [];
         for (let i = 0, _i = sel.length; i < _i; i++) sets[sets.length] = sel[i].atoms;
-        return { units: unionUnits(sel), atoms: AtomSet.unionMany(sets) };
+        return Structure.create(unionUnits(sel), AtomSet.unionMany(sets));
     }
 
     export function structures(sel: Selection): Iterator<Structure> {
         if (isStructure(sel)) {
             const units = sel.units;
-            return Iterator.map<Atom, Structure>(AtomSet.atoms(sel.atoms), atoms => ({ units, atoms }));
+            return Iterator.map<Atom, Structure>(AtomSet.atoms(sel.atoms), atoms => Structure.create(units, atoms));
         }
         return Iterator.Array(sel);
     }
 
     export function getAt(sel: Selection, i: number): Structure {
         if (isStructure(sel)) {
-            return { units: sel.units, atoms: AtomSet.atomGetAt(sel.atoms, i) };
+            return Structure.create(sel.units, AtomSet.atomGetAt(sel.atoms, i));
         }
         return sel[i];
     }

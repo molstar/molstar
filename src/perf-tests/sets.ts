@@ -200,7 +200,7 @@ export namespace Union {
 
 export namespace Build {
     function createSorted() {
-        const b = AtomSet.SortedBuilder(AtomSet.Empty);
+        const b = AtomSet.LinearBuilder(AtomSet.Empty);
         for (let i = 0; i < 10; i++) {
             for (let j = 0; j < 1000; j++) {
                 b.add(i, j);
@@ -210,7 +210,7 @@ export namespace Build {
     }
 
     function createByUnit() {
-        const b = AtomSet.SortedBuilder(AtomSet.Empty);
+        const b = AtomSet.LinearBuilder(AtomSet.Empty);
         for (let i = 0; i < 10; i++) {
             b.beginUnit();
             for (let j = 0; j < 1000; j++) {

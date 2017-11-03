@@ -467,7 +467,7 @@ function unionN(sets: ArrayLike<AtomSetImpl>, eCount: { count: number }) {
     eCount.count = countE;
     if (!countN) return Empty;
     if (countN === sets.length) return ofAtoms(sets as ArrayLike<Atom>);
-    const packed = new Float64Array(countN);
+    const packed = Atom.createEmptyArray(countN);
     let offset = 0;
     for (let i = 0, _i = sets.length; i < _i; i++) {
         const s = sets[i];

@@ -7,7 +7,7 @@
 import { OrderedSet, SortedArray, Iterator } from 'mol-base/collections/integer'
 import Atom from '../atom'
 import * as Impl from './set/impl'
-import createBuilder from './set/builder'
+import createBuilder, { Builder as AtomSetBuilder } from './set/builder'
 
 /** A map-like representation of grouped atom set */
 namespace AtomSet {
@@ -38,8 +38,9 @@ namespace AtomSet {
     export const intersect: (a: AtomSet, b: AtomSet) => AtomSet = Impl.intersect as any;
     export const subtract: (a: AtomSet, b: AtomSet) => AtomSet = Impl.subtract as any;
 
-    export function SortedBuilder(parent: AtomSet) { return createBuilder(parent, true); }
-    export function Builder(parent: AtomSet) { return createBuilder(parent, false); }
+    export type Builder = AtomSetBuilder
+    export function LinearBuilder(parent: AtomSet): Builder { return createBuilder(parent, true); }
+    export function UnsortedBuilder(parent: AtomSet): Builder { return createBuilder(parent, false); }
 
     // TODO: bounding sphere
     // TODO: distance, areWithIn?

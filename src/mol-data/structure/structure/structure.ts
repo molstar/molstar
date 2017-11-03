@@ -18,6 +18,10 @@ interface Structure extends Readonly<{
 namespace Structure {
     export const Empty = { units: {}, atoms: AtomSet.Empty };
 
+    export function create(units: Structure['units'], atoms: AtomSet): Structure {
+        return { units, atoms };
+    }
+
     export function ofData(format: Format) {
         const models = Model.create(format);
         return models.map(ofModel);
@@ -50,7 +54,7 @@ namespace Structure {
 
         addUnit(unit: Unit) { this.units[unit.id] = unit; }
         addAtoms(unitId: number, atoms: OrderedSet) { this.atoms[unitId] = atoms; this.atomCount += OrderedSet.size(atoms); }
-        getStructure(): Structure { return this.atomCount > 0 ? { units: this.units, atoms: AtomSet.create(this.atoms) } : Empty; }
+        getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, AtomSet.create(this.atoms)) : Empty; }
     }
 
     export function Builder(): Builder { return new BuilderImpl(); }

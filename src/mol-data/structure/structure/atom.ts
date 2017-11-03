@@ -20,6 +20,8 @@ namespace Atom {
     export const areEqual: (a: Atom, b: Atom) => boolean = Tuple.areEqual;
     export const hashCode: (a: Atom) => number = Tuple.hashCode;
 
+    export function createEmptyArray(n: number): Atom[] { return new Float64Array(n) as any; }
+
     /** All the information required to access atom properties */
     export interface Location { unit: Unit, atom: number }
     export function Location(): Location { return { unit: {} as any, atom: 0 }; }

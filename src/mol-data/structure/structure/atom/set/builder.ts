@@ -5,13 +5,16 @@
  */
 
 import AtomSet from '../set'
+import Atom from '../../atom'
 import { OrderedSet } from 'mol-base/collections/integer'
 import { sortArray } from 'mol-base/collections/sort'
 
-class Builder {
+export class Builder {
     private keys: number[] = [];
     private units: number[][] = Object.create(null);
     private currentUnit: number[] = [];
+
+    atomCount = 0;
 
     add(u: number, a: number) {
         const unit = this.units[u];
@@ -20,10 +23,11 @@ class Builder {
             this.units[u] = [a];
             this.keys[this.keys.length] = u;
         }
+        this.atomCount++;
     }
 
     beginUnit() { this.currentUnit = this.currentUnit.length > 0 ? [] : this.currentUnit; }
-    addToUnit(a: number) { this.currentUnit[this.currentUnit.length] = a; }
+    addToUnit(a: number) { this.currentUnit[this.currentUnit.length] = a; this.atomCount++; }
     commitUnit(u: number) {
         if (this.currentUnit.length === 0) return;
         this.keys[this.keys.length] = u;
@@ -51,6 +55,11 @@ class Builder {
             }
         }
         return allEqual ? this.parent : AtomSet.create(sets);
+    }
+
+    singleton(): Atom {
+        const u = this.keys[0];
+        return Atom.create(u, this.units[u][0]);
     }
 
     constructor(private parent: AtomSet, private sorted: boolean) { }
