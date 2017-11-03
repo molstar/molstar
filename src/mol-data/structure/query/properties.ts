@@ -68,7 +68,8 @@ const entity = {
 }
 
 const unit = {
-    operator_name: Atom.property(l => l.unit.operator.name)
+    operator_name: Atom.property(l => l.unit.operator.name),
+    model_num: Atom.property(l => l.unit.model.modelNum)
 }
 
 const Properties = {

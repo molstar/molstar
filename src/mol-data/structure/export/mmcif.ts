@@ -51,31 +51,32 @@ const entity: Encoder.CategoryDefinition<number, Entity> = {
 const atom_site: Encoder.CategoryDefinition<Atom.Location> = {
     name: 'atom_site',
     fields: [
-        str<Atom.Location>('group_PDB', P.residue.group_PDB),
-        int<Atom.Location>('id', P.atom.id),
-        str<Atom.Location>('type_symbol', P.atom.type_symbol as any),
-        str<Atom.Location>('label_atom_id', P.atom.label_atom_id),
-        str<Atom.Location>('label_alt_id', P.atom.label_alt_id),
+        str('group_PDB', P.residue.group_PDB),
+        int('id', P.atom.id),
+        str('type_symbol', P.atom.type_symbol as any),
+        str('label_atom_id', P.atom.label_atom_id),
+        str('label_alt_id', P.atom.label_alt_id),
 
-        str<Atom.Location>('label_comp_id', P.residue.label_comp_id),
-        int<Atom.Location>('label_seq_id', P.residue.label_seq_id),
-        str<Atom.Location>('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code),
+        str('label_comp_id', P.residue.label_comp_id),
+        int('label_seq_id', P.residue.label_seq_id),
+        str('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code),
 
-        str<Atom.Location>('label_asym_id', P.chain.label_asym_id),
-        str<Atom.Location>('label_entity_id', P.chain.label_entity_id),
+        str('label_asym_id', P.chain.label_asym_id),
+        str('label_entity_id', P.chain.label_entity_id),
 
-        float<Atom.Location>('Cartn_x', P.atom.x),
-        float<Atom.Location>('Cartn_y', P.atom.y),
-        float<Atom.Location>('Cartn_z', P.atom.z),
-        float<Atom.Location>('occupancy', P.atom.occupancy),
-        str<Atom.Location>('pdbx_formal_charge', P.atom.pdbx_formal_charge),
+        float('Cartn_x', P.atom.x),
+        float('Cartn_y', P.atom.y),
+        float('Cartn_z', P.atom.z),
+        float('occupancy', P.atom.occupancy),
+        str('pdbx_formal_charge', P.atom.pdbx_formal_charge),
 
-        str<Atom.Location>('auth_atom_id', P.atom.auth_atom_id),
-        str<Atom.Location>('auth_comp_id', P.residue.auth_comp_id),
-        int<Atom.Location>('auth_seq_id', P.residue.auth_seq_id),
-        str<Atom.Location>('auth_asym_id', P.chain.auth_asym_id),
+        str('auth_atom_id', P.atom.auth_atom_id),
+        str('auth_comp_id', P.residue.auth_comp_id),
+        int('auth_seq_id', P.residue.auth_seq_id),
+        str('auth_asym_id', P.chain.auth_asym_id),
 
-        str<Atom.Location>('pdbx_operator_name', P.unit.operator_name),
+        int('pdbx_PDB_model_num', P.unit.model_num),
+        str('pdbx_operator_name', P.unit.operator_name)
     ]
 };
 

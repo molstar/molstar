@@ -241,9 +241,9 @@ export namespace PropertyAccess {
         //const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
         //const { structures, models } = await readCIF('e:/test/quick/3j3q_updated.cif');
 
-        console.log(toMmCIFString('test', structures[0]));
+        // console.log(toMmCIFString('test', structures[0]));
 
-        return;
+        // return;
 
         console.log('parsed');
 
@@ -280,7 +280,9 @@ export namespace PropertyAccess {
             chainTest: Q.pred.inSet(P.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
             residueTest: Q.pred.eq(P.residue.auth_comp_id, 'ALA')
         });
-        q(structures[0]);
+        const q0r = q(structures[0]);
+        console.log(toMmCIFString('test', Selection.union(q0r)));
+
         console.time('q1')
         q1(structures[0]);
         console.timeEnd('q1')
