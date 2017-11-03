@@ -13,6 +13,8 @@ import CIF from 'mol-io/reader/cif'
 import { Structure, Model, Queries as Q, Atom, AtomSet, Selection } from 'mol-data/structure'
 import { OrderedSet as OrdSet, Segmentation } from 'mol-base/collections/integer'
 
+import toMmCIFString from 'mol-data/structure/export/mmcif'
+
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
 
@@ -235,9 +237,13 @@ export namespace PropertyAccess {
     // }
 
     export async function run() {
-        //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
+        const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
+        //const { structures, models } = await readCIF('e:/test/quick/1jj2_full.bcif');
         //const { structures, models } = await readCIF('e:/test/quick/3j3q_updated.cif');
+
+        console.log(toMmCIFString('test', structures[0]));
+
+        return;
 
         console.log('parsed');
 

@@ -42,7 +42,7 @@ const category2: Enc.CategoryDefinition<number> = {
     }]
 }
 
-function getInstace(ctx: { cat: Enc.CategoryDefinition<number>, rowCount: number }): Enc.CategoryInstance {
+function getInstance(ctx: { cat: Enc.CategoryDefinition<number>, rowCount: number }): Enc.CategoryInstance {
     return {
         data: void 0,
         definition: ctx.cat,
@@ -54,6 +54,6 @@ function getInstace(ctx: { cat: Enc.CategoryDefinition<number>, rowCount: number
 const w = new CW();
 
 w.startDataBlock('test');
-w.writeCategory(getInstace, [{ rowCount: 5, cat: category1 }]);
-w.writeCategory(getInstace, [{ rowCount: 1, cat: category2 }]);
+w.writeCategory(getInstance, [{ rowCount: 5, cat: category1 }]);
+w.writeCategory(getInstance, [{ rowCount: 1, cat: category2 }]);
 console.log(w.getData());

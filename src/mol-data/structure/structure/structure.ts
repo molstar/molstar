@@ -4,12 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { OrderedSet, Iterator } from 'mol-base/collections/integer'
+import UniqueArray from 'mol-base/collections/unique-array'
 import { Model, Format } from '../model'
 import Unit from './unit'
 import Operator from './operator'
 import AtomSet from './atom/set'
 import Atom from './atom'
-import { OrderedSet, Iterator } from 'mol-base/collections/integer'
+
 
 interface Structure extends Readonly<{
     units: { readonly [id: number]: Unit },
@@ -65,6 +67,15 @@ namespace Structure {
         const l = Atom.Location();
         const update = Atom.updateLocation;
         return Iterator.map(AtomSet.atoms(s.atoms), a => update(s, l, a));
+    }
+
+    export function getModels(s: Structure) {
+        const arr = UniqueArray.create<Model['id'], Model>();
+        for (const k of Object.keys(s.units)) {
+            const u = s.units[+k];
+            UniqueArray.add(arr, u.model.id, u.model);
+        }
+        return arr.array;
     }
 
     // TODO: "lift" atom set operators?

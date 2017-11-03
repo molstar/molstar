@@ -67,12 +67,17 @@ const entity = {
     pdbx_ec: Atom.property(l => l.unit.hierarchy.entities.pdbx_ec.value(eK(l)))
 }
 
+const unit = {
+    operator_name: Atom.property(l => l.unit.operator.name)
+}
+
 const Properties = {
     constant,
     atom,
     residue,
     chain,
-    entity
+    entity,
+    unit
 }
 
 type Properties = typeof Properties
