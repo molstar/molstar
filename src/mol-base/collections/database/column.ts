@@ -14,7 +14,7 @@ interface Column<T> {
     readonly rowCount: number,
     value(row: number): T,
     valueKind(row: number): Column.ValueKind,
-    toArray(params?: Column.ToArrayParams<T>): ReadonlyArray<T>,
+    toArray(params?: Column.ToArrayParams<T>): ArrayLike<T>,
     areValuesEqual(rowA: number, rowB: number): boolean
 }
 
