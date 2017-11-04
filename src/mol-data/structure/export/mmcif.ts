@@ -7,7 +7,7 @@
 import { Column, Table } from 'mol-base/collections/database'
 import Iterator from 'mol-base/collections/iterator'
 import * as Encoder from 'mol-io/writer/cif/encoder'
-import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
+//import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
 import CIFEncoder from 'mol-io/writer/cif/encoder/text'
 import { Structure, Atom, AtomSet } from '../structure'
 import { Model } from '../model'
@@ -56,12 +56,17 @@ function ofSchema(schema: Table.Schema) {
     return fields;
 }
 
-type Entity = Table.Columns<typeof mmCIF_Schema.entity>
-
-const entity: Encoder.CategoryDefinition<number, Entity> = {
-    name: 'entity',
-    fields: ofSchema(mmCIF_Schema.entity)
+function ofTable<S extends Table.Schema>(name: string, table: Table<S>): Encoder.CategoryDefinition<number> {
+    return { name, fields: ofSchema(table._schema) }
 }
+
+// type Entity = Table.Columns<typeof mmCIF_Schema.entity>
+
+// const entity: Encoder.CategoryDefinition<number, Entity> = {
+//     name: 'entity',
+//     fields: ofSchema(mmCIF_Schema.entity)
+// }
+
 
 // [
 //     str('id', (i, e) => e.id.value(i)),
@@ -122,7 +127,7 @@ const atom_site: Encoder.CategoryDefinition<Atom.Location> = {
 function entityProvider({ model }: Context): Encoder.CategoryInstance {
     return {
         data: model.hierarchy.entities,
-        definition: entity,
+        definition: ofTable('entity', model.hierarchy.entities), //entity,
         keys: () => Iterator.Range(0, model.hierarchy.entities._rowCount - 1),
         rowCount: model.hierarchy.entities._rowCount
     }
