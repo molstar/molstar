@@ -14,8 +14,8 @@ const columnData = `123abc`;
 const intField = TextField({ data: columnData, indices: [0, 1, 1, 2, 2, 3], count: 3 }, 3);
 const strField = TextField({ data: columnData, indices: [3, 4, 4, 5, 5, 6], count: 3 }, 3);
 
-const testBlock = Data.Block({
-    _atoms: Data.Category(3, {
+const testBlock = Data.Block(['atoms'], {
+    atoms: Data.Category('atoms', 3, ['x', 'name'], {
         x: intField,
         name: strField
     })

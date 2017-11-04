@@ -17,6 +17,7 @@ export function File(blocks: ArrayLike<Block>, name?: string): File {
 
 export interface Frame {
     readonly header: string,
+    readonly categoryNames: ReadonlyArray<string>,
     readonly categories: Categories
 }
 
@@ -24,15 +25,12 @@ export interface Block extends Frame {
     readonly saveFrames: Frame[]
 }
 
-export function Block(categories: Categories, header: string, saveFrames: Frame[] = []): Block {
-    if (Object.keys(categories).some(k => k[0] !== '_')) {
-        throw new Error(`Category names must start with '_'.`);
-    }
-    return { header, categories, saveFrames };
+export function Block(categoryNames: string[], categories: Categories, header: string, saveFrames: Frame[] = []): Block {
+    return { categoryNames, header, categories, saveFrames };
 }
 
-export function SafeFrame(categories: Categories, header: string): Frame {
-    return { header, categories };
+export function SafeFrame(categoryNames: string[], categories: Categories, header: string): Frame {
+    return { categoryNames, header, categories };
 }
 
 export type Categories = { readonly [name: string]: Category }

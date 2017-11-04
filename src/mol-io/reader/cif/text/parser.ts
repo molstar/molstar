@@ -411,10 +411,19 @@ interface CifCategoryResult {
     errorMessage: string;
 }
 
+type FrameContext = {
+    categoryNames: string[],
+    categories: { [name: string]: Data.Category }
+}
+
+function FrameContext(): FrameContext {
+    return { categoryNames: [], categories: Object.create(null) };
+}
+
 /**
  * Reads a category containing a single row.
  */
-function handleSingle(tokenizer: TokenizerState, categories: { [name: string]: Data.Category }): CifCategoryResult {
+function handleSingle(tokenizer: TokenizerState, ctx: FrameContext): CifCategoryResult {
     const nsStart = tokenizer.tokenStart, nsEnd = getNamespaceEnd(tokenizer);
     const name = getNamespace(tokenizer, nsEnd);
     const fields = Object.create(null);
@@ -441,7 +450,9 @@ function handleSingle(tokenizer: TokenizerState, categories: { [name: string]: D
         moveNext(tokenizer);
     }
 
-    categories[name] = Data.Category(name.substr(1), 1, fieldNames, fields);
+    const catName = name.substr(1);
+    ctx.categories[catName] = Data.Category(catName, 1, fieldNames, fields);
+    ctx.categoryNames.push(catName);
 
     return {
         hasError: false,
@@ -479,7 +490,7 @@ function readLoopChunks(state: LoopReadState) {
 /**
  * Reads a loop.
  */
-async function handleLoop(tokenizer: TokenizerState, categories: { [name: string]: Data.Category }): Promise<CifCategoryResult> {
+async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise<CifCategoryResult> {
     const loopLine = tokenizer.lineNumber;
 
     moveNext(tokenizer);
@@ -491,7 +502,7 @@ async function handleLoop(tokenizer: TokenizerState, categories: { [name: string
         moveNext(tokenizer);
     }
 
-    const rowCountEstimate = name === '_atom_site' ? (tokenizer.data.length / 100) | 0 : 32;
+    const rowCountEstimate = name === 'atom_site' ? (tokenizer.data.length / 100) | 0 : 32;
     const tokens: Tokens[] = [];
     const fieldCount = fieldNames.length;
     for (let i = 0; i < fieldCount; i++) tokens[i] = TokenBuilder.create(tokenizer, rowCountEstimate);
@@ -519,7 +530,9 @@ async function handleLoop(tokenizer: TokenizerState, categories: { [name: string
         fields[fieldNames[i]] = Field(tokens[i], rowCount);
     }
 
-    categories[name] = Data.Category(name.substr(1), rowCount, fieldNames, fields);
+    const catName = name.substr(1);
+    ctx.categories[catName] = Data.Category(catName, rowCount, fieldNames, fields);
+    ctx.categoryNames.push(catName);
 
     return {
         hasError: false,
@@ -551,14 +564,15 @@ async function parseInternal(data: string, ctx: Computation.Context) {
     const dataBlocks: Data.Block[] = [];
     const tokenizer = createTokenizer(data, ctx);
     let blockHeader: string = '';
-    let blockCategories = Object.create(null);
 
-    let inSaveFrame = false
+    let blockCtx = FrameContext();
+
+    let inSaveFrame = false;
 
     // the next three initial values are never used in valid files
     let saveFrames: Data.Frame[] = [];
-    let saveCategories = Object.create(null);
-    let saveFrame: Data.Frame = Data.SafeFrame(saveCategories, '');
+    let saveCtx = FrameContext();
+    let saveFrame: Data.Frame = Data.SafeFrame(saveCtx.categoryNames, saveCtx.categories, '');
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
 
@@ -571,19 +585,19 @@ async function parseInternal(data: string, ctx: Computation.Context) {
             if (inSaveFrame) {
                 return error(tokenizer.lineNumber, 'Unexpected data block inside a save frame.');
             }
-            if (Object.keys(blockCategories).length > 0) {
-                dataBlocks.push(Data.Block(blockCategories, blockHeader, saveFrames));
+            if (blockCtx.categoryNames.length > 0) {
+                dataBlocks.push(Data.Block(blockCtx.categoryNames, blockCtx.categories, blockHeader, saveFrames));
             }
             blockHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
-            blockCategories = Object.create(null);
+            blockCtx = FrameContext();
             saveFrames = []
             moveNext(tokenizer);
         // Save frame
         } else if (token === CifTokenType.Save) {
             const saveHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
             if (saveHeader.length === 0) {
-                if (Object.keys(saveCategories).length > 0) {
-                    saveFrames[saveFrames.length] = saveFrame
+                if (saveCtx.categoryNames.length > 0) {
+                    saveFrames[saveFrames.length] = saveFrame;
                 }
                 inSaveFrame = false;
             } else {
@@ -591,19 +605,19 @@ async function parseInternal(data: string, ctx: Computation.Context) {
                     return error(tokenizer.lineNumber, 'Save frames cannot be nested.');
                 }
                 inSaveFrame = true;
-                saveCategories = Object.create(null);
-                saveFrame = Data.SafeFrame(saveCategories, saveHeader);
+                saveCtx = FrameContext();
+                saveFrame = Data.SafeFrame(saveCtx.categoryNames, saveCtx.categories, '');
             }
             moveNext(tokenizer);
         // Loop
         } else if (token === CifTokenType.Loop) {
-            const cat = await handleLoop(tokenizer, inSaveFrame ? saveCategories : blockCategories);
+            const cat = await handleLoop(tokenizer, inSaveFrame ? saveCtx : blockCtx);
             if (cat.hasError) {
                 return error(cat.errorLine, cat.errorMessage);
             }
         // Single row
         } else if (token === CifTokenType.ColumnName) {
-            const cat = handleSingle(tokenizer, inSaveFrame ? saveCategories : blockCategories);
+            const cat = handleSingle(tokenizer, inSaveFrame ? saveCtx : blockCtx);
             if (cat.hasError) {
                 return error(cat.errorLine, cat.errorMessage);
             }
@@ -618,8 +632,8 @@ async function parseInternal(data: string, ctx: Computation.Context) {
         return error(tokenizer.lineNumber, 'Unfinished save frame (`' + saveFrame.header + '`).');
     }
 
-    if (Object.keys(blockCategories).length > 0) {
-        dataBlocks.push(Data.Block(blockCategories, blockHeader, saveFrames));
+    if (blockCtx.categoryNames.length > 0) {
+        dataBlocks.push(Data.Block(blockCtx.categoryNames, blockCtx.categories, blockHeader, saveFrames));
     }
 
     return result(Data.File(dataBlocks));

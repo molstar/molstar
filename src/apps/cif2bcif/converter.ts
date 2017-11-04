@@ -45,8 +45,8 @@ export default async function convert(path: string, asText = false) {
     const encoder = asText ? new TextCIFEncoder() : new BinaryCIFEncoder('mol* cif2bcif');
     for (const b of cif.blocks) {
         encoder.startDataBlock(b.header);
-        for (const _c of Object.keys(b.categories)) {
-            encoder.writeCategory(getCategoryInstanceProvider(b.categories[_c]));
+        for (const c of b.categoryNames) {
+            encoder.writeCategory(getCategoryInstanceProvider(b.categories[c]));
         }
     }
     return encoder.getData();

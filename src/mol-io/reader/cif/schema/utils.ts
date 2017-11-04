@@ -87,7 +87,7 @@ function getField ( category: string, field: string, d: Data.Frame, ctx: FrameDa
 }
 
 function getEnums (d: Data.Frame, ctx: FrameData): string[]|undefined {
-    const value = getField('_item_enumeration', 'value', d, ctx)
+    const value = getField('item_enumeration', 'value', d, ctx)
     if (value) {
         const enums: string[] = []
         for (let i = 0; i < value.rowCount; ++i) {
@@ -101,7 +101,7 @@ function getEnums (d: Data.Frame, ctx: FrameData): string[]|undefined {
 }
 
 function getCode (d: Data.Frame, ctx: FrameData): [string, string[]]|undefined {
-    const code = getField('_item_type', 'code', d, ctx)
+    const code = getField('item_type', 'code', d, ctx)
     if (code) {
         let c = code.str(0)
         let e = []
@@ -147,7 +147,7 @@ export function generateSchema (dic: Data.Block) {  // todo Block needs to be sp
     dic.saveFrames.forEach(d => {
         if (d.header[0] !== '_') return
         categories[d.header] = d
-        const item_linked = d.categories['_item_linked']
+        const item_linked = d.categories['item_linked']
         if (item_linked) {
             const child_name = item_linked.getField('child_name')
             const parent_name = item_linked.getField('parent_name')
