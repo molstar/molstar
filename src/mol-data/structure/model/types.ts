@@ -7,10 +7,27 @@
 
 import BitFlags from 'mol-base/utils/bit-flags'
 
-const _esCache = Object.create(null);
+const _esCache = (function () {
+    const cache = Object.create(null);
+    const letters: string[] = [];
+    for (let i = 'A'.charCodeAt(0); i <= 'Z'.charCodeAt(0); i++) letters[letters.length] = String.fromCharCode(i);
+    for (let i = 'a'.charCodeAt(0); i <= 'z'.charCodeAt(0); i++) letters[letters.length] = String.fromCharCode(i);
+    for (let i = '0'.charCodeAt(0); i <= '9'.charCodeAt(0); i++) letters[letters.length] = String.fromCharCode(i);
+
+    for (const k of letters) {
+        cache[k] = k.toUpperCase();
+        for (const l of letters) {
+            cache[k + l] = (k + l).toUpperCase();
+            for (const m of letters) {
+                cache[k + l + m] = (k + l + m).toUpperCase();
+            }
+        }
+    }
+    return cache;
+}());
 export interface ElementSymbol extends String { '@type': 'element-symbol' }
 export function ElementSymbol(s: string): ElementSymbol {
-    return _esCache[s] || (_esCache[s] = s.toUpperCase());
+    return _esCache[s] || s.toUpperCase();
 }
 
 export const enum EntityType {
