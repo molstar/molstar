@@ -17,6 +17,7 @@ export function File(blocks: ArrayLike<Block>, name?: string): File {
 
 export interface Frame {
     readonly header: string,
+    // Category names stored separately so that the ordering can be preserved.
     readonly categoryNames: ReadonlyArray<string>,
     readonly categories: Categories
 }
@@ -54,9 +55,8 @@ export namespace Category {
 
 /**
  * Implementation note:
- * Always implement this as a "plain" object so that the functions are "closures"
- * by default. This is to ensure that the schema access works without definiting
- * additional closures.
+ * Always implement without using "this." in any of the interface functions.
+ * This is to ensure that the functions can invoked without having to "bind" them.
  */
 export interface Field {
     readonly '@array': ArrayLike<any> | undefined

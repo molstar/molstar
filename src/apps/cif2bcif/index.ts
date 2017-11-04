@@ -5,9 +5,13 @@
  */
 
 import * as fs from 'fs'
-import convert from './cif2bcif/converter'
+import convert from './converter'
 
 (async function () {
+    if (process.argv.length !== 4) {
+        console.log('Usage:\nnode cif2bcif input.cif output.bcif');
+        return;
+    }
     const src = process.argv[2];
     const out = process.argv[3];
 
