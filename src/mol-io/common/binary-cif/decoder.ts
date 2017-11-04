@@ -206,8 +206,8 @@ function stringArray(data: Uint8Array, encoding: Encoding.StringArray) {
 
     let offset = 0;
     const result = new Array(indices.length);
-    for (const i of indices) {
-        result[offset++] = strings[i + 1];
+    for (let i = 0, _i = indices.length; i < _i; i++) {
+        result[offset++] = strings[indices[i] + 1];
     }
     return result;
 }
