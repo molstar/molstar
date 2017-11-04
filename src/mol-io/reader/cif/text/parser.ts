@@ -418,6 +418,7 @@ function handleSingle(tokenizer: TokenizerState, categories: { [name: string]: D
     const nsStart = tokenizer.tokenStart, nsEnd = getNamespaceEnd(tokenizer);
     const name = getNamespace(tokenizer, nsEnd);
     const fields = Object.create(null);
+    const fieldNames: string[] = [];
 
     let readingNames = true;
     while (readingNames) {
@@ -436,10 +437,11 @@ function handleSingle(tokenizer: TokenizerState, categories: { [name: string]: D
             }
         }
         fields[fieldName] = Field({ data: tokenizer.data, indices: [tokenizer.tokenStart, tokenizer.tokenEnd], count: 1 }, 1);
+        fieldNames[fieldNames.length] = fieldName;
         moveNext(tokenizer);
     }
 
-    categories[name] = Data.Category(1, fields);
+    categories[name] = Data.Category(name.substr(1), 1, fieldNames, fields);
 
     return {
         hasError: false,
@@ -517,7 +519,7 @@ async function handleLoop(tokenizer: TokenizerState, categories: { [name: string
         fields[fieldNames[i]] = Field(tokens[i], rowCount);
     }
 
-    categories[name] = Data.Category(rowCount, fields);
+    categories[name] = Data.Category(name.substr(1), rowCount, fieldNames, fields);
 
     return {
         hasError: false,

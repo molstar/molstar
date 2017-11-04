@@ -8,7 +8,8 @@ import { Column, Table } from 'mol-base/collections/database'
 import Iterator from 'mol-base/collections/iterator'
 import * as Encoder from 'mol-io/writer/cif/encoder'
 //import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
-import CIFEncoder from 'mol-io/writer/cif/encoder/text'
+import TextCIFEncoder from 'mol-io/writer/cif/encoder/text'
+import BinaryCIFEncoder from 'mol-io/writer/cif/encoder/binary'
 import { Structure, Atom, AtomSet } from '../structure'
 import { Model } from '../model'
 import P from '../query/properties'
@@ -142,13 +143,13 @@ function atomSiteProvider({ structure }: Context): Encoder.CategoryInstance {
     }
 }
 
-function getCifString(name: string, structure: Structure) {
+function to_mmCIF(name: string, structure: Structure, asBinary = false) {
     const models = Structure.getModels(structure);
     if (models.length !== 1) throw 'cant export stucture composed from multiple models.';
     const model = models[0];
 
     const ctx: Context = { structure, model };
-    const w = new CIFEncoder();
+    const w = asBinary ? new BinaryCIFEncoder('mol*') : new TextCIFEncoder();
 
     w.startDataBlock(name);
     w.writeCategory(entityProvider, [ctx]);
@@ -156,4 +157,4 @@ function getCifString(name: string, structure: Structure) {
     return w.getData();
 }
 
-export default getCifString
+export default to_mmCIF

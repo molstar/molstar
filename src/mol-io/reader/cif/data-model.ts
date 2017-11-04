@@ -39,15 +39,19 @@ export type Categories = { readonly [name: string]: Category }
 
 export interface Category {
     readonly rowCount: number,
+    readonly name: string,
+    readonly fieldNames: ReadonlyArray<string>,
     getField(name: string): Field | undefined
 }
 
-export function Category(rowCount: number, fields: { [name: string]: Field }): Category {
-    return { rowCount, getField(name) { return fields[name]; } };
+export function Category(name: string, rowCount: number, fieldNames: string[], fields: { [name: string]: Field }): Category {
+    return { rowCount, name, fieldNames: [...fieldNames], getField(name) { return fields[name]; } };
 }
 
 export namespace Category {
-    export const Empty: Category = { rowCount: 0, getField(name: string) { return void 0; } };
+    export function empty(name: string): Category {
+        return { rowCount: 0, name, fieldNames: [], getField(name: string) { return void 0; } };
+    };
 }
 
 /**

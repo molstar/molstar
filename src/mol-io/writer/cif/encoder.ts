@@ -7,6 +7,7 @@
 import Iterator from 'mol-base/collections/iterator'
 import { Column } from 'mol-base/collections/database'
 import Encoder from '../encoder'
+//import { ArrayEncoder, ArrayEncoding as E } from '../../common/binary-cif'
 
 export const enum FieldType {
     Str, Int, Float
@@ -19,15 +20,24 @@ export interface FieldDefinition<Key = any, Data = any> {
     valueKind?: (key: Key, data: Data) => Column.ValueKind
 
     /** determine whether to include this field base on the context */
-    shouldInclude?: (data: Data) => boolean
+    // TODO:
+    // shouldInclude?: (data: Data) => boolean
 }
 
 export interface FieldFormat {
-    decimalPlaces: number
+    // TODO
+    // textDecimalPlaces: number,
+    // stringEncoder: ArrayEncoder,
+    // numericEncoder: ArrayEncoder,
+    // typedArray?: E.TypedArrayCtor
 }
 
 export namespace FieldFormat {
-    export const Default: FieldFormat = { decimalPlaces: 3 };
+    export const Default: FieldFormat = {
+        // textDecimalPlaces: 3,
+        // stringEncoder: ArrayEncoder.by(E.stringArray),
+        // numericEncoder: ArrayEncoder.by(E.byteArray)
+    };
 }
 
 export interface CategoryDefinition<Key = any, Data = any> {

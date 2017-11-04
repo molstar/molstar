@@ -13,7 +13,7 @@ import CIF from 'mol-io/reader/cif'
 import { Structure, Model, Queries as Q, Atom, AtomSet, Selection } from 'mol-data/structure'
 import { OrderedSet as OrdSet, Segmentation } from 'mol-base/collections/integer'
 
-import toMmCIFString from 'mol-data/structure/export/mmcif'
+import to_mmCIF from 'mol-data/structure/export/mmcif'
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
@@ -237,9 +237,14 @@ export namespace PropertyAccess {
     // }
 
     export async function run() {
-        //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        const { structures, models } = await readCIF('e:/test/quick/3j3q_full.bcif');
+        const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
+        //const { structures, models } = await readCIF('e:/test/quick/3j3q_full.bcif');
         //const { structures, models } = await readCIF('e:/test/quick/3j3q_updated.cif');
+
+        //const { structures, models } = await readCIF('e:/test/molstar/3j3q.bcif');
+
+        // fs.writeFileSync('e:/test/molstar/3j3q.bcif', to_mmCIF('test', structures[0], true));
+        // return;
 
         // console.log(toMmCIFString('test', structures[0]));
 
@@ -280,8 +285,8 @@ export namespace PropertyAccess {
             chainTest: Q.pred.inSet(P.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
             residueTest: Q.pred.eq(P.residue.auth_comp_id, 'ALA')
         });
-        // const q0r = q(structures[0]);
-        // console.log(toMmCIFString('test', Selection.union(q0r)));
+        const q0r = q(structures[0]);
+        console.log(to_mmCIF('test', Selection.union(q0r)));
 
         console.time('q1')
         q1(structures[0]);

@@ -6,8 +6,7 @@
 
 import { Column, ColumnHelpers } from 'mol-base/collections/database'
 import * as Data from '../data-model'
-import { EncodedColumn } from './encoding'
-import decode from './decoder'
+import { EncodedColumn, decode } from '../../../common/binary-cif'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
 
 function wrap(o: Data.Field) {
@@ -59,21 +58,3 @@ export default function Field(column: EncodedColumn): Data.Field {
             : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
     });
 }
-
-// return wrap({
-//     '@array': data,
-//     isDefined: true,
-//     rowCount,
-//     str: str as any,
-//     int,
-//     float,
-//     valueKind,
-//     areValuesEqual: (rowA, rowB) => data[rowA] === data[rowB],
-//     toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
-//     toIntArray: isNumeric
-//         ? params => ColumnHelpers.typedArrayWindow(data, params)
-//         : params => ColumnHelpers.createAndFillArray(rowCount, int, params),
-//     toFloatArray: isNumeric
-//         ? params => ColumnHelpers.typedArrayWindow(data, params)
-//         : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
-// });

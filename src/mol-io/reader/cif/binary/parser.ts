@@ -5,10 +5,10 @@
  */
 
 import * as Data from '../data-model'
-import * as Encoding from './encoding'
+import { EncodedCategory, EncodedFile } from '../../../common/binary-cif'
 import Field from './field'
 import Result from '../../result'
-import decodeMsgPack from '../../../utils/msgpack/decode'
+import decodeMsgPack from '../../../common/msgpack/decode'
 import Computation from 'mol-base/computation'
 
 function checkVersions(min: number[], current: number[]) {
@@ -18,12 +18,14 @@ function checkVersions(min: number[], current: number[]) {
     return true;
 }
 
-function Category(data: Encoding.EncodedCategory): Data.Category {
+function Category(data: EncodedCategory): Data.Category {
     const map = Object.create(null);
     const cache = Object.create(null);
     for (const col of data.columns) map[col.name] = col;
     return {
         rowCount: data.rowCount,
+        name: data.name,
+        fieldNames: data.columns.map(c => c.name),
         getField(name) {
             const col = map[name];
             if (!col) return void 0;
@@ -39,7 +41,7 @@ export default function parse(data: Uint8Array) {
         const minVersion = [0, 3];
 
         try {
-            const unpacked = decodeMsgPack(data) as Encoding.EncodedFile;
+            const unpacked = decodeMsgPack(data) as EncodedFile;
             if (!checkVersions(minVersion, unpacked.version.match(/(\d)\.(\d)\.\d/)!.slice(1).map(v => +v))) {
                 return Result.error<Data.File>(`Unsupported format version. Current ${unpacked.version}, required ${minVersion.join('.')}.`);
             }

@@ -88,5 +88,5 @@ function createDatabase(schema: Database.Schema, frame: Data.Frame): Database<an
 
 function createTable(key: string, schema: Table.Schema, frame: Data.Frame) {
     const cat = frame.categories[key[0] === '_' ? key : '_' + key];
-    return new CategoryTable(cat || Data.Category.Empty, schema, !!cat);
+    return new CategoryTable(cat || Data.Category.empty(key), schema, !!cat);
 }
