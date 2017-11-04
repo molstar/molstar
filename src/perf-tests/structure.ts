@@ -239,8 +239,8 @@ export namespace PropertyAccess {
 
     export async function run() {
         //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        //const { structures, models } = await readCIF('e:/test/quick/3j3q_full.bcif');
-        const { structures, models } = await readCIF('e:/test/quick/1cbs_updated.cif');
+        const { structures, models } = await readCIF('e:/test/quick/3j3q_full.bcif');
+        //const { structures, models } = await readCIF('e:/test/quick/1cbs_updated.cif');
 
         //const { structures, models } = await readCIF('e:/test/molstar/3j3q.bcif');
 
@@ -287,7 +287,7 @@ export namespace PropertyAccess {
             residueTest: Q.pred.eq(P.residue.auth_comp_id, 'ALA')
         });
         const q0r = q(structures[0]);
-        console.log(to_mmCIF('test', Selection.union(q0r)));
+        //console.log(to_mmCIF('test', Selection.union(q0r)));
 
         console.time('q1')
         q1(structures[0]);

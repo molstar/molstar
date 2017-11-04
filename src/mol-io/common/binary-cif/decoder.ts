@@ -137,7 +137,7 @@ function runLength(data: Int32Array, encoding: Encoding.RunLength) {
 function delta(data: (Int8Array | Int16Array | Int32Array), encoding: Encoding.Delta) {
     let n = data.length;
     let output = getIntArray(encoding.srcType, n);
-    if (!n) return output;
+    if (!n) return data;
     output[0] = data[0] + (encoding.origin | 0);
     for (let i = 1; i < n; ++i) {
         output[i] = data[i] + output[i - 1];
@@ -189,26 +189,25 @@ function integerPackingUnsigned(data: (Int8Array | Int16Array), encoding: Encodi
 }
 
 function integerPacking(data: (Int8Array | Int16Array), encoding: Encoding.IntegerPacking) {
+    if (data.length === encoding.srcSize) return data;
     return encoding.isUnsigned ? integerPackingUnsigned(data, encoding) : integerPackingSigned(data, encoding);
 }
 
 function stringArray(data: Uint8Array, encoding: Encoding.StringArray) {
-    let str = encoding.stringData;
-    let offsets = decode({ encoding: encoding.offsetEncoding, data: encoding.offsets });
-    let indices = decode({ encoding: encoding.dataEncoding, data });
-    let cache = [];
-    let result = new Array(indices.length);
+    const offsets = decode({ encoding: encoding.offsetEncoding, data: encoding.offsets });
+    const indices = decode({ encoding: encoding.dataEncoding, data });
+
+    const str = encoding.stringData;
+    const strings = new Array(offsets.length);
+    strings[0] = '';
+    for (let i = 1, _i = offsets.length; i < _i; i++) {
+        strings[i] = str.substring(offsets[i - 1], offsets[i]);
+    }
+
     let offset = 0;
-    for (let i of indices) {
-        if (i < 0) {
-            result[offset++] = '';
-        } else if (i >= cache.length) {
-            const v = str.substring(offsets[i], offsets[i + 1]);
-            cache[i] = v;
-            result[offset++] = v
-        } else {
-            result[offset++] = cache[i];
-        }
+    const result = new Array(indices.length);
+    for (const i of indices) {
+        result[offset++] = strings[i + 1];
     }
     return result;
 }
