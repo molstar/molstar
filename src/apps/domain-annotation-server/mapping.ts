@@ -11,12 +11,17 @@ import { getCategoryInstanceProvider } from './utils'
 
 export default function create(allData: any) {
     const mols = Object.keys(allData);
-    if (!mols.length) return '#';
+    const enc = createEncoder();
+    enc.startDataBlock(mols[0]);
+
+    if (!mols.length) return enc.getData();
 
     const data = allData[mols[0]];
 
-    const enc = createEncoder();
-    enc.startDataBlock(mols[0]);
+    const sources = getSources(data);
+    if (!sources._rowCount) return enc.getData();
+
+    enc.writeCategory(getCategoryInstanceProvider(`pdbx_domain_annotation_sources`, sources));
 
     for (const cat of Object.keys(S.categories)) {
         writeDomain(enc, getDomain(cat, (S.categories as any)[cat], data));
@@ -35,6 +40,17 @@ function writeDomain(enc: CIFEncoder<any>, domain: DomainAnnotation | undefined)
     if (!domain) return;
     enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_annotation`, domain.domains));
     enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_mapping`, domain.mappings));
+}
+
+function getSources(data: any): Table<S.Sources> {
+    const rows: Table.Row<S.Sources>[] = [];
+    let id = 1;
+    for (const name of Object.keys(S.categories)) {
+        if (!data[name]) continue;
+        const row: Table.Row<S.Sources> = { id: id++, name, count: Object.keys(data[name]).length };
+        if (row.count > 0) rows.push(row);
+    }
+    return Table.ofRows(S.Sources, rows);
 }
 
 function getMappings(startId: number, group_id: number, mappings: any): MappingRow[] {

@@ -8,6 +8,13 @@ import { Column } from 'mol-base/collections/database'
 
 import Type = Column.Type
 
+export const Sources = {
+    id: Type.int,
+    name: Type.str,
+    count: Type.int
+}
+export type Sources = typeof Sources
+
 export const Base = {
     id: Type.str,
     identifier: Type.str,
