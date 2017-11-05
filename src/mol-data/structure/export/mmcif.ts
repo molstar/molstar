@@ -6,10 +6,8 @@
 
 import { Column, Table } from 'mol-base/collections/database'
 import Iterator from 'mol-base/collections/iterator'
-import * as Encoder from 'mol-io/writer/cif/encoder'
+import * as Encoder from 'mol-io/writer/cif'
 //import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
-import TextCIFEncoder from 'mol-io/writer/cif/encoder/text'
-import BinaryCIFEncoder from 'mol-io/writer/cif/encoder/binary'
 import { Structure, Atom, AtomSet } from '../structure'
 import { Model } from '../model'
 import P from '../query/properties'
@@ -149,7 +147,7 @@ function to_mmCIF(name: string, structure: Structure, asBinary = false) {
     const model = models[0];
 
     const ctx: Context = { structure, model };
-    const w = asBinary ? new BinaryCIFEncoder('mol*') : new TextCIFEncoder();
+    const w = Encoder.create({ binary: asBinary });
 
     w.startDataBlock(name);
     w.writeCategory(entityProvider, [ctx]);

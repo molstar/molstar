@@ -6,9 +6,7 @@
 
 import Iterator from 'mol-base/collections/iterator'
 import CIF, { Category } from 'mol-io/reader/cif'
-import TextCIFEncoder from 'mol-io/writer/cif/encoder/text'
-import BinaryCIFEncoder from 'mol-io/writer/cif/encoder/binary'
-import * as Encoder from 'mol-io/writer/cif/encoder'
+import * as Encoder from 'mol-io/writer/cif'
 import * as fs from 'fs'
 import classify from './field-classifier'
 
@@ -42,7 +40,7 @@ function getCategoryInstanceProvider(cat: Category): Encoder.CategoryProvider {
 export default async function convert(path: string, asText = false) {
     const cif = await getCIF(path);
 
-    const encoder = asText ? new TextCIFEncoder() : new BinaryCIFEncoder('mol* cif2bcif');
+    const encoder = Encoder.create({ binary: !asText, encoderName: 'mol* cif2bcif' });
     for (const b of cif.blocks) {
         encoder.startDataBlock(b.header);
         for (const c of b.categoryNames) {

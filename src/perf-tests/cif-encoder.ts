@@ -5,8 +5,7 @@
  */
 
 import Iterator from 'mol-base/collections/iterator'
-import * as Enc from 'mol-io/writer/cif/encoder'
-import CW from 'mol-io/writer/cif/encoder/text'
+import * as Enc from 'mol-io/writer/cif'
 
 const category1: Enc.CategoryDefinition<number> = {
     name: 'test',
@@ -51,7 +50,7 @@ function getInstance(ctx: { cat: Enc.CategoryDefinition<number>, rowCount: numbe
     }
 }
 
-const w = new CW();
+const w = Enc.create();
 
 w.startDataBlock('test');
 w.writeCategory(getInstance, [{ rowCount: 5, cat: category1 }]);
