@@ -44,10 +44,9 @@ function writeDomain(enc: CIFEncoder<any>, domain: DomainAnnotation | undefined)
 
 function getSources(data: any): Table<S.Sources> {
     const rows: Table.Row<S.Sources>[] = [];
-    let id = 1;
     for (const name of Object.keys(S.categories)) {
         if (!data[name]) continue;
-        const row: Table.Row<S.Sources> = { id: id++, name, count: Object.keys(data[name]).length };
+        const row: Table.Row<S.Sources> = { id: name, count: Object.keys(data[name]).length };
         if (row.count > 0) rows.push(row);
     }
     return Table.ofRows(S.Sources, rows);
