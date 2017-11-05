@@ -24,15 +24,20 @@
     "transform": {
       "\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },
-    "moduleDirectories": ["node_modules", "build/node_modules"], 
+    "moduleDirectories": [
+      "node_modules",
+      "build/node_modules"
+    ],
     "testRegex": "\\.spec\\.ts$"
   },
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "@types/benchmark": "^1.0.30",
+    "@types/express": "^4.0.39",
     "@types/jest": "^21.1.5",
     "@types/node": "^8.0.47",
+    "@types/node-fetch": "^1.6.7",
     "benchmark": "^2.1.4",
     "download-cli": "^1.0.5",
     "jest": "^21.2.1",
@@ -45,8 +50,11 @@
     "ts-jest": "^21.1.4",
     "tslint": "^5.8.0",
     "typescript": "^2.6.1",
-    "uglify-js": "^3.1.6",
+    "uglify-js": "^3.1.7",
     "util.promisify": "^1.0.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "express": "^4.16.2",
+    "node-fetch": "^1.7.3"
+  }
 }
