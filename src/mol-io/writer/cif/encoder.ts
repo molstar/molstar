@@ -13,16 +13,17 @@ export const enum FieldType {
     Str, Int, Float
 }
 
-export interface FieldDefinition<Key = any, Data = any> {
+export interface FieldDefinitionBase<Key, Data> {
     name: string,
-    type: FieldType,
-    value(key: Key, data: Data): string | number,
-    valueKind?: (key: Key, data: Data) => Column.ValueKind
-
-    /** determine whether to include this field base on the context */
+    valueKind?: (key: Key, data: Data) => Column.ValueKind,
     // TODO:
     // shouldInclude?: (data: Data) => boolean
 }
+
+export type FieldDefinition<Key = any, Data = any> =
+    | FieldDefinitionBase<Key, Data> & { type: FieldType.Str, value(key: Key, data: Data): string }
+    | FieldDefinitionBase<Key, Data> & { type: FieldType.Int, value(key: Key, data: Data): number }
+    | FieldDefinitionBase<Key, Data> & { type: FieldType.Float, value(key: Key, data: Data): number }
 
 export interface FieldFormat {
     // TODO

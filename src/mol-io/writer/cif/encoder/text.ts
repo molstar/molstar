@@ -79,7 +79,7 @@ function writeValue(builder: StringBuilder, data: any, key: any, f: Enc.FieldDef
         } else if (t === Enc.FieldType.Int) {
             writeInteger(builder, val as number);
         } else {
-            writeFloat(builder, val as number, 1000);
+            writeFloat(builder, val as number, 1000000);
         }
     }
     return false;

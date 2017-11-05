@@ -20,8 +20,7 @@ function ofSchema(schema: Table.Schema) {
     const fields: Encoder.FieldDefinition[] = [];
     for (const k of Object.keys(schema)) {
         const t = schema[k];
-        // TODO: matrix/vector/support
-        const type = t.kind === 'str' ? Encoder.FieldType.Str : t.kind === 'int' ? Encoder.FieldType.Int : Encoder.FieldType.Float;
+        const type: any = t.kind === 'str' ? Encoder.FieldType.Str : t.kind === 'int' ? Encoder.FieldType.Int : Encoder.FieldType.Float;
         fields.push({ name: k, type, value: columnValue(k), valueKind: columnValueKind(k) })
     }
     return fields;
