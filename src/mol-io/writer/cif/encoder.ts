@@ -7,7 +7,10 @@
 import Iterator from 'mol-base/collections/iterator'
 import { Column } from 'mol-base/collections/database'
 import Encoder from '../encoder'
-//import { ArrayEncoder, ArrayEncoding as E } from '../../common/binary-cif'
+
+// TODO: support for "coordinate fields", make "coordinate precision" a parameter of the encoder
+// TODO: automatically detect "precision" of floating point arrays.
+// TODO: automatically detect "best encoding" for integer arrays. This could be used for "fixed-point" as well.
 
 export const enum FieldType {
     Str, Int, Float
@@ -26,7 +29,7 @@ export type FieldDefinition<Key = any, Data = any> =
     | FieldDefinitionBase<Key, Data> & { type: FieldType.Float, value(key: Key, data: Data): number }
 
 export interface FieldFormat {
-    // TODO
+    // TODO: do we actually need this?
     // textDecimalPlaces: number,
     // stringEncoder: ArrayEncoder,
     // numericEncoder: ArrayEncoder,

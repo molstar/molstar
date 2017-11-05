@@ -39,7 +39,7 @@ namespace Column {
         export function aliased<T>(t: Type): Aliased<T> { return t as any as Aliased<T>; }
     }
 
-    export type Schema<T = any> = Schema.Scalar | Schema.Vector | Schema.Matrix | Schema.Aliased<T>
+    export type Schema<T = any> = Schema.Scalar<T> | Schema.Vector | Schema.Matrix
 
     export namespace Schema {
         export interface FloatPrecision {
@@ -48,23 +48,26 @@ namespace Column {
             full: number
         }
 
-        export type Scalar = Schema.Str | Schema.Int | Schema.Float
+        export type Scalar<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate| Schema.Aliased<T>
 
         export function FP(full: number, acceptable: number, low: number): FloatPrecision { return { low, full, acceptable }; }
 
-        export type Str = { '@type': 'schema', T: string, kind: 'str' }
-        export type Int = { '@type': 'schema', T: number, kind: 'int' }
-        export type Float = { '@type': 'schema', T: number, kind: 'float', precision: FloatPrecision }
-        export type Vector = { '@type': 'schema', T: number[], dim: number, kind: 'vector' };
-        export type Matrix = { '@type': 'schema', T: number[][], rows: number, cols: number, kind: 'matrix' };
-        export type Aliased<T> = { '@type': 'schema', T: T } & { kind: 'str' | 'int' | 'float' }
+        export type Str = { '@type': 'str', T: string, kind: 'str' }
+        export type Int = { '@type': 'int', T: number, kind: 'int' }
+        export type Float = { '@type': 'float', T: number, kind: 'float', precision: FloatPrecision }
+        export type Coordinate = { '@type': 'coord', T: number, kind: 'float' }
 
-        export const str: Str = { '@type': 'schema', T: '', kind: 'str' };
-        export const int: Int = { '@type': 'schema', T: 0, kind: 'int' };
-        export function float(precision: FloatPrecision): Float { return { '@type': 'schema', T: 0, kind: 'float', precision } };
+        export type Vector = { '@type': 'vector', T: number[], dim: number, kind: 'vector' };
+        export type Matrix = { '@type': 'matrix', T: number[][], rows: number, cols: number, kind: 'matrix' };
+        export type Aliased<T> = { '@type': 'aliased', T: T } & { kind: 'str' | 'int' | 'float' }
 
-        export function vector(dim: number): Vector { return { '@type': 'schema', T: [] as number[], dim, kind: 'vector' }; }
-        export function matrix(rows: number, cols: number): Matrix { return { '@type': 'schema', T: [] as number[][], rows, cols, kind: 'matrix' }; }
+        export const str: Str = { '@type': 'str', T: '', kind: 'str' };
+        export const int: Int = { '@type': 'int', T: 0, kind: 'int' };
+        export const coord: Coordinate = { '@type': 'coord', T: 0, kind: 'float' };
+        export function float(precision: FloatPrecision): Float { return { '@type': 'float', T: 0, kind: 'float', precision } };
+
+        export function vector(dim: number): Vector { return { '@type': 'vector', T: [] as number[], dim, kind: 'vector' }; }
+        export function matrix(rows: number, cols: number): Matrix { return { '@type': 'matrix', T: [] as number[][], rows, cols, kind: 'matrix' }; }
         export function aliased<T>(t: Schema): Aliased<T> { return t as any as Aliased<T>; }
     }
 
