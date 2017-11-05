@@ -6,7 +6,7 @@
 
 import { Column } from 'mol-base/collections/database'
 
-import Type = Column.Type
+import Type = Column.Schema
 
 export const Sources = {
     id: Type.str,

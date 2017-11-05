@@ -53,8 +53,8 @@ describe('column', () => {
 
 describe('table', () => {
     const schema = {
-        x: Column.Type.int,
-        n: Column.Type.str
+        x: Column.Schema.int,
+        n: Column.Schema.str
     };
 
     it('ofRows', () => {
@@ -89,7 +89,7 @@ describe('table', () => {
             x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
             n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
         });
-        const s = { x: Column.Type.int, y: Column.Type.int };
+        const s = { x: Column.Schema.int, y: Column.Schema.int };
         const picked = Table.pickColumns(s, t, { y: Column.ofArray({ array: [3, 4], type: Column.Type.int })});
         expect(picked._columns).toEqual(['x', 'y']);
         expect(picked._rowCount).toEqual(2);
@@ -102,7 +102,7 @@ describe('table', () => {
             x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
             n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
         });
-        const s = { x: Column.Type.int };
+        const s = { x: Column.Schema.int };
         const view = Table.view(t, s, [1]);
         expect(view._columns).toEqual(['x']);
         expect(view._rowCount).toEqual(1);

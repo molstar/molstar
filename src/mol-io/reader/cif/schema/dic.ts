@@ -5,11 +5,12 @@
  */
 
 import { Database, Column } from 'mol-base/collections/database'
-import Types = Column.Type
 
+import Schema = Column.Schema
+import FP = Schema.FP
 
-const str = Types.str
-const float = Types.float
+const str = Schema.str;
+const float = Schema.float;
 
 const datablock = {
     id: str,
@@ -55,7 +56,7 @@ const item_units_conversion = {
     from_code: str,
     to_code: str,
     operator: str,
-    factor: float
+    factor: float(FP(6, 6, 6))
 }
 
 // TODO save frame dic schema

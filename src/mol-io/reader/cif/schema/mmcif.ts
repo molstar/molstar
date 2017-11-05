@@ -5,11 +5,13 @@
  */
 
 import { Database, Column } from 'mol-base/collections/database'
-import Types = Column.Type
 
-const str = Types.str;
-const int = Types.int;
-const float = Types.float;
+import Schema = Column.Schema
+import FP = Schema.FP
+
+const str = Schema.str;
+const int = Schema.int;
+const float = Schema.float;
 
 const entry = {
     id: str
@@ -19,10 +21,10 @@ type EntityType = 'polymer' | 'non-polymer' | 'water' | 'macrolide'
 
 const entity = {
     id: str,
-    type: Types.aliased<EntityType>(str),
+    type: Schema.aliased<EntityType>(str),
     src_method: str,
     pdbx_description: str,
-    formula_weight: float,
+    formula_weight: float(FP(6, 3, 1)),
     pdbx_number_of_molecules: int,
     details: str,
     pdbx_mutation: str,
@@ -37,12 +39,12 @@ const exptl = {
 
 const cell = {
     entry_id: str,
-    length_a: float,
-    length_b: float,
-    length_c: float,
-    angle_alpha: float,
-    angle_beta: float,
-    angle_gamma: float,
+    length_a: float(FP(6, 6, 6)),
+    length_b: float(FP(6, 6, 6)),
+    length_c: float(FP(6, 6, 6)),
+    angle_alpha: float(FP(6, 6, 6)),
+    angle_beta: float(FP(6, 6, 6)),
+    angle_gamma: float(FP(6, 6, 6)),
     Z_PDB: int,
     pdbx_unique_axis: str
 }
@@ -118,7 +120,7 @@ type BondValueOrder =
 
 const struct_conn = {
     id: str,
-    conn_type_id: Types.aliased<StructConnTypeId>(str),
+    conn_type_id: Schema.aliased<StructConnTypeId>(str),
     pdbx_PDB_id: str,
     ptnr1_label_asym_id: str,
     ptnr1_label_comp_id: str,
@@ -148,12 +150,12 @@ const struct_conn = {
     pdbx_ptnr3_label_alt_id: str,
     pdbx_ptnr3_PDB_ins_code: str,
     details: str,
-    pdbx_dist_value: float,
-    pdbx_value_order: Types.aliased<BondValueOrder>(str)
+    pdbx_dist_value: float(FP(6, 3, 3)),
+    pdbx_value_order: Schema.aliased<BondValueOrder>(str)
 }
 
 const struct_conn_type = {
-    id: Types.aliased<StructConnTypeId>(str),
+    id: Schema.aliased<StructConnTypeId>(str),
     criteria: str,
     reference: str
 }
@@ -162,10 +164,10 @@ const chem_comp_bond = {
     comp_id: str,
     pdbx_stereo_config: str,
     pdbx_ordinal: int,
-    pdbx_aromatic_flag: Types.aliased<'Y' | 'N'>(str),
+    pdbx_aromatic_flag: Schema.aliased<'Y' | 'N'>(str),
     atom_id_1: str,
     atom_id_2: str,
-    value_order: Types.aliased<BondValueOrder>(str)
+    value_order: Schema.aliased<BondValueOrder>(str)
 }
 
 const pdbx_struct_assembly = {
@@ -187,8 +189,8 @@ const pdbx_struct_oper_list = {
     type: str,
     name: str,
     symmetry_operation: str,
-    matrix: Types.matrix(3, 3),
-    vector: Types.vector(3)
+    matrix: Schema.matrix(3, 3),
+    vector: Schema.vector(3)
 }
 
 const pdbx_struct_mod_residue = {
@@ -216,11 +218,11 @@ const atom_site = {
     label_seq_id: int,
     pdbx_PDB_ins_code: str,
     pdbx_formal_charge: str,
-    Cartn_x: float,
-    Cartn_y: float,
-    Cartn_z: float,
-    occupancy: float,
-    B_iso_or_equiv: float,
+    Cartn_x: float(FP(6, 3, 1)),
+    Cartn_y: float(FP(6, 3, 1)),
+    Cartn_z: float(FP(6, 3, 1)),
+    occupancy: float(FP(2, 2, 1)),
+    B_iso_or_equiv: float(FP(2, 2, 1)),
     auth_atom_id: str,
     auth_comp_id: str,
     auth_asym_id: str,

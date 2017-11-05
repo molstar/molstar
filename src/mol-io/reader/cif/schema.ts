@@ -17,7 +17,7 @@ export function toTable<Schema extends Table.Schema, R extends Table<Schema> = T
 
 type ColumnCtor = (field: Data.Field, category: Data.Category, key: string) => Column<any>
 
-function getColumnCtor(t: Column.Type): ColumnCtor {
+function getColumnCtor(t: Column.Schema): ColumnCtor {
     switch (t.kind) {
         case 'str': return (f, c, k) => createColumn(Column.Type.str, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(Column.Type.int, f, f.int, f.toIntArray);

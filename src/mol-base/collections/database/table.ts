@@ -16,7 +16,7 @@ type Table<Schema extends Table.Schema> = {
 
 /** An immutable table */
 namespace Table {
-    export type Schema = { [field: string]: Column.Type }
+    export type Schema = { [field: string]: Column.Schema }
     export type Columns<S extends Schema> = { [C in keyof S]: Column<S[C]['T']> }
     export type Row<S extends Schema> = { [C in keyof S]: S[C]['T'] }
     export type Arrays<S extends Schema> = { [C in keyof S]: ArrayLike<S[C]['T']> }
