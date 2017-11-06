@@ -11,6 +11,8 @@ import Encoder from '../encoder'
 // TODO: support for "coordinate fields", make "coordinate precision" a parameter of the encoder
 // TODO: automatically detect "precision" of floating point arrays.
 // TODO: automatically detect "best encoding" for integer arrays. This could be used for "fixed-point" as well.
+// TODO: add "repeat encoding"? [[1, 2], [1, 2], [1, 2]] --- Repeat ---> [[1, 2], 3]
+// TODO: Add "higher level fields"? (i.e. generalization of repeat)
 
 export const enum FieldType {
     Str, Int, Float
