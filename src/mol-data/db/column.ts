@@ -25,20 +25,21 @@ namespace Column {
     export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor
 
     export namespace Schema {
-        export type Str = { '@type': 'str', T: string, valueKind: 'str' }
-        export type Int = { '@type': 'int', T: number, valueKind: 'int' }
-        export type Float = { '@type': 'float', T: number, valueKind: 'float' }
-        export type Coordinate = { '@type': 'coord', T: number, valueKind: 'float' }
+        type Base<T extends string> = { valueType: T }
+        export type Str = { '@type': 'str', T: string } & Base<'str'>
+        export type Int = { '@type': 'int', T: number } & Base<'int'>
+        export type Float = { '@type': 'float', T: number } & Base<'float'>
+        export type Coordinate = { '@type': 'coord', T: number } & Base<'float'>
 
-        export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space, valueKind: 'tensor' };
-        export type Aliased<T> = { '@type': 'aliased', T: T, valueKind: 'str' | 'int' }
+        export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space } & Base<'tensor'>
+        export type Aliased<T> = { '@type': 'aliased', T: T } & Base<'str' | 'int'>
 
-        export const str: Str = { '@type': 'str', T: '', valueKind: 'str' };
-        export const int: Int = { '@type': 'int', T: 0, valueKind: 'int' };
-        export const coord: Coordinate = { '@type': 'coord', T: 0, valueKind: 'float' };
-        export const float: Float = { '@type': 'float', T: 0, valueKind: 'float' };
+        export const str: Str = { '@type': 'str', T: '', valueType: 'str' };
+        export const int: Int = { '@type': 'int', T: 0, valueType: 'int' };
+        export const coord: Coordinate = { '@type': 'coord', T: 0, valueType: 'float' };
+        export const float: Float = { '@type': 'float', T: 0, valueType: 'float' };
 
-        export function tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, valueKind: 'tensor' }; }
+        export function tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, valueType: 'tensor' }; }
         export function vector(dim: number): Tensor { return tensor(Tensors.Vector(dim)); }
         export function matrix(rows: number, cols: number): Tensor { return tensor(Tensors.ColumnMajorMatrix(rows, cols)); }
 
@@ -182,7 +183,7 @@ function lambdaColumn<T extends Column.Schema>({ value, valueKind, rowCount, sch
 
 function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Column.ArraySpec<T>): Column<T['T']> {
     const rowCount = array.length;
-    const value: Column<T['T']>['value'] = schema.valueKind === 'str'
+    const value: Column<T['T']>['value'] = schema.valueType === 'str'
         ? row => { const v = array[row]; return typeof v === 'string' ? v : '' + v; }
         : row => array[row];
 
@@ -194,7 +195,7 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
         rowCount,
         value,
         valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
-        toArray: schema.valueKind === 'str'
+        toArray: schema.valueType === 'str'
             ? params => {
                 const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
                 const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
@@ -297,7 +298,7 @@ function mapToArrayImpl<T, S>(c: Column<T>, f: (v: T) => S, ctor: Column.ArrayCt
 }
 
 function areColumnsEqual(a: Column<any>, b: Column<any>) {
-    if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a.schema.valueKind !== b.schema.valueKind) return false;
+    if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a.schema.valueType !== b.schema.valueType) return false;
     if (!!a['@array'] && !!b['@array']) return areArraysEqual(a, b);
     return areValuesEqual(a, b);
 }

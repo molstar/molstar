@@ -16,15 +16,15 @@ export default function FixedColumnProvider(lines: Tokens) {
 
 export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: number, width: number, schema: T): Column<T['T']> {
     const { data, indices, count: rowCount } = lines;
-    const { valueKind: kind } = schema;
+    const { valueType: type } = schema;
 
-    const value: Column<T['T']>['value'] = kind === 'str' ? row => {
+    const value: Column<T['T']>['value'] = type === 'str' ? row => {
         let s = indices[2 * row] + offset, le = indices[2 * row + 1];
         if (s >= le) return '';
         let e = s + width;
         if (e > le) e = le;
         return trimStr(data, s, e);
-    } : kind === 'int' ? row => {
+    } : type === 'int' ? row => {
         const s = indices[2 * row] + offset;
         if (s > indices[2 * row + 1]) return 0;
         return parseIntSkipLeadingWhitespace(data, s, s + width);

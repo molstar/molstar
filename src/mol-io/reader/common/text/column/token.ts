@@ -16,12 +16,12 @@ export default function TokenColumnProvider(tokens: Tokens) {
 
 export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T): Column<T['T']> {
     const { data, indices, count: rowCount } = tokens;
-    const { valueKind: kind } = schema;
+    const { valueType: type } = schema;
 
     const value: Column<T['T']>['value'] =
-          kind === 'str'
+          type === 'str'
         ? row => data.substring(indices[2 * row], indices[2 * row + 1])
-        : kind === 'int'
+        : type === 'int'
         ? row => fastParseInt(data, indices[2 * row], indices[2 * row + 1]) || 0
         : row => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
 

@@ -19,7 +19,7 @@ export function toTable<Schema extends Table.Schema, R extends Table<Schema> = T
 type ColumnCtor = (field: Data.Field, category: Data.Category, key: string) => Column<any>
 
 function getColumnCtor(t: Column.Schema): ColumnCtor {
-    switch (t.valueKind) {
+    switch (t.valueType) {
         case 'str': return (f, c, k) => createColumn(t, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
@@ -74,13 +74,13 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
             Object.defineProperty(this, k, {
                 get: function() {
                     if (cache[k]) return cache[k];
-                    const cType = schema[k];
-                    if (cType.valueKind === 'tensor') {
-                        cache[k] = createTensorColumn(cType, category, k);
+                    const fType = schema[k];
+                    if (fType.valueType === 'tensor') {
+                        cache[k] = createTensorColumn(fType, category, k);
                     } else {
-                        const ctor = getColumnCtor(cType);
+                        const ctor = getColumnCtor(fType);
                         const field = category.getField(k);
-                        cache[k] = !!field ? ctor(field, category, k) : Column.Undefined(category.rowCount, cType);
+                        cache[k] = !!field ? ctor(field, category, k) : Column.Undefined(category.rowCount, fType);
                     }
                     return cache[k];
                 },
