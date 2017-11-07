@@ -20,7 +20,7 @@ type EntityType = 'polymer' | 'non-polymer' | 'water' | 'macrolide'
 
 const entity = {
     id: str,
-    type: Schema.aliased<EntityType>(str),
+    type: Schema.Aliased<EntityType>(str),
     src_method: str,
     pdbx_description: str,
     formula_weight: float,
@@ -119,7 +119,7 @@ type BondValueOrder =
 
 const struct_conn = {
     id: str,
-    conn_type_id: Schema.aliased<StructConnTypeId>(str),
+    conn_type_id: Schema.Aliased<StructConnTypeId>(str),
     pdbx_PDB_id: str,
     ptnr1_label_asym_id: str,
     ptnr1_label_comp_id: str,
@@ -150,11 +150,11 @@ const struct_conn = {
     pdbx_ptnr3_PDB_ins_code: str,
     details: str,
     pdbx_dist_value: float,
-    pdbx_value_order: Schema.aliased<BondValueOrder>(str)
+    pdbx_value_order: Schema.Aliased<BondValueOrder>(str)
 }
 
 const struct_conn_type = {
-    id: Schema.aliased<StructConnTypeId>(str),
+    id: Schema.Aliased<StructConnTypeId>(str),
     criteria: str,
     reference: str
 }
@@ -163,10 +163,10 @@ const chem_comp_bond = {
     comp_id: str,
     pdbx_stereo_config: str,
     pdbx_ordinal: int,
-    pdbx_aromatic_flag: Schema.aliased<'Y' | 'N'>(str),
+    pdbx_aromatic_flag: Schema.Aliased<'Y' | 'N'>(str),
     atom_id_1: str,
     atom_id_2: str,
-    value_order: Schema.aliased<BondValueOrder>(str)
+    value_order: Schema.Aliased<BondValueOrder>(str)
 }
 
 const pdbx_struct_assembly = {
@@ -188,8 +188,8 @@ const pdbx_struct_oper_list = {
     type: str,
     name: str,
     symmetry_operation: str,
-    matrix: Schema.matrix(3, 3),
-    vector: Schema.vector(3)
+    matrix: Schema.Matrix(3, 3),
+    vector: Schema.Vector(3)
 }
 
 const pdbx_struct_mod_residue = {

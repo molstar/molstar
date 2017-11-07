@@ -10,7 +10,7 @@ import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import { ElementSymbol} from '../types'
 
 export const AtomsSchema = {
-    type_symbol: Column.Schema.aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
+    type_symbol: Column.Schema.Aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
     label_atom_id: mmCIF.atom_site.label_atom_id,
     auth_atom_id: mmCIF.atom_site.auth_atom_id,
     label_alt_id: mmCIF.atom_site.label_alt_id,

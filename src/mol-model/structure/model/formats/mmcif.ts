@@ -48,7 +48,7 @@ function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: 
     const { atom_site } = data;
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const atoms = Table.ofColumns(Hierarchy.AtomsSchema, {
-        type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), ElementSymbol), schema: Column.Schema.aliased<ElementSymbol>(Column.Schema.str) }),
+        type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), ElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
         label_atom_id: Column.window(atom_site.label_atom_id, start, end),
         auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),
         label_alt_id: Column.window(atom_site.label_alt_id, start, end),

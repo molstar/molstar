@@ -25,6 +25,8 @@ namespace Column {
     export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor
 
     export namespace Schema {
+        // T also serves as a default value for undefined columns
+
         type Base<T extends string> = { valueType: T }
         export type Str = { '@type': 'str', T: string } & Base<'str'>
         export type Int = { '@type': 'int', T: number } & Base<'int'>
@@ -39,11 +41,17 @@ namespace Column {
         export const coord: Coordinate = { '@type': 'coord', T: 0, valueType: 'float' };
         export const float: Float = { '@type': 'float', T: 0, valueType: 'float' };
 
-        export function tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, valueType: 'tensor' }; }
-        export function vector(dim: number): Tensor { return tensor(Tensors.Vector(dim)); }
-        export function matrix(rows: number, cols: number): Tensor { return tensor(Tensors.ColumnMajorMatrix(rows, cols)); }
+        export function Str(defaultValue = ''): Str { return { '@type': 'str', T: defaultValue, valueType: 'str' } };
+        export function Int(defaultValue = 0): Int { return { '@type': 'int', T: defaultValue, valueType: 'int' } };
+        export function Float(defaultValue = 0): Float { return { '@type': 'float', T: defaultValue, valueType: 'float' } };
+        export function Tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, valueType: 'tensor' }; }
+        export function Vector(dim: number): Tensor { return Tensor(Tensors.Vector(dim)); }
+        export function Matrix(rows: number, cols: number): Tensor { return Tensor(Tensors.ColumnMajorMatrix(rows, cols)); }
 
-        export function aliased<T>(t: Str | Int): Aliased<T> { return t as any as Aliased<T>; }
+        export function Aliased<T>(t: Str | Int, defaultValue?: T): Aliased<T> {
+            if (typeof defaultValue !== 'undefined') return { ...t, T: defaultValue } as any as Aliased<T>;
+            return t as any as Aliased<T>;
+        }
     }
 
     export interface ToArrayParams<T> {
