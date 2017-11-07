@@ -10,6 +10,7 @@ namespace Tensor {
     export type ArrayCtor = { new (size: number): ArrayLike<number> }
 
     export interface Space {
+        readonly rank: number,
         readonly dimensions: ReadonlyArray<number>,
         readonly axisOrderSlowToFast: ReadonlyArray<number>,
         create(array?: ArrayCtor): Tensor,
@@ -19,7 +20,6 @@ namespace Tensor {
 
     interface Layout {
         dimensions: number[],
-        // slowest to fastest changing
         axisOrderSlowToFast: number[],
         axisOrderFastToSlow: number[],
         accessDimensions: number[],
@@ -40,7 +40,7 @@ namespace Tensor {
     export function Space(dimensions: number[], axisOrderSlowToFast: number[], ctor?: ArrayCtor): Space {
         const layout = Layout(dimensions, axisOrderSlowToFast, ctor);
         const { get, set } = accessors(layout);
-        return { dimensions: [...dimensions], axisOrderSlowToFast: [...axisOrderSlowToFast], create: creator(layout), get, set };
+        return { rank: dimensions.length, dimensions, axisOrderSlowToFast, create: creator(layout), get, set };
     }
 
     export function Vector(d: number, ctor?: ArrayCtor) { return Space([d], [0], ctor); }

@@ -22,14 +22,9 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
         case 'str': return (f, c, k) => createColumn(Column.Type.str, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(Column.Type.int, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(Column.Type.float, f, f.float, f.toFloatArray);
-        case 'vector': return (f, c, k) => {
-            const dim = t.dim;
-            const value = (row: number) => Data.getVector(c, k, dim, row);
-            return createColumn(t, f, value, params => ColumnHelpers.createAndFillArray(f.rowCount, value, params));
-        }
-        case 'matrix': return (f, c, k) => {
-            const rows = t.rows, cols = t.cols;
-            const value = (row: number) => Data.getMatrix(c, k, rows, cols, row);
+        case 'tensor': return (f, c, k) => {
+            const space = t.space;
+            const value = (row: number) => Data.getTensor(c, k, space, row);
             return createColumn(t, f, value, params => ColumnHelpers.createAndFillArray(f.rowCount, value, params));
         }
     }

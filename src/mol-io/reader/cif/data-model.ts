@@ -5,6 +5,7 @@
  */
 
 import { Column } from 'mol-base/collections/database'
+import Tensor from 'mol-base/math/tensor'
 
 export interface File {
     readonly name?: string,
@@ -76,24 +77,32 @@ export interface Field {
     toFloatArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>
 }
 
-export function getMatrix(category: Category, field: string, rows: number, cols: number, row: number) {
-    const ret: number[][] = [];
-    for (let i = 0; i < rows; i++) {
-        const r: number[] = [];
-        for (let j = 0; j < cols; j++) {
-            const f = category.getField(`${field}[${i + 1}][${j + 1}]`);
-            r[j] = f ? f.float(row) : 0.0;
+export function getTensor(category: Category, field: string, space: Tensor.Space, row: number): Tensor {
+    const ret = space.create();
+    if (space.rank === 1) {
+        const rows = space.dimensions[0];
+        for (let i = 0; i < rows; i++) {
+            const f = category.getField(`${field}[${i + 1}]`);
+            space.set(ret, i, !!f ? f.float(row) : 0.0);
         }
-        ret[i] = r;
-    }
-    return ret;
-}
-
-export function getVector(category: Category, field: string, rows: number, row: number) {
-    const ret: number[] = [];
-    for (let i = 0; i < rows; i++) {
-        const f = category.getField(`${field}[${i + 1}]`);
-        ret[i] = f ? f.float(row) : 0.0;
-    }
+    } else if (space.rank === 2) {
+        const rows = space.dimensions[0], cols = space.dimensions[1];
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                const f = category.getField(`${field}[${i + 1}][${j + 1}]`);
+                space.set(ret, i, j, !!f ? f.float(row) : 0.0);
+            }
+        }
+    } else if (space.rank === 3) {
+        const d0 = space.dimensions[0], d1 = space.dimensions[1], d2 = space.dimensions[2];
+        for (let i = 0; i < d0; i++) {
+            for (let j = 0; j < d1; j++) {
+                for (let k = 0; k < d2; k++) {
+                    const f = category.getField(`${field}[${i + 1}][${j + 1}][${k + 1}]`);
+                    space.set(ret, i, j, k, !!f ? f.float(row) : 0.0);
+                }
+            }
+        }
+    } else throw new Error('Tensors with rank > 3 currently not supported.');
     return ret;
 }

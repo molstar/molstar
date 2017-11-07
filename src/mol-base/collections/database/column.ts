@@ -5,6 +5,7 @@
  */
 
 import * as ColumnHelpers from './column-helpers'
+import Tensors from '../../math/tensor'
 
 interface Column<T> {
     readonly '@type': Column.Type,
@@ -19,27 +20,25 @@ interface Column<T> {
 }
 
 namespace Column {
-    export type Type<T = any> = Type.Str | Type.Int | Type.Float | Type.Vector | Type.Matrix | Type.Aliased<T>
+    export type Type<T = any> = Type.Str | Type.Int | Type.Float | Type.Tensor | Type.Aliased<T>
     export type ArrayCtor<T> = { new(size: number): ArrayLike<T> }
 
     export namespace Type {
         export type Str = { T: string, kind: 'str' }
         export type Int = { T: number, kind: 'int' }
         export type Float = { T: number, kind: 'float' }
-        export type Vector = { T: number[], dim: number, kind: 'vector' };
-        export type Matrix = { T: number[][], rows: number, cols: number, kind: 'matrix' };
+        export type Tensor = { T: Tensors, space: Tensors.Space, kind: 'tensor' };
         export type Aliased<T> = { T: T } & { kind: 'str' | 'int' | 'float' }
 
         export const str: Str = { T: '', kind: 'str' };
         export const int: Int = { T: 0, kind: 'int' };
         export const float: Float = { T: 0, kind: 'float' };
 
-        export function vector(dim: number): Vector { return { T: [] as number[], dim, kind: 'vector' }; }
-        export function matrix(rows: number, cols: number): Matrix { return { T: [] as number[][], rows, cols, kind: 'matrix' }; }
+        export function tensor(space: Tensors.Space): Tensor { return { T: space.create(), space, kind: 'tensor' }; }
         export function aliased<T>(t: Type): Aliased<T> { return t as any as Aliased<T>; }
     }
 
-    export type Schema<T = any> = Schema.Scalar<T> | Schema.Vector | Schema.Matrix
+    export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor
 
     export namespace Schema {
         export interface FloatPrecision {
@@ -48,7 +47,7 @@ namespace Column {
             full: number
         }
 
-        export type Scalar<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate| Schema.Aliased<T>
+        export type Scalar<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T>
 
         export function FP(full: number, acceptable: number, low: number): FloatPrecision { return { low, full, acceptable }; }
 
@@ -57,8 +56,7 @@ namespace Column {
         export type Float = { '@type': 'float', T: number, kind: 'float', precision: FloatPrecision }
         export type Coordinate = { '@type': 'coord', T: number, kind: 'float' }
 
-        export type Vector = { '@type': 'vector', T: number[], dim: number, kind: 'vector' };
-        export type Matrix = { '@type': 'matrix', T: number[][], rows: number, cols: number, kind: 'matrix' };
+        export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space, kind: 'tensor' };
         export type Aliased<T> = { '@type': 'aliased', T: T } & { kind: 'str' | 'int' | 'float' }
 
         export const str: Str = { '@type': 'str', T: '', kind: 'str' };
@@ -66,8 +64,9 @@ namespace Column {
         export const coord: Coordinate = { '@type': 'coord', T: 0, kind: 'float' };
         export function float(precision: FloatPrecision): Float { return { '@type': 'float', T: 0, kind: 'float', precision } };
 
-        export function vector(dim: number): Vector { return { '@type': 'vector', T: [] as number[], dim, kind: 'vector' }; }
-        export function matrix(rows: number, cols: number): Matrix { return { '@type': 'matrix', T: [] as number[][], rows, cols, kind: 'matrix' }; }
+        export function tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, kind: 'tensor' }; }
+        export function vector(dim: number): Tensor { return tensor(Tensors.Vector(dim)); }
+        export function matrix(rows: number, cols: number): Tensor { return tensor(Tensors.ColumnMajorMatrix(rows, cols)); }
         export function aliased<T>(t: Schema): Aliased<T> { return t as any as Aliased<T>; }
     }
 
