@@ -25,8 +25,6 @@ namespace Column {
     export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor
 
     export namespace Schema {
-        export type Scalar<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T>
-
         export type Str = { '@type': 'str', T: string, valueKind: 'str' }
         export type Int = { '@type': 'int', T: number, valueKind: 'int' }
         export type Float = { '@type': 'float', T: number, valueKind: 'float' }
@@ -44,7 +42,7 @@ namespace Column {
         export function vector(dim: number): Tensor { return tensor(Tensors.Vector(dim)); }
         export function matrix(rows: number, cols: number): Tensor { return tensor(Tensors.ColumnMajorMatrix(rows, cols)); }
 
-        export function aliased<T>(t: Schema): Aliased<T> { return t as any as Aliased<T>; }
+        export function aliased<T>(t: Str | Int): Aliased<T> { return t as any as Aliased<T>; }
     }
 
     export interface ToArrayParams<T> {

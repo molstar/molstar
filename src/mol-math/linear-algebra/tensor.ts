@@ -75,6 +75,13 @@ export namespace Tensor {
         return vec;
     }
 
+    export function areEqualExact(a: Tensor, b: Tensor) {
+        const len = a.length;
+        if (len !== b.length) return false;
+        for (let i = 0; i < len; i++) if (a[i] !== b[i]) return false;
+        return true;
+    }
+
     function accessors(layout: Layout): { get: Space['get'], set: Space['set'] } {
         const { dimensions, axisOrderFastToSlow: ao } = layout;
         switch (dimensions.length) {

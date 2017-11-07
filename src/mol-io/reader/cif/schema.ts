@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './data-model'
 import { Database, Table, Column, ColumnHelpers } from 'mol-data/db'
+import { Tensor } from 'mol-math/linear-algebra'
+import * as Data from './data-model'
 
 export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.Frame): Frame {
     return createDatabase(schema, frame) as Frame;
@@ -22,24 +23,37 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
         case 'str': return (f, c, k) => createColumn(t, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
-        case 'tensor': return (f, c, k) => {
-            const space = t.space;
-            const value = (row: number) => Data.getTensor(c, k, space, row);
-            return createColumn(t, f, value, params => ColumnHelpers.createAndFillArray(f.rowCount, value, params));
-        }
+        case 'tensor': throw new Error(`Use createTensorColumn instead.`);
     }
 }
 
-
 function createColumn<T>(schema: Column.Schema, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
     return {
-        schema: schema,
+        schema,
         '@array': field['@array'],
         isDefined: field.isDefined,
         rowCount: field.rowCount,
         value,
         valueKind: field.valueKind,
         areValuesEqual: field.areValuesEqual,
+        toArray
+    };
+}
+
+function createTensorColumn(schema: Column.Schema.Tensor, category: Data.Category, key: string): Column<Tensor> {
+    const space = schema.space;
+    const first = category.getField(`${key}[1]`) || Column.Undefined(category.rowCount, schema);
+    const value = (row: number) => Data.getTensor(category, key, space, row);
+    const toArray: Column<Tensor>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
+
+    return {
+        schema,
+        '@array': void 0,
+        isDefined: first.isDefined,
+        rowCount: category.rowCount,
+        value,
+        valueKind: first.valueKind,
+        areValuesEqual: (rowA, rowB) => Tensor.areEqualExact(value(rowA), value(rowB)),
         toArray
     };
 }
@@ -57,13 +71,17 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
         this._schema = schema;
         const cache = Object.create(null);
         for (const k of fieldKeys) {
-            const cType = schema[k];
-            const ctor = getColumnCtor(cType);
             Object.defineProperty(this, k, {
                 get: function() {
                     if (cache[k]) return cache[k];
-                    const field = category.getField(k);
-                    cache[k] = !!field ? ctor(field, category, k) : Column.Undefined(category.rowCount, cType);
+                    const cType = schema[k];
+                    if (cType.valueKind === 'tensor') {
+                        cache[k] = createTensorColumn(cType, category, k);
+                    } else {
+                        const ctor = getColumnCtor(cType);
+                        const field = category.getField(k);
+                        cache[k] = !!field ? ctor(field, category, k) : Column.Undefined(category.rowCount, cType);
+                    }
                     return cache[k];
                 },
                 enumerable: true,

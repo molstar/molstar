@@ -243,8 +243,11 @@ export namespace PropertyAccess {
 
     export async function run() {
         //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        const { structures, models } = await readCIF('e:/test/quick/3j3q_full.bcif');
-        //const { structures, models } = await readCIF('e:/test/quick/1cbs_updated.cif');
+        const { structures, models, mmcif } = await readCIF('e:/test/quick/3j3q_full.bcif');
+        //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
+
+        console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
+        console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
 
         //const { structures, models } = await readCIF('e:/test/molstar/3j3q.bcif');
 
@@ -254,8 +257,6 @@ export namespace PropertyAccess {
         // console.log(toMmCIFString('test', structures[0]));
 
         // return;
-
-        console.log('parsed');
 
         console.log(baseline(models[0]));
         console.log(sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
