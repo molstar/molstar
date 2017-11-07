@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-base/collections/database'
-import Tensor from 'mol-base/math/tensor'
+import { Column } from 'mol-data/db'
+import { Tensor } from 'mol-math/linear-algebra'
 
 export interface File {
     readonly name?: string,

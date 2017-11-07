@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-base/collections/iterator'
-import { Column } from 'mol-base/collections/database'
+import Iterator from 'mol-data/iterator'
+import { Column } from 'mol-data/db'
 import encodeMsgPack from '../../../common/msgpack/encode'
 import {
     EncodedColumn, EncodedData, EncodedFile, EncodedDataBlock, EncodedCategory, ArrayEncoder, ArrayEncoding as E, VERSION

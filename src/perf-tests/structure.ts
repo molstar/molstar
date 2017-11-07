@@ -10,10 +10,10 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Atom, AtomSet, Selection } from 'mol-data/structure'
-import { OrderedSet as OrdSet, Segmentation } from 'mol-base/collections/integer'
+import { Structure, Model, Queries as Q, Atom, AtomSet, Selection } from 'mol-model/structure'
+import { OrderedSet as OrdSet, Segmentation } from 'mol-data/int'
 
-import to_mmCIF from 'mol-data/structure/export/mmcif'
+import to_mmCIF from 'mol-model/structure/export/mmcif'
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);

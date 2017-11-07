@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Table } from 'mol-base/collections/database'
-import Iterator from 'mol-base/collections/iterator'
+import { Table } from 'mol-data/db'
+import Iterator from 'mol-data/iterator'
 import * as Encoder from 'mol-io/writer/cif'
 
 function columnValue(k: string) {

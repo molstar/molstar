@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-base/collections/iterator'
+import Iterator from 'mol-data/iterator'
 import CIF, { Category } from 'mol-io/reader/cif'
 import * as Encoder from 'mol-io/writer/cif'
 import * as fs from 'fs'

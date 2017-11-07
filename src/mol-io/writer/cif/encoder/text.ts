@@ -6,8 +6,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-base/collections/database'
-import StringBuilder from 'mol-base/utils/string-builder'
+import { Column } from 'mol-data/db'
+import StringBuilder from 'mol-util/string-builder'
 import * as Enc from '../encoder'
 import Writer from '../../writer'
 

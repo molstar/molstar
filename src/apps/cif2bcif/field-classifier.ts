@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-base/collections/database'
+import { Column } from 'mol-data/db'
 import { Field } from 'mol-io/reader/cif/data-model'
 import { FieldDefinition, FieldType } from 'mol-io/writer/cif/encoder'
 

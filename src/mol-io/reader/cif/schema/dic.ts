@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Database, Column } from 'mol-base/collections/database'
+import { Database, Column } from 'mol-data/db'
 
 import Schema = Column.Schema
 import FP = Schema.FP

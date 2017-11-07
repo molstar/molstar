@@ -13,9 +13,11 @@
         "outDir": "build/node_modules",
         "baseUrl": "src",
         "paths": {
-            "mol-base": ["./mol-base"],
-            "mol-data": ["./mol-data"],
-            "mol-io": ["./mol-io"]
+            "mol-util": ["./mol-util", "./mol-util/index.ts"],
+            "mol-data": ["./mol-data", "./mol-data/index.ts"],
+            "mol-math": ["./mol-math"],
+            "mol-io": ["./mol-io"],
+            "mol-model": ["./mol-model"]
         }
     },
     "include": [ "**/*" ]

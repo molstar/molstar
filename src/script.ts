@@ -15,9 +15,9 @@ const writeFileAsync = util.promisify(fs.writeFile);
 import Gro from 'mol-io/reader/gro/parser'
 import CIF from 'mol-io/reader/cif'
 
-import Computation from 'mol-base/computation'
+import Computation from 'mol-util/computation'
 
-import { Model } from 'mol-data/structure/model'
+import { Model } from 'mol-model/structure'
 
 // import { toTypedFrame as applySchema } from './reader/cif/schema'
 import { generateSchema } from 'mol-io/reader/cif/schema/utils'

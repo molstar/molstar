@@ -9,7 +9,7 @@ import { EncodedCategory, EncodedFile } from '../../../common/binary-cif'
 import Field from './field'
 import Result from '../../result'
 import decodeMsgPack from '../../../common/msgpack/decode'
-import Computation from 'mol-base/computation'
+import Computation from 'mol-util/computation'
 
 function checkVersions(min: number[], current: number[]) {
     for (let i = 0; i < 2; i++) {

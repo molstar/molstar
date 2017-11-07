@@ -5,7 +5,7 @@
  */
 
 import * as Data from './data-model'
-import { Database, Table, Column, ColumnHelpers } from 'mol-base/collections/database'
+import { Database, Table, Column, ColumnHelpers } from 'mol-data/db'
 
 export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.Frame): Frame {
     return createDatabase(schema, frame) as Frame;

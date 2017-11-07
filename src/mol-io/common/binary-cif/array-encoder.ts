@@ -7,7 +7,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import ChunkedArray from 'mol-base/collections/chunked-array'
+import ChunkedArray from 'mol-data/util/chunked-array'
 import { Encoding, EncodedData } from './encoding'
 
 export interface ArrayEncoder {

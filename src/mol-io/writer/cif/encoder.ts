@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-base/collections/iterator'
-import { Column } from 'mol-base/collections/database'
+import Iterator from 'mol-data/iterator'
+import { Column } from 'mol-data/db'
 import Encoder from '../encoder'
 
 // TODO: support for "coordinate fields", make "coordinate precision" a parameter of the encoder

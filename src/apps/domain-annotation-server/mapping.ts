@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Table } from 'mol-base/collections/database'
+import { Table } from 'mol-data/db'
 import { CIFEncoder, create as createEncoder } from 'mol-io/writer/cif'
 import * as S from './schemas'
 import { getCategoryInstanceProvider } from './utils'

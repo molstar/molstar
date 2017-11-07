@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-base/collections/iterator'
+import Iterator from 'mol-data/iterator'
 import * as Enc from 'mol-io/writer/cif'
 
 const category1: Enc.CategoryDefinition<number> = {

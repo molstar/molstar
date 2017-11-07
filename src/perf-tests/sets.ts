@@ -1,6 +1,6 @@
 import * as B from 'benchmark'
-import { Tuple, Segmentation, OrderedSet as OrdSet } from 'mol-base/collections/integer'
-import { AtomSet } from 'mol-data/structure/structure'
+import { Tuple, Segmentation, OrderedSet as OrdSet } from 'mol-data/int'
+import { AtomSet } from 'mol-model/structure'
 
 export namespace Iteration {
     const U = 1000, V = 2500;

@@ -26,7 +26,7 @@ import * as Data from '../data-model'
 import Field from './field'
 import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
 import Result from '../../result'
-import Computation from 'mol-base/computation'
+import Computation from 'mol-util/computation'
 
 /**
  * Types of supported mmCIF tokens.

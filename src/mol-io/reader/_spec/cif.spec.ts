@@ -7,7 +7,7 @@
 import * as Data from '../cif/data-model'
 import TextField from '../cif/text/field'
 import * as Schema from '../cif/schema'
-import { Column } from 'mol-base/collections/database'
+import { Column } from 'mol-data/db'
 
 const columnData = `123abc`;
 
