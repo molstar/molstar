@@ -152,7 +152,8 @@ export namespace Mat4 {
         let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
         if (!det) {
-            return Number.NaN;
+            console.warn('non-invertible matrix.', a);
+            return out;
         }
         det = 1.0 / det;
 
@@ -429,6 +430,18 @@ export namespace Mat4 {
 
         // Calculate the determinant
         return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+    }
+
+    export function isRotationAndTranslation(a: Mat4) {
+        const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+            a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
+            a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
+            /* a30 = a[12], a31 = a[13], a32 = a[14],*/ a33 = a[15];
+
+        if (a33 !== 1 || a03 !== 0 || a13 !== 0 || a23 !== 0) return false;
+        const det3x3 = a00 * (a11 * a22 - a21 * a21) - a01 * (a10 * a22 - a12 * a20) + a02 * (a10 * a21 - a11 * a20);
+        if (det3x3 < 1 - EPSILON.Value || det3x3 > 1 + EPSILON.Value) return false;
+        return true;
     }
 }
 

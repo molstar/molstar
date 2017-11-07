@@ -242,8 +242,8 @@ export namespace PropertyAccess {
     }
 
     export async function run() {
-        //const { structures, models } = await readCIF('./examples/1cbs_full.bcif');
-        const { structures, models, mmcif } = await readCIF('e:/test/quick/3j3q_full.bcif');
+        const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
+        //const { structures, models, mmcif } = await readCIF('e:/test/quick/3j3q_full.bcif');
         //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
 
         console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
@@ -272,7 +272,7 @@ export namespace PropertyAccess {
         console.log('atom.x', sumProperty(structures[0], Q.props.atom.x));
         console.timeEnd('atom.x');
         console.time('__x')
-        console.log('__x', sumProperty(structures[0], l => l.unit.conformation.__x[l.atom]));
+        console.log('__x', sumProperty(structures[0], l => l.unit.conformation.x[l.atom]));
         console.timeEnd('__x')
 
         //const authSeqId = Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]));

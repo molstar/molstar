@@ -20,9 +20,9 @@ interface Conformation {
 
     // Coordinates. Generally, not to be accessed directly because the coordinate might be
     // transformed by an operator. Use Unit.getPosition instead.
-    __x: ArrayLike<number>,
-    __y: ArrayLike<number>,
-    __z: ArrayLike<number>
+    x: ArrayLike<number>,
+    y: ArrayLike<number>,
+    z: ArrayLike<number>
 }
 
 export default Conformation

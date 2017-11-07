@@ -6,9 +6,9 @@
 
 import { OrderedSet, Iterator } from 'mol-data/int'
 import UniqueArray from 'mol-data/util/unique-array'
+import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import { Model, Format } from '../model'
 import Unit from './unit'
-import Operator from './operator'
 import AtomSet from './atom/set'
 import Atom from './atom'
 
@@ -35,7 +35,7 @@ namespace Structure {
         const builder = Builder();
 
         for (let c = 0; c < chains.count; c++) {
-            const unit = Unit.create(model, Operator.Identity);
+            const unit = Unit.create(model, SymmetryOperator.Default);
             builder.addUnit(unit);
             builder.addAtoms(unit.id, OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
         }

@@ -7,7 +7,6 @@
 import Atom from './structure/atom'
 import AtomSet from './structure/atom/set'
 import Structure from './structure/structure'
-import Operator from './structure/operator'
 import Unit from './structure/unit'
 
-export { Atom, AtomSet, Structure, Operator, Unit }
+export { Atom, AtomSet, Structure, Unit }

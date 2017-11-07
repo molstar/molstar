@@ -70,9 +70,9 @@ function getConformation({ data }: mmCIF_Format, bounds: Interval): Conformation
         atomId: Column.window(atom_site.id, start, end),
         occupancy: Column.window(atom_site.occupancy, start, end),
         B_iso_or_equiv: Column.window(atom_site.B_iso_or_equiv, start, end),
-        __x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
-        __y: atom_site.Cartn_y.toArray({ array: Float32Array, start, end }),
-        __z: atom_site.Cartn_z.toArray({ array: Float32Array, start, end }),
+        x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
+        y: atom_site.Cartn_y.toArray({ array: Float32Array, start, end }),
+        z: atom_site.Cartn_z.toArray({ array: Float32Array, start, end }),
     }
 }
 
