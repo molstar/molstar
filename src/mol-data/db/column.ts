@@ -8,7 +8,7 @@ import * as ColumnHelpers from './column-helpers'
 import { Tensor as Tensors } from 'mol-math/linear-algebra'
 
 interface Column<T> {
-    readonly _schema: Column.Schema,
+    readonly schema: Column.Schema,
     readonly '@array': ArrayLike<any> | undefined,
 
     readonly isDefined: boolean,
@@ -124,11 +124,15 @@ namespace Column {
         return areColumnsEqual(a, b);
     }
 
+    export function indicesOf<T>(c: Column<T>, test: (e: T) => boolean) {
+        return columnIndicesOf(c, test);
+    }
+
     /** Makes the column backned by an array. Useful for columns that accessed often. */
     export function asArrayColumn<T>(c: Column<T>, array?: ArrayCtor<T>): Column<T> {
         if (c['@array']) return c;
-        if (!c.isDefined) return Undefined(c.rowCount, c._schema) as any as Column<T>;
-        return arrayColumn({ array: c.toArray({ array }), schema: c._schema, valueKind: c.valueKind });
+        if (!c.isDefined) return Undefined(c.rowCount, c.schema) as any as Column<T>;
+        return arrayColumn({ array: c.toArray({ array }), schema: c.schema, valueKind: c.valueKind });
     }
 }
 
@@ -146,7 +150,7 @@ function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> {
 function constColumn<T extends Column.Schema>(v: T['T'], rowCount: number, schema: T, valueKind: Column.ValueKind): Column<T['T']> {
     const value: Column<T['T']>['value'] = row => v;
     return {
-        _schema: schema,
+        schema: schema,
         '@array': void 0,
         isDefined: valueKind === Column.ValueKind.Present,
         rowCount,
@@ -163,7 +167,7 @@ function constColumn<T extends Column.Schema>(v: T['T'], rowCount: number, schem
 
 function lambdaColumn<T extends Column.Schema>({ value, valueKind, rowCount, schema }: Column.LambdaSpec<T>): Column<T['T']> {
     return {
-        _schema: schema,
+        schema: schema,
         '@array': void 0,
         isDefined: true,
         rowCount,
@@ -186,7 +190,7 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
 
     const isTyped = ColumnHelpers.isTypedArray(array);
     return {
-        _schema: schema,
+        schema: schema,
         '@array': array,
         isDefined: true,
         rowCount,
@@ -216,14 +220,14 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
 }
 
 function windowColumn<T>(column: Column<T>, start: number, end: number) {
-    if (!column.isDefined) return Column.Undefined(end - start, column._schema);
+    if (!column.isDefined) return Column.Undefined(end - start, column.schema);
     if (!!column['@array'] && ColumnHelpers.isTypedArray(column['@array'])) return windowTyped(column, start, end);
     return windowFull(column, start, end);
 }
 
 function windowTyped<T>(c: Column<T>, start: number, end: number): Column<T> {
     const array = ColumnHelpers.typedArrayWindow(c['@array'], { start, end });
-    return arrayColumn({ array, schema: c._schema, valueKind: c.valueKind }) as any;
+    return arrayColumn({ array, schema: c.schema, valueKind: c.valueKind }) as any;
 }
 
 function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
@@ -231,7 +235,7 @@ function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
     const value: Column<T>['value'] = start === 0 ? v : row => v(row + start);
     const rowCount = end - start;
     return {
-        _schema: c._schema,
+        schema: c.schema,
         '@array': void 0,
         isDefined: c.isDefined,
         rowCount,
@@ -265,7 +269,7 @@ function arrayView<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
     const array = c['@array']!;
     const ret = new (array as any).constructor(map.length);
     for (let i = 0, _i = map.length; i < _i; i++) ret[i] = array[map[i]];
-    return arrayColumn({ array: ret, schema: c._schema, valueKind: c.valueKind });
+    return arrayColumn({ array: ret, schema: c.schema, valueKind: c.valueKind });
 }
 
 function viewFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
@@ -273,7 +277,7 @@ function viewFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
     const value: Column<T>['value'] = row => v(map[row]);
     const rowCount = map.length;
     return {
-        _schema: c._schema,
+        schema: c.schema,
         '@array': void 0,
         isDefined: c.isDefined,
         rowCount,
@@ -295,7 +299,7 @@ function mapToArrayImpl<T, S>(c: Column<T>, f: (v: T) => S, ctor: Column.ArrayCt
 }
 
 function areColumnsEqual(a: Column<any>, b: Column<any>) {
-    if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a._schema.valueKind !== b._schema.valueKind) return false;
+    if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a.schema.valueKind !== b.schema.valueKind) return false;
     if (!!a['@array'] && !!b['@array']) return areArraysEqual(a, b);
     return areValuesEqual(a, b);
 }
@@ -314,4 +318,12 @@ function areValuesEqual(a: Column<any>, b: Column<any>) {
         if (va(i) !== vb(i)) return false;
     }
     return true;
+}
+
+function columnIndicesOf<T>(c: Column<T>, test: (e: T) => boolean) {
+    const ret = [], v = c.value;
+    for (let i = 0, _i = c.rowCount; i < _i; i++) {
+        if (test(v(i))) ret[ret.length] = i;
+    }
+    return ret;
 }

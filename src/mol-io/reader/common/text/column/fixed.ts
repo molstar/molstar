@@ -34,7 +34,7 @@ export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: numb
         return parseFloatSkipLeadingWhitespace(data, s, s + width);
     };
     return {
-        _schema: schema,
+        schema: schema,
         '@array': void 0,
         isDefined: true,
         rowCount,

@@ -26,7 +26,7 @@ export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T):
         : row => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
 
     return {
-        _schema: schema,
+        schema: schema,
         '@array': void 0,
         isDefined: true,
         rowCount,

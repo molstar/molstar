@@ -33,7 +33,7 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
 
 function createColumn<T>(schema: Column.Schema, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
     return {
-        _schema: schema,
+        schema: schema,
         '@array': field['@array'],
         isDefined: field.isDefined,
         rowCount: field.rowCount,
