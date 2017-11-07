@@ -7,7 +7,6 @@
 import { Database, Column } from 'mol-data/db'
 
 import Schema = Column.Schema
-import FP = Schema.FP
 
 const str = Schema.str;
 const float = Schema.float;
@@ -56,7 +55,7 @@ const item_units_conversion = {
     from_code: str,
     to_code: str,
     operator: str,
-    factor: float(FP(6, 6, 6))
+    factor: float
 }
 
 // TODO save frame dic schema

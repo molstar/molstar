@@ -18,10 +18,10 @@ export function toTable<Schema extends Table.Schema, R extends Table<Schema> = T
 type ColumnCtor = (field: Data.Field, category: Data.Category, key: string) => Column<any>
 
 function getColumnCtor(t: Column.Schema): ColumnCtor {
-    switch (t.kind) {
-        case 'str': return (f, c, k) => createColumn(Column.Type.str, f, f.str, f.toStringArray);
-        case 'int': return (f, c, k) => createColumn(Column.Type.int, f, f.int, f.toIntArray);
-        case 'float': return (f, c, k) => createColumn(Column.Type.float, f, f.float, f.toFloatArray);
+    switch (t.valueKind) {
+        case 'str': return (f, c, k) => createColumn(t, f, f.str, f.toStringArray);
+        case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
+        case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
         case 'tensor': return (f, c, k) => {
             const space = t.space;
             const value = (row: number) => Data.getTensor(c, k, space, row);
@@ -31,9 +31,9 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
 }
 
 
-function createColumn<T>(type: Column.Type, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
+function createColumn<T>(schema: Column.Schema, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
     return {
-        '@type': type,
+        _schema: schema,
         '@array': field['@array'],
         isDefined: field.isDefined,
         rowCount: field.rowCount,

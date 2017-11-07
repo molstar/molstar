@@ -106,20 +106,20 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
     const vW = state.header.precision.velocity + 4;
 
     const col = FixedColumn(lines);
-    const undef = Column.Undefined(state.numberOfAtoms, Column.Type.float);
+    const undef = Column.Undefined(state.numberOfAtoms, Column.Schema.float);
 
     const ret = {
         count: state.numberOfAtoms,
-        residueNumber: col(0, 5, Column.Type.int),
-        residueName: col(5, 5, Column.Type.str),
-        atomName: col(10, 5, Column.Type.str),
-        atomNumber: col(15, 5, Column.Type.int),
-        x: col(pO, pW, Column.Type.float),
-        y: col(pO + pW, pW, Column.Type.float),
-        z: col(pO + 2 * pW, pW, Column.Type.float),
-        vx: hasVelocities ? col(vO, vW, Column.Type.float) : undef,
-        vy: hasVelocities ? col(vO + vW, vW, Column.Type.float) : undef,
-        vz: hasVelocities ? col(vO + 2 * vW, vW, Column.Type.float) : undef,
+        residueNumber: col(0, 5, Column.Schema.int),
+        residueName: col(5, 5, Column.Schema.str),
+        atomName: col(10, 5, Column.Schema.str),
+        atomNumber: col(15, 5, Column.Schema.int),
+        x: col(pO, pW, Column.Schema.float),
+        y: col(pO + pW, pW, Column.Schema.float),
+        z: col(pO + 2 * pW, pW, Column.Schema.float),
+        vx: hasVelocities ? col(vO, vW, Column.Schema.float) : undef,
+        vy: hasVelocities ? col(vO + vW, vW, Column.Schema.float) : undef,
+        vz: hasVelocities ? col(vO + 2 * vW, vW, Column.Schema.float) : undef,
     };
 
     return ret;

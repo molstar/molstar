@@ -9,14 +9,14 @@ import Column from '../column'
 import Table from '../table'
 
 describe('column', () => {
-    const cc = Column.ofConst(10, 2, Column.Type.int);
-    const arr = Column.ofArray({ array: [1, 2, 3, 4], type: Column.Type.int });
+    const cc = Column.ofConst(10, 2, Column.Schema.int);
+    const arr = Column.ofArray({ array: [1, 2, 3, 4], schema: Column.Schema.int });
     const arrWindow = Column.window(arr, 1, 3);
 
-    const typed = Column.ofArray({ array: new Int32Array([1, 2, 3, 4]), type: Column.Type.int });
+    const typed = Column.ofArray({ array: new Int32Array([1, 2, 3, 4]), schema: Column.Schema.int });
     const typedWindow = Column.window(typed, 1, 3);
 
-    const numStr = Column.ofArray({ array: [1, 2] as any, type: Column.Type.str });
+    const numStr = Column.ofArray({ array: [1, 2] as any, schema: Column.Schema.str });
 
     it('constant', () => {
         expect(cc.rowCount).toBe(2);
@@ -68,8 +68,8 @@ describe('table', () => {
 
     it('ofColumns', () => {
         const t = Table.ofColumns(schema, {
-            x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
-            n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
+            x: Column.ofArray({ array: [10, -1], schema: Column.Schema.int }),
+            n: Column.ofArray({ array: ['row1', 'row2'], schema: Column.Schema.str }),
         });
         expect(t.x.toArray()).toEqual([10, -1]);
         expect(t.n.toArray()).toEqual(['row1', 'row2']);
@@ -86,11 +86,11 @@ describe('table', () => {
 
     it('pickColumns', () => {
         const t = Table.ofColumns(schema, {
-            x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
-            n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
+            x: Column.ofArray({ array: [10, -1], schema: Column.Schema.int }),
+            n: Column.ofArray({ array: ['row1', 'row2'], schema: Column.Schema.str }),
         });
         const s = { x: Column.Schema.int, y: Column.Schema.int };
-        const picked = Table.pickColumns(s, t, { y: Column.ofArray({ array: [3, 4], type: Column.Type.int })});
+        const picked = Table.pickColumns(s, t, { y: Column.ofArray({ array: [3, 4], schema: Column.Schema.int })});
         expect(picked._columns).toEqual(['x', 'y']);
         expect(picked._rowCount).toEqual(2);
         expect(picked.x.toArray()).toEqual([10, -1]);
@@ -99,8 +99,8 @@ describe('table', () => {
 
     it('view', () => {
         const t = Table.ofColumns(schema, {
-            x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
-            n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
+            x: Column.ofArray({ array: [10, -1], schema: Column.Schema.int }),
+            n: Column.ofArray({ array: ['row1', 'row2'], schema: Column.Schema.str }),
         });
         const s = { x: Column.Schema.int };
         const view = Table.view(t, s, [1]);
@@ -111,8 +111,8 @@ describe('table', () => {
 
     it('sort', () => {
         const t = Table.ofColumns<typeof schema>(schema, {
-            x: Column.ofArray({ array: [10, -1], type: Column.Type.int }),
-            n: Column.ofArray({ array: ['row1', 'row2'], type: Column.Type.str }),
+            x: Column.ofArray({ array: [10, -1], schema: Column.Schema.int }),
+            n: Column.ofArray({ array: ['row1', 'row2'], schema: Column.Schema.str }),
         });
         const { x } = t;
         const sorted = Table.sort(t, (i, j) => x.value(i) - x.value(j))

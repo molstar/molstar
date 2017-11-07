@@ -13,6 +13,7 @@ import Encoder from '../encoder'
 // TODO: automatically detect "best encoding" for integer arrays. This could be used for "fixed-point" as well.
 // TODO: add "repeat encoding"? [[1, 2], [1, 2], [1, 2]] --- Repeat ---> [[1, 2], 3]
 // TODO: Add "higher level fields"? (i.e. generalization of repeat)
+// TODO: Add tensor field definition
 
 export const enum FieldType {
     Str, Int, Float
@@ -29,6 +30,7 @@ export type FieldDefinition<Key = any, Data = any> =
     | FieldDefinitionBase<Key, Data> & { type: FieldType.Str, value(key: Key, data: Data): string }
     | FieldDefinitionBase<Key, Data> & { type: FieldType.Int, value(key: Key, data: Data): number }
     | FieldDefinitionBase<Key, Data> & { type: FieldType.Float, value(key: Key, data: Data): number }
+    // TODO: add tensor
 
 export interface FieldFormat {
     // TODO: do we actually need this?

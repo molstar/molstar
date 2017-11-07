@@ -40,9 +40,9 @@ export namespace Column {
         const suite = new B.Suite();
         const data = createData(1000);
         const nativeData = [...data as any];
-        const col = C.ofArray({ array: data, type: C.Type.float });
-        const lambda = C.ofLambda({ value: val, rowCount: data.length, type: C.Type.float });
-        const cnst = C.ofConst(10, data.length, C.Type.float);
+        const col = C.ofArray({ array: data, schema: C.Schema.float });
+        const lambda = C.ofLambda({ value: val, rowCount: data.length, schema: C.Schema.float });
+        const cnst = C.ofConst(10, data.length, C.Schema.float);
         suite
             .add('raw', () => raw(data))
             .add('native raw', () => raw(nativeData))
@@ -59,9 +59,9 @@ export namespace Column {
         const suite = new B.Suite();
         const data = createData(10000);
         const nativeData = [...data as any];
-        const col = C.ofArray({ array: data, type: C.Type.float });
-        const lambda = C.ofLambda({ value: val, rowCount: data.length, type: C.Type.float });
-        const cnst = C.ofConst(10, data.length, C.Type.float);
+        const col = C.ofArray({ array: data, schema: C.Schema.float });
+        const lambda = C.ofLambda({ value: val, rowCount: data.length, schema: C.Schema.float });
+        const cnst = C.ofConst(10, data.length, C.Schema.float);
         suite
             .add('raw', () => raw(data))
             .add('native raw', () => raw(nativeData))

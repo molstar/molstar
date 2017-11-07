@@ -56,7 +56,7 @@ namespace Table {
         for (const k of columns) {
             (ret as any)[k] = Column.ofLambda({
                 rowCount,
-                type: schema[k],
+                schema: schema[k],
                 value: r => rows[r][k],
                 valueKind: r => typeof rows[r][k] === 'undefined' ? Column.ValueKind.NotPresent : Column.ValueKind.Present
             })
@@ -71,7 +71,7 @@ namespace Table {
         ret._columns = columns;
         ret._schema = schema;
         for (const k of columns) {
-            (ret as any)[k] = Column.ofArray({ array: arrays[k], type: schema[k] })
+            (ret as any)[k] = Column.ofArray({ array: arrays[k], schema: schema[k] })
         }
         return ret as R;
     }

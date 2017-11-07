@@ -9,14 +9,14 @@ import { Tokens } from '../tokenizer'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../number-parser'
 
 export default function TokenColumnProvider(tokens: Tokens) {
-    return function<T extends Column.Type>(type: T) {
+    return function<T extends Column.Schema>(type: T) {
         return TokenColumn(tokens, type);
     }
 }
 
-export function TokenColumn<T extends Column.Type>(tokens: Tokens, type: T): Column<T['T']> {
+export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T): Column<T['T']> {
     const { data, indices, count: rowCount } = tokens;
-    const { kind } = type;
+    const { valueKind: kind } = schema;
 
     const value: Column<T['T']>['value'] =
           kind === 'str'
@@ -26,7 +26,7 @@ export function TokenColumn<T extends Column.Type>(tokens: Tokens, type: T): Col
         : row => fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
 
     return {
-        '@type': type,
+        _schema: schema,
         '@array': void 0,
         isDefined: true,
         rowCount,

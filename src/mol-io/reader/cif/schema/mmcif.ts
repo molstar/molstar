@@ -7,7 +7,6 @@
 import { Database, Column } from 'mol-data/db'
 
 import Schema = Column.Schema
-import FP = Schema.FP
 
 const str = Schema.str;
 const int = Schema.int;
@@ -24,7 +23,7 @@ const entity = {
     type: Schema.aliased<EntityType>(str),
     src_method: str,
     pdbx_description: str,
-    formula_weight: float(FP(6, 3, 1)),
+    formula_weight: float,
     pdbx_number_of_molecules: int,
     details: str,
     pdbx_mutation: str,
@@ -39,12 +38,12 @@ const exptl = {
 
 const cell = {
     entry_id: str,
-    length_a: float(FP(6, 6, 6)),
-    length_b: float(FP(6, 6, 6)),
-    length_c: float(FP(6, 6, 6)),
-    angle_alpha: float(FP(6, 6, 6)),
-    angle_beta: float(FP(6, 6, 6)),
-    angle_gamma: float(FP(6, 6, 6)),
+    length_a: float,
+    length_b: float,
+    length_c: float,
+    angle_alpha: float,
+    angle_beta: float,
+    angle_gamma: float,
     Z_PDB: int,
     pdbx_unique_axis: str
 }
@@ -150,7 +149,7 @@ const struct_conn = {
     pdbx_ptnr3_label_alt_id: str,
     pdbx_ptnr3_PDB_ins_code: str,
     details: str,
-    pdbx_dist_value: float(FP(6, 3, 3)),
+    pdbx_dist_value: float,
     pdbx_value_order: Schema.aliased<BondValueOrder>(str)
 }
 
@@ -221,8 +220,8 @@ const atom_site = {
     Cartn_x: Schema.coord,
     Cartn_y: Schema.coord,
     Cartn_z: Schema.coord,
-    occupancy: float(FP(2, 2, 1)),
-    B_iso_or_equiv: float(FP(2, 2, 1)),
+    occupancy: float,
+    B_iso_or_equiv: float,
     auth_atom_id: str,
     auth_comp_id: str,
     auth_asym_id: str,

@@ -8,7 +8,7 @@ import * as ColumnHelpers from './column-helpers'
 import { Tensor as Tensors } from 'mol-math/linear-algebra'
 
 interface Column<T> {
-    readonly '@type': Column.Type,
+    readonly _schema: Column.Schema,
     readonly '@array': ArrayLike<any> | undefined,
 
     readonly isDefined: boolean,
@@ -20,53 +20,30 @@ interface Column<T> {
 }
 
 namespace Column {
-    export type Type<T = any> = Type.Str | Type.Int | Type.Float | Type.Tensor | Type.Aliased<T>
     export type ArrayCtor<T> = { new(size: number): ArrayLike<T> }
-
-    export namespace Type {
-        export type Str = { T: string, kind: 'str' }
-        export type Int = { T: number, kind: 'int' }
-        export type Float = { T: number, kind: 'float' }
-        export type Tensor = { T: Tensors, space: Tensors.Space, kind: 'tensor' };
-        export type Aliased<T> = { T: T } & { kind: 'str' | 'int' | 'float' }
-
-        export const str: Str = { T: '', kind: 'str' };
-        export const int: Int = { T: 0, kind: 'int' };
-        export const float: Float = { T: 0, kind: 'float' };
-
-        export function tensor(space: Tensors.Space): Tensor { return { T: space.create(), space, kind: 'tensor' }; }
-        export function aliased<T>(t: Type): Aliased<T> { return t as any as Aliased<T>; }
-    }
 
     export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor
 
     export namespace Schema {
-        export interface FloatPrecision {
-            low: number,
-            acceptable: number,
-            full: number
-        }
-
         export type Scalar<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T>
 
-        export function FP(full: number, acceptable: number, low: number): FloatPrecision { return { low, full, acceptable }; }
+        export type Str = { '@type': 'str', T: string, valueKind: 'str' }
+        export type Int = { '@type': 'int', T: number, valueKind: 'int' }
+        export type Float = { '@type': 'float', T: number, valueKind: 'float' }
+        export type Coordinate = { '@type': 'coord', T: number, valueKind: 'float' }
 
-        export type Str = { '@type': 'str', T: string, kind: 'str' }
-        export type Int = { '@type': 'int', T: number, kind: 'int' }
-        export type Float = { '@type': 'float', T: number, kind: 'float', precision: FloatPrecision }
-        export type Coordinate = { '@type': 'coord', T: number, kind: 'float' }
+        export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space, valueKind: 'tensor' };
+        export type Aliased<T> = { '@type': 'aliased', T: T, valueKind: 'str' | 'int' }
 
-        export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space, kind: 'tensor' };
-        export type Aliased<T> = { '@type': 'aliased', T: T } & { kind: 'str' | 'int' | 'float' }
+        export const str: Str = { '@type': 'str', T: '', valueKind: 'str' };
+        export const int: Int = { '@type': 'int', T: 0, valueKind: 'int' };
+        export const coord: Coordinate = { '@type': 'coord', T: 0, valueKind: 'float' };
+        export const float: Float = { '@type': 'float', T: 0, valueKind: 'float' };
 
-        export const str: Str = { '@type': 'str', T: '', kind: 'str' };
-        export const int: Int = { '@type': 'int', T: 0, kind: 'int' };
-        export const coord: Coordinate = { '@type': 'coord', T: 0, kind: 'float' };
-        export function float(precision: FloatPrecision): Float { return { '@type': 'float', T: 0, kind: 'float', precision } };
-
-        export function tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, kind: 'tensor' }; }
+        export function tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, valueKind: 'tensor' }; }
         export function vector(dim: number): Tensor { return tensor(Tensors.Vector(dim)); }
         export function matrix(rows: number, cols: number): Tensor { return tensor(Tensors.ColumnMajorMatrix(rows, cols)); }
+
         export function aliased<T>(t: Schema): Aliased<T> { return t as any as Aliased<T>; }
     }
 
@@ -77,53 +54,53 @@ namespace Column {
         end?: number
     }
 
-    export interface LambdaSpec<T extends Type> {
+    export interface LambdaSpec<T extends Schema> {
         value: (row: number) => T['T'],
         rowCount: number,
-        type: T,
+        schema: T,
         valueKind?: (row: number) => ValueKind,
     }
 
-    export interface ArraySpec<T extends Type> {
+    export interface ArraySpec<T extends Schema> {
         array: ArrayLike<T['T']>,
-        type: T,
+        schema: T,
         valueKind?: (row: number) => ValueKind
     }
 
-    export interface MapSpec<S extends Type, T extends Type> {
+    export interface MapSpec<S extends Schema, T extends Schema> {
         f: (v: S['T']) => T['T'],
-        type: T,
+        schema: T,
         valueKind?: (row: number) => ValueKind,
     }
 
     export const enum ValueKind { Present = 0, NotPresent = 1, Unknown = 2 }
 
-    export function Undefined<T extends Type>(rowCount: number, type: T): Column<T['T']> {
-        return constColumn(type['T'], rowCount, type, ValueKind.NotPresent);
+    export function Undefined<T extends Schema>(rowCount: number, schema: T): Column<T['T']> {
+        return constColumn(schema['T'], rowCount, schema, ValueKind.NotPresent);
     }
 
-    export function ofConst<T extends Type>(v: T['T'], rowCount: number, type: T): Column<T['T']> {
+    export function ofConst<T extends Schema>(v: T['T'], rowCount: number, type: T): Column<T['T']> {
         return constColumn(v, rowCount, type, ValueKind.Present);
     }
 
-    export function ofLambda<T extends Type>(spec: LambdaSpec<T>): Column<T['T']> {
+    export function ofLambda<T extends Schema>(spec: LambdaSpec<T>): Column<T['T']> {
         return lambdaColumn(spec);
     }
 
-    export function ofArray<T extends Column.Type>(spec: Column.ArraySpec<T>): Column<T['T']> {
+    export function ofArray<T extends Column.Schema>(spec: Column.ArraySpec<T>): Column<T['T']> {
         return arrayColumn(spec);
     }
 
     export function ofIntArray(array: ArrayLike<number>) {
-        return arrayColumn({ array, type: Type.int });
+        return arrayColumn({ array, schema: Schema.int });
     }
 
     export function ofFloatArray(array: ArrayLike<number>) {
-        return arrayColumn({ array, type: Type.float });
+        return arrayColumn({ array, schema: Schema.float });
     }
 
     export function ofStringArray(array: ArrayLike<string>) {
-        return arrayColumn({ array, type: Type.str });
+        return arrayColumn({ array, schema: Schema.str });
     }
 
     export function window<T>(column: Column<T>, start: number, end: number) {
@@ -150,8 +127,8 @@ namespace Column {
     /** Makes the column backned by an array. Useful for columns that accessed often. */
     export function asArrayColumn<T>(c: Column<T>, array?: ArrayCtor<T>): Column<T> {
         if (c['@array']) return c;
-        if (!c.isDefined) return Undefined(c.rowCount, c['@type']) as any as Column<T>;
-        return arrayColumn({ array: c.toArray({ array }), type: c['@type'] as any, valueKind: c.valueKind });
+        if (!c.isDefined) return Undefined(c.rowCount, c._schema) as any as Column<T>;
+        return arrayColumn({ array: c.toArray({ array }), schema: c._schema, valueKind: c.valueKind });
     }
 }
 
@@ -166,10 +143,10 @@ function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> {
     return map;
 }
 
-function constColumn<T extends Column.Type>(v: T['T'], rowCount: number, type: T, valueKind: Column.ValueKind): Column<T['T']> {
+function constColumn<T extends Column.Schema>(v: T['T'], rowCount: number, schema: T, valueKind: Column.ValueKind): Column<T['T']> {
     const value: Column<T['T']>['value'] = row => v;
     return {
-        '@type': type,
+        _schema: schema,
         '@array': void 0,
         isDefined: valueKind === Column.ValueKind.Present,
         rowCount,
@@ -184,9 +161,9 @@ function constColumn<T extends Column.Type>(v: T['T'], rowCount: number, type: T
     }
 }
 
-function lambdaColumn<T extends Column.Type>({ value, valueKind, rowCount, type }: Column.LambdaSpec<T>): Column<T['T']> {
+function lambdaColumn<T extends Column.Schema>({ value, valueKind, rowCount, schema }: Column.LambdaSpec<T>): Column<T['T']> {
     return {
-        '@type': type,
+        _schema: schema,
         '@array': void 0,
         isDefined: true,
         rowCount,
@@ -201,21 +178,21 @@ function lambdaColumn<T extends Column.Type>({ value, valueKind, rowCount, type 
     }
 }
 
-function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.ArraySpec<T>): Column<T['T']> {
+function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Column.ArraySpec<T>): Column<T['T']> {
     const rowCount = array.length;
-    const value: Column<T['T']>['value'] = type.kind === 'str'
+    const value: Column<T['T']>['value'] = schema.valueKind === 'str'
         ? row => { const v = array[row]; return typeof v === 'string' ? v : '' + v; }
         : row => array[row];
 
     const isTyped = ColumnHelpers.isTypedArray(array);
     return {
-        '@type': type,
+        _schema: schema,
         '@array': array,
         isDefined: true,
         rowCount,
         value,
         valueKind: valueKind ? valueKind : row => Column.ValueKind.Present,
-        toArray: type.kind === 'str'
+        toArray: schema.valueKind === 'str'
             ? params => {
                 const { start, end } = ColumnHelpers.getArrayBounds(rowCount, params);
                 const ret = new (params && typeof params.array !== 'undefined' ? params.array : (array as any).constructor)(end - start) as any;
@@ -239,14 +216,14 @@ function arrayColumn<T extends Column.Type>({ array, type, valueKind }: Column.A
 }
 
 function windowColumn<T>(column: Column<T>, start: number, end: number) {
-    if (!column.isDefined) return Column.Undefined(end - start, column['@type']);
+    if (!column.isDefined) return Column.Undefined(end - start, column._schema);
     if (!!column['@array'] && ColumnHelpers.isTypedArray(column['@array'])) return windowTyped(column, start, end);
     return windowFull(column, start, end);
 }
 
 function windowTyped<T>(c: Column<T>, start: number, end: number): Column<T> {
     const array = ColumnHelpers.typedArrayWindow(c['@array'], { start, end });
-    return arrayColumn({ array, type: c['@type'], valueKind: c.valueKind }) as any;
+    return arrayColumn({ array, schema: c._schema, valueKind: c.valueKind }) as any;
 }
 
 function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
@@ -254,7 +231,7 @@ function windowFull<T>(c: Column<T>, start: number, end: number): Column<T> {
     const value: Column<T>['value'] = start === 0 ? v : row => v(row + start);
     const rowCount = end - start;
     return {
-        '@type': c['@type'],
+        _schema: c._schema,
         '@array': void 0,
         isDefined: c.isDefined,
         rowCount,
@@ -288,7 +265,7 @@ function arrayView<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
     const array = c['@array']!;
     const ret = new (array as any).constructor(map.length);
     for (let i = 0, _i = map.length; i < _i; i++) ret[i] = array[map[i]];
-    return arrayColumn({ array: ret, type: c['@type'], valueKind: c.valueKind });
+    return arrayColumn({ array: ret, schema: c._schema, valueKind: c.valueKind });
 }
 
 function viewFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
@@ -296,7 +273,7 @@ function viewFull<T>(c: Column<T>, map: ArrayLike<number>): Column<T> {
     const value: Column<T>['value'] = row => v(map[row]);
     const rowCount = map.length;
     return {
-        '@type': c['@type'],
+        _schema: c._schema,
         '@array': void 0,
         isDefined: c.isDefined,
         rowCount,
@@ -318,7 +295,7 @@ function mapToArrayImpl<T, S>(c: Column<T>, f: (v: T) => S, ctor: Column.ArrayCt
 }
 
 function areColumnsEqual(a: Column<any>, b: Column<any>) {
-    if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a['@type'].kind !== b['@type'].kind) return false;
+    if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a._schema.valueKind !== b._schema.valueKind) return false;
     if (!!a['@array'] && !!b['@array']) return areArraysEqual(a, b);
     return areValuesEqual(a, b);
 }

@@ -9,14 +9,14 @@ import { trimStr, Tokens } from '../tokenizer'
 import { parseIntSkipLeadingWhitespace, parseFloatSkipLeadingWhitespace } from '../number-parser'
 
 export default function FixedColumnProvider(lines: Tokens) {
-    return function<T extends Column.Type>(offset: number, width: number, type: T) {
+    return function<T extends Column.Schema>(offset: number, width: number, type: T) {
         return FixedColumn(lines, offset, width, type);
     }
 }
 
-export function FixedColumn<T extends Column.Type>(lines: Tokens, offset: number, width: number, type: T): Column<T['T']> {
+export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: number, width: number, schema: T): Column<T['T']> {
     const { data, indices, count: rowCount } = lines;
-    const { kind } = type;
+    const { valueKind: kind } = schema;
 
     const value: Column<T['T']>['value'] = kind === 'str' ? row => {
         let s = indices[2 * row] + offset, le = indices[2 * row + 1];
@@ -34,7 +34,7 @@ export function FixedColumn<T extends Column.Type>(lines: Tokens, offset: number
         return parseFloatSkipLeadingWhitespace(data, s, s + width);
     };
     return {
-        '@type': type,
+        _schema: schema,
         '@array': void 0,
         isDefined: true,
         rowCount,
