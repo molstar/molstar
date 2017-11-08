@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 molio contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -12,11 +12,15 @@ require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
 const writeFileAsync = util.promisify(fs.writeFile);
 
-import Gro from './reader/gro/parser'
-import CIF from './reader/cif/index'
+import Gro from 'mol-io/reader/gro/parser'
+import CIF from 'mol-io/reader/cif'
+
+import Computation from 'mol-util/computation'
+
+import { Model } from 'mol-model/structure'
 
 // import { toTypedFrame as applySchema } from './reader/cif/schema'
-import { generateSchema } from './reader/cif/schema/utils'
+import { generateSchema } from 'mol-io/reader/cif/schema/utils'
 
 const file = '1crn.gro'
 // const file = 'water.gro'
@@ -110,6 +114,25 @@ async function runCIF(input: string | Uint8Array) {
     console.log(mmcif.entity.type.toArray());
     console.log(mmcif.pdbx_struct_oper_list.matrix.value(0));
 
+    console.time('createModels');
+    const models = Model.create({ kind: 'mmCIF', data: mmcif });
+    console.timeEnd('createModels');
+
+    for (let i = 0; i < models.length; i++) {
+        console.log(models[i].id, models[i].conformation.id);
+    }
+
+    // console.log(models[0].hierarchy.isMonotonous);
+    // console.log(models[0].hierarchy.atoms.type_symbol.value(0));
+    // console.log(models[0].hierarchy.residues.auth_comp_id.value(0));
+    // console.log(models[0].hierarchy.residues.auth_comp_id.value(1));
+    // console.log(models[0].hierarchy.chains.auth_asym_id.value(0));
+    // console.log(models[0].hierarchy.chains.auth_asym_id.value(1));
+    // console.log(models[0].hierarchy.chains.label_asym_id.value(1));
+    // console.log(models[0].conformation.x[0]);
+    // console.log(models[0].conformation.y[0]);
+    // console.log(models[0].conformation.z[0]);
+
     // const schema = await _dic()
     // if (schema) {
     //     const mmcif2 = applySchema(schema, data)
@@ -123,7 +146,7 @@ async function runCIF(input: string | Uint8Array) {
 }
 
 export async function _cif() {
-    let path = `./examples/1cbs_updated.cif`;
+    let path = `./examples/1grm_updated.cif`;
     // path = '../test/3j3q.cif'  // lets have a relative path for big test files
     const input = await readFileAsync(path, 'utf8')
     console.log('------------------');
@@ -173,7 +196,6 @@ export async function _dic() {
 
 _dic();
 
-import Computation from './utils/computation'
 const comp = Computation.create(async ctx => {
     for (let i = 0; i < 0; i++) {
         await new Promise(res => setTimeout(res, 500));

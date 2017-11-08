@@ -1,14 +1,24 @@
 {
     "compilerOptions": {
-        "target": "es6",
+        "target": "es5",
         "alwaysStrict": true,
         "noImplicitAny": true,
         "noImplicitThis": true,
         "sourceMap": false,
         "noUnusedLocals": true,
         "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        //"downlevelIteration": true,
         "lib": [ "es6", "dom" ],
-        "outDir": "build/js/src"
+        "outDir": "build/node_modules",
+        "baseUrl": "src",
+        "paths": {
+            "mol-util": ["./mol-util", "./mol-util/index.ts"],
+            "mol-data": ["./mol-data", "./mol-data/index.ts"],
+            "mol-math": ["./mol-math"],
+            "mol-io": ["./mol-io"],
+            "mol-model": ["./mol-model"]
+        }
     },
-    "include": [ "src/**/*" ]
+    "include": [ "**/*" ]
 }
