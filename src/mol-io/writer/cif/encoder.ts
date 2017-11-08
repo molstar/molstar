@@ -14,6 +14,7 @@ import Encoder from '../encoder'
 // TODO: add "repeat encoding"? [[1, 2], [1, 2], [1, 2]] --- Repeat ---> [[1, 2], 3]
 // TODO: Add "higher level fields"? (i.e. generalization of repeat)
 // TODO: Add tensor field definition
+// TODO: align "data blocks" to 8 byte offsets
 
 export const enum FieldType {
     Str, Int, Float

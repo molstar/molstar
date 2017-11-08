@@ -74,6 +74,7 @@ describe('tensor', () => {
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 4; j++) {
                 M.set(data, i, j, o);
+                expect(M.get(data, i, j)).toBe(o);
                 exp[o] = o;
                 o++;
             }
@@ -91,6 +92,7 @@ describe('tensor', () => {
         for (let j = 0; j < 4; j++) {
             for (let i = 0; i < 3; i++) {
                 M.set(data, i, j, o);
+                expect(M.get(data, i, j)).toBe(o);
                 exp[o] = o;
                 o++;
             }
@@ -109,6 +111,7 @@ describe('tensor', () => {
             for (let j = 0; j < 4; j++) {
                 for (let k = 0; k < 5; k++) {
                     M.set(data, i, j, k, o);
+                    expect(M.get(data, i, j, k)).toBe(o);
                     exp[o] = o;
                     o++;
                 }
@@ -128,6 +131,7 @@ describe('tensor', () => {
             for (let k = 0; k < 3; k++) {
                 for (let j = 0; j < 3; j++) {
                     M.set(data, i, j, k, o);
+                    expect(M.get(data, i, j, k)).toBe(o);
                     exp[o] = o;
                     o++;
                 }
@@ -147,6 +151,7 @@ describe('tensor', () => {
             for (let i = 0; i < 3; i++) {
                 for (let k = 0; k < 3; k++) {
                     M.set(data, i, j, k, o);
+                    expect(M.get(data, i, j, k)).toBe(o);
                     exp[o] = o;
                     o++;
                 }
@@ -165,6 +170,7 @@ describe('tensor', () => {
             for (let k = 0; k < 3; k++) {
                 for (let i = 0; i < 3; i++) {
                     M.set(data, i, j, k, o);
+                    expect(M.get(data, i, j, k)).toBe(o);
                     exp[o] = o;
                     o++;
                 }
@@ -184,6 +190,7 @@ describe('tensor', () => {
             for (let i = 0; i < 3; i++) {
                 for (let j = 0; j < 3; j++) {
                     M.set(data, i, j, k, o);
+                    expect(M.get(data, i, j, k)).toBe(o);
                     exp[o] = o;
                     o++;
                 }
@@ -203,8 +210,53 @@ describe('tensor', () => {
             for (let j = 0; j < 3; j++) {
                 for (let i = 0; i < 3; i++) {
                     M.set(data, i, j, k, o);
+                    expect(M.get(data, i, j, k)).toBe(o);
                     exp[o] = o;
                     o++;
+                }
+            }
+        }
+
+        expect(data).toEqual(exp);
+    });
+
+    it('4d jikl', () => {
+        const M = T.Space([2, 3, 4, 5], [1, 0, 2, 3]);
+        const data = M.create();
+        const exp = new Float64Array(2 * 3 * 4 * 5)
+
+        let o = 0;
+        for (let j = 0; j < 3; j++) {
+            for (let i = 0; i < 2; i++) {
+                for (let k = 0; k < 4; k++) {
+                    for (let l = 0; l < 5; l++) {
+                        M.set(data, i, j, k, l, o);
+                        expect(M.get(data, i, j, k, l)).toBe(o);
+                        exp[o] = o;
+                        o++;
+                    }
+                }
+            }
+        }
+
+        expect(data).toEqual(exp);
+    });
+
+    it('4d jilk', () => {
+        const M = T.Space([2, 3, 4, 5], [1, 0, 3, 2]);
+        const data = M.create();
+        const exp = new Float64Array(2 * 3 * 4 * 5)
+
+        let o = 0;
+        for (let j = 0; j < 3; j++) {
+            for (let i = 0; i < 2; i++) {
+                for (let l = 0; l < 5; l++) {
+                    for (let k = 0; k < 4; k++) {
+                        M.set(data, i, j, k, l, o);
+                        expect(M.get(data, i, j, k, l)).toBe(o);
+                        exp[o] = o;
+                        o++;
+                    }
                 }
             }
         }
