@@ -241,9 +241,11 @@ export namespace PropertyAccess {
         console.log(to_mmCIF('test', s));
     }
 
-    export function testAssembly(s: Structure) {
+    export function testAssembly(id: string, s: Structure) {
+        console.time('assembly')
         const a = Symmetry.buildAssembly(s, '1');
-        fs.writeFileSync('e:/test/molstar/1hrv_assembly.cif', to_mmCIF('test', a, false));
+        console.timeEnd('assembly')
+        fs.writeFileSync(`e:/test/molstar/${id}_assembly.bcif`, to_mmCIF(id, a, true));
         console.log('exported');
         //write(a);
     }
@@ -252,12 +254,12 @@ export namespace PropertyAccess {
         //const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
         //const { structures, models, mmcif } = await readCIF('e:/test/quick/3j3q_full.bcif');
         //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
-        const { structures, models/*, mmcif*/ } = await readCIF('e:/test/quick/1hrv_updated.cif');
+        const { structures, models/*, mmcif*/ } = await readCIF('e:/test/quick/5j7v_updated.cif');
 
         //console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
         // console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
 
-        testAssembly(structures[0]);
+        testAssembly('5j7v', structures[0]);
         throw '';
 
         console.log(models[0].symmetry.assemblies);

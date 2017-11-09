@@ -21,10 +21,12 @@ namespace SymmetryOperator {
     export const DefaultName = '1_555'
     export const Default: SymmetryOperator = create(DefaultName, Mat4.identity());
 
+    const RotationEpsilon = 0.0001;
+
     export function create(name: string, matrix: Mat4, hkl?: number[]): SymmetryOperator {
         const _hkl = hkl ? Vec3.create(hkl[0], hkl[1], hkl[2]) : Vec3.zero();
         if (Mat4.isIdentity(matrix)) return { name, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl };
-        if (!Mat4.isRotationAndTranslation(matrix)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
+        if (!Mat4.isRotationAndTranslation(matrix, RotationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
         return { name, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl };
     }
 
