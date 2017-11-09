@@ -242,12 +242,16 @@ export namespace PropertyAccess {
     }
 
     export async function run() {
-        const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
+        //const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
         //const { structures, models, mmcif } = await readCIF('e:/test/quick/3j3q_full.bcif');
         //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
+        const { structures, models/*, mmcif*/ } = await readCIF('e:/test/quick/1hrv_updated.cif');
 
-        console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
-        console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
+        //console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
+        // console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
+
+        console.log(models[0].symmetry.assemblies);
+
 
         //const { structures, models } = await readCIF('e:/test/molstar/3j3q.bcif');
 

@@ -14,6 +14,7 @@ import Conformation from '../properties/conformation'
 import Symmetry from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { ElementSymbol} from '../types'
+import createAssemblies from './mmcif/assembly'
 
 import mmCIF_Format = Format.mmCIF
 
@@ -77,8 +78,8 @@ function getConformation({ data }: mmCIF_Format, bounds: Interval): Conformation
     }
 }
 
-function getSymmetry({ data }: mmCIF_Format): Symmetry {
-    return Symmetry.Empty;
+function getSymmetry(format: mmCIF_Format): Symmetry {
+    return { assemblies: createAssemblies(format) };
 }
 
 function isHierarchyDataEqual(a: Hierarchy.Hierarchy, b: Hierarchy.Data) {

@@ -8,12 +8,13 @@ import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import { Query } from '../../query'
 import { Model } from '../../model'
 
+/** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
-    readonly query: Query,
+    readonly selector: Query,
     readonly operators: ReadonlyArray<SymmetryOperator>
 }
 
-export type OperatorGroups = ReadonlyArray<ReadonlyArray<OperatorGroup>>
+export type OperatorGroups = ReadonlyArray<OperatorGroup>
 
 export class Assembly {
     readonly id: string;
@@ -33,7 +34,7 @@ export class Assembly {
 }
 
 export namespace Assembly {
-    export function create(id: string, details: string, operatorsProvider: () => OperatorGroups) {
+    export function create(id: string, details: string, operatorsProvider: () => OperatorGroups): Assembly {
         return new Assembly(id, details, operatorsProvider);
     }
 }
@@ -45,7 +46,12 @@ interface Symmetry {
 namespace Symmetry {
     export const Empty: Symmetry = { assemblies: [] };
 
-    export function findAssembly(model: Model): Assembly | undefined {
+    export function findAssembly(model: Model, id: string): Assembly | undefined {
+        const { assemblies } = model.symmetry;
+        const _id = id.toLocaleLowerCase();
+        for (let i = 0; i < assemblies.length; i++) {
+            if (assemblies[i].id.toLowerCase() === _id) return assemblies[i];
+        }
         return void 0;
     }
 }
