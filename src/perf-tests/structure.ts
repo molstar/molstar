@@ -10,7 +10,7 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Atom, AtomSet, Selection } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, Atom, AtomSet, Selection, Symmetry } from 'mol-model/structure'
 import { OrderedSet as OrdSet, Segmentation } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -241,6 +241,13 @@ export namespace PropertyAccess {
         console.log(to_mmCIF('test', s));
     }
 
+    export function testAssembly(s: Structure) {
+        const a = Symmetry.buildAssembly(s, '1');
+        fs.writeFileSync('e:/test/molstar/1hrv_assembly.cif', to_mmCIF('test', a, false));
+        console.log('exported');
+        //write(a);
+    }
+
     export async function run() {
         //const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
         //const { structures, models, mmcif } = await readCIF('e:/test/quick/3j3q_full.bcif');
@@ -249,6 +256,9 @@ export namespace PropertyAccess {
 
         //console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
         // console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
+
+        testAssembly(structures[0]);
+        throw '';
 
         console.log(models[0].symmetry.assemblies);
 

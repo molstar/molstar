@@ -439,6 +439,11 @@ export namespace Mat4 {
         return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
     }
 
+    /**
+     * Check if the matrix has the form
+     * [ Rotation    Translation ]
+     * [ 0           1           ]
+     */
     export function isRotationAndTranslation(a: Mat4, eps?: number) {
         return _isRotationAndTranslation(a, typeof eps !== 'undefined' ? eps : EPSILON.Value)
     }
