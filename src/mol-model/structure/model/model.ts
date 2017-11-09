@@ -6,8 +6,9 @@
 
 import UUID from 'mol-util/uuid'
 import Format from './format'
-import HierarchyProperties from './properties/hierarchy'
-import ConformationProperties from './properties/conformation'
+import Hierarchy from './properties/hierarchy'
+import Conformation from './properties/conformation'
+import Symmetry from './properties/symmetry'
 import from_mmCIF from './formats/mmcif'
 
 
@@ -23,8 +24,9 @@ interface Model extends Readonly<{
 
     sourceData: Format,
 
-    hierarchy: HierarchyProperties,
-    conformation: ConformationProperties,
+    hierarchy: Hierarchy,
+    conformation: Conformation,
+    symmetry: Symmetry,
 
     atomCount: number
 }> { }

@@ -7,5 +7,6 @@
 import Model from './model/model'
 import * as Types from './model/types'
 import Format from './model/format'
+import Symmetry from './model/properties/symmetry'
 
-export { Model, Types, Format }
+export { Model, Types, Format, Symmetry }
