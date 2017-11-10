@@ -5,6 +5,7 @@
  */
 
 import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
+import AtomGroup from './atom/group'
 import { Model } from '../model'
 
 interface Unit extends SymmetryOperator.ArrayMapping {
@@ -18,6 +19,9 @@ interface Unit extends SymmetryOperator.ArrayMapping {
     // The transform and and inverse are baked into the "getPosition" function
     readonly operator: SymmetryOperator,
 
+    // The "full" atom group corresponding to this unit.
+    readonly naturalGroup: AtomGroup,
+
     // Reference some commonly accessed things for faster access.
     readonly residueIndex: ArrayLike<number>,
     readonly chainIndex: ArrayLike<number>,
@@ -28,7 +32,7 @@ interface Unit extends SymmetryOperator.ArrayMapping {
 }
 
 namespace Unit {
-    export function create(id: number, model: Model, operator: SymmetryOperator): Unit {
+    export function create(id: number, model: Model, operator: SymmetryOperator, naturalGroup: AtomGroup): Unit {
         const h = model.hierarchy;
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.conformation);
 
@@ -36,6 +40,7 @@ namespace Unit {
             id,
             model,
             operator,
+            naturalGroup,
             residueIndex: h.residueSegments.segmentMap,
             chainIndex: h.chainSegments.segmentMap,
             hierarchy: model.hierarchy,

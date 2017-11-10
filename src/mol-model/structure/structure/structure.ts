@@ -10,6 +10,7 @@ import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import { Model, Format } from '../model'
 import Unit from './unit'
 import AtomSet from './atom/set'
+import AtomGroup from './atom/group'
 import Atom from './atom'
 
 
@@ -35,7 +36,8 @@ namespace Structure {
         const builder = Builder();
 
         for (let c = 0; c < chains.count; c++) {
-            const unit = Unit.create(c, model, SymmetryOperator.Default);
+            const group = AtomGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
+            const unit = Unit.create(c, model, SymmetryOperator.Default, group);
             builder.add(unit, OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
         }
 

@@ -16,8 +16,10 @@ type Selection =
 // TODO: Do not allow to change unit set in the middle of a query, create a differnt language to control assemblies etc.
 /*
 type Selection =
-  | { kind: 'sequence', units: UnitCollection, sets: AtomSet[] }
-  | { kind: 'atom-set', units: UnitCollection, set: AtomSet }
+  | { kind: 'sequence', structure: Structure, sets: AtomSet[] }
+  | { kind: 'atom-set', structure: Structure, set: AtomSet }
+
+  structure allows for good unions.
 */
 
 namespace Selection {
