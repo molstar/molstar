@@ -44,6 +44,7 @@ namespace Structure {
     }
 
     export interface Builder {
+        add(unit: Unit, atoms: OrderedSet): void,
         addUnit(unit: Unit): void,
         addAtoms(unitId: number, atoms: OrderedSet): void,
         getStructure(): Structure,
@@ -55,6 +56,7 @@ namespace Structure {
         private atoms = Object.create(null);
         atomCount = 0;
 
+        add(unit: Unit, atoms: OrderedSet) { this.addUnit(unit); this.addAtoms(unit.id, atoms); }
         addUnit(unit: Unit) { this.units[unit.id] = unit; }
         addAtoms(unitId: number, atoms: OrderedSet) { this.atoms[unitId] = atoms; this.atomCount += OrderedSet.size(atoms); }
         getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, AtomSet.create(this.atoms)) : Empty; }

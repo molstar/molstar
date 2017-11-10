@@ -23,12 +23,9 @@ function buildAssemblyImpl(structure: Structure, name: string) {
     const assembly = ModelSymmetry.findAssembly(models[0], name);
     if (!assembly) throw new Error(`Assembly '${name}' is not defined.`);
 
-    const { operatorGroups } = assembly;
+    const assembler = Structure.Builder();
 
-    const assemblyUnits = Object.create(null);
-    const assemblyAtoms = Object.create(null);
-
-    for (const g of operatorGroups) {
+    for (const g of assembly.operatorGroups) {
         const selection = g.selector(structure);
         if (Selection.structureCount(selection) === 0) continue;
         const { units, atoms } = Selection.union(selection);
@@ -37,15 +34,11 @@ function buildAssemblyImpl(structure: Structure, name: string) {
 
         for (const oper of g.operators) {
             for (let uI = 0, _uI = unitIds.length; uI < _uI; uI++) {
-                const unitId = unitIds[uI];
-                const unit = units[unitId];
-
-                const newUnit = Unit.create(unit.model, oper);
-                assemblyUnits[newUnit.id] = newUnit;
-                assemblyAtoms[newUnit.id] = AtomSet.unitGetByIndex(atoms, uI);
+                const unit = units[unitIds[uI]];
+                assembler.add(Unit.create(unit.model, oper), AtomSet.unitGetByIndex(atoms, uI));
             }
         }
     }
 
-    return Structure.create(assemblyUnits, AtomSet.create(assemblyAtoms));
+    return assembler.getStructure();
 }
