@@ -6,12 +6,14 @@
 
 import { iterableToArray } from '../util'
 
+// TODO: rename to "linear map" and just do key value mapping from index?
+
 /** Immutable by convention IntMap */
 interface IntMap<T> {
     has(key: number): boolean,
     keys(): IterableIterator<number>,
     values(): IterableIterator<T>,
-    get(key: number): T | undefined,
+    get(key: number): T,
     readonly size: number
 }
 

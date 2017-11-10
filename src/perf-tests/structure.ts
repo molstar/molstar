@@ -77,6 +77,7 @@ export namespace PropertyAccess {
             l.unit = units[unitIds[i]];
             const set = AtomSet.unitGetByIndex(atoms, i);
 
+
             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
                 l.atom = OrdSet.getAt(set, j);
                 s += p(l);
@@ -274,8 +275,8 @@ export namespace PropertyAccess {
 
         // return;
 
-        console.log(baseline(models[0]));
-        console.log(sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
+        console.log('bs', baseline(models[0]));
+        console.log('sp', sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
         console.log(sumPropertySegmented(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
 
         //console.log(sumPropertySegmentedMutable(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));

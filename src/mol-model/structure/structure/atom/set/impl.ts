@@ -11,15 +11,14 @@ import Atom from '../../atom'
 
 /** Long and painful implementation starts here */
 
-export interface AtomSetElements { sets: IntMap<OrderedSet>, offsets: number[], hashCode: number, keys: SortedArray }
+export interface AtomSetElements { sets: IntMap<OrderedSet>, offsets: Int32Array, hashCode: number, keys: SortedArray }
 export type AtomSetImpl = Atom | AtomSetElements
 
-export const Empty: AtomSetImpl = { sets: IntMap.Empty, offsets: [0], hashCode: 0, keys: SortedArray.Empty };
+export const Empty: AtomSetImpl = { sets: IntMap.Empty, offsets: new Int32Array(1), hashCode: 0, keys: SortedArray.Empty };
 
-export function create(data: Atom | ArrayLike<Atom> | { [id: number]: OrderedSet }): AtomSetImpl {
+export function create(data: Atom | ArrayLike<Atom>): AtomSetImpl {
     if (typeof data === 'number' || Atom.is(data)) return data;
-    if (isArrayLike(data)) return ofAtoms(data);
-    return ofObject(data as { [id: number]: OrderedSet });
+    return ofAtoms(data);
 }
 
 export function isSingleton(set: AtomSetImpl) {
@@ -154,7 +153,7 @@ class ElementsIterator implements Iterator<Atom> {
             return false;
         }
         this.unit = this.elements.keys[this.setIndex];
-        this.currentSet = this.elements.sets.get(this.unit)!;
+        this.currentSet = this.elements.sets.get(this.unit);
         this.currentIndex = 0;
         this.currentSize = OrderedSet.size(this.currentSet);
         return true;
@@ -172,60 +171,57 @@ export function values(set: AtomSetImpl): Iterator<Atom> {
     return new ElementsIterator(set as AtomSetElements);
 }
 
-function isArrayLike(x: any): x is ArrayLike<Atom> {
-    return x && (typeof x.length === 'number' && (Array.isArray(x) || !!x.buffer));
+export class AtomSetGenerator {
+    private keys: number[] = [];
+    private sets = IntMap.Mutable<OrderedSet>();
+
+    add(unit: number, set: OrderedSet) {
+        if (OrderedSet.size(set) === 0) return;
+        this.keys[this.keys.length] = unit;
+        this.sets.set(unit, set);
+    }
+
+    addUnion(unit: number, set: OrderedSet) {
+        if (OrderedSet.size(set) === 0) return;
+
+        if (this.sets.has(unit)) {
+            this.sets.set(unit, OrderedSet.union(this.sets.get(unit), set));
+        } else {
+            this.keys[this.keys.length] = unit;
+            this.sets.set(unit, set);
+        }
+    }
+
+    getSet(): AtomSetImpl {
+        return ofKeysAndSets(this.keys, this.sets);
+    }
 }
 
-function ofObject(data: { [id: number]: OrderedSet }) {
-    const keys = [];
+export function Generator() {
+    return new AtomSetGenerator();
+}
 
-    const _keys = Object.keys(data);
-    for (let i = 0, _i = _keys.length; i < _i; i++) {
-        const k = +_keys[i];
-        if (OrderedSet.size(data[k]) > 0) keys[keys.length] = k;
+function ofKeysAndSetsElemements(keys: number[], sets: IntMap<OrderedSet>): AtomSetElements {
+    sortArray(keys);
+    let runningSize = 0;
+    const offsets = new Int32Array(keys.length + 1);
+    for (let i = 0, _i = keys.length; i < _i; i++) {
+        runningSize += OrderedSet.size(sets.get(keys[i]));
+        offsets[i + 1] = runningSize;
     }
-    if (!keys.length) return Empty;
+    return { keys: SortedArray.ofSortedArray(keys), sets: IntMap.asImmutable(sets), offsets, hashCode: -1 };
+}
+
+
+function ofKeysAndSets(keys: number[], sets: IntMap<OrderedSet>) {
     if (keys.length === 1) {
-        const set = data[keys[0]];
+        const set = sets.get(keys[0]);
         if (OrderedSet.size(set) === 1) return Atom.create(keys[0], OrderedSet.getAt(set, 0));
     }
-    return ofObject1(keys, data);
+    return ofKeysAndSetsElemements(keys, sets);
 }
 
-function ofObject1(keys: number[], data: { [id: number]: OrderedSet }) {
-    if (keys.length === 1) {
-        const k = keys[0];
-        const set = data[k];
-        if (OrderedSet.size(set) === 1) return Atom.create(k, OrderedSet.getAt(set, 0));
-    }
-    sortArray(keys);
-    return _createObjectOrdered(SortedArray.ofSortedArray(keys), data);
-}
-
-function ofObjectOrdered(keys: SortedArray, data: { [id: number]: OrderedSet }) {
-    if (keys.length === 1) {
-        const k = keys[0];
-        const set = data[k];
-        if (OrderedSet.size(set) === 1) return Atom.create(k, OrderedSet.getAt(set, 0));
-    }
-    return _createObjectOrdered(keys, data);
-}
-
-function _createObjectOrdered(keys: SortedArray, data: { [id: number]: OrderedSet }): AtomSetElements {
-    const sets = IntMap.Mutable<OrderedSet>();
-    const offsets = [0];
-    let runningSize = 0;
-    for (let i = 0, _i = keys.length; i < _i; i++) {
-        const k = keys[i];
-        const set = data[k];
-        sets.set(k, set);
-        runningSize += OrderedSet.size(set);
-        offsets[offsets.length] = runningSize;
-    }
-    return { sets, keys, offsets, hashCode: - 1 };
-}
-
-function getUniqueElements(xs: number[]) {
+function getUniqueElements(xs: number[]): number[] {
     let count = 1;
     for (let i = 1, _i = xs.length; i < _i; i++) {
         if (xs[i - 1] !== xs[i]) count++;
@@ -239,7 +235,7 @@ function getUniqueElements(xs: number[]) {
     return ret;
 }
 
-function normalizeArray(xs: number[]) {
+function normalizeArray(xs: number[]): number[] {
     sortArray(xs);
     for (let i = 1, _i = xs.length; i < _i; i++) {
         if (xs[i - 1] === xs[i]) return getUniqueElements(xs);
@@ -249,23 +245,28 @@ function normalizeArray(xs: number[]) {
 
 function ofAtoms(xs: ArrayLike<Atom>) {
     if (xs.length === 0) return Empty;
-    const sets: { [key: number]: number[] } = Object.create(null);
+
+    const elements = IntMap.Mutable<number[]>();
+    const keys: number[] = [];
     for (let i = 0, _i = xs.length; i < _i; i++) {
         const x = xs[i];
         const u = Atom.unit(x), v = Atom.index(x);
-        const set = sets[u];
-        if (set) set[set.length] = v;
-        else sets[u] = [v];
+        if (elements.has(u)) {
+            const set = elements.get(u);
+            set[set.length] = v;
+        } else {
+            keys[keys.length] = u;
+            elements.set(u, [v]);
+        }
     }
-    const ret: { [key: number]: OrderedSet } = Object.create(null);
-    const keys = [];
-    const _keys = Object.keys(sets);
-    for (let i = 0, _i = _keys.length; i < _i; i++) {
-        const k = +_keys[i];
-        keys[keys.length] = k;
-        ret[k] = OrderedSet.ofSortedArray(normalizeArray(sets[k]));
+
+    const sets = IntMap.Mutable<OrderedSet>();
+    for (let i = 0, _i = keys.length; i < _i; i++) {
+        const k = keys[i];
+        sets.set(k, OrderedSet.ofSortedArray(normalizeArray(elements.get(k))));
     }
-    return ofObject1(keys, ret);
+
+    return ofKeysAndSets(keys, sets);
 }
 
 function getOffsetIndex(xs: ArrayLike<number>, value: number) {
@@ -288,7 +289,7 @@ function getAtE(set: AtomSetElements, i: number): Atom {
     const o = getOffsetIndex(offsets, i);
     if (o >= offsets.length - 1) return 0 as any;
     const k = keys[o];
-    const e = OrderedSet.getAt(set.sets.get(k)!, i - offsets[o]);
+    const e = OrderedSet.getAt(set.sets.get(k), i - offsets[o]);
     return Atom.create(k, e);
 }
 
@@ -297,7 +298,7 @@ function indexOfE(set: AtomSetElements, t: Atom) {
     const u = Atom.unit(t);
     const setIdx = SortedArray.indexOf(keys, u);
     if (setIdx < 0) return -1;
-    const o = OrderedSet.indexOf(set.sets.get(u)!, Atom.index(t));
+    const o = OrderedSet.indexOf(set.sets.get(u), Atom.index(t));
     if (o < 0) return -1;
     return set.offsets[setIdx] + o;
 }
@@ -308,7 +309,7 @@ function computeHash(set: AtomSetElements) {
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
         hash = (31 * hash + k) | 0;
-        hash = (31 * hash + OrderedSet.hashCode(sets.get(k)!)) | 0;
+        hash = (31 * hash + OrderedSet.hashCode(sets.get(k))) | 0;
     }
     hash = (31 * hash + size(set)) | 0;
     hash = hash1(hash);
@@ -326,14 +327,14 @@ function areEqualEE(a: AtomSetElements, b: AtomSetElements) {
     const { sets: bSets } = b;
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
-        if (!OrderedSet.areEqual(aSets.get(k)!, bSets.get(k)!)) return false;
+        if (!OrderedSet.areEqual(aSets.get(k), bSets.get(k))) return false;
     }
     return true;
 }
 
 function areIntersectingNE(a: Atom, b: AtomSetElements) {
     const u = Atom.unit(a);
-    return b.sets.has(u) && OrderedSet.has(b.sets.get(u)!, Atom.index(a));
+    return b.sets.has(u) && OrderedSet.has(b.sets.get(u), Atom.index(a));
 }
 
 function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
@@ -354,7 +355,7 @@ function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
 
 function intersectNE(a: Atom, b: AtomSetElements) {
     const u = Atom.unit(a);
-    return b.sets.has(u) && OrderedSet.has(b.sets.get(u)!, Atom.index(a)) ? a : Empty;
+    return b.sets.has(u) && OrderedSet.has(b.sets.get(u), Atom.index(a)) ? a : Empty;
 }
 
 function intersectEE(a: AtomSetElements, b: AtomSetElements) {
@@ -365,20 +366,16 @@ function intersectEE(a: AtomSetElements, b: AtomSetElements) {
     const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
     const start = Interval.start(r), end = Interval.end(r);
 
-    const keys = [], ret = Object.create(null);
     const { sets: aSets } = a;
     const { sets: bSets } = b;
+    const generator = Generator();
     for (let i = start; i < end; i++) {
         const k = keysA[i];
         const bk = bSets.get(k);
         if (!bk) continue;
-        const intersection = OrderedSet.intersect(aSets.get(k)!, bk);
-        if (OrderedSet.size(intersection) > 0) {
-            keys[keys.length] = k;
-            ret[k] = intersection;
-        }
+        generator.add(k, OrderedSet.intersect(aSets.get(k), bk));
     }
-    return ofObjectOrdered(SortedArray.ofSortedArray(keys), ret);
+    return generator.getSet();
 }
 
 function subtractNE(a: Atom, b: AtomSetElements) {
@@ -390,20 +387,24 @@ function subtractEN(a: AtomSetElements, b: Atom): AtomSetImpl {
 
     const u = Atom.unit(b), v = Atom.index(b);
     const { sets: aSets } = a;
-    const set = aSets.get(u)!;
+    const set = aSets.get(u);
+
     if (OrderedSet.size(set) === 1) {
         // remove the entire unit.
-        throw 'nyi'
-        //return ofObjectOrdered(SortedArray.subtract(a.keys, SortedArray.ofSingleton(u)), a);
-    } else {
-        const ret: { [key: number]: OrderedSet } = Object.create(null);
+        const generator = Generator();
         for (let i = 0, _i = a.keys.length; i < _i; i++) {
             const k = a.keys[i];
-            if (k === u) {
-                ret[k] = OrderedSet.subtract(set, OrderedSet.ofSingleton(v));
-            } else ret[k] = aSets.get(k)!;
+            if (k !== u) generator.add(k, aSets.get(k))
         }
-        return ofObjectOrdered(a.keys, ret);
+        return generator.getSet();
+    } else {
+        const generator = Generator();
+        for (let i = 0, _i = a.keys.length; i < _i; i++) {
+            const k = a.keys[i];
+            if (k === u) generator.add(k, OrderedSet.subtract(set, OrderedSet.ofSingleton(v)))
+            else generator.add(k, aSets.get(k))
+        }
+        return generator.getSet();
     }
 }
 
@@ -415,34 +416,28 @@ function subtractEE(a: AtomSetElements, b: AtomSetElements) {
     const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
     const start = Interval.start(r), end = Interval.end(r);
 
-    const keys = [], ret = Object.create(null);
+    const generator = Generator();
     const { sets: aSets } = a;
     const { sets: bSets } = b;
     for (let i = 0; i < start; i++) {
         const k = keysA[i];
-        keys[keys.length] = k;
-        ret[k] = aSets.get(k);
+        generator.add(k, aSets.get(k));
     }
     for (let i = start; i < end; i++) {
         const k = keysA[i];
-        const ak = aSets.get(k)!, bk = bSets.get(k);
+        const ak = aSets.get(k), bk = bSets.get(k);
         if (!!bk) {
             const subtraction = OrderedSet.subtract(ak, bk);
-            if (OrderedSet.size(subtraction) > 0) {
-                keys[keys.length] = k;
-                ret[k] = subtraction;
-            }
+            generator.add(k, subtraction);
         } else {
-            keys[keys.length] = k;
-            ret[k] = ak;
+            generator.add(k, ak);
         }
     }
     for (let i = end, _i = keysA.length; i < _i; i++) {
         const k = keysA[i];
-        keys[keys.length] = k;
-        ret[k] = aSets.get(k);
+        generator.add(k, aSets.get(k));
     }
-    return ofObjectOrdered(SortedArray.ofSortedArray(keys), ret);
+    return generator.getSet();
 }
 
 function findUnion(sets: ArrayLike<AtomSetImpl>) {
@@ -453,16 +448,16 @@ function findUnion(sets: ArrayLike<AtomSetImpl>) {
     const eCount = { count: 0 };
     const ns = unionN(sets, eCount);
     if (!eCount.count) return ns;
-    const ret = Object.create(null);
+    const generator = Generator();
     for (let i = 0, _i = sets.length; i < _i; i++) {
         const s = sets[i];
-        if (typeof s !== 'number') unionInto(ret, s as AtomSetElements);
+        if (typeof s !== 'number') unionInto(generator, s as AtomSetElements);
     }
     if (size(ns as AtomSetImpl) > 0) {
-        if (typeof ns === 'number') unionIntoN(ret, ns as any);
-        else unionInto(ret, ns as AtomSetElements);
+        if (typeof ns === 'number') unionIntoN(generator, ns as any);
+        else unionInto(generator, ns as AtomSetElements);
     }
-    return ofObject(ret);
+    return generator.getSet();
 }
 
 function unionN(sets: ArrayLike<AtomSetImpl>, eCount: { count: number }) {
@@ -483,23 +478,16 @@ function unionN(sets: ArrayLike<AtomSetImpl>, eCount: { count: number }) {
     return ofAtoms(packed as any);
 }
 
-function unionInto(data: { [key: number]: OrderedSet }, a: AtomSetElements) {
+function unionInto(builder: AtomSetGenerator, a: AtomSetElements) {
     const keys = a.keys;
     const { sets: aSets } = a;
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
-        const set = data[k];
-        if (set) data[k] = OrderedSet.union(set, aSets.get(k)!);
-        else data[k] = aSets.get(k)!;
+        builder.addUnion(k, aSets.get(k));
     }
 }
 
-function unionIntoN(data: { [key: number]: OrderedSet }, a: Atom) {
+function unionIntoN(builder: AtomSetGenerator, a: Atom) {
     const u = Atom.unit(a);
-    const set = data[u];
-    if (set) {
-        data[u] = OrderedSet.union(set, OrderedSet.ofSingleton(Atom.index(a)));
-    } else {
-        data[u] = OrderedSet.ofSingleton(Atom.index(a));
-    }
+    builder.addUnion(u, OrderedSet.ofSingleton(Atom.index(a)));
 }

@@ -35,10 +35,10 @@ describe('atom set', () => {
     });
 
     it('multi', () => {
-        const set = AtomSet.create({
-            1: OrderedSet.ofSortedArray([4, 6, 7]),
-            3: OrderedSet.ofRange(0, 1),
-        });
+        const gen = AtomSet.Generator();
+        gen.add(1, OrderedSet.ofSortedArray([4, 6, 7]));
+        gen.add(3, OrderedSet.ofRange(0, 1));
+        const set = gen.getSet();
         const ret = [p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)];
         expect(AtomSet.atomCount(set)).toBe(ret.length);
         expect(setToPairs(set)).toEqual([p(1, 4), p(1, 6), p(1, 7), p(3, 0), p(3, 1)]);
@@ -52,16 +52,16 @@ describe('atom set', () => {
 
     it('element at / index of', () => {
         const control: Atom[] = [];
-        const sets = Object.create(null);
+        const gen = AtomSet.Generator();
         for (let i = 1; i < 10; i++) {
             const set = [];
             for (let j = 1; j < 7; j++) {
                 control[control.length] = p(i * i, j * j + 1);
                 set[set.length] = j * j + 1;
             }
-            sets[i * i] = OrderedSet.ofSortedArray(set);
+            gen.add(i * i, OrderedSet.ofSortedArray(set));
         }
-        const ms = AtomSet.create(sets);
+        const ms = gen.getSet();
         for (let i = 0; i < control.length; i++) {
             expect(Atom.areEqual(AtomSet.atomGetAt(ms, i), control[i])).toBe(true);
         }

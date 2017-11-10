@@ -6,7 +6,7 @@
 
 class EquivalenceClassesImpl<K, V> {
     private id = 0;
-    private byHash: { [hash: number]: { id: number, keys: K[], value: V }[] } = Object.create(null);
+    private byHash = new Map<number, { id: number, keys: K[], value: V }[]>();
 
     readonly groups: K[][] = [];
 
@@ -19,8 +19,8 @@ class EquivalenceClassesImpl<K, V> {
 
     add(key: K, a: V) {
         const hash = this.getHash(a);
-        if (!!this.byHash[hash]) {
-            const groups = this.byHash[hash];
+        if (this.byHash.has(hash)) {
+            const groups = this.byHash.get(hash)!;
             for (let i = 0, _i = groups.length; i < _i; i++) {
                 const group = groups[i];
                 if (this.areEqual(a, group.value)) {
@@ -33,7 +33,7 @@ class EquivalenceClassesImpl<K, V> {
             return group.id;
         } else {
             const group = this.createGroup(key, a);
-            this.byHash[hash] = [group];
+            this.byHash.set(hash, [group]);
             return group.id;
         }
     }

@@ -12,12 +12,12 @@ interface SetLike<T> {
 
 class HashSetImpl<T> implements SetLike<T> {
     size: number = 0;
-    private byHash: { [hash: number]: T[] } = Object.create(null);
+    private byHash = new Map<number, T[]>();
 
     add(a: T) {
         const hash = this.getHash(a);
-        if (!!this.byHash[hash]) {
-            const xs = this.byHash[hash];
+        if (this.byHash.has(hash)) {
+            const xs = this.byHash.get(hash)!;
             for (let i = 0, _i = xs.length; i < _i; i++) {
                 if (this.areEqual(a, xs[i])) return false;
             }
@@ -25,7 +25,7 @@ class HashSetImpl<T> implements SetLike<T> {
             this.size++;
             return true;
         } else {
-            this.byHash[hash] = [a];
+            this.byHash.set(hash, [a]);
             this.size++;
             return true;
         }
@@ -33,8 +33,8 @@ class HashSetImpl<T> implements SetLike<T> {
 
     has(v: T) {
         const hash = this.getHash(v);
-        if (!this.byHash[hash]) return false;
-        const xs = this.byHash[hash];
+        if (!this.byHash.has(hash)) return false;
+        const xs = this.byHash.get(hash)!;
         for (let i = 0, _i = xs.length; i < _i; i++) {
             if (this.areEqual(v, xs[i])) return true;
         }

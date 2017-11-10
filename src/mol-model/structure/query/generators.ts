@@ -105,14 +105,14 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
 
 class LinearGroupingBuilder {
     private builders: AtomSet.Builder[] = [];
-    private builderMap: { [key: string]: AtomSet.Builder } = Object.create(null);
+    private builderMap = new Map<string, AtomSet.Builder>();
 
     add(key: any, unit: number, atom: number) {
-        let b = this.builderMap[key];
+        let b = this.builderMap.get(key);
         if (!b) {
             b = AtomSet.LinearBuilder(this.structure.atoms);
             this.builders[this.builders.length] = b;
-            this.builderMap[key] = b;
+            this.builderMap.set(key, b);
         }
         b.add(unit, atom);
     }
