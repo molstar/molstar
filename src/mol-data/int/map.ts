@@ -28,21 +28,32 @@ namespace IntMap {
         return iterableToArray(map.keys());
     }
 
-    export function ofObj<T>(obj: { [key: number]: T }): IntMap<T> {
-        const keys = Object.keys(obj);
-        const ret = new Map<number, T>();
-        for (let i = 0, _i = keys.length; i < _i; i++) {
-            const k = keys[i];
-            ret.set(+k, obj[k as any]);
-        }
-        return ret as IntMap<T>;
-    }
-
     export function Mutable<T>(): Mutable<T> {
         return new Map<number, T>() as Mutable<T>;
     }
 
     export function asImmutable<T>(map: IntMap<T>): IntMap<T> {
+        return map;
+    }
+
+    export function copy<T>(map: IntMap<T>): Mutable<T> {
+        const ret = Mutable<T>();
+        const it = map.keys();
+        while (true) {
+            const { done, value } = it.next();
+            if (done) break;
+            ret.set(value, map.get(value));
+        }
+        return ret;
+    }
+
+    export function addFrom<T>(map: Mutable<T>, src: IntMap<T>) {
+        const it = src.keys();
+        while (true) {
+            const { done, value } = it.next();
+            if (done) break;
+            map.set(value, src.get(value));
+        }
         return map;
     }
 }

@@ -45,7 +45,7 @@ function atomGroupsLinear(atomTest: Atom.Predicate): Query {
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
-            l.unit = units[unitId];
+            l.unit = units.get(unitId);
             const set = AtomSet.unitGetByIndex(atoms, i);
 
             builder.beginUnit();
@@ -69,7 +69,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
-            const unit = units[unitId];
+            const unit = units.get(unitId);
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
 
@@ -160,7 +160,7 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
-            const unit = units[unitId];
+            const unit = units.get(unitId);
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
 
