@@ -5,6 +5,7 @@
  */
 
 import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
+import { arrayFind } from 'mol-data/util'
 import { Query } from '../../query'
 import { Model } from '../../model'
 
@@ -47,12 +48,8 @@ namespace Symmetry {
     export const Empty: Symmetry = { assemblies: [] };
 
     export function findAssembly(model: Model, id: string): Assembly | undefined {
-        const { assemblies } = model.symmetry;
         const _id = id.toLocaleLowerCase();
-        for (let i = 0; i < assemblies.length; i++) {
-            if (assemblies[i].id.toLowerCase() === _id) return assemblies[i];
-        }
-        return void 0;
+        return arrayFind(model.symmetry.assemblies, a => a.id.toLowerCase() === _id);
     }
 }
 

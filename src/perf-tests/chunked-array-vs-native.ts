@@ -1,5 +1,5 @@
 import * as B from 'benchmark'
-import ChunkedArray from 'mol-data/util/chunked-array'
+import { ChunkedArray } from 'mol-data/util'
 
 function testNative(size: number) {
     const xs = new Array(size);

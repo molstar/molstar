@@ -5,7 +5,7 @@
  */
 
 import Iterator from 'mol-data/iterator'
-import HashSet from 'mol-data/util/hash-set'
+import { HashSet } from 'mol-data/util'
 import { Structure, Atom, AtomSet } from '../structure'
 
 type Selection =

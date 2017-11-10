@@ -10,6 +10,7 @@ import Segmentation from './int/segmentation'
 import SortedArray from './int/sorted-array'
 import Tuple from './int/tuple'
 import LinkedIndex from './int/linked-index'
+import IntMap from './int/map'
 import Iterator from './iterator'
 
-export { Interval, OrderedSet, Segmentation, SortedArray, Tuple, LinkedIndex, Iterator }
+export { Interval, OrderedSet, Segmentation, SortedArray, Tuple, LinkedIndex, IntMap, Iterator }

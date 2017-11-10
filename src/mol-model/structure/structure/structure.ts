@@ -5,7 +5,7 @@
  */
 
 import { OrderedSet, Iterator } from 'mol-data/int'
-import UniqueArray from 'mol-data/util/unique-array'
+import { UniqueArray } from 'mol-data/util'
 import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import { Model, Format } from '../model'
 import Unit from './unit'

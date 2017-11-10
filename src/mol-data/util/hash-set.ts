@@ -45,8 +45,6 @@ class HashSetImpl<T> implements SetLike<T> {
 }
 // TODO: add implementations with multilevel hashing support?
 
-function HashSet<T>(getHash: (v: T) => any, areEqual: (a: T, b: T) => boolean): SetLike<T> {
+export function HashSet<T>(getHash: (v: T) => any, areEqual: (a: T, b: T) => boolean): SetLike<T> {
     return new HashSetImpl<T>(getHash, areEqual);
 }
-
-export default HashSet;

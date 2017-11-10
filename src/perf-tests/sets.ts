@@ -331,7 +331,120 @@ export namespace ObjectVsMap {
     }
 }
 
-ObjectVsMap.run();
+export namespace IntVsStringIndices {
+    type WithKeys<K> = { keys: K[], data: { [key: number]: number } }
+    type MapWithKeys = { keys: number[], map: Map<number, number> }
+
+    function createCacheKeys(n: number): WithKeys<number> {
+        const data = Object.create(null), keys = [];
+        data.__ = void 0;
+        delete data.__;
+        for (let i = 1; i <= n; i++) {
+            const k = i * (i + 1);
+            keys[keys.length] = k;
+            data[k] = i + 1;
+        }
+        return { data, keys };
+    }
+
+    function createMapKeys(n: number): MapWithKeys {
+        const map = new Map<number, number>(), keys = [];
+        for (let i = 1; i <= n; i++) {
+            const k = i * (i + 1);
+            keys[keys.length] = k;
+            map.set(k, i + 1);
+        }
+        return { map, keys };
+    }
+
+    export function createInt(n: number) {
+        const ret = Object.create(null);
+        ret.__ = void 0;
+        delete ret.__;
+        for (let i = 1; i <= n; i++) ret[i * (i + 1)] = i + 1;
+        return ret;
+    }
+
+    export function createStr(n: number) {
+        const ret = Object.create(null);
+        ret.__ = void 0;
+        delete ret.__;
+        for (let i = 1; i <= n; i++) ret['' + (i * (i + 1))] = i + 1;
+        return ret;
+    }
+
+    export function createMap(n: number) {
+        const map = new Map<number, number>();
+        for (let i = 1; i <= n; i++) map.set(i * (i + 1), i + 1);
+        return map;
+    }
+
+    export function sumInt(xs: { [key: number]: number }) {
+        let s = 0;
+        const keys = Object.keys(xs);
+        for (let i = 0, _i = keys.length; i < _i; i++) s += xs[+keys[i]];
+        return s;
+    }
+
+    export function sumStr(xs: { [key: string]: number }) {
+        let s = 0;
+        const keys = Object.keys(xs);
+        for (let i = 0, _i = keys.length; i < _i; i++) s += xs[keys[i]];
+        return s;
+    }
+
+    export function sumMap(map: Map<number, number>) {
+        let s = 0;
+        const values = map.keys();
+        while (true) {
+            const { done, value } = values.next();
+            if (done) break;
+            s += value;
+        }
+        return s;
+    }
+
+    export function sumCached(xs: WithKeys<number>) {
+        let s = 0;
+        const keys = xs.keys, data = xs.data;
+        for (let i = 0, _i = keys.length; i < _i; i++) s += data[keys[i]];
+        return s;
+    }
+
+    export function sumKeyMap(xs: MapWithKeys) {
+        let s = 0;
+        const keys = xs.keys, map = xs.map;
+        for (let i = 0, _i = keys.length; i < _i; i++) s += map.get(keys[i])!;
+        return s;
+    }
+
+    export function run() {
+        const N = 1000;
+        //const int = createInt(N);
+        const map = createMap(N);
+        //const str = createStr(N);
+        const keys = createCacheKeys(N);
+        const keyMap = createMapKeys(N);
+        console.log(sumMap(map), sumCached(keys), sumKeyMap(keyMap));
+        new B.Suite()
+            //.add('c int', () => createInt(N))
+            .add('q map', () => sumMap(map))
+            .add('c map', () => createMap(N))
+            .add('c mk', () => createMapKeys(N))
+            //.add('c str', () => createStr(N))
+            .add('c cc', () => createCacheKeys(N))
+            //.add('q int', () => sumInt(int))
+            .add('q mk', () => sumKeyMap(keyMap))
+            //.add('q str', () => sumStr(str))
+            .add('q cc', () => sumCached(keys))
+            .on('cycle', (e: any) => console.log(String(e.target)))
+            .run();
+    }
+}
+
+IntVsStringIndices.run();
+
+//ObjectVsMap.run();
 
 //testSegments();
 

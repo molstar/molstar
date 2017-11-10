@@ -134,4 +134,4 @@ namespace ChunkedArray {
     }
 }
 
-export default ChunkedArray
+export { ChunkedArray }

@@ -80,6 +80,10 @@ namespace Column {
         valueKind?: (row: number) => ValueKind,
     }
 
+    export function is(v: any): v is Column<any> {
+        return !!v && !!(v as Column<any>).schema && !!(v as Column<any>).value;
+    }
+
     export const enum ValueKind { Present = 0, NotPresent = 1, Unknown = 2 }
 
     export function Undefined<T extends Schema>(rowCount: number, schema: T): Column<T['T']> {
@@ -306,6 +310,7 @@ function mapToArrayImpl<T, S>(c: Column<T>, f: (v: T) => S, ctor: Column.ArrayCt
 }
 
 function areColumnsEqual(a: Column<any>, b: Column<any>) {
+    if (a === b) return true;
     if (a.rowCount !== b.rowCount || a.isDefined !== b.isDefined || a.schema.valueType !== b.schema.valueType) return false;
     if (!!a['@array'] && !!b['@array']) return areArraysEqual(a, b);
     return areValuesEqual(a, b);

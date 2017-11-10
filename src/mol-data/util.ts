@@ -4,12 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import ChunkedArray from './util/chunked-array'
-import EquivalenceClasses from './util/chunked-array'
-import HashSet from './util/hash-set'
-import UniqueArray from './util/unique-array'
-
+export * from './util/chunked-array'
+export * from './util/unique-array'
+export * from './util/hash-set'
+export * from './util/equivalence-classes'
 export * from './util/hash-functions'
 export * from './util/sort'
-
-export { ChunkedArray, EquivalenceClasses, HashSet, UniqueArray }
+export * from './util/grouping'
+export * from './util/array'
