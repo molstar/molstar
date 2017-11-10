@@ -28,12 +28,12 @@ interface Unit extends SymmetryOperator.ArrayMapping {
 }
 
 namespace Unit {
-    export function create(model: Model, operator: SymmetryOperator): Unit {
+    export function create(id: number, model: Model, operator: SymmetryOperator): Unit {
         const h = model.hierarchy;
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.conformation);
 
         return {
-            id: nextUnitId(),
+            id,
             model,
             operator,
             residueIndex: h.residueSegments.segmentMap,
@@ -48,10 +48,3 @@ namespace Unit {
 }
 
 export default Unit;
-
-let _id = 0;
-function nextUnitId() {
-    const ret = _id;
-    _id = (_id + 1) % 0x3fffffff;
-    return ret;
-}

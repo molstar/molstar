@@ -35,7 +35,7 @@ namespace Structure {
         const builder = Builder();
 
         for (let c = 0; c < chains.count; c++) {
-            const unit = Unit.create(model, SymmetryOperator.Default);
+            const unit = Unit.create(c, model, SymmetryOperator.Default);
             builder.add(unit, OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
         }
 

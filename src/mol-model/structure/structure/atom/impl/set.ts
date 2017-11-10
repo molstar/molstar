@@ -17,12 +17,8 @@ export type AtomSetImpl = Atom | AtomSetElements
 export const Empty: AtomSetImpl = { sets: IntMap.Empty, offsets: new Int32Array(1), hashCode: 0, keys: SortedArray.Empty };
 
 export function create(data: Atom | ArrayLike<Atom>): AtomSetImpl {
-    if (typeof data === 'number' || Atom.is(data)) return data;
+    if (Atom.is(data)) return data;
     return ofAtoms(data);
-}
-
-export function isSingleton(set: AtomSetImpl) {
-    return typeof set === 'number';
 }
 
 export function getKeys(set: AtomSetImpl): SortedArray {

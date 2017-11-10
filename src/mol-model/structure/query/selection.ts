@@ -13,10 +13,19 @@ type Selection =
     | Structure // each atom is interpreted as a singleton structure
     | Structure[]
 
+// TODO: Do not allow to change unit set in the middle of a query, create a differnt language to control assemblies etc.
+/*
+type Selection =
+  | { kind: 'sequence', units: UnitCollection, sets: AtomSet[] }
+  | { kind: 'atom-set', units: UnitCollection, set: AtomSet }
+*/
+
 namespace Selection {
     export const Empty: Selection = [];
 
     function isStructure(x: Selection): x is Structure { return !!(x as Structure).units && !!(x as Structure).atoms; }
+
+    export const isOfSingletons = isStructure
 
     export function structureCount(sel: Selection) {
         if (isStructure(sel)) return AtomSet.atomCount(sel.atoms);

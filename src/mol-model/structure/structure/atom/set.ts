@@ -6,8 +6,8 @@
 
 import { OrderedSet, SortedArray, Iterator } from 'mol-data/int'
 import Atom from '../atom'
-import * as Impl from './set/impl'
-import * as Builders from './set/builder'
+import * as Impl from './impl/set'
+import * as Builders from './impl/builder'
 
 /** A map-like representation of grouped atom set */
 namespace AtomSet {
