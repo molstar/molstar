@@ -8,13 +8,16 @@ import { iterableToArray } from '../util'
 
 /** Immutable by convention IntMap */
 interface IntMap<T> {
+    has(key: number): boolean,
     keys(): IterableIterator<number>,
     values(): IterableIterator<T>,
-    get(key: number): T,
+    get(key: number): T | undefined,
     readonly size: number
 }
 
 namespace IntMap {
+    export const Empty: IntMap<any> = new Map<number, any>();
+
     export interface Mutable<T> extends IntMap<T> {
         set(key: number, value: T): void;
     }
