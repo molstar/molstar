@@ -8,32 +8,52 @@ import { OrderedSet } from 'mol-data/int'
 import Unit from '../unit'
 
 interface AtomGroup {
-    set: OrderedSet,
+    atoms: OrderedSet,
     id: number
 }
 
 namespace AtomGroup {
     export const Empty = createNew(OrderedSet.Empty)
 
-    // export function singleton(idx: number) {
-    //     return create(OrderedSet.ofSingleton(idx));
-    // }
-
-    export function createNew(set: OrderedSet) {
-        return { id: nextId(), set };
+    export function singleton(idx: number) {
+        return createNew(OrderedSet.ofSingleton(idx));
     }
 
-    export function create(unit: Unit, set: OrderedSet): AtomGroup {
-        if (OrderedSet.areEqual(set, unit.naturalGroup.set)) return unit.naturalGroup;
+    export function createNew(atoms: OrderedSet): AtomGroup {
+        return { id: nextId(), atoms };
+    }
+
+    export function create(unit: Unit, atoms: OrderedSet): AtomGroup {
+        if (OrderedSet.areEqual(atoms, unit.naturalGroup.atoms)) return unit.naturalGroup;
+        return createNew(atoms);
+    }
+
+    export function size(group: AtomGroup) { return OrderedSet.size(group.atoms); }
+    export function has(group: AtomGroup, atom: number) { return OrderedSet.has(group.atoms, atom); }
+    export function getAt(group: AtomGroup, i: number) { return OrderedSet.getAt(group.atoms, i); }
+    export function indexOf(group: AtomGroup, atom: number) { return OrderedSet.indexOf(group.atoms, atom); }
+    export function hashCode(group: AtomGroup) { return OrderedSet.hashCode(group.atoms); }
+    export function areEqual(a: AtomGroup, b: AtomGroup) { return OrderedSet.areEqual(a.atoms, b.atoms); }
+
+    export function intersect(a: AtomGroup, b: AtomGroup) {
+        const set = OrderedSet.intersect(a.atoms, b.atoms);
+        if (set === a.atoms) return a;
+        if (set === b.atoms) return b;
         return createNew(set);
     }
 
-    // export function size(group: AtomGroup) { return OrderedSet.size(group.set); }
-    // export function has(group: AtomGroup, atom: number) { return OrderedSet.has(group.set, atom); }
-    // export function getAt(group: AtomGroup, i: number) { return OrderedSet.getAt(group.set, i); }
-    // export function indexOf(group: AtomGroup, atom: number) { return OrderedSet.indexOf(group.set, atom); }
-    // export function hashCode(group: AtomGroup) { return OrderedSet.hashCode(group.set); }
-    // export function areEqual(a: AtomGroup, b: AtomGroup) { return OrderedSet.areEqual(a.set, b.set); }
+    export function union(a: AtomGroup, b: AtomGroup) {
+        const set = OrderedSet.union(a.atoms, b.atoms);
+        if (set === a.atoms) return a;
+        if (set === b.atoms) return b;
+        return createNew(set);
+    }
+
+    export function subtract(a: AtomGroup, b: AtomGroup) {
+        const set = OrderedSet.subtract(a.atoms, b.atoms);
+        if (set === a.atoms) return a;
+        return createNew(set);
+    }
 
     let _id = 0;
     function nextId() {
