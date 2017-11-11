@@ -170,6 +170,7 @@ function intersectSI(a: S, b: I) {
     const start = I.start(r), end = I.end(r);
     const resultSize = end - start;
     if (!resultSize) return Empty;
+    if (resultSize === a.length) return a;
 
     const indices = new Int32Array(resultSize);
     let offset = 0;
