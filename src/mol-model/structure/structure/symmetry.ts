@@ -25,7 +25,6 @@ function buildAssemblyImpl(structure: Structure, name: string) {
 
     const assembler = Structure.Builder();
 
-    let unitId = 0;
     for (const g of assembly.operatorGroups) {
         const selection = g.selector(structure);
         if (Selection.structureCount(selection) === 0) continue;
@@ -36,7 +35,7 @@ function buildAssemblyImpl(structure: Structure, name: string) {
         for (const oper of g.operators) {
             for (let uI = 0, _uI = unitIds.length; uI < _uI; uI++) {
                 const unit = units.get(unitIds[uI]);
-                assembler.add(Unit.create(unitId++, unit.model, oper, unit.naturalGroup), AtomSet.unitGetByIndex(atoms, uI));
+                assembler.add(Unit.withOperator(unit, oper), AtomSet.unitGetByIndex(atoms, uI));
             }
         }
     }

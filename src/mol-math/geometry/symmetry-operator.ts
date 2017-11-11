@@ -23,11 +23,17 @@ namespace SymmetryOperator {
 
     const RotationEpsilon = 0.0001;
 
-    export function create(name: string, matrix: Mat4, hkl?: number[]): SymmetryOperator {
-        const _hkl = hkl ? Vec3.create(hkl[0], hkl[1], hkl[2]) : Vec3.zero();
+    export function create(name: string, matrix: Mat4, hkl?: Vec3): SymmetryOperator {
+        const _hkl = hkl ? Vec3.copy(Vec3.zero(), hkl) : Vec3.zero();
         if (Mat4.isIdentity(matrix)) return { name, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl };
         if (!Mat4.isRotationAndTranslation(matrix, RotationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
         return { name, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl };
+    }
+
+    // Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix)
+    export function compose(first: SymmetryOperator, second: SymmetryOperator) {
+        const matrix = Mat4.mul(Mat4.zero(), second.matrix, first.matrix);
+        return create(second.name, matrix, second.hkl);
     }
 
     export interface CoordinateMapper { (index: number, slot: Vec3): Vec3 }

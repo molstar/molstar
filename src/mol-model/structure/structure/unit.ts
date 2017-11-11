@@ -9,9 +9,6 @@ import AtomGroup from './atom/group'
 import { Model } from '../model'
 
 interface Unit extends SymmetryOperator.ArrayMapping {
-    // Structure-level unique identifier of the unit.
-    readonly id: number,
-
     // Provides access to the underlying data.
     readonly model: Model,
 
@@ -32,12 +29,11 @@ interface Unit extends SymmetryOperator.ArrayMapping {
 }
 
 namespace Unit {
-    export function create(id: number, model: Model, operator: SymmetryOperator, naturalGroup: AtomGroup): Unit {
+    export function create(model: Model, operator: SymmetryOperator, naturalGroup: AtomGroup): Unit {
         const h = model.hierarchy;
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.conformation);
 
         return {
-            id,
             model,
             operator,
             naturalGroup,
@@ -49,6 +45,10 @@ namespace Unit {
             position,
             x, y, z
         };
+    }
+
+    export function withOperator(unit: Unit, operator: SymmetryOperator) {
+        return create(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.naturalGroup);
     }
 }
 

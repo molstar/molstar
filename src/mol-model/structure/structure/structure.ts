@@ -37,7 +37,7 @@ namespace Structure {
 
         for (let c = 0; c < chains.count; c++) {
             const group = AtomGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
-            const unit = Unit.create(c, model, SymmetryOperator.Default, group);
+            const unit = Unit.create(model, SymmetryOperator.Default, group);
             builder.add(unit, OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
         }
 
@@ -53,12 +53,13 @@ namespace Structure {
     }
 
     class BuilderImpl implements Builder {
+        private _unitId = 0;
         private units = IntMap.Mutable<Unit>();
         private atoms = AtomSet.Generator();
         atomCount = 0;
 
-        add(unit: Unit, atoms: OrderedSet) { this.addUnit(unit); this.setAtoms(unit.id, atoms); }
-        addUnit(unit: Unit) { this.units.set(unit.id, unit); }
+        add(unit: Unit, atoms: OrderedSet) { const id = this.addUnit(unit); this.setAtoms(id, atoms); }
+        addUnit(unit: Unit) { const id = this._unitId++; this.units.set(id, unit); return id; }
         setAtoms(unitId: number, atoms: OrderedSet) { this.atoms.add(unitId, atoms); this.atomCount += OrderedSet.size(atoms); }
         getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, this.atoms.getSet()) : Empty; }
     }
