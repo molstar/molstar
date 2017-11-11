@@ -221,7 +221,10 @@ class ChunkerImpl implements Computation.Chunker {
     private updater: Computation.Context['update'];
 
     private computeChunkSize(delta: number) {
-        if (!delta) return this.nextChunkSize;
+        if (!delta) {
+            this.processedSinceUpdate = 0;
+            return this.nextChunkSize;
+        }
         const rate = (this.context as ObservableContext).updateRate || DefaulUpdateRateMs;
         const ret = Math.round(this.processedSinceUpdate * rate / delta + 1);
         this.processedSinceUpdate = 0;
@@ -241,23 +244,34 @@ class ChunkerImpl implements Computation.Chunker {
 
     async process(nextChunk: (size: number) => number, update: (updater: Computation.Context['update']) => Promise<void> | void, nextChunkSize?: number) {
         if (typeof nextChunkSize !== 'undefined') this.setNextChunkSize(nextChunkSize);
+        this.processedSinceUpdate = 0;
 
         // track time for the actual computation and exclude the "update time"
         let chunkStart = Computation.now();
         let lastChunkSize: number;
+        let chunkCount = 0;
+        let totalSize = 0;
+        let updateCount = 0;
         while ((lastChunkSize = nextChunk(this.getNextChunkSize())) > 0) {
+            chunkCount++;
             this.processedSinceUpdate += lastChunkSize;
+            totalSize += lastChunkSize;
             if (this.context.requiresUpdate) {
                 let time = Computation.now();
                 await update(this.updater);
-                this.nextChunkSize = this.computeChunkSize(time - chunkStart);
+                this.nextChunkSize = updateCount > 0
+                    ? Math.round((totalSize + this.computeChunkSize(time - chunkStart)) / (chunkCount + 1))
+                    : this.computeChunkSize(time - chunkStart)
+                updateCount++;
                 chunkStart = Computation.now();
             }
         }
         if (this.context.requiresUpdate) {
             let time = Computation.now();
             await update(this.updater);
-            this.nextChunkSize = this.computeChunkSize(time - chunkStart);
+            this.nextChunkSize = updateCount > 0
+                ? Math.round((totalSize + this.computeChunkSize(time - chunkStart)) / (chunkCount + 1))
+                : this.computeChunkSize(time - chunkStart)
         }
     }
 
