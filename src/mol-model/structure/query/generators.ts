@@ -46,7 +46,7 @@ function atomGroupsLinear(atomTest: Atom.Predicate): Query {
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
             l.unit = units[unitId];
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = AtomSet.unitGetByIndex(atoms, i).atoms;
 
             builder.beginUnit();
             for (let j = 0, _j = OrderedSet.size(set); j < _j; j++) {
@@ -71,7 +71,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             const unitId = unitIds[i];
             const unit = units[unitId];
             l.unit = unit;
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = AtomSet.unitGetByIndex(atoms, i).atoms;
 
             builder.beginUnit();
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
@@ -129,7 +129,7 @@ class LinearGroupingBuilder {
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
             atoms[i] = this.builders[i].singleton();
         }
-        return Structure.create(this.structure.units, AtomSet.create(atoms));
+        return Structure.create(this.structure.units, AtomSet.ofAtoms(atoms, this.structure.atoms));
     }
 
     private fullSelection() {
@@ -162,7 +162,7 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
             const unitId = unitIds[i];
             const unit = units[unitId];
             l.unit = unit;
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = AtomSet.unitGetByIndex(atoms, i).atoms;
 
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
             const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);

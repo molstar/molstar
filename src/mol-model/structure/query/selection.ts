@@ -38,7 +38,7 @@ namespace Selection {
         if (!sel.length) return Structure.Empty;
         const sets = [];
         for (let i = 0, _i = sel.length; i < _i; i++) sets[sets.length] = sel[i].atoms;
-        return Structure.create(unionUnits(sel), AtomSet.unionMany(sets));
+        return Structure.create(unionUnits(sel), AtomSet.union(sets, AtomSet.Empty));
     }
 
     export function structures(sel: Selection): Iterator<Structure> {

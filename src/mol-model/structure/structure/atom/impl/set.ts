@@ -4,126 +4,169 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SortedArray, Interval, Iterator, OrderedSet, IntMap } from 'mol-data/int'
+import { SortedArray, Interval, Iterator, OrderedSet as OS, IntMap } from 'mol-data/int'
 import { sortArray } from 'mol-data/util/sort'
 import { hash1 } from 'mol-data/util/hash-functions'
 import Atom from '../../atom'
+import AtomGroup from '../group'
 
 /** Long and painful implementation starts here */
 
-export interface AtomSetElements { sets: IntMap<OrderedSet>, offsets: Int32Array, hashCode: number, keys: SortedArray }
-export type AtomSetImpl = Atom | AtomSetElements
+export type AtomSetImpl = { groups: IntMap<AtomGroup>, offsets: Int32Array, hashCode: number, keys: SortedArray }
 
-export const Empty: AtomSetImpl = { sets: IntMap.Empty, offsets: new Int32Array(1), hashCode: 0, keys: SortedArray.Empty };
+export const Empty: AtomSetImpl = { groups: IntMap.Empty, offsets: new Int32Array(1), hashCode: 0, keys: SortedArray.Empty };
 
-export function create(data: Atom | ArrayLike<Atom>): AtomSetImpl {
-    if (Atom.is(data)) return data;
-    return ofAtoms(data);
+export function ofAtoms(atoms: ArrayLike<Atom>, template: AtomSetImpl): AtomSetImpl {
+    return ofAtomsImpl(atoms, template);
 }
 
 export function getKeys(set: AtomSetImpl): SortedArray {
-    if (typeof set === 'number') return SortedArray.ofSingleton(set);
-    return (set as AtomSetElements).keys;
+    return set.keys;
 }
 
 export function keyCount(set: AtomSetImpl): number {
-    if (typeof set === 'number') return 1;
-    return (set as AtomSetElements).keys.length;
+    return set.keys.length;
 }
 
 export function hasKey(set: AtomSetImpl, key: number): boolean {
-    if (typeof set === 'number') return Atom.unit(set) === key;
-    return !!(set as AtomSetElements).sets.has(key);
+    return set.groups.has(key);
 }
 
 export function getKey(set: AtomSetImpl, index: number): number {
-    if (typeof set === 'number') return Atom.unit(set);
-    return (set as AtomSetElements).keys[index];
+    return set.keys[index];
 }
 
 export function hasAtom(set: AtomSetImpl, t: Atom): boolean {
-    if (typeof set === 'number') return Atom.areEqual(t, set);
-    const os = (set as AtomSetElements).sets.get(Atom.unit(t));
-    return !!os && OrderedSet.has(os, Atom.index(t));
+    const os = set.groups.get(Atom.unit(t));
+    return !!os && AtomGroup.has(os, Atom.index(t));
 }
 
-export function getByKey(set: AtomSetImpl, key: number): OrderedSet {
-    if (typeof set === 'number') {
-        return Atom.unit(set) === key ? OrderedSet.ofSingleton(Atom.index(set)) : OrderedSet.Empty;
-    }
-    return (set as AtomSetElements).sets.get(key) || OrderedSet.Empty;
+export function getByKey(set: AtomSetImpl, key: number): AtomGroup {
+    return set.groups.get(key) || AtomGroup.Empty;
 }
 
-export function getByIndex(set: AtomSetImpl, index: number): OrderedSet {
-    if (typeof set === 'number') return index === 0 ? OrderedSet.ofSingleton(Atom.index(set)) : OrderedSet.Empty;
-    const key = (set as AtomSetElements).keys[index];
-    return (set as AtomSetElements).sets.get(key) || OrderedSet.Empty;
+export function getByIndex(set: AtomSetImpl, index: number): AtomGroup {
+    const key = set.keys[index];
+    return set.groups.get(key) || AtomGroup.Empty;
 }
 
 export function getAt(set: AtomSetImpl, i: number): Atom {
-    if (typeof set === 'number') return set;
-    return getAtE(set as AtomSetElements, i);
+    const { offsets, keys } = set;
+    const o = getOffsetIndex(offsets, i);
+    if (o >= offsets.length - 1) return Atom.Zero;
+    const k = keys[o];
+    const e = AtomGroup.getAt(set.groups.get(k), i - offsets[o]);
+    return Atom.create(k, e);
 }
 
 export function indexOf(set: AtomSetImpl, t: Atom) {
-    if (typeof set === 'number') return Atom.areEqual(set, t) ? 0 : -1;
-    return indexOfE(set as AtomSetElements, t);
+    const { keys } = set;
+    const u = Atom.unit(t);
+    const setIdx = SortedArray.indexOf(keys, u);
+    if (setIdx < 0) return -1;
+    const o = AtomGroup.indexOf(set.groups.get(u), Atom.index(t));
+    if (o < 0) return -1;
+    return set.offsets[setIdx] + o;
 }
 
 /** Number elements in the "child" sets */
 export function size(set: AtomSetImpl) {
-    if (typeof set === 'number') return 1;
-    return (set as AtomSetElements).offsets[(set as AtomSetElements).offsets.length - 1];
+    return set.offsets[set.offsets.length - 1];
 }
 
 export function hashCode(set: AtomSetImpl) {
-    if (typeof set === 'number') return Atom.hashCode(set);
-    if ((set as AtomSetElements).hashCode !== -1) return (set as AtomSetElements).hashCode;
-    return computeHash((set as AtomSetElements));
+    if (set.hashCode !== -1) return set.hashCode;
+    return computeHash(set);
 }
 
 export function areEqual(a: AtomSetImpl, b: AtomSetImpl) {
-    if (typeof a === 'number') {
-        if (typeof b === 'number') return Atom.areEqual(a, b);
-        return false;
+    if (a === b) return true;
+    if (size(a) !== size(a)) return false;
+
+    const keys = a.keys;
+    if (!SortedArray.areEqual(keys, b.keys)) return false;
+    const { groups: aG } = a;
+    const { groups: bG } = b;
+    for (let i = 0, _i = keys.length; i < _i; i++) {
+        const k = keys[i];
+        if (!AtomGroup.areEqual(aG.get(k), bG.get(k))) return false;
     }
-    if (typeof b === 'number') return false;
-    return areEqualEE(a as AtomSetElements, b as AtomSetElements);
+    return true;
 }
 
 export function areIntersecting(a: AtomSetImpl, b: AtomSetImpl) {
-    if (typeof a === 'number') {
-        if (typeof b === 'number') return Atom.areEqual(a, b);
-        return areIntersectingNE(a, b as AtomSetElements);
+    if (a === b) return true;
+    const keysA = a.keys, keysB = b.keys;
+    if (!SortedArray.areIntersecting(a.keys, b.keys)) return false;
+    const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
+    const start = Interval.start(r), end = Interval.end(r);
+    const { groups: aG } = a;
+    const { groups: bG } = b;
+    for (let i = start; i < end; i++) {
+        const k = keysA[i];
+        const ak = aG.get(k), bk = bG.get(k);
+        if (!!ak && !!bk && OS.areIntersecting(ak.atoms, bk.atoms)) return true;
     }
-    if (typeof b === 'number') return areIntersectingNE(b, a as AtomSetElements);
-    return areIntersectingEE(a as AtomSetElements, b as AtomSetElements);
+    return false;
 }
 
 export function intersect(a: AtomSetImpl, b: AtomSetImpl) {
-    if (typeof a === 'number') {
-        if (typeof b === 'number') return Atom.areEqual(a, b) ? a : Empty;
-        return intersectNE(a, b as AtomSetElements);
+    if (a === b) return a;
+
+    const keysA = a.keys, keysB = b.keys;
+    if (!SortedArray.areIntersecting(a.keys, b.keys)) return Empty;
+    const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
+    const start = Interval.start(r), end = Interval.end(r);
+
+    const { groups: aG } = a;
+    const { groups: bG } = b;
+    const generator = new ChildGenerator(a, b);
+    for (let i = start; i < end; i++) {
+        const k = keysA[i];
+        const bk = bG.get(k);
+        if (!bk) continue;
+        const ak = aG.get(k);
+        generator.add(k, AtomGroup.intersect(aG.get(k), bk), ak, bk);
     }
-    if (typeof b === 'number') return intersectNE(b, a as AtomSetElements);
-    return intersectEE(a as AtomSetElements, b as AtomSetElements);
+    return generator.getSet();
 }
 
 export function subtract(a: AtomSetImpl, b: AtomSetImpl) {
-    if (typeof a === 'number') {
-        if (typeof b === 'number') return Atom.areEqual(a, b) ? Empty : a;
-        return subtractNE(a, b as AtomSetElements);
+    if (a === b) return Empty;
+
+    const keysA = a.keys, keysB = b.keys;
+    if (!SortedArray.areIntersecting(keysA, keysB)) return a;
+    const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
+    const start = Interval.start(r), end = Interval.end(r);
+
+    const generator = new ChildGenerator(a, b);
+    const { groups: aG } = a;
+    const { groups: bG } = b;
+    for (let i = 0; i < start; i++) {
+        const k = keysA[i];
+        const ak = aG.get(k);
+        generator.addA(k, ak, ak);
     }
-    if (typeof b === 'number') return subtractEN(a as AtomSetElements, b);
-    return subtractEE(a as AtomSetElements, b as AtomSetElements);
+    for (let i = start; i < end; i++) {
+        const k = keysA[i];
+        const ak = aG.get(k), bk = bG.get(k);
+        if (!!bk) {
+            const subtraction = AtomGroup.subtract(ak, bk);
+            generator.addA(k, subtraction, ak);
+        } else {
+            generator.addA(k, ak, ak);
+        }
+    }
+    for (let i = end, _i = keysA.length; i < _i; i++) {
+        const k = keysA[i];
+        const ak = aG.get(k);
+        generator.addA(k, ak, ak);
+    }
+    return generator.getSet();
 }
 
-export function union(a: AtomSetImpl, b: AtomSetImpl) {
-    return findUnion([a, b]);
-}
-
-export function unionMany(sets: ArrayLike<AtomSetImpl>) {
-    return findUnion(sets);
+export function unionMany(sets: ArrayLike<AtomSetImpl>, template: AtomSetImpl) {
+    return findUnion(sets, template);
 }
 
 class ElementsIterator implements Iterator<Atom> {
@@ -132,13 +175,13 @@ class ElementsIterator implements Iterator<Atom> {
     private setIndex = -1;
     private currentIndex = 0;
     private currentSize = 0;
-    private currentSet: OrderedSet = OrderedSet.Empty;
+    private currentSet: OS = OS.Empty;
 
     hasNext: boolean = false;
 
     move() {
         if (!this.hasNext) return Atom.Zero;
-        const ret = Atom.create(this.unit, OrderedSet.getAt(this.currentSet, this.currentIndex++));
+        const ret = Atom.create(this.unit, OS.getAt(this.currentSet, this.currentIndex++));
         if (this.currentIndex >= this.currentSize) this.advance();
         return ret;
     }
@@ -149,13 +192,13 @@ class ElementsIterator implements Iterator<Atom> {
             return false;
         }
         this.unit = this.elements.keys[this.setIndex];
-        this.currentSet = this.elements.sets.get(this.unit);
+        this.currentSet = this.elements.groups.get(this.unit).atoms;
         this.currentIndex = 0;
-        this.currentSize = OrderedSet.size(this.currentSet);
+        this.currentSize = OS.size(this.currentSet);
         return true;
     }
 
-    constructor(private elements: AtomSetElements) {
+    constructor(private elements: AtomSetImpl) {
         this.keyCount = elements.keys.length;
         this.hasNext = this.keyCount > 0;
         this.advance();
@@ -163,33 +206,55 @@ class ElementsIterator implements Iterator<Atom> {
 }
 
 export function values(set: AtomSetImpl): Iterator<Atom> {
-    if (typeof set === 'number') return Iterator.Value(set as Atom);
-    return new ElementsIterator(set as AtomSetElements);
+    return new ElementsIterator(set);
 }
 
-export class AtomSetGenerator {
+export class TemplateAtomSetGenerator {
     private keys: number[] = [];
-    private sets = IntMap.Mutable<OrderedSet>();
+    private groups = IntMap.Mutable<AtomGroup>();
+    private templateGroups: IntMap<AtomGroup>;
+    private equalGroups = 0;
 
-    add(unit: number, set: OrderedSet) {
-        if (OrderedSet.size(set) === 0) return;
+    add(unit: number, group: AtomGroup) {
+        if (AtomGroup.size(group) === 0) return;
         this.keys[this.keys.length] = unit;
-        this.sets.set(unit, set);
-    }
-
-    addUnion(unit: number, set: OrderedSet) {
-        if (OrderedSet.size(set) === 0) return;
-
-        if (this.sets.has(unit)) {
-            this.sets.set(unit, OrderedSet.union(this.sets.get(unit), set));
+        let t: AtomGroup;
+        if (this.templateGroups.has(unit) && AtomGroup.areEqual(t = this.templateGroups.get(unit), group)) {
+            this.groups.set(unit, t);
+            this.equalGroups++;
         } else {
-            this.keys[this.keys.length] = unit;
-            this.sets.set(unit, set);
+            this.groups.set(unit, group);
         }
     }
 
     getSet(): AtomSetImpl {
-        return ofKeysAndSets(this.keys, this.sets);
+        if (this.equalGroups === this.template.keys.length && this.equalGroups === this.keys.length) {
+            return this.template;
+        }
+        return create(this.keys, this.groups);
+    }
+
+    constructor(private template: AtomSetImpl) {
+        this.templateGroups = template.groups;
+    }
+}
+
+export function TemplateGenerator(template: AtomSetImpl) {
+    return new TemplateAtomSetGenerator(template);
+}
+
+export class AtomSetGenerator {
+    private keys: number[] = [];
+    private groups = IntMap.Mutable<AtomGroup>();
+
+    add(unit: number, group: AtomGroup) {
+        if (AtomGroup.size(group) === 0) return;
+        this.keys[this.keys.length] = unit;
+        this.groups.set(unit, group);
+    }
+
+    getSet(): AtomSetImpl {
+        return create(this.keys, this.groups);
     }
 }
 
@@ -197,24 +262,48 @@ export function Generator() {
     return new AtomSetGenerator();
 }
 
-function ofKeysAndSetsElemements(keys: number[], sets: IntMap<OrderedSet>): AtomSetElements {
+/** When adding groups, compare them to existing ones. If they all match, return the whole original set. */
+class ChildGenerator {
+    private keys: number[] = [];
+    private groups = IntMap.Mutable<AtomGroup>();
+    private aEqual = 0;
+    private bEqual = 0;
+
+    add(unit: number, group: AtomGroup, a: AtomGroup, b: AtomGroup) {
+        if (AtomGroup.size(group) === 0) return;
+        if (a === group) this.aEqual++;
+        if (b === group) this.bEqual++;
+        this.keys[this.keys.length] = unit;
+        this.groups.set(unit, group);
+    }
+
+    addA(unit: number, group: AtomGroup, a: AtomGroup) {
+        if (AtomGroup.size(group) === 0) return;
+
+        if (a === group) this.aEqual++;
+        this.keys[this.keys.length] = unit;
+        this.groups.set(unit, group);
+    }
+
+    constructor(private a: AtomSetImpl, private b: AtomSetImpl) {
+    }
+
+    getSet(): AtomSetImpl {
+        if (this.aEqual === this.a.keys.length) return this.a;
+        if (this.bEqual === this.b.keys.length) return this.b;
+        return create(this.keys, this.groups);
+    }
+}
+
+function create(keys: number[], groups: IntMap<AtomGroup>): AtomSetImpl {
     sortArray(keys);
     let runningSize = 0;
     const offsets = new Int32Array(keys.length + 1);
     for (let i = 0, _i = keys.length; i < _i; i++) {
-        runningSize += OrderedSet.size(sets.get(keys[i]));
+        runningSize += AtomGroup.size(groups.get(keys[i]));
         offsets[i + 1] = runningSize;
     }
-    return { keys: SortedArray.ofSortedArray(keys), sets: IntMap.asImmutable(sets), offsets, hashCode: -1 };
-}
-
-
-function ofKeysAndSets(keys: number[], sets: IntMap<OrderedSet>) {
-    if (keys.length === 1) {
-        const set = sets.get(keys[0]);
-        if (OrderedSet.size(set) === 1) return Atom.create(keys[0], OrderedSet.getAt(set, 0));
-    }
-    return ofKeysAndSetsElemements(keys, sets);
+    return { keys: SortedArray.ofSortedArray(keys), groups: IntMap.asImmutable(groups), offsets, hashCode: -1 };
 }
 
 function getUniqueElements(xs: number[]): number[] {
@@ -239,7 +328,7 @@ function normalizeArray(xs: number[]): number[] {
     return xs;
 }
 
-function ofAtoms(xs: ArrayLike<Atom>) {
+function ofAtomsImpl(xs: ArrayLike<Atom>, template: AtomSetImpl) {
     if (xs.length === 0) return Empty;
 
     const elements = IntMap.Mutable<number[]>();
@@ -256,13 +345,14 @@ function ofAtoms(xs: ArrayLike<Atom>) {
         }
     }
 
-    const sets = IntMap.Mutable<OrderedSet>();
+    const generator = TemplateGenerator(template);
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
-        sets.set(k, OrderedSet.ofSortedArray(normalizeArray(elements.get(k))));
+        const group = AtomGroup.createNew(OS.ofSortedArray(normalizeArray(elements.get(k))));
+        generator.add(k, group);
     }
 
-    return ofKeysAndSets(keys, sets);
+    return generator.getSet();
 }
 
 function getOffsetIndex(xs: ArrayLike<number>, value: number) {
@@ -280,32 +370,13 @@ function getOffsetIndex(xs: ArrayLike<number>, value: number) {
     return value < xs[min] ? min - 1 : min;
 }
 
-function getAtE(set: AtomSetElements, i: number): Atom {
-    const { offsets, keys } = set;
-    const o = getOffsetIndex(offsets, i);
-    if (o >= offsets.length - 1) return 0 as any;
-    const k = keys[o];
-    const e = OrderedSet.getAt(set.sets.get(k), i - offsets[o]);
-    return Atom.create(k, e);
-}
-
-function indexOfE(set: AtomSetElements, t: Atom) {
-    const { keys } = set;
-    const u = Atom.unit(t);
-    const setIdx = SortedArray.indexOf(keys, u);
-    if (setIdx < 0) return -1;
-    const o = OrderedSet.indexOf(set.sets.get(u), Atom.index(t));
-    if (o < 0) return -1;
-    return set.offsets[setIdx] + o;
-}
-
-function computeHash(set: AtomSetElements) {
-    const { keys, sets } = set;
+function computeHash(set: AtomSetImpl) {
+    const { keys, groups } = set;
     let hash = 23;
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
         hash = (31 * hash + k) | 0;
-        hash = (31 * hash + OrderedSet.hashCode(sets.get(k))) | 0;
+        hash = (31 * hash + AtomGroup.hashCode(groups.get(k))) | 0;
     }
     hash = (31 * hash + size(set)) | 0;
     hash = hash1(hash);
@@ -313,177 +384,43 @@ function computeHash(set: AtomSetElements) {
     return hash;
 }
 
-function areEqualEE(a: AtomSetElements, b: AtomSetElements) {
-    if (a === b) return true;
-    if (size(a) !== size(a)) return false;
-
-    const keys = a.keys;
-    if (!SortedArray.areEqual(keys, b.keys)) return false;
-    const { sets: aSets } = a;
-    const { sets: bSets } = b;
-    for (let i = 0, _i = keys.length; i < _i; i++) {
-        const k = keys[i];
-        if (!OrderedSet.areEqual(aSets.get(k), bSets.get(k))) return false;
-    }
-    return true;
-}
-
-function areIntersectingNE(a: Atom, b: AtomSetElements) {
-    const u = Atom.unit(a);
-    return b.sets.has(u) && OrderedSet.has(b.sets.get(u), Atom.index(a));
-}
-
-function areIntersectingEE(a: AtomSetElements, b: AtomSetElements) {
-    if (a === b) return true;
-    const keysA = a.keys, keysB = b.keys;
-    if (!SortedArray.areIntersecting(a.keys, b.keys)) return false;
-    const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
-    const start = Interval.start(r), end = Interval.end(r);
-    const { sets: aSets } = a;
-    const { sets: bSets } = b;
-    for (let i = start; i < end; i++) {
-        const k = keysA[i];
-        const ak = aSets.get(k), bk = bSets.get(k);
-        if (!!ak && !!bk && OrderedSet.areIntersecting(ak, bk)) return true;
-    }
-    return false;
-}
-
-function intersectNE(a: Atom, b: AtomSetElements) {
-    const u = Atom.unit(a);
-    return b.sets.has(u) && OrderedSet.has(b.sets.get(u), Atom.index(a)) ? a : Empty;
-}
-
-function intersectEE(a: AtomSetElements, b: AtomSetElements) {
-    if (a === b) return a;
-
-    const keysA = a.keys, keysB = b.keys;
-    if (!SortedArray.areIntersecting(a.keys, b.keys)) return Empty;
-    const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
-    const start = Interval.start(r), end = Interval.end(r);
-
-    const { sets: aSets } = a;
-    const { sets: bSets } = b;
-    const generator = Generator();
-    for (let i = start; i < end; i++) {
-        const k = keysA[i];
-        const bk = bSets.get(k);
-        if (!bk) continue;
-        generator.add(k, OrderedSet.intersect(aSets.get(k), bk));
-    }
-    return generator.getSet();
-}
-
-function subtractNE(a: Atom, b: AtomSetElements) {
-    return hasAtom(b, a) ? Empty : a;
-}
-
-function subtractEN(a: AtomSetElements, b: Atom): AtomSetImpl {
-    if (!hasAtom(a, b)) return a;
-
-    const u = Atom.unit(b), v = Atom.index(b);
-    const { sets: aSets } = a;
-    const set = aSets.get(u);
-
-    if (OrderedSet.size(set) === 1) {
-        // remove the entire unit.
-        const generator = Generator();
-        for (let i = 0, _i = a.keys.length; i < _i; i++) {
-            const k = a.keys[i];
-            if (k !== u) generator.add(k, aSets.get(k))
-        }
-        return generator.getSet();
-    } else {
-        const generator = Generator();
-        for (let i = 0, _i = a.keys.length; i < _i; i++) {
-            const k = a.keys[i];
-            if (k === u) generator.add(k, OrderedSet.subtract(set, OrderedSet.ofSingleton(v)))
-            else generator.add(k, aSets.get(k))
-        }
-        return generator.getSet();
-    }
-}
-
-function subtractEE(a: AtomSetElements, b: AtomSetElements) {
-    if (a === b) return Empty;
-
-    const keysA = a.keys, keysB = b.keys;
-    if (!SortedArray.areIntersecting(keysA, keysB)) return a;
-    const r = SortedArray.findRange(keysA, SortedArray.min(keysB), SortedArray.max(keysB));
-    const start = Interval.start(r), end = Interval.end(r);
-
-    const generator = Generator();
-    const { sets: aSets } = a;
-    const { sets: bSets } = b;
-    for (let i = 0; i < start; i++) {
-        const k = keysA[i];
-        generator.add(k, aSets.get(k));
-    }
-    for (let i = start; i < end; i++) {
-        const k = keysA[i];
-        const ak = aSets.get(k), bk = bSets.get(k);
-        if (!!bk) {
-            const subtraction = OrderedSet.subtract(ak, bk);
-            generator.add(k, subtraction);
-        } else {
-            generator.add(k, ak);
-        }
-    }
-    for (let i = end, _i = keysA.length; i < _i; i++) {
-        const k = keysA[i];
-        generator.add(k, aSets.get(k));
-    }
-    return generator.getSet();
-}
-
-function findUnion(sets: ArrayLike<AtomSetImpl>) {
+function findUnion(sets: ArrayLike<AtomSetImpl>, template: AtomSetImpl) {
     if (!sets.length) return Empty;
     if (sets.length === 1) return sets[0];
-    if (sets.length === 2 && areEqual(sets[0], sets[1])) return sets[0];
+    if (sets.length === 2 && sets[0] === sets[1]) return sets[0];
 
-    const eCount = { count: 0 };
-    const ns = unionN(sets, eCount);
-    if (!eCount.count) return ns;
-    const generator = Generator();
+    const keys: number[] = [];
+    const groups = IntMap.Mutable<AtomGroup>();
     for (let i = 0, _i = sets.length; i < _i; i++) {
-        const s = sets[i];
-        if (typeof s !== 'number') unionInto(generator, s as AtomSetElements);
+        unionInto(keys, groups, sets[i]);
     }
-    if (size(ns as AtomSetImpl) > 0) {
-        if (typeof ns === 'number') unionIntoN(generator, ns as any);
-        else unionInto(generator, ns as AtomSetElements);
-    }
-    return generator.getSet();
+
+    return normalizeUnion(keys, groups, template);
 }
 
-function unionN(sets: ArrayLike<AtomSetImpl>, eCount: { count: number }) {
-    let countN = 0, countE = 0;
-    for (let i = 0, _i = sets.length; i < _i; i++) {
-        if (typeof sets[i] === 'number') countN++;
-        else countE++;
-    }
-    eCount.count = countE;
-    if (!countN) return Empty;
-    if (countN === sets.length) return ofAtoms(sets as ArrayLike<Atom>);
-    const packed = Atom.createEmptyArray(countN);
-    let offset = 0;
-    for (let i = 0, _i = sets.length; i < _i; i++) {
-        const s = sets[i];
-        if (typeof s === 'number') packed[offset++] = s;
-    }
-    return ofAtoms(packed as any);
-}
-
-function unionInto(builder: AtomSetGenerator, a: AtomSetElements) {
-    const keys = a.keys;
-    const { sets: aSets } = a;
+function normalizeUnion(keys: number[], groups: IntMap.Mutable<AtomGroup>, template: AtomSetImpl) {
+    let equalCount = 0;
+    let tg = template.groups, a: AtomGroup, t: AtomGroup;
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
-        builder.addUnion(k, aSets.get(k));
+        if (tg.has(k) && AtomGroup.areEqual(a = groups.get(k), t = tg.get(k))) {
+            groups.set(k, t);
+            equalCount++;
+        }
     }
+    return equalCount === template.keys.length && equalCount === keys.length ? template : create(keys, groups);
 }
 
-function unionIntoN(builder: AtomSetGenerator, a: Atom) {
-    const u = Atom.unit(a);
-    builder.addUnion(u, OrderedSet.ofSingleton(Atom.index(a)));
+function unionInto(keys: number[], groups: IntMap.Mutable<AtomGroup>, a: AtomSetImpl) {
+    const setKeys = a.keys;
+    const { groups: aG } = a;
+    for (let i = 0, _i = setKeys.length; i < _i; i++) {
+        const k = setKeys[i];
+        if (groups.has(k)) {
+            groups.set(k, AtomGroup.union(aG.get(k), groups.get(k)))
+        } else {
+            keys[keys.length] = k;
+            groups.set(k, aG.get(k));
+        }
+    }
 }

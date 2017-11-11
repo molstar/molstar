@@ -10,8 +10,8 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Atom, AtomSet, Selection, Symmetry } from 'mol-model/structure'
-import { OrderedSet as OrdSet, Segmentation } from 'mol-data/int'
+import { Structure, Model, Queries as Q, Atom, AtomGroup, AtomSet, Selection, Symmetry } from 'mol-model/structure'
+import { Segmentation } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
 
@@ -78,8 +78,8 @@ export namespace PropertyAccess {
             const set = AtomSet.unitGetByIndex(atoms, i);
 
 
-            for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
-                l.atom = OrdSet.getAt(set, j);
+            for (let j = 0, _j = AtomGroup.size(set); j < _j; j++) {
+                l.atom = AtomGroup.getAt(set, j);
                 s += p(l);
             }
         }
@@ -100,20 +100,20 @@ export namespace PropertyAccess {
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
 
-            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
+            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set.atoms);
             const residues = unit.hierarchy.residueSegments;
             while (chainsIt.hasNext) {
                 cC++;
 
                 const chainSegment = chainsIt.move();
-                const residuesIt = Segmentation.transientSegments(residues, set, chainSegment);
+                const residuesIt = Segmentation.transientSegments(residues, set.atoms, chainSegment);
                 while (residuesIt.hasNext) {
                     rC++;
                     const residueSegment = residuesIt.move();
                     // l.atom = OrdSet.getAt(set, residueSegment.start);
                     // console.log(unit.hierarchy.residues.auth_comp_id.value(unit.residueIndex[l.atom]), l.atom, OrdSet.getAt(set, residueSegment.end))
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                        l.atom = OrdSet.getAt(set, j);
+                        l.atom = AtomGroup.getAt(set, j);
                         vA++;
                         s += p(l);
                     }
@@ -137,9 +137,9 @@ export namespace PropertyAccess {
             const unit = units[unitIds[i]];
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
-            const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
+            const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set.atoms);
             while (residuesIt.hasNext) {
-                l.atom = OrdSet.getAt(set, residuesIt.move().start);
+                l.atom = AtomGroup.getAt(set, residuesIt.move().start);
                 s += p(l);
             }
         }
@@ -204,8 +204,8 @@ export namespace PropertyAccess {
             const set = AtomSet.unitGetByIndex(atoms, i);
             //const { residueIndex, chainIndex } = unit;
             const p = unit.conformation.atomId.value;
-            for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
-                const aI = OrdSet.getAt(set, j);
+            for (let j = 0, _j = AtomGroup.size(set); j < _j; j++) {
+                const aI = AtomGroup.getAt(set, j);
                 s += p(aI);
             }
         }

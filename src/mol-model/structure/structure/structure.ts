@@ -38,16 +38,16 @@ namespace Structure {
         for (let c = 0; c < chains.count; c++) {
             const group = AtomGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
             const unit = Unit.create(model, SymmetryOperator.Default, group);
-            builder.add(unit, OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
+            builder.add(unit, unit.naturalGroup);
         }
 
         return builder.getStructure();
     }
 
     export interface Builder {
-        add(unit: Unit, atoms: OrderedSet): void,
+        add(unit: Unit, atoms: AtomGroup): void,
         addUnit(unit: Unit): void,
-        setAtoms(unitId: number, atoms: OrderedSet): void,
+        setAtoms(unitId: number, atoms: AtomGroup): void,
         getStructure(): Structure,
         readonly atomCount: number
     }
@@ -58,9 +58,9 @@ namespace Structure {
         private atoms = AtomSet.Generator();
         atomCount = 0;
 
-        add(unit: Unit, atoms: OrderedSet) { const id = this.addUnit(unit); this.setAtoms(id, atoms); }
+        add(unit: Unit, atoms: AtomGroup) { const id = this.addUnit(unit); this.setAtoms(id, atoms); }
         addUnit(unit: Unit) { const id = this._unitId++; this.units[id] = unit; return id; }
-        setAtoms(unitId: number, atoms: OrderedSet) { this.atoms.add(unitId, atoms); this.atomCount += OrderedSet.size(atoms); }
+        setAtoms(unitId: number, atoms: AtomGroup) { this.atoms.add(unitId, atoms); this.atomCount += AtomGroup.size(atoms); }
         getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, this.atoms.getSet()) : Empty; }
     }
 

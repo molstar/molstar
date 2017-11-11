@@ -28,6 +28,11 @@ namespace AtomGroup {
         return createNew(atoms);
     }
 
+    export function createChild(parent: AtomGroup, atoms: OrderedSet): AtomGroup {
+        if (OrderedSet.areEqual(atoms, parent.atoms)) return parent;
+        return createNew(atoms);
+    }
+
     export function size(group: AtomGroup) { return OrderedSet.size(group.atoms); }
     export function has(group: AtomGroup, atom: number) { return OrderedSet.has(group.atoms, atom); }
     export function getAt(group: AtomGroup, i: number) { return OrderedSet.getAt(group.atoms, i); }
