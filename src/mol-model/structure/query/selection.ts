@@ -6,7 +6,6 @@
 
 import Iterator from 'mol-data/iterator'
 import { HashSet } from 'mol-data/util'
-import { IntMap } from 'mol-data/int'
 import { Structure, Atom, AtomSet } from '../structure'
 
 type Selection =
@@ -116,19 +115,20 @@ namespace Selection {
 export default Selection
 
 function unionUnits(xs: Structure[]): Structure['units'] {
-    let prev = xs[0].units;
-    let sameUnits = true;
-    for (let i = 1, _i = xs.length; i < _i; i++) {
-        if (xs[i].units !== prev) sameUnits = false;
-    }
-    if (sameUnits) return prev;
+    return xs[0].units;
+//    let prev = xs[0].units;
+    // let sameUnits = true;
+    // for (let i = 1, _i = xs.length; i < _i; i++) {
+    //     if (xs[i].units !== prev) sameUnits = false;
+    // }
+    // if (sameUnits) return prev;
 
-    const ret = IntMap.copy(prev);
-    for (let i = 1, _i = xs.length; i < _i; i++) {
-        const units = xs[i].units;
-        if (units !== prev) IntMap.addFrom(ret, units);
-        prev = units;
-    }
+    // const ret = [...prev];
+    // for (let i = 1, _i = xs.length; i < _i; i++) {
+    //     const units = xs[i].units;
+    //     if (units !== prev) IntMap.addFrom(ret, units);
+    //     prev = units;
+    // }
 
-    return ret;
+    //return ret;
 }

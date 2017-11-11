@@ -74,7 +74,7 @@ export namespace PropertyAccess {
         let s = 0;
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            l.unit = units.get(unitIds[i]);
+            l.unit = units[unitIds[i]];
             const set = AtomSet.unitGetByIndex(atoms, i);
 
 
@@ -96,7 +96,7 @@ export namespace PropertyAccess {
 
         let vA = 0, cC = 0, rC = 0;
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unit = units.get(unitIds[i]);
+            const unit = units[unitIds[i]];
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
 
@@ -134,7 +134,7 @@ export namespace PropertyAccess {
         let s = 0;
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unit = units.get(unitIds[i]);
+            const unit = units[unitIds[i]];
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
             const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
@@ -155,7 +155,7 @@ export namespace PropertyAccess {
         const l = Atom.Location();
         while (atomsIt.hasNext) {
             const a = atomsIt.move();
-            l.unit = units.get(Atom.unit(a));
+            l.unit = units[Atom.unit(a)];
             l.atom = Atom.index(a);
             s += p(l);
         }
@@ -200,7 +200,7 @@ export namespace PropertyAccess {
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
-            const unit = units.get(unitId);
+            const unit = units[unitId];
             const set = AtomSet.unitGetByIndex(atoms, i);
             //const { residueIndex, chainIndex } = unit;
             const p = unit.conformation.atomId.value;

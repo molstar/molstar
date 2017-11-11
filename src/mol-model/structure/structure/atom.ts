@@ -29,7 +29,7 @@ namespace Atom {
     export interface Predicate extends Property<boolean> { }
 
     export function updateLocation(structure: Structure, l: Location, atom: Atom) {
-        l.unit = structure.units.get(unit(atom));
+        l.unit = structure.units[unit(atom)];
         l.atom = index(atom);
         return l;
     }

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedSet, Iterator, IntMap } from 'mol-data/int'
+import { OrderedSet, Iterator } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/util'
 import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import { Model, Format } from '../model'
@@ -15,14 +15,14 @@ import Atom from './atom'
 
 
 interface Structure extends Readonly<{
-    units: IntMap<Unit>,
+    units: Unit[],
     atoms: AtomSet
 }> { }
 
 namespace Structure {
-    export const Empty: Structure = { units: IntMap.Empty, atoms: AtomSet.Empty };
+    export const Empty: Structure = { units: [], atoms: AtomSet.Empty };
 
-    export function create(units: IntMap<Unit>, atoms: AtomSet): Structure {
+    export function create(units: Unit[], atoms: AtomSet): Structure {
         return { units, atoms };
     }
 
@@ -54,12 +54,12 @@ namespace Structure {
 
     class BuilderImpl implements Builder {
         private _unitId = 0;
-        private units = IntMap.Mutable<Unit>();
+        private units: Unit[] = [];
         private atoms = AtomSet.Generator();
         atomCount = 0;
 
         add(unit: Unit, atoms: OrderedSet) { const id = this.addUnit(unit); this.setAtoms(id, atoms); }
-        addUnit(unit: Unit) { const id = this._unitId++; this.units.set(id, unit); return id; }
+        addUnit(unit: Unit) { const id = this._unitId++; this.units[id] = unit; return id; }
         setAtoms(unitId: number, atoms: OrderedSet) { this.atoms.add(unitId, atoms); this.atomCount += OrderedSet.size(atoms); }
         getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, this.atoms.getSet()) : Empty; }
     }
@@ -78,7 +78,7 @@ namespace Structure {
         const arr = UniqueArray.create<Model['id'], Model>();
         const ids = AtomSet.unitIds(atoms);
         for (let i = 0; i < ids.length; i++) {
-            const u = units.get(ids[i]);
+            const u = units[ids[i]];
             UniqueArray.add(arr, u.model.id, u.model);
         }
         return arr.array;

@@ -34,7 +34,7 @@ function buildAssemblyImpl(structure: Structure, name: string) {
 
         for (const oper of g.operators) {
             for (let uI = 0, _uI = unitIds.length; uI < _uI; uI++) {
-                const unit = units.get(unitIds[uI]);
+                const unit = units[unitIds[uI]];
                 assembler.add(Unit.withOperator(unit, oper), AtomSet.unitGetByIndex(atoms, uI));
             }
         }
