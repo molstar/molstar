@@ -218,18 +218,17 @@ export class TemplateAtomSetGenerator {
     add(unit: number, group: AtomGroup) {
         if (AtomGroup.size(group) === 0) return;
         this.keys[this.keys.length] = unit;
-        const templ = this.templateGroups.get(unit);
-        if (AtomGroup.areEqual(templ, group)) {
-            this.groups.set(unit, templ);
+        let t: AtomGroup;
+        if (this.templateGroups.has(unit) && AtomGroup.areEqual(t = this.templateGroups.get(unit), group)) {
+            this.groups.set(unit, t);
             this.equalGroups++;
         } else {
             this.groups.set(unit, group);
         }
-
     }
 
     getSet(): AtomSetImpl {
-        if (this.equalGroups === this.template.keys.length) {
+        if (this.equalGroups === this.template.keys.length && this.equalGroups === this.keys.length) {
             return this.template;
         }
         return create(this.keys, this.groups);
@@ -401,16 +400,15 @@ function findUnion(sets: ArrayLike<AtomSetImpl>, template: AtomSetImpl) {
 
 function normalizeUnion(keys: number[], groups: IntMap.Mutable<AtomGroup>, template: AtomSetImpl) {
     let equalCount = 0;
-    let tg = template.groups;
+    let tg = template.groups, a: AtomGroup, t: AtomGroup;
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
-        const a = groups.get(k), t = tg.get(k);
-        if (AtomGroup.areEqual(a, t)) {
+        if (tg.has(k) && AtomGroup.areEqual(a = groups.get(k), t = tg.get(k))) {
             groups.set(k, t);
             equalCount++;
         }
     }
-    return equalCount === template.keys.length ? template : create(keys, groups);
+    return equalCount === template.keys.length && equalCount === keys.length ? template : create(keys, groups);
 }
 
 function unionInto(keys: number[], groups: IntMap.Mutable<AtomGroup>, a: AtomSetImpl) {
@@ -421,6 +419,7 @@ function unionInto(keys: number[], groups: IntMap.Mutable<AtomGroup>, a: AtomSet
         if (groups.has(k)) {
             groups.set(k, AtomGroup.union(aG.get(k), groups.get(k)))
         } else {
+            keys[keys.length] = k;
             groups.set(k, aG.get(k));
         }
     }

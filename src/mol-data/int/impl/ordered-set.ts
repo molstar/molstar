@@ -132,8 +132,8 @@ function unionII(a: I, b: I) {
     if (I.areEqual(a, b)) return a;
 
     const sizeA = I.size(a), sizeB = I.size(b);
-    if (!sizeA) return b;
     if (!sizeB) return a;
+    if (!sizeA) return b;
     const minA = I.min(a), minB = I.min(b);
     if (areRangesIntersecting(a, b)) return I.ofRange(Math.min(minA, minB), Math.max(I.max(a), I.max(b)));
     let lSize, lMin, rSize, rMin;

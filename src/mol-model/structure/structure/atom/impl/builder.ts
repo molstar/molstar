@@ -45,7 +45,7 @@ export class Builder {
             const l = unit.length;
             if (!this.sorted && l > 1) sortArray(unit);
 
-            const set = l === 1 ? OrderedSet.ofSingleton(unit[0]) : OrderedSet.ofSortedArray(unit);
+            const set = OrderedSet.ofSortedArray(unit);
             const parentSet = AtomSet.unitGetById(this.parent, k);
             if (OrderedSet.areEqual(set, parentSet)) {
                 generator.add(k, parentSet);
