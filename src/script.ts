@@ -148,13 +148,14 @@ async function runCIF(input: string | Uint8Array) {
 export async function _cif() {
     let path = `./examples/1grm_updated.cif`;
     // path = '../test/3j3q.cif'  // lets have a relative path for big test files
+    //path = 'e:/test/quick/3j3q_updated.cif';
     const input = await readFileAsync(path, 'utf8')
     console.log('------------------');
     console.log('Text CIF:');
     runCIF(input);
 
     path = `./examples/1cbs_full.bcif`;
-    // const path = 'c:/test/quick/3j3q.cif';
+    
     const input2 = await readFileAsync(path)
     console.log('------------------');
     console.log('BinaryCIF:');

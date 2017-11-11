@@ -29,6 +29,23 @@ async function readData(path: string) {
     }
 }
 
+function *test() {
+    yield 10;
+    return 15;
+}
+
+async function runIt<T>(itP: () => IterableIterator<T>) {
+    const it = itP();
+    let lastValue: T | undefined;
+    while(true) {
+        const { value, done } = it.next();
+        if (done) return value;
+        lastValue = value;
+    }
+}
+
+runIt(test).then(r => console.log('rerdasdasda', r))
+
 export async function readCIF(path: string) {
     console.time('readData');
     const input = await readData(path)

@@ -124,8 +124,6 @@ class ObservableContext implements Computation.Context {
     private observers: Computation.ProgressObserver[] | undefined = void 0;
     private progress: Computation.Progress = { message: 'Working...', current: 0, max: 0, elapsedMs: 0, isIndeterminate: true, requestAbort: void 0 };
 
-    lastDelta = 0;
-
     private checkAborted() {
         if (this.abortRequested) throw Computation.Aborted;
     }
@@ -186,7 +184,6 @@ class ObservableContext implements Computation.Context {
             }
         }
 
-        this.lastDelta = time - this.lastUpdated;
         this.lastUpdated = time;
 
         return Scheduler.immediatePromise();
@@ -223,11 +220,10 @@ class ChunkerImpl implements Computation.Chunker {
     private processedSinceUpdate = 0;
     private updater: Computation.Context['update'];
 
-    private computeChunkSize() {
-        const lastDelta = (this.context as ObservableContext).lastDelta || 0;
-        if (!lastDelta) return this.nextChunkSize;
+    private computeChunkSize(delta: number) {
+        if (!delta) return this.nextChunkSize;
         const rate = (this.context as ObservableContext).updateRate || DefaulUpdateRateMs;
-        const ret = Math.round(this.processedSinceUpdate * rate / lastDelta + 1);
+        const ret = Math.round(this.processedSinceUpdate * rate / delta + 1);
         this.processedSinceUpdate = 0;
         return ret;
     }
@@ -246,17 +242,22 @@ class ChunkerImpl implements Computation.Chunker {
     async process(nextChunk: (size: number) => number, update: (updater: Computation.Context['update']) => Promise<void> | void, nextChunkSize?: number) {
         if (typeof nextChunkSize !== 'undefined') this.setNextChunkSize(nextChunkSize);
 
+        // track time for the actual computation and exclude the "update time"
+        let chunkStart = Computation.now();
         let lastChunkSize: number;
         while ((lastChunkSize = nextChunk(this.getNextChunkSize())) > 0) {
             this.processedSinceUpdate += lastChunkSize;
             if (this.context.requiresUpdate) {
+                let time = Computation.now();
                 await update(this.updater);
-                this.nextChunkSize = this.computeChunkSize();
+                this.nextChunkSize = this.computeChunkSize(time - chunkStart);
+                chunkStart = Computation.now();
             }
         }
         if (this.context.requiresUpdate) {
+            let time = Computation.now();
             await update(this.updater);
-            this.nextChunkSize = this.computeChunkSize();
+            this.nextChunkSize = this.computeChunkSize(time - chunkStart);
         }
     }
 
