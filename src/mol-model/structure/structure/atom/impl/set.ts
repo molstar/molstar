@@ -215,15 +215,19 @@ export class TemplateAtomSetGenerator {
     private templateGroups: IntMap<AtomGroup>;
     private equalGroups = 0;
 
-    add(unit: number, group: AtomGroup) {
-        if (AtomGroup.size(group) === 0) return;
+    add(unit: number, set: OS) {
+        if (OS.size(set) === 0) return;
         this.keys[this.keys.length] = unit;
-        let t: AtomGroup;
-        if (this.templateGroups.has(unit) && AtomGroup.areEqual(t = this.templateGroups.get(unit), group)) {
-            this.groups.set(unit, t);
-            this.equalGroups++;
+        if (this.templateGroups.has(unit)) {
+            const t = this.templateGroups.get(unit);
+            if (OS.areEqual(t.atoms, set)) {
+                this.groups.set(unit, t);
+                this.equalGroups++;
+            } else {
+                this.groups.set(unit, AtomGroup.createNew(set));
+            }
         } else {
-            this.groups.set(unit, group);
+            this.groups.set(unit, AtomGroup.createNew(set));
         }
     }
 
@@ -348,8 +352,7 @@ function ofAtomsImpl(xs: ArrayLike<Atom>, template: AtomSetImpl) {
     const generator = TemplateGenerator(template);
     for (let i = 0, _i = keys.length; i < _i; i++) {
         const k = keys[i];
-        const group = AtomGroup.createNew(OS.ofSortedArray(normalizeArray(elements.get(k))));
-        generator.add(k, group);
+        generator.add(k, OS.ofSortedArray(normalizeArray(elements.get(k))));
     }
 
     return generator.getSet();

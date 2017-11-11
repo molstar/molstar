@@ -49,8 +49,8 @@ describe('atom set', () => {
     it('template', () => {
         const template = AtomSet.ofAtoms([p(1, 3), p(0, 1), p(0, 6), p(0, 2)], AtomSet.Empty)
         const gen = AtomSet.TemplateGenerator(template);
-        gen.add(0, AtomGroup.createNew(OrderedSet.ofSortedArray([1, 2, 6])));
-        gen.add(1, AtomGroup.createNew(OrderedSet.ofSingleton(3)));
+        gen.add(0, OrderedSet.ofSortedArray([1, 2, 6]));
+        gen.add(1, OrderedSet.ofSingleton(3));
         const set = gen.getSet();
 
         expect(AtomSet.unitGetById(set, 0)).toBe(AtomSet.unitGetById(template, 0));
@@ -61,8 +61,8 @@ describe('atom set', () => {
     it('template 1', () => {
         const template = AtomSet.ofAtoms([p(1, 3), p(0, 1), p(0, 6), p(0, 2)], AtomSet.Empty)
         const gen = AtomSet.TemplateGenerator(template);
-        gen.add(0, AtomGroup.createNew(OrderedSet.ofSortedArray([1, 2, 6])));
-        gen.add(1, AtomGroup.createNew(OrderedSet.ofSingleton(4)));
+        gen.add(0, OrderedSet.ofSortedArray([1, 2, 6]));
+        gen.add(1, OrderedSet.ofSingleton(4));
         const set = gen.getSet();
 
         expect(AtomSet.unitGetById(set, 0)).toBe(AtomSet.unitGetById(template, 0));

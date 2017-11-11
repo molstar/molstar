@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SortedArray, Iterator } from 'mol-data/int'
+import { SortedArray, Iterator, OrderedSet } from 'mol-data/int'
 import Atom from '../atom'
 import AtomGroup from './group'
 import * as Impl from './impl/set'
-import * as Builders from './impl/builder'
+import * as Builders from './impl/set-builder'
 
 /** A map-like representation of grouped atom set */
 namespace AtomSet {
@@ -44,7 +44,9 @@ namespace AtomSet {
 
     export interface Generator { add(unit: number, set: AtomGroup): void, getSet(): AtomSet }
     export const Generator: () => Generator = Impl.Generator as any
-    export const TemplateGenerator: (template: AtomSet) => Generator = Impl.TemplateGenerator as any
+
+    export interface TemplateGenerator { add(unit: number, set: OrderedSet): void, getSet(): AtomSet }
+    export const TemplateGenerator: (template: AtomSet) => TemplateGenerator = Impl.TemplateGenerator as any
 
     // TODO: bounding sphere
     // TODO: distance, areWithIn?

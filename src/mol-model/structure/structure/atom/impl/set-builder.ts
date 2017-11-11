@@ -6,7 +6,6 @@
 
 import AtomSet from '../set'
 import Atom from '../../atom'
-import AtomGroup from '../group'
 import { OrderedSet, IntMap } from 'mol-data/int'
 import { sortArray } from 'mol-data/util/sort'
 
@@ -36,22 +35,17 @@ export class Builder {
     }
 
     getSet(): AtomSet {
-        const generator = AtomSet.Generator();
-
-        let allEqual = this.keys.length === AtomSet.unitCount(this.parent);
+        const generator = AtomSet.TemplateGenerator(this.parent);
 
         for (let i = 0, _i = this.keys.length; i < _i; i++) {
             const k = this.keys[i];
             const unit = this.units.get(k);
             const l = unit.length;
             if (!this.sorted && l > 1) sortArray(unit);
-
-            const parentGroup = AtomSet.unitGetById(this.parent, k);
-            const group = AtomGroup.createChild(parentGroup, OrderedSet.ofSortedArray(unit));
-            if (group !== parentGroup) allEqual = false;
-            generator.add(k, group);
+            generator.add(k, OrderedSet.ofSortedArray(unit));
         }
-        return allEqual ? this.parent : generator.getSet();
+
+        return generator.getSet();
     }
 
     singleton(): Atom {
