@@ -15,6 +15,7 @@ namespace AtomSet {
     export const Empty: AtomSet = Impl.Empty as any;
 
     export const ofAtoms: (atoms: ArrayLike<Atom>, template: AtomSet) => AtomSet = Impl.ofAtoms as any;
+    export const singleton: (atom: Atom, template: AtomSet) => AtomSet = Impl.singleton as any;
 
     export const unitCount: (set: AtomSet) => number = Impl.keyCount as any;
     export const unitIds: (set: AtomSet) => SortedArray = Impl.getKeys as any;

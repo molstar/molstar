@@ -30,6 +30,15 @@ describe('atom set', () => {
         expect(AtomSet.atomCount(set)).toBe(1);
     });
 
+    it('singleton atom', () => {
+        const set = AtomSet.singleton(p(10, 11), AtomSet.Empty);
+        expect(setToPairs(set)).toEqual([p(10, 11)]);
+        expect(AtomSet.atomHas(set, p(10, 11))).toBe(true);
+        expect(AtomSet.atomHas(set, p(11, 11))).toBe(false);
+        expect(AtomSet.atomGetAt(set, 0)).toBe(p(10, 11));
+        expect(AtomSet.atomCount(set)).toBe(1);
+    });
+
     it('multi', () => {
         const gen = AtomSet.Generator();
         gen.add(1, AtomGroup.createNew(OrderedSet.ofSortedArray([4, 6, 7])));

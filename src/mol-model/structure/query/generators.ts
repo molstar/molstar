@@ -12,7 +12,7 @@ import { OrderedSet, Segmentation } from 'mol-data/int'
 
 export const all: Query = s => Selection.Singletons(s, s.atoms);
 
-export interface AtomGroupsParams {
+export interface AtomQueryParams {
     entityTest: Atom.Predicate,
     chainTest: Atom.Predicate,
     residueTest: Atom.Predicate,
@@ -20,11 +20,18 @@ export interface AtomGroupsParams {
     groupBy: Atom.Property<any>
 }
 
-export function atoms(params?: Partial<AtomGroupsParams>): Query {
+export interface AtomGroupsQueryParams extends AtomQueryParams {
+    groupBy: Atom.Property<any>
+}
+
+export function residues(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.residue.key }); }
+export function chains(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.chain.key }); }
+
+export function atoms(params?: Partial<AtomGroupsQueryParams>): Query {
     if (!params || (!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy)) return all;
     if (!!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy) return atomGroupsLinear(params.atomTest);
 
-    const normalized: AtomGroupsParams = {
+    const normalized: AtomGroupsQueryParams = {
         entityTest: params.entityTest || P.constant.true,
         chainTest: params.chainTest || P.constant.true,
         residueTest: params.residueTest || P.constant.true,
@@ -60,7 +67,7 @@ function atomGroupsLinear(atomTest: Atom.Predicate): Query {
     };
 }
 
-function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsParams): Query {
+function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query {
     return structure => {
         const { atoms, units } = structure;
         const unitIds = AtomSet.unitIds(atoms);
@@ -133,17 +140,16 @@ class LinearGroupingBuilder {
     }
 
     private fullSelection() {
-        const sets: AtomSet[] = [];
+        const sets: AtomSet[] = new Array(this.builders.length);
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
             sets[i] = this.builders[i].getSet();
         }
-        return Selection.Seq(this.structure, sets);
+        return Selection.Sequence(this.structure, sets);
     }
 
     getSelection(): Selection {
         const len = this.builders.length;
         if (len === 0) return Selection.Empty(this.structure);
-        if (len === 1) return Selection.Singletons(this.structure, this.builders[0].getSet());
         if (this.allSingletons()) return this.singletonSelection();
         return this.fullSelection();
     }
@@ -151,7 +157,7 @@ class LinearGroupingBuilder {
     constructor(private structure: Structure) { }
 }
 
-function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsParams): Query {
+function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query {
     return structure => {
         const { atoms, units } = structure;
         const unitIds = AtomSet.unitIds(atoms);

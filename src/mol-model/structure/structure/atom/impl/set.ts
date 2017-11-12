@@ -20,6 +20,10 @@ export function ofAtoms(atoms: ArrayLike<Atom>, template: AtomSetImpl): AtomSetI
     return ofAtomsImpl(atoms, template);
 }
 
+export function singleton(atom: Atom, template: AtomSetImpl) {
+    return singletonImpl(atom, template);
+}
+
 export function getKeys(set: AtomSetImpl): SortedArray {
     return set.keys;
 }
@@ -356,6 +360,21 @@ function ofAtomsImpl(xs: ArrayLike<Atom>, template: AtomSetImpl) {
     }
 
     return generator.getSet();
+}
+
+function singletonImpl(atom: Atom, template: AtomSetImpl) {
+    const k = Atom.unit(atom), i = Atom.index(atom);
+    const { groups } = template;
+    const gs = IntMap.Mutable<AtomGroup>();
+    if (groups.has(k)) {
+        const g = groups.get(k);
+        if (AtomGroup.size(g) === 1 && AtomGroup.getAt(g, 0) === i) {
+            gs.set(k, g);
+            return create([k], gs);
+        }
+    }
+    gs.set(k, AtomGroup.createNew(OS.ofSingleton(i)));
+    return create([k], gs);
 }
 
 function getOffsetIndex(xs: ArrayLike<number>, value: number) {
