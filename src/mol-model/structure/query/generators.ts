@@ -10,7 +10,7 @@ import P from './properties'
 import { Structure, AtomSet, Atom } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
 
-export const all: Query = s => s;
+export const all: Query = s => Selection.Singletons(s, s.atoms);
 
 export interface AtomGroupsParams {
     entityTest: Atom.Predicate,
@@ -56,7 +56,7 @@ function atomGroupsLinear(atomTest: Atom.Predicate): Query {
             builder.commitUnit(unitId);
         }
 
-        return Structure.create(units, builder.getSet());
+        return Selection.Singletons(structure, builder.getSet());
     };
 }
 
@@ -99,7 +99,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             builder.commitUnit(unitId);
         }
 
-        return Structure.create(units, builder.getSet());
+        return Selection.Singletons(structure, builder.getSet());
     };
 }
 
@@ -124,27 +124,27 @@ class LinearGroupingBuilder {
         return true;
     }
 
-    private singletonStructure(): Structure {
+    private singletonSelection(): Selection {
         const atoms: Atom[] = Atom.createEmptyArray(this.builders.length);
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
             atoms[i] = this.builders[i].singleton();
         }
-        return Structure.create(this.structure.units, AtomSet.ofAtoms(atoms, this.structure.atoms));
+        return Selection.Singletons(this.structure, AtomSet.ofAtoms(atoms, this.structure.atoms));
     }
 
     private fullSelection() {
-        const ret: Structure[] = [];
+        const sets: AtomSet[] = [];
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            ret[i] = Structure.create(this.structure.units, this.builders[i].getSet());
+            sets[i] = this.builders[i].getSet();
         }
-        return ret;
+        return Selection.Seq(this.structure, sets);
     }
 
     getSelection(): Selection {
         const len = this.builders.length;
-        if (len === 0) return Selection.Empty;
-        if (len === 1) return Structure.create(this.structure.units, this.builders[0].getSet());
-        if (this.allSingletons()) return this.singletonStructure();
+        if (len === 0) return Selection.Empty(this.structure);
+        if (len === 1) return Selection.Singletons(this.structure, this.builders[0].getSet());
+        if (this.allSingletons()) return this.singletonSelection();
         return this.fullSelection();
     }
 

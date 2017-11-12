@@ -13,18 +13,16 @@ import AtomSet from './atom/set'
 import AtomGroup from './atom/group'
 import Atom from './atom'
 
-
-interface Structure extends Readonly<{
-    units: Unit[],
-    atoms: AtomSet
-}> { }
+// A structure is a pair of "units" and an atom set.
+// Each unit contains the data and transformation of its corresponding atoms.
+interface Structure {
+    readonly units: ReadonlyArray<Unit>,
+    readonly atoms: AtomSet
+}
 
 namespace Structure {
-    export const Empty: Structure = { units: [], atoms: AtomSet.Empty };
-
-    export function create(units: Unit[], atoms: AtomSet): Structure {
-        return { units, atoms };
-    }
+    export function create(units: ReadonlyArray<Unit>, atoms: AtomSet): Structure { return { units, atoms }; }
+    export function Empty(units: ReadonlyArray<Unit>): Structure { return create(units, AtomSet.Empty); };
 
     export function ofData(format: Format) {
         const models = Model.create(format);
@@ -38,7 +36,7 @@ namespace Structure {
         for (let c = 0; c < chains.count; c++) {
             const group = AtomGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
             const unit = Unit.create(model, SymmetryOperator.Default, group);
-            builder.add(unit, unit.naturalGroup);
+            builder.add(unit, unit.fullGroup);
         }
 
         return builder.getStructure();
@@ -61,7 +59,7 @@ namespace Structure {
         add(unit: Unit, atoms: AtomGroup) { const id = this.addUnit(unit); this.setAtoms(id, atoms); }
         addUnit(unit: Unit) { const id = this._unitId++; this.units[id] = unit; return id; }
         setAtoms(unitId: number, atoms: AtomGroup) { this.atoms.add(unitId, atoms); this.atomCount += AtomGroup.size(atoms); }
-        getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, this.atoms.getSet()) : Empty; }
+        getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, this.atoms.getSet()) : Empty(this.units); }
     }
 
     export function Builder(): Builder { return new BuilderImpl(); }

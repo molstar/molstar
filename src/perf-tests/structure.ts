@@ -36,11 +36,9 @@ function *test() {
 
 async function runIt<T>(itP: () => IterableIterator<T>) {
     const it = itP();
-    let lastValue: T | undefined;
-    while(true) {
+    while (true) {
         const { value, done } = it.next();
         if (done) return value;
-        lastValue = value;
     }
 }
 

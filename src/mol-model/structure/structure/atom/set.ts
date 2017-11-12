@@ -34,7 +34,7 @@ namespace AtomSet {
     export const areEqual: (a: AtomSet, b: AtomSet) => boolean = Impl.areEqual as any;
     export const areIntersecting: (a: AtomSet, b: AtomSet) => boolean = Impl.areIntersecting as any;
 
-    export const union: (sets: AtomSet[], template: AtomSet) => AtomSet = Impl.unionMany as any;
+    export const union: (sets: ArrayLike<AtomSet>, template: AtomSet) => AtomSet = Impl.unionMany as any;
     export const intersect: (a: AtomSet, b: AtomSet) => AtomSet = Impl.intersect as any;
     export const subtract: (a: AtomSet, b: AtomSet) => AtomSet = Impl.subtract as any;
 

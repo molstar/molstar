@@ -4,131 +4,94 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-data/iterator'
 import { HashSet } from 'mol-data/util'
-import { Structure, Atom, AtomSet } from '../structure'
+import { Structure, AtomSet } from '../structure'
 
-type Selection =
-    | Structure // each atom is interpreted as a singleton structure
-    | Structure[]
-
-// TODO: Do not allow to change unit set in the middle of a query, create a differnt language to control assemblies etc.
-/*
-type Selection =
-  | { kind: 'sequence', structure: Structure, sets: AtomSet[] }
-  | { kind: 'atom-set', structure: Structure, set: AtomSet }
-
-  structure allows for good unions.
-*/
+// A selection is a pair of a Structure and a sequence of unique AtomSets
+type Selection = Selection.Singletons | Selection.Seq
 
 namespace Selection {
-    export const Empty: Selection = [];
+    // If each element of the selection is a singleton, we can use a more efficient representation.
+    export interface Singletons { readonly kind: 'singletons', readonly structure: Structure, readonly set: AtomSet }
+    export interface Seq { readonly kind: 'seq', readonly structure: Structure, readonly sets: ReadonlyArray<AtomSet> }
 
-    function isStructure(x: Selection): x is Structure { return !!(x as Structure).units && !!(x as Structure).atoms; }
+    export function Singletons(structure: Structure, set: AtomSet): Singletons { return { kind: 'singletons', structure, set } }
+    export function Seq(structure: Structure, sets: AtomSet[]): Seq { return { kind: 'seq', structure, sets } }
 
-    export const isOfSingletons = isStructure
+    export function Empty(structure: Structure): Selection { return Seq(structure, []); };
+
+    export function isSingleton(s: Selection): s is Singletons { return s.kind === 'singletons'; }
+    export function isEmpty(s: Selection) { return isSingleton(s) ? AtomSet.atomCount(s.set) === 0 : s.sets.length === 0; }
 
     export function structureCount(sel: Selection) {
-        if (isStructure(sel)) return AtomSet.atomCount(sel.atoms);
-        return sel.length;
+        if (isSingleton(sel)) return AtomSet.atomCount(sel.set);
+        return sel.sets.length;
     }
 
-    export function union(sel: Selection): Structure {
-        if (isStructure(sel)) return sel;
-        if (!sel.length) return Structure.Empty;
-        const sets = [];
-        for (let i = 0, _i = sel.length; i < _i; i++) sets[sets.length] = sel[i].atoms;
-        return Structure.create(unionUnits(sel), AtomSet.union(sets, AtomSet.Empty));
-    }
-
-    export function structures(sel: Selection): Iterator<Structure> {
-        if (isStructure(sel)) {
-            const units = sel.units;
-            return Iterator.map<Atom, Structure>(AtomSet.atoms(sel.atoms), atoms => Structure.create(units, atoms));
-        }
-        return Iterator.Array(sel);
+    export function unionStructure(sel: Selection): Structure {
+        if (isEmpty(sel)) return Structure.Empty(sel.structure.units);
+        if (isSingleton(sel)) return Structure.create(sel.structure.units, sel.set);
+        return Structure.create(sel.structure.units, AtomSet.union(sel.sets, sel.structure.atoms));
     }
 
     export function getAt(sel: Selection, i: number): Structure {
-        if (isStructure(sel)) {
-            return Structure.create(sel.units, AtomSet.atomGetAt(sel.atoms, i));
+        if (isSingleton(sel)) {
+            const atom = AtomSet.atomGetAt(sel.set, i);
+            return Structure.create(sel.structure.units, AtomSet.ofAtoms([atom], sel.structure.atoms));
         }
-        return sel[i];
+        return Structure.create(sel.structure.units, sel.sets[i]);
     }
 
     export interface Builder {
-        add(s: Structure): void,
+        add(set: AtomSet): void,
         getSelection(): Selection
     }
 
+    function getSelection(structure: Structure, sets: AtomSet[], allSingletons: boolean) {
+        const len = sets.length;
+        if (len === 0) return Empty(structure);
+        if (len === 1) return Singletons(structure, sets[0]);
+        if (allSingletons) return Singletons(structure, AtomSet.union(sets, structure.atoms));
+        return Seq(structure, sets);
+    }
+
     class LinearBuilderImpl implements Builder {
-        private structures: Structure[] = [];
+        private sets: AtomSet[] = [];
         private allSingletons = true;
 
-        add(s: Structure) {
-            const atomCount = AtomSet.atomCount(s.atoms);
+        add(atoms: AtomSet) {
+            const atomCount = AtomSet.atomCount(atoms);
             if (atomCount === 0) return;
-            this.structures[this.structures.length] = s;
+            this.sets[this.sets.length] = atoms;
             if (atomCount !== 1) this.allSingletons = false;
         }
 
-        getSelection() {
-            const len = this.structures.length;
-            if (len === 0) return Empty;
-            if (len === 1) return this.structures[0];
-            if (this.allSingletons) return union(this.structures);
-            return this.structures;
-        }
+        getSelection() { return getSelection(this.structure, this.sets, this.allSingletons); }
 
-        constructor() { }
+        constructor(private structure: Structure) { }
     }
 
     class HashBuilderImpl implements Builder {
-        private structures: Structure[] = [];
+        private sets: AtomSet[] = [];
         private allSingletons = true;
-        private sets = HashSet(AtomSet.hashCode, AtomSet.areEqual);
+        private uniqueSets = HashSet(AtomSet.hashCode, AtomSet.areEqual);
 
-        add(s: Structure) {
-            const atomCount = AtomSet.atomCount(s.atoms);
-            if (atomCount === 0 || !this.sets.add(s.atoms)) return;
-            this.structures[this.structures.length] = s;
+        add(atoms: AtomSet) {
+            const atomCount = AtomSet.atomCount(atoms);
+            if (atomCount === 0 || !this.uniqueSets.add(atoms)) return;
+            this.sets[this.sets.length] = atoms;
             if (atomCount !== 1) this.allSingletons = false;
         }
 
-        getSelection() {
-            const len = this.structures.length;
-            if (len === 0) return Empty;
-            if (len === 1) return this.structures[0];
-            if (this.allSingletons) return union(this.structures);
-            return this.structures;
-        }
+        getSelection() { return getSelection(this.structure, this.sets, this.allSingletons); }
 
-        constructor() { }
+        constructor(private structure: Structure) { }
     }
 
-    export function LinearBuilder(): Builder { return new LinearBuilderImpl(); }
-    export function UniqueBuilder(): Builder { return new HashBuilderImpl(); }
+    export function LinearBuilder(structure: Structure): Builder { return new LinearBuilderImpl(structure); }
+    export function UniqueBuilder(structure: Structure): Builder { return new HashBuilderImpl(structure); }
 
     // TODO: spatial lookup
 }
 
 export default Selection
-
-function unionUnits(xs: Structure[]): Structure['units'] {
-    return xs[0].units;
-//    let prev = xs[0].units;
-    // let sameUnits = true;
-    // for (let i = 1, _i = xs.length; i < _i; i++) {
-    //     if (xs[i].units !== prev) sameUnits = false;
-    // }
-    // if (sameUnits) return prev;
-
-    // const ret = [...prev];
-    // for (let i = 1, _i = xs.length; i < _i; i++) {
-    //     const units = xs[i].units;
-    //     if (units !== prev) IntMap.addFrom(ret, units);
-    //     prev = units;
-    // }
-
-    //return ret;
-}

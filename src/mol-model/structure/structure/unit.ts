@@ -8,16 +8,23 @@ import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import AtomGroup from './atom/group'
 import { Model } from '../model'
 
+// A bulding block of a structure that corresponds
+// to a "natural group of atoms" (most often a "chain")
+// together with a tranformation (rotation and translation)
+// that is dynamically applied to the underlying atom set.
+//
+// An atom set can be referenced by multiple diffrent units which
+// makes construction of assemblies and spacegroups very efficient.
 interface Unit extends SymmetryOperator.ArrayMapping {
     // Provides access to the underlying data.
     readonly model: Model,
 
-    // Determines the operation applied to this unit.
-    // The transform and and inverse are baked into the "getPosition" function
-    readonly operator: SymmetryOperator,
-
     // The "full" atom group corresponding to this unit.
-    readonly naturalGroup: AtomGroup,
+    // Every selection is a subset of this atoms group.
+    // Things like inter-unit bonds or spatial lookups
+    // can be be implemented efficiently as "views" of the
+    // full group.
+    readonly fullGroup: AtomGroup,
 
     // Reference some commonly accessed things for faster access.
     readonly residueIndex: ArrayLike<number>,
@@ -29,14 +36,14 @@ interface Unit extends SymmetryOperator.ArrayMapping {
 }
 
 namespace Unit {
-    export function create(model: Model, operator: SymmetryOperator, naturalGroup: AtomGroup): Unit {
+    export function create(model: Model, operator: SymmetryOperator, fullGroup: AtomGroup): Unit {
         const h = model.hierarchy;
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.conformation);
 
         return {
             model,
             operator,
-            naturalGroup,
+            fullGroup,
             residueIndex: h.residueSegments.segmentMap,
             chainIndex: h.chainSegments.segmentMap,
             hierarchy: model.hierarchy,
@@ -48,7 +55,7 @@ namespace Unit {
     }
 
     export function withOperator(unit: Unit, operator: SymmetryOperator) {
-        return create(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.naturalGroup);
+        return create(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.fullGroup);
     }
 }
 

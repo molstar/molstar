@@ -28,7 +28,7 @@ function buildAssemblyImpl(structure: Structure, name: string) {
     for (const g of assembly.operatorGroups) {
         const selection = g.selector(structure);
         if (Selection.structureCount(selection) === 0) continue;
-        const { units, atoms } = Selection.union(selection);
+        const { units, atoms } = Selection.unionStructure(selection);
 
         const unitIds = AtomSet.unitIds(atoms);
 

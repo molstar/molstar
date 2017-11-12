@@ -38,6 +38,7 @@ namespace SymmetryOperator {
 
     export interface CoordinateMapper { (index: number, slot: Vec3): Vec3 }
     export interface ArrayMapping {
+        readonly operator: SymmetryOperator,
         readonly invariantPosition: CoordinateMapper,
         readonly position: CoordinateMapper,
         x(index: number): number,

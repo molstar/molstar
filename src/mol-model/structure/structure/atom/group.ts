@@ -24,7 +24,7 @@ namespace AtomGroup {
     }
 
     export function create(unit: Unit, atoms: OrderedSet): AtomGroup {
-        if (OrderedSet.areEqual(atoms, unit.naturalGroup.atoms)) return unit.naturalGroup;
+        if (OrderedSet.areEqual(atoms, unit.fullGroup.atoms)) return unit.fullGroup;
         return createNew(atoms);
     }
 
