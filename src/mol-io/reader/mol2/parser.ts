@@ -4,12 +4,12 @@
 // but not 
 // const undefPooledStr = UndefinedColumn(molecule.num_atoms, ColumnType.pooledStr);
 // because latter actuall return a column of zeros
+import { Column } from 'mol-data/db'
 import Tokenizer from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
-import { ColumnType, UndefinedColumn } from '../common/column'
 import * as Schema from './schema'
 import Result from '../result'
-import Computation from '../../utils/computation' 
+import Computation from 'mol-util/computation' 
 
 interface State {
     tokenizer: Tokenizer,
@@ -51,7 +51,7 @@ function State(tokenizer: Tokenizer, ctx: Computation.Context): State {
 
 function handleMolecule(state: State) {
     const { tokenizer, molecule } = state;
-    Tokenizer.markLine(tokenizer); // skip the line '@<TRIPOS>MOLECULE'
+    Tokenizer.markLine(tokenizer); 
     Tokenizer.markLine(tokenizer);
     let name = Tokenizer.getTokenString(tokenizer);
     molecule.mol_name = name;
@@ -111,29 +111,25 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
     }    
 
     const col = FixedColumn(lines);
-    const undefInt = UndefinedColumn(molecule.num_atoms, ColumnType.int);
-    const undefFloat = UndefinedColumn(molecule.num_atoms, ColumnType.float);
+    const undefInt = Column.Undefined(molecule.num_atoms, Column.Schema.int);
+    const undefFloat = Column.Undefined(molecule.num_atoms, Column.Schema.float);
     //const undefPooledStr = UndefinedColumn(molecule.num_atoms, ColumnType.pooledStr);
     // created below column to pass unit tests
-    const undefStr = UndefinedColumn(molecule.num_atoms, ColumnType.str);
+    const undefStr = Column.Undefined(molecule.num_atoms, Column.Schema.str);
 
     const ret = {
         count: molecule.num_atoms,
-        atom_id: col(0, 7, ColumnType.int),
-        atom_name: col(7, 9, ColumnType.pooledStr), 
-        x: col(16, 10, ColumnType.float),
-        y: col(26, 10, ColumnType.float),
-        z: col(36, 10, ColumnType.float),
-        atom_type: col(46, 6, ColumnType.pooledStr),
+        atom_id: col(0, 7, Column.Schema.int),
+        atom_name: col(7, 9, Column.Schema.str), 
+        x: col(16, 10, Column.Schema.float),
+        y: col(26, 10, Column.Schema.float),
+        z: col(36, 10, Column.Schema.float),
+        atom_type: col(46, 6, Column.Schema.str),
         // optional properties
-        subst_id: hasSubst_id ? col(52, 6, ColumnType.int) : undefInt, 
-        subst_name: hasSubst_name ? col(58, 8, ColumnType.pooledStr) : undefStr,
-        charge: hasCharge ? col(66, 10, ColumnType.float) : undefFloat, 
-        // undefPooledStr cannot pass unit tests because it create a column of zeros but not empty strings
-        //status_bit: hasStatus_bit ? col(76, 100, ColumnType.pooledStr) : undefPooledStr, 
-
-        // use undefStr instead to pass unit tests
-        status_bit: hasStatus_bit ? col(76, 100, ColumnType.pooledStr) : undefStr, 
+        subst_id: hasSubst_id ? col(52, 6, Column.Schema.int) : undefInt, 
+        subst_name: hasSubst_name ? col(58, 8, Column.Schema.str) : undefStr,
+        charge: hasCharge ? col(66, 10, Column.Schema.float) : undefFloat, 
+        status_bit: hasStatus_bit ? col(76, 100, Column.Schema.str) : undefStr, 
 
     };
 
@@ -160,18 +156,22 @@ async function handleBonds(state: State): Promise<Schema.Bonds> {
     const col = FixedColumn(lines);
     //const undefPooledStr = UndefinedColumn(molecule.num_bonds, ColumnType.pooledStr);
     // created below column to pass unit tests
-    const undefStr = UndefinedColumn(molecule.num_atoms, ColumnType.str);
+    const undefStr = Column.Undefined(molecule.num_atoms, Column.Schema.str);
+
+    // if don't want to assume a fixed format, we can access a value of a column at a certain row by 
+    // parse out the whole line at row x, then split the line, and return the yth value that is at the 
+    // index of wanted value.
 
     const ret = {
         count: molecule.num_bonds,
-        bond_id: col(0, 6, ColumnType.int),
-        origin_atom_id: col(6, 6, ColumnType.int), 
-        target_atom_id: col(12, 6, ColumnType.int),
-        bond_type: col(18, 5, ColumnType.pooledStr), 
+        bond_id: col(0, 6, Column.Schema.int),
+        origin_atom_id: col(6, 6, Column.Schema.int), 
+        target_atom_id: col(12, 6, Column.Schema.int),
+        bond_type: col(18, 5, Column.Schema.str), 
         // optional properties
         // undefPooledStr cannot pass unit tests because it create a column of zeros but not empty strings
         //status_bits: hasStatus_bit ? col(23, 50, ColumnType.pooledStr) : undefPooledStr, 
-        status_bits: hasStatus_bit ? col(23, 50, ColumnType.pooledStr) : undefStr, 
+        status_bits: hasStatus_bit ? col(23, 50, Column.Schema.str) : undefStr, 
     };
 
     return ret;
