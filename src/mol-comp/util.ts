@@ -1,13 +1,31 @@
 
 
 
-type ExecutionContext = { getRuntimeCtx(c: Computation<any>): RuntimeContext, subscribe(o: (p: string, compId: number) => void): void }
+type ExecutionContext = {
+    run<T>(c: Computation<T>, params?: { updateRateMs: number }): Promise<T>,
+    subscribe(o: (p: string, compId: number) => void): void
+}
 
-type RuntimeContext = { yield(name: string): Promise<void> | void, createChildContext(): RuntimeContext }
+namespace ExecutionContext {
+    // export interface Synchronous extends ExecutionContext {
+    //     run<T>(c: Computation<T>, params?: { updateRateMs: number }): Promise<T>,
+    // }
 
+    // export interface Observable extends ExecutionContext {
+    //     run<T>(c: Computation<T>, params?: { updateRateMs: number }): Promise<T>,
+    // }
+    export const Sync: ExecutionContext = 0 as any;
+}
+
+interface RuntimeContext extends ExecutionContext {
+    yield(name: string): Promise<void> | void
+}
+
+// if no context is specified, use the synchronous one.
 type Computation<T> = { (ctx?: RuntimeContext): Promise<T>, _id: number }
 
 function create<T>(c: (ctx: RuntimeContext) => Promise<T>): Computation<T> { return 0 as any; }
+function constant<T>(c: T) { return create(async ctx => c); }
 
 type MultistepFn<P, T> = (params: P, step: (s: number) => Promise<void> | void, ctx: RuntimeContext) => Promise<T>
 type ComputationProvider<P, T> = (params: P) => Computation<T>
@@ -40,7 +58,7 @@ function readLines(str: string): Computation<string[]> {
 
 const prependHiToLines = MultistepComputation('Hi prepend', ['Parse input', 'Prepend Hi'], async (p: string, step, ctx) => {
     await step(0);
-    const lines = await readLines(p)(ctx);
+    const lines = await ctx.run(readLines(p));
     await step(1);
     const ret = lines.map(l => 'Hi ' + l);
     return ret;
@@ -48,6 +66,6 @@ const prependHiToLines = MultistepComputation('Hi prepend', ['Parse input', 'Pre
 
 
 (async function() {
-    const r = await prependHiToLines('1\n2')();
+    const r = await ExecutionContext.Sync.run(prependHiToLines('1\n2'), { updateRateMs: 150 });
     console.log(r)
 }())
