@@ -5,25 +5,24 @@
  */
 
 import { OrderedSet, Iterator } from 'mol-data/int'
-import UniqueArray from 'mol-data/util/unique-array'
+import { UniqueArray } from 'mol-data/util'
 import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import { Model, Format } from '../model'
 import Unit from './unit'
 import AtomSet from './atom/set'
+import AtomGroup from './atom/group'
 import Atom from './atom'
 
-
-interface Structure extends Readonly<{
-    units: { readonly [id: number]: Unit },
-    atoms: AtomSet
-}> { }
+// A structure is a pair of "units" and an atom set.
+// Each unit contains the data and transformation of its corresponding atoms.
+interface Structure {
+    readonly units: ReadonlyArray<Unit>,
+    readonly atoms: AtomSet
+}
 
 namespace Structure {
-    export const Empty = { units: {}, atoms: AtomSet.Empty };
-
-    export function create(units: Structure['units'], atoms: AtomSet): Structure {
-        return { units, atoms };
-    }
+    export function create(units: ReadonlyArray<Unit>, atoms: AtomSet): Structure { return { units, atoms }; }
+    export function Empty(units: ReadonlyArray<Unit>): Structure { return create(units, AtomSet.Empty); };
 
     export function ofData(format: Format) {
         const models = Model.create(format);
@@ -35,29 +34,32 @@ namespace Structure {
         const builder = Builder();
 
         for (let c = 0; c < chains.count; c++) {
-            const unit = Unit.create(model, SymmetryOperator.Default);
-            builder.addUnit(unit);
-            builder.addAtoms(unit.id, OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
+            const group = AtomGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
+            const unit = Unit.create(model, SymmetryOperator.Default, group);
+            builder.add(unit, unit.fullGroup);
         }
 
         return builder.getStructure();
     }
 
     export interface Builder {
+        add(unit: Unit, atoms: AtomGroup): void,
         addUnit(unit: Unit): void,
-        addAtoms(unitId: number, atoms: OrderedSet): void,
+        setAtoms(unitId: number, atoms: AtomGroup): void,
         getStructure(): Structure,
         readonly atomCount: number
     }
 
     class BuilderImpl implements Builder {
-        private units = Object.create(null);
-        private atoms = Object.create(null);
+        private _unitId = 0;
+        private units: Unit[] = [];
+        private atoms = AtomSet.Generator();
         atomCount = 0;
 
-        addUnit(unit: Unit) { this.units[unit.id] = unit; }
-        addAtoms(unitId: number, atoms: OrderedSet) { this.atoms[unitId] = atoms; this.atomCount += OrderedSet.size(atoms); }
-        getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, AtomSet.create(this.atoms)) : Empty; }
+        add(unit: Unit, atoms: AtomGroup) { const id = this.addUnit(unit); this.setAtoms(id, atoms); }
+        addUnit(unit: Unit) { const id = this._unitId++; this.units[id] = unit; return id; }
+        setAtoms(unitId: number, atoms: AtomGroup) { this.atoms.add(unitId, atoms); this.atomCount += AtomGroup.size(atoms); }
+        getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, this.atoms.getSet()) : Empty(this.units); }
     }
 
     export function Builder(): Builder { return new BuilderImpl(); }
@@ -70,9 +72,11 @@ namespace Structure {
     }
 
     export function getModels(s: Structure) {
+        const { units, atoms } = s;
         const arr = UniqueArray.create<Model['id'], Model>();
-        for (const k of Object.keys(s.units)) {
-            const u = s.units[+k];
+        const ids = AtomSet.unitIds(atoms);
+        for (let i = 0; i < ids.length; i++) {
+            const u = units[ids[i]];
             UniqueArray.add(arr, u.model.id, u.model);
         }
         return arr.array;

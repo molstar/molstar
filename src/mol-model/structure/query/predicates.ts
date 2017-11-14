@@ -64,7 +64,7 @@ namespace Predicates {
 
     export function or(...ps: Atom.Predicate[]): Atom.Predicate {
         switch (ps.length) {
-            case 0: return P.constant.true;
+            case 0: return P.constant.false;
             case 1: return ps[0];
             case 2: {
                 const a = ps[0], b = ps[1];

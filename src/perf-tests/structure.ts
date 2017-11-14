@@ -10,8 +10,8 @@ import * as util from 'util'
 import * as fs from 'fs'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Atom, AtomSet, Selection } from 'mol-model/structure'
-import { OrderedSet as OrdSet, Segmentation } from 'mol-data/int'
+import { Structure, Model, Queries as Q, Atom, AtomGroup, AtomSet, Selection, Symmetry } from 'mol-model/structure'
+import { Segmentation } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
 
@@ -28,6 +28,21 @@ async function readData(path: string) {
         return readFileAsync(path, 'utf8');
     }
 }
+
+function *test() {
+    yield 10;
+    return 15;
+}
+
+async function runIt<T>(itP: () => IterableIterator<T>) {
+    const it = itP();
+    while (true) {
+        const { value, done } = it.next();
+        if (done) return value;
+    }
+}
+
+runIt(test).then(r => console.log('rerdasdasda', r))
 
 export async function readCIF(path: string) {
     console.time('readData');
@@ -77,8 +92,9 @@ export namespace PropertyAccess {
             l.unit = units[unitIds[i]];
             const set = AtomSet.unitGetByIndex(atoms, i);
 
-            for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
-                l.atom = OrdSet.getAt(set, j);
+
+            for (let j = 0, _j = AtomGroup.size(set); j < _j; j++) {
+                l.atom = AtomGroup.getAt(set, j);
                 s += p(l);
             }
         }
@@ -99,20 +115,20 @@ export namespace PropertyAccess {
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
 
-            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
+            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set.atoms);
             const residues = unit.hierarchy.residueSegments;
             while (chainsIt.hasNext) {
                 cC++;
 
                 const chainSegment = chainsIt.move();
-                const residuesIt = Segmentation.transientSegments(residues, set, chainSegment);
+                const residuesIt = Segmentation.transientSegments(residues, set.atoms, chainSegment);
                 while (residuesIt.hasNext) {
                     rC++;
                     const residueSegment = residuesIt.move();
                     // l.atom = OrdSet.getAt(set, residueSegment.start);
                     // console.log(unit.hierarchy.residues.auth_comp_id.value(unit.residueIndex[l.atom]), l.atom, OrdSet.getAt(set, residueSegment.end))
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                        l.atom = OrdSet.getAt(set, j);
+                        l.atom = AtomGroup.getAt(set, j);
                         vA++;
                         s += p(l);
                     }
@@ -136,9 +152,9 @@ export namespace PropertyAccess {
             const unit = units[unitIds[i]];
             l.unit = unit;
             const set = AtomSet.unitGetByIndex(atoms, i);
-            const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
+            const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set.atoms);
             while (residuesIt.hasNext) {
-                l.atom = OrdSet.getAt(set, residuesIt.move().start);
+                l.atom = AtomGroup.getAt(set, residuesIt.move().start);
                 s += p(l);
             }
         }
@@ -203,8 +219,8 @@ export namespace PropertyAccess {
             const set = AtomSet.unitGetByIndex(atoms, i);
             //const { residueIndex, chainIndex } = unit;
             const p = unit.conformation.atomId.value;
-            for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
-                const aI = OrdSet.getAt(set, j);
+            for (let j = 0, _j = AtomGroup.size(set); j < _j; j++) {
+                const aI = AtomGroup.getAt(set, j);
                 s += p(aI);
             }
         }
@@ -241,13 +257,29 @@ export namespace PropertyAccess {
         console.log(to_mmCIF('test', s));
     }
 
-    export async function run() {
-        const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
-        //const { structures, models, mmcif } = await readCIF('e:/test/quick/3j3q_full.bcif');
-        //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
+    export function testAssembly(id: string, s: Structure) {
+        console.time('assembly')
+        const a = Symmetry.buildAssembly(s, '1');
+        console.timeEnd('assembly')
+        fs.writeFileSync(`e:/test/molstar/${id}_assembly.bcif`, to_mmCIF(id, a, true));
+        console.log('exported');
+        //write(a);
+    }
 
-        console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
-        console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
+    export async function run() {
+        //const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
+        const { structures, models } = await readCIF('e:/test/quick/3j3q_full.bcif');
+        //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
+        //const { structures, models/*, mmcif*/ } = await readCIF('e:/test/quick/5j7v_updated.cif');
+
+        //console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
+        // console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
+
+        // testAssembly('5j7v', structures[0]);
+        // throw '';
+
+        // console.log(models[0].symmetry.assemblies);
+
 
         //const { structures, models } = await readCIF('e:/test/molstar/3j3q.bcif');
 
@@ -258,8 +290,8 @@ export namespace PropertyAccess {
 
         // return;
 
-        console.log(baseline(models[0]));
-        console.log(sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
+        console.log('bs', baseline(models[0]));
+        console.log('sp', sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
         console.log(sumPropertySegmented(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));
 
         //console.log(sumPropertySegmentedMutable(structures[0], l => l.unit.model.conformation.atomId.value(l.atom)));

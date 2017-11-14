@@ -10,9 +10,9 @@ import P from './properties'
 import { Structure, AtomSet, Atom } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
 
-export const all: Query = s => s;
+export const all: Query = s => Selection.Singletons(s, s.atoms);
 
-export interface AtomGroupsParams {
+export interface AtomQueryParams {
     entityTest: Atom.Predicate,
     chainTest: Atom.Predicate,
     residueTest: Atom.Predicate,
@@ -20,11 +20,18 @@ export interface AtomGroupsParams {
     groupBy: Atom.Property<any>
 }
 
-export function atoms(params?: Partial<AtomGroupsParams>): Query {
+export interface AtomGroupsQueryParams extends AtomQueryParams {
+    groupBy: Atom.Property<any>
+}
+
+export function residues(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.residue.key }); }
+export function chains(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.chain.key }); }
+
+export function atoms(params?: Partial<AtomGroupsQueryParams>): Query {
     if (!params || (!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy)) return all;
     if (!!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy) return atomGroupsLinear(params.atomTest);
 
-    const normalized: AtomGroupsParams = {
+    const normalized: AtomGroupsQueryParams = {
         entityTest: params.entityTest || P.constant.true,
         chainTest: params.chainTest || P.constant.true,
         residueTest: params.residueTest || P.constant.true,
@@ -46,7 +53,7 @@ function atomGroupsLinear(atomTest: Atom.Predicate): Query {
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
             l.unit = units[unitId];
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = AtomSet.unitGetByIndex(atoms, i).atoms;
 
             builder.beginUnit();
             for (let j = 0, _j = OrderedSet.size(set); j < _j; j++) {
@@ -56,11 +63,11 @@ function atomGroupsLinear(atomTest: Atom.Predicate): Query {
             builder.commitUnit(unitId);
         }
 
-        return Structure.create(units, builder.getSet());
+        return Selection.Singletons(structure, builder.getSet());
     };
 }
 
-function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsParams): Query {
+function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query {
     return structure => {
         const { atoms, units } = structure;
         const unitIds = AtomSet.unitIds(atoms);
@@ -71,7 +78,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             const unitId = unitIds[i];
             const unit = units[unitId];
             l.unit = unit;
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = AtomSet.unitGetByIndex(atoms, i).atoms;
 
             builder.beginUnit();
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
@@ -99,20 +106,20 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             builder.commitUnit(unitId);
         }
 
-        return Structure.create(units, builder.getSet());
+        return Selection.Singletons(structure, builder.getSet());
     };
 }
 
 class LinearGroupingBuilder {
     private builders: AtomSet.Builder[] = [];
-    private builderMap: { [key: string]: AtomSet.Builder } = Object.create(null);
+    private builderMap = new Map<string, AtomSet.Builder>();
 
     add(key: any, unit: number, atom: number) {
-        let b = this.builderMap[key];
+        let b = this.builderMap.get(key);
         if (!b) {
             b = AtomSet.LinearBuilder(this.structure.atoms);
             this.builders[this.builders.length] = b;
-            this.builderMap[key] = b;
+            this.builderMap.set(key, b);
         }
         b.add(unit, atom);
     }
@@ -124,34 +131,33 @@ class LinearGroupingBuilder {
         return true;
     }
 
-    private singletonStructure(): Structure {
+    private singletonSelection(): Selection {
         const atoms: Atom[] = Atom.createEmptyArray(this.builders.length);
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
             atoms[i] = this.builders[i].singleton();
         }
-        return Structure.create(this.structure.units, AtomSet.create(atoms));
+        return Selection.Singletons(this.structure, AtomSet.ofAtoms(atoms, this.structure.atoms));
     }
 
     private fullSelection() {
-        const ret: Structure[] = [];
+        const sets: AtomSet[] = new Array(this.builders.length);
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            ret[i] = Structure.create(this.structure.units, this.builders[i].getSet());
+            sets[i] = this.builders[i].getSet();
         }
-        return ret;
+        return Selection.Sequence(this.structure, sets);
     }
 
     getSelection(): Selection {
         const len = this.builders.length;
-        if (len === 0) return Selection.Empty;
-        if (len === 1) return Structure.create(this.structure.units, this.builders[0].getSet());
-        if (this.allSingletons()) return this.singletonStructure();
+        if (len === 0) return Selection.Empty(this.structure);
+        if (this.allSingletons()) return this.singletonSelection();
         return this.fullSelection();
     }
 
     constructor(private structure: Structure) { }
 }
 
-function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsParams): Query {
+function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query {
     return structure => {
         const { atoms, units } = structure;
         const unitIds = AtomSet.unitIds(atoms);
@@ -162,7 +168,7 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
             const unitId = unitIds[i];
             const unit = units[unitId];
             l.unit = unit;
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = AtomSet.unitGetByIndex(atoms, i).atoms;
 
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
             const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);

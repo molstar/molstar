@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import EquivalenceClasses from '../util/equivalence-classes'
+import { EquivalenceClasses } from '../util'
 
 describe('equiv-classes', () => {
     it('integer mod classes', () => {

@@ -11,8 +11,10 @@ import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
 import Conformation from '../properties/conformation'
+import Symmetry from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { ElementSymbol} from '../types'
+import createAssemblies from './mmcif/assembly'
 
 import mmCIF_Format = Format.mmCIF
 
@@ -76,6 +78,10 @@ function getConformation({ data }: mmCIF_Format, bounds: Interval): Conformation
     }
 }
 
+function getSymmetry(format: mmCIF_Format): Symmetry {
+    return { assemblies: createAssemblies(format) };
+}
+
 function isHierarchyDataEqual(a: Hierarchy.Hierarchy, b: Hierarchy.Data) {
     // need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
     return Table.areEqual(a.chains as Table<Hierarchy.ChainsSchema>, b.chains as Table<Hierarchy.ChainsSchema>)
@@ -105,6 +111,7 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
         conformation: getConformation(format, bounds),
+        symmetry: getSymmetry(format),
         atomCount: Interval.size(bounds)
     };
 }

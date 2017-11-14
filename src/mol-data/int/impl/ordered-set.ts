@@ -132,8 +132,8 @@ function unionII(a: I, b: I) {
     if (I.areEqual(a, b)) return a;
 
     const sizeA = I.size(a), sizeB = I.size(b);
-    if (!sizeA) return b;
     if (!sizeB) return a;
+    if (!sizeA) return b;
     const minA = I.min(a), minB = I.min(b);
     if (areRangesIntersecting(a, b)) return I.ofRange(Math.min(minA, minB), Math.max(I.max(a), I.max(b)));
     let lSize, lMin, rSize, rMin;
@@ -170,6 +170,7 @@ function intersectSI(a: S, b: I) {
     const start = I.start(r), end = I.end(r);
     const resultSize = end - start;
     if (!resultSize) return Empty;
+    if (resultSize === a.length) return a;
 
     const indices = new Int32Array(resultSize);
     let offset = 0;

@@ -14,7 +14,11 @@ import Encoder from '../encoder'
 // TODO: add "repeat encoding"? [[1, 2], [1, 2], [1, 2]] --- Repeat ---> [[1, 2], 3]
 // TODO: Add "higher level fields"? (i.e. generalization of repeat)
 // TODO: Add tensor field definition
-// TODO: align "data blocks" to 8 byte offsets
+// TODO: align "data blocks" to 8 byte offsets for fast typed array windows? (prolly needs some testing if this is actually the case too)
+// TODO: "parametric encoders"? Specify encoding as [{ param: 'value1', encoding1 }, { param: 'value2', encoding2 }]
+//       then the encoder can specify { param: 'value1' } and the correct encoding will be used.
+//       Use case: variable precision encoding for different fields.
+//       Perhaps implement this as parameter spaces...
 
 export const enum FieldType {
     Str, Int, Float

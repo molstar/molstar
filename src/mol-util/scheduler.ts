@@ -89,7 +89,7 @@ function createImmediateActions() {
     function canUsePostMessage() {
         // The test against `importScripts` prevents this implementation from being installed inside a web worker,
         // where `global.postMessage` means something completely different and can't be used for this purpose.
-        const global = window as any;
+        const global = typeof window !== 'undefined' ? window as any : void 0;
         if (global && global.postMessage && !global.importScripts) {
             let postMessageIsAsynchronous = true;
             const oldOnMessage = global.onmessage;
@@ -108,6 +108,7 @@ function createImmediateActions() {
         // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
 
         const messagePrefix = 'setImmediate$' + Math.random() + '$';
+        const global = typeof window !== 'undefined' ? window as any : void 0;
         const onGlobalMessage = function(event: any) {
             if (event.source === global &&
                 typeof event.data === 'string' &&
@@ -187,7 +188,9 @@ function createImmediateActions() {
 
 const immediateActions = (function () {
     if (typeof setImmediate !== 'undefined') {
-        return { setImmediate, clearImmediate };
+        if (typeof window !== 'undefined') {
+            return { setImmediate: (handler: any, ...args: any[]) => window.setImmediate(handler, ...args as any), clearImmediate: (handle: any) => window.clearImmediate(handle) };
+        } else return { setImmediate, clearImmediate }
     }
     return createImmediateActions();
 }());

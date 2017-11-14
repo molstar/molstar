@@ -214,7 +214,7 @@ export namespace Mat4 {
         return mul(out, mul(out, a, b), c);
     }
 
-    export function translate(out: Mat4, a: Mat4, v: Mat4) {
+    export function translate(out: Mat4, a: Mat4, v: Vec3) {
         const x = v[0], y = v[1], z = v[2];
         let a00: number, a01: number, a02: number, a03: number,
             a10: number, a11: number, a12: number, a13: number,
@@ -243,7 +243,7 @@ export namespace Mat4 {
         return out;
     }
 
-    export function fromTranslation(out: Mat4, v: Mat4) {
+    export function fromTranslation(out: Mat4, v: Vec3) {
         out[0] = 1;
         out[1] = 0;
         out[2] = 0;
@@ -260,6 +260,13 @@ export namespace Mat4 {
         out[13] = v[1];
         out[14] = v[2];
         out[15] = 1;
+        return out;
+    }
+
+    export function setTranslation(out: Mat4, v: Vec3) {
+        out[12] = v[0];
+        out[13] = v[1];
+        out[14] = v[2];
         return out;
     }
 
@@ -432,15 +439,28 @@ export namespace Mat4 {
         return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
     }
 
-    export function isRotationAndTranslation(a: Mat4) {
+    /**
+     * Check if the matrix has the form
+     * [ Rotation    Translation ]
+     * [ 0           1           ]
+     */
+    export function isRotationAndTranslation(a: Mat4, eps?: number) {
+        return _isRotationAndTranslation(a, typeof eps !== 'undefined' ? eps : EPSILON.Value)
+    }
+
+    function _isRotationAndTranslation(a: Mat4, eps: number) {
         const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
             a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
             a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
             /* a30 = a[12], a31 = a[13], a32 = a[14],*/ a33 = a[15];
 
-        if (a33 !== 1 || a03 !== 0 || a13 !== 0 || a23 !== 0) return false;
-        const det3x3 = a00 * (a11 * a22 - a21 * a21) - a01 * (a10 * a22 - a12 * a20) + a02 * (a10 * a21 - a11 * a20);
-        if (det3x3 < 1 - EPSILON.Value || det3x3 > 1 + EPSILON.Value) return false;
+        if (a33 !== 1 || a03 !== 0 || a13 !== 0 || a23 !== 0) {
+            return false;
+        }
+        const det3x3 = a00 * (a11 * a22 - a12 * a21) - a01 * (a10 * a22 - a12 * a20) + a02 * (a10 * a21 - a11 * a20);
+        if (det3x3 < 1 - eps || det3x3 > 1 + eps) {
+            return false;
+        }
         return true;
     }
 }

@@ -130,6 +130,26 @@ namespace Table {
 
         return true;
     }
+
+    /** Allocate a new object with the given row values. */
+    export function getRow<S extends Schema>(table: Table<S>, index: number) {
+        const row: Row<S> = Object.create(null);
+        const { _columns: cols } = table;
+        for (let i = 0; i < cols.length; i++) {
+            const c = cols[i];
+            row[c] = table[c].value(index);
+        }
+        return row;
+    }
+
+    export function getRows<S extends Schema>(table: Table<S>) {
+        const ret: Row<S>[] = [];
+        const { _rowCount: c } = table;
+        for (let i = 0; i < c; i++) {
+            ret[i] = getRow(table, i);
+        }
+        return ret;
+    }
 }
 
 export default Table

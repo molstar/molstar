@@ -6,21 +6,21 @@
 
 import AtomSet from '../set'
 import Atom from '../../atom'
-import { OrderedSet } from 'mol-data/int'
+import { OrderedSet, IntMap } from 'mol-data/int'
 import { sortArray } from 'mol-data/util/sort'
 
 export class Builder {
     private keys: number[] = [];
-    private units: number[][] = Object.create(null);
+    private units = IntMap.Mutable<number[]>();
     private currentUnit: number[] = [];
 
     atomCount = 0;
 
     add(u: number, a: number) {
-        const unit = this.units[u];
+        const unit = this.units.get(u);
         if (!!unit) { unit[unit.length] = a; }
         else {
-            this.units[u] = [a];
+            this.units.set(u, [a]);
             this.keys[this.keys.length] = u;
         }
         this.atomCount++;
@@ -31,40 +31,35 @@ export class Builder {
     commitUnit(u: number) {
         if (this.currentUnit.length === 0) return;
         this.keys[this.keys.length] = u;
-        this.units[u] = this.currentUnit;
+        this.units.set(u, this.currentUnit);
     }
 
     getSet(): AtomSet {
-        const sets: { [key: number]: OrderedSet } = Object.create(null);
-
-        let allEqual = this.keys.length === AtomSet.unitCount(this.parent);
+        const generator = AtomSet.TemplateGenerator(this.parent);
 
         for (let i = 0, _i = this.keys.length; i < _i; i++) {
             const k = this.keys[i];
-            const unit = this.units[k];
+            const unit = this.units.get(k);
             const l = unit.length;
             if (!this.sorted && l > 1) sortArray(unit);
-
-            const set = l === 1 ? OrderedSet.ofSingleton(unit[0]) : OrderedSet.ofSortedArray(unit);
-            const parentSet = AtomSet.unitGetById(this.parent, k);
-            if (OrderedSet.areEqual(set, parentSet)) {
-                sets[k] = parentSet;
-            } else {
-                sets[k] = set;
-                allEqual = false;
-            }
+            generator.add(k, OrderedSet.ofSortedArray(unit));
         }
-        return allEqual ? this.parent : AtomSet.create(sets);
+
+        return generator.getSet();
     }
 
     singleton(): Atom {
         const u = this.keys[0];
-        return Atom.create(u, this.units[u][0]);
+        return Atom.create(u, this.units.get(u)[0]);
     }
 
     constructor(private parent: AtomSet, private sorted: boolean) { }
 }
 
-export default function createBuilder(parent: AtomSet, sorted: boolean) {
-    return new Builder(parent, sorted);
+export function LinearBuilder(parent: AtomSet) {
+    return new Builder(parent, true);
+}
+
+export function UnsortedBuilder(parent: AtomSet) {
+    return new Builder(parent, false);
 }
