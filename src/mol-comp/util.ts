@@ -24,7 +24,8 @@ function UniformlyChunked<S>(label: string, initialChunk: number, f: UniformlyCh
     return 0 as any;
 }
 
-const uniformPart = UniformlyChunked('Reading lines', 1000000, (size, state: { str: string, position: number, lines: string[] }) => {
+type LineReaderState = { str: string, position: number, lines: string[] }
+const uniformPart = UniformlyChunked('Reading lines', 1000000, (size, state: LineReaderState) => {
     state.position += size;
     state.lines.push('');
     return 0 /* number of lines read */;
@@ -32,8 +33,7 @@ const uniformPart = UniformlyChunked('Reading lines', 1000000, (size, state: { s
 
 function readLines(str: string): Computation<string[]> {
     return create(async ctx => {
-        const state = { str, position: 0, lines: [] };
-        await uniformPart(ctx, state);
+        const state = (await uniformPart(ctx, { str, position: 0, lines: [] }));
         return state.lines;
     });
 }
