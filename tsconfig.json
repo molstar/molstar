@@ -9,7 +9,7 @@
         "strictNullChecks": true,
         "strictFunctionTypes": true,
         //"downlevelIteration": true,
-        "lib": [ "es6", "dom" ],
+        "lib": [ "es6", "dom", "esnext.asynciterable" ],
         "outDir": "build/node_modules",
         "baseUrl": "src",
         "paths": {

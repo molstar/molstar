@@ -7,7 +7,7 @@
 
 ## Module Overview
 
-- `mol-comp` Computation abstraction with progress tracking and cancellation support.
+- `mol-task` Computation abstraction with progress tracking and cancellation support.
 - `mol-data` Collections (integer based sets, inteface to columns/tables, etc.)
 - `mol-math` Math related (loosely) algorithms and data structures.
 - `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it.
