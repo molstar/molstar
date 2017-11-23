@@ -9,10 +9,11 @@
         "strictNullChecks": true,
         "strictFunctionTypes": true,
         //"downlevelIteration": true,
-        "lib": [ "es6", "dom" ],
+        "lib": [ "es6", "dom", "esnext.asynciterable" ],
         "outDir": "build/node_modules",
         "baseUrl": "src",
         "paths": {
+            "mol-comp": ["./mol-comp", "./mol-comp/index.ts"],
             "mol-util": ["./mol-util", "./mol-util/index.ts"],
             "mol-data": ["./mol-data", "./mol-data/index.ts"],
             "mol-math": ["./mol-math"],

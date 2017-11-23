@@ -5,6 +5,16 @@
 - extending on the ideas of the CIFTools.js library
 
 
+## Module Overview
+
+- `mol-task` Computation abstraction with progress tracking and cancellation support.
+- `mol-data` Collections (integer based sets, inteface to columns/tables, etc.)
+- `mol-math` Math related (loosely) algorithms and data structures.
+- `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it.
+- `mol-model` Data structures and algorithms (such as querying) for representing molecular data.
+- `mol-ql` Mapping of `mol-model` to the MolQL query language spec.
+- `mol-util` Useful things that do not fit elsewhere.
+
 ## Building & Running
 
 ### Build:

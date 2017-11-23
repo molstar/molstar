@@ -29,15 +29,21 @@ async function readData(path: string) {
     }
 }
 
-function *test() {
-    yield 10;
-    return 15;
+(Symbol as any).asyncIterator = (Symbol as any).asyncIterator || Symbol.for('Symbol.asyncIterator');
+
+interface ProgressGenerator<T> extends AsyncIterableIterator<number | T> {
+    next(cont?: boolean): Promise<IteratorResult<number | T>>
 }
 
-async function runIt<T>(itP: () => IterableIterator<T>) {
+async function *test(): ProgressGenerator<boolean> {
+    const r = yield await new Promise<number>(res => res(10));
+    return r;
+}
+
+async function runIt(itP: () => ProgressGenerator<boolean>) {
     const it = itP();
     while (true) {
-        const { value, done } = it.next();
+        const { value, done } = await it.next(true);
         if (done) return value;
     }
 }
