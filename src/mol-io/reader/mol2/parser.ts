@@ -124,6 +124,7 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
             }else{
                 hasStatus_bit = true;
             }
+        }
     }
 
     const atom_idTokens = TokenBuilder.create(tokenizer, molecule.num_atoms * 2);
