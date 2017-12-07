@@ -6,15 +6,20 @@
 
 import RuntimeContext from './execution/runtime-context'
 
+// Run(t, ?observer, ?updateRate) to execute
 interface Task<T> {
     readonly id: number,
     readonly name: string,
+    // Do not call this directly, use Run.
     readonly __f: (ctx: RuntimeContext) => Promise<T>,
+    // Do not call this directly, use Run.
     readonly __onAbort: (() => void) | undefined
 }
 
 namespace Task {
-    export const Aborted = 'Aborted.';
+    export interface Aborted { isAborted: true, reason: string }
+    export function isAborted(e: any): e is Aborted { return !!e && !!e.isAborted; }
+    export function Aborted(reason: string): Aborted { return { isAborted: true, reason }; }
 
     export function create<T>(name: string, f: (ctx: RuntimeContext) => Promise<T>, onAbort?: () => void): Task<T> {
         return { id: nextId(), name, __f: f, __onAbort: onAbort };
@@ -33,29 +38,15 @@ namespace Task {
     export type Progress = IndeterminateProgress | DeterminateProgress
 
     interface ProgressBase {
-        runtimeId: number,
+        rootTaskId: number,
         taskId: number,
         message: string,
         elapsedMs: { real: number, cpu: number },
-        canAbort: boolean,
-        children?: Progress[]
+        canAbort: boolean
     }
 
     export interface IndeterminateProgress extends ProgressBase { isIndeterminate: true }
     export interface DeterminateProgress extends ProgressBase { isIndeterminate: false, current: number, max: number }
-
-    export interface State {
-        runtimeId: number,
-        taskId: number,
-
-        message: string,
-        elapsedMs: number,
-        canAbort: boolean,
-        isIndeterminate: boolean,
-        current: number,
-        max: number,
-        children?: State[]
-    }
 }
 
 export default Task

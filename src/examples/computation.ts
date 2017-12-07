@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, ExecuteSynchronous } from 'mol-task'
+import { Task, Run } from 'mol-task'
 
 async function test() {
     const t = Task.create('test', async () => 1);
-    const r = await ExecuteSynchronous(t);
+    const r = await Run(t);
     console.log(r);
 }
 
