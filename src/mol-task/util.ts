@@ -1,9 +1,34 @@
 
+// enum TaskState {
+//     Pending,
+//     Running,
+//     Aborted,
+//     Completed,
+//     Failed
+// }
 
+interface TaskState {
+
+}
+
+namespace TaskState {
+    export interface Pending { kind: 'Pending' }
+    export interface Running { kind: 'Running',  }
+
+    export interface Progress {
+        message: string,
+        isIndeterminate: boolean,
+        current: number,
+        max: number,
+        elapsedMs: number
+    }
+}
 
 type ExecutionContext = {
     run<T>(c: Computation<T>, params?: { updateRateMs: number }): Promise<T>,
-    subscribe(o: (p: string, compId: number) => void): void
+    subscribe(o: (p: string, compId: number) => void): void,
+
+    requestAbort(compId: number): void
 }
 
 namespace ExecutionContext {
@@ -17,12 +42,13 @@ namespace ExecutionContext {
     export const Sync: ExecutionContext = 0 as any;
 }
 
-interface RuntimeContext extends ExecutionContext {
+interface RuntimeContext {
+    run<T>(c: Computation<T>, params?: { updateRateMs: number }): Promise<T>,
     yield(name: string): Promise<void> | void
 }
 
 // if no context is specified, use the synchronous one.
-type Computation<T> = { (ctx?: RuntimeContext): Promise<T>, _id: number }
+interface Computation<T> { (ctx: RuntimeContext): Promise<T>, _id: number }
 
 function create<T>(c: (ctx: RuntimeContext) => Promise<T>): Computation<T> { return 0 as any; }
 function constant<T>(c: T) { return create(async ctx => c); }
@@ -58,7 +84,7 @@ function readLines(str: string): Computation<string[]> {
 
 const prependHiToLines = MultistepComputation('Hi prepend', ['Parse input', 'Prepend Hi'], async (p: string, step, ctx) => {
     await step(0);
-    const lines = await ctx.run(readLines(p));
+    const lines = await readLines(p)(ctx);
     await step(1);
     const ret = lines.map(l => 'Hi ' + l);
     return ret;
