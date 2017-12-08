@@ -9,6 +9,7 @@ import RuntimeContext from './execution/runtime-context'
 import ExecuteSynchronous from './execution/synchronous'
 import ExecuteObservable from './execution/observable'
 import Progress from './execution/progress'
+import now from './util/now'
 
 function Run<T>(task: Task<T>): Promise<T>;
 function Run<T>(task: Task<T>, observer: Progress.Observer, updateRateMs?: number): Promise<T>;
@@ -17,4 +18,4 @@ function Run<T>(task: Task<T>, observer?: Progress.Observer, updateRateMs?: numb
     return ExecuteSynchronous(task);
 }
 
-export { Task, RuntimeContext, Progress, Run }
+export { Task, RuntimeContext, Progress, Run, now }

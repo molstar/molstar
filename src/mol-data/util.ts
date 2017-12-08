@@ -5,8 +5,6 @@
  */
 
 export * from './util/chunked-array'
-export * from './util/unique-array'
-export * from './util/hash-set'
 export * from './util/equivalence-classes'
 export * from './util/hash-functions'
 export * from './util/sort'

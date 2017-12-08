@@ -35,18 +35,17 @@ namespace Task {
         return ret;
     }
 
-    export type Progress = IndeterminateProgress | DeterminateProgress
-
-    interface ProgressBase {
+    export interface Progress {
         rootTaskId: number,
         taskId: number,
+        taskName: string,
         message: string,
         elapsedMs: { real: number, cpu: number },
-        canAbort: boolean
+        canAbort: boolean,
+        isIndeterminate: boolean,
+        current: number,
+        max: number
     }
-
-    export interface IndeterminateProgress extends ProgressBase { isIndeterminate: true }
-    export interface DeterminateProgress extends ProgressBase { isIndeterminate: false, current: number, max: number }
 }
 
 export default Task

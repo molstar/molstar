@@ -6,7 +6,7 @@
  */
 
 import Scheduler from './scheduler'
-import timeNow from './time'
+import timeNow from './util/now'
 
 interface Computation<A> {
     (ctx?: Computation.Context): Promise<A>

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { HashSet } from 'mol-data/util'
+import { HashSet } from 'mol-data/generic'
 import { Structure, AtomSet } from '../structure'
 
 // A selection is a pair of a Structure and a sequence of unique AtomSets
