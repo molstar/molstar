@@ -116,20 +116,26 @@ class ObservableRuntimeContext implements RuntimeContext {
         }
     }
 
-    get requiresUpdate(): boolean {
+    get needsYield(): boolean {
         this.checkAborted();
         return now() - this.info.lastUpdated > this.info.updateRateMs;
     }
 
-    private setProgress(update: Partial<RuntimeContext.ProgressUpdate>) {
+    private setProgress(update?: string | Partial<RuntimeContext.ProgressUpdate>) {
         this.checkAborted();
 
+        if (!update) return;
+
         const progress = this.node.progress;
-        if (typeof update.canAbort !== 'undefined') progress.canAbort = update.canAbort;
-        if (typeof update.current !== 'undefined') progress.current = update.current;
-        if (typeof update.isIndeterminate !== 'undefined') progress.isIndeterminate = update.isIndeterminate;
-        if (typeof update.max !== 'undefined') progress.max = update.max;
-        if (typeof update.message !== 'undefined') progress.message = update.message;
+        if (typeof update === 'string') {
+            progress.message = update;
+        } else {
+            if (typeof update.canAbort !== 'undefined') progress.canAbort = update.canAbort;
+            if (typeof update.current !== 'undefined') progress.current = update.current;
+            if (typeof update.isIndeterminate !== 'undefined') progress.isIndeterminate = update.isIndeterminate;
+            if (typeof update.max !== 'undefined') progress.max = update.max;
+            if (typeof update.message !== 'undefined') progress.message = update.message;
+        }
     }
 
     private resume = () => {
@@ -137,7 +143,11 @@ class ObservableRuntimeContext implements RuntimeContext {
         this.lastScheduledTime = now();
     }
 
-    update(progress: Partial<RuntimeContext.ProgressUpdate>): Promise<void> {
+    updateProgress(progress?: string | Partial<RuntimeContext.ProgressUpdate>) {
+        this.setProgress(progress);
+    }
+
+    yield(progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<void> {
         this.isExecuting = false;
         this.setProgress(progress);
         this.info.lastUpdated = now();
@@ -146,7 +156,7 @@ class ObservableRuntimeContext implements RuntimeContext {
         return ImmediateScheduler.last(this.resume);
     }
 
-    async runChild<T>(progress: Partial<RuntimeContext.ProgressUpdate>, task: Task<T>): Promise<T> {
+    async runChild<T>(task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T> {
         this.setProgress(progress);
         const node: Progress.Node = { progress: defaultProgress(this.info.taskId, task), children: [] };
         const children = this.node.children as Progress.Node[];

@@ -12,6 +12,10 @@ async function test() {
     console.log(r);
 }
 
+function delay(ms: number) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
 function messageTree(root: Progress.Node, prefix = ''): string {
     if (!root.children.length) return `${prefix}${root.progress.message}`;
 
@@ -20,25 +24,30 @@ function messageTree(root: Progress.Node, prefix = ''): string {
     return `${prefix}${root.progress.message}\n${subTree.join('\n')}`;
 }
 
-function createTask<T>(delay: number, r: T): Task<T> {
+function createTask<T>(delayMs: number, r: T): Task<T> {
     return Task.create('delayed', async ctx => {
-        await new Promise(r => setTimeout(r, delay));
-        if (ctx.requiresUpdate) await ctx.update({ message: 'hello from delayed...' });
+        ctx.updateProgress('Processing delayed... ' + r);
+        await delay(delayMs);
+        if (ctx.needsYield) await ctx.yield({ message: 'hello from delayed... ' + r });
         return r;
     });
 }
 
 async function testObs() {
     const t = Task.create('test o', async ctx => {
-        await new Promise(r => setTimeout(r, 250));
-        if (ctx.requiresUpdate) await ctx.update({ message: 'hi! 1' });
-        await new Promise(r => setTimeout(r, 125));
-        if (ctx.requiresUpdate) await ctx.update({ message: 'hi! 2' });
-        await new Promise(r => setTimeout(r, 250));
-        if (ctx.requiresUpdate) await ctx.update({ message: 'hi! 3' });
+        await delay(250);
+        if (ctx.needsYield) await ctx.yield({ message: 'hi! 1' });
+        await delay(125);
+        if (ctx.needsYield) await ctx.yield({ message: 'hi! 2' });
+        await delay(250);
+        if (ctx.needsYield) await ctx.yield('hi! 3');
 
-        const r = await ctx.runChild({ message: 'Running child!' }, createTask(250, 100));
-        if (ctx.requiresUpdate) await ctx.update({ message: 'Almost done...' });
+        ctx.updateProgress('Running children...');
+        const c1 = ctx.runChild(createTask(250, 1));
+        const c2 = ctx.runChild(createTask(500, 2));
+        const c3 = ctx.runChild(createTask(750, 3));
+        const r = await c1 + await c2 + await c3;
+        if (ctx.needsYield) await ctx.yield({ message: 'Almost done...' });
         return r + 1;
     });
     const r = await Run(t, p => console.log(messageTree(p.root)), 250);

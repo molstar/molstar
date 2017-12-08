@@ -7,12 +7,13 @@
 import Task from '../task'
 
 interface RuntimeContext {
-    readonly requiresUpdate: boolean,
+    readonly needsYield: boolean,
+    updateProgress(progress: string | Partial<RuntimeContext.ProgressUpdate>): void,
     // Idiomatic usage:
-    // if (ctx.requiresUpdate) await ctx.update({ ... });
-    update(progress: Partial<RuntimeContext.ProgressUpdate>): Promise<void>,
+    // if (ctx.needsYield) await ctx.yield({ ... });
+    yield(progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<void>,
     // Force the user to pass the progress so that the progress tree can be kept in a "good state".
-    runChild<T>(progress: Partial<RuntimeContext.ProgressUpdate>, task: Task<T>): Promise<T>
+    runChild<T>(task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T>
 }
 
 namespace RuntimeContext {
