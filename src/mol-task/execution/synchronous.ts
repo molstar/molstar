@@ -10,7 +10,6 @@ import RuntimeContext from './runtime-context'
 const voidPromise = Promise.resolve(void 0);
 
 class SynchronousRuntimeContext implements RuntimeContext {
-    id: number = 0;
     requiresUpdate: boolean = false;
     update(progress: Partial<RuntimeContext.ProgressUpdate>): Promise<void> { return voidPromise; }
     runChild<T>(progress: Partial<RuntimeContext.ProgressUpdate>, task: Task<T>): Promise<T> { return ExecuteSynchronous(task); }

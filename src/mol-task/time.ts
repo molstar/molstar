@@ -16,6 +16,8 @@ const now: () => number = (function () {
             const t = process.hrtime();
             return t[0] * 1000 + t[1] / 1000000;
         };
+    } else if (Date.now) {
+        return () => Date.now();
     } else {
         return () => +new Date();
     }

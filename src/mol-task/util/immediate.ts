@@ -10,14 +10,21 @@
  * MIT license.
  */
 
+declare var WorkerGlobalScope: any;
 function createImmediateActions() {
+    const global: any = (function () {
+        const _window = typeof window !== 'undefined' && window;
+        const _self = typeof self !== 'undefined' && typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope && self;
+        const _global = typeof global !== 'undefined' && global;
+        return _window || _global || _self;
+    })();
+
     type Callback = (...args: any[]) => void;
     type Task = { callback: Callback, args: any[] }
 
     const tasksByHandle: { [handle: number]: Task } = { };
     const doc = typeof document !== 'undefined' ? document : void 0;
 
-    let currentlyRunningATask = false;
     let nextHandle = 1; // Spec says greater than zero
     let registerImmediate: ((handle: number) => void);
 
@@ -60,24 +67,9 @@ function createImmediateActions() {
     }
 
     function runIfPresent(handle: number) {
-        // From the spec: 'Wait until any invocations of this algorithm started before this one have completed.'
-        // So if we're currently running a task, we'll need to delay this invocation.
-        if (currentlyRunningATask) {
-            // Delay by doing a setTimeout. setImmediate was tried instead, but in Firefox 7 it generated a
-            // 'too much recursion' error.
-            setTimeout(runIfPresent, 0, handle);
-        } else {
-            const task = tasksByHandle[handle];
-            if (task) {
-                currentlyRunningATask = true;
-                try {
-                    run(task);
-                } finally {
-                    clearImmediate(handle);
-                    currentlyRunningATask = false;
-                }
-            }
-        }
+        const task = tasksByHandle[handle];
+        clearImmediate(handle);
+        run(task);
     }
 
     function installNextTickImplementation() {
@@ -87,9 +79,6 @@ function createImmediateActions() {
     }
 
     function canUsePostMessage() {
-        // The test against `importScripts` prevents this implementation from being installed inside a web worker,
-        // where `global.postMessage` means something completely different and can't be used for this purpose.
-        const global = typeof window !== 'undefined' ? window as any : void 0;
         if (global && global.postMessage && !global.importScripts) {
             let postMessageIsAsynchronous = true;
             const oldOnMessage = global.onmessage;
@@ -108,7 +97,6 @@ function createImmediateActions() {
         // * http://www.whatwg.org/specs/web-apps/current-work/multipage/comms.html#crossDocumentMessages
 
         const messagePrefix = 'setImmediate$' + Math.random() + '$';
-        const global = typeof window !== 'undefined' ? window as any : void 0;
         const onGlobalMessage = function(event: any) {
             if (event.source === global &&
                 typeof event.data === 'string' &&
@@ -189,7 +177,10 @@ function createImmediateActions() {
 const immediateActions = (function () {
     if (typeof setImmediate !== 'undefined') {
         if (typeof window !== 'undefined') {
-            return { setImmediate: (handler: any, ...args: any[]) => window.setImmediate(handler, ...args as any), clearImmediate: (handle: any) => window.clearImmediate(handle) };
+            return {
+                setImmediate: (handler: any, ...args: any[]) => window.setImmediate(handler, ...args as any),
+                clearImmediate: (handle: any) => window.clearImmediate(handle)
+            };
         } else return { setImmediate, clearImmediate }
     }
     return createImmediateActions();
