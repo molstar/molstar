@@ -7,10 +7,9 @@
 import Task from '../task'
 
 interface Progress {
-    taskId: number,
-    elapsedMs: { real: number, cpu: number },
-    tree: Progress.Node,
-    tryAbort?: (reason?: string) => void
+    root: Progress.Node,
+    canAbort: boolean,
+    tryAbort: (reason?: string) => void
 }
 
 namespace Progress {
