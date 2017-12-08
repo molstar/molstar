@@ -181,7 +181,9 @@ const immediateActions = (function () {
                 setImmediate: (handler: any, ...args: any[]) => window.setImmediate(handler, ...args as any),
                 clearImmediate: (handle: any) => window.clearImmediate(handle)
             };
-        } else return { setImmediate, clearImmediate }
+        } else {
+            return { setImmediate, clearImmediate }
+        }
     }
     return createImmediateActions();
 }());
