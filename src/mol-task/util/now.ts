@@ -23,4 +23,4 @@ const now: () => number = (function () {
     }
 }());
 
-export default now;
+export { now }

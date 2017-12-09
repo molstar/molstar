@@ -1,6 +1,6 @@
 import * as B from 'benchmark'
-import now from 'mol-task/util/now'
-import Immedite from 'mol-task/util/immediate'
+import { now } from 'mol-task/util/now'
+import { Scheduler } from 'mol-task/util/scheduler'
 
 export namespace Tasks {
     export class Yielding {
@@ -9,7 +9,7 @@ export namespace Tasks {
             const t = now();
             if (t - this.lastUpdated < 250) return;
             this.lastUpdated = t;
-            return Immedite.immediatePromise();
+            return Scheduler.immediatePromise();
         }
     }
 
@@ -22,7 +22,7 @@ export namespace Tasks {
 
         yield(): Promise<void> {
             this.lastUpdated = now();
-            return Immedite.immediatePromise();
+            return Scheduler.immediatePromise();
         }
     }
 

@@ -4,9 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import RuntimeContext from './execution/runtime-context'
+import { RuntimeContext } from './execution/runtime-context'
 
-// Run(t, ?observer, ?updateRate) to execute
+// A "named function wrapper" with built in "computation tree progress tracking".
+// Use Run(t, ?observer, ?updateRate) to execute
 interface Task<T> {
     readonly id: number,
     readonly name: string,
@@ -28,24 +29,23 @@ namespace Task {
     export function constant<T>(name: string, value: T): Task<T> { return create(name, async ctx => value); }
     export function fail(name: string, reason: string): Task<any> { return create(name, async ctx => { throw new Error(reason); }); }
 
+    export interface Progress {
+        taskId: number,
+        taskName: string,
+        startedTime: number,
+        message: string,
+        canAbort: boolean,
+        isIndeterminate: boolean,
+        current: number,
+        max: number
+    }
+
     let _id = 0;
     function nextId() {
         const ret = _id;
         _id = (_id + 1) % 0x3fffffff;
         return ret;
     }
-
-    export interface Progress {
-        rootTaskId: number,
-        taskId: number,
-        taskName: string,
-        message: string,
-        elapsedMs: { real: number, cpu: number },
-        canAbort: boolean,
-        isIndeterminate: boolean,
-        current: number,
-        max: number
-    }
 }
 
-export default Task
+export { Task }

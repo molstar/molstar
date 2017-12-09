@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Task from '../task'
+import { Task } from '../task'
 
 interface Progress {
     root: Progress.Node,
     canAbort: boolean,
-    tryAbort: (reason?: string) => void
+    requestAbort: (reason?: string) => void
 }
 
 namespace Progress {
@@ -21,4 +21,4 @@ namespace Progress {
     export interface Observer { (progress: Progress): void }
 }
 
-export default Progress
+export { Progress }

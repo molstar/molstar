@@ -192,9 +192,12 @@ function resolveImmediate(res: () => void) {
     immediateActions.setImmediate(res);
 }
 
-export default {
-    immediate: immediateActions.setImmediate,
+const Scheduler = {
+    setImmediate: immediateActions.setImmediate,
     clearImmediate: immediateActions.clearImmediate,
+    immediatePromise() { return new Promise<void>(resolveImmediate); },
 
-    immediatePromise() { return new Promise<void>(resolveImmediate); }
-};
+    delay<T>(timeout: number, value: T | undefined = void 0): Promise<T> { return new Promise(r => setTimeout(r, timeout, value)) }
+}
+
+export { Scheduler }

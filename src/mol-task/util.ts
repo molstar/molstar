@@ -59,7 +59,6 @@ function MultistepComputation<P, T>(name: string, steps: string[], f: MultistepF
     return params => create(async ctx => f(params, n => ctx.yield(steps[n]), ctx));
 }
 
-
 // if total count is specified, could automatically provide percentage
 type UniformlyChunkedFn<S> = (chunkSize: number, state: S, totalCount?: number) => number
 type UniformlyChunkedProvider<S> = (ctx: RuntimeContext, state: S) => Promise<S>
