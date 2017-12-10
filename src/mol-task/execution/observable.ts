@@ -81,10 +81,12 @@ async function execute<T>(task: Task<T>, ctx: ObservableRuntimeContext) {
     ctx.node.progress.startedTime = now();
     try {
         const ret = await task.__f(ctx);
-        if (ctx.info.abortToken.abortRequested) abort(ctx.info, ctx.node);
+        if (ctx.info.abortToken.abortRequested) {
+            abort(ctx.info, ctx.node);
+        }
         return ret;
     } catch (e) {
-        if (Task.isAborted(e)) {
+        if (Task.isAbort(e)) {
             // wait for all child computations to go thru the abort phase.
             if (ctx.node.children.length > 0) {
                 await new Promise(res => { ctx.onChildrenFinished = res; });
@@ -193,6 +195,14 @@ class ObservableRuntimeContext implements RuntimeContext {
         const ctx = new ObservableRuntimeContext(this.info, node);
         try {
             return await execute(task, ctx);
+        } catch (e) {
+            if (Task.isAbort(e)) {
+                // need to catch the error here because otherwise
+                // promises for running child tasks in a tree-like computation
+                // will get orphaned and cause "uncaught error in Promise".
+                return void 0 as any;
+            }
+            throw e;
         } finally {
             // remove the progress node after the computation has finished.
             const idx = children.indexOf(node);

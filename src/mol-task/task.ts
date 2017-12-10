@@ -19,7 +19,7 @@ interface Task<T> {
 
 namespace Task {
     export interface Aborted { isAborted: true, reason: string }
-    export function isAborted(e: any): e is Aborted { return !!e && !!e.isAborted; }
+    export function isAbort(e: any): e is Aborted { return !!e && !!e.isAborted; }
     export function Aborted(reason: string): Aborted { return { isAborted: true, reason }; }
 
     export function create<T>(name: string, f: (ctx: RuntimeContext) => Promise<T>, onAbort?: () => void): Task<T> {
