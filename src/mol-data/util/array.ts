@@ -14,7 +14,7 @@ export function arrayFind<T>(array: ArrayLike<T>, f: (v: T) => boolean): T | und
 
 export function iterableToArray<T>(it: IterableIterator<T>): T[] {
     if (Array.from) return Array.from(it);
-    
+
     const ret = [];
     while (true) {
         const { done, value } = it.next();
