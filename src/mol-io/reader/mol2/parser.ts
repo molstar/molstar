@@ -104,7 +104,7 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
     }
 
     const initialTokenizerPosition = tokenizer.position;
-    const initialTOkenizerLineNumber = tokenizer.lineNumber;
+    const initialTokenizerLineNumber = tokenizer.lineNumber;
     const firstLine = Tokenizer.readLine(tokenizer);
     const firstLineArray = firstLine.trim().split(/\s+/g)
     const firstLineLength = firstLineArray.length;
@@ -164,46 +164,64 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
     if(hasStatus_bit){numOfColumn++}
 
     tokenizer.position = initialTokenizerPosition;
-    tokenizer.lineNumber = initialTOkenizerLineNumber;
+    tokenizer.lineNumber = initialTokenizerLineNumber;
 
-    for(let i = 0; i < molecule.num_atoms; i++){
+    
+
+
+    const { length } = tokenizer;
+    let linesAlreadyRead = 0;
+    await state.chunker.process(chunkSize => {
+        const linesToRead = Math.min(molecule.num_atoms - linesAlreadyRead, chunkSize);
+        for(let i = 0; i < linesToRead; i++){
             let subst_idWritten = false;
             let subst_nameWritten = false;
             let chargeWritten = false;
             let status_bitWritten = false;
-        for(let j = 0; j < numOfColumn; j++){
-            Tokenizer.skipWhitespace(tokenizer);
-            Tokenizer.eatValue(tokenizer);
-            switch(j){
-                case 0:
-                    TokenBuilder.addUnchecked(atom_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                case 1:
-                    TokenBuilder.addUnchecked(atom_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                case 2:
-                    TokenBuilder.addUnchecked(xTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                case 3:
-                    TokenBuilder.addUnchecked(yTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
-                case 4:
-                    TokenBuilder.addUnchecked(zTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
-                case 5:
-                    TokenBuilder.addUnchecked(atom_typeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                default:
-                    if(hasSubst_id == true && subst_idWritten == false){
-                        TokenBuilder.addUnchecked(subst_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
-                        subst_idWritten = true;
-                    }else if(hasSubst_name == true && subst_nameWritten == false){
-                        TokenBuilder.addUnchecked(subst_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
-                        subst_nameWritten = true;
-                    }else if(hasCharge == true && chargeWritten == false){
-                        TokenBuilder.addUnchecked(chargeTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
-                        chargeWritten = true;
-                    }else if(hasStatus_bit == true && status_bitWritten == false){
-                        TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
-                        status_bitWritten = true;
-                    }
+            for(let j = 0; j < numOfColumn; j++){
+                Tokenizer.skipWhitespace(tokenizer);
+                Tokenizer.eatValue(tokenizer);
+                switch(j){
+                    case 0:
+                        TokenBuilder.addUnchecked(atom_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 1:
+                        TokenBuilder.addUnchecked(atom_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 2:
+                        TokenBuilder.addUnchecked(xTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 3:
+                        TokenBuilder.addUnchecked(yTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+                        break;
+                    case 4:
+                        TokenBuilder.addUnchecked(zTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break; 
+                    case 5:
+                        TokenBuilder.addUnchecked(atom_typeTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    default:
+                        if(hasSubst_id == true && subst_idWritten == false){
+                            TokenBuilder.addUnchecked(subst_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+                            subst_idWritten = true;
+                        }else if(hasSubst_name == true && subst_nameWritten == false){
+                            TokenBuilder.addUnchecked(subst_nameTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+                            subst_nameWritten = true;
+                        }else if(hasCharge == true && chargeWritten == false){
+                            TokenBuilder.addUnchecked(chargeTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+                            chargeWritten = true;
+                        }else if(hasStatus_bit == true && status_bitWritten == false){
+                            TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+                            status_bitWritten = true;
+                        }
+                }
             }
         }
-    }
+        linesAlreadyRead += linesToRead;
+        return linesToRead;
+    }, update => update({ message: 'Parsing...', current: tokenizer.position, max: length }));
+
+
 
     const ret = {
         count: molecule.num_atoms,
@@ -222,8 +240,6 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
     };
     return ret;
 }
-
-
 
 
 async function handleBonds(state: State): Promise<Schema.Bonds> {
@@ -265,24 +281,38 @@ async function handleBonds(state: State): Promise<Schema.Bonds> {
     tokenizer.position = initialTokenizerPosition;
     tokenizer.lineNumber = initialTokenizerLineNumber;
 
-    for(let i = 0; i < molecule.num_bonds; i++){
-        for(let j = 0; j < numberOfColumn; j++){
-            Tokenizer.skipWhitespace(tokenizer);
-            Tokenizer.eatValue(tokenizer);
-            switch(j){
-                case 0:
-                    TokenBuilder.addUnchecked(bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                case 1:
-                    TokenBuilder.addUnchecked(origin_bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                case 2:
-                    TokenBuilder.addUnchecked(target_bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
-                case 3:
-                    TokenBuilder.addUnchecked(bondTypeTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
-                default:
-                    TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+    const { length } = tokenizer;
+    let linesAlreadyRead = 0;
+    await state.chunker.process(chunkSize => {
+        const linesToRead = Math.min(molecule.num_bonds - linesAlreadyRead, chunkSize);
+        for(let i = 0; i < linesToRead; i++){
+            for(let j = 0; j < numberOfColumn; j++){
+                Tokenizer.skipWhitespace(tokenizer);
+                Tokenizer.eatValue(tokenizer);
+                switch(j){
+                    case 0:
+                        TokenBuilder.addUnchecked(bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 1:
+                        TokenBuilder.addUnchecked(origin_bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 2:
+                        TokenBuilder.addUnchecked(target_bond_idTokens, tokenizer.tokenStart, tokenizer.tokenEnd);
+                        break;
+                    case 3:
+                        TokenBuilder.addUnchecked(bondTypeTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+                        break;
+                    default:
+                        TokenBuilder.addUnchecked(status_bitTokens, tokenizer.tokenStart, tokenizer.tokenEnd); 
+                        break;
+                }
             }
         }
-    }
+        linesAlreadyRead += linesToRead;
+        return linesToRead;
+    }, update => update({ message: 'Parsing...', current: tokenizer.position, max: length }));
+
+    
 
     const ret = {
         count: molecule.num_bonds,
