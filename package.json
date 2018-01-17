@@ -1,19 +1,13 @@
 {
-  "name": "mol-star",
+  "name": "mol-star-proto",
   "version": "0.1.0",
   "description": "Comprehensive molecular library.",
-  "main": "dist/molio.js",
-  "module": "dist/molio.esm.js",
-  "types": "src/index.d.ts",
   "scripts": {
     "lint": "./node_modules/.bin/tslint src/**/*.ts",
     "build": "./node_modules/.bin/tsc",
     "watch": "./node_modules/.bin/tsc -watch",
-    "bundle": "./node_modules/.bin/rollup -c",
     "test": "./node_modules/.bin/jest",
-    "dist": "./node_modules/.bin/uglifyjs build/js/molio.dev.js -cm > dist/molio.js && cp build/js/molio.esm.js dist/molio.esm.js",
-    "script": "./node_modules/.bin/rollup build/node_modules/script.js -e fs -f cjs -o build/js/script.js",
-    "runscript": "node build/node_modules/script.js",
+    "script": "node build/node_modules/script.js",
     "download-dics": "./node_modules/.bin/download -o build/dics http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic && ./node_modules/.bin/download -o build/dics http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_ddl.dic"
   },
   "jest": {
@@ -34,9 +28,9 @@
   "license": "MIT",
   "devDependencies": {
     "@types/benchmark": "^1.0.31",
-    "@types/express": "^4.0.39",
-    "@types/jest": "^21.1.8",
-    "@types/node": "^8.0.56",
+    "@types/express": "^4.11.0",
+    "@types/jest": "^21.1.10",
+    "@types/node": "^8.5.8",
     "@types/node-fetch": "^1.6.7",
     "benchmark": "^2.1.4",
     "download-cli": "^1.0.5",
@@ -45,12 +39,12 @@
     "rollup-plugin-buble": "^0.16.0",
     "rollup-plugin-commonjs": "^8.2.6",
     "rollup-plugin-json": "^2.3.0",
-    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-node-resolve": "^3.0.2",
     "rollup-watch": "^4.3.1",
     "ts-jest": "^21.2.4",
-    "tslint": "^5.8.0",
+    "tslint": "^5.9.1",
     "typescript": "^2.6.2",
-    "uglify-js": "^3.2.1",
+    "uglify-js": "^3.3.7",
     "util.promisify": "^1.0.0"
   },
   "dependencies": {

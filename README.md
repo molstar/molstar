@@ -1,56 +1,47 @@
+[![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](./LICENSE)
+# Mol*
 
-[![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](https://github.com/arose/molio/blob/master/LICENSE)
+The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will serve as basis for the next-generation data delivery and analysis tools for macromolecular structure data. This is a collaboration between PDBe and RCSB PDB teams and the development will be open source and available to anyone who wants to use it for developing visualisation tools for macromolecular structure data available from [PDB](https://www.wwpdb.org/) and other institutions.
 
-- general, non-opinionated library for reading and writing molecular structure related file formats
-- extending on the ideas of the CIFTools.js library
+This particular project is a prototype implementation of this technology (still under development).
 
+## Project Overview
 
-## Module Overview
+The core of Mol* currently consists of these modules:
 
 - `mol-task` Computation abstraction with progress tracking and cancellation support.
-- `mol-data` Collections (integer based sets, inteface to columns/tables, etc.)
+- `mol-data` Collections (integer based sets, interface to columns/tables, etc.)
 - `mol-math` Math related (loosely) algorithms and data structures.
-- `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it.
-- `mol-model` Data structures and algorithms (such as querying) for representing molecular data.
-- `mol-ql` Mapping of `mol-model` to the MolQL query language spec.
+- `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it. Support for common coordinate, experimental/map, and annotation data formats.
+- `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
+- `mol-ql` Mapping of `mol-model` to the [MolQL query language](https://molql.github.io) spec.
 - `mol-util` Useful things that do not fit elsewhere.
+
+The project also contains performance tests (`perf-tests`), `examples`, and basic proof of concept `apps` (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
+
+## Previous Work
+This project builds on experience from previous solutions:
+- [LiteMol Suite](https://www.litemol.org)
+- [WebChemistry](https://webchem.ncbr.muni.cz)
+- [NGL Viewer](http://nglviewer.org/)
+- [MolQL](https://molql.github.io)
+- [PDB Component Library](https://www.ebi.ac.uk/pdbe/pdb-component-library/)
+- And many others (list will be continuously expanded).
 
 ## Building & Running
 
 ### Build:
-
-    npm install
-    npm run build
+   npm install
+   npm run build
 
 ### Build automatically on file save:
+   npm run watch
 
-    npm run watch
+### Run test script from src/script.ts
+   npm run script
 
-### Bundle with rollup (UMD and ES6)
+## Contributing
+Just open an issue or make a pull request. All contributions are welcome.
 
-    npm run bundle
-
-### Make distribution files
-
-    npm run dist
-
-### Build everything above
-
-    npm run-script build && npm run-script bundle && npm run-script dist
-
-
-## Example script
-
-### Build
-
-    npm run script
-
-### Run
-
-    node ./build/js/script.js
-
-
-TODO
-----
-
-- write about unittest (AR)
+## Roadmap
+Continually develop this prototype project. As individual modules become stable, make them into standalone libraries.
