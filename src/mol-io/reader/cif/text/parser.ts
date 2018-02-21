@@ -77,7 +77,7 @@ function eatValue(state: TokenizerState) {
 }
 
 /**
- * Eats an escaped values. Handles the "degenerate" cases as well.
+ * Eats an escaped value. Handles the "degenerate" cases as well.
  *
  * "Degenerate" cases:
  * - 'xx'x' => xx'x
@@ -520,7 +520,7 @@ async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise
         return {
             hasError: true,
             errorLine: tokenizer.lineNumber,
-            errorMessage: 'The number of values for loop starting at line ' + loopLine + ' is not a multiple of the number of columns.'
+            errorMessage: `The number of values for loop starting at line ${loopLine} is not a multiple of the number of columns.`
         };
     }
 
@@ -563,7 +563,7 @@ function result(data: Data.File) {
 async function parseInternal(data: string, ctx: Computation.Context) {
     const dataBlocks: Data.Block[] = [];
     const tokenizer = createTokenizer(data, ctx);
-    let blockHeader: string = '';
+    let blockHeader = '';
 
     let blockCtx = FrameContext();
 
@@ -605,8 +605,9 @@ async function parseInternal(data: string, ctx: Computation.Context) {
                     return error(tokenizer.lineNumber, 'Save frames cannot be nested.');
                 }
                 inSaveFrame = true;
+                const safeHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
                 saveCtx = FrameContext();
-                saveFrame = Data.SafeFrame(saveCtx.categoryNames, saveCtx.categories, '');
+                saveFrame = Data.SafeFrame(saveCtx.categoryNames, saveCtx.categories, safeHeader);
             }
             moveNext(tokenizer);
         // Loop
@@ -629,7 +630,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
 
     // Check if the latest save frame was closed.
     if (inSaveFrame) {
-        return error(tokenizer.lineNumber, 'Unfinished save frame (`' + saveFrame.header + '`).');
+        return error(tokenizer.lineNumber, `Unfinished save frame (${saveFrame.header}).`);
     }
 
     if (blockCtx.categoryNames.length > 0) {

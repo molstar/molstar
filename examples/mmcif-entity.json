@@ -1,0 +1,14 @@
+{
+    "entity": {
+        "id": "str",
+        "type": { "enum": [ "polymer", "non-polymer", "water", "macrolide" ] },
+        "src_method": "str",
+        "pdbx_description": "str",
+        "formula_weight": { "float": [ 6, 3, 1 ] },
+        "pdbx_number_of_molecules": "int",
+        "details": "str",
+        "pdbx_mutation": "str",
+        "pdbx_fragment": "str",
+        "pdbx_ec": "str"
+    }
+}
