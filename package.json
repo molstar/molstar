@@ -30,13 +30,13 @@
       "build/node_modules"
     ],
     "moduleNameMapper": {
-      "mol-task(.*)": "<rootDir>/src/mol-task$1",
-      "mol-comp(.*)": "<rootDir>/src/mol-comp$1",
-      "mol-util(.*)": "<rootDir>/src/mol-util$1",
-      "mol-data(.*)": "<rootDir>/src/mol-data$1",
-      "mol-math(.*)": "<rootDir>/src/mol-math$1",
-      "mol-io(.*)": "<rootDir>/src/mol-io$1",
-      "mol-model(.*)": "<rootDir>/src/mol-model$1"
+      "mol-task($|/.*)": "<rootDir>/src/mol-task$1",
+      "mol-comp($|/.*)": "<rootDir>/src/mol-comp$1",
+      "mol-util($|/.*)": "<rootDir>/src/mol-util$1",
+      "mol-data($|/.*)": "<rootDir>/src/mol-data$1",
+      "mol-math($|/.*)": "<rootDir>/src/mol-math$1",
+      "mol-io($|/.*)": "<rootDir>/src/mol-io$1",
+      "mol-model($|/.*)": "<rootDir>/src/mol-model$1"
     },
     "testRegex": "\\.spec\\.ts$"
   },
