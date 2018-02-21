@@ -139,7 +139,7 @@ namespace Column {
         return columnIndicesOf(c, test);
     }
 
-    /** Makes the column backned by an array. Useful for columns that accessed often. */
+    /** Makes the column backed by an array. Useful for columns that are accessed often. */
     export function asArrayColumn<T>(c: Column<T>, array?: ArrayCtor<T>): Column<T> {
         if (c['@array']) return c;
         if (!c.isDefined) return Undefined(c.rowCount, c.schema) as any as Column<T>;

@@ -41,6 +41,14 @@ export namespace Tokenizer {
         return state.data.substring(state.tokenStart, state.tokenEnd);
     }
 
+    /** Resets the state */
+    export function reset (state: Tokenizer) {
+        state.position = 0
+        state.lineNumber = 1
+        state.tokenStart = 0
+        state.tokenEnd = 0
+    }
+
     /**
      * Eat everything until a newline occurs.
      */
@@ -227,6 +235,7 @@ export namespace TokenBuilder {
     }
 
     export function create(tokenizer: Tokenizer, size: number): Tokens {
+        size = Math.max(10, size)
         return <Builder>{
             data: tokenizer.data,
             indicesLenMinus2: (size - 2) | 0,

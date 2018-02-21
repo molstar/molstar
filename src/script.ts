@@ -10,17 +10,14 @@ import * as fs from 'fs'
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
-const writeFileAsync = util.promisify(fs.writeFile);
 
 import Gro from 'mol-io/reader/gro/parser'
+import Csv from 'mol-io/reader/csv/parser'
 import CIF from 'mol-io/reader/cif'
 
 import Computation from 'mol-util/computation'
 
 import { Model } from 'mol-model/structure'
-
-// import { toTypedFrame as applySchema } from './reader/cif/schema'
-import { generateSchema } from 'mol-io/reader/cif/schema/utils'
 
 const file = '1crn.gro'
 // const file = 'water.gro'
@@ -155,7 +152,7 @@ export async function _cif() {
     runCIF(input);
 
     path = `./examples/1cbs_full.bcif`;
-    
+
     const input2 = await readFileAsync(path)
     console.log('------------------');
     console.log('BinaryCIF:');
@@ -164,38 +161,7 @@ export async function _cif() {
     runCIF(input2);
 }
 
-_cif();
-
-async function runDic(input: string | Uint8Array) {
-    console.time('parseDic');
-    const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
-
-    const ctx = Computation.observable({ updateRateMs: 250, observer: p => showProgress('DIC', p) });
-    const parsed = await comp(ctx);
-    console.timeEnd('parseDic');
-    if (parsed.isError) {
-        console.log(parsed);
-        return;
-    }
-
-    const schema = generateSchema(parsed.result.blocks[0])
-    // console.log(schema)
-    // console.log(util.inspect(Object.keys(schema).length, {showHidden: false, depth: 1}))
-
-    await writeFileAsync('./src/reader/cif/schema/mmcif-gen.ts', schema, 'utf8')
-
-    return schema
-}
-
-export async function _dic() {
-    let path = './build/dics/mmcif_pdbx_v50.dic'
-    const input = await readFileAsync(path, 'utf8')
-    console.log('------------------');
-    console.log('Text DIC:');
-    return runDic(input);
-}
-
-_dic();
+// _cif();
 
 const comp = Computation.create(async ctx => {
     for (let i = 0; i < 0; i++) {
@@ -204,9 +170,38 @@ const comp = Computation.create(async ctx => {
     }
     return 42;
 });
-async function testComp() {
+export async function testComp() {
     const ctx = Computation.observable({ observer: p => showProgress('test', p) });
     const ret = await comp(ctx);
     console.log('computation returned', ret);
 }
-testComp();
+// testComp();
+
+
+const csvString = ` Year,Make,Model,Length
+1997,Ford,"E350
+
+MOIN",2.34
+2000,Mercury, Cougar,2.38`
+
+export async function testCsv () {
+    const parsed = await Csv(csvString)();
+
+    if (parsed.isError) {
+        console.log(parsed)
+        return;
+    }
+
+    const csvFile = parsed.result;
+    csvFile.table.columnNames.forEach(name => {
+        const col = csvFile.table.getColumn(name)
+        if (col) console.log(name, col.toStringArray())
+    })
+
+    const year = csvFile.table.getColumn('Year')
+    if (year) console.log('(int)Year', year.toIntArray())
+
+    const length = csvFile.table.getColumn('Length')
+    if (length) console.log('(float)Length', length.toFloatArray())
+}
+testCsv()
