@@ -2,13 +2,20 @@
   "name": "mol-star-proto",
   "version": "0.1.0",
   "description": "Comprehensive molecular library.",
+  "homepage": "https://github.com/mol-star/mol-star-proto#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mol-star/mol-star-proto.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mol-star/mol-star-proto/issues"
+  },
   "scripts": {
     "lint": "./node_modules/.bin/tslint src/**/*.ts",
     "build": "./node_modules/.bin/tsc",
     "watch": "./node_modules/.bin/tsc -watch",
     "test": "./node_modules/.bin/jest",
-    "script": "node build/node_modules/script.js",
-    "download-dics": "./node_modules/.bin/download -o build/dics http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic && ./node_modules/.bin/download -o build/dics http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_ddl.dic"
+    "script": "node build/node_modules/script.js"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -27,13 +34,14 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@types/argparse": "^1.0.33",
     "@types/benchmark": "^1.0.31",
     "@types/express": "^4.11.0",
     "@types/jest": "^21.1.10",
     "@types/node": "^8.5.8",
     "@types/node-fetch": "^1.6.7",
+    "argparse": "^1.0.9",
     "benchmark": "^2.1.4",
-    "download-cli": "^1.0.5",
     "jest": "^21.2.1",
     "rollup": "^0.50.1",
     "rollup-plugin-buble": "^0.16.0",
