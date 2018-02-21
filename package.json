@@ -11,10 +11,10 @@
     "url": "https://github.com/mol-star/mol-star-proto/issues"
   },
   "scripts": {
-    "lint": "./node_modules/.bin/tslint src/**/*.ts",
-    "build": "./node_modules/.bin/tsc",
-    "watch": "./node_modules/.bin/tsc -watch",
-    "test": "./node_modules/.bin/jest",
+    "lint": "tslint src/**/*.ts",
+    "build": "tsc",
+    "watch": "tsc -watch",
+    "test": "jest",
     "script": "node build/node_modules/script.js"
   },
   "jest": {
@@ -23,7 +23,7 @@
       "js"
     ],
     "transform": {
-      "\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
+      "\\.ts$": "ts-jest"
     },
     "moduleDirectories": [
       "node_modules",
