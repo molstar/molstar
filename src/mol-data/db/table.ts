@@ -89,7 +89,7 @@ namespace Table {
     }
 
     export function columnToArray<S extends Schema>(table: Table<S>, name: keyof S, array?: Column.ArrayCtor<any>) {
-        table[name] = Column.asArrayColumn(table[name], array);
+        (table as Columns<S>)[name] = Column.asArrayColumn((table as Columns<S>)[name], array);
     }
 
     /** Sort and return a new table */
