@@ -128,7 +128,7 @@ namespace Column {
     }
 
     export function mapToArray<T, S>(column: Column<T>, f: (v: T) => S, ctor?: ArrayCtor<S>): ArrayLike<S> {
-        return mapToArrayImpl(column, f, ctor || Array);
+        return mapToArrayImpl<T, S>(column, f, ctor || Array);
     }
 
     export function areEqual<T>(a: Column<T>, b: Column<T>) {
