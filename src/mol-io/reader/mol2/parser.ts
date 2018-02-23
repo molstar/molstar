@@ -53,17 +53,21 @@ const reWhitespace = /\s+/g;
 
 function handleMolecule(state: State) {
     const { tokenizer, molecule } = state;
-    markLine(tokenizer);
+
+    while(getTokenString(tokenizer) !== '@<TRIPOS>MOLECULE'){
+        markLine(tokenizer);
+    }
+
     markLine(tokenizer);
     molecule.mol_name = getTokenString(tokenizer);
 
     markLine(tokenizer);
     const values = getTokenString(tokenizer).trim().split(reWhitespace);
-    molecule.num_atoms = parseInt(values[0]) ? parseInt(values[0]) : 0;
-    molecule.num_bonds = parseInt(values[1]) ? parseInt(values[1]) : 0;
-    molecule.num_subst = parseInt(values[2]) ? parseInt(values[2]) : 0;
-    molecule.num_feat = parseInt(values[3]) ? parseInt(values[3]) : 0;
-    molecule.num_sets = parseInt(values[4]) ? parseInt(values[4]) : 0;
+    molecule.num_atoms = parseInt(values[0]);
+    molecule.num_bonds = parseInt(values[1]);
+    molecule.num_subst = parseInt(values[2]);
+    molecule.num_feat = parseInt(values[3]);
+    molecule.num_sets = parseInt(values[4]);
 
     markLine(tokenizer);
     molecule.mol_type = getTokenString(tokenizer);
@@ -252,20 +256,20 @@ async function handleBonds(state: State): Promise<Schema.Bonds> {
         hasStatus_bit = true;
     }
 
+    // required columns
     const bond_idTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
     const origin_bond_idTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
     const target_bond_idTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
     const bondTypeTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
-    // optional
-    const status_bitTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
 
     const bond_idTokenColumn = TokenColumn(bond_idTokens);
     const origin_bond_idTokenColumn = TokenColumn(origin_bond_idTokens);
     const target_bond_idTokenColumn = TokenColumn(target_bond_idTokens);
     const bondTypeTokenColumn = TokenColumn(bondTypeTokens);
-    // optional
-    const status_bitTokenColumn = TokenColumn(status_bitTokens);
 
+    // optional columns
+    const status_bitTokens = TokenBuilder.create(tokenizer, molecule.num_bonds * 2);
+    const status_bitTokenColumn = TokenColumn(status_bitTokens);
     const undefStr = Column.Undefined(molecule.num_bonds, Column.Schema.str);
 
     let numberOfColumn = 4;
@@ -312,6 +316,8 @@ async function handleBonds(state: State): Promise<Schema.Bonds> {
         origin_atom_id: origin_bond_idTokenColumn(Column.Schema.int),
         target_atom_id: target_bond_idTokenColumn(Column.Schema.int),
         bond_type: bondTypeTokenColumn(Column.Schema.str),
+
+        // optional columns
         status_bits: hasStatus_bit ? status_bitTokenColumn(Column.Schema.str) : undefStr,
     };
 
