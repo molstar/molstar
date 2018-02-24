@@ -1,4 +1,6 @@
 [![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](./LICENSE)
+[![Build Status](https://travis-ci.org/mol-star/mol-star-proto.svg?branch=master)](https://travis-ci.org/mol-star/mol-star-proto)
+
 # Mol*
 
 The goal of **Mol\*** (*/'mol-star/*) is to provide a technology stack that will serve as basis for the next-generation data delivery and analysis tools for macromolecular structure data. This is a collaboration between PDBe and RCSB PDB teams and the development will be open source and available to anyone who wants to use it for developing visualisation tools for macromolecular structure data available from [PDB](https://www.wwpdb.org/) and other institutions.
@@ -23,8 +25,9 @@ The project also contains performance tests (`perf-tests`), `examples`, and basi
 This project builds on experience from previous solutions:
 - [LiteMol Suite](https://www.litemol.org)
 - [WebChemistry](https://webchem.ncbr.muni.cz)
-- [NGL Viewer](http://nglviewer.org/)
-- [MolQL](https://molql.github.io)
+- [NGL Viewer](http://nglviewer.org)
+- [MMTF](http://mmtf.rcsb.org)
+- [MolQL](http://molql.org)
 - [PDB Component Library](https://www.ebi.ac.uk/pdbe/pdb-component-library/)
 - And many others (list will be continuously expanded).
 

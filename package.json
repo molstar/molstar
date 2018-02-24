@@ -51,7 +51,7 @@
     "@types/node-fetch": "^1.6.7",
     "argparse": "^1.0.10",
     "benchmark": "^2.1.4",
-    "jest": "^22.4.0",
+    "jest": "^22.4.2",
     "rollup": "^0.56.2",
     "rollup-plugin-buble": "^0.19.2",
     "rollup-plugin-commonjs": "^8.3.0",
@@ -61,7 +61,7 @@
     "ts-jest": "^22.0.4",
     "tslint": "^5.9.1",
     "typescript": "^2.7.2",
-    "uglify-js": "^3.3.11",
+    "uglify-js": "^3.3.12",
     "util.promisify": "^1.0.0"
   },
   "dependencies": {
