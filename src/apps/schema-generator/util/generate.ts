@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,13 +7,13 @@
 import { validate } from './validate'
 import { Database, getTypeAndArgs, Filter } from './json-schema'
 
-function header (name: string, importDatabasePath = 'mol-base/collections/database') {
+function header (name: string, importDatabasePath = 'mol-data/db') {
     return `/**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Code-generated '${name}' schema file
  *
- * @author mol-star package (src/scripts/schema-generation/generate)
+ * @author mol-star package (src/apps/schema-generator/generate)
  */
 
 import { Database, Column } from '${importDatabasePath}'
@@ -48,6 +48,11 @@ const value: { [k: string]: (...args: any[]) => string } = {
     }
 }
 
+const reSafePropertyName = /^[a-zA-Z_$][0-9a-zA-Z_$]*$/
+function safePropertyString(name: string) {
+    return name.match(reSafePropertyName) ? name : `'${name}'`
+}
+
 export function generate (name: string, schema: Database, fields?: Filter, importDatabasePath?: string) {
     const validationResult = validate(schema)
     if (validationResult !== true) {
@@ -59,7 +64,7 @@ export function generate (name: string, schema: Database, fields?: Filter, impor
     codeLines.push(`export const ${name}_Schema = {`)
     Object.keys(schema).forEach(table => {
         if (fields && !fields[ table ]) return
-        codeLines.push(`\t'${table}': {`)
+        codeLines.push(`\t${safePropertyString(table)}: {`)
         const columns = schema[ table ]
         Object.keys(columns).forEach(columnName => {
             if (fields && !fields[ table ][ columnName ]) return
@@ -71,7 +76,7 @@ export function generate (name: string, schema: Database, fields?: Filter, impor
             } else {
                 typeDef = fieldType
             }
-            codeLines.push(`\t\t'${columnName}': ${typeDef},`)
+            codeLines.push(`\t\t${safePropertyString(columnName)}: ${typeDef},`)
         })
         codeLines.push('\t},')
     })

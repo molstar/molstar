@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -11,9 +11,9 @@ import fetch from 'node-fetch'
 
 import Csv from 'mol-io/reader/csv/parser'
 import CIF from 'mol-io/reader/cif'
-import { generateSchema } from './schema-generation/cif-dic'
-import { generate } from './schema-generation/generate'
-import { Filter, mergeFilters } from './schema-generation/json-schema'
+import { generateSchema } from './util/cif-dic'
+import { generate } from './util/generate'
+import { Filter, mergeFilters } from './util/json-schema'
 
 async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount = 0, typescript = false, out?: string) {
     await ensureMmcifDicAvailable()
@@ -21,12 +21,21 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount
     const parsed = await comp();
     if (parsed.isError) throw parsed
 
-    let filter = await getUsageCountsFilter(minCount)
-    // console.log(util.inspect(filter, {showHidden: false, depth: 3}))
-    if (fieldNamesPath) {
-        filter = mergeFilters(filter, await getFieldNamesFilter(fieldNamesPath))
+    console.log(fieldNamesPath, minCount)
+
+    let filter: Filter | undefined
+    if (minCount && fieldNamesPath) {
+        filter = mergeFilters(
+            await getUsageCountsFilter(minCount),
+            await getFieldNamesFilter(fieldNamesPath)
+        )
+    } else if (minCount) {
+        filter = await getUsageCountsFilter(minCount)
+    } else if (fieldNamesPath) {
+        console.log('MOIN')
+        filter = await getFieldNamesFilter(fieldNamesPath)
     }
-    // console.log(util.inspect(filter, {showHidden: false, depth: 3}))
+
     const schema = generateSchema(parsed.result.blocks[0])
     const output = typescript ? generate(name, schema, filter) : JSON.stringify(schema, undefined, 4)
 
@@ -49,10 +58,12 @@ async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
 
     const filter: Filter = {}
     fieldNames.forEach((name, i) => {
-        const [ category, field ] = name.substr(1).split('.')
+        const [ category, field ] = name.split('.')
+        console.log(category, field)
         if (!filter[ category ]) filter[ category ] = {}
         filter[ category ][ field ] = true
     })
+    console.log(filter)
     return filter
 }
 
@@ -82,18 +93,22 @@ async function ensureMmcifDicAvailable() {
     if (FORCE_MMCIF_DOWNLOAD || !fs.existsSync(MMCIF_DIC_PATH)) {
         console.log('downloading mmcif dic...')
         const data = await fetch(MMCIF_DIC_URL)
+        if (!fs.existsSync(MMCIF_DIC_DIR)){
+            fs.mkdirSync(MMCIF_DIC_DIR);
+        }
         fs.writeFileSync(MMCIF_DIC_PATH, await data.text())
         console.log('done downloading mmcif dic')
     }
 }
 
 const MMCIF_USAGE_COUNTS_PATH = './data/mmcif-usage-counts.txt'
-const MMCIF_DIC_PATH = './build/dics/mmcif_pdbx_v50.dic'
+const MMCIF_DIC_DIR = './build/dics'
+const MMCIF_DIC_PATH = `${MMCIF_DIC_DIR}/mmcif_pdbx_v50.dic`
 const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic'
 
 const parser = new argparse.ArgumentParser({
   addHelp: true,
-  description: 'Create schema from mmcif dictionary'
+  description: 'Create schema from mmcif dictionary (v50, downloaded from wwPDB)'
 });
 parser.addArgument([ '--name', '-n' ], {
     defaultValue: 'mmCIF',
@@ -107,11 +122,12 @@ parser.addArgument([ '--typescript', '-ts' ], {
     help: 'Output schema as TypeScript instead of as JSON'
 });
 parser.addArgument([ '--minFieldUsageCount', '-mc' ], {
-    defaultValue: 1,
+    defaultValue: 0,
+    type: parseInt,
     help: 'Minimum mmcif field usage counts'
 });
 parser.addArgument([ '--fieldNamesPath', '-fn' ], {
-    defaultValue: 1,
+    defaultValue: '',
     help: 'Field names to include'
 });
 parser.addArgument([ '--forceMmcifDicDownload', '-f' ], {

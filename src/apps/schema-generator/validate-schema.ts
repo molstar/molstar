@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -7,7 +7,7 @@
 import * as argparse from 'argparse'
 import * as fs from 'fs'
 
-import { validate } from './schema-generation/validate'
+import { validate } from './util/validate'
 
 function runValidateSchema (path: string) {
     const str = fs.readFileSync(path, 'utf8')

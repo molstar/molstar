@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -48,6 +48,7 @@ export function getFieldType (type: string, values?: string[]): Column {
         case 'point_symmetry':
         case 'id_list':
         case '4x3_matrix':
+        case '3x4_matrices':
         case 'point_group':
         case 'point_group_helical':
         case 'boolean':
