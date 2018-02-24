@@ -111,7 +111,7 @@ const atom_site: Encoder.CategoryDefinition<Atom.Location> = {
         float('Cartn_y', P.atom.y),
         float('Cartn_z', P.atom.z),
         float('occupancy', P.atom.occupancy),
-        str('pdbx_formal_charge', P.atom.pdbx_formal_charge),
+        int('pdbx_formal_charge', P.atom.pdbx_formal_charge),
 
         str('auth_atom_id', P.atom.auth_atom_id),
         str('auth_comp_id', P.residue.auth_comp_id),
