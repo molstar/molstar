@@ -130,6 +130,18 @@ function getSubCategory (d: Data.Frame, ctx: FrameData): string|undefined {
     }
 }
 
+const FORCE_INT_FIELDS = [
+    '_struct_conf.beg_auth_seq_id',
+    '_struct_conf.end_auth_seq_id',
+    '_struct_sheet_range.beg_auth_seq_id',
+    '_struct_sheet_range.end_auth_seq_id',
+    '_struct_conn.ptnr1_auth_seq_id',
+    '_struct_conn.ptnr2_auth_seq_id',
+    '_pdbx_struct_mod_residue.auth_seq_id',
+    '_atom_site.id',
+    '_atom_site.auth_seq_id'
+];
+
 export function generateSchema (dic: Data.Block) {
     const schema: Database = {}
 
@@ -174,6 +186,8 @@ export function generateSchema (dic: Data.Block) {
         const subCategory = getSubCategory(d, ctx)
         if (subCategory === 'cartesian_coordinate' || subCategory === 'fractional_coordinate') {
             fields[itemName] = 'coord'
+        } else if (FORCE_INT_FIELDS.includes(d.header)) {
+            fields[itemName] = 'int'
         } else if (subCategory === 'matrix') {
             fields[itemName.replace(/\[[1-3]\]\[[1-3]\]/, '')] = { 'matrix': [ 3, 3 ] }
         } else if (subCategory === 'vector') {
