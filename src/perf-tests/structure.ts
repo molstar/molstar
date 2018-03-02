@@ -8,6 +8,7 @@ import * as B from 'benchmark'
 
 import * as util from 'util'
 import * as fs from 'fs'
+import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
 import { Structure, Model, Queries as Q, Atom, AtomGroup, AtomSet, Selection, Symmetry } from 'mol-model/structure'
@@ -17,6 +18,7 @@ import to_mmCIF from 'mol-model/structure/export/mmcif'
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
+const writeFileAsync = util.promisify(fs.writeFile);
 
 async function readData(path: string) {
     if (path.match(/\.bcif$/)) {
@@ -76,8 +78,35 @@ export async function readCIF(path: string) {
     return { mmcif, models, structures };
 }
 
+const DATA_DIR = './build/data';
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+
+function getBcifUrl(pdbId: string) {
+    return `http://www.ebi.ac.uk/pdbe/coordinates/${pdbId.toLowerCase()}/full?encoding=bcif`
+}
+
+function getBcifPath(pdbId: string) {
+    return `${DATA_DIR}/${pdbId.toLowerCase()}_full.bcif`
+}
+
+async function ensureBcifAvailable(pdbId: string) {
+    const bcifPath = getBcifPath(pdbId);
+    if (!fs.existsSync(bcifPath)) {
+        console.log(`downloading ${pdbId} bcif...`)
+        const data = await fetch(getBcifUrl(pdbId))
+        await writeFileAsync(bcifPath, await data.buffer())
+        console.log(`done downloading ${pdbId} bcif`)
+    }
+}
+
+async function getBcif(pdbId: string) {
+    await ensureBcifAvailable(pdbId);
+    return await readCIF(getBcifPath(pdbId));
+}
+
 export namespace PropertyAccess {
     function baseline(model: Model) {
+        if (model.sourceData.kind !== 'mmCIF') throw new Error('Model must be mmCIF');
         const atom_site = model.sourceData.data.atom_site;
         const id = atom_site.id.value;
         let s = 0;
@@ -267,14 +296,14 @@ export namespace PropertyAccess {
         console.time('assembly')
         const a = Symmetry.buildAssembly(s, '1');
         console.timeEnd('assembly')
-        fs.writeFileSync(`e:/test/molstar/${id}_assembly.bcif`, to_mmCIF(id, a, true));
+        fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, a, true));
         console.log('exported');
-        //write(a);
     }
 
     export async function run() {
-        //const { structures, models, mmcif } = await readCIF('./examples/1cbs_full.bcif');
-        const { structures, models } = await readCIF('e:/test/quick/3j3q_full.bcif');
+        const { structures, models/*, mmcif*/ } = await getBcif('1cbs');
+        // const { structures, models } = await getBcif('3j3q');
+
         //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
         //const { structures, models/*, mmcif*/ } = await readCIF('e:/test/quick/5j7v_updated.cif');
 
