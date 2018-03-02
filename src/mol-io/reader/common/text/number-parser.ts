@@ -21,7 +21,7 @@ export function parseInt(str: string, start: number, end: number) {
     let ret = 0, neg = 1;
     if (str.charCodeAt(start) === 45 /* - */) { neg = -1; start++; }
     for (; start < end; start++) {
-        let c = str.charCodeAt(start) - 48;
+        const c = str.charCodeAt(start) - 48;
         if (c > 9 || c < 0) return (neg * ret) | 0;
         else ret = (10 * ret + c) | 0;
     }
