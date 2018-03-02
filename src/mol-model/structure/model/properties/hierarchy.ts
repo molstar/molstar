@@ -59,7 +59,7 @@ export interface Segments {
 export interface Keys {
     // indicate whether the keys form an increasing sequence and within each chain, sequence numbers
     // are in increasing order.
-    // monotonous sequences enable for example faster secodnary structure assignment.
+    // monotonous sequences enable for example faster secondary structure assignment.
     isMonotonous: boolean,
 
     // assign a key to each residue index.
