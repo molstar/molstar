@@ -9,6 +9,8 @@ import Format from './format'
 import Hierarchy from './properties/hierarchy'
 import Conformation from './properties/conformation'
 import Symmetry from './properties/symmetry'
+
+import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
 
 
@@ -34,6 +36,7 @@ interface Model extends Readonly<{
 namespace Model {
     export function create(format: Format) {
         switch (format.kind) {
+            case 'gro': return from_gro(format);
             case 'mmCIF': return from_mmCIF(format);
         }
     }

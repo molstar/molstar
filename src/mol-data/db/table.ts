@@ -46,6 +46,18 @@ namespace Table {
         return { _rowCount, _columns, _schema: schema, ...(columns as any) };
     }
 
+    export function ofUndefinedColumns<S extends Schema, R extends Table<S> = Table<S>>(schema: S, rowCount: number): R {
+        const ret = Object.create(null);
+        const columns = Object.keys(schema);
+        ret._rowCount = rowCount;
+        ret._columns = columns;
+        ret._schema = schema;
+        for (const k of columns) {
+            ret[k] = Column.Undefined(rowCount, schema[k])
+        }
+        return ret;
+    }
+
     export function ofRows<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, rows: ArrayLike<Row<S>>): R {
         const ret = Object.create(null);
         const rowCount = rows.length;
