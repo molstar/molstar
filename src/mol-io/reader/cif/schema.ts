@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Database, Table, Column, ColumnHelpers } from 'mol-data/db'
@@ -23,6 +24,7 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
         case 'str': return (f, c, k) => createColumn(t, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
+        case 'list': return (f, c, k) => createColumn(t, f, f.list, f.toListArray);
         case 'tensor': throw new Error(`Use createTensorColumn instead.`);
     }
 }

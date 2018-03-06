@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column, ColumnHelpers } from 'mol-data/db'
@@ -27,6 +28,12 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
         return fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
     };
 
+    const list: Data.Field['list'] = <T extends string|number>(row: number) => {
+        const ret = data.substring(indices[2 * row], indices[2 * row + 1]);
+        if (ret === '.' || ret === '?') return [];
+        return ret.split(',') as T[];
+    };
+
     const valueKind: Data.Field['valueKind'] = row => {
         const s = indices[2 * row];
         if (indices[2 * row + 1] - s !== 1) return Column.ValueKind.Present;
@@ -43,10 +50,12 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
         str,
         int,
         float,
+        list,
         valueKind,
         areValuesEqual: TokenColumn.areValuesEqualProvider(tokens),
         toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
         toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
-        toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
+        toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params),
+        toListArray: params => ColumnHelpers.createAndFillArray(rowCount, list, params)
     }
 }

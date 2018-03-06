@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column } from 'mol-data/db'
@@ -67,6 +68,7 @@ export interface Field {
     str(row: number): string,
     int(row: number): number,
     float(row: number): number,
+    list<T extends number|string>(row: number): T[],
 
     valueKind(row: number): Column.ValueKind,
 
@@ -75,6 +77,7 @@ export interface Field {
     toStringArray(params?: Column.ToArrayParams<string>): ReadonlyArray<string>,
     toIntArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>,
     toFloatArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>
+    toListArray<T extends number|string>(params?: Column.ToArrayParams<T[]>): ReadonlyArray<T[]>
 }
 
 export function getTensor(category: Category, field: string, space: Tensor.Space, row: number): Tensor {

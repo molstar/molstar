@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as ColumnHelpers from './column-helpers'
@@ -22,7 +23,7 @@ interface Column<T> {
 namespace Column {
     export type ArrayCtor<T> = { new(size: number): ArrayLike<T> }
 
-    export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor
+    export type Schema<T = any> = Schema.Str | Schema.Int | Schema.Float | Schema.Coordinate | Schema.Aliased<T> | Schema.Tensor | Schema.List<number|string>
 
     export namespace Schema {
         // T also serves as a default value for undefined columns
@@ -35,6 +36,7 @@ namespace Column {
 
         export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space } & Base<'tensor'>
         export type Aliased<T> = { '@type': 'aliased', T: T } & Base<'str' | 'int'>
+        export type List<T extends number|string> = { '@type': 'list', T: T[] } & Base<'list'>
 
         export const str: Str = { '@type': 'str', T: '', valueType: 'str' };
         export const int: Int = { '@type': 'int', T: 0, valueType: 'int' };
@@ -51,6 +53,9 @@ namespace Column {
         export function Aliased<T>(t: Str | Int, defaultValue?: T): Aliased<T> {
             if (typeof defaultValue !== 'undefined') return { ...t, T: defaultValue } as any as Aliased<T>;
             return t as any as Aliased<T>;
+        }
+        export function List<T extends number|string>(defaultValue: T[] = []): List<T> {
+            return { '@type': 'list', T: defaultValue, valueType: 'list' }
         }
     }
 

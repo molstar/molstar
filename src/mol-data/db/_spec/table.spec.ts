@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import * as ColumnHelpers from '../column-helpers'
@@ -11,6 +12,8 @@ import Table from '../table'
 describe('column', () => {
     const cc = Column.ofConst(10, 2, Column.Schema.int);
     const arr = Column.ofArray({ array: [1, 2, 3, 4], schema: Column.Schema.int });
+    const arrNumberList = Column.ofArray({ array: [[1, 2], [3, 4], [5, 6]], schema: Column.Schema.List<number>() });
+    const arrStringList = Column.ofArray({ array: [['a', 'b'], ['c', 'd'], ['e', 'f']], schema: Column.Schema.List<string>() });
     const arrWindow = Column.window(arr, 1, 3);
 
     const typed = Column.ofArray({ array: new Int32Array([1, 2, 3, 4]), schema: Column.Schema.int });
@@ -28,6 +31,13 @@ describe('column', () => {
         expect(arr.value(1)).toBe(2);
         expect(arrWindow.value(0)).toBe(2);
         expect(arrWindow.rowCount).toBe(2);
+    });
+
+    it('arrList', () => {
+        expect(arrNumberList.rowCount).toBe(3);
+        expect(arrNumberList.value(1)).toEqual([3, 4]);
+        expect(arrStringList.rowCount).toBe(3);
+        expect(arrStringList.value(2)).toEqual(['e', 'f']);
     });
 
     it('typed', () => {
