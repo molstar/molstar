@@ -25,7 +25,7 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
         case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
         case 'list': return (f, c, k) => createColumn(t, f, f.list, f.toListArray);
-        case 'tensor': throw new Error(`Use createTensorColumn instead.`);
+        case 'tensor': throw new Error('Use createTensorColumn instead.');
     }
 }
 
@@ -44,7 +44,14 @@ function createColumn<T>(schema: Column.Schema, field: Data.Field, value: (row: 
 
 function createTensorColumn(schema: Column.Schema.Tensor, category: Data.Category, key: string): Column<Tensor> {
     const space = schema.space;
-    const first = category.getField(`${key}[1]`) || Column.Undefined(category.rowCount, schema);
+    let firstFieldName: string;
+    switch (space.rank) {
+        case 1: firstFieldName = `${key}[1]`; break;
+        case 2: firstFieldName = `${key}[1][1]`; break;
+        case 3: firstFieldName = `${key}[1][1][1]`; break;
+        default: throw new Error('Tensors with rank > 3 or rank 0 are currently not supported.');
+    }
+    const first = category.getField(firstFieldName) || Column.Undefined(category.rowCount, schema);
     const value = (row: number) => Data.getTensor(category, key, space, row);
     const toArray: Column<Tensor>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
 

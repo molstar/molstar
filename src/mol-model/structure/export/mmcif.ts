@@ -1,13 +1,14 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Column, Table } from 'mol-data/db'
+import { Column } from 'mol-data/db'
 import Iterator from 'mol-data/iterator'
 import * as Encoder from 'mol-io/writer/cif'
-//import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
+// import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
 import { Structure, Atom, AtomSet } from '../structure'
 import { Model } from '../model'
 import P from '../query/properties'
@@ -36,36 +37,12 @@ function float<K, D = any>(name: string, value: (k: K, d: D) => number, valueKin
 //     return { name, type, value, valueKind }
 // }
 
-function columnValue(k: string) {
-    return (i: number, d: any) => d[k].value(i);
-}
-
-function columnValueKind(k: string) {
-    return (i: number, d: any) => d[k].valueKind(i);
-}
-
-function ofSchema(schema: Table.Schema) {
-    const fields: Encoder.FieldDefinition[] = [];
-    for (const k of Object.keys(schema)) {
-        const t = schema[k];
-        // TODO: matrix/vector/support
-        const type: any = t.valueType === 'str' ? Encoder.FieldType.Str : t.valueType === 'int' ? Encoder.FieldType.Int : Encoder.FieldType.Float;
-        fields.push({ name: k, type, value: columnValue(k), valueKind: columnValueKind(k) })
-    }
-    return fields;
-}
-
-function ofTable<S extends Table.Schema>(name: string, table: Table<S>): Encoder.CategoryDefinition<number> {
-    return { name, fields: ofSchema(table._schema) }
-}
-
 // type Entity = Table.Columns<typeof mmCIF_Schema.entity>
 
 // const entity: Encoder.CategoryDefinition<number, Entity> = {
 //     name: 'entity',
 //     fields: ofSchema(mmCIF_Schema.entity)
 // }
-
 
 // [
 //     str('id', (i, e) => e.id.value(i)),
@@ -126,7 +103,7 @@ const atom_site: Encoder.CategoryDefinition<Atom.Location> = {
 function entityProvider({ model }: Context): Encoder.CategoryInstance {
     return {
         data: model.hierarchy.entities,
-        definition: ofTable('entity', model.hierarchy.entities), //entity,
+        definition: Encoder.CategoryDefinition.ofTable('entity', model.hierarchy.entities),
         keys: () => Iterator.Range(0, model.hierarchy.entities._rowCount - 1),
         rowCount: model.hierarchy.entities._rowCount
     }

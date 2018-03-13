@@ -106,6 +106,6 @@ export function getTensor(category: Category, field: string, space: Tensor.Space
                 }
             }
         }
-    } else throw new Error('Tensors with rank > 3 currently not supported.');
+    } else throw new Error('Tensors with rank > 3 or rank 0 are currently not supported.');
     return ret;
 }
