@@ -7,6 +7,7 @@
 
 import { Database, Table, Column, ColumnHelpers } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
+import { arrayEqual } from 'mol-util'
 import * as Data from './data-model'
 
 export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.Frame): Frame {
@@ -24,7 +25,7 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
         case 'str': return (f, c, k) => createColumn(t, f, f.str, f.toStringArray);
         case 'int': return (f, c, k) => createColumn(t, f, f.int, f.toIntArray);
         case 'float': return (f, c, k) => createColumn(t, f, f.float, f.toFloatArray);
-        case 'list': return (f, c, k) => createColumn(t, f, f.list, f.toListArray);
+        case 'list': throw new Error('Use createListColumn instead.');
         case 'tensor': throw new Error('Use createTensorColumn instead.');
     }
 }
@@ -38,6 +39,26 @@ function createColumn<T>(schema: Column.Schema, field: Data.Field, value: (row: 
         value,
         valueKind: field.valueKind,
         areValuesEqual: field.areValuesEqual,
+        toArray
+    };
+}
+
+function createListColumn<T extends number|string>(schema: Column.Schema.List<T>, category: Data.Category, key: string): Column<(number|string)[]> {
+    const separator = schema.separator;
+    const itemParse = schema.itemParse;
+
+    const f = category.getField(key);
+    const value = f ? (row: number) => f.str(row).split(separator).map(x => itemParse(x.trim())).filter(x => !!x) : (row: number) => []
+    const toArray: Column<T[]>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
+
+    return {
+        schema,
+        '@array': void 0,
+        isDefined: !!f,
+        rowCount: category.rowCount,
+        value,
+        valueKind: f ? f.valueKind : () => Column.ValueKind.NotPresent,
+        areValuesEqual: (rowA, rowB) => arrayEqual(value(rowA), value(rowB)),
         toArray
     };
 }
@@ -84,7 +105,9 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
                 get: function() {
                     if (cache[k]) return cache[k];
                     const fType = schema[k];
-                    if (fType.valueType === 'tensor') {
+                    if (fType.valueType === 'list') {
+                        cache[k] = createListColumn(fType, category, k);
+                    } else if (fType.valueType === 'tensor') {
                         cache[k] = createTensorColumn(fType, category, k);
                     } else {
                         const ctor = getColumnCtor(fType);

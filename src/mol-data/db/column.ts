@@ -36,7 +36,7 @@ namespace Column {
 
         export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space } & Base<'tensor'>
         export type Aliased<T> = { '@type': 'aliased', T: T } & Base<'str' | 'int'>
-        export type List<T extends number|string> = { '@type': 'list', T: T[] } & Base<'list'>
+        export type List<T extends number|string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
 
         export const str: Str = { '@type': 'str', T: '', valueType: 'str' };
         export const int: Int = { '@type': 'int', T: 0, valueType: 'int' };
@@ -54,8 +54,8 @@ namespace Column {
             if (typeof defaultValue !== 'undefined') return { ...t, T: defaultValue } as any as Aliased<T>;
             return t as any as Aliased<T>;
         }
-        export function List<T extends number|string>(defaultValue: T[] = []): List<T> {
-            return { '@type': 'list', T: defaultValue, valueType: 'list' }
+        export function List<T extends number|string>(separator: string, itemParse: (x: string) => T, defaultValue: T[] = []): List<T> {
+            return { '@type': 'list', T: defaultValue, separator, itemParse, valueType: 'list' }
         }
     }
 

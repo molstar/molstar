@@ -31,10 +31,6 @@ export default function Field(column: EncodedColumn): Data.Field {
         ? row => data[row]
         : row => { const v = data[row]; return fastParseFloat(v, 0, v.length); };
 
-    const list: Data.Field['list'] = mask
-        ? row => mask[row] === Column.ValueKind.Present ? data[row] : []
-        : row => data[row];
-
     const valueKind: Data.Field['valueKind'] = mask
         ? row => mask[row]
         : row => Column.ValueKind.Present;
@@ -48,7 +44,6 @@ export default function Field(column: EncodedColumn): Data.Field {
         str,
         int,
         float,
-        list,
         valueKind,
         areValuesEqual: (rowA, rowB) => data[rowA] === data[rowB],
         toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
@@ -57,7 +52,6 @@ export default function Field(column: EncodedColumn): Data.Field {
             : params => ColumnHelpers.createAndFillArray(rowCount, int, params),
         toFloatArray: isNumeric
             ? params => ColumnHelpers.typedArrayWindow(data, params)
-            : params => ColumnHelpers.createAndFillArray(rowCount, float, params),
-        toListArray: params => ColumnHelpers.createAndFillArray(rowCount, list, params)
+            : params => ColumnHelpers.createAndFillArray(rowCount, float, params)
     };
 }

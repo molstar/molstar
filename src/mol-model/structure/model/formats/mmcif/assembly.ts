@@ -40,7 +40,7 @@ function createAssembly(format: mmCIF_Format, index: number, matrices: Matrices)
         if (assembly_id.value(i) !== id) continue;
         generators[generators.length] = {
             expression: oper_expression.value(i),
-            asymIds: asym_id_list.value(i).split(',').map(x => x.trim()).filter(x => !!x)
+            asymIds: asym_id_list.value(i)
         };
     }
 

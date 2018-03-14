@@ -12,8 +12,8 @@ import Table from '../table'
 describe('column', () => {
     const cc = Column.ofConst(10, 2, Column.Schema.int);
     const arr = Column.ofArray({ array: [1, 2, 3, 4], schema: Column.Schema.int });
-    const arrNumberList = Column.ofArray({ array: [[1, 2], [3, 4], [5, 6]], schema: Column.Schema.List<number>() });
-    const arrStringList = Column.ofArray({ array: [['a', 'b'], ['c', 'd'], ['e', 'f']], schema: Column.Schema.List<string>() });
+    const arrNumberList = Column.ofArray({ array: [[1, 2], [3, 4], [5, 6]], schema: Column.Schema.List(' ', x => parseInt(x, 10)) });
+    const arrStringList = Column.ofArray({ array: [['a', 'b'], ['c', 'd'], ['e', 'f']], schema: Column.Schema.List(',', x => x) });
     const arrWindow = Column.window(arr, 1, 3);
 
     const typed = Column.ofArray({ array: new Int32Array([1, 2, 3, 4]), schema: Column.Schema.int });

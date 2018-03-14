@@ -80,6 +80,10 @@ function columnValue(k: string) {
     return (i: number, d: any) => d[k].value(i);
 }
 
+function columnListValue(k: string) {
+    return (i: number, d: any) => d[k].value(i).join(d[k].schema.separator);
+}
+
 function columnTensorValue(k: string, ...coords: number[]) {
     return (i: number, d: any) => d[k].schema.space.get(d[k].value(i), ...coords);
 }
@@ -134,7 +138,7 @@ export namespace FieldDefinitions {
             } else if (t.valueType === 'str') {
                 fields.push({ name: k, type: FieldType.Str, value: columnValue(k), valueKind: columnValueKind(k) });
             } else if (t.valueType === 'list') {
-                throw new Error('list not implemented');
+                fields.push({ name: k, type: FieldType.Str, value: columnListValue(k), valueKind: columnValueKind(k) })
             } else if (t.valueType === 'tensor') {
                 fields.push(...getTensorDefinitions(k, t.space))
             } else {

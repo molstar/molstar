@@ -28,12 +28,6 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
         return fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
     };
 
-    const list: Data.Field['list'] = <T extends string|number>(row: number) => {
-        const ret = data.substring(indices[2 * row], indices[2 * row + 1]);
-        if (ret === '.' || ret === '?') return [];
-        return ret.split(',') as T[];
-    };
-
     const valueKind: Data.Field['valueKind'] = row => {
         const s = indices[2 * row];
         if (indices[2 * row + 1] - s !== 1) return Column.ValueKind.Present;
@@ -50,12 +44,10 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Fie
         str,
         int,
         float,
-        list,
         valueKind,
         areValuesEqual: TokenColumn.areValuesEqualProvider(tokens),
         toStringArray: params => ColumnHelpers.createAndFillArray(rowCount, str, params),
         toIntArray: params => ColumnHelpers.createAndFillArray(rowCount, int, params),
-        toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params),
-        toListArray: params => ColumnHelpers.createAndFillArray(rowCount, list, params)
+        toFloatArray: params => ColumnHelpers.createAndFillArray(rowCount, float, params)
     }
 }
