@@ -18,6 +18,7 @@ const coord = Schema.coord;
 const Aliased = Schema.Aliased;
 const Matrix = Schema.Matrix;
 const Vector = Schema.Vector;
+const List = Schema.List;
 
 export const mmCIF_Schema = {
     atom_site: {
@@ -29,7 +30,7 @@ export const mmCIF_Schema = {
         Cartn_x: coord,
         Cartn_y: coord,
         Cartn_z: coord,
-        group_PDB: str,
+        group_PDB: Aliased<'ATOM' | 'HETATM'>(str),
         id: int,
         label_alt_id: str,
         label_asym_id: str,
@@ -73,11 +74,11 @@ export const mmCIF_Schema = {
         pdbx_number_of_molecules: float,
         pdbx_mutation: str,
         pdbx_fragment: str,
-        pdbx_ec: str,
+        pdbx_ec: List(',', x => x),
     },
     exptl: {
         entry_id: str,
-        method: str,
+        method: Aliased<'X-RAY DIFFRACTION' | 'NEUTRON DIFFRACTION' | 'FIBER DIFFRACTION' | 'ELECTRON CRYSTALLOGRAPHY' | 'ELECTRON MICROSCOPY' | 'SOLUTION NMR' | 'SOLID-STATE NMR' | 'SOLUTION SCATTERING' | 'POWDER DIFFRACTION' | 'INFRARED SPECTROSCOPY' | 'EPR' | 'FLUORESCENCE TRANSFER' | 'THEORETICAL MODEL'>(str),
     },
     struct_conf: {
         beg_label_asym_id: str,
@@ -186,14 +187,14 @@ export const mmCIF_Schema = {
     },
     pdbx_struct_oper_list: {
         id: str,
-        type: str,
+        type: Aliased<'identity operation' | 'point symmetry operation' | 'helical symmetry operation' | 'crystal symmetry operation' | '3D crystal symmetry operation' | '2D crystal symmetry operation' | 'transform to point frame' | 'transform to helical frame' | 'transform to crystal frame' | 'transform to 2D crystal frame' | 'transform to 3D crystal frame' | 'build point asymmetric unit' | 'build helical asymmetric unit' | 'build 2D crystal asymmetric unit' | 'build 3D crystal asymmetric unit'>(str),
         name: str,
         symmetry_operation: str,
         matrix: Matrix(3, 3),
         vector: Vector(3),
     },
     pdbx_struct_assembly_gen: {
-        asym_id_list: str,
+        asym_id_list: List(',', x => x),
         assembly_id: str,
         oper_expression: str,
     },

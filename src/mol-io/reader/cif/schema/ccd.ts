@@ -18,17 +18,18 @@ const coord = Schema.coord;
 const Aliased = Schema.Aliased;
 // const Matrix = Schema.Matrix;
 // const Vector = Schema.Vector;
+const List = Schema.List;
 
 export const CCD_Schema = {
     chem_comp: {
         formula: str,
         formula_weight: float,
         id: str,
-        mon_nstd_parent_comp_id: str,
+        mon_nstd_parent_comp_id: List(',', x => x),
         name: str,
         one_letter_code: str,
         three_letter_code: str,
-        type: str,
+        type: Aliased<'D-peptide linking' | 'L-peptide linking' | 'D-peptide NH3 amino terminus' | 'L-peptide NH3 amino terminus' | 'D-peptide COOH carboxy terminus' | 'L-peptide COOH carboxy terminus' | 'DNA linking' | 'RNA linking' | 'L-RNA linking' | 'L-DNA linking' | 'DNA OH 5 prime terminus' | 'RNA OH 5 prime terminus' | 'DNA OH 3 prime terminus' | 'RNA OH 3 prime terminus' | 'D-saccharide 1,4 and 1,4 linking' | 'L-saccharide 1,4 and 1,4 linking' | 'D-saccharide 1,4 and 1,6 linking' | 'L-saccharide 1,4 and 1,6 linking' | 'L-saccharide' | 'D-saccharide' | 'saccharide' | 'non-polymer' | 'peptide linking' | 'peptide-like' | 'L-gamma-peptide, C-delta linking' | 'D-gamma-peptide, C-delta linking' | 'L-beta-peptide, C-gamma linking' | 'D-beta-peptide, C-gamma linking' | 'other'>(str),
         pdbx_synonyms: str,
         pdbx_type: str,
         pdbx_ambiguous_flag: str,
@@ -42,7 +43,7 @@ export const CCD_Schema = {
         pdbx_model_coordinates_missing_flag: Aliased<'Y' | 'N'>(str),
         pdbx_initial_date: str,
         pdbx_modified_date: str,
-        pdbx_processing_site: str,
+        pdbx_processing_site: Aliased<'PDBE' | 'EBI' | 'PDBJ' | 'RCSB'>(str),
     },
     chem_comp_atom: {
         alt_atom_id: str,
@@ -74,14 +75,14 @@ export const CCD_Schema = {
     pdbx_chem_comp_descriptor: {
         comp_id: str,
         descriptor: str,
-        type: str,
+        type: Aliased<'SMILES_CANNONICAL' | 'SMILES_CANONICAL' | 'SMILES' | 'SMILES' | 'InChI' | 'InChI_MAIN' | 'InChI_MAIN_FORMULA' | 'InChI_MAIN_CONNECT' | 'InChI_MAIN_HATOM' | 'InChI_CHARGE' | 'InChI_STEREO' | 'InChI_ISOTOPE' | 'InChI_FIXEDH' | 'InChI_RECONNECT' | 'InChIKey'>(str),
         program: str,
         program_version: str,
     },
     pdbx_chem_comp_identifier: {
         comp_id: str,
         identifier: str,
-        type: str,
+        type: Aliased<'COMMON NAME' | 'SYSTEMATIC NAME' | 'CAS REGISTRY NUMBER' | 'PUBCHEM Identifier' | 'MDL Identifier' | 'SYNONYM'>(str),
         program: str,
         program_version: str,
     },

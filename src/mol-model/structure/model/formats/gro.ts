@@ -51,12 +51,12 @@ function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Hiera
     });
 
     const residues = Table.view(Table.ofColumns(Hierarchy.ResiduesSchema, {
-        group_PDB: Column.Undefined(atomsData.count, Column.Schema.str),
+        group_PDB: Column.Undefined(atomsData.count, Column.Schema.Aliased<'ATOM' | 'HETATM'>(Column.Schema.str)),
         label_comp_id: atomsData.residueName,
         auth_comp_id: atomsData.residueName,
         label_seq_id: atomsData.residueNumber,
         auth_seq_id: atomsData.residueNumber,
-        pdbx_PDB_ins_code: Column.Undefined(atomsData.count, Column.Schema.str)
+        pdbx_PDB_ins_code: Column.Undefined(atomsData.count, Column.Schema.str),
     }), Hierarchy.ResiduesSchema, offsets.residues);
     // Optimize the numeric columns
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
