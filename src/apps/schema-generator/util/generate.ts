@@ -27,7 +27,8 @@ const coord = Schema.coord;
 
 const Aliased = Schema.Aliased;
 const Matrix = Schema.Matrix;
-const Vector = Schema.Vector;`
+const Vector = Schema.Vector;
+const List = Schema.List;`
 }
 
 function footer (name: string) {
@@ -37,14 +38,23 @@ export interface ${name}_Database extends Database<${name}_Schema> { }`
 }
 
 const value: { [k: string]: (...args: any[]) => string } = {
-    enum: function (...values: string[]) {
-        return `Aliased<'${values.join(`' | '`)}'>(str)`
+    enum: function (type: string, values: string[]) {
+        return `Aliased<'${values.join(`' | '`)}'>(${type})`
     },
     matrix: function (rows: number, cols: number) {
         return `Matrix(${rows}, ${cols})`
     },
     vector: function (dim: number) {
         return `Vector(${dim})`
+    },
+    list: function (type: 'str'|'int'|'float', separator: string) {
+        if (type === 'int') {
+            return `List('${separator}', x => parseInt(x, 10))`
+        } else if (type === 'float') {
+            return `List('${separator}', x => parseFloat(x))`
+        } else {
+            return `List('${separator}', x => x)`
+        }
     }
 }
 
@@ -64,7 +74,7 @@ export function generate (name: string, schema: Database, fields?: Filter, impor
     codeLines.push(`export const ${name}_Schema = {`)
     Object.keys(schema).forEach(table => {
         if (fields && !fields[ table ]) return
-        codeLines.push(`\t${safePropertyString(table)}: {`)
+        codeLines.push(`    ${safePropertyString(table)}: {`)
         const columns = schema[ table ]
         Object.keys(columns).forEach(columnName => {
             if (fields && !fields[ table ][ columnName ]) return
@@ -76,9 +86,9 @@ export function generate (name: string, schema: Database, fields?: Filter, impor
             } else {
                 typeDef = fieldType
             }
-            codeLines.push(`\t\t${safePropertyString(columnName)}: ${typeDef},`)
+            codeLines.push(`        ${safePropertyString(columnName)}: ${typeDef},`)
         })
-        codeLines.push('\t},')
+        codeLines.push('    },')
     })
     codeLines.push('}')
 

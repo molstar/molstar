@@ -12,7 +12,8 @@ export interface Table {
     [ columnName: string ]: Column
 }
 
-export type Column = IntCol | StrCol | FloatCol | CoordCol | EnumCol | VectorCol | MatrixCol
+export type ValueColumn = IntCol | StrCol | FloatCol | CoordCol | EnumCol
+export type Column = ValueColumn | VectorCol | MatrixCol | ListColumn
 
 type IntCol = 'int'
 type StrCol = 'str'
@@ -24,7 +25,7 @@ interface ComplexColumn {
 }
 
 interface EnumCol extends ComplexColumn {
-    enum: string[]
+    enum: [ IntCol | StrCol, string[] ]
 }
 
 interface VectorCol extends ComplexColumn {
@@ -33,6 +34,10 @@ interface VectorCol extends ComplexColumn {
 
 interface MatrixCol extends ComplexColumn {
     matrix: [ number, number ]
+}
+
+export interface ListColumn extends ComplexColumn {
+    list: [ ValueColumn, string ]
 }
 
 export function getTypeAndArgs (column: ComplexColumn) {

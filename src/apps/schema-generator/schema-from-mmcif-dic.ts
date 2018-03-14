@@ -21,7 +21,7 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount
     const parsed = await comp();
     if (parsed.isError) throw parsed
 
-    console.log(fieldNamesPath, minCount)
+    // console.log(fieldNamesPath, minCount)
 
     let filter: Filter | undefined
     if (minCount && fieldNamesPath) {
@@ -32,7 +32,6 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount
     } else if (minCount) {
         filter = await getUsageCountsFilter(minCount)
     } else if (fieldNamesPath) {
-        console.log('MOIN')
         filter = await getFieldNamesFilter(fieldNamesPath)
     }
 
@@ -59,11 +58,11 @@ async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
     const filter: Filter = {}
     fieldNames.forEach((name, i) => {
         const [ category, field ] = name.split('.')
-        console.log(category, field)
+        // console.log(category, field)
         if (!filter[ category ]) filter[ category ] = {}
         filter[ category ][ field ] = true
     })
-    console.log(filter)
+    // console.log(filter)
     return filter
 }
 
@@ -93,7 +92,7 @@ async function ensureMmcifDicAvailable() {
     if (FORCE_MMCIF_DOWNLOAD || !fs.existsSync(MMCIF_DIC_PATH)) {
         console.log('downloading mmcif dic...')
         const data = await fetch(MMCIF_DIC_URL)
-        if (!fs.existsSync(MMCIF_DIC_DIR)){
+        if (!fs.existsSync(MMCIF_DIC_DIR)) {
             fs.mkdirSync(MMCIF_DIC_DIR);
         }
         fs.writeFileSync(MMCIF_DIC_PATH, await data.text())

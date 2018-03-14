@@ -7,10 +7,14 @@
 import { Database, Table, Column } from './json-schema'
 
 const SimpleColumnTypes = [ 'str', 'int', 'float', 'coord' ]
-const ComplexColumnTypes = [ 'enum', 'vector', 'matrix' ]
+const ComplexColumnTypes = [ 'enum', 'vector', 'matrix', 'list' ]
 
 function allTrue<T> (list: T[], fn: (e: T) => boolean) {
     return list.reduce((a, v) => a && fn(v), true)
+}
+
+function allString (list: string[]) {
+    return list.reduce((a, v) => a && typeof v === 'string', true)
 }
 
 function validateColumn (column: Column): true|Error {
@@ -31,8 +35,8 @@ function validateColumn (column: Column): true|Error {
         }
         switch (type) {
             case 'enum':
-                if (!args.reduce((a, v) => a && typeof v === 'string', true)) {
-                    return new Error(`enum column must have string args`)
+                if (args.length !== 2 && (!allString(args[1]) && !allTrue(args[1], Number.isInteger))) {
+                    return new Error(`enum column must have all string or all integer args ${args}`)
                 }
                 break;
             case 'vector':
@@ -43,6 +47,11 @@ function validateColumn (column: Column): true|Error {
             case 'matrix':
                 if (args.length !== 2 || !allTrue(args, Number.isInteger)) {
                     return new Error(`matrix column must have two integer args`)
+                }
+                break;
+            case 'list':
+                if (args.length !== 2 || !allString(args)) {
+                    return new Error(`list column must have two string args`)
                 }
                 break;
             default:
