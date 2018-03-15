@@ -222,4 +222,4 @@ export const mmCIF_Schema = {
 }
 
 export type mmCIF_Schema = typeof mmCIF_Schema;
-export interface mmCIF_Database extends Database<mmCIF_Schema> { }
+export type mmCIF_Database = Database<mmCIF_Schema>

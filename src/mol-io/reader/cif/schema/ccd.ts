@@ -89,4 +89,4 @@ export const CCD_Schema = {
 }
 
 export type CCD_Schema = typeof CCD_Schema;
-export interface CCD_Database extends Database<CCD_Schema> { }
+export type CCD_Database = Database<CCD_Schema>

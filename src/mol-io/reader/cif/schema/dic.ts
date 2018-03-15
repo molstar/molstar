@@ -72,4 +72,4 @@ export const CIFDictionary_Schema = {
 }
 
 export type CIFDictionary_Schema = typeof CIFDictionary_Schema;
-export interface CIFDictionary_Database extends Database.Tables<CIFDictionary_Schema> { }
+export type CIFDictionary_Database = Database.Tables<CIFDictionary_Schema>
