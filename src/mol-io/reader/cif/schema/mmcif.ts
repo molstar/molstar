@@ -55,6 +55,15 @@ export const mmCIF_Schema = {
         Z_PDB: int,
         pdbx_unique_axis: str,
     },
+    chem_comp: {
+        formula: str,
+        formula_weight: float,
+        id: str,
+        mon_nstd_flag: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
+        name: str,
+        type: Aliased<'D-peptide linking' | 'L-peptide linking' | 'D-peptide NH3 amino terminus' | 'L-peptide NH3 amino terminus' | 'D-peptide COOH carboxy terminus' | 'L-peptide COOH carboxy terminus' | 'DNA linking' | 'RNA linking' | 'L-RNA linking' | 'L-DNA linking' | 'DNA OH 5 prime terminus' | 'RNA OH 5 prime terminus' | 'DNA OH 3 prime terminus' | 'RNA OH 3 prime terminus' | 'D-saccharide 1,4 and 1,4 linking' | 'L-saccharide 1,4 and 1,4 linking' | 'D-saccharide 1,4 and 1,6 linking' | 'L-saccharide 1,4 and 1,6 linking' | 'L-saccharide' | 'D-saccharide' | 'saccharide' | 'non-polymer' | 'peptide linking' | 'peptide-like' | 'L-gamma-peptide, C-delta linking' | 'D-gamma-peptide, C-delta linking' | 'L-beta-peptide, C-gamma linking' | 'D-beta-peptide, C-gamma linking' | 'other'>(str),
+        pdbx_synonyms: str,
+    },
     chem_comp_bond: {
         atom_id_1: str,
         atom_id_2: str,
@@ -76,9 +85,16 @@ export const mmCIF_Schema = {
         pdbx_fragment: str,
         pdbx_ec: List(',', x => x),
     },
+    entry: {
+        id: str,
+    },
     exptl: {
         entry_id: str,
         method: Aliased<'X-RAY DIFFRACTION' | 'NEUTRON DIFFRACTION' | 'FIBER DIFFRACTION' | 'ELECTRON CRYSTALLOGRAPHY' | 'ELECTRON MICROSCOPY' | 'SOLUTION NMR' | 'SOLID-STATE NMR' | 'SOLUTION SCATTERING' | 'POWDER DIFFRACTION' | 'INFRARED SPECTROSCOPY' | 'EPR' | 'FLUORESCENCE TRANSFER' | 'THEORETICAL MODEL'>(str),
+    },
+    struct: {
+        entry_id: str,
+        title: str,
     },
     struct_conf: {
         beg_label_asym_id: str,
@@ -140,6 +156,11 @@ export const mmCIF_Schema = {
         criteria: str,
         id: Aliased<'covale' | 'disulf' | 'hydrog' | 'metalc' | 'mismat' | 'saltbr' | 'modres' | 'covale_base' | 'covale_sugar' | 'covale_phosphate'>(str),
         reference: str,
+    },
+    struct_keywords: {
+        entry_id: str,
+        text: List(',', x => x),
+        pdbx_keywords: str,
     },
     struct_sheet_range: {
         beg_label_asym_id: str,
