@@ -153,4 +153,15 @@ export namespace CategoryDefinition {
     export function ofTable<S extends Table.Schema>(name: string, table: Table<S>): CategoryDefinition<number> {
         return { name, fields: FieldDefinitions.ofSchema(table._schema) }
     }
+
+    export function instanceProviderOfTable(name: string, table: Table<Table.Schema>): CategoryProvider {
+        return function (ctx: any) {
+            return {
+                data: table,
+                definition: ofTable(name, table),
+                keys: () => Iterator.Range(0, table._rowCount - 1),
+                rowCount: table._rowCount
+            };
+        }
+    }
 }

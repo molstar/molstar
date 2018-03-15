@@ -13,6 +13,7 @@ import { mmCIF_Schema, mmCIF_Database } from './cif/schema/mmcif'
 import { CCD_Schema, CCD_Database } from './cif/schema/ccd'
 
 export default {
+    parse: (data: string|Uint8Array) => typeof data === 'string' ? parseText(data) : parseBinary(data),
     parseText,
     parseBinary,
     toDatabase,
