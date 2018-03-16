@@ -100,6 +100,32 @@ namespace Table {
         return ret as Table<R>;
     }
 
+    export function concat<S extends R, R extends Schema>(tables: Table<S>[], schema: R) {
+        const ret = Object.create(null);
+        const columns = Object.keys(schema);
+        ret._rowCount = 0
+        for (const table of tables) {
+            ret._rowCount += table._rowCount
+        }
+        const arrays: any = {}
+        for (const column of columns) {
+            arrays[column] = new Array(ret._rowCount)
+        }
+        ret._columns = columns;
+        ret._schema = schema;
+        let offset = 0
+        for (const table of tables) {
+            for (const k of columns) {
+                Column.copyToArray(table[k], arrays[k], offset)
+            }
+            offset += table._rowCount
+        }
+        for (const k of columns) {
+            ret[k] = Column.ofArray({ array: arrays[k], schema: schema[k] })
+        }
+        return ret as Table<R>;
+    }
+
     export function columnToArray<S extends Schema>(table: Table<S>, name: keyof S, array?: Column.ArrayCtor<any>) {
         (table as Columns<S>)[name] = Column.asArrayColumn((table as Columns<S>)[name], array);
     }

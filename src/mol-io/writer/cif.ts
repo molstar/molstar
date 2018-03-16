@@ -29,7 +29,7 @@ export function writeDatabase(encoder: CIFEncoder, name: string, database: Datab
     }
 }
 
-export function writeDatabaseCollection(encoder: CIFEncoder, collection: DatabaseCollection) {
+export function writeDatabaseCollection(encoder: CIFEncoder, collection: DatabaseCollection<Database.Schema>) {
     for (const name of Object.keys(collection)) {
         writeDatabase(encoder, name, collection[name])
     }

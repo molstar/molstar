@@ -150,6 +150,19 @@ namespace Column {
         if (!c.isDefined) return Undefined(c.rowCount, c.schema) as any as Column<T>;
         return arrayColumn({ array: c.toArray({ array }), schema: c.schema, valueKind: c.valueKind });
     }
+
+    export function copyToArray<T>(c: Column<T>, array: ArrayLike<T>, offset = 0) {
+        if (!c.isDefined) return;
+        const cArray = c['@array']
+        if (cArray) {
+            // TODO Index signature of 'ArrayLike<T>' only permits reading
+            for (let i = 0, _i = cArray.length; i < _i; i++) (array[offset + i] as any) = cArray[i];
+        } else {
+            // TODO Index signature of 'ArrayLike<T>' only permits reading
+            for (let i = 0, _i = c.rowCount; i < _i; i++) (array[offset + i] as any) = c.value(i);
+        }
+
+    }
 }
 
 export default Column;
