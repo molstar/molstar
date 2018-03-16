@@ -151,15 +151,13 @@ namespace Column {
         return arrayColumn({ array: c.toArray({ array }), schema: c.schema, valueKind: c.valueKind });
     }
 
-    export function copyToArray<T>(c: Column<T>, array: ArrayLike<T>, offset = 0) {
+    export function copyToArray<T extends number>(c: Column<T>, array: { [k: number]: T, length: number }, offset = 0) {
         if (!c.isDefined) return;
         const cArray = c['@array']
         if (cArray) {
-            // TODO Index signature of 'ArrayLike<T>' only permits reading
-            for (let i = 0, _i = cArray.length; i < _i; i++) (array[offset + i] as any) = cArray[i];
+            for (let i = 0, _i = cArray.length; i < _i; i++) array[offset + i] = cArray[i];
         } else {
-            // TODO Index signature of 'ArrayLike<T>' only permits reading
-            for (let i = 0, _i = c.rowCount; i < _i; i++) (array[offset + i] as any) = c.value(i);
+            for (let i = 0, _i = c.rowCount; i < _i; i++) array[offset + i] = c.value(i);
         }
 
     }
