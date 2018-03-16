@@ -122,4 +122,4 @@ export const BIRD_Schema = {
 }
 
 export type BIRD_Schema = typeof BIRD_Schema;
-export type BIRD_Database = Database<BIRD_Schema>
+export interface BIRD_Database extends Database<BIRD_Schema> {}

@@ -34,7 +34,7 @@ const List = Schema.List;`
 function footer (name: string) {
     return `
 export type ${name}_Schema = typeof ${name}_Schema;
-export type ${name}_Database = Database<${name}_Schema>`
+export interface ${name}_Database extends Database<${name}_Schema> {}`
 }
 
 const value: { [k: string]: (...args: any[]) => string } = {
