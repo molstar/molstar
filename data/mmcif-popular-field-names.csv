@@ -65,6 +65,12 @@ exptl.method
 struct.entry_id
 struct.title
 
+struct_asym.id
+struct_asym.pdbx_blank_PDB_chainid_flag
+struct_asym.pdbx_modified
+struct_asym.entity_id
+struct_asym.details
+
 struct_conf.conf_type_id
 struct_conf.id
 struct_conf.pdbx_PDB_helix_id
@@ -98,6 +104,7 @@ struct_conn.pdbx_ptnr1_PDB_ins_code
 struct_conn.pdbx_ptnr1_standard_comp_id
 struct_conn.ptnr1_symmetry
 struct_conn.ptnr2_label_asym_id
+struct_conn.ptnr2_label_comp_id
 struct_conn.ptnr2_label_seq_id
 struct_conn.ptnr2_label_atom_id
 struct_conn.pdbx_ptnr2_label_alt_id
@@ -143,6 +150,30 @@ struct_sheet_range.beg_auth_seq_id
 struct_sheet_range.end_auth_comp_id
 struct_sheet_range.end_auth_asym_id
 struct_sheet_range.end_auth_seq_id
+
+struct_site.id
+struct_site.pdbx_evidence_code
+struct_site.pdbx_auth_asym_id
+struct_site.pdbx_auth_comp_id
+struct_site.pdbx_auth_seq_id
+struct_site.pdbx_auth_ins_code
+struct_site.pdbx_num_residues
+struct_site.details
+
+struct_site_gen.id
+struct_site_gen.site_id
+struct_site_gen.pdbx_num_res
+struct_site_gen.label_comp_id
+struct_site_gen.label_asym_id
+struct_site_gen.label_seq_id
+struct_site_gen.pdbx_auth_ins_code
+struct_site_gen.auth_comp_id
+struct_site_gen.auth_asym_id
+struct_site_gen.auth_seq_id
+struct_site_gen.label_atom_id
+struct_site_gen.label_alt_id
+struct_site_gen.symmetry
+struct_site_gen.details
 
 symmetry.entry_id
 symmetry.space_group_name_H-M
