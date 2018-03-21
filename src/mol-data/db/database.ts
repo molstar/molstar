@@ -31,6 +31,14 @@ namespace Database {
         }
         return ret;
     }
+
+    export function getTablesAsRows<S extends Schema>(database: Database<S>) {
+        const ret: { [k: string]: Table.Row<any>[] } = {};
+        for (const k of database._tableNames) {
+            ret[k] = Table.getRows(database[k]);
+        }
+        return ret;
+    }
 }
 
 export default Database

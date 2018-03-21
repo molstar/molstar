@@ -5,10 +5,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Database, Table, Column, ColumnHelpers } from 'mol-data/db'
+import { DatabaseCollection, Database, Table, Column, ColumnHelpers } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
 import { arrayEqual } from 'mol-util'
 import * as Data from './data-model'
+
+export function toDatabaseCollection<Schema extends Database.Schema>(schema: Schema, file: Data.File): DatabaseCollection<Schema> {
+    const dbc: DatabaseCollection<Schema> = {}
+    for (const data of file.blocks) {
+        dbc[data.header] = toDatabase(schema, data)
+    }
+    return dbc;
+}
 
 export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.Frame): Frame {
     return createDatabase(schema, frame) as Frame;
