@@ -338,3 +338,19 @@ export const VdwRadii = {
     'UUH': 2.0
 }
 export const DefaultVdwRadius = 2.0
+
+export interface BondType extends BitFlags<BondType.Flag> { }
+export namespace BondType {
+    export const is: (b: BondType, f: Flag) => boolean = BitFlags.has
+    export const enum Flag {
+        None                 = 0x0,
+        Covalent             = 0x1,
+        MetallicCoordination = 0x2,
+        Hydrogen             = 0x4,
+        Ion                  = 0x8,
+        Sulfide              = 0x10,
+        Aromatic             = 0x20,
+        Computed             = 0x40
+        // currently at most 16 flags are supported!!
+    }
+}

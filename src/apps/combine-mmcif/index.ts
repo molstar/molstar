@@ -208,8 +208,7 @@ export function getBirdBonds(mmcif: mmCIF_Database) {
 }
 
 export function getCcdBonds(mmcif: mmCIF_Database) {
-    const bonds: PartialStructConnRow[] = []
-
+    // const bonds: PartialStructConnRow[] = []
 }
 
 async function run(pdb: string, out?: string) {
