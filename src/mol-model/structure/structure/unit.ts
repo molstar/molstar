@@ -33,6 +33,7 @@ interface Unit extends SymmetryOperator.ArrayMapping {
     readonly conformation: Model['conformation']
 
     // TODO: add velocity?
+    // AR: would fit into conformation, right?
 }
 
 namespace Unit {
