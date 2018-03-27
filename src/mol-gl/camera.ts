@@ -15,6 +15,7 @@ import REGL = require('regl');
 
 import mouseChange, { MouseModifiers } from 'mol-util/mouse-change'
 import mouseWheel from 'mol-util/mouse-wheel'
+import { defaults } from 'mol-util'
 import { Mat4, Vec3 } from 'mol-math/linear-algebra/3d'
 import { clamp, damp } from 'mol-math/interpolate'
 
@@ -53,25 +54,25 @@ export interface Camera {
 export namespace Camera {
     export function create (regl: REGL.Regl, element: HTMLElement, props: Partial<CameraState> = {}): Camera {
         const state: CameraState = {
-            center: props.center || Vec3.zero(),
-            theta: props.theta || 0,
-            phi: props.phi || 0,
-            distance: Math.log(props.distance || 10.0),
+            center: defaults(props.center, Vec3.zero()),
+            theta: defaults(props.theta, 0),
+            phi: defaults(props.phi, 0),
+            distance: Math.log(defaults(props.distance, 10.0)),
             eye: Vec3.zero(),
-            up: props.up || Vec3.create(0, 1, 0),
-            fovy: props.fovy || Math.PI / 4.0,
-            near: typeof props.near !== 'undefined' ? props.near : 0.01,
-            far: typeof props.far !== 'undefined' ? props.far : 1000.0,
-            noScroll: typeof props.noScroll !== 'undefined' ? props.noScroll : false,
-            flipY: !!props.flipY,
+            up: defaults(props.up, Vec3.create(0, 1, 0)),
+            fovy: defaults(props.fovy, Math.PI / 4.0),
+            near: defaults(props.near, 0.01),
+            far: defaults(props.far, 1000.0),
+            noScroll: defaults(props.noScroll, false),
+            flipY: defaults(props.flipY, false),
             dtheta: 0,
             dphi: 0,
-            rotationSpeed: typeof props.rotationSpeed !== 'undefined' ? props.rotationSpeed : 1,
-            zoomSpeed: typeof props.zoomSpeed !== 'undefined' ? props.zoomSpeed : 1,
-            renderOnDirty: typeof props.renderOnDirty !== undefined ? !!props.renderOnDirty : false,
-            damping: typeof props.damping !== 'undefined' ? props.damping : 0.9,
-            minDistance: Math.log(typeof props.minDistance !== 'undefined' ? props.minDistance : 0.1),
-            maxDistance: Math.log(typeof props.maxDistance !== 'undefined' ? props.maxDistance : 1000)
+            rotationSpeed: defaults(props.rotationSpeed, 1),
+            zoomSpeed: defaults(props.zoomSpeed, 1),
+            renderOnDirty: defaults(props.renderOnDirty, false),
+            damping: defaults(props.damping, 0.9),
+            minDistance: Math.log(defaults(props.minDistance, 0.1)),
+            maxDistance: Math.log(defaults(props.maxDistance, 1000))
         }
 
         const view = Mat4.identity()

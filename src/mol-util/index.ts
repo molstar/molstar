@@ -24,3 +24,7 @@ export function arrayEqual<T>(arr1: T[], arr2: T[]) {
     }
     return true
 }
+
+export function defaults (value: any, defaultValue: any) {
+    return value !== undefined ? value : defaultValue
+}
