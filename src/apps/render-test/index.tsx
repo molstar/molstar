@@ -5,7 +5,9 @@
  */
 
 import UI from './ui'
+import State from './state'
 import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 
-ReactDOM.render(<UI/>, document.getElementById('app'));
+const state = new State()
+ReactDOM.render(<UI state={state} />, document.getElementById('app'));

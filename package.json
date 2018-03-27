@@ -15,7 +15,8 @@
     "build": "tsc",
     "watch": "tsc -watch",
     "test": "jest",
-    "script": "node build/node_modules/script.js"
+    "script": "node build/node_modules/script.js",
+    "app-render-test": "webpack build/node_modules/apps/render-test/index.js --mode development -o web/render-test/index.js"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -64,7 +65,9 @@
     "tslint": "^5.9.1",
     "typescript": "^2.7.2",
     "uglify-js": "^3.3.12",
-    "util.promisify": "^1.0.0"
+    "util.promisify": "^1.0.0",
+    "webpack": "^4.2.0",
+    "webpack-cli": "^2.0.13"
   },
   "dependencies": {
     "argparse": "^1.0.10",
