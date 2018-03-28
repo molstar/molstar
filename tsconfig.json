@@ -14,13 +14,14 @@
         "outDir": "build/node_modules",
         "baseUrl": "src",
         "paths": {
-            "mol-task": ["./mol-task", "./mol-task/index.ts"],
-            "mol-comp": ["./mol-comp", "./mol-comp/index.ts"],
-            "mol-util": ["./mol-util", "./mol-util/index.ts"],
             "mol-data": ["./mol-data", "./mol-data/index.ts"],
-            "mol-math": ["./mol-math"],
+            "mol-gl": ["./mol-gl"],
             "mol-io": ["./mol-io"],
-            "mol-model": ["./mol-model"]
+            "mol-math": ["./mol-math"],
+            "mol-model": ["./mol-model"],
+            "mol-ql": ["./mol-ql"],
+            "mol-task": ["./mol-task", "./mol-task/index.ts"],
+            "mol-util": ["./mol-util", "./mol-util/index.ts"],
         }
     },
     "include": [ "**/*" ]

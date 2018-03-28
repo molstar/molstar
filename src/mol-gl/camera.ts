@@ -177,9 +177,6 @@ export namespace Camera {
         function update (props: any, block: any) {
             setState()
             injectContext(props, block)
-            if (dirty) {
-                console.log(view)
-            }
             dirty = false
         }
 
