@@ -1,13 +1,16 @@
+const path = require('path');
 module.exports = {
     module: {
         rules: [
             {
-                test: /\.(glsl|frag|vert)$/,
                 loader: 'raw-loader',
+                test: /\.(glsl|frag|vert)$/,
+                include: [ path.resolve(__dirname, "build/node_modules/") ],
             },
             {
-                test: /\.(glsl|frag|vert)$/,
                 loader: 'glslify-loader',
+                test: /\.(glsl|frag|vert)$/,
+                include: [ path.resolve(__dirname, "build/node_modules/") ]
             }
         ]
     }
