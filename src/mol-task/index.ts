@@ -12,7 +12,7 @@ import { Progress } from './execution/progress'
 import { now } from './util/now'
 import { Scheduler } from './util/scheduler'
 import { MultistepTask } from './util/multistep'
-import { ChunkedSubtask } from './util/chunked'
+import { chunkedSubtask } from './util/chunked'
 
 // Run the task without the ability to observe its progress.
 function Run<T>(task: Task<T>): Promise<T>;
@@ -23,4 +23,4 @@ function Run<T>(task: Task<T>, observer?: Progress.Observer, updateRateMs?: numb
     return ExecuteSynchronous(task);
 }
 
-export { Task, RuntimeContext, Progress, Run, now, Scheduler, MultistepTask, ChunkedSubtask }
+export { Task, RuntimeContext, Progress, Run, now, Scheduler, MultistepTask, chunkedSubtask }

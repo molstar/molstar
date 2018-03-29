@@ -26,7 +26,7 @@ import * as Data from '../data-model'
 import Field from './field'
 import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
 import Result from '../../result'
-import { Task, RuntimeContext, ChunkedSubtask } from 'mol-task'
+import { Task, RuntimeContext, chunkedSubtask } from 'mol-task'
 
 /**
  * Types of supported mmCIF tokens.
@@ -468,7 +468,7 @@ interface LoopReadState {
     tokenCount: number
 }
 
-function readLoopChunk(state: LoopReadState, chunkSize: number) {
+function readLoopChunk(chunkSize: number, state: LoopReadState) {
     const { tokenizer, tokens, fieldCount } = state;
     let tokenCount = state.tokenCount;
     let counter = 0;
@@ -481,9 +481,13 @@ function readLoopChunk(state: LoopReadState, chunkSize: number) {
     return counter;
 }
 
-const readLoopChunks = ChunkedSubtask(1000000,
-    (size, state: LoopReadState) => readLoopChunk(state, size),
-    (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.tokenizer.data.length }));
+function updateLoopChunk(ctx: RuntimeContext, state: LoopReadState) {
+    return ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.tokenizer.data.length });
+}
+
+// const readLoopChunks = ChunkedSubtask(1000000,
+//     (size, state: LoopReadState) => readLoopChunk(state, size),
+//     (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.tokenizer.data.length }));
 
 /**
  * Reads a loop.
@@ -512,7 +516,7 @@ async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise
         tokens
     };
 
-    await readLoopChunks(tokenizer.runtimeCtx, state);
+    await chunkedSubtask(tokenizer.runtimeCtx, 1000000, state, readLoopChunk, updateLoopChunk);
 
     if (state.tokenCount % fieldCount !== 0) {
         return {
