@@ -10,20 +10,12 @@ require('util.promisify').shim();
 
 // import { Table } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
-import Computation from 'mol-util/computation'
 import { Model } from 'mol-model/structure'
-
-function showProgress(tag: string, p: Computation.Progress) {
-    console.log(`[${tag}] ${p.message} ${p.isIndeterminate ? '' : (p.current / p.max * 100).toFixed(2) + '% '}(${p.elapsedMs | 0}ms)`)
-}
+import { Run, Progress } from 'mol-task'
 
 async function parseCif(data: string|Uint8Array) {
-    const comp = CIF.parse(data)
-    const ctx = Computation.observable({
-        updateRateMs: 250,
-        observer: p => showProgress(`cif parser ${typeof data === 'string' ? 'string' : 'binary'}`, p)
-    });
-    const parsed = await comp(ctx);
+    const comp = CIF.parse(data);
+    const parsed = await Run(comp, p => console.log(Progress.format(p)), 250);
     if (parsed.isError) throw parsed;
     return parsed
 }

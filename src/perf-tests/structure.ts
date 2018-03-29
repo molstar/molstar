@@ -15,6 +15,7 @@ import { Structure, Model, Queries as Q, Atom, AtomGroup, AtomSet, Selection, Sy
 import { Segmentation } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
+import { Run } from 'mol-task';
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
@@ -59,7 +60,7 @@ export async function readCIF(path: string) {
 
     console.time('parse');
     const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
-    const parsed = await comp();
+    const parsed = await Run(comp);
     console.timeEnd('parse');
     if (parsed.isError) {
         throw parsed;

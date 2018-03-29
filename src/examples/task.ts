@@ -23,7 +23,6 @@ function messageTree(root: Progress.Node, prefix = ''): string {
     const subTree = root.children.map(c => messageTree(c, newPrefix));
     if (p.isIndeterminate) return `${prefix}${p.taskName}: ${p.message}\n${subTree.join('\n')}`;
     return `${prefix}${p.taskName}: [${p.current}/${p.max}] ${p.message}\n${subTree.join('\n')}`;
-
 }
 
 function createTask<T>(delayMs: number, r: T): Task<T> {

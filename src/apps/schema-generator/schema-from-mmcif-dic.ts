@@ -14,11 +14,12 @@ import CIF from 'mol-io/reader/cif'
 import { generateSchema } from './util/cif-dic'
 import { generate } from './util/generate'
 import { Filter, mergeFilters } from './util/json-schema'
+import { Run } from 'mol-task';
 
 async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount = 0, typescript = false, out?: string) {
     await ensureMmcifDicAvailable()
     const comp = CIF.parseText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8'))
-    const parsed = await comp();
+    const parsed = await Run(comp);
     if (parsed.isError) throw parsed
 
     // console.log(fieldNamesPath, minCount)
