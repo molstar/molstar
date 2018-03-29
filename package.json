@@ -17,7 +17,8 @@
     "watch": "tsc -watch",
     "test": "jest",
     "script": "node build/node_modules/script.js",
-    "app-render-test": "webpack build/node_modules/apps/render-test/index.js --mode development -o web/render-test/index.js"
+    "app-render-test": "webpack build/node_modules/apps/render-test/index.js --mode development -o web/render-test/index.js",
+    "app-render-test-watch": "webpack build/node_modules/apps/render-test/index.js -w --mode development -o web/render-test/index.js"
   },
   "jest": {
     "moduleFileExtensions": [

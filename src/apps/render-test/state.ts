@@ -8,9 +8,7 @@ import REGL = require('regl');
 import * as glContext from 'mol-gl/context'
 import { Camera } from 'mol-gl/camera'
 import { Vec3 } from 'mol-math/linear-algebra'
-
-const pointVert = require('mol-gl/shader/point.vert')
-const pointFrag = require('mol-gl/shader/point.frag')
+import Point from 'mol-gl/renderable/point'
 
 export default class State {
     regl: REGL.Regl
@@ -31,21 +29,16 @@ export default class State {
             center: Vec3.create(0, 0, 0)
         })
 
-        const drawPoints = regl({
-            vert: pointVert,
-            frag: pointFrag,
-            attributes: {
-                position: [[0, -1, 0], [-1, 0, 0], [1, 1, 0]]
-            },
-            count: 3,
-            primitive: 'points'
+        const points = Point.create(regl, {
+            position: new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0])
         })
 
         regl.frame(() => {
             camera.update((state: any) => {
                 if (!camera.isDirty()) return
                 regl.clear({color: [0, 0, 0, 1]})
-                drawPoints()
+                points.update(a => { a.position[0] = Math.random() })
+                points.draw()
             }, undefined)
         })
 
