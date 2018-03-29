@@ -9,7 +9,7 @@ import { Tokens, TokenBuilder, Tokenizer } from '../common/text/tokenizer'
 import * as Data from './data-model'
 import Field from './field'
 import Result from '../result'
-import Computation from 'mol-util/computation'
+import { Task, RuntimeContext, chunkedSubtask, } from 'mol-task'
 
 const enum CsvTokenType {
     Value = 0,
@@ -22,7 +22,7 @@ interface State {
     tokenizer: Tokenizer,
 
     tokenType: CsvTokenType;
-    chunker: Computation.Chunker,
+    runtimeCtx: RuntimeContext,
     tokens: Tokens[],
 
     fieldCount: number,
@@ -38,7 +38,7 @@ interface State {
     noColumnNamesRecord: boolean
 }
 
-function State(data: string, ctx: Computation.Context, opts: CsvOptions): State {
+function State(data: string, runtimeCtx: RuntimeContext, opts: CsvOptions): State {
 
     const tokenizer = Tokenizer(data)
     return {
@@ -46,7 +46,7 @@ function State(data: string, ctx: Computation.Context, opts: CsvOptions): State 
         tokenizer,
 
         tokenType: CsvTokenType.End,
-        chunker: Computation.chunker(ctx, 100000),
+        runtimeCtx,
         tokens: [],
 
         fieldCount: 0,
@@ -206,7 +206,7 @@ function moveNext(state: State) {
     return newRecord
 }
 
-function readRecordsChunk(state: State, chunkSize: number) {
+function readRecordsChunk(chunkSize: number, state: State) {
     if (state.tokenType === CsvTokenType.End) return 0
 
     let newRecord = moveNext(state);
@@ -225,9 +225,8 @@ function readRecordsChunk(state: State, chunkSize: number) {
 }
 
 function readRecordsChunks(state: State) {
-    return state.chunker.process(
-        chunkSize => readRecordsChunk(state, chunkSize),
-        update => update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
+    return chunkedSubtask(state.runtimeCtx, 100000, state, readRecordsChunk,
+        (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.data.length }));
 }
 
 function addColumn (state: State) {
@@ -261,7 +260,7 @@ async function handleRecords(state: State): Promise<Data.Table> {
     return Data.Table(state.recordCount, state.columnNames, columns)
 }
 
-async function parseInternal(data: string, ctx: Computation.Context, opts: CsvOptions): Promise<Result<Data.File>> {
+async function parseInternal(data: string, ctx: RuntimeContext, opts: CsvOptions): Promise<Result<Data.File>> {
     const state = State(data, ctx, opts);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -279,7 +278,7 @@ interface CsvOptions {
 
 export function parse(data: string, opts?: Partial<CsvOptions>) {
     const completeOpts = Object.assign({}, { quote: '"', comment: '#', delimiter: ',', noColumnNames: false }, opts)
-    return Computation.create<Result<Data.File>>(async ctx => {
+    return Task.create<Result<Data.File>>('Parse CSV', async ctx => {
         return await parseInternal(data, ctx, completeOpts);
     });
 }
