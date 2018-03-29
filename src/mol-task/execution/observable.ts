@@ -127,6 +127,8 @@ function notifyObserver(info: ProgressInfo, time: number) {
 }
 
 class ObservableRuntimeContext implements RuntimeContext {
+    isSynchronous = false;
+
     isExecuting = true;
     lastUpdatedTime = 0;
 

@@ -40,8 +40,6 @@ namespace Task {
         max: number
     }
 
-    export type Provider<P, T> = (params: P) => Task<T>
-
     let _id = 0;
     function nextId() {
         const ret = _id;

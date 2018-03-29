@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, Run, Progress, Scheduler, now, MultistepTask } from 'mol-task'
+import { Task, Run, Progress, Scheduler, now, MultistepTask, ChunkedSubtask } from 'mol-task'
 
 export async function test1() {
     const t = Task.create('test', async () => 1);
@@ -66,16 +66,37 @@ export function testTree() {
     });
 }
 
-const ms = MultistepTask('ms-task', ['step 1', 'step 2', 'step 3'], async (p: { i: number }, step) => {
-    await Scheduler.delay(250);
+export const chunk = ChunkedSubtask(25, (n, state: { i: number, current: number, total: number }) => {
+    const toProcess = Math.min(state.current + n, state.total);
+    const start = state.current;
+    for (let i = start; i < toProcess; i++) {
+        for (let j = 0; j < 1000000; j++) {
+            state.i += (i * j + 1 + state.i) % 1023;
+            state.i = state.i % 1000;
+        }
+    }
+    state.current = toProcess;
+    return toProcess - start;
+}, (ctx, s, p) => ctx.update('chunk test ' + p));
+
+export const ms = MultistepTask('ms-task', ['step 1', 'step 2', 'step 3'], async (p: { i: number }, step, ctx) => {
     await step(0);
+
+    const child = Task.create('chunked', async ctx => {
+        const s = await chunk(ctx, { i: 0, current: 0, total: 125 });
+        return s.i;
+    });
+
+    await ctx.runChild(child);
     await Scheduler.delay(250);
     await step(1);
+    await chunk(ctx, { i: 0, current: 0, total: 80 });
     await Scheduler.delay(250);
     await step(2);
     await Scheduler.delay(250);
     return p.i + 3;
 })
+
 
 export function abortingObserver(p: Progress) {
     console.log(messageTree(p.root));

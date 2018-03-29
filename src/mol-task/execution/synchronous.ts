@@ -8,7 +8,9 @@ import { Task } from '../task'
 import { RuntimeContext } from './runtime-context'
 
 class SynchronousRuntimeContext implements RuntimeContext {
-    shouldUpdate: boolean = false;
+    shouldUpdate = false;
+    isSynchronous = true;
+
     update(progress: string | Partial<RuntimeContext.ProgressUpdate>, dontNotify?: boolean): Promise<void> | void { }
     runChild<T>(task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T> { return ExecuteSynchronous(task); }
 }

@@ -10,8 +10,8 @@ import { RuntimeContext } from '../execution/runtime-context'
 export type MultistepFn<P, T> =
     (params: P, step: (s: number) => Promise<void> | void, ctx: RuntimeContext) => Promise<T>
 
-function MultistepTask<P, T>(name: string, steps: string[], f: MultistepFn<P, T>, onAbort?: () => void): Task.Provider<P, T> {
-    return params => Task.create(name, async ctx => f(params, n => ctx.update({ message: `${steps[n]}`, current: n + 1, max: steps.length }), ctx), onAbort);
+function MultistepTask<P, T>(name: string, steps: string[], f: MultistepFn<P, T>, onAbort?: () => void) {
+    return (params: P) => Task.create(name, async ctx => f(params, n => ctx.update({ message: `${steps[n]}`, current: n + 1, max: steps.length }), ctx), onAbort);
 }
 
 export { MultistepTask }

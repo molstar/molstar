@@ -8,6 +8,7 @@ import { Task } from '../task'
 
 interface RuntimeContext {
     readonly shouldUpdate: boolean,
+    readonly isSynchronous: boolean,
 
     // Idiomatic usage:
     // if (ctx.needsYield) await ctx.yield({ ... });
