@@ -6,7 +6,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Computation from 'mol-util/computation'
+import { chunkedSubtask, RuntimeContext } from 'mol-task'
 
 export interface Tokenizer {
     data: string,
@@ -109,17 +109,17 @@ export namespace Tokenizer {
     }
 
     /** Advance the state by the given number of lines and return line starts/ends as tokens. */
-    export async function readLinesAsync(state: Tokenizer, count: number, chunker: Computation.Chunker): Promise<Tokens> {
+    export async function readLinesAsync(state: Tokenizer, count: number, ctx: RuntimeContext, initialLineCount = 100000): Promise<Tokens> {
         const { length } = state;
         const lineTokens = TokenBuilder.create(state, count * 2);
 
         let linesAlreadyRead = 0;
-        await chunker.process(chunkSize => {
+        await chunkedSubtask(ctx, initialLineCount, state, (chunkSize, state) => {
             const linesToRead = Math.min(count - linesAlreadyRead, chunkSize);
             readLinesChunk(state, linesToRead, lineTokens);
             linesAlreadyRead += linesToRead;
             return linesToRead;
-        }, update => update({ message: 'Parsing...', current: state.position, max: length }));
+        }, (ctx, state) => ctx.update({ message: 'Parsing...', current: state.position, max: length }));
 
         return lineTokens;
     }
