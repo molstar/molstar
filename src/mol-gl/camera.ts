@@ -48,31 +48,32 @@ export interface CameraState {
 export interface Camera {
     update: (props: any, block: any) => void,
     setState: (newState: CameraState) => void,
+    getState: () => CameraState,
     isDirty: () => boolean
 }
 
 export namespace Camera {
-    export function create (regl: REGL.Regl, element: HTMLElement, props: Partial<CameraState> = {}): Camera {
+    export function create (regl: REGL.Regl, element: HTMLElement, initialState: Partial<CameraState> = {}): Camera {
         const state: CameraState = {
-            center: defaults(props.center, Vec3.zero()),
-            theta: defaults(props.theta, 0),
-            phi: defaults(props.phi, 0),
-            distance: Math.log(defaults(props.distance, 10.0)),
+            center: defaults(initialState.center, Vec3.zero()),
+            theta: defaults(initialState.theta, 0),
+            phi: defaults(initialState.phi, 0),
+            distance: Math.log(defaults(initialState.distance, 10.0)),
             eye: Vec3.zero(),
-            up: defaults(props.up, Vec3.create(0, 1, 0)),
-            fovy: defaults(props.fovy, Math.PI / 4.0),
-            near: defaults(props.near, 0.01),
-            far: defaults(props.far, 1000.0),
-            noScroll: defaults(props.noScroll, false),
-            flipY: defaults(props.flipY, false),
+            up: defaults(initialState.up, Vec3.create(0, 1, 0)),
+            fovy: defaults(initialState.fovy, Math.PI / 4.0),
+            near: defaults(initialState.near, 0.01),
+            far: defaults(initialState.far, 1000.0),
+            noScroll: defaults(initialState.noScroll, false),
+            flipY: defaults(initialState.flipY, false),
             dtheta: 0,
             dphi: 0,
-            rotationSpeed: defaults(props.rotationSpeed, 1),
-            zoomSpeed: defaults(props.zoomSpeed, 1),
-            renderOnDirty: defaults(props.renderOnDirty, false),
-            damping: defaults(props.damping, 0.9),
-            minDistance: Math.log(defaults(props.minDistance, 0.1)),
-            maxDistance: Math.log(defaults(props.maxDistance, 1000))
+            rotationSpeed: defaults(initialState.rotationSpeed, 1),
+            zoomSpeed: defaults(initialState.zoomSpeed, 1),
+            renderOnDirty: defaults(initialState.renderOnDirty, false),
+            damping: defaults(initialState.damping, 0.9),
+            minDistance: Math.log(defaults(initialState.minDistance, 0.1)),
+            maxDistance: Math.log(defaults(initialState.maxDistance, 1000))
         }
 
         const view = Mat4.identity()
@@ -183,6 +184,7 @@ export namespace Camera {
         return {
             update,
             setState,
+            getState: () => Object.assign({}, state),
             isDirty: () => dirty
         }
     }
