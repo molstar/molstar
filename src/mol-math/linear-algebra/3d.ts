@@ -112,6 +112,25 @@ export namespace Mat4 {
         a[4 * j + i] = value;
     }
 
+    export function toArray(a: Mat4, out: number[]|Helpers.TypedArray, offset = 0) {
+        out[offset + 0] = a[0];
+        out[offset + 1] = a[1];
+        out[offset + 2] = a[2];
+        out[offset + 3] = a[3];
+        out[offset + 4] = a[4];
+        out[offset + 5] = a[5];
+        out[offset + 6] = a[6];
+        out[offset + 7] = a[7];
+        out[offset + 8] = a[8];
+        out[offset + 9] = a[9];
+        out[offset + 10] = a[10];
+        out[offset + 11] = a[11];
+        out[offset + 12] = a[12];
+        out[offset + 13] = a[13];
+        out[offset + 14] = a[14];
+        out[offset + 15] = a[15];
+    }
+
     export function copy(out: Mat4, a: Mat4) {
         out[0] = a[0];
         out[1] = a[1];

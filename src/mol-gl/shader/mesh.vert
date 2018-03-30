@@ -15,6 +15,5 @@ uniform mat4 transform;
 varying vec3 vPosition;
 
 void main(){
-    gl_PointSize = 20.0;
     gl_Position = projection * view * model * transform * vec4(position, 1.0);
 }
