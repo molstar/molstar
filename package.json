@@ -13,7 +13,7 @@
   "scripts": {
     "lint": "tslint src/**/*.ts",
     "build": "tsc",
-    "postbuild": "copyfiles --up 1 src/mol-gl/shader/*.vert src/mol-gl/shader/*.frag build/node_modules/",
+    "postbuild": "copyfiles --up 1 src/mol-gl/shader/*.vert src/mol-gl/shader/*.frag src/mol-gl/shader/*.glsl build/node_modules/",
     "watch": "tsc -watch",
     "test": "jest",
     "script": "node build/node_modules/script.js",
@@ -44,6 +44,11 @@
     },
     "testRegex": "\\.spec\\.ts$"
   },
+  "glslify": {
+    "transform": [
+      "glslify-import"
+    ]
+  },
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -57,6 +62,7 @@
     "@types/react-dom": "^16.0.4",
     "benchmark": "^2.1.4",
     "copyfiles": "^2.0.0",
+    "glslify-import": "^3.1.0",
     "glslify-loader": "^1.0.2",
     "jest": "^22.4.2",
     "raw-loader": "^0.5.1",

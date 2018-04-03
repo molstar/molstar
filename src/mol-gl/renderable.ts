@@ -6,7 +6,8 @@
 
 import REGL = require('regl');
 import Attribute from './attribute'
-import Point from './renderable/point'
+import PointRenderable from './renderable/point'
+import MeshRenderable from './renderable/mesh'
 
 export type AttributesMutator<T extends AttributesData> = (data: T) => (boolean | void)
 export type AttributesData = { [k: string]: Helpers.TypedArray }
@@ -17,4 +18,4 @@ export interface Renderable<T extends AttributesData> {
     draw(): void
 }
 
-export { Point }
+export { PointRenderable, MeshRenderable }

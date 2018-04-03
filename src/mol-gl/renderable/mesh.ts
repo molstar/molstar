@@ -18,24 +18,48 @@ interface Elements {
 
 }
 
+type Uniforms = { [k: string]: REGL.Uniform | REGL.Texture }
+
+export function fillSerial<T extends Helpers.NumberArray> (array: T) {
+    const n = array.length
+    for (let i = 0; i < n; ++i) array[ i ] = i
+    return array
+}
+
 namespace Mesh {
     export type DataType = {
         position: { type: Float32Array, itemSize: 3 }
-        offset: { type: Float32Array, itemSize: 3 }
+        transformColumn0: { type: Float32Array, itemSize: 4 }
+        transformColumn1: { type: Float32Array, itemSize: 4 }
+        transformColumn2: { type: Float32Array, itemSize: 4 }
+        transformColumn3: { type: Float32Array, itemSize: 4 }
     }
     export type Data = { [K in keyof DataType]: DataType[K]['type'] }
     export type Attributes = { [K in keyof Data]: Attribute<Data[K]> }
 
-    export function create(regl: REGL.Regl, attributes: Attributes, elements?: Elements): Renderable<Data> {
+    export function create(regl: REGL.Regl, attributes: Attributes, uniforms: Uniforms, elements?: Elements): Renderable<Data> {
         console.log('mesh', {
             count: attributes.position.getCount(),
-            instances: attributes.transform.getCount(),
+            instances: attributes.transformColumn0.getCount(),
+            attributes,
+            uniforms
         })
+        const instanceCount = attributes.transformColumn0.getCount()
+        const instanceId = fillSerial(new Float32Array(instanceCount))
+        console.log(instanceId)
         const command = regl({
             ...MeshShaders,
-            attributes: getBuffers(attributes),
+            uniforms: {
+                objectId: uniforms.objectId || 0,
+                instanceCount,
+                ...uniforms
+            },
+            attributes: getBuffers({
+                instanceId: Attribute.create(regl, instanceId, { size: 1, divisor: 1 }),
+                ...attributes
+            }),
             count: attributes.position.getCount(),
-            instances: attributes.transform.getCount(),
+            instances: instanceCount,
             primitive: 'triangles'
         })
         return {

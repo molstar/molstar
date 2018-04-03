@@ -48,19 +48,25 @@ interface Attribute<T extends Helpers.TypedArray> {
     reload(): void
 }
 
+interface AttributeProps {
+    size: 1 | 2 | 3 | 4,
+    divisor?: number,
+    offset?: number,
+    stride?: number
+}
+
 namespace Attribute {
     export type Mutator<T extends Helpers.TypedArray> = (data: T) => (UpdateInfo | void)
     export type UpdateInfo = boolean | { offset: number, count: number }
 
-    export function create<T extends Helpers.TypedArray>(regl: REGL.Regl, array: T, itemSize: number, divisor = 0): Attribute<T> {
+    export function create<T extends Helpers.TypedArray>(regl: REGL.Regl, array: T, props: AttributeProps): Attribute<T> {
+        const itemSize = props.size
         let _array = array
         let _count = _array.length / itemSize
+        if (props.stride) _count = _array.length / (props.stride / _array.BYTES_PER_ELEMENT)
+        console.log(_array.length, props.stride)
         const buffer = regl.buffer(_array)
-        const attribute: REGL.AttributeConfig = {
-            size: itemSize,
-            buffer,
-            divisor
-        }
+        const attribute: REGL.AttributeConfig = { ...props, buffer }
         const growIfNeeded = function(count: number) {
             if (count * itemSize > _array.length) {
                 const newArray: T = new (_array as any).constructor(count * itemSize)
