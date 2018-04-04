@@ -74,13 +74,14 @@ namespace ChunkedArray {
         return array.elementCount++;
     }
 
-
-    export function compact<T>(array: ChunkedArray<T>): ArrayLike<T> {
+    export function compact<T>(array: ChunkedArray<T>, doNotResizeSingleton = false): ArrayLike<T> {
         const { ctor, chunks, currentIndex } = array;
 
         if (!chunks.length) return ctor(0);
-        if (chunks.length === 1 && currentIndex === array.allocatedSize) {
-            return chunks[0];
+        if (chunks.length === 1) {
+            if (doNotResizeSingleton || currentIndex === array.allocatedSize) {
+                return chunks[0];
+            }
         }
 
         let size = 0;

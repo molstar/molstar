@@ -78,7 +78,7 @@ export interface Field {
     toFloatArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>
 }
 
-export function getTensor(category: Category, field: string, space: Tensor.Space, row: number): Tensor {
+export function getTensor(category: Category, field: string, space: Tensor.Space, row: number): Tensor.Data {
     const ret = space.create();
     if (space.rank === 1) {
         const rows = space.dimensions[0];

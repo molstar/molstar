@@ -34,7 +34,7 @@ namespace Column {
         export type Float = { '@type': 'float', T: number } & Base<'float'>
         export type Coordinate = { '@type': 'coord', T: number } & Base<'float'>
 
-        export type Tensor = { '@type': 'tensor', T: Tensors, space: Tensors.Space } & Base<'tensor'>
+        export type Tensor = { '@type': 'tensor', T: Tensors.Data, space: Tensors.Space } & Base<'tensor'>
         export type Aliased<T> = { '@type': 'aliased', T: T } & Base<'str' | 'int'>
         export type List<T extends number|string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
 
