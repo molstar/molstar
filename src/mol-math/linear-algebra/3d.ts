@@ -17,11 +17,11 @@
  * furnished to do so, subject to the following conditions:
  */
 
-export interface Mat4 { [d: number]: number, '@type': 'mat4' }
-export interface Mat3 { [d: number]: number, '@type': 'mat3' }
-export interface Vec3 { [d: number]: number, '@type': 'vec3' | 'vec4' }
-export interface Vec4 { [d: number]: number, '@type': 'vec4' }
-export interface Quat { [d: number]: number, '@type': 'quat' }
+export interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
+export interface Mat3 extends Array<number> { [d: number]: number, '@type': 'mat3', length: 9 }
+export interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
+export interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
+export interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
 
 const enum EPSILON { Value = 0.000001 }
 
@@ -112,7 +112,7 @@ export namespace Mat4 {
         a[4 * j + i] = value;
     }
 
-    export function toArray(a: Mat4, out: number[]|Helpers.TypedArray, offset = 0) {
+    export function toArray(a: Mat4, out: Helpers.NumberArray, offset: number) {
         out[offset + 0] = a[0];
         out[offset + 1] = a[1];
         out[offset + 2] = a[2];
@@ -129,6 +129,25 @@ export namespace Mat4 {
         out[offset + 13] = a[13];
         out[offset + 14] = a[14];
         out[offset + 15] = a[15];
+    }
+
+    export function fromArray(a: Mat4, array: Helpers.NumberArray, offset: number) {
+        a[0] = array[offset + 0]
+        a[1] = array[offset + 1]
+        a[2] = array[offset + 2]
+        a[3] = array[offset + 3]
+        a[4] = array[offset + 4]
+        a[5] = array[offset + 5]
+        a[6] = array[offset + 6]
+        a[7] = array[offset + 7]
+        a[8] = array[offset + 8]
+        a[9] = array[offset + 9]
+        a[10] = array[offset + 10]
+        a[11] = array[offset + 11]
+        a[12] = array[offset + 12]
+        a[13] = array[offset + 13]
+        a[14] = array[offset + 14]
+        a[15] = array[offset + 15]
     }
 
     export function copy(out: Mat4, a: Mat4) {
@@ -758,6 +777,18 @@ export namespace Vec3 {
 
     export function toObj(v: Vec3) {
         return { x: v[0], y: v[1], z: v[2] };
+    }
+
+    export function fromArray(v: Vec3, array: Helpers.NumberArray, offset: number) {
+        v[0] = array[offset + 0]
+        v[1] = array[offset + 1]
+        v[2] = array[offset + 2]
+    }
+
+    export function toArray(v: Vec3, out: Helpers.NumberArray, offset: number) {
+        out[offset + 0] = v[0]
+        out[offset + 1] = v[1]
+        out[offset + 2] = v[2]
     }
 
     export function create(x: number, y: number, z: number): Vec3 {

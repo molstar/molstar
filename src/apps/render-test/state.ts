@@ -13,7 +13,8 @@ import Attribute from 'mol-gl/attribute';
 import Model from 'mol-gl/model';
 import { createTransformAttributes } from 'mol-gl/renderable/util';
 import { calculateTextureInfo } from 'mol-gl/util';
-// import { positionFromModel } from 'mol-geo/shape/point'
+import Icosahedron from 'mol-geo/primitive/icosahedron'
+import Box from 'mol-geo/primitive/box'
 
 export default class State {
     regl: REGL.Regl
@@ -44,6 +45,7 @@ export default class State {
         const model3 = Model(regl, { position: p2 })
 
         const position = Attribute.create(regl, new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]), { size: 3 })
+        const normal = Attribute.create(regl, new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]), { size: 3 })
 
         const transformArray1 = new Float32Array(16)
         const transformArray2 = new Float32Array(16 * 3)
@@ -54,6 +56,8 @@ export default class State {
         Mat4.toArray(m4, transformArray2, 16)
         Mat4.setTranslation(m4, p2)
         Mat4.toArray(m4, transformArray2, 32)
+
+
 
         const colorTexInfo = calculateTextureInfo(3, 3)
         const color = new Uint8Array(colorTexInfo.length)
@@ -84,12 +88,42 @@ export default class State {
         const mesh = MeshRenderable.create(regl,
             {
                 position,
+                normal,
                 ...createTransformAttributes(regl, transformArray2)
             },
             {
                 colorTex,
                 colorTexSize: [ colorTexInfo.width, colorTexInfo.height ]
             }
+        )
+
+        const sphere = Icosahedron(1, 1)
+        console.log(sphere)
+
+        const box = Box(1, 1, 1, 1, 1, 1)
+        console.log(box)
+
+        const points2 = PointRenderable.create(regl, {
+            position: Attribute.create(regl, new Float32Array(box.vertices), { size: 3 }),
+            ...createTransformAttributes(regl, transformArray1)
+        })
+
+        const mesh2 = MeshRenderable.create(regl,
+            {
+                position: Attribute.create(regl, new Float32Array(box.vertices), { size: 3 }),
+                normal: Attribute.create(regl, new Float32Array(box.normals), { size: 3 }),
+                ...createTransformAttributes(regl, transformArray2)
+            },
+            {
+                colorTex,
+                colorTexSize: [ colorTexInfo.width, colorTexInfo.height ],
+                'light.position': Vec3.create(0, 0, -20),
+                'light.color': Vec3.create(1.0, 1.0, 1.0),
+                'light.ambient': Vec3.create(0.5, 0.5, 0.5),
+                'light.falloff': 0,
+                'light.radius': 500
+            },
+            box.indices
         )
 
         const baseContext = regl({
@@ -111,17 +145,19 @@ export default class State {
                     regl.clear({color: [0, 0, 0, 1]})
                     position.update(array => { array[0] = Math.random() })
                     // points.update(a => { a.position[0] = Math.random() })
-                    mesh.draw()
-                    points.draw()
-                    model1({}, ({ transform }) => {
-                        points.draw()
-                    })
-                    model2({}, ({ transform }) => {
-                        points.draw()
-                        model3({ transform }, () => {
-                            points.draw()
-                        })
-                    })
+                    // mesh.draw()
+                    // points.draw()
+                    mesh2.draw()
+                    points2.draw()
+                    // model1({}, ({ transform }) => {
+                    //     points.draw()
+                    // })
+                    // model2({}, ({ transform }) => {
+                    //     points.draw()
+                    //     model3({ transform }, () => {
+                    //         points.draw()
+                    //     })
+                    // })
                 })
             }, undefined)
         })
