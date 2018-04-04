@@ -16,9 +16,7 @@ interface ChunkedArray<T> {
     ctor: (size: number) => any,
     elementSize: number,
 
-    linearGrowth: boolean,
-
-    initialSize: number,
+    growBy: number,
     allocatedSize: number,
     elementCount: number,
 
@@ -26,20 +24,16 @@ interface ChunkedArray<T> {
     currentChunk: any,
     currentIndex: number,
 
-    chunks: any[]
+    chunks: any[][]
 }
 
-// TODO: better api, write tests
 namespace ChunkedArray {
     export function is(x: any): x is ChunkedArray<any> {
         return x.creator && x.chunkSize;
     }
 
     function allocateNext(array: ChunkedArray<any>) {
-        let nextSize = !array.allocatedSize || array.linearGrowth
-            ? array.initialSize * array.elementSize
-            : Math.max(Math.ceil(0.61 * array.allocatedSize), 1);
-        if (nextSize % array.elementSize !== 0) nextSize += nextSize % array.elementSize;
+        let nextSize = array.growBy * array.elementSize;
         array.currentSize = nextSize;
         array.currentIndex = 0;
         array.currentChunk = array.ctor(nextSize);
@@ -89,7 +83,11 @@ namespace ChunkedArray {
             return chunks[0];
         }
 
-        const ret = ctor(array.elementSize * array.elementCount);
+        let size = 0;
+        for (let i = 0, _i = chunks.length - 1; i < _i; i++) size += chunks[i].length;
+        size += array.currentIndex;
+
+        const ret = ctor(size);
         let offset = 0;
 
         if (ret.buffer) {
@@ -115,13 +113,12 @@ namespace ChunkedArray {
         return ret;
     }
 
-    export function create<T>(ctor: (size: number) => any, elementSize: number, initialSize: number, linearGrowth: boolean): ChunkedArray<T> {
-        return {
+    export function create<T>(ctor: (size: number) => any, elementSize: number, growBy: number, initialChunk?: ArrayLike<T>): ChunkedArray<T> {
+        const ret: ChunkedArray<T> = {
             ctor,
             elementSize,
-            linearGrowth,
 
-            initialSize,
+            growBy,
             allocatedSize: 0,
             elementCount: 0,
 
@@ -130,7 +127,17 @@ namespace ChunkedArray {
             currentIndex: 0,
 
             chunks: []
-        } as ChunkedArray<T>;
+        };
+
+        if (!initialChunk) return ret;
+
+        if (initialChunk.length % elementSize !== 0) throw new Error('initialChunk length must be a multiple of the element size.');
+        ret.currentChunk = initialChunk;
+        ret.allocatedSize = initialChunk.length;
+        ret.currentSize = initialChunk.length;
+        ret.chunks[0] = initialChunk as any;
+
+        return ret;
     }
 }
 
