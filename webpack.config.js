@@ -1,4 +1,5 @@
 const path = require('path');
+const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
 module.exports = {
     module: {
         rules: [
@@ -13,5 +14,10 @@ module.exports = {
                 include: [ path.resolve(__dirname, "build/node_modules/") ]
             }
         ]
-    }
+    },
+    plugins: [
+        new ExtraWatchWebpackPlugin({
+            files: [ './**/*.vert', './**/*.frag', './**/*.glsl' ],
+        }),
+    ],
 }
