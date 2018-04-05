@@ -5,11 +5,11 @@
  */
 
 /** A mutable value reference. */
-interface ValueRef<T> { value: T }
+interface ValueRef<T> { ref: T }
 
 namespace ValueRef {
-    export function create<T>(value: T): ValueRef<T> { return { value }; }
-    export function update<T>(cell: ValueRef<T>, value: T) { cell.value = value; return cell; }
+    export function create<T>(ref: T): ValueRef<T> { return { ref }; }
+    export function set<T>(ref: ValueRef<T>, value: T) { ref.ref = value; return ref; }
 }
 
 let _valueBoxId = 0;
@@ -50,10 +50,12 @@ namespace ValueCell {
 
     /** If diffInfo is not specified, copy the old value */
     export function update<T, D>(cell: ValueCell<T, D>, value: T): ValueCell<T, D> {
-        ValueRef.update(cell, ValueBox.withValue(cell.value, value));
-        return cell;
+        return ValueRef.set(cell, ValueBox.withValue(cell.ref, value));
+    }
+
+    export function set<T, D>(cell: ValueCell<T, D>, box: ValueBox<T, D>): ValueCell<T, D> {
+        return ValueRef.set(cell, box);
     }
 }
 
 export { ValueRef, ValueBox, ValueCell };
-
