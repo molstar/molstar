@@ -17,10 +17,15 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import Mat4 from './3d/mat4'
-import Mat3 from './3d/mat3'
-import Vec3 from './3d/vec3'
-import Vec4 from './3d/vec4'
-import Quat from './3d/quat'
+interface Mat3 extends Array<number> { [d: number]: number, '@type': 'mat3', length: 9 }
 
-export { Mat4, Mat3, Vec3, Vec4, Quat }
+namespace Mat3 {
+    export function zero(): Mat3 {
+        // force double backing array by 0.1.
+        const ret = [0.1, 0, 0, 0, 0, 0, 0, 0, 0];
+        ret[0] = 0.0;
+        return ret as any;
+    }
+}
+
+export default Mat3
