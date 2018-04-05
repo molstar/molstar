@@ -14,11 +14,12 @@ import CIF from 'mol-io/reader/cif'
 import { generateSchema } from './util/cif-dic'
 import { generate } from './util/generate'
 import { Filter, mergeFilters } from './util/json-schema'
+import { Run } from 'mol-task';
 
 async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount = 0, typescript = false, out?: string) {
     await ensureMmcifDicAvailable()
     const comp = CIF.parseText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8'))
-    const parsed = await comp();
+    const parsed = await Run(comp);
     if (parsed.isError) throw parsed
 
     // console.log(fieldNamesPath, minCount)
@@ -47,7 +48,7 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount
 
 async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
     const fieldNamesStr = fs.readFileSync(fieldNamesPath, 'utf8')
-    const parsed = await Csv(fieldNamesStr, { noColumnNames: true })();
+    const parsed = await Run(Csv(fieldNamesStr, { noColumnNames: true }));
     if (parsed.isError) throw parser.error
     const csvFile = parsed.result;
 
@@ -68,7 +69,7 @@ async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
 
 async function getUsageCountsFilter(minCount: number): Promise<Filter> {
     const usageCountsStr = fs.readFileSync(MMCIF_USAGE_COUNTS_PATH, 'utf8')
-    const parsed = await Csv(usageCountsStr, { delimiter: ' ' })();
+    const parsed = await Run(Csv(usageCountsStr, { delimiter: ' ' }));
     if (parsed.isError) throw parser.error
     const csvFile = parsed.result;
 

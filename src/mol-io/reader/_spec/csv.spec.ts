@@ -5,6 +5,7 @@
  */
 
 import Csv from '../csv/parser'
+import { Run } from 'mol-task';
 
 const csvStringBasic = `StrCol,IntCol,FloatCol
 # comment
@@ -23,7 +24,7 @@ string2\t42\t2.44`
 
 describe('csv reader', () => {
     it('basic', async () => {
-        const parsed = await Csv(csvStringBasic)();
+        const parsed = await Run(Csv(csvStringBasic));
         if (parsed.isError) return;
         const csvFile = parsed.result;
 
@@ -45,7 +46,7 @@ describe('csv reader', () => {
     });
 
     it('advanced', async () => {
-        const parsed = await Csv(csvStringAdvanced)();
+        const parsed = await Run(Csv(csvStringAdvanced));
         if (parsed.isError) return;
         const csvFile = parsed.result;
 
@@ -62,7 +63,7 @@ describe('csv reader', () => {
     });
 
     it('tabs', async () => {
-        const parsed = await Csv(tabString, { delimiter: '\t' })();
+        const parsed = await Run(Csv(tabString, { delimiter: '\t' }));
         if (parsed.isError) return;
         const csvFile = parsed.result;
 

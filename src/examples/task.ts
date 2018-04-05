@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, Run, Progress, Scheduler, now } from 'mol-task'
+import { Task, Run, Progress, Scheduler, now, MultistepTask, chunkedSubtask } from 'mol-task'
 
 export async function test1() {
     const t = Task.create('test', async () => 1);
@@ -13,11 +13,16 @@ export async function test1() {
 }
 
 function messageTree(root: Progress.Node, prefix = ''): string {
-    if (!root.children.length) return `${prefix}${root.progress.taskName}: ${root.progress.message}`;
+    const p = root.progress;
+    if (!root.children.length) {
+        if (p.isIndeterminate) return `${prefix}${p.taskName}: ${p.message}`;
+        return `${prefix}${p.taskName}: [${p.current}/${p.max}] ${p.message}`;
+    }
 
     const newPrefix = prefix + '  |_ ';
     const subTree = root.children.map(c => messageTree(c, newPrefix));
-    return `${prefix}${root.progress.taskName}: ${root.progress.message}\n${subTree.join('\n')}`;
+    if (p.isIndeterminate) return `${prefix}${p.taskName}: ${p.message}\n${subTree.join('\n')}`;
+    return `${prefix}${p.taskName}: [${p.current}/${p.max}] ${p.message}\n${subTree.join('\n')}`;
 }
 
 function createTask<T>(delayMs: number, r: T): Task<T> {
@@ -38,7 +43,7 @@ export function abortAfter(delay: number) {
     });
 }
 
-function testTree() {
+export function testTree() {
     return Task.create('test o', async ctx => {
         await Scheduler.delay(250);
         if (ctx.shouldUpdate) await ctx.update({ message: 'hi! 1' });
@@ -60,6 +65,40 @@ function testTree() {
     });
 }
 
+export type ChunkedState = { i: number, current: number, total: number }
+
+function processChunk(n: number, state: ChunkedState): number {
+    const toProcess = Math.min(state.current + n, state.total);
+    const start = state.current;
+    for (let i = start; i < toProcess; i++) {
+        for (let j = 0; j < 1000000; j++) {
+            state.i += (i * j + 1 + state.i) % 1023;
+            state.i = state.i % 1000;
+        }
+    }
+    state.current = toProcess;
+    return toProcess - start;
+}
+
+export const ms = MultistepTask('ms-task', ['step 1', 'step 2', 'step 3'], async (p: { i: number }, step, ctx) => {
+    await step(0);
+
+    const child = Task.create('chunked', async ctx => {
+        const s = await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 125 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p))
+        return s.i;
+    });
+    
+    await ctx.runChild(child);
+    await Scheduler.delay(250);
+    await step(1);
+    await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 80 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p))
+    await Scheduler.delay(250);
+    await step(2);
+    await Scheduler.delay(250);
+    return p.i + 3;
+})
+
+
 export function abortingObserver(p: Progress) {
     console.log(messageTree(p.root));
     if (now() - p.root.progress.startedTime > 1000) {
@@ -67,11 +106,16 @@ export function abortingObserver(p: Progress) {
     }
 }
 
+export function logP(p: Progress) { console.log(messageTree(p.root)); }
+
 async function test() {
     try {
         //const r = await Run(testTree(), p => console.log(messageTree(p.root)), 250);
-        const r = await Run(testTree(), abortingObserver, 250);
-        console.log(r);
+        //const r = await Run(testTree(), abortingObserver, 250);
+        //console.log(r);
+
+        const m = await Run(ms({ i: 10 }), logP);
+        console.log(m);
     } catch (e) {
         console.error(e);
     }

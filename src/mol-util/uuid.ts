@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import now from './time'
+import { now } from 'mol-task'
 
 interface UUID extends String { '@type': 'uuid' }
 

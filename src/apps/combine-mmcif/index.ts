@@ -13,11 +13,11 @@ require('util.promisify').shim();
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
+import { Run, Progress } from 'mol-task'
 import { Database, Table, DatabaseCollection } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
 // import { CCD_Schema } from 'mol-io/reader/cif/schema/ccd'
 import * as Encoder from 'mol-io/writer/cif'
-import Computation from 'mol-util/computation'
 import { mmCIF_Schema, mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { CCD_Schema } from 'mol-io/reader/cif/schema/ccd';
 import { BIRD_Schema } from 'mol-io/reader/cif/schema/bird';
@@ -48,10 +48,6 @@ export async function ensureDataAvailable() {
     await ensureAvailable(BIRD_PATH, BIRD_URL)
 }
 
-function showProgress(tag: string, p: Computation.Progress) {
-    console.log(`[${tag}] ${p.message} ${p.isIndeterminate ? '' : (p.current / p.max * 100).toFixed(2) + '% '}(${p.elapsedMs | 0}ms)`)
-}
-
 export async function readFileAsCollection<S extends Database.Schema>(path: string, schema: S) {
     const parsed = await parseCif(await readFile(path, 'utf8'))
     return CIF.toDatabaseCollection(schema, parsed.result)
@@ -80,14 +76,10 @@ export async function getBIRD() {
 }
 
 async function parseCif(data: string|Uint8Array) {
-    const comp = CIF.parse(data)
-    const ctx = Computation.observable({
-        updateRateMs: 250,
-        observer: p => showProgress(`cif parser ${typeof data === 'string' ? 'string' : 'binary'}`, p)
-    });
-    console.time('parse cif')
-    const parsed = await comp(ctx);
-    console.timeEnd('parse cif')
+    const comp = CIF.parse(data);
+    console.time('parse cif');
+    const parsed = await Run(comp, p => console.log(Progress.format(p)), 250);
+    console.timeEnd('parse cif');
     if (parsed.isError) throw parsed;
     return parsed
 }

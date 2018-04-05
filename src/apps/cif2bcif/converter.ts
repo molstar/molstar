@@ -9,10 +9,11 @@ import CIF, { Category } from 'mol-io/reader/cif'
 import * as Encoder from 'mol-io/writer/cif'
 import * as fs from 'fs'
 import classify from './field-classifier'
+import { Run } from 'mol-task'
 
 async function getCIF(path: string) {
     const str = fs.readFileSync(path, 'utf8');
-    const parsed = await CIF.parseText(str)();
+    const parsed = await Run(CIF.parseText(str));
     if (parsed.isError) {
         throw new Error(parsed.toString());
     }

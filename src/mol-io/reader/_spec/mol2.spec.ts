@@ -1,5 +1,6 @@
 
 import Mol2 from '../mol2/parser'
+import { Run } from 'mol-task';
 
 const Mol2String = `@<TRIPOS>MOLECULE
 5816
@@ -246,7 +247,7 @@ GASTEIGER
 
 describe('mol2 reader', () => {
     it('basic', async () => {
-        const parsed =  await Mol2(Mol2String)();
+        const parsed =  await Run(Mol2(Mol2String));
         if (parsed.isError) {
             throw new Error(parsed.message);
         }
@@ -297,7 +298,7 @@ describe('mol2 reader', () => {
     });
 
     it('multiblocks', async () => {
-        const parsed =  await Mol2(Mol2StringMultiBlocks)();
+        const parsed =  await Run(Mol2(Mol2StringMultiBlocks));
         if (parsed.isError) {
             throw new Error(parsed.message);
         }
@@ -348,7 +349,7 @@ describe('mol2 reader', () => {
     });
 
     it('minimal', async () => {
-        const parsed =  await Mol2(Mol2StringMinimal)();
+        const parsed =  await Run(Mol2(Mol2StringMinimal));
         if (parsed.isError) {
             throw new Error(parsed.message);
         }

@@ -26,7 +26,7 @@ import * as Data from '../data-model'
 import Field from './field'
 import { Tokens, TokenBuilder } from '../../common/text/tokenizer'
 import Result from '../../result'
-import Computation from 'mol-util/computation'
+import { Task, RuntimeContext, chunkedSubtask } from 'mol-task'
 
 /**
  * Types of supported mmCIF tokens.
@@ -42,18 +42,18 @@ const enum CifTokenType {
 }
 
 interface TokenizerState {
-    data: string;
+    data: string,
 
-    position: number;
-    length: number;
-    isEscaped: boolean;
+    position: number,
+    length: number,
+    isEscaped: boolean,
 
-    lineNumber: number;
-    tokenType: CifTokenType;
-    tokenStart: number;
-    tokenEnd: number;
+    lineNumber: number,
+    tokenType: CifTokenType,
+    tokenStart: number,
+    tokenEnd: number,
 
-    chunker: Computation.Chunker
+    runtimeCtx: RuntimeContext
 }
 
 /**
@@ -387,7 +387,7 @@ function moveNext(state: TokenizerState) {
     while (state.tokenType === CifTokenType.Comment) moveNextInternal(state);
 }
 
-function createTokenizer(data: string, ctx: Computation.Context): TokenizerState {
+function createTokenizer(data: string, runtimeCtx: RuntimeContext): TokenizerState {
     return {
         data,
         length: data.length,
@@ -398,7 +398,7 @@ function createTokenizer(data: string, ctx: Computation.Context): TokenizerState
         lineNumber: 1,
         isEscaped: false,
 
-        chunker: Computation.chunker(ctx, 1000000)
+        runtimeCtx
     };
 }
 
@@ -468,7 +468,7 @@ interface LoopReadState {
     tokenCount: number
 }
 
-function readLoopChunk(state: LoopReadState, chunkSize: number) {
+function readLoopChunk(chunkSize: number, state: LoopReadState) {
     const { tokenizer, tokens, fieldCount } = state;
     let tokenCount = state.tokenCount;
     let counter = 0;
@@ -481,11 +481,13 @@ function readLoopChunk(state: LoopReadState, chunkSize: number) {
     return counter;
 }
 
-function readLoopChunks(state: LoopReadState) {
-    return state.tokenizer.chunker.process(
-        chunkSize => readLoopChunk(state, chunkSize),
-        update => update({ message: 'Parsing...', current: state.tokenizer.position, max: state.tokenizer.data.length }));
+function updateLoopChunk(ctx: RuntimeContext, state: LoopReadState) {
+    return ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.tokenizer.data.length });
 }
+
+// const readLoopChunks = ChunkedSubtask(1000000,
+//     (size, state: LoopReadState) => readLoopChunk(state, size),
+//     (ctx, state) => ctx.update({ message: 'Parsing...', current: state.tokenizer.position, max: state.tokenizer.data.length }));
 
 /**
  * Reads a loop.
@@ -514,7 +516,7 @@ async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise
         tokens
     };
 
-    await readLoopChunks(state);
+    await chunkedSubtask(tokenizer.runtimeCtx, 1000000, state, readLoopChunk, updateLoopChunk);
 
     if (state.tokenCount % fieldCount !== 0) {
         return {
@@ -560,9 +562,9 @@ function result(data: Data.File) {
  *
  * @returns CifParserResult wrapper of the result.
  */
-async function parseInternal(data: string, ctx: Computation.Context) {
+async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
     const dataBlocks: Data.Block[] = [];
-    const tokenizer = createTokenizer(data, ctx);
+    const tokenizer = createTokenizer(data, runtimeCtx);
     let blockHeader = '';
 
     let blockCtx = FrameContext();
@@ -574,7 +576,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
     let saveCtx = FrameContext();
     let saveFrame: Data.Frame = Data.SafeFrame(saveCtx.categoryNames, saveCtx.categories, '');
 
-    ctx.update({ message: 'Parsing...', current: 0, max: data.length });
+    runtimeCtx.update({ message: 'Parsing...', current: 0, max: data.length });
 
     moveNext(tokenizer);
     while (tokenizer.tokenType !== CifTokenType.End) {
@@ -641,7 +643,7 @@ async function parseInternal(data: string, ctx: Computation.Context) {
 }
 
 export default function parse(data: string) {
-    return Computation.create<Result<Data.File>>(async ctx => {
+    return Task.create<Result<Data.File>>('Parse CIF', async ctx => {
         return await parseInternal(data, ctx);
     });
 }

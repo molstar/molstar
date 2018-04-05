@@ -10,13 +10,13 @@ import Tokenizer from '../common/text/tokenizer'
 import FixedColumn from '../common/text/column/fixed'
 import * as Schema from './schema'
 import Result from '../result'
-import Computation from 'mol-util/computation'
+import { Task, RuntimeContext } from 'mol-task'
 
 interface State {
     tokenizer: Tokenizer,
     header: Schema.Header,
     numberOfAtoms: number,
-    chunker: Computation.Chunker
+    runtimeCtx: RuntimeContext
 }
 
 function createEmptyHeader(): Schema.Header {
@@ -29,12 +29,12 @@ function createEmptyHeader(): Schema.Header {
     };
 }
 
-function State(tokenizer: Tokenizer, ctx: Computation.Context): State {
+function State(tokenizer: Tokenizer, runtimeCtx: RuntimeContext): State {
     return {
         tokenizer,
         header: createEmptyHeader(),
         numberOfAtoms: 0,
-        chunker: Computation.chunker(ctx, 100000) // 100000 lines is the default chunk size for this reader
+        runtimeCtx
     };
 }
 
@@ -90,7 +90,7 @@ function handleNumberOfAtoms(state: State) {
  */
 async function handleAtoms(state: State): Promise<Schema.Atoms> {
     const { tokenizer, numberOfAtoms } = state;
-    const lines = await Tokenizer.readLinesAsync(tokenizer, numberOfAtoms, state.chunker);
+    const lines = await Tokenizer.readLinesAsync(tokenizer, numberOfAtoms, state.runtimeCtx, 100000);
 
     const positionSample = tokenizer.data.substring(lines.indices[0], lines.indices[1]).substring(20);
     const precisions = positionSample.match(/\.\d+/g)!;
@@ -137,7 +137,7 @@ function handleBoxVectors(state: State) {
     state.header.box = [+values[0], +values[1], +values[2]];
 }
 
-async function parseInternal(data: string, ctx: Computation.Context): Promise<Result<Schema.File>> {
+async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Schema.File>> {
     const tokenizer = Tokenizer(data);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
@@ -156,7 +156,7 @@ async function parseInternal(data: string, ctx: Computation.Context): Promise<Re
 }
 
 export function parse(data: string) {
-    return Computation.create<Result<Schema.File>>(async ctx => {
+    return Task.create<Result<Schema.File>>('Parse GRO', async ctx => {
         return await parseInternal(data, ctx);
     });
 }
