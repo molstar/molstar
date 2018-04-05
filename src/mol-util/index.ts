@@ -10,6 +10,7 @@ import StringBuilder from './string-builder'
 import UUID from './uuid'
 import Mask from './mask'
 
+export * from './value-cell'
 export { BitFlags, StringBuilder, UUID, Mask }
 
 export function arrayEqual<T>(arr1: T[], arr2: T[]) {
