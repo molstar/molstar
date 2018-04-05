@@ -23,6 +23,10 @@ import Quat from './quat';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
 
+function Mat4() {
+    return Mat4.zero();
+}
+
 /**
  * Stores a 4x4 matrix in a column major (j * 4 + i indexing) format.
  */

@@ -18,16 +18,14 @@ import Box from 'mol-geo/primitive/box'
 import Spacefill from 'mol-geo/representation/structure/spacefill'
 
 import CIF from 'mol-io/reader/cif'
-import Computation from 'mol-util/computation'
+import { Run } from 'mol-task'
+// import Computation from 'mol-util/computation'
 import { AtomSet, Structure } from 'mol-model/structure'
 import { UnitRepresentation } from 'mol-geo/representation/structure';
 
 async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data)
-    const ctx = Computation.observable({
-        updateRateMs: 250
-    })
-    const parsed = await comp(ctx);
+    const parsed = await Run(comp);
     if (parsed.isError) throw parsed;
     return parsed
 }
