@@ -142,6 +142,7 @@ namespace Mat4 {
         a[13] = array[offset + 13]
         a[14] = array[offset + 14]
         a[15] = array[offset + 15]
+        return a
     }
 
     export function copy(out: Mat4, a: Mat4) {

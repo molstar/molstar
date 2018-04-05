@@ -26,6 +26,37 @@ namespace Mat3 {
         ret[0] = 0.0;
         return ret as any;
     }
+
+    export function toArray(a: Mat3, out: Helpers.NumberArray, offset: number) {
+        out[offset + 0] = a[0];
+        out[offset + 1] = a[1];
+        out[offset + 2] = a[2];
+        out[offset + 3] = a[3];
+        out[offset + 4] = a[4];
+        out[offset + 5] = a[5];
+        out[offset + 6] = a[6];
+        out[offset + 7] = a[7];
+        out[offset + 8] = a[8];
+        out[offset + 9] = a[9];
+        out[offset + 10] = a[10];
+        out[offset + 11] = a[11];
+    }
+
+    export function fromArray(a: Mat3, array: Helpers.NumberArray, offset: number) {
+        a[0] = array[offset + 0]
+        a[1] = array[offset + 1]
+        a[2] = array[offset + 2]
+        a[3] = array[offset + 3]
+        a[4] = array[offset + 4]
+        a[5] = array[offset + 5]
+        a[6] = array[offset + 6]
+        a[7] = array[offset + 7]
+        a[8] = array[offset + 8]
+        a[9] = array[offset + 9]
+        a[10] = array[offset + 10]
+        a[11] = array[offset + 11]
+        return a
+    }
 }
 
 export default Mat3
