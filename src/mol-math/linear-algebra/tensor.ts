@@ -41,6 +41,8 @@ export namespace Tensor {
         return { dimensions, axisOrderFastToSlow, axisOrderSlowToFast, accessDimensions, defaultCtor: ctor || Float64Array }
     }
 
+    export function create(space: Space, data: Data): Tensor { return { space, data }; }
+
     export function Space(dimensions: number[], axisOrderSlowToFast: number[], ctor?: ArrayCtor): Space {
         const layout = Layout(dimensions, axisOrderSlowToFast, ctor);
         const { get, set } = accessors(layout);

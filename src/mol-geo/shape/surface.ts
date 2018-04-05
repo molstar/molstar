@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Task } from 'mol-task'
+
 export interface Surface {
     vertexCount: number,
     triangleCount: number,
@@ -16,47 +18,49 @@ export interface Surface {
     //boundingSphere?: { center: Geometry.LinearAlgebra.Vector3, radius: number };
 }
 
-// export namespace Surface {
-//     export function computeNormalsImmediate(surface: Surface) {
-//         if (surface.normals) return;
+export namespace Surface {
+    export function computeNormalsImmediate(surface: Surface) {
+        if (surface.normalsComputed) return;
 
-//         const normals = new Float32Array(surface.vertices.length),
-//             v = surface.vertices, triangles = surface.triangleIndices;
-//         for (let i = 0; i < triangles.length; i += 3) {
-//             const a = 3 * triangles[i],
-//                 b = 3 * triangles[i + 1],
-//                 c = 3 * triangles[i + 2];
+        const normals = surface.normalBuffer && surface.normalBuffer.length >= surface.vertexCount * 3
+            ? surface.normalBuffer : new Float32Array(surface.vertexBuffer.length);
 
-//             const nx = v[a + 2] * (v[b + 1] - v[c + 1]) + v[b + 2] * v[c + 1] - v[b + 1] * v[c + 2] + v[a + 1] * (-v[b + 2] + v[c + 2]),
-//                 ny = -(v[b + 2] * v[c]) + v[a + 2] * (-v[b] + v[c]) + v[a] * (v[b + 2] - v[c + 2]) + v[b] * v[c + 2],
-//                 nz = v[a + 1] * (v[b] - v[c]) + v[b + 1] * v[c] - v[b] * v[c + 1] + v[a] * (-v[b + 1] + v[b + 1]);
+        const v = surface.vertexBuffer, triangles = surface.indexBuffer;
+        for (let i = 0, ii = 3 * surface.triangleCount; i < ii; i += 3) {
+            const a = 3 * triangles[i],
+                b = 3 * triangles[i + 1],
+                c = 3 * triangles[i + 2];
 
-//             normals[a] += nx; normals[a + 1] += ny; normals[a + 2] += nz;
-//             normals[b] += nx; normals[b + 1] += ny; normals[b + 2] += nz;
-//             normals[c] += nx; normals[c + 1] += ny; normals[c + 2] += nz;
-//         }
+            const nx = v[a + 2] * (v[b + 1] - v[c + 1]) + v[b + 2] * v[c + 1] - v[b + 1] * v[c + 2] + v[a + 1] * (-v[b + 2] + v[c + 2]),
+                ny = -(v[b + 2] * v[c]) + v[a + 2] * (-v[b] + v[c]) + v[a] * (v[b + 2] - v[c + 2]) + v[b] * v[c + 2],
+                nz = v[a + 1] * (v[b] - v[c]) + v[b + 1] * v[c] - v[b] * v[c + 1] + v[a] * (-v[b + 1] + v[b + 1]);
 
-//         for (let i = 0; i < normals.length; i += 3) {
-//             const nx = normals[i];
-//             const ny = normals[i + 1];
-//             const nz = normals[i + 2];
-//             const f = 1.0 / Math.sqrt(nx * nx + ny * ny + nz * nz);
-//             normals[i] *= f; normals[i + 1] *= f; normals[i + 2] *= f;
-//         }
-//         surface.normals = normals;
-//     }
+            normals[a] += nx; normals[a + 1] += ny; normals[a + 2] += nz;
+            normals[b] += nx; normals[b + 1] += ny; normals[b + 2] += nz;
+            normals[c] += nx; normals[c + 1] += ny; normals[c + 2] += nz;
+        }
 
-//     export function computeNormals(surface: Surface): Computation<Surface> {
-//         return computation<Surface>(async ctx => {
-//             if (surface.normals) {
-//                 return surface;
-//             };
+        for (let i = 0, ii = 3 * surface.vertexCount; i < ii; i += 3) {
+            const nx = normals[i];
+            const ny = normals[i + 1];
+            const nz = normals[i + 2];
+            const f = 1.0 / Math.sqrt(nx * nx + ny * ny + nz * nz);
+            normals[i] *= f; normals[i + 1] *= f; normals[i + 2] *= f;
+        }
+        surface.normalBuffer = normals;
+        surface.normalsComputed = true;
+    }
 
-//             await ctx.updateProgress('Computing normals...');
-//             computeNormalsImmediate(surface);
-//             return surface;
-//         });
-//     }
+    export function computeNormals(surface: Surface): Task<Surface> {
+        return Task.create<Surface>('Surface (Compute Normals)', async ctx => {
+            if (surface.normalsComputed) return surface;
+
+            await ctx.update('Computing normals...');
+            computeNormalsImmediate(surface);
+            return surface;
+        });
+    }
+}
 
 //     function addVertex(src: Float32Array, i: number, dst: Float32Array, j: number) {
 //         dst[3 * j] += src[3 * i];

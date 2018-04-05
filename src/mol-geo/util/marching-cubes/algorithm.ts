@@ -68,15 +68,15 @@ class MarchingCubesComputation {
     }
 
     private finish() {
-        const vertexBuffer = ChunkedArray.compact(this.state.vertexBuffer) as Float32Array;
-        const indexBuffer = ChunkedArray.compact(this.state.triangleBuffer) as Uint32Array;
+        const vertexBuffer = ChunkedArray.compact(this.state.vertexBuffer, true) as Float32Array;
+        const indexBuffer = ChunkedArray.compact(this.state.triangleBuffer, true) as Uint32Array;
 
         this.state.vertexBuffer = <any>void 0;
         this.state.verticesOnEdges = <any>void 0;
 
         let ret: Surface = {
-            triangleCount: 0,
-            vertexCount: 0,
+            vertexCount: this.state.vertexCount,
+            triangleCount: this.state.triangleCount,
             vertexBuffer,
             indexBuffer,
             // vertexAnnotation: this.state.annotate ? ChunkedArray.compact(this.state.annotationBuffer) : void 0,
@@ -128,6 +128,8 @@ class MarchingCubesState {
     vertexBuffer: ChunkedArray<number>;
     annotationBuffer: ChunkedArray<number>;
     triangleBuffer: ChunkedArray<number>;
+    vertexCount = 0;
+    triangleCount = 0;
 
     private get3dOffsetFromEdgeInfo(index: Index) {
         return (this.nX * (((this.k + index.k) % 2) * this.nY + this.j + index.j) + this.i + index.i);
@@ -173,6 +175,8 @@ class MarchingCubesState {
             ChunkedArray.add(this.annotationBuffer, a);
         }
 
+        this.vertexCount++;
+
         return id;
     }
 
@@ -191,8 +195,8 @@ class MarchingCubesState {
             vertexBufferSize = Math.min(262144, Math.max(dX * dY * dZ / 16, 1024) | 0),
             triangleBufferSize = Math.min(1 << 16, vertexBufferSize * 4);
 
-        this.vertexBuffer = ChunkedArray.create<number>(s => new Float32Array(s), 3, vertexBufferSize);
-        this.triangleBuffer = ChunkedArray.create<number>(s => new Uint32Array(s), 3, triangleBufferSize);
+        this.vertexBuffer = ChunkedArray.create<number>(s => new Float32Array(s), 3, vertexBufferSize, params.buffers && params.buffers.vertex);
+        this.triangleBuffer = ChunkedArray.create<number>(s => new Uint32Array(s), 3, triangleBufferSize, params.buffers && params.buffers.index);
 
         this.annotate = !!params.annotationField;
         if (this.annotate) this.annotationBuffer = ChunkedArray.create(s => new Int32Array(s), 1, vertexBufferSize);
@@ -203,7 +207,7 @@ class MarchingCubesState {
 
     get(i: number, j: number, k: number) {
         return this.scalarFieldGet(this.scalarField, i, j, k);
-    } 
+    }
 
     processCell(i: number, j: number, k: number) {
         let tableIndex = 0;
@@ -236,6 +240,7 @@ class MarchingCubesState {
 
         let triInfo = TriTable[tableIndex];
         for (let t = 0; t < triInfo.length; t += 3) {
+            this.triangleCount++;
             ChunkedArray.add3(this.triangleBuffer, this.vertList[triInfo[t]], this.vertList[triInfo[t + 1]], this.vertList[triInfo[t + 2]]);
         }
     }

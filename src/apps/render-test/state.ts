@@ -16,10 +16,12 @@ import { calculateTextureInfo } from 'mol-gl/util';
 import Icosahedron from 'mol-geo/primitive/icosahedron'
 import Box from 'mol-geo/primitive/box'
 
+import mcubes from './mcubes'
+
 export default class State {
     regl: REGL.Regl
 
-    initRegl (container: HTMLDivElement) {
+    async initRegl (container: HTMLDivElement) {
         const regl = glContext.create({
             container,
             extensions: [
@@ -108,11 +110,21 @@ export default class State {
             ...createTransformAttributes(regl, transformArray1)
         })
 
-        const mesh2 = MeshRenderable.create(regl,
+        let rr = 1.0;
+        function cubesF(x: number, y: number, z: number) {
+            return x * x + y * y + z * z - rr * rr;
+            // const a = ca;
+            // const t = (x + y + z + a);
+            // return x * x * x + y * y * y + z * z * z + a * a * a - t * t * t;
+        }
+
+        let cubes = await mcubes(cubesF);
+
+        const makeCubesMesh = () => MeshRenderable.create(regl,
             {
-                position: Attribute.create(regl, new Float32Array(box.vertices), { size: 3 }),
-                normal: Attribute.create(regl, new Float32Array(box.normals), { size: 3 }),
-                ...createTransformAttributes(regl, transformArray2)
+                position: Attribute.create(regl, cubes.surface.vertexBuffer, { size: 3 }),
+                normal: Attribute.create(regl, cubes.surface.vertexBuffer, { size: 3 }),
+                ...createTransformAttributes(regl, transformArray1)
             },
             {
                 colorTex,
@@ -123,8 +135,36 @@ export default class State {
                 'light.falloff': 0,
                 'light.radius': 500
             },
-            box.indices
-        )
+            cubes.surface.indexBuffer
+        );
+
+        let mesh2 = makeCubesMesh();
+
+        const makeCubes = async () => {
+            rr = Math.random();
+            cubes = await mcubes(cubesF, cubes);
+            mesh2 = makeCubesMesh();
+            setTimeout(makeCubes, 1000 / 15);
+        };
+        makeCubes();
+
+        // const mesh2 = MeshRenderable.create(regl,
+        //     {
+        //         position: Attribute.create(regl, new Float32Array(box.vertices), { size: 3 }),
+        //         normal: Attribute.create(regl, new Float32Array(box.normals), { size: 3 }),
+        //         ...createTransformAttributes(regl, transformArray1)
+        //     },
+        //     {
+        //         colorTex,
+        //         colorTexSize: [ colorTexInfo.width, colorTexInfo.height ],
+        //         'light.position': Vec3.create(0, 0, -20),
+        //         'light.color': Vec3.create(1.0, 1.0, 1.0),
+        //         'light.ambient': Vec3.create(0.5, 0.5, 0.5),
+        //         'light.falloff': 0,
+        //         'light.radius': 500
+        //     },
+        //     box.indices
+        // )
 
         const baseContext = regl({
             context: {
@@ -143,12 +183,12 @@ export default class State {
                 baseContext(() => {
                     // console.log(ctx)
                     regl.clear({color: [0, 0, 0, 1]})
-                    position.update(array => { array[0] = Math.random() })
+                    //position.update(array => { array[0] = Math.random() })
                     // points.update(a => { a.position[0] = Math.random() })
                     // mesh.draw()
                     // points.draw()
                     mesh2.draw()
-                    points2.draw()
+                    // points2.draw()
                     // model1({}, ({ transform }) => {
                     //     points.draw()
                     // })

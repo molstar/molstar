@@ -75,6 +75,10 @@ namespace ChunkedArray {
     }
 
     export function compact<T>(array: ChunkedArray<T>, doNotResizeSingleton = false): ArrayLike<T> {
+        return _compact(array, doNotResizeSingleton);
+    }
+
+    export function _compact<T>(array: ChunkedArray<T>, doNotResizeSingleton: boolean): ArrayLike<T> {
         const { ctor, chunks, currentIndex } = array;
 
         if (!chunks.length) return ctor(0);
