@@ -46,6 +46,7 @@ interface Attribute<T extends Helpers.TypedArray> {
     set(index: number, ...values: number[]): void
     update(mutator: Attribute.Mutator<T>): void
     reload(): void
+    destroy(): void
 }
 
 interface AttributeProps {
@@ -58,6 +59,8 @@ interface AttributeProps {
 namespace Attribute {
     export type Mutator<T extends Helpers.TypedArray> = (data: T) => (UpdateInfo | void)
     export type UpdateInfo = boolean | { offset: number, count: number }
+    export type ArrayCell<T> = { array: ReferenceCell<T> }
+    export type ReferenceCell<T> = { readonly version: number, readonly value: T }
 
     export function create<T extends Helpers.TypedArray>(regl: REGL.Regl, array: T, props: AttributeProps): Attribute<T> {
         const itemSize = props.size
@@ -94,7 +97,8 @@ namespace Attribute {
                 mutator(_array)
                 buffer(_array)
             },
-            reload: () => buffer(_array)
+            reload: () => buffer(_array),
+            destroy: () => buffer.destroy()
         }
     }
 }

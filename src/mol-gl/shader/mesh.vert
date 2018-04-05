@@ -6,7 +6,7 @@
 
 #define INSTANCE_COLOR
 
-precision mediump float;
+precision highp float;
 
 uniform mat4 projection, model, view;
 

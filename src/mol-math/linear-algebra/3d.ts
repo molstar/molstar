@@ -897,6 +897,9 @@ export namespace Vec3 {
         return out;
     }
 
+    /**
+     * Performs a linear interpolation between two Vec3's
+     */
     export function lerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
         const ax = a[0],
             ay = a[1],
@@ -907,12 +910,65 @@ export namespace Vec3 {
         return out;
     }
 
+    /**
+     * Performs a hermite interpolation with two control points
+     */
+    export function hermite(out: Vec3, a: Vec3, b: Vec3, c: Vec3, d: Vec3, t: number) {
+        const factorTimes2 = t * t;
+        const factor1 = factorTimes2 * (2 * t - 3) + 1;
+        const factor2 = factorTimes2 * (t - 2) + t;
+        const factor3 = factorTimes2 * (t - 1);
+        const factor4 = factorTimes2 * (3 - 2 * t);
+
+        out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
+        out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
+        out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+
+        return out;
+    }
+
+    /**
+     * Performs a bezier interpolation with two control points
+     */
+    export function bezier(out: Vec3, a: Vec3, b: Vec3, c: Vec3, d: Vec3, t: number) {
+        const inverseFactor = 1 - t;
+        const inverseFactorTimesTwo = inverseFactor * inverseFactor;
+        const factorTimes2 = t * t;
+        const factor1 = inverseFactorTimesTwo * inverseFactor;
+        const factor2 = 3 * t * inverseFactorTimesTwo;
+        const factor3 = 3 * factorTimes2 * inverseFactor;
+        const factor4 = factorTimes2 * t;
+
+        out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
+        out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
+        out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+
+        return out;
+    }
+
+    /**
+     * Generates a random vector with the given scale
+     */
+    export function random(out: Vec3, scale: number) {
+        const r = Math.random() * 2.0 * Math.PI;
+        const z = (Math.random() * 2.0) - 1.0;
+        const zScale = Math.sqrt(1.0-z*z) * scale;
+
+        out[0] = Math.cos(r) * zScale;
+        out[1] = Math.sin(r) * zScale;
+        out[2] = z * scale;
+        return out;
+    }
+
+    /**
+     * Transforms the Vec3 with a Mat4. 4th vector component is implicitly '1'
+     */
     export function transformMat4(out: Vec3, a: Vec3, m: Mat4) {
         const x = a[0], y = a[1], z = a[2],
-            w = (m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0;
-        out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
-        out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
-        out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
+            w = 1 / ((m[3] * x + m[7] * y + m[11] * z + m[15]) || 1.0);
+        out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) * w;
+        out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) * w;
+        out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) * w;
         return out;
     }
 

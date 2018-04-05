@@ -88,7 +88,5 @@ export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Hel
                 }
             }
         }
-
-        console.log(v)
     }
 }

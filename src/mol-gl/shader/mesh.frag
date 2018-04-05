@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-precision mediump float;
+precision highp float;
 
 struct Light {
     vec3 position;

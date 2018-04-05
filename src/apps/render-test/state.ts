@@ -15,18 +15,41 @@ import { createTransformAttributes } from 'mol-gl/renderable/util';
 import { calculateTextureInfo } from 'mol-gl/util';
 import Icosahedron from 'mol-geo/primitive/icosahedron'
 import Box from 'mol-geo/primitive/box'
+import Spacefill from 'mol-geo/representation/structure/spacefill'
+
+import CIF from 'mol-io/reader/cif'
+import Computation from 'mol-util/computation'
+import { AtomSet, Structure } from 'mol-model/structure'
+import { UnitRepresentation } from 'mol-geo/representation/structure';
+
+async function parseCif(data: string|Uint8Array) {
+    const comp = CIF.parse(data)
+    const ctx = Computation.observable({
+        updateRateMs: 250
+    })
+    const parsed = await comp(ctx);
+    if (parsed.isError) throw parsed;
+    return parsed
+}
+
+async function getPdb(pdb: string) {
+    const data = await fetch(`https://files.rcsb.org/download/${pdb}.cif`)
+    const parsed = await parseCif(await data.text())
+    const structure = Structure.ofData({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
+    return structure
+}
 
 export default class State {
     regl: REGL.Regl
 
-    initRegl (container: HTMLDivElement) {
+    async initRegl (container: HTMLDivElement) {
         const regl = glContext.create({
             container,
             extensions: [
                 'OES_texture_float',
                 'OES_texture_float_linear',
                 'OES_element_index_uint',
-                // 'ext_disjoint_timer_query',
+                // 'EXT_disjoint_timer_query',
                 'EXT_blend_minmax',
                 'ANGLE_instanced_arrays'
             ],
@@ -34,7 +57,9 @@ export default class State {
         })
 
         const camera = Camera.create(regl, container, {
-            center: Vec3.create(0, 0, 0)
+            center: Vec3.create(0, 0, 0),
+            near: 0.01,
+            far: 1000
         })
 
         const p1 = Vec3.create(0, 4, 0)
@@ -56,8 +81,6 @@ export default class State {
         Mat4.toArray(m4, transformArray2, 16)
         Mat4.setTranslation(m4, p2)
         Mat4.toArray(m4, transformArray2, 32)
-
-
 
         const colorTexInfo = calculateTextureInfo(3, 3)
         const color = new Uint8Array(colorTexInfo.length)
@@ -110,21 +133,43 @@ export default class State {
 
         const mesh2 = MeshRenderable.create(regl,
             {
-                position: Attribute.create(regl, new Float32Array(box.vertices), { size: 3 }),
-                normal: Attribute.create(regl, new Float32Array(box.normals), { size: 3 }),
+                position: Attribute.create(regl, new Float32Array(sphere.vertices), { size: 3 }),
+                normal: Attribute.create(regl, new Float32Array(sphere.normals), { size: 3 }),
                 ...createTransformAttributes(regl, transformArray2)
             },
             {
                 colorTex,
                 colorTexSize: [ colorTexInfo.width, colorTexInfo.height ],
-                'light.position': Vec3.create(0, 0, -20),
+                'light.position': Vec3.create(0, 0, -100),
                 'light.color': Vec3.create(1.0, 1.0, 1.0),
                 'light.ambient': Vec3.create(0.5, 0.5, 0.5),
                 'light.falloff': 0,
                 'light.radius': 500
             },
-            box.indices
+            // box.indices
         )
+
+        function createSpacefills (structure: Structure) {
+            const spacefills: UnitRepresentation[] = []
+            const { atoms, units } = structure;
+            const unitIds = AtomSet.unitIds(atoms);
+            for (let i = 0, _i = unitIds.length; i < _i; i++) {
+                const unitId = unitIds[i];
+                const unit = units[unitId];
+                const atomGroup = AtomSet.unitGetByIndex(atoms, i);
+
+                const spacefill = Spacefill(regl)
+                spacefill.create(unit, atomGroup, {})
+                console.log('spacefill', spacefill)
+                spacefills.push(spacefill)
+            }
+            return spacefills
+        }
+
+        const structures = await getPdb('1crn')
+        const spacefills = createSpacefills(structures[0])
+
+        structures[0]
 
         const baseContext = regl({
             context: {
@@ -143,6 +188,7 @@ export default class State {
                 baseContext(() => {
                     // console.log(ctx)
                     regl.clear({color: [0, 0, 0, 1]})
+                    spacefills.forEach(r => r.draw())
                     position.update(array => { array[0] = Math.random() })
                     // points.update(a => { a.position[0] = Math.random() })
                     // mesh.draw()

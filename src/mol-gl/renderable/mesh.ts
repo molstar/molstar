@@ -34,15 +34,15 @@ namespace Mesh {
     export type Attributes = { [K in keyof Data]: Attribute<Data[K]> }
 
     export function create(regl: REGL.Regl, attributes: Attributes, uniforms: Uniforms, elements?: Helpers.UintArray): Renderable<Data> {
-        console.log('mesh', {
-            count: attributes.position.getCount(),
-            instances: attributes.transformColumn0.getCount(),
-            attributes,
-            uniforms
-        })
+        // console.log('mesh', {
+        //     count: attributes.position.getCount(),
+        //     instances: attributes.transformColumn0.getCount(),
+        //     attributes,
+        //     uniforms
+        // })
         const instanceCount = attributes.transformColumn0.getCount()
         const instanceId = fillSerial(new Float32Array(instanceCount))
-        console.log(instanceId)
+        // console.log(instanceId)
         const command = regl({
             ...MeshShaders,
             uniforms: {
