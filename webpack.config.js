@@ -17,7 +17,11 @@ module.exports = {
     },
     plugins: [
         new ExtraWatchWebpackPlugin({
-            files: [ './**/*.vert', './**/*.frag', './**/*.glsl' ],
+            files: [
+                './build/node_modules/**/*.vert',
+                './build/node_modules/**/*.frag',
+                './build/node_modules/**/*.glsl'
+            ],
         }),
     ],
 }
