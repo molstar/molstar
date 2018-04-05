@@ -5,8 +5,10 @@
  */
 
 import REGL = require('regl');
+import { ValueBox } from 'mol-util/value-cell'
+
 import { Renderable } from '../renderable'
-import { getBuffers } from './util'
+import { getBuffers, createTransformAttributes, fillSerial } from './util'
 import Attribute from '../attribute';
 import { PointShaders } from '../shaders'
 
@@ -15,24 +17,23 @@ type Point = 'point'
 namespace Point {
     export type DataType = {
         position: { type: Float32Array, itemSize: 3 }
-        transformColumn0: { type: Float32Array, itemSize: 4 }
-        transformColumn1: { type: Float32Array, itemSize: 4 }
-        transformColumn2: { type: Float32Array, itemSize: 4 }
-        transformColumn3: { type: Float32Array, itemSize: 4 }
+        transform: { type: Float32Array, itemSize: 16 }
     }
     export type Data = { [K in keyof DataType]: DataType[K]['type'] }
-    export type Attributes = { [K in keyof Data]: Attribute<Data[K]> }
+    export type BoxedData = { [K in keyof Data]: ValueBox<Data[K]> }
 
-    export function create(regl: REGL.Regl, attributes: Attributes): Renderable<Data> {
-        console.log('point', {
-            count: attributes.position.getCount(),
-            instances: attributes.transformColumn0.getCount(),
-        }, attributes)
+    export function create(regl: REGL.Regl, data: BoxedData): Renderable<Data> {
+        const instanceCount = data.transform.value.length / 16
+        const instanceId = ValueBox(fillSerial(new Float32Array(instanceCount)))
         const command = regl({
             ...PointShaders,
-            attributes: getBuffers(attributes),
-            count: attributes.position.getCount(),
-            instances: attributes.transformColumn0.getCount(),
+            attributes: getBuffers({
+                instanceId: Attribute.create(regl, instanceId, { size: 1, divisor: 1 }),
+                position: Attribute.create(regl, data.position, { size: 3 }),
+                ...createTransformAttributes(regl, data.transform)
+            }),
+            count: data.position.value.length / 3,
+            instances: instanceCount,
             primitive: 'points'
         })
         return {

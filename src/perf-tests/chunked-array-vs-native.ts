@@ -8,13 +8,13 @@ function testNative(size: number) {
 }
 
 function testChunkedTyped(size: number, chunk: number, linear: boolean) {
-    const xs = ChunkedArray.create(s => new Int32Array(s), 1, chunk, linear);
+    const xs = ChunkedArray.create(s => new Int32Array(s), 1, chunk);
     for (let i = 0; i < size; i++) ChunkedArray.add(xs, i * i);
     return ChunkedArray.compact(xs);
 }
 
 function testChunkedNative(size: number, chunk: number) {
-    const xs = ChunkedArray.create(s => [], 1, chunk, false);
+    const xs = ChunkedArray.create(s => [], 1, chunk);
     for (let i = 0; i < size; i++) ChunkedArray.add(xs, i * i);
     return ChunkedArray.compact(xs);
 }

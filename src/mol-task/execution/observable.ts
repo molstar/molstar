@@ -159,10 +159,11 @@ class ObservableRuntimeContext implements RuntimeContext {
             progress.message = update;
         } else {
             if (typeof update.canAbort !== 'undefined') progress.canAbort = update.canAbort;
+            if (typeof update.message !== 'undefined') progress.message = update.message;
             if (typeof update.current !== 'undefined') progress.current = update.current;
             if (typeof update.max !== 'undefined') progress.max = update.max;
-            if (typeof update.message !== 'undefined') progress.message = update.message;
             progress.isIndeterminate = typeof progress.current === 'undefined' || typeof progress.max === 'undefined';
+            if (typeof update.isIndeterminate !== 'undefined') progress.isIndeterminate = update.isIndeterminate;
         }
     }
 

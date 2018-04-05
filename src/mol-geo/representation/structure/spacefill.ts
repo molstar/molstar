@@ -5,9 +5,9 @@
  */
 
 import REGL = require('regl');
+import { ValueBox } from 'mol-util/value-cell'
+
 import { MeshRenderable, Renderable } from 'mol-gl/renderable'
-import { createTransformAttributes } from 'mol-gl/renderable/util';
-import Attribute from 'mol-gl/attribute';
 import { calculateTextureInfo } from 'mol-gl/util';
 import Icosahedron from 'mol-geo/primitive/icosahedron'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
@@ -79,9 +79,9 @@ export default function Spacefill(regl: REGL.Regl): UnitRepresentation {
 
             const spheres = MeshRenderable.create(regl,
                 {
-                    position: Attribute.create(regl, new Float32Array(vertices), { size: 3 }),
-                    normal: Attribute.create(regl, new Float32Array(normals), { size: 3 }),
-                    ...createTransformAttributes(regl, transformArray)
+                    position: ValueBox(new Float32Array(vertices)),
+                    normal: ValueBox(new Float32Array(normals)),
+                    transform: ValueBox(transformArray)
                 },
                 {
                     colorTex,

@@ -31,4 +31,3 @@ function ValueBox<T>(boxOrValue: T | ValueBox<T>, value?: T): ValueBox<T> {
 }
 
 export { ValueCell, ValueBox };
-

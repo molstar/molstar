@@ -5,13 +5,12 @@
  */
 
 import REGL = require('regl');
+import { ValueBox } from 'mol-util/value-cell'
 import * as glContext from 'mol-gl/context'
 import { Camera } from 'mol-gl/camera'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { PointRenderable, MeshRenderable } from 'mol-gl/renderable'
-import Attribute from 'mol-gl/attribute';
 import Model from 'mol-gl/model';
-import { createTransformAttributes } from 'mol-gl/renderable/util';
 import { calculateTextureInfo } from 'mol-gl/util';
 import Icosahedron from 'mol-geo/primitive/icosahedron'
 import Box from 'mol-geo/primitive/box'
@@ -36,6 +35,8 @@ async function getPdb(pdb: string) {
     const structure = Structure.ofData({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
     return structure
 }
+
+import mcubes from './mcubes'
 
 export default class State {
     regl: REGL.Regl
@@ -67,18 +68,18 @@ export default class State {
         const model2 = Model(regl, { position: p1 })
         const model3 = Model(regl, { position: p2 })
 
-        const position = Attribute.create(regl, new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]), { size: 3 })
-        const normal = Attribute.create(regl, new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]), { size: 3 })
+        const position = ValueBox(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
+        const normal = ValueBox(new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
-        const transformArray1 = new Float32Array(16)
-        const transformArray2 = new Float32Array(16 * 3)
+        const transformArray1 = ValueBox(new Float32Array(16))
+        const transformArray2 = ValueBox(new Float32Array(16 * 3))
         const m4 = Mat4.identity()
-        Mat4.toArray(m4, transformArray1, 0)
-        Mat4.toArray(m4, transformArray2, 0)
+        Mat4.toArray(m4, transformArray1.value, 0)
+        Mat4.toArray(m4, transformArray2.value, 0)
         Mat4.setTranslation(m4, p1)
-        Mat4.toArray(m4, transformArray2, 16)
+        Mat4.toArray(m4, transformArray2.value, 16)
         Mat4.setTranslation(m4, p2)
-        Mat4.toArray(m4, transformArray2, 32)
+        Mat4.toArray(m4, transformArray2.value, 32)
 
         const colorTexInfo = calculateTextureInfo(3, 3)
         const color = new Uint8Array(colorTexInfo.length)
@@ -104,13 +105,13 @@ export default class State {
 
         const points = PointRenderable.create(regl, {
             position,
-            ...createTransformAttributes(regl, transformArray1)
+            transform: transformArray1
         })
         const mesh = MeshRenderable.create(regl,
             {
                 position,
                 normal,
-                ...createTransformAttributes(regl, transformArray2)
+                transform: transformArray2
             },
             {
                 colorTex,
@@ -125,15 +126,25 @@ export default class State {
         console.log(box)
 
         const points2 = PointRenderable.create(regl, {
-            position: Attribute.create(regl, new Float32Array(box.vertices), { size: 3 }),
-            ...createTransformAttributes(regl, transformArray1)
+            position: ValueBox(new Float32Array(box.vertices)),
+            transform: transformArray1
         })
 
-        const mesh2 = MeshRenderable.create(regl,
+        let rr = 1;
+        function cubesF(x: number, y: number, z: number) {
+            return x * x + y * y + z * z - rr * rr;
+            // const a = ca;
+            // const t = (x + y + z + a);
+            // return x * x * x + y * y * y + z * z * z + a * a * a - t * t * t;
+        }
+
+        let cubes = await mcubes(cubesF);
+
+        const makeCubesMesh = () => MeshRenderable.create(regl,
             {
-                position: Attribute.create(regl, new Float32Array(sphere.vertices), { size: 3 }),
-                normal: Attribute.create(regl, new Float32Array(sphere.normals), { size: 3 }),
-                ...createTransformAttributes(regl, transformArray2)
+                position: cubes.surface.vertexBuffer,
+                normal: cubes.surface.normalBuffer as any,
+                transform: transformArray1
             },
             {
                 colorTex,
@@ -144,8 +155,36 @@ export default class State {
                 'light.falloff': 0,
                 'light.radius': 500
             },
-            // box.indices
-        )
+            cubes.surface.indexBuffer.value
+        );
+
+        let mesh2 = makeCubesMesh();
+
+        // const makeCubes = async () => {
+        //     rr = Math.random();
+        //     cubes = await mcubes(cubesF, cubes);
+        //     mesh2 = makeCubesMesh();
+        //     setTimeout(makeCubes, 1000 / 15);
+        // };
+        // makeCubes();
+
+        // const mesh2 = MeshRenderable.create(regl,
+        //     {
+        //         position: Attribute.create(regl, new Float32Array(box.vertices), { size: 3 }),
+        //         normal: Attribute.create(regl, new Float32Array(box.normals), { size: 3 }),
+        //         ...createTransformAttributes(regl, transformArray1)
+        //     },
+        //     {
+        //         colorTex,
+        //         colorTexSize: [ colorTexInfo.width, colorTexInfo.height ],
+        //         'light.position': Vec3.create(0, 0, -20),
+        //         'light.color': Vec3.create(1.0, 1.0, 1.0),
+        //         'light.ambient': Vec3.create(0.5, 0.5, 0.5),
+        //         'light.falloff': 0,
+        //         'light.radius': 500
+        //     },
+        //     box.indices
+        // )
 
         function createSpacefills (structure: Structure) {
             const spacefills: UnitRepresentation[] = []
@@ -187,12 +226,12 @@ export default class State {
                     // console.log(ctx)
                     regl.clear({color: [0, 0, 0, 1]})
                     spacefills.forEach(r => r.draw())
-                    position.update(array => { array[0] = Math.random() })
+                    // position.update(array => { array[0] = Math.random() })
                     // points.update(a => { a.position[0] = Math.random() })
                     // mesh.draw()
                     // points.draw()
                     mesh2.draw()
-                    points2.draw()
+                    // points2.draw()
                     // model1({}, ({ transform }) => {
                     //     points.draw()
                     // })

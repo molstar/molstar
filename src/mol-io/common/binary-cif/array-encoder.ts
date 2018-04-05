@@ -357,7 +357,7 @@ export namespace ArrayEncoding {
         let map: any = Object.create(null);
         let strings: string[] = [];
         let accLength = 0;
-        let offsets = ChunkedArray.create<number>(s => new Int32Array(s), 1, 1024, true)
+        let offsets = ChunkedArray.create<number>(s => new Int32Array(s), 1, 1024)
         let output = new Int32Array(data.length);
 
         ChunkedArray.add(offsets, 0);
