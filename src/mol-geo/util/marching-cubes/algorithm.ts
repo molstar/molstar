@@ -9,6 +9,7 @@ import { ChunkedArray } from 'mol-data/util'
 import { Tensor } from 'mol-math/linear-algebra'
 import { Surface } from '../../shape/surface'
 import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
+import { ValueBox } from 'mol-util'
 
 /**
  * The parameters required by the algorithm.
@@ -22,12 +23,7 @@ export interface MarchingCubesParameters {
 
     annotationField?: Tensor,
 
-    buffers?: {
-        vertex?: Float32Array,
-        index?: Uint32Array,
-        normal?: Float32Array,
-        annotation?: ArrayLike<number>
-    }
+    oldSurface?: Surface
 }
 
 export function compute(parameters: MarchingCubesParameters) {
@@ -40,6 +36,7 @@ export function compute(parameters: MarchingCubesParameters) {
 class MarchingCubesComputation {
     private size: number;
     private sliceSize: number;
+    private parameters: MarchingCubesParameters;
 
     private minX = 0; private minY = 0; private minZ = 0;
     private maxX = 0; private maxY = 0; private maxZ = 0;
@@ -68,18 +65,23 @@ class MarchingCubesComputation {
     }
 
     private finish() {
-        const vertexBuffer = ChunkedArray.compact(this.state.vertexBuffer, true) as Float32Array;
-        const indexBuffer = ChunkedArray.compact(this.state.triangleBuffer, true) as Uint32Array;
+        const vb = ChunkedArray.compact(this.state.vertexBuffer, true) as Float32Array;
+        const ib = ChunkedArray.compact(this.state.triangleBuffer, true) as Uint32Array;
 
         this.state.vertexBuffer = <any>void 0;
         this.state.verticesOnEdges = <any>void 0;
 
         let ret: Surface = {
-            vertexCount: this.state.vertexCount,
+            vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
-            vertexBuffer,
-            indexBuffer,
-            // vertexAnnotation: this.state.annotate ? ChunkedArray.compact(this.state.annotationBuffer) : void 0,
+            vertexBuffer: this.parameters.oldSurface ? ValueBox(this.parameters.oldSurface.vertexBuffer, vb) : ValueBox(vb),
+            indexBuffer: this.parameters.oldSurface ? ValueBox(this.parameters.oldSurface.indexBuffer, ib) : ValueBox(ib),
+            normalBuffer: this.parameters.oldSurface ? this.parameters.oldSurface.normalBuffer : ValueBox(void 0),
+            vertexAnnotation: this.state.annotate
+                ? this.parameters.oldSurface && this.parameters.oldSurface.vertexAnnotation
+                    ? ValueBox(this.parameters.oldSurface.vertexAnnotation, ChunkedArray.compact(this.state.annotationBuffer))
+                    : ValueBox(ChunkedArray.compact(this.state.annotationBuffer))
+                : void 0,
             normalsComputed: false
         }
 
@@ -98,6 +100,7 @@ class MarchingCubesComputation {
         private ctx: RuntimeContext) {
 
         let params = { ...parameters };
+        this.parameters = params;
 
         if (!params.bottomLeft) params.bottomLeft = [0, 0, 0];
         if (!params.topRight) params.topRight = params.scalarField.space.dimensions;
@@ -195,8 +198,10 @@ class MarchingCubesState {
             vertexBufferSize = Math.min(262144, Math.max(dX * dY * dZ / 16, 1024) | 0),
             triangleBufferSize = Math.min(1 << 16, vertexBufferSize * 4);
 
-        this.vertexBuffer = ChunkedArray.create<number>(s => new Float32Array(s), 3, vertexBufferSize, params.buffers && params.buffers.vertex);
-        this.triangleBuffer = ChunkedArray.create<number>(s => new Uint32Array(s), 3, triangleBufferSize, params.buffers && params.buffers.index);
+        this.vertexBuffer = ChunkedArray.create<number>(s => new Float32Array(s), 3, vertexBufferSize,
+            params.oldSurface && params.oldSurface.vertexBuffer.value);
+        this.triangleBuffer = ChunkedArray.create<number>(s => new Uint32Array(s), 3, triangleBufferSize,
+            params.oldSurface && params.oldSurface.indexBuffer.value);
 
         this.annotate = !!params.annotationField;
         if (this.annotate) this.annotationBuffer = ChunkedArray.create(s => new Int32Array(s), 1, vertexBufferSize);

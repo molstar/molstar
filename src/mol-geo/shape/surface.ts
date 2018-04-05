@@ -5,16 +5,18 @@
  */
 
 import { Task } from 'mol-task'
+import { ValueBox } from 'mol-util'
+import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 
 export interface Surface {
     vertexCount: number,
     triangleCount: number,
-    vertexBuffer: Float32Array,
-    indexBuffer: Uint32Array,
-    normalBuffer?: Float32Array,
+    vertexBuffer: ValueBox<Float32Array>,
+    indexBuffer: ValueBox<Uint32Array>,
+    normalBuffer: ValueBox<Float32Array | undefined>,
     normalsComputed: boolean,
 
-    vertexAnnotation?: ArrayLike<number>[]
+    vertexAnnotation?: ValueBox<ArrayLike<number>>
     //boundingSphere?: { center: Geometry.LinearAlgebra.Vector3, radius: number };
 }
 
@@ -22,22 +24,25 @@ export namespace Surface {
     export function computeNormalsImmediate(surface: Surface) {
         if (surface.normalsComputed) return;
 
-        const normals = surface.normalBuffer && surface.normalBuffer.length >= surface.vertexCount * 3
-            ? surface.normalBuffer : new Float32Array(surface.vertexBuffer.length);
+        const normals = surface.normalBuffer.value && surface.normalBuffer.value!.length >= surface.vertexCount * 3
+            ? surface.normalBuffer.value : new Float32Array(surface.vertexBuffer.value!.length);
 
-        const v = surface.vertexBuffer, triangles = surface.indexBuffer;
+        const v = surface.vertexBuffer.value, triangles = surface.indexBuffer.value;
+
+        const x = Vec3.zero(), y = Vec3.zero(), z = Vec3.zero(), d1 = Vec3.zero(), d2 = Vec3.zero(), n = Vec3.zero();
         for (let i = 0, ii = 3 * surface.triangleCount; i < ii; i += 3) {
-            const a = 3 * triangles[i],
-                b = 3 * triangles[i + 1],
-                c = 3 * triangles[i + 2];
+            const a = 3 * triangles[i], b = 3 * triangles[i + 1], c = 3 * triangles[i + 2];
 
-            const nx = v[a + 2] * (v[b + 1] - v[c + 1]) + v[b + 2] * v[c + 1] - v[b + 1] * v[c + 2] + v[a + 1] * (-v[b + 2] + v[c + 2]),
-                ny = -(v[b + 2] * v[c]) + v[a + 2] * (-v[b] + v[c]) + v[a] * (v[b + 2] - v[c + 2]) + v[b] * v[c + 2],
-                nz = v[a + 1] * (v[b] - v[c]) + v[b + 1] * v[c] - v[b] * v[c + 1] + v[a] * (-v[b + 1] + v[b + 1]);
+            Vec3.fromArray(x, v, a);
+            Vec3.fromArray(y, v, b);
+            Vec3.fromArray(z, v, c);
+            Vec3.sub(d1, z, y);
+            Vec3.sub(d2, y, x);
+            Vec3.cross(n, d1, d2);
 
-            normals[a] += nx; normals[a + 1] += ny; normals[a + 2] += nz;
-            normals[b] += nx; normals[b + 1] += ny; normals[b + 2] += nz;
-            normals[c] += nx; normals[c + 1] += ny; normals[c + 2] += nz;
+            normals[a] += n[0]; normals[a + 1] += n[1]; normals[a + 2] += n[2];
+            normals[b] += n[0]; normals[b + 1] += n[1]; normals[b + 2] += n[2];
+            normals[c] += n[0]; normals[c + 1] += n[1]; normals[c + 2] += n[2];
         }
 
         for (let i = 0, ii = 3 * surface.vertexCount; i < ii; i += 3) {
@@ -46,8 +51,10 @@ export namespace Surface {
             const nz = normals[i + 2];
             const f = 1.0 / Math.sqrt(nx * nx + ny * ny + nz * nz);
             normals[i] *= f; normals[i + 1] *= f; normals[i + 2] *= f;
+
+           // console.log([normals[i], normals[i + 1], normals[i + 2]], [v[i], v[i + 1], v[i + 2]])
         }
-        surface.normalBuffer = normals;
+        surface.normalBuffer = ValueBox(surface.normalBuffer, normals);
         surface.normalsComputed = true;
     }
 
@@ -59,6 +66,22 @@ export namespace Surface {
             computeNormalsImmediate(surface);
             return surface;
         });
+    }
+
+    export function transformImmediate(surface: Surface, t: Mat4) {
+        const p = Vec3.zero();
+        const vertices = surface.vertexBuffer.value;
+        for (let i = 0, _c = surface.vertexCount * 3; i < _c; i += 3) {
+            p[0] = vertices[i];
+            p[1] = vertices[i + 1];
+            p[2] = vertices[i + 2];
+            Vec3.transformMat4(p, p, t);
+            vertices[i] = p[0];
+            vertices[i + 1] = p[1];
+            vertices[i + 2] = p[2];
+        }
+        surface.normalsComputed = false;
+        //surface.boundingSphere = void 0;
     }
 }
 
@@ -177,22 +200,6 @@ export namespace Surface {
 //         });
 //     }
 
-//     export function transformImmediate(surface: Surface, t: number[]) {
-//         const p = LinearAlgebra.Vector3.zero();
-//         const m = LinearAlgebra.Vector3.transformMat4;
-//         const vertices = surface.vertices;
-//         for (let i = 0, _c = surface.vertices.length; i < _c; i += 3) {
-//             p[0] = vertices[i];
-//             p[1] = vertices[i + 1];
-//             p[2] = vertices[i + 2];
-//             m(p, p, t);
-//             vertices[i] = p[0];
-//             vertices[i + 1] = p[1];
-//             vertices[i + 2] = p[2];
-//         }
-//         surface.normals = void 0;
-//         surface.boundingSphere = void 0;
-//     }
 
 //     export function transform(surface: Surface, t: number[]): Computation<Surface> {
 //         return computation<Surface>(async ctx => {

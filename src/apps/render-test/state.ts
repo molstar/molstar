@@ -110,7 +110,7 @@ export default class State {
             ...createTransformAttributes(regl, transformArray1)
         })
 
-        let rr = 1.0;
+        let rr = 1;
         function cubesF(x: number, y: number, z: number) {
             return x * x + y * y + z * z - rr * rr;
             // const a = ca;
@@ -122,8 +122,8 @@ export default class State {
 
         const makeCubesMesh = () => MeshRenderable.create(regl,
             {
-                position: Attribute.create(regl, cubes.surface.vertexBuffer, { size: 3 }),
-                normal: Attribute.create(regl, cubes.surface.vertexBuffer, { size: 3 }),
+                position: Attribute.create(regl, cubes.surface.vertexBuffer.value, { size: 3 }),
+                normal: Attribute.create(regl, cubes.surface.normalBuffer.value!, { size: 3 }),
                 ...createTransformAttributes(regl, transformArray1)
             },
             {
@@ -135,18 +135,18 @@ export default class State {
                 'light.falloff': 0,
                 'light.radius': 500
             },
-            cubes.surface.indexBuffer
+            cubes.surface.indexBuffer.value
         );
 
         let mesh2 = makeCubesMesh();
 
-        const makeCubes = async () => {
-            rr = Math.random();
-            cubes = await mcubes(cubesF, cubes);
-            mesh2 = makeCubesMesh();
-            setTimeout(makeCubes, 1000 / 15);
-        };
-        makeCubes();
+        // const makeCubes = async () => {
+        //     rr = Math.random();
+        //     cubes = await mcubes(cubesF, cubes);
+        //     mesh2 = makeCubesMesh();
+        //     setTimeout(makeCubes, 1000 / 15);
+        // };
+        // makeCubes();
 
         // const mesh2 = MeshRenderable.create(regl,
         //     {
