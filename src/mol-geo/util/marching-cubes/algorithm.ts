@@ -9,7 +9,7 @@ import { ChunkedArray } from 'mol-data/util'
 import { Tensor } from 'mol-math/linear-algebra'
 import { Surface } from '../../shape/surface'
 import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
-import { ValueBox } from 'mol-util'
+import { ValueCell } from 'mol-util'
 
 /**
  * The parameters required by the algorithm.
@@ -74,13 +74,13 @@ class MarchingCubesComputation {
         let ret: Surface = {
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
-            vertexBuffer: this.parameters.oldSurface ? ValueBox(this.parameters.oldSurface.vertexBuffer, vb) : ValueBox(vb),
-            indexBuffer: this.parameters.oldSurface ? ValueBox(this.parameters.oldSurface.indexBuffer, ib) : ValueBox(ib),
-            normalBuffer: this.parameters.oldSurface ? this.parameters.oldSurface.normalBuffer : ValueBox(void 0),
+            vertexBuffer: this.parameters.oldSurface ? ValueCell.update(this.parameters.oldSurface.vertexBuffer, vb) : ValueCell.create(vb),
+            indexBuffer: this.parameters.oldSurface ? ValueCell.update(this.parameters.oldSurface.indexBuffer, ib) : ValueCell.create(ib),
+            normalBuffer: this.parameters.oldSurface ? this.parameters.oldSurface.normalBuffer : ValueCell.create(void 0),
             vertexAnnotation: this.state.annotate
                 ? this.parameters.oldSurface && this.parameters.oldSurface.vertexAnnotation
-                    ? ValueBox(this.parameters.oldSurface.vertexAnnotation, ChunkedArray.compact(this.state.annotationBuffer))
-                    : ValueBox(ChunkedArray.compact(this.state.annotationBuffer))
+                    ? ValueCell.update(this.parameters.oldSurface.vertexAnnotation, ChunkedArray.compact(this.state.annotationBuffer))
+                    : ValueCell.create(ChunkedArray.compact(this.state.annotationBuffer))
                 : void 0,
             normalsComputed: false
         }
@@ -199,9 +199,9 @@ class MarchingCubesState {
             triangleBufferSize = Math.min(1 << 16, vertexBufferSize * 4);
 
         this.vertexBuffer = ChunkedArray.create<number>(s => new Float32Array(s), 3, vertexBufferSize,
-            params.oldSurface && params.oldSurface.vertexBuffer.value);
+            params.oldSurface && params.oldSurface.vertexBuffer.ref.value);
         this.triangleBuffer = ChunkedArray.create<number>(s => new Uint32Array(s), 3, triangleBufferSize,
-            params.oldSurface && params.oldSurface.indexBuffer.value);
+            params.oldSurface && params.oldSurface.indexBuffer.ref.value);
 
         this.annotate = !!params.annotationField;
         if (this.annotate) this.annotationBuffer = ChunkedArray.create(s => new Int32Array(s), 1, vertexBufferSize);

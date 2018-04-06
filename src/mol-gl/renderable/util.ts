@@ -5,16 +5,16 @@
  */
 
 import REGL = require('regl');
-import { ValueBox } from 'mol-util/value-cell'
+import { ValueCell } from 'mol-util/value-cell'
 
 import { ColorTexture } from '../util';
 import { Attributes, AttributesData, AttributesBuffers } from '../renderable'
 import Attribute from '../attribute'
 
-export function createTransformAttributes (regl: REGL.Regl, transform: ValueBox<Float32Array>) {
+export function createTransformAttributes (regl: REGL.Regl, transform: ValueCell<Float32Array>) {
     const size = 4
     const divisor = 1
-    const bpe = transform.value.BYTES_PER_ELEMENT
+    const bpe = transform.ref.value.BYTES_PER_ELEMENT
     const stride = 16 * bpe
     return {
         transformColumn0: Attribute.create(regl, transform, { size, divisor, offset: 0, stride }),
@@ -24,19 +24,19 @@ export function createTransformAttributes (regl: REGL.Regl, transform: ValueBox<
     }
 }
 
-export function createColorUniforms (regl: REGL.Regl, color: ValueBox<ColorTexture>) {
+export function createColorUniforms (regl: REGL.Regl, color: ValueCell<ColorTexture>) {
     const colorTex = regl.texture({
-        width: color.value.width,
-        height: color.value.height,
+        width: color.ref.value.width,
+        height: color.ref.value.height,
         format: 'rgb',
         type: 'uint8',
         wrapS: 'clamp',
         wrapT: 'clamp',
-        data: color.value
+        data: color.ref.value
     })
     return {
         colorTex,
-        colorTexSize: [ color.value.width, color.value.height ]
+        colorTexSize: [ color.ref.value.width, color.ref.value.height ]
     }
 }
 

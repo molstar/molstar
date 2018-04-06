@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueBox } from 'mol-util/value-cell'
+import { ValueCell } from 'mol-util/value-cell'
 
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { createRenderer, createRenderObject, RenderObject } from 'mol-gl/renderer'
@@ -40,21 +40,21 @@ export default class State {
         const p1 = Vec3.create(0, 4, 0)
         const p2 = Vec3.create(-3, 0, 0)
 
-        const position = ValueBox(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
-        const normal = ValueBox(new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
+        const position = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
+        const normal = ValueCell.create(new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
-        const transformArray1 = ValueBox(new Float32Array(16))
-        const transformArray2 = ValueBox(new Float32Array(16 * 3))
+        const transformArray1 = ValueCell.create(new Float32Array(16))
+        const transformArray2 = ValueCell.create(new Float32Array(16 * 3))
         const m4 = Mat4.identity()
-        Mat4.toArray(m4, transformArray1.value, 0)
-        Mat4.toArray(m4, transformArray2.value, 0)
+        Mat4.toArray(m4, transformArray1.ref.value, 0)
+        Mat4.toArray(m4, transformArray2.ref.value, 0)
         Mat4.setTranslation(m4, p1)
-        Mat4.toArray(m4, transformArray2.value, 16)
+        Mat4.toArray(m4, transformArray2.ref.value, 16)
         Mat4.setTranslation(m4, p2)
-        Mat4.toArray(m4, transformArray2.value, 32)
+        Mat4.toArray(m4, transformArray2.ref.value, 32)
 
-        const color = ValueBox(createColorTexture(3))
-        color.value.set([
+        const color = ValueCell.create(createColorTexture(3))
+        color.ref.value.set([
             0, 0, 255,
             0, 255, 0,
             255, 0, 0
@@ -78,7 +78,7 @@ export default class State {
         console.log(box)
 
         const points2 = createRenderObject('point', {
-            position: ValueBox(new Float32Array(box.vertices)),
+            position: ValueCell.create(new Float32Array(box.vertices)),
             transform: transformArray1
         })
 
@@ -94,7 +94,7 @@ export default class State {
             normal: cubes.surface.normalBuffer as any,
             color,
             transform: transformArray1,
-        }, cubes.surface.indexBuffer.value);
+        }, cubes.surface.indexBuffer.ref.value);
         const mesh2 = makeCubesMesh();
         renderer.add(mesh2)
 

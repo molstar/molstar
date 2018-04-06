@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueBox } from 'mol-util/value-cell'
+import { ValueCell } from 'mol-util/value-cell'
 
 import { createRenderObject, RenderObject } from 'mol-gl/renderer'
 import { createColorTexture } from 'mol-gl/util';
@@ -20,6 +20,8 @@ export default function Spacefill(): UnitRepresentation {
     let normals: Float32Array
 
     const renderObjects: RenderObject[] = []
+
+    // unit: Unit, atomGroup: AtomGroup
 
     return {
         create: (unit: Unit, atomGroup: AtomGroup, props: RepresentationProps) => {
@@ -58,16 +60,16 @@ export default function Spacefill(): UnitRepresentation {
             const m4 = Mat4.identity()
             Mat4.toArray(m4, transformArray, 0)
 
-            const color = ValueBox(createColorTexture(1))
-            color.value.set([ 0, 0, 255 ])
+            const color = ValueCell.create(createColorTexture(1))
+            color.ref.value.set([ 0, 0, 255 ])
 
             const spheres = createRenderObject(
                 'mesh',
                 {
-                    position: ValueBox(new Float32Array(vertices)),
-                    normal: ValueBox(new Float32Array(normals)),
+                    position: ValueCell.create(new Float32Array(vertices)),
+                    normal: ValueCell.create(new Float32Array(normals)),
                     color,
-                    transform: ValueBox(transformArray)
+                    transform: ValueCell.create(transformArray)
                 }
             )
 

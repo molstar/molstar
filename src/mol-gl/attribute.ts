@@ -5,7 +5,7 @@
  */
 
 import REGL = require('regl');
-import { ValueBox } from 'mol-util/value-cell'
+import { ValueCell } from 'mol-util/value-cell'
 
 // export type AttributeGroupMutator<T extends AttributesData> = (data: T) => (boolean | void)
 // export type AttributeGroupData = { [k: string]: Helpers.TypedArray }
@@ -63,9 +63,9 @@ namespace Attribute {
     export type ArrayCell<T> = { array: ReferenceCell<T> }
     export type ReferenceCell<T> = { readonly version: number, readonly value: T }
 
-    export function create<T extends Helpers.TypedArray>(regl: REGL.Regl, array: ValueBox<T>, props: AttributeProps): Attribute<T> {
+    export function create<T extends Helpers.TypedArray>(regl: REGL.Regl, array: ValueCell<T>, props: AttributeProps): Attribute<T> {
         const itemSize = props.size
-        let _array = array.value
+        let _array = array.ref.value
         let _count = _array.length / itemSize
         if (props.stride) _count = _array.length / (props.stride / _array.BYTES_PER_ELEMENT)
         console.log(_array.length, props.stride)

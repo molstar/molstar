@@ -5,18 +5,18 @@
  */
 
 import { Task } from 'mol-task'
-import { ValueBox } from 'mol-util'
+import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 
 export interface Surface {
     vertexCount: number,
     triangleCount: number,
-    vertexBuffer: ValueBox<Float32Array>,
-    indexBuffer: ValueBox<Uint32Array>,
-    normalBuffer: ValueBox<Float32Array | undefined>,
+    vertexBuffer: ValueCell<Float32Array>,
+    indexBuffer: ValueCell<Uint32Array>,
+    normalBuffer: ValueCell<Float32Array | undefined>,
     normalsComputed: boolean,
 
-    vertexAnnotation?: ValueBox<ArrayLike<number>>
+    vertexAnnotation?: ValueCell<ArrayLike<number>>
     //boundingSphere?: { center: Geometry.LinearAlgebra.Vector3, radius: number };
 }
 
@@ -24,10 +24,10 @@ export namespace Surface {
     export function computeNormalsImmediate(surface: Surface) {
         if (surface.normalsComputed) return;
 
-        const normals = surface.normalBuffer.value && surface.normalBuffer.value!.length >= surface.vertexCount * 3
-            ? surface.normalBuffer.value : new Float32Array(surface.vertexBuffer.value!.length);
+        const normals = surface.normalBuffer.ref.value && surface.normalBuffer.ref.value!.length >= surface.vertexCount * 3
+            ? surface.normalBuffer.ref.value : new Float32Array(surface.vertexBuffer.ref.value!.length);
 
-        const v = surface.vertexBuffer.value, triangles = surface.indexBuffer.value;
+        const v = surface.vertexBuffer.ref.value, triangles = surface.indexBuffer.ref.value;
 
         const x = Vec3.zero(), y = Vec3.zero(), z = Vec3.zero(), d1 = Vec3.zero(), d2 = Vec3.zero(), n = Vec3.zero();
         for (let i = 0, ii = 3 * surface.triangleCount; i < ii; i += 3) {
@@ -54,7 +54,7 @@ export namespace Surface {
 
            // console.log([normals[i], normals[i + 1], normals[i + 2]], [v[i], v[i + 1], v[i + 2]])
         }
-        surface.normalBuffer = ValueBox(surface.normalBuffer, normals);
+        surface.normalBuffer = ValueCell.update(surface.normalBuffer, normals);
         surface.normalsComputed = true;
     }
 
@@ -70,7 +70,7 @@ export namespace Surface {
 
     export function transformImmediate(surface: Surface, t: Mat4) {
         const p = Vec3.zero();
-        const vertices = surface.vertexBuffer.value;
+        const vertices = surface.vertexBuffer.ref.value;
         for (let i = 0, _c = surface.vertexCount * 3; i < _c; i += 3) {
             p[0] = vertices[i];
             p[1] = vertices[i + 1];

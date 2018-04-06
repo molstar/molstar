@@ -34,7 +34,7 @@ namespace ValueBox {
         return { id: getNextId(), version: 0, value, metadata: metadata! };
     }
 
-    /** If diffInfo is not specified, copy the old value */
+    /** The box.metadata is carried over from the old box */
     export function withValue<T, D>(box: ValueBox<T, D>, value: T): ValueBox<T, D> {
         return { id: box.id, version: box.version + 1, value, metadata: box.metadata };
     }
@@ -48,7 +48,7 @@ namespace ValueCell {
         return ValueRef.create(ValueBox.create(value, metadata));
     }
 
-    /** If diffInfo is not specified, copy the old value */
+    /** The box.metadata is carried over from the old box */
     export function update<T, D>(cell: ValueCell<T, D>, value: T): ValueCell<T, D> {
         return ValueRef.set(cell, ValueBox.withValue(cell.ref, value));
     }

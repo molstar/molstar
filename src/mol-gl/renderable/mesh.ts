@@ -5,7 +5,7 @@
  */
 
 import REGL = require('regl');
-import { ValueBox } from 'mol-util/value-cell'
+import { ValueCell } from 'mol-util/value-cell'
 
 import { Renderable } from '../renderable'
 import { ColorTexture } from '../util'
@@ -25,7 +25,7 @@ namespace Mesh {
         color: { type: ColorTexture, itemSize: 16 }
     }
     export type Data = { [K in keyof DataType]: DataType[K]['type'] }
-    export type BoxedData = { [K in keyof Data]: ValueBox<Data[K]> }
+    export type BoxedData = { [K in keyof Data]: ValueCell<Data[K]> }
 
     export function create(regl: REGL.Regl, data: BoxedData, uniforms: Uniforms, elements?: Helpers.UintArray): Renderable<Data> {
         // console.log('mesh', {
@@ -34,8 +34,8 @@ namespace Mesh {
         //     attributes,
         //     uniforms
         // })
-        const instanceCount = data.transform.value.length / 16
-        const instanceId = ValueBox(fillSerial(new Float32Array(instanceCount)))
+        const instanceCount = data.transform.ref.value.length / 16
+        const instanceId = ValueCell.create(fillSerial(new Float32Array(instanceCount)))
         // console.log(instanceId)
         const command = regl({
             ...MeshShaders,
@@ -58,7 +58,7 @@ namespace Mesh {
                 // count: elements.length / 3,
                 // length: elements.length * 2
             }),
-            count: elements ? elements.length : data.position.value.length / 3,
+            count: elements ? elements.length : data.position.ref.value.length / 3,
             instances: instanceCount,
             primitive: 'triangles'
         })

@@ -10,11 +10,20 @@ import { Camera } from './camera'
 import { PointRenderable, MeshRenderable, Renderable } from './renderable'
 
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
+import { ValueCell } from 'mol-util';
 
 let _renderObjectId = 0;
 function getNextId() {
     return _renderObjectId++ % 0x7FFFFFFF;
 }
+
+
+
+export interface RenderUpdateInfo {
+
+}
+
+export type RenderData = { [k: string]: ValueCell<Helpers.TypedArray> }
 
 export interface RenderObject {
     id: number

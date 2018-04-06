@@ -6,6 +6,8 @@
 
 import { AtomGroup, AtomSet, Structure, Unit } from 'mol-model/structure';
 import { RenderObject } from 'mol-gl/renderer';
+import { EquivalenceClasses } from 'mol-data/util';
+import { OrderedSet } from 'mol-data/int'
 
 export interface RepresentationProps {
 
@@ -22,20 +24,29 @@ export interface UnitRepresentation {
 // }
 
 export class StructureRepresentation {
+    // map: uint.id -> atomGroup.hashCode[]
+
     constructor () {
 
     }
     create (structure: Structure, props: RepresentationProps) {
         const { atoms, units } = structure;
-        const unitIds = AtomSet.unitIds(atoms);
-        for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unitId = unitIds[i];
-            const unit = units[unitId];
-            const atomGroup = AtomSet.unitGetByIndex(atoms, i);
+        const uniqueGroups = EquivalenceClasses<number, AtomGroup>(
+            AtomGroup.hashCode,
+            (a, b) => units[a.id].model.id === units[b.id].model.id && OrderedSet.areEqual(a.atoms, b.atoms));
+
+        for (let i = 0, _i = AtomSet.unitCount(atoms); i < _i; i++) {
+            const group = AtomSet.unitGetByIndex(atoms, i);
+            uniqueGroups.add(group.id, group);
 
         }
 
+        //uniqueGroups.groups
+
         return true
     }
-    update: (props: RepresentationProps) => false
+    update (atoms: AtomSet, props: RepresentationProps) {
+        // TODO check model.id, conformation.id, unit.id, atomGroup(.hashCode/.areEqual)
+        return false
+    }
 }

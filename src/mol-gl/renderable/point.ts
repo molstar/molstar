@@ -5,7 +5,7 @@
  */
 
 import REGL = require('regl');
-import { ValueBox } from 'mol-util/value-cell'
+import { ValueCell } from 'mol-util/value-cell'
 
 import { Renderable } from '../renderable'
 import { getBuffers, createTransformAttributes, fillSerial } from './util'
@@ -20,11 +20,11 @@ namespace Point {
         transform: { type: Float32Array, itemSize: 16 }
     }
     export type Data = { [K in keyof DataType]: DataType[K]['type'] }
-    export type BoxedData = { [K in keyof Data]: ValueBox<Data[K]> }
+    export type BoxedData = { [K in keyof Data]: ValueCell<Data[K]> }
 
     export function create(regl: REGL.Regl, data: BoxedData): Renderable<Data> {
-        const instanceCount = data.transform.value.length / 16
-        const instanceId = ValueBox(fillSerial(new Float32Array(instanceCount)))
+        const instanceCount = data.transform.ref.value.length / 16
+        const instanceId = ValueCell.create(fillSerial(new Float32Array(instanceCount)))
         const command = regl({
             ...PointShaders,
             attributes: getBuffers({
@@ -32,7 +32,7 @@ namespace Point {
                 position: Attribute.create(regl, data.position, { size: 3 }),
                 ...createTransformAttributes(regl, data.transform)
             }),
-            count: data.position.value.length / 3,
+            count: data.position.ref.value.length / 3,
             instances: instanceCount,
             primitive: 'points'
         })
