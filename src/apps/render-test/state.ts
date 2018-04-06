@@ -14,7 +14,7 @@ import Box from 'mol-geo/primitive/box'
 import Spacefill from 'mol-geo/representation/structure/spacefill'
 
 import CIF from 'mol-io/reader/cif'
-import { Run } from 'mol-task'
+import { Run, Progress } from 'mol-task'
 import { AtomSet, Structure } from 'mol-model/structure'
 
 async function parseCif(data: string|Uint8Array) {
@@ -32,6 +32,7 @@ async function getPdb(pdb: string) {
 }
 
 import mcubes from './mcubes'
+import Cylinder from 'mol-geo/primitive/cylinder';
 
 export default class State {
     async initRenderer (container: HTMLDivElement) {
@@ -71,10 +72,20 @@ export default class State {
             transform: transformArray2
         })
 
-        const sphere = Icosahedron(1, 1)
+        const cylinder = Cylinder({ height: 3, radiusBottom: 0.5, radiusTop: 0.5 })
+        console.log(cylinder)
+        const cylinderMesh = createRenderObject('mesh', {
+            position: ValueCell.create(cylinder.vertices),
+            normal: ValueCell.create(cylinder.normals),
+            color,
+            transform: transformArray2
+        }, cylinder.indices)
+        renderer.add(cylinderMesh)
+
+        const sphere = Icosahedron()
         console.log(sphere)
 
-        const box = Box(1, 1, 1, 1, 1, 1)
+        const box = Box()
         console.log(box)
 
         const points2 = createRenderObject('point', {
@@ -86,19 +97,23 @@ export default class State {
         function cubesF(x: number, y: number, z: number) {
             return x * x + y * y + z * z - rr * rr;
         }
-
         let cubes = await mcubes(cubesF);
 
         const makeCubesMesh = () => createRenderObject('mesh', {
             position: cubes.surface.vertexBuffer,
-            normal: cubes.surface.normalBuffer as any,
+            normal: cubes.surface.normalBuffer,
             color,
             transform: transformArray1,
         }, cubes.surface.indexBuffer.ref.value);
         const mesh2 = makeCubesMesh();
         renderer.add(mesh2)
 
-        function createSpacefills (structure: Structure) {
+        function log(progress: Progress) {
+            const p = progress.root.progress
+            console.log(`${p.message} ${(p.current/p.max*100).toFixed(2)}%`)
+        }
+
+        async function createSpacefills (structure: Structure) {
             const spacefills: RenderObject[] = []
             const { atoms, units } = structure;
             const unitIds = AtomSet.unitIds(atoms);
@@ -108,18 +123,14 @@ export default class State {
                 const atomGroup = AtomSet.unitGetByIndex(atoms, i);
 
                 const spacefill = Spacefill()
-                spacefills.push(...spacefill.create(unit, atomGroup, {}))
+                spacefills.push(...await Run(spacefill.create(unit, atomGroup), log, 1))
             }
             return spacefills
         }
         const structures = await getPdb('1crn')
-        const spacefills = createSpacefills(structures[0])
+        const spacefills = await createSpacefills(structures[0])
         spacefills.forEach(renderer.add)
 
         renderer.frame()
-    }
-
-    constructor() {
-
     }
 }

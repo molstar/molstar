@@ -8,10 +8,18 @@
 
 import { Vec3 } from 'mol-math/linear-algebra'
 
-export default function Box(width: number, height: number, depth: number, widthSegments: number, heightSegments: number, depthSegments: number) {
-    widthSegments = Math.floor(widthSegments)
-    heightSegments = Math.floor(heightSegments)
-    depthSegments = Math.floor(depthSegments)
+export const DefaultBoxProps = {
+    width: 1,
+    height: 1,
+    depth: 1,
+    widthSegments: 1,
+    heightSegments: 1,
+    depthSegments: 1
+}
+export type BoxProps = typeof DefaultBoxProps
+
+export default function Box(props?: Partial<BoxProps>) {
+    const { width, height, depth, widthSegments, heightSegments, depthSegments } = { ...DefaultBoxProps, ...props }
 
     // buffers
     const indices: number[] = [];
@@ -29,7 +37,11 @@ export default function Box(width: number, height: number, depth: number, widthS
     buildPlane(0, 1, 2, 1, -1, width, height, depth, widthSegments, heightSegments); // pz
     buildPlane(0, 1, 2, -1, -1, width, height, -depth, widthSegments, heightSegments); // nz
 
-    return { vertices, indices, normals }
+    return {
+        vertices: new Float32Array(vertices),
+        normals: new Float32Array(normals),
+        indices: new Uint32Array(indices)
+    }
 
     function buildPlane(u: number, v: number, w: number, udir: number, vdir: number, width: number, height: number, depth: number, gridX: number, gridY: number) {
 

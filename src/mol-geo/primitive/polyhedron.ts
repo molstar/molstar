@@ -9,9 +9,14 @@
 import { Vec3 } from 'mol-math/linear-algebra'
 import { computeVertexNormals, appplyRadius } from '../util'
 
-export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, radius: number, detail: number) {
-    radius = radius || 1;
-    detail = detail || 0;
+export const DefaultPolyhedronProps = {
+    radius: 1,
+    detail: 0
+}
+export type PolyhedronProps = typeof DefaultPolyhedronProps
+
+export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, props?: Partial<PolyhedronProps>) {
+    const { radius, detail } = { ...DefaultPolyhedronProps, ...props }
 
     const vertices: number[] = [];
     const indices: number[] = [];
@@ -26,7 +31,11 @@ export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Hel
     computeVertexNormals(vertices, normals)
     // this.normalizeNormals(); // smooth normals
 
-    return { vertices, indices, normals }
+    return {
+        vertices: new Float32Array(vertices),
+        normals: new Float32Array(normals),
+        indices: new Uint32Array(indices)
+    }
 
     // helper functions
 

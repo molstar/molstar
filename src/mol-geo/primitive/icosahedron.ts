@@ -23,6 +23,12 @@ const indices = [
      4, 9, 5, 	2, 4, 11,	6, 2, 10,	8, 6, 7,	9, 8, 1
 ];
 
-export default function Icosahedron(radius: number, detail: number) {
-    return Polyhedron(vertices, indices, radius, detail)
+export const DefaultIcosahedronProps = {
+    radius: 1,
+    detail: 0
+}
+export type IcosahedronProps = typeof DefaultIcosahedronProps
+
+export default function Icosahedron(props?: Partial<IcosahedronProps>) {
+    return Polyhedron(vertices, indices, { ...DefaultIcosahedronProps, ...props })
 }

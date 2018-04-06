@@ -14,6 +14,7 @@ import { OrderedSet } from 'mol-data/int'
 import { Atom, AtomGroup, Unit } from 'mol-model/structure';
 import P from 'mol-model/structure/query/properties';
 import { RepresentationProps, UnitRepresentation } from './index';
+import { Task } from 'mol-task'
 
 export default function Spacefill(): UnitRepresentation {
     let vertices: Float32Array
@@ -24,13 +25,13 @@ export default function Spacefill(): UnitRepresentation {
     // unit: Unit, atomGroup: AtomGroup
 
     return {
-        create: (unit: Unit, atomGroup: AtomGroup, props: RepresentationProps) => {
+        create: (unit: Unit, atomGroup: AtomGroup, props: Partial<RepresentationProps> = {}) => Task.create('Spacefill', async ctx => {
             const atomCount = OrderedSet.size(atomGroup.atoms)
 
             const l = Atom.Location();
             l.unit = unit;
 
-            const sphere = Icosahedron(1, 0)
+            const sphere = Icosahedron({ radius: 1, detail: 0 })
             const vertexCount = sphere.vertices.length / 3
 
             vertices = new Float32Array(atomCount * vertexCount * 3)
@@ -53,7 +54,11 @@ export default function Spacefill(): UnitRepresentation {
                     Vec3.toArray(v, vertices, i * vertexCount * 3 + j * 3)
                 }
 
-                normals.set(sphere.normals, i * vertexCount * 3)
+                normals.set(sphere.normals, i * vertexCount * 3);
+
+                if (i % 100 === 0 && ctx.shouldUpdate) {
+                    await ctx.update({ message: 'Spacefill', current: i, max: atomCount });
+                }
             }
 
             const transformArray = new Float32Array(16)
@@ -78,7 +83,7 @@ export default function Spacefill(): UnitRepresentation {
             renderObjects.push(spheres)
 
             return renderObjects
-        },
+        }),
         update: (props: RepresentationProps) => false
     }
 }
