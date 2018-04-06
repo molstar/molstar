@@ -11,7 +11,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Element, ElementGroup, ElementSet, Selection, Symmetry } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, Element, ElementGroup, ElementSet, Selection, Symmetry, Query } from 'mol-model/structure'
 import { Segmentation } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -293,12 +293,16 @@ export namespace PropertyAccess {
         console.log(to_mmCIF('test', s));
     }
 
-    export function testAssembly(id: string, s: Structure) {
+    export async function testAssembly(id: string, s: Structure) {
         console.time('assembly')
-        const a = Symmetry.buildAssembly(s, '1');
+        const a = await Run(Symmetry.buildAssembly(s, '1'));
         console.timeEnd('assembly')
         fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, a, true));
         console.log('exported');
+    }
+
+    function query(q: Query, s: Structure) {
+        return Run((q(s)));
     }
 
     export async function run() {
@@ -350,26 +354,26 @@ export namespace PropertyAccess {
         //const auth_asym_id = Q.props.chain.auth_asym_id;
         //const set =  new Set(['A', 'B', 'C', 'D']);
         //const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
-        const q = Q.generators.atoms({ atomTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA') });
+        const q = Query(Q.generators.atoms({ atomTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA') }));
         const P = Q.props
         //const q0 = Q.generators.atoms({ atomTest: l => auth_comp_id(l) === 'ALA' });
-        const q1 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' });
-        const q2 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA', groupBy: Q.props.residue.key });
-        const q3 = Q.generators.atoms({
+        const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
+        const q2 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA', groupBy: Q.props.residue.key }));
+        const q3 = Query(Q.generators.atoms({
             chainTest: Q.pred.inSet(P.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
             residueTest: Q.pred.eq(P.residue.auth_comp_id, 'ALA')
-        });
-        q(structures[0]);
+        }));
+        await query(q, structures[0]);
         //console.log(to_mmCIF('test', Selection.union(q0r)));
 
         console.time('q1')
-        q1(structures[0]);
+        await query(q1, structures[0]);
         console.timeEnd('q1')
         console.time('q1')
-        q1(structures[0]);
+        await query(q1, structures[0]);
         console.timeEnd('q1')
         console.time('q2')
-        const q2r = q2(structures[0]);
+        const q2r = await query(q2, structures[0]);
         console.timeEnd('q2')
         console.log(Selection.structureCount(q2r));
         //console.log(q1(structures[0]));
@@ -379,8 +383,8 @@ export namespace PropertyAccess {
         suite
             //.add('test q', () => q1(structures[0]))
             //.add('test q', () => q(structures[0]))
-            .add('test q1', () => q1(structures[0]))
-            .add('test q3', () => q3(structures[0]))
+            .add('test q1', async () => await query(q1, structures[0]))
+            .add('test q3', async () => await query(q3, structures[0]))
             //.add('test int', () => sumProperty(structures[0], l => col(l.atom)))
             // .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
 
