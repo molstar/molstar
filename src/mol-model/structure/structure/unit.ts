@@ -5,7 +5,7 @@
  */
 
 import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
-import AtomGroup from './atom/group'
+import ElementGroup from './element/group'
 import { Model } from '../model'
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
@@ -27,7 +27,7 @@ namespace Unit {
         // Things like inter-unit bonds or spatial lookups
         // can be be implemented efficiently as "views" of the
         // full group.
-        readonly fullGroup: AtomGroup,
+        readonly fullGroup: ElementGroup,
 
         readonly hierarchy: Model['hierarchy'],
     }
@@ -54,7 +54,7 @@ namespace Unit {
         readonly kind: Unit.Kind.Coarse
     }
 
-    export function createAtomic(model: Model, operator: SymmetryOperator, fullGroup: AtomGroup): Unit {
+    export function createAtomic(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit {
         const h = model.hierarchy;
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.conformation);
 
@@ -73,7 +73,7 @@ namespace Unit {
         };
     }
 
-    export function createCoarse(model: Model, operator: SymmetryOperator, fullGroup: AtomGroup): Unit {
+    export function createCoarse(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit {
         throw 'not implemented'
     }
 

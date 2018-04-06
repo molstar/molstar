@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Atom from './structure/atom'
-import AtomSet from './structure/atom/set'
-import AtomGroup from './structure/atom/group'
+import Element from './structure/element'
+import ElementSet from './structure/element/set'
+import ElementGroup from './structure/element/group'
 import Structure from './structure/structure'
 import Unit from './structure/unit'
 import Symmetry from './structure/symmetry'
 
-export { Atom, AtomSet, AtomGroup, Structure, Unit, Symmetry }
+export { Element, ElementSet, ElementGroup, Structure, Unit, Symmetry }

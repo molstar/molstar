@@ -11,7 +11,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Atom, AtomGroup, AtomSet, Selection, Symmetry } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, Element, ElementGroup, ElementSet, Selection, Symmetry } from 'mol-model/structure'
 import { Segmentation } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -117,20 +117,20 @@ export namespace PropertyAccess {
         return s;
     }
 
-    function sumProperty(structure: Structure, p: Atom.Property<number>) {
-        const { atoms, units } = structure;
-        const unitIds = AtomSet.unitIds(atoms);
-        const l = Atom.Location();
+    function sumProperty(structure: Structure, p: Element.Property<number>) {
+        const { elements, units } = structure;
+        const unitIds = ElementSet.unitIds(elements);
+        const l = Element.Location();
 
         let s = 0;
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             l.unit = units[unitIds[i]];
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = ElementSet.unitGetByIndex(elements, i);
 
 
-            for (let j = 0, _j = AtomGroup.size(set); j < _j; j++) {
-                l.atom = AtomGroup.getAt(set, j);
+            for (let j = 0, _j = ElementGroup.size(set); j < _j; j++) {
+                l.atom = ElementGroup.getAt(set, j);
                 s += p(l);
             }
         }
@@ -138,10 +138,10 @@ export namespace PropertyAccess {
         return s;
     }
 
-    function sumPropertySegmented(structure: Structure, p: Atom.Property<number>) {
-        const { atoms, units } = structure;
-        const unitIds = AtomSet.unitIds(atoms);
-        const l = Atom.Location();
+    function sumPropertySegmented(structure: Structure, p: Element.Property<number>) {
+        const { elements, units } = structure;
+        const unitIds = ElementSet.unitIds(elements);
+        const l = Element.Location();
 
         let s = 0;
 
@@ -149,22 +149,22 @@ export namespace PropertyAccess {
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unit = units[unitIds[i]];
             l.unit = unit;
-            const set = AtomSet.unitGetByIndex(atoms, i);
+            const set = ElementSet.unitGetByIndex(elements, i);
 
-            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set.atoms);
+            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set.elements);
             const residues = unit.hierarchy.residueSegments;
             while (chainsIt.hasNext) {
                 cC++;
 
                 const chainSegment = chainsIt.move();
-                const residuesIt = Segmentation.transientSegments(residues, set.atoms, chainSegment);
+                const residuesIt = Segmentation.transientSegments(residues, set.elements, chainSegment);
                 while (residuesIt.hasNext) {
                     rC++;
                     const residueSegment = residuesIt.move();
                     // l.atom = OrdSet.getAt(set, residueSegment.start);
                     // console.log(unit.hierarchy.residues.auth_comp_id.value(unit.residueIndex[l.atom]), l.atom, OrdSet.getAt(set, residueSegment.end))
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                        l.atom = AtomGroup.getAt(set, j);
+                        l.atom = ElementGroup.getAt(set, j);
                         vA++;
                         s += p(l);
                     }
@@ -177,20 +177,20 @@ export namespace PropertyAccess {
         return s;
     }
 
-    // function sumPropertyResidue(structure: Structure, p: Atom.Property<number>) {
+    // function sumPropertyResidue(structure: Structure, p: Element.Property<number>) {
     //     const { atoms, units } = structure;
-    //     const unitIds = AtomSet.unitIds(atoms);
-    //     const l = Atom.Location();
+    //     const unitIds = ElementSet.unitIds(atoms);
+    //     const l = Element.Location();
 
     //     let s = 0;
 
     //     for (let i = 0, _i = unitIds.length; i < _i; i++) {
     //         const unit = units[unitIds[i]];
     //         l.unit = unit;
-    //         const set = AtomSet.unitGetByIndex(atoms, i);
+    //         const set = ElementSet.unitGetByIndex(atoms, i);
     //         const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set.atoms);
     //         while (residuesIt.hasNext) {
-    //             l.atom = AtomGroup.getAt(set, residuesIt.move().start);
+    //             l.atom = ElementGroup.getAt(set, residuesIt.move().start);
     //             s += p(l);
     //         }
     //     }
@@ -198,16 +198,16 @@ export namespace PropertyAccess {
     //     return s;
     // }
 
-    function sumPropertyAtomSetIt(structure: Structure, p: Atom.Property<number>) {
-        const { atoms, units } = structure;
+    function sumPropertyAtomSetIt(structure: Structure, p: Element.Property<number>) {
+        const { elements, units } = structure;
 
         let s = 0;
-        const atomsIt = AtomSet.atoms(atoms);
-        const l = Atom.Location();
+        const atomsIt = ElementSet.elements(elements);
+        const l = Element.Location();
         while (atomsIt.hasNext) {
             const a = atomsIt.move();
-            l.unit = units[Atom.unit(a)];
-            l.atom = Atom.index(a);
+            l.unit = units[Element.unit(a)];
+            l.atom = Element.index(a);
             s += p(l);
         }
         return s;
@@ -215,7 +215,7 @@ export namespace PropertyAccess {
 
     // function sumPropertySegmentedMutable(structure: Structure, p: Property<number>) {
     //     const { atoms, units } = structure;
-    //     const unitIds = AtomSet.unitIds(atoms);
+    //     const unitIds = ElementSet.unitIds(atoms);
     //     const l = Property.createLocation();
 
     //     let s = 0;
@@ -223,7 +223,7 @@ export namespace PropertyAccess {
     //     for (let i = 0, _i = unitIds.length; i < _i; i++) {
     //         const unit = units[unitIds[i]];
     //         l.unit = unit;
-    //         const set = AtomSet.unitGetByIndex(atoms, i);
+    //         const set = ElementSet.unitGetByIndex(atoms, i);
 
     //         const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
     //         const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
@@ -245,18 +245,18 @@ export namespace PropertyAccess {
 
     // function sumDirect(structure: Structure) {
     //     const { atoms, units } = structure;
-    //     const unitIds = AtomSet.unitIds(atoms);
+    //     const unitIds = ElementSet.unitIds(atoms);
 
     //     let s = 0;
 
     //     for (let i = 0, _i = unitIds.length; i < _i; i++) {
     //         const unitId = unitIds[i];
     //         const unit = units[unitId];
-    //         const set = AtomSet.unitGetByIndex(atoms, i);
+    //         const set = ElementSet.unitGetByIndex(atoms, i);
     //         //const { residueIndex, chainIndex } = unit;
     //         const p = unit.conformation.atomId.value;
-    //         for (let j = 0, _j = AtomGroup.size(set); j < _j; j++) {
-    //             const aI = AtomGroup.getAt(set, j);
+    //         for (let j = 0, _j = ElementGroup.size(set); j < _j; j++) {
+    //             const aI = ElementGroup.getAt(set, j);
     //             s += p(aI);
     //         }
     //     }
@@ -266,7 +266,7 @@ export namespace PropertyAccess {
 
     // function concatProperty(structure: Structure, p: Property<string>) {
     //     const { atoms, units } = structure;
-    //     const unitIds = AtomSet.unitIds(atoms);
+    //     const unitIds = ElementSet.unitIds(atoms);
     //     const l = Property.createLocation(structure);
 
     //     let s = [];
@@ -274,7 +274,7 @@ export namespace PropertyAccess {
     //     for (let i = 0, _i = unitIds.length; i < _i; i++) {
     //         const unitId = unitIds[i];
     //         l.unit = units[unitId];
-    //         const set = AtomSet.unitGetByIndex(atoms, i);
+    //         const set = ElementSet.unitGetByIndex(atoms, i);
     //         const { residueIndex, chainIndex } = l.unit;
 
     //         for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
@@ -343,7 +343,7 @@ export namespace PropertyAccess {
         //console.log('__x', sumProperty(structures[0], l => l.unit.conformation.x[l.atom]));
         console.timeEnd('__x')
 
-        //const authSeqId = Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]));
+        //const authSeqId = Element.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom]));
 
         //const auth_seq_id = Q.props.residue.auth_seq_id;
         const auth_comp_id = Q.props.residue.auth_comp_id;

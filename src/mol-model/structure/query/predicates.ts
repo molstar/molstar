@@ -4,20 +4,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Atom } from '../structure'
+import { Element } from '../structure'
 import P from './properties'
 
 namespace Predicates {
     export interface SetLike<A> { has(v: A): boolean }
     function isSetLike<A>(x: any): x is SetLike<A> { return !!x && !!x.has }
 
-    export function eq<A>(p: Atom.Property<A>, value: A): Atom.Predicate { return l => p(l) === value; }
-    export function lt<A>(p: Atom.Property<A>, value: A): Atom.Predicate { return l => p(l) < value; }
-    export function lte<A>(p: Atom.Property<A>, value: A): Atom.Predicate { return l => p(l) <= value; }
-    export function gt<A>(p: Atom.Property<A>, value: A): Atom.Predicate { return l => p(l) > value; }
-    export function gte<A>(p: Atom.Property<A>, value: A): Atom.Predicate { return l => p(l) >= value; }
+    export function eq<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) === value; }
+    export function lt<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) < value; }
+    export function lte<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) <= value; }
+    export function gt<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) > value; }
+    export function gte<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) >= value; }
 
-    export function inSet<A>(p: Atom.Property<A>, values: SetLike<A> | ArrayLike<A>): Atom.Predicate {
+    export function inSet<A>(p: Element.Property<A>, values: SetLike<A> | ArrayLike<A>): Element.Predicate {
         if (isSetLike(values)) {
             return l => values.has(p(l));
         } else {
@@ -28,7 +28,7 @@ namespace Predicates {
         }
     }
 
-    export function and(...ps: Atom.Predicate[]): Atom.Predicate {
+    export function and(...ps: Element.Predicate[]): Element.Predicate {
         switch (ps.length) {
             case 0: return P.constant.true;
             case 1: return ps[0];
@@ -62,7 +62,7 @@ namespace Predicates {
         }
     }
 
-    export function or(...ps: Atom.Predicate[]): Atom.Predicate {
+    export function or(...ps: Element.Predicate[]): Element.Predicate {
         switch (ps.length) {
             case 0: return P.constant.false;
             case 1: return ps[0];

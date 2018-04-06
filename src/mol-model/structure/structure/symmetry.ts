@@ -5,7 +5,7 @@
  */
 
 import Structure from './structure'
-import AtomSet from './atom/set'
+import ElementSet from './element/set'
 import Unit from './unit'
 import { Selection } from '../query'
 import { ModelSymmetry } from '../model'
@@ -28,14 +28,14 @@ function buildAssemblyImpl(structure: Structure, name: string) {
     for (const g of assembly.operatorGroups) {
         const selection = g.selector(structure);
         if (Selection.structureCount(selection) === 0) continue;
-        const { units, atoms } = Selection.unionStructure(selection);
+        const { units, elements } = Selection.unionStructure(selection);
 
-        const unitIds = AtomSet.unitIds(atoms);
+        const unitIds = ElementSet.unitIds(elements);
 
         for (const oper of g.operators) {
             for (let uI = 0, _uI = unitIds.length; uI < _uI; uI++) {
                 const unit = units[unitIds[uI]];
-                assembler.add(Unit.withOperator(unit, oper), AtomSet.unitGetByIndex(atoms, uI));
+                assembler.add(Unit.withOperator(unit, oper), ElementSet.unitGetByIndex(elements, uI));
             }
         }
     }
