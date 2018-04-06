@@ -82,7 +82,7 @@ export namespace Camera {
         const right = Vec3.create(1, 0, 0)
         const front = Vec3.create(0, 0, 1)
 
-        let dirty = false
+        let dirty = true
         let ddistance = 0
 
         let prevX = 0

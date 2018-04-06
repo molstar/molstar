@@ -5,15 +5,15 @@
  */
 
 import { AtomGroup, AtomSet, Structure, Unit } from 'mol-model/structure';
+import { RenderObject } from 'mol-gl/renderer';
 
 export interface RepresentationProps {
 
 }
 
 export interface UnitRepresentation {
-    create: (unit: Unit, atomGroup: AtomGroup, props: RepresentationProps) => boolean,
+    create: (unit: Unit, atomGroup: AtomGroup, props: RepresentationProps) => RenderObject[],
     update: (props: RepresentationProps) => boolean,
-    draw: () => void
 }
 
 // export interface StructureRepresentation {

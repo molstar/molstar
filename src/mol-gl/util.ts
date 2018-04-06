@@ -11,3 +11,17 @@ export function calculateTextureInfo (n: number, itemSize: number) {
     const height = width > 0 ? Math.ceil(n * itemSize / width) : 0
     return { width, height, length: width * height * itemSize }
 }
+
+export interface ColorTexture extends Uint8Array {
+    width: number,
+    height: number
+}
+
+export function createColorTexture (n: number): ColorTexture {
+    const colorTexInfo = calculateTextureInfo(n, 3)
+    const colorTexture = new Uint8Array(colorTexInfo.length)
+    return Object.assign(colorTexture, {
+        width: colorTexInfo.width,
+        height: colorTexInfo.height
+    })
+}

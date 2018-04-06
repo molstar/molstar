@@ -4,11 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import REGL = require('regl');
 import { ValueBox } from 'mol-util/value-cell'
 
-import { MeshRenderable, Renderable } from 'mol-gl/renderable'
-import { calculateTextureInfo } from 'mol-gl/util';
+import { createRenderObject, RenderObject } from 'mol-gl/renderer'
+import { createColorTexture } from 'mol-gl/util';
 import Icosahedron from 'mol-geo/primitive/icosahedron'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
@@ -16,11 +15,11 @@ import { Atom, AtomGroup, Unit } from 'mol-model/structure';
 import P from 'mol-model/structure/query/properties';
 import { RepresentationProps, UnitRepresentation } from './index';
 
-export default function Spacefill(regl: REGL.Regl): UnitRepresentation {
+export default function Spacefill(): UnitRepresentation {
     let vertices: Float32Array
     let normals: Float32Array
 
-    const renderables: Renderable<any>[] = []
+    const renderObjects: RenderObject[] = []
 
     return {
         create: (unit: Unit, atomGroup: AtomGroup, props: RepresentationProps) => {
@@ -59,48 +58,25 @@ export default function Spacefill(regl: REGL.Regl): UnitRepresentation {
             const m4 = Mat4.identity()
             Mat4.toArray(m4, transformArray, 0)
 
-            const colorTexInfo = calculateTextureInfo(3, 3)
-            const color = new Uint8Array(colorTexInfo.length)
-            color.set([
-                0, 0, 255,
-                0, 255, 0,
-                255, 0, 0
-            ])
-            // console.log(color, colorTexInfo)
-            const colorTex = regl.texture({
-                width: colorTexInfo.width,
-                height: colorTexInfo.height,
-                format: 'rgb',
-                type: 'uint8',
-                wrapS: 'clamp',
-                wrapT: 'clamp',
-                data: color
-            })
+            const color = ValueBox(createColorTexture(1))
+            color.value.set([ 0, 0, 255 ])
 
-            const spheres = MeshRenderable.create(regl,
+            const spheres = createRenderObject(
+                'mesh',
                 {
                     position: ValueBox(new Float32Array(vertices)),
                     normal: ValueBox(new Float32Array(normals)),
+                    color,
                     transform: ValueBox(transformArray)
-                },
-                {
-                    colorTex,
-                    colorTexSize: [ colorTexInfo.width, colorTexInfo.height ],
-                    'light.position': Vec3.create(0, 0, -100),
-                    'light.color': Vec3.create(1.0, 1.0, 1.0),
-                    'light.ambient': Vec3.create(0.5, 0.5, 0.5),
-                    'light.falloff': 0,
-                    'light.radius': 500
                 }
             )
 
             // console.log({ vertices, normals, vertexCount, atomCount })
 
-            renderables.push(spheres)
+            renderObjects.push(spheres)
 
-            return true
+            return renderObjects
         },
-        update: (props: RepresentationProps) => false,
-        draw: () => renderables.forEach(r => r.draw())
+        update: (props: RepresentationProps) => false
     }
 }

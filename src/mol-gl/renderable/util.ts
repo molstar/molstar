@@ -7,6 +7,7 @@
 import REGL = require('regl');
 import { ValueBox } from 'mol-util/value-cell'
 
+import { ColorTexture } from '../util';
 import { Attributes, AttributesData, AttributesBuffers } from '../renderable'
 import Attribute from '../attribute'
 
@@ -20,6 +21,22 @@ export function createTransformAttributes (regl: REGL.Regl, transform: ValueBox<
         transformColumn1: Attribute.create(regl, transform, { size, divisor, offset: 4 * bpe, stride }),
         transformColumn2: Attribute.create(regl, transform, { size, divisor, offset: 8 * bpe, stride }),
         transformColumn3: Attribute.create(regl, transform, { size, divisor, offset: 12 * bpe, stride })
+    }
+}
+
+export function createColorUniforms (regl: REGL.Regl, color: ValueBox<ColorTexture>) {
+    const colorTex = regl.texture({
+        width: color.value.width,
+        height: color.value.height,
+        format: 'rgb',
+        type: 'uint8',
+        wrapS: 'clamp',
+        wrapT: 'clamp',
+        data: color.value
+    })
+    return {
+        colorTex,
+        colorTexSize: [ color.value.width, color.value.height ]
     }
 }
 

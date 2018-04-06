@@ -12,7 +12,7 @@ export default class Root extends React.Component<{ state: State }, { initialize
     state = { initialized: false }
 
     componentDidMount() {
-        if (this.canvasContainer) this.props.state.initRegl(this.canvasContainer).then(() => this.setState({ initialized: true }))
+        if (this.canvasContainer) this.props.state.initRenderer(this.canvasContainer).then(() => this.setState({ initialized: true }))
     }
 
     render() {

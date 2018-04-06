@@ -8,7 +8,8 @@ import REGL = require('regl');
 import { ValueBox } from 'mol-util/value-cell'
 
 import { Renderable } from '../renderable'
-import { getBuffers, createTransformAttributes, fillSerial } from './util'
+import { ColorTexture } from '../util'
+import { getBuffers, createTransformAttributes, fillSerial, createColorUniforms } from './util'
 import Attribute from '../attribute';
 import { MeshShaders } from '../shaders'
 
@@ -21,6 +22,7 @@ namespace Mesh {
         position: { type: Float32Array, itemSize: 3 }
         normal: { type: Float32Array, itemSize: 3 }
         transform: { type: Float32Array, itemSize: 16 }
+        color: { type: ColorTexture, itemSize: 16 }
     }
     export type Data = { [K in keyof DataType]: DataType[K]['type'] }
     export type BoxedData = { [K in keyof Data]: ValueBox<Data[K]> }
@@ -40,6 +42,7 @@ namespace Mesh {
             uniforms: {
                 objectId: uniforms.objectId || 0,
                 instanceCount,
+                ...createColorUniforms(regl, data.color),
                 ...uniforms
             },
             attributes: getBuffers({
