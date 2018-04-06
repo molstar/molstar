@@ -71,7 +71,7 @@ function createListColumn<T extends number|string>(schema: Column.Schema.List<T>
     };
 }
 
-function createTensorColumn(schema: Column.Schema.Tensor, category: Data.Category, key: string): Column<Tensor> {
+function createTensorColumn(schema: Column.Schema.Tensor, category: Data.Category, key: string): Column<Tensor.Data> {
     const space = schema.space;
     let firstFieldName: string;
     switch (space.rank) {
@@ -82,7 +82,7 @@ function createTensorColumn(schema: Column.Schema.Tensor, category: Data.Categor
     }
     const first = category.getField(firstFieldName) || Column.Undefined(category.rowCount, schema);
     const value = (row: number) => Data.getTensor(category, key, space, row);
-    const toArray: Column<Tensor>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
+    const toArray: Column<Tensor.Data>['toArray'] = params => ColumnHelpers.createAndFillArray(category.rowCount, value, params)
 
     return {
         schema,
