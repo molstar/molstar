@@ -11,6 +11,7 @@ import Hierarchy from './properties/hierarchy'
 import Conformation from './properties/conformation'
 import Symmetry from './properties/symmetry'
 import Bonds from './properties/bonds'
+import CoarseGrained from './properties/coarse-grained'
 
 import computeBonds from './utils/compute-bonds'
 
@@ -33,6 +34,7 @@ interface Model extends Readonly<{
     hierarchy: Hierarchy,
     conformation: Conformation,
     symmetry: Symmetry,
+    coarseGrained: CoarseGrained,
 
     atomCount: number,
 }> {

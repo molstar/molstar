@@ -12,6 +12,7 @@ import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
 import Conformation from '../properties/conformation'
+import CoarseGrained from '../properties/coarse-grained'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { guessElement } from '../utils/guess-element'
 import { ElementSymbol} from '../types'
@@ -117,6 +118,7 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
         modelNum,
         hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
         conformation: getConformation(structure.atoms),
+        coarseGrained: CoarseGrained.Empty,
         symmetry: { assemblies: [] },
         atomCount: structure.atoms.count
     };

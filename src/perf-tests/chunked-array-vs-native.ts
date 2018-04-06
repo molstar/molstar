@@ -7,7 +7,7 @@ function testNative(size: number) {
     return xs;
 }
 
-function testChunkedTyped(size: number, chunk: number, linear: boolean) {
+function testChunkedTyped(size: number, chunk: number) {
     const xs = ChunkedArray.create(s => new Int32Array(s), 1, chunk);
     for (let i = 0; i < size; i++) ChunkedArray.add(xs, i * i);
     return ChunkedArray.compact(xs);
@@ -25,12 +25,12 @@ const N = 70000;
 
 suite
     .add('native', () => testNative(N))
-    .add('chunkedT 0.1k', () => testChunkedTyped(N, 100, false))
-    .add('chunkedT 4k', () => testChunkedTyped(N, 4096, false))
-    .add('chunkedT 4k lin', () => testChunkedTyped(N, 4096, true))
-    .add('chunkedT N / 2', () => testChunkedTyped(N, N / 2, false))
-    .add('chunkedT N', () => testChunkedTyped(N, N, false))
-    .add('chunkedT 2 * N', () => testChunkedTyped(N, 2 * N, false))
+    // .add('chunkedT 0.1k', () => testChunkedTyped(N, 100, false))
+    // .add('chunkedT 4k', () => testChunkedTyped(N, 4096, false))
+    .add('chunkedT 4k lin', () => testChunkedTyped(N, 4096))
+    // .add('chunkedT N / 2', () => testChunkedTyped(N, N / 2, false))
+    // .add('chunkedT N', () => testChunkedTyped(N, N, false))
+    // .add('chunkedT 2 * N', () => testChunkedTyped(N, 2 * N, false))
 
     .add('chunkedN N', () => testChunkedNative(N, N))
     .add('chunkedN 0.1k', () => testChunkedNative(N, 100))

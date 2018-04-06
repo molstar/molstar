@@ -11,6 +11,7 @@ import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
 import Conformation from '../properties/conformation'
+import CoarseGrained from '../properties/coarse-grained'
 import Symmetry from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { ElementSymbol} from '../types'
@@ -111,6 +112,7 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
         conformation: getConformation(format, bounds),
+        coarseGrained: CoarseGrained.Empty,
         symmetry: getSymmetry(format),
         atomCount: Interval.size(bounds)
     };

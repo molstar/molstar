@@ -11,7 +11,7 @@ import { createColorTexture } from 'mol-gl/util';
 import Icosahedron from 'mol-geo/primitive/icosahedron'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
-import { Atom, AtomGroup, Unit } from 'mol-model/structure';
+import { Element, ElementGroup, Unit } from 'mol-model/structure';
 import P from 'mol-model/structure/query/properties';
 import { RepresentationProps, UnitRepresentation } from './index';
 import { Task } from 'mol-task'
@@ -25,23 +25,23 @@ export default function Spacefill(): UnitRepresentation {
     // unit: Unit, atomGroup: AtomGroup
 
     return {
-        create: (unit: Unit, atomGroup: AtomGroup, props: Partial<RepresentationProps> = {}) => Task.create('Spacefill', async ctx => {
-            const atomCount = OrderedSet.size(atomGroup.atoms)
+        create: (unit: Unit, elementGroup: ElementGroup, props: Partial<RepresentationProps> = {}) => Task.create('Spacefill', async ctx => {
+            const elementCount = OrderedSet.size(elementGroup.elements)
 
-            const l = Atom.Location();
+            const l = Element.Location();
             l.unit = unit;
 
             const sphere = Icosahedron({ radius: 1, detail: 0 })
             const vertexCount = sphere.vertices.length / 3
 
-            vertices = new Float32Array(atomCount * vertexCount * 3)
-            normals = new Float32Array(atomCount * vertexCount * 3)
+            vertices = new Float32Array(elementCount * vertexCount * 3)
+            normals = new Float32Array(elementCount * vertexCount * 3)
 
             const v = Vec3.zero()
             const m = Mat4.identity()
 
-            for (let i = 0; i < atomCount; i++) {
-                l.atom = OrderedSet.getAt(atomGroup.atoms, i)
+            for (let i = 0; i < elementCount; i++) {
+                l.element = OrderedSet.getAt(elementGroup.elements, i)
 
                 v[0] = P.atom.x(l)
                 v[1] = P.atom.y(l)
@@ -57,7 +57,7 @@ export default function Spacefill(): UnitRepresentation {
                 normals.set(sphere.normals, i * vertexCount * 3);
 
                 if (i % 100 === 0 && ctx.shouldUpdate) {
-                    await ctx.update({ message: 'Spacefill', current: i, max: atomCount });
+                    await ctx.update({ message: 'Spacefill', current: i, max: elementCount });
                 }
             }
 

@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import AtomSet from '../set'
-import Atom from '../../atom'
+import ElementSet from '../set'
+import Element from '../../element'
 import { OrderedSet, IntMap } from 'mol-data/int'
 import { sortArray } from 'mol-data/util/sort'
 
@@ -14,28 +14,28 @@ export class Builder {
     private units = IntMap.Mutable<number[]>();
     private currentUnit: number[] = [];
 
-    atomCount = 0;
+    elementCount = 0;
 
-    add(u: number, a: number) {
+    add(u: number, e: number) {
         const unit = this.units.get(u);
-        if (!!unit) { unit[unit.length] = a; }
+        if (!!unit) { unit[unit.length] = e; }
         else {
-            this.units.set(u, [a]);
+            this.units.set(u, [e]);
             this.keys[this.keys.length] = u;
         }
-        this.atomCount++;
+        this.elementCount++;
     }
 
     beginUnit() { this.currentUnit = this.currentUnit.length > 0 ? [] : this.currentUnit; }
-    addToUnit(a: number) { this.currentUnit[this.currentUnit.length] = a; this.atomCount++; }
+    addToUnit(a: number) { this.currentUnit[this.currentUnit.length] = a; this.elementCount++; }
     commitUnit(u: number) {
         if (this.currentUnit.length === 0) return;
         this.keys[this.keys.length] = u;
         this.units.set(u, this.currentUnit);
     }
 
-    getSet(): AtomSet {
-        const generator = AtomSet.TemplateGenerator(this.parent);
+    getSet(): ElementSet {
+        const generator = ElementSet.TemplateGenerator(this.parent);
 
         for (let i = 0, _i = this.keys.length; i < _i; i++) {
             const k = this.keys[i];
@@ -48,18 +48,18 @@ export class Builder {
         return generator.getSet();
     }
 
-    singleton(): Atom {
+    singleton(): Element {
         const u = this.keys[0];
-        return Atom.create(u, this.units.get(u)[0]);
+        return Element.create(u, this.units.get(u)[0]);
     }
 
-    constructor(private parent: AtomSet, private sorted: boolean) { }
+    constructor(private parent: ElementSet, private sorted: boolean) { }
 }
 
-export function LinearBuilder(parent: AtomSet) {
+export function LinearBuilder(parent: ElementSet) {
     return new Builder(parent, true);
 }
 
-export function UnsortedBuilder(parent: AtomSet) {
+export function UnsortedBuilder(parent: ElementSet) {
     return new Builder(parent, false);
 }

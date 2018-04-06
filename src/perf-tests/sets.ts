@@ -1,6 +1,6 @@
 import * as B from 'benchmark'
 import { Tuple, Segmentation, OrderedSet as OrdSet } from 'mol-data/int'
-import { AtomSet } from 'mol-model/structure'
+import { ElementSet } from 'mol-model/structure'
 
 // export namespace Iteration {
 //     const U = 1000, V = 2500;
@@ -15,7 +15,7 @@ import { AtomSet } from 'mol-model/structure'
 //         }
 //         sets[i * i] = OrdSet.ofSortedArray(set);
 //     }
-//     const ms = AtomSet.create(sets);
+//     const ms = ElementSet.create(sets);
 
 //     export function native() {
 //         let s = 0;
@@ -25,7 +25,7 @@ import { AtomSet } from 'mol-model/structure'
 
 //     export function iterators() {
 //         let s = 0;
-//         const it = AtomSet.atoms(ms);
+//         const it = ElementSet.atoms(ms);
 //         while (it.hasNext) {
 //             const v = it.move();
 //             s += Tuple.snd(v);
@@ -35,15 +35,15 @@ import { AtomSet } from 'mol-model/structure'
 
 //     export function elementAt() {
 //         let s = 0;
-//         for (let i = 0, _i = AtomSet.atomCount(ms); i < _i; i++) s += Tuple.snd(AtomSet.atomGetAt(ms, i));
+//         for (let i = 0, _i = ElementSet.atomCount(ms); i < _i; i++) s += Tuple.snd(ElementSet.atomGetAt(ms, i));
 //         return s;
 //     }
 
 //     export function manual() {
 //         let s = 0;
-//         const keys = AtomSet.unitIds(ms);
+//         const keys = ElementSet.unitIds(ms);
 //         for (let i = 0, _i = OrdSet.size(keys); i < _i; i++) {
-//             const set = AtomSet.unitGetById(ms, OrdSet.getAt(keys, i));
+//             const set = ElementSet.unitGetById(ms, OrdSet.getAt(keys, i));
 //             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
 //                 s += OrdSet.getAt(set, j);
 //             }
@@ -53,8 +53,8 @@ import { AtomSet } from 'mol-model/structure'
 
 //     export function manual1() {
 //         let s = 0;
-//         for (let i = 0, _i = AtomSet.unitCount(ms); i < _i; i++) {
-//             const set = AtomSet.unitGetByIndex(ms, i);
+//         for (let i = 0, _i = ElementSet.unitCount(ms); i < _i; i++) {
+//             const set = ElementSet.unitGetByIndex(ms, i);
 //             for (let j = 0, _j = OrdSet.size(set); j < _j; j++) {
 //                 s += OrdSet.getAt(set, j);
 //             }
@@ -200,7 +200,7 @@ export namespace Union {
 
 export namespace Build {
     function createSorted() {
-        const b = AtomSet.LinearBuilder(AtomSet.Empty);
+        const b = ElementSet.LinearBuilder(ElementSet.Empty);
         for (let i = 0; i < 10; i++) {
             for (let j = 0; j < 1000; j++) {
                 b.add(i, j);
@@ -210,7 +210,7 @@ export namespace Build {
     }
 
     function createByUnit() {
-        const b = AtomSet.LinearBuilder(AtomSet.Empty);
+        const b = ElementSet.LinearBuilder(ElementSet.Empty);
         for (let i = 0; i < 10; i++) {
             b.beginUnit();
             for (let j = 0; j < 1000; j++) {

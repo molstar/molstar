@@ -9,20 +9,20 @@ import { UniqueArray } from 'mol-data/generic'
 import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
 import { Model, Format } from '../model'
 import Unit from './unit'
-import AtomSet from './atom/set'
-import AtomGroup from './atom/group'
-import Atom from './atom'
+import ElementSet from './element/set'
+import ElementGroup from './element/group'
+import Element from './element'
 
-// A structure is a pair of "units" and an atom set.
-// Each unit contains the data and transformation of its corresponding atoms.
+// A structure is a pair of "units" and an element set.
+// Each unit contains the data and transformation of its corresponding elements.
 interface Structure {
     readonly units: ReadonlyArray<Unit>,
-    readonly atoms: AtomSet
+    readonly elements: ElementSet
 }
 
 namespace Structure {
-    export function create(units: ReadonlyArray<Unit>, atoms: AtomSet): Structure { return { units, atoms }; }
-    export function Empty(units: ReadonlyArray<Unit>): Structure { return create(units, AtomSet.Empty); };
+    export function create(units: ReadonlyArray<Unit>, elements: ElementSet): Structure { return { units, elements }; }
+    export function Empty(units: ReadonlyArray<Unit>): Structure { return create(units, ElementSet.Empty); };
 
     export function ofData(format: Format) {
         const models = Model.create(format);
@@ -34,8 +34,8 @@ namespace Structure {
         const builder = Builder();
 
         for (let c = 0; c < chains.count; c++) {
-            const group = AtomGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
-            const unit = Unit.create(model, SymmetryOperator.Default, group);
+            const group = ElementGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
+            const unit = Unit.createAtomic(model, SymmetryOperator.Default, group);
             builder.add(unit, unit.fullGroup);
         }
 
@@ -43,38 +43,38 @@ namespace Structure {
     }
 
     export interface Builder {
-        add(unit: Unit, atoms: AtomGroup): void,
+        add(unit: Unit, elements: ElementGroup): void,
         addUnit(unit: Unit): void,
-        setAtoms(unitId: number, atoms: AtomGroup): void,
+        setElements(unitId: number, elements: ElementGroup): void,
         getStructure(): Structure,
-        readonly atomCount: number
+        readonly elementCount: number
     }
 
     class BuilderImpl implements Builder {
         private _unitId = 0;
         private units: Unit[] = [];
-        private atoms = AtomSet.Generator();
-        atomCount = 0;
+        private elements = ElementSet.Generator();
+        elementCount = 0;
 
-        add(unit: Unit, atoms: AtomGroup) { const id = this.addUnit(unit); this.setAtoms(id, atoms); }
+        add(unit: Unit, elements: ElementGroup) { const id = this.addUnit(unit); this.setElements(id, elements); }
         addUnit(unit: Unit) { const id = this._unitId++; this.units[id] = unit; return id; }
-        setAtoms(unitId: number, atoms: AtomGroup) { this.atoms.add(unitId, atoms); this.atomCount += AtomGroup.size(atoms); }
-        getStructure(): Structure { return this.atomCount > 0 ? Structure.create(this.units, this.atoms.getSet()) : Empty(this.units); }
+        setElements(unitId: number, elements: ElementGroup) { this.elements.add(unitId, elements); this.elementCount += ElementGroup.size(elements); }
+        getStructure(): Structure { return this.elementCount > 0 ? Structure.create(this.units, this.elements.getSet()) : Empty(this.units); }
     }
 
     export function Builder(): Builder { return new BuilderImpl(); }
 
     /** Transient = location gets overwritten when move() is called. */
-    export function atomLocationsTransient(s: Structure): Iterator<Atom.Location> {
-        const l = Atom.Location();
-        const update = Atom.updateLocation;
-        return Iterator.map(AtomSet.atoms(s.atoms), a => update(s, l, a));
+    export function elementLocationsTransient(s: Structure): Iterator<Element.Location> {
+        const l = Element.Location();
+        const update = Element.updateLocation;
+        return Iterator.map(ElementSet.elements(s.elements), a => update(s, l, a));
     }
 
     export function getModels(s: Structure) {
-        const { units, atoms } = s;
+        const { units, elements } = s;
         const arr = UniqueArray.create<Model['id'], Model>();
-        const ids = AtomSet.unitIds(atoms);
+        const ids = ElementSet.unitIds(elements);
         for (let i = 0; i < ids.length; i++) {
             const u = units[ids[i]];
             UniqueArray.add(arr, u.model.id, u.model);

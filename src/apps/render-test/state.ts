@@ -15,7 +15,7 @@ import Spacefill from 'mol-geo/representation/structure/spacefill'
 
 import CIF from 'mol-io/reader/cif'
 import { Run, Progress } from 'mol-task'
-import { AtomSet, Structure } from 'mol-model/structure'
+import { ElementSet, Structure } from 'mol-model/structure'
 
 async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data)
@@ -65,12 +65,15 @@ export default class State {
             position,
             transform: transformArray1
         })
+        renderer.add(points)
+
         const mesh = createRenderObject('mesh', {
             position,
             normal,
             color,
             transform: transformArray2
         })
+        renderer.add(mesh)
 
         const cylinder = Cylinder({ height: 3, radiusBottom: 0.5, radiusTop: 0.5 })
         console.log(cylinder)
@@ -92,8 +95,9 @@ export default class State {
             position: ValueCell.create(new Float32Array(box.vertices)),
             transform: transformArray1
         })
+        renderer.add(points2)
 
-        let rr = 1;
+        let rr = 0.7;
         function cubesF(x: number, y: number, z: number) {
             return x * x + y * y + z * z - rr * rr;
         }
@@ -115,12 +119,12 @@ export default class State {
 
         async function createSpacefills (structure: Structure) {
             const spacefills: RenderObject[] = []
-            const { atoms, units } = structure;
-            const unitIds = AtomSet.unitIds(atoms);
+            const { elements, units } = structure;
+            const unitIds = ElementSet.unitIds(elements);
             for (let i = 0, _i = unitIds.length; i < _i; i++) {
                 const unitId = unitIds[i];
                 const unit = units[unitId];
-                const atomGroup = AtomSet.unitGetByIndex(atoms, i);
+                const atomGroup = ElementSet.unitGetByIndex(elements, i);
 
                 const spacefill = Spacefill()
                 spacefills.push(...await Run(spacefill.create(unit, atomGroup), log, 1))
