@@ -4,30 +4,58 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-/** A mutable value cell. */
-interface ValueCell<T> { value: T }
-/** Create a mutable value cell. */
-function ValueCell<T>(value: T): ValueCell<T> { return { value }; }
+/** A mutable value reference. */
+interface ValueRef<T> { ref: T }
+
+namespace ValueRef {
+    export function create<T>(ref: T): ValueRef<T> { return { ref }; }
+    export function set<T>(ref: ValueRef<T>, value: T) { ref.ref = value; return ref; }
+}
 
 let _valueBoxId = 0;
 function getNextId() {
     return _valueBoxId++ % 0x7FFFFFFF;
 }
 
-/** An immutable value box that also holds a version of the attribute. */
-interface ValueBox<T> {
+/**
+ * An immutable value box that also holds a version of the attribute.
+ * Optionally includes automatically propadated "metadata".
+ */
+type ValueBox<T, D = never> = {
     // Unique identifier in the range 0 to 0x7FFFFFFF
     readonly id: number,
     readonly version: number,
-    readonly value: T
-}
-/** Create a new box with the specified value and version = 0 */
-function ValueBox<T>(value: T): ValueBox<T>
-/** Create a new box by updating the value of an old box and incrementing the version number. */
-function ValueBox<T>(box: ValueBox<T>, value: T): ValueBox<T>
-function ValueBox<T>(boxOrValue: T | ValueBox<T>, value?: T): ValueBox<T> {
-    if (arguments.length === 2) return { id: (boxOrValue as ValueBox<T>).id, version: (boxOrValue as ValueBox<T>).version + 1, value: value! };
-    return { id: getNextId(), version: 0, value: boxOrValue as T };
+    readonly metadata: D,
+    readonly value: T,
 }
 
-export { ValueCell, ValueBox };
+namespace ValueBox {
+    export function create<T, D = never>(value: T, metadata?: D): ValueBox<T, D> {
+        return { id: getNextId(), version: 0, value, metadata: metadata! };
+    }
+
+    /** If diffInfo is not specified, copy the old value */
+    export function withValue<T, D>(box: ValueBox<T, D>, value: T): ValueBox<T, D> {
+        return { id: box.id, version: box.version + 1, value, metadata: box.metadata };
+    }
+}
+
+/** An immutable box stored inside a mutable cell. */
+type ValueCell<T, D = never> = ValueRef<ValueBox<T, D>>
+
+namespace ValueCell {
+    export function create<T, D = never>(value: T, metadata?: D): ValueCell<T, D> {
+        return ValueRef.create(ValueBox.create(value, metadata));
+    }
+
+    /** If diffInfo is not specified, copy the old value */
+    export function update<T, D>(cell: ValueCell<T, D>, value: T): ValueCell<T, D> {
+        return ValueRef.set(cell, ValueBox.withValue(cell.ref, value));
+    }
+
+    export function set<T, D>(cell: ValueCell<T, D>, box: ValueBox<T, D>): ValueCell<T, D> {
+        return ValueRef.set(cell, box);
+    }
+}
+
+export { ValueRef, ValueBox, ValueCell };
