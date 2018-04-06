@@ -35,7 +35,7 @@ namespace Structure {
 
         for (let c = 0; c < chains.count; c++) {
             const group = AtomGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
-            const unit = Unit.create(model, SymmetryOperator.Default, group);
+            const unit = Unit.createAtomic(model, SymmetryOperator.Default, group);
             builder.add(unit, unit.fullGroup);
         }
 

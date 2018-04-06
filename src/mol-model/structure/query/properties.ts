@@ -4,12 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Atom } from '../structure'
+import { Atom, Unit } from '../structure'
 
 const constant = {
     true: Atom.property(l => true),
     false: Atom.property(l => false),
     zero: Atom.property(l => 0)
+}
+
+function notAtomic(): never {
+    throw 'Property only available for atomic models.';
 }
 
 const atom = {
@@ -19,9 +23,9 @@ const atom = {
     x: Atom.property(l => l.unit.x(l.atom)),
     y: Atom.property(l => l.unit.y(l.atom)),
     z: Atom.property(l => l.unit.z(l.atom)),
-    id: Atom.property(l => l.unit.conformation.atomId.value(l.atom)),
-    occupancy: Atom.property(l => l.unit.conformation.occupancy.value(l.atom)),
-    B_iso_or_equiv: Atom.property(l => l.unit.conformation.B_iso_or_equiv.value(l.atom)),
+    id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.atomId.value(l.atom)),
+    occupancy: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.occupancy.value(l.atom)),
+    B_iso_or_equiv: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.B_iso_or_equiv.value(l.atom)),
 
     // Hierarchy
     type_symbol: Atom.property(l => l.unit.hierarchy.atoms.type_symbol.value(l.atom)),
@@ -32,25 +36,25 @@ const atom = {
 }
 
 const residue = {
-    key: Atom.property(l => l.unit.hierarchy.residueKey.value(l.unit.residueIndex[l.atom])),
+    key: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residueKey.value(l.unit.residueIndex[l.atom])),
 
-    group_PDB: Atom.property(l => l.unit.hierarchy.residues.group_PDB.value(l.unit.residueIndex[l.atom])),
-    label_comp_id: Atom.property(l => l.unit.hierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.atom])),
-    auth_comp_id: Atom.property(l => l.unit.hierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.atom])),
-    label_seq_id: Atom.property(l => l.unit.hierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.atom])),
-    auth_seq_id: Atom.property(l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])),
-    pdbx_PDB_ins_code: Atom.property(l => l.unit.hierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.atom]))
+    group_PDB: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.group_PDB.value(l.unit.residueIndex[l.atom])),
+    label_comp_id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.atom])),
+    auth_comp_id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.atom])),
+    label_seq_id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.atom])),
+    auth_seq_id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])),
+    pdbx_PDB_ins_code: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.atom]))
 }
 
 const chain = {
-    key: Atom.property(l => l.unit.hierarchy.chainKey.value(l.unit.chainIndex[l.atom])),
+    key: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chainKey.value(l.unit.chainIndex[l.atom])),
 
-    label_asym_id: Atom.property(l => l.unit.hierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.atom])),
-    auth_asym_id: Atom.property(l => l.unit.hierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.atom])),
-    label_entity_id: Atom.property(l => l.unit.hierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.atom]))
+    label_asym_id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.atom])),
+    auth_asym_id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.atom])),
+    label_entity_id: Atom.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.atom]))
 }
 
-function eK(l: Atom.Location) { return l.unit.hierarchy.entityKey.value(l.unit.chainIndex[l.atom]); }
+function eK(l: Atom.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.entityKey.value(l.unit.chainIndex[l.atom]); }
 
 const entity = {
     key: eK,
