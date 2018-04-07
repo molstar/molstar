@@ -128,9 +128,9 @@ class MarchingCubesState {
     vertList: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     i: number = 0; j: number = 0; k: number = 0;
 
-    vertexBuffer: ChunkedArray<number>;
-    annotationBuffer: ChunkedArray<number>;
-    triangleBuffer: ChunkedArray<number>;
+    vertexBuffer: ChunkedArray<number, 3>;
+    annotationBuffer: ChunkedArray<number, 1>;
+    triangleBuffer: ChunkedArray<number, 3>;
     vertexCount = 0;
     triangleCount = 0;
 
@@ -198,13 +198,13 @@ class MarchingCubesState {
             vertexBufferSize = Math.min(262144, Math.max(dX * dY * dZ / 16, 1024) | 0),
             triangleBufferSize = Math.min(1 << 16, vertexBufferSize * 4);
 
-        this.vertexBuffer = ChunkedArray.create<number>(s => new Float32Array(s), 3, vertexBufferSize,
+        this.vertexBuffer = ChunkedArray.create(Float32Array, 3, vertexBufferSize,
             params.oldSurface && params.oldSurface.vertexBuffer.ref.value);
-        this.triangleBuffer = ChunkedArray.create<number>(s => new Uint32Array(s), 3, triangleBufferSize,
+        this.triangleBuffer = ChunkedArray.create(Uint32Array, 3, triangleBufferSize,
             params.oldSurface && params.oldSurface.indexBuffer.ref.value);
 
         this.annotate = !!params.annotationField;
-        if (this.annotate) this.annotationBuffer = ChunkedArray.create(s => new Int32Array(s), 1, vertexBufferSize);
+        if (this.annotate) this.annotationBuffer = ChunkedArray.create(Int32Array, 1, vertexBufferSize);
 
         // two layers of vertex indices. Each vertex has 3 edges associated.
         this.verticesOnEdges = new Int32Array(3 * this.nX * this.nY * 2);

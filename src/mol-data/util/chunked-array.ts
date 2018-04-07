@@ -12,9 +12,9 @@
  * of elements and no copying is done until ChunkedArray.compact
  * is called.
  */
-interface ChunkedArray<T> {
+interface ChunkedArray<T, C extends 1 | 2 | 3 | 4 = 1> {
     ctor: { new (size: number): ArrayLike<T> },
-    elementSize: number,
+    elementSize: C,
 
     growBy: number,
     allocatedSize: number,
@@ -29,11 +29,13 @@ interface ChunkedArray<T> {
 }
 
 namespace ChunkedArray {
+    type Sizes = 1 | 2 | 3 | 4
+
     export function is(x: any): x is ChunkedArray<any> {
         return x.creator && x.chunkSize;
     }
 
-    function allocateNext(array: ChunkedArray<any>) {
+    function allocateNext(array: ChunkedArray<any, any>) {
         let nextSize = array.growBy * array.elementSize;
         array.currentSize = nextSize;
         array.currentIndex = 0;
@@ -42,7 +44,7 @@ namespace ChunkedArray {
         array.chunks[array.chunks.length] = array.currentChunk;
     }
 
-    export function add4<T>(array: ChunkedArray<T>, x: T, y: T, z: T, w: T) {
+    export function add4<T>(array: ChunkedArray<T, 4>, x: T, y: T, z: T, w: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
         const c = array.currentChunk;
         c[array.currentIndex++] = x;
@@ -52,7 +54,7 @@ namespace ChunkedArray {
         return array.elementCount++;
     }
 
-    export function add3<T>(array: ChunkedArray<T>, x: T, y: T, z: T) {
+    export function add3<T>(array: ChunkedArray<T, 3>, x: T, y: T, z: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
         const c = array.currentChunk;
         c[array.currentIndex++] = x;
@@ -61,7 +63,7 @@ namespace ChunkedArray {
         return array.elementCount++;
     }
 
-    export function add2<T>(array: ChunkedArray<T>, x: T, y: T) {
+    export function add2<T>(array: ChunkedArray<T, 2>, x: T, y: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
         const c = array.currentChunk;
         c[array.currentIndex++] = x;
@@ -69,13 +71,13 @@ namespace ChunkedArray {
         return array.elementCount++;
     }
 
-    export function add<T>(array: ChunkedArray<T>, x: T) {
+    export function add<T>(array: ChunkedArray<T, 1>, x: T) {
         if (array.currentIndex >= array.currentSize) allocateNext(array);
         array.currentChunk[array.currentIndex++] = x;
         return array.elementCount++;
     }
 
-    export function addMany<T>(array: ChunkedArray<T>, data: ArrayLike<T>) {
+    export function addMany<T>(array: ChunkedArray<T, any>, data: ArrayLike<T>) {
         const { elementSize } = array;
         for (let i = 0, _i = data.length; i < _i; i += elementSize) {
             if (array.currentIndex >= array.currentSize) allocateNext(array);
@@ -89,11 +91,11 @@ namespace ChunkedArray {
     }
 
     /** If doNotResizeSingleton = true and the data fit into a single chunk, do not resize it. */
-    export function compact<T>(array: ChunkedArray<T>, doNotResizeSingleton = false): ArrayLike<T> {
+    export function compact<T>(array: ChunkedArray<T, any>, doNotResizeSingleton = false): ArrayLike<T> {
         return _compact(array, doNotResizeSingleton);
     }
 
-    export function _compact<T>(array: ChunkedArray<T>, doNotResizeSingleton: boolean): ArrayLike<T> {
+    export function _compact<T>(array: ChunkedArray<T, any>, doNotResizeSingleton: boolean): ArrayLike<T> {
         const { ctor, chunks, currentIndex } = array;
 
         if (!chunks.length) return new ctor(0);
@@ -133,13 +135,13 @@ namespace ChunkedArray {
         return ret;
     }
 
-    export function create<T>(ctor: { new (size: number): ArrayLike<T> }, elementSize: number, chunkSize: number): ChunkedArray<T>
+    export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number): ChunkedArray<T, C>
     /** The size of the initial chunk is elementSize * initialCount */
-    export function create<T>(ctor: { new (size: number): ArrayLike<T> }, elementSize: number, chunkSize: number, initialCount: number): ChunkedArray<T>
+    export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number, initialCount: number): ChunkedArray<T, C>
     /** Use the provided array as the initial chunk. The size of the array must be divisible by the elementSize */
-    export function create<T>(ctor: { new (size: number): ArrayLike<T> }, elementSize: number, chunkSize: number, initialChunk: ArrayLike<T>): ChunkedArray<T>
-    export function create<T>(ctor: { new (size: number): ArrayLike<T> }, elementSize: number, chunkSize: number, initialChunkOrCount?: number | ArrayLike<T>): ChunkedArray<T> {
-        const ret: ChunkedArray<T> = {
+    export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number, initialChunk?: ArrayLike<T>): ChunkedArray<T, C>
+    export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number, initialChunkOrCount?: number | ArrayLike<T>): ChunkedArray<T, C> {
+        const ret: ChunkedArray<T, C> = {
             ctor,
             elementSize,
 
