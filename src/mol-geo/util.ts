@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra'
+import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra'
 
-export function normalizeVec3array<T extends Helpers.NumberArray> (a: T) {
+export function normalizeVec3Array<T extends Helpers.NumberArray> (a: T) {
     const n = a.length
     for (let i = 0; i < n; i += 3) {
         const x = a[ i ]
@@ -19,12 +19,26 @@ export function normalizeVec3array<T extends Helpers.NumberArray> (a: T) {
     }
 }
 
+const tmpV = Vec3.zero()
+
+export function transformPositionArray (t: Mat4, array: Helpers.NumberArray, offset: number, count: number) {
+    for (let i = 0, il = count * 3; i < il; i += 3) {
+        Vec3.fromArray(tmpV, array, offset + i)
+        Vec3.transformMat4(tmpV, tmpV, t)
+        Vec3.toArray(tmpV, array, offset + i)
+    }
+}
+
+export function transformDirectionArray (t: Mat3, array: Helpers.NumberArray, offset: number, count: number) {
+    // TODO
+}
+
 export function setArrayZero(array: Helpers.NumberArray) {
     const n = array.length
     for (let i = 0; i < n; ++i) array[i] = 0
 }
 
-// iterate over the entire buffer and apply the radius to each vertex
+/** iterate over the entire buffer and apply the radius to each vertex */
 export function appplyRadius(vertices: Helpers.NumberArray, radius: number) {
     const v = Vec3.zero()
     const n = vertices.length
@@ -36,8 +50,10 @@ export function appplyRadius(vertices: Helpers.NumberArray, radius: number) {
     }
 }
 
-// indexed vertex normals weighted by triangle areas http://www.iquilezles.org/www/articles/normals/normals.htm
-// normal array must contain only zeros
+/**
+ * indexed vertex normals weighted by triangle areas http://www.iquilezles.org/www/articles/normals/normals.htm
+ * normal array must contain only zeros
+ */
 export function computeIndexedVertexNormals<T extends Helpers.NumberArray> (vertices: Helpers.NumberArray, indices: Helpers.NumberArray, normals: T) {
     const a = Vec3.zero()
     const b = Vec3.zero()
@@ -71,12 +87,11 @@ export function computeIndexedVertexNormals<T extends Helpers.NumberArray> (vert
         normals[ ci + 2 ] += cb[ 2 ]
     }
 
-    normalizeVec3array(normals)
+    normalizeVec3Array(normals)
     return normals
 }
 
-// vertex normals for unindexed triangle soup
-// normal array must contain only zeros
+/** vertex normals for unindexed triangle soup, normal array must contain only zeros */
 export function computeVertexNormals<T extends Helpers.NumberArray> (vertices: Helpers.NumberArray, normals: T) {
     setArrayZero(normals)
 
@@ -108,6 +123,6 @@ export function computeVertexNormals<T extends Helpers.NumberArray> (vertices: H
         normals[ i + 8 ] = cb[ 2 ]
     }
 
-    normalizeVec3array(normals)
+    normalizeVec3Array(normals)
     return normals
 }

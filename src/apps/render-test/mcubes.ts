@@ -6,7 +6,7 @@
 
 import { Run } from 'mol-task'
 import { compute } from 'mol-geo/util/marching-cubes/algorithm'
-import { Surface } from 'mol-geo/shape/surface'
+import { Mesh } from 'mol-geo/shape/mesh'
 import { Tensor, Mat4, Vec3 } from 'mol-math/linear-algebra'
 
 function fillField(tensor: Tensor, f: (x: number, y: number, z: number) => number, min: number[], max: number[]): Tensor {
@@ -27,7 +27,7 @@ function fillField(tensor: Tensor, f: (x: number, y: number, z: number) => numbe
     return tensor
 }
 
-export default async function computeSurface(f: (x: number, y: number, z: number) => number, data?: { field: Tensor, surface: Surface }) {
+export default async function computeSurface(f: (x: number, y: number, z: number) => number, data?: { field: Tensor, surface: Mesh }) {
     let field: Tensor;
     if (data) field = data.field;
     else {
@@ -51,7 +51,7 @@ export default async function computeSurface(f: (x: number, y: number, z: number
     const scale = Mat4.fromScaling(Mat4.zero(), Vec3.create(size[0] / (grid[0] - 1), size[1] / (grid[1] - 1), size[2] / (grid[2] - 1)));
 
     const transform = Mat4.mul(Mat4.zero(), translation, scale);
-    Surface.transformImmediate(surface, transform);
-    Surface.computeNormalsImmediate(surface);
+    Mesh.transformImmediate(surface, transform);
+    Mesh.computeNormalsImmediate(surface);
     return { surface, field };
 }

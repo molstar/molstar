@@ -7,8 +7,10 @@
 import { Task } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
+import Sphere from 'mol-math/geometry/sphere'
+import { transformPositionArray } from '../util';
 
-export interface Surface {
+export interface Mesh {
     vertexCount: number,
     triangleCount: number,
     vertexBuffer: ValueCell<Float32Array>,
@@ -17,11 +19,11 @@ export interface Surface {
     normalsComputed: boolean,
 
     vertexAnnotation?: ValueCell<ArrayLike<number>>
-    //boundingSphere?: { center: Geometry.LinearAlgebra.Vector3, radius: number };
+    boundingSphere?: Sphere
 }
 
-export namespace Surface {
-    export function computeNormalsImmediate(surface: Surface) {
+export namespace Mesh {
+    export function computeNormalsImmediate(surface: Mesh) {
         if (surface.normalsComputed) return;
 
         const normals = surface.normalBuffer.ref.value && surface.normalBuffer.ref.value!.length >= surface.vertexCount * 3
@@ -58,8 +60,8 @@ export namespace Surface {
         surface.normalsComputed = true;
     }
 
-    export function computeNormals(surface: Surface): Task<Surface> {
-        return Task.create<Surface>('Surface (Compute Normals)', async ctx => {
+    export function computeNormals(surface: Mesh): Task<Mesh> {
+        return Task.create<Mesh>('Surface (Compute Normals)', async ctx => {
             if (surface.normalsComputed) return surface;
 
             await ctx.update('Computing normals...');
@@ -68,20 +70,15 @@ export namespace Surface {
         });
     }
 
-    export function transformImmediate(surface: Surface, t: Mat4) {
-        const p = Vec3.zero();
-        const vertices = surface.vertexBuffer.ref.value;
-        for (let i = 0, _c = surface.vertexCount * 3; i < _c; i += 3) {
-            p[0] = vertices[i];
-            p[1] = vertices[i + 1];
-            p[2] = vertices[i + 2];
-            Vec3.transformMat4(p, p, t);
-            vertices[i] = p[0];
-            vertices[i + 1] = p[1];
-            vertices[i + 2] = p[2];
-        }
-        surface.normalsComputed = false;
-        //surface.boundingSphere = void 0;
+    export function transformImmediate(mesh: Mesh, t: Mat4) {
+        transformRangeImmediate(mesh, t, 0, mesh.vertexCount)
+    }
+
+    export function transformRangeImmediate(mesh: Mesh, t: Mat4, offset: number, count: number) {
+        transformPositionArray(t, mesh.vertexBuffer.ref.value, offset, count)
+        // transformDirectionArray(n, mesh.normalBuffer.ref.value, offset, count)  // TODO
+        mesh.normalsComputed = false;
+        // mesh.boundingSphere = void 0;
     }
 }
 
@@ -168,38 +165,37 @@ export namespace Surface {
 //         return computation(async ctx => await laplacianSmoothComputation(ctx, surface, iterCount, (1.1 * vertexWeight) / 1.1));
 //     }
 
-//     export function computeBoundingSphere(surface: Surface): Computation<Surface> {
-//         return computation<Surface>(async ctx => {
-//             if (surface.boundingSphere) {
-//                 return surface;
-//             }
-//             await ctx.updateProgress('Computing bounding sphere...');
+    export function computeBoundingSphere(mesh: Mesh): Task<Mesh> {
+        return Task.create<Mesh>('Mesh (Compute Bounding Sphere)', async ctx => {
+            if (mesh.boundingSphere) {
+                return mesh;
+            }
+            await ctx.update('Computing bounding sphere...');
 
-//             const vertices = surface.vertices;
-//             let x = 0, y = 0, z = 0;
-//             for (let i = 0, _c = surface.vertices.length; i < _c; i += 3) {
-//                 x += vertices[i];
-//                 y += vertices[i + 1];
-//                 z += vertices[i + 2];
-//             }
-//             x /= surface.vertexCount;
-//             y /= surface.vertexCount;
-//             z /= surface.vertexCount;
-//             let r = 0;
-//             for (let i = 0, _c = vertices.length; i < _c; i += 3) {
-//                 const dx = x - vertices[i];
-//                 const dy = y - vertices[i + 1];
-//                 const dz = z - vertices[i + 2];
-//                 r = Math.max(r, dx * dx + dy * dy + dz * dz);
-//             }
-//             surface.boundingSphere = {
-//                 center: LinearAlgebra.Vector3.fromValues(x, y, z),
-//                 radius: Math.sqrt(r)
-//             }
-//             return surface;
-//         });
-//     }
-
+            const vertices = mesh.vertexBuffer.ref.value;
+            let x = 0, y = 0, z = 0;
+            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
+                x += vertices[i];
+                y += vertices[i + 1];
+                z += vertices[i + 2];
+            }
+            x /= mesh.vertexCount;
+            y /= mesh.vertexCount;
+            z /= mesh.vertexCount;
+            let r = 0;
+            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
+                const dx = x - vertices[i];
+                const dy = y - vertices[i + 1];
+                const dz = z - vertices[i + 2];
+                r = Math.max(r, dx * dx + dy * dy + dz * dz);
+            }
+            mesh.boundingSphere = {
+                center: Vec3.create(x, y, z),
+                radius: Math.sqrt(r)
+            }
+            return mesh;
+        });
+    }
 
 //     export function transform(surface: Surface, t: number[]): Computation<Surface> {
 //         return computation<Surface>(async ctx => {

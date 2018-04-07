@@ -7,7 +7,7 @@
 import { Task, RuntimeContext } from 'mol-task'
 import { ChunkedArray } from 'mol-data/util'
 import { Tensor } from 'mol-math/linear-algebra'
-import { Surface } from '../../shape/surface'
+import { Mesh } from '../../shape/mesh'
 import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
 import { ValueCell } from 'mol-util'
 
@@ -23,7 +23,7 @@ export interface MarchingCubesParameters {
 
     annotationField?: Tensor,
 
-    oldSurface?: Surface
+    oldSurface?: Mesh
 }
 
 export function compute(parameters: MarchingCubesParameters) {
@@ -71,7 +71,7 @@ class MarchingCubesComputation {
         this.state.vertexBuffer = <any>void 0;
         this.state.verticesOnEdges = <any>void 0;
 
-        let ret: Surface = {
+        let ret: Mesh = {
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
             vertexBuffer: this.parameters.oldSurface ? ValueCell.update(this.parameters.oldSurface.vertexBuffer, vb) : ValueCell.create(vb),
