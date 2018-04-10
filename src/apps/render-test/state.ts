@@ -12,14 +12,20 @@ import { createColorTexture } from 'mol-gl/util';
 import Icosahedron from 'mol-geo/primitive/icosahedron'
 import Box from 'mol-geo/primitive/box'
 import Spacefill from 'mol-geo/representation/structure/spacefill'
+import Point from 'mol-geo/representation/structure/point'
 
 import CIF from 'mol-io/reader/cif'
 import { Run, Progress } from 'mol-task'
-import { ElementSet, Structure } from 'mol-model/structure'
+import { Structure } from 'mol-model/structure'
+
+function log(progress: Progress) {
+    const p = progress.root.progress
+    console.log(`${p.message} ${(p.current/p.max*100).toFixed(2)}%`)
+}
 
 async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data)
-    const parsed = await Run(comp);
+    const parsed = await Run(comp, log, 100);
     if (parsed.isError) throw parsed;
     return parsed
 }
@@ -117,21 +123,16 @@ export default class State {
         const mesh2 = makeCubesMesh();
         renderer.add(mesh2)
 
-        function log(progress: Progress) {
-            const p = progress.root.progress
-            console.log(`${p.message} ${(p.current/p.max*100).toFixed(2)}%`)
-        }
+        const structures = await getPdb('4v99')
+        const { elements, units } = structures[0];
 
-        async function createSpacefills (structure: Structure) {
-            const spacefills: RenderObject[] = []
-            const { elements, units } = structure;
-            const spacefill = Spacefill()
-            spacefills.push(...await Run(spacefill.create(units, elements), log, 100))
-            return spacefills
-        }
-        const structures = await getPdb('3pqr')
-        const spacefills = await createSpacefills(structures[0])
-        spacefills.forEach(renderer.add)
+        // const spacefill = Spacefill()
+        // const spacefills = await Run(spacefill.create(units, elements), log, 100)
+        // spacefills.forEach(renderer.add)
+
+        const point = Point()
+        const points = await Run(point.create(units, elements), log, 100)
+        points.forEach(renderer.add)
 
         renderer.frame()
     }
