@@ -2,9 +2,11 @@
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Element, Unit } from '../structure'
+import { VdwRadius, AtomWeight, AtomNumber } from '../model/properties/atomic';
 
 const constant = {
     true: Element.property(l => true),
@@ -32,7 +34,12 @@ const atom = {
     label_atom_id: Element.property(l => l.unit.hierarchy.atoms.label_atom_id.value(l.element)),
     auth_atom_id: Element.property(l => l.unit.hierarchy.atoms.auth_atom_id.value(l.element)),
     label_alt_id: Element.property(l => l.unit.hierarchy.atoms.label_alt_id.value(l.element)),
-    pdbx_formal_charge: Element.property(l => l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element))
+    pdbx_formal_charge: Element.property(l => l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element)),
+
+    // Derived
+    vdw: Element.property(l => VdwRadius(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
+    mass: Element.property(l => AtomWeight(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
+    number: Element.property(l => AtomNumber(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
 }
 
 const residue = {
