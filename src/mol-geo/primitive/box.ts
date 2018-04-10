@@ -16,9 +16,9 @@ export const DefaultBoxProps = {
     heightSegments: 1,
     depthSegments: 1
 }
-export type BoxProps = typeof DefaultBoxProps
+export type BoxProps = Partial<typeof DefaultBoxProps>
 
-export default function Box(props?: Partial<BoxProps>) {
+export default function Box(props?: BoxProps) {
     const { width, height, depth, widthSegments, heightSegments, depthSegments } = { ...DefaultBoxProps, ...props }
 
     // buffers

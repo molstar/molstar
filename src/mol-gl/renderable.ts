@@ -14,7 +14,7 @@ export type AttributesData = { [k: string]: Helpers.TypedArray }
 export type Attributes<T extends AttributesData> = { [K in keyof T]: Attribute<T[K]> }
 export type AttributesBuffers<T extends AttributesData> = { [K in keyof T]: REGL.AttributeConfig }
 
-export interface Renderable<T extends AttributesData> {
+export interface Renderable {
     draw(): void
     // isPicking: () => boolean
     // isVisible: () => boolean

@@ -15,25 +15,25 @@ import { PointShaders } from '../shaders'
 type Point = 'point'
 
 namespace Point {
-    export type DataType = {
-        position: { type: Float32Array, itemSize: 3 }
-        transform: { type: Float32Array, itemSize: 16 }
-    }
-    export type Data = { [K in keyof DataType]: DataType[K]['type'] }
-    export type BoxedData = { [K in keyof Data]: ValueCell<Data[K]> }
+    export type Data = {
+        position: ValueCell<Float32Array>
+        transform: ValueCell<Float32Array>
 
-    export function create(regl: REGL.Regl, data: BoxedData): Renderable<Data> {
-        const instanceCount = data.transform.ref.value.length / 16
-        const instanceId = ValueCell.create(fillSerial(new Float32Array(instanceCount)))
+        instanceCount: number
+        positionCount: number
+    }
+
+    export function create(regl: REGL.Regl, data: Data): Renderable {
+        const instanceId = ValueCell.create(fillSerial(new Float32Array(data.instanceCount)))
         const command = regl({
             ...PointShaders,
             attributes: getBuffers({
-                instanceId: Attribute.create(regl, instanceId, { size: 1, divisor: 1 }),
-                position: Attribute.create(regl, data.position, { size: 3 }),
-                ...createTransformAttributes(regl, data.transform)
+                instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
+                position: Attribute.create(regl, data.position, data.positionCount, { size: 3 }),
+                ...createTransformAttributes(regl, data.transform, data.positionCount)
             }),
-            count: data.position.ref.value.length / 3,
-            instances: instanceCount,
+            count: data.positionCount,
+            instances: data.instanceCount,
             primitive: 'points'
         })
         return {

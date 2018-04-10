@@ -63,13 +63,26 @@ namespace Attribute {
     export type ArrayCell<T> = { array: ReferenceCell<T> }
     export type ReferenceCell<T> = { readonly version: number, readonly value: T }
 
-    export function create<T extends Helpers.TypedArray>(regl: REGL.Regl, array: ValueCell<T>, props: AttributeProps): Attribute<T> {
+    export function create<T extends Float32Array>(regl: REGL.Regl, array: ValueCell<T>, count: number, props: AttributeProps): Attribute<T> {
         const itemSize = props.size
         let _array = array.ref.value
-        let _count = _array.length / itemSize
-        if (props.stride) _count = _array.length / (props.stride / _array.BYTES_PER_ELEMENT)
-        console.log(_array.length, props.stride)
-        const buffer = regl.buffer(_array)
+        let _count = count
+        // if (props.stride) _count = _array.length / (props.stride / _array.BYTES_PER_ELEMENT)
+        // console.log(_array.length, props.stride)
+        // console.log('buffer', {
+        //     data: _array,
+        //     length: count * itemSize,
+        //     usage: 'dynamic',
+        //     type: 'float32'
+        // })
+        const buffer = regl.buffer({
+            data: _array,
+            // length: count * itemSize * _array.BYTES_PER_ELEMENT,
+            usage: 'dynamic',
+            type: 'float32',
+            dimension: itemSize
+        } as any)
+        // console.log(buffer)
         const attribute: REGL.AttributeConfig = { ...props, buffer }
         const growIfNeeded = function(count: number) {
             if (count * itemSize > _array.length) {

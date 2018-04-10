@@ -11,16 +11,16 @@ import { ColorTexture } from '../util';
 import { Attributes, AttributesData, AttributesBuffers } from '../renderable'
 import Attribute from '../attribute'
 
-export function createTransformAttributes (regl: REGL.Regl, transform: ValueCell<Float32Array>) {
+export function createTransformAttributes (regl: REGL.Regl, transform: ValueCell<Float32Array>, count: number) {
     const size = 4
     const divisor = 1
     const bpe = transform.ref.value.BYTES_PER_ELEMENT
     const stride = 16 * bpe
     return {
-        transformColumn0: Attribute.create(regl, transform, { size, divisor, offset: 0, stride }),
-        transformColumn1: Attribute.create(regl, transform, { size, divisor, offset: 4 * bpe, stride }),
-        transformColumn2: Attribute.create(regl, transform, { size, divisor, offset: 8 * bpe, stride }),
-        transformColumn3: Attribute.create(regl, transform, { size, divisor, offset: 12 * bpe, stride })
+        transformColumn0: Attribute.create(regl, transform, count, { size, divisor, offset: 0, stride }),
+        transformColumn1: Attribute.create(regl, transform, count, { size, divisor, offset: 4 * bpe, stride }),
+        transformColumn2: Attribute.create(regl, transform, count, { size, divisor, offset: 8 * bpe, stride }),
+        transformColumn3: Attribute.create(regl, transform, count, { size, divisor, offset: 12 * bpe, stride })
     }
 }
 

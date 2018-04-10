@@ -27,8 +27,8 @@ export const DefaultIcosahedronProps = {
     radius: 1,
     detail: 0
 }
-export type IcosahedronProps = typeof DefaultIcosahedronProps
+export type IcosahedronProps = Partial<typeof DefaultIcosahedronProps>
 
-export default function Icosahedron(props?: Partial<IcosahedronProps>) {
+export default function Icosahedron(props?: IcosahedronProps) {
     return Polyhedron(vertices, indices, { ...DefaultIcosahedronProps, ...props })
 }

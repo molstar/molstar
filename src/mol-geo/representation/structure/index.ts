@@ -15,7 +15,7 @@ export interface RepresentationProps {
 }
 
 export interface UnitRepresentation {
-    create: (unit: Unit, elementGroup: ElementGroup, props?: Partial<RepresentationProps>) => Task<RenderObject[]>,
+    create: (units: ReadonlyArray<Unit>, elements: ElementSet, props?: Partial<RepresentationProps>) => Task<RenderObject[]>,
     update: (props: RepresentationProps) => boolean,
 }
 
@@ -42,7 +42,7 @@ export class StructureRepresentation {
 
             }
 
-            const u = this.repr.create(units[0], 0 as any, 0 as any);
+            const u = this.repr.create(units, 0 as any, 0 as any);
             await ctx.update('Building units...');
             await ctx.runChild(u);
 

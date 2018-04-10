@@ -13,9 +13,9 @@ export const DefaultPolyhedronProps = {
     radius: 1,
     detail: 0
 }
-export type PolyhedronProps = typeof DefaultPolyhedronProps
+export type PolyhedronProps = Partial<typeof DefaultPolyhedronProps>
 
-export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, props?: Partial<PolyhedronProps>) {
+export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, props?: PolyhedronProps) {
     const { radius, detail } = { ...DefaultPolyhedronProps, ...props }
 
     const vertices: number[] = [];
@@ -95,6 +95,8 @@ export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Hel
                 } else {
                     vertices.push(...v[i][k + 1], ...v[i + 1][k + 1], ...v[i + 1][k])
                 }
+                const l = vertices.length / 3
+                indices.push(l - 3, l - 2, l - 1)
             }
         }
     }

@@ -8,78 +8,75 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { createRenderObject, RenderObject } from 'mol-gl/renderer'
 import { createColorTexture } from 'mol-gl/util';
-import Icosahedron from 'mol-geo/primitive/icosahedron'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
-import { Element, ElementGroup, Unit } from 'mol-model/structure';
+import { Element, Unit, ElementSet } from 'mol-model/structure';
 import P from 'mol-model/structure/query/properties';
 import { RepresentationProps, UnitRepresentation } from './index';
 import { Task } from 'mol-task'
+import { MeshBuilder } from '../../shape/mesh-builder';
 
 export default function Spacefill(): UnitRepresentation {
-    let vertices: Float32Array
-    let normals: Float32Array
-
     const renderObjects: RenderObject[] = []
 
     // unit: Unit, atomGroup: AtomGroup
 
     return {
-        create: (unit: Unit, elementGroup: ElementGroup, props: Partial<RepresentationProps> = {}) => Task.create('Spacefill', async ctx => {
-            const elementCount = OrderedSet.size(elementGroup.elements)
-
+        create: (units: ReadonlyArray<Unit>, elements: ElementSet, props: Partial<RepresentationProps> = {}) => Task.create('Spacefill', async ctx => {
             const l = Element.Location();
-            l.unit = unit;
+            const meshBuilder = MeshBuilder.create()
 
-            const sphere = Icosahedron({ radius: 1, detail: 0 })
-            const vertexCount = sphere.vertices.length / 3
+            const unitIds = ElementSet.unitIds(elements);
+            for (let i = 0, _i = unitIds.length; i < _i; i++) {
+                const unitId = unitIds[i];
+                const unit = units[unitId];
+                const elementGroup = ElementSet.unitGetByIndex(elements, i);
 
-            vertices = new Float32Array(elementCount * vertexCount * 3)
-            normals = new Float32Array(elementCount * vertexCount * 3)
+                const elementCount = OrderedSet.size(elementGroup.elements)
 
-            const v = Vec3.zero()
-            const m = Mat4.identity()
+                l.unit = unit;
 
-            for (let i = 0; i < elementCount; i++) {
-                l.element = OrderedSet.getAt(elementGroup.elements, i)
+                const v = Vec3.zero()
+                const m = Mat4.identity()
 
-                v[0] = P.atom.x(l)
-                v[1] = P.atom.y(l)
-                v[2] = P.atom.z(l)
-                Mat4.setTranslation(m, v)
+                for (let i = 0; i < elementCount; i++) {
+                    l.element = OrderedSet.getAt(elementGroup.elements, i)
 
-                for (let j = 0; j < vertexCount; ++j) {
-                    Vec3.fromArray(v, sphere.vertices, j * 3)
-                    Vec3.transformMat4(v, v, m)
-                    Vec3.toArray(v, vertices, i * vertexCount * 3 + j * 3)
+                    v[0] = P.atom.x(l)
+                    v[1] = P.atom.y(l)
+                    v[2] = P.atom.z(l)
+                    Mat4.setTranslation(m, v)
+
+                    meshBuilder.addIcosahedron(m, { radius: P.atom.vdw(l), detail: 1 })
                 }
 
-                normals.set(sphere.normals, i * vertexCount * 3);
-
-                if (i % 100 === 0 && ctx.shouldUpdate) {
-                    await ctx.update({ message: 'Spacefill', current: i, max: elementCount });
+                if (i % 10 === 0 && ctx.shouldUpdate) {
+                    await ctx.update({ message: 'Spacefill', current: i, max: _i });
                 }
             }
 
-            const transformArray = new Float32Array(16)
+            const transformArray = new Float32Array(32)
             const m4 = Mat4.identity()
             Mat4.toArray(m4, transformArray, 0)
 
             const color = ValueCell.create(createColorTexture(1))
             color.ref.value.set([ 0, 0, 255 ])
 
-            const spheres = createRenderObject(
-                'mesh',
-                {
-                    position: ValueCell.create(new Float32Array(vertices)),
-                    normal: ValueCell.create(new Float32Array(normals)),
-                    color,
-                    transform: ValueCell.create(transformArray)
-                }
-            )
+            const mesh = meshBuilder.getMesh()
 
-            // console.log({ vertices, normals, vertexCount, atomCount })
+            // console.log(mesh)
 
+            const spheres = createRenderObject('mesh', {
+                position: mesh.vertexBuffer,
+                normal: mesh.normalBuffer,
+                color,
+                transform: ValueCell.create(transformArray),
+                elements: mesh.indexBuffer,
+
+                instanceCount: transformArray.length / 16,
+                elementCount: mesh.triangleCount,
+                positionCount: mesh.vertexCount
+            }, {})
             renderObjects.push(spheres)
 
             return renderObjects

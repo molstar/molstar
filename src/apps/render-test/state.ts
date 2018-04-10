@@ -32,7 +32,7 @@ async function getPdb(pdb: string) {
 }
 
 import mcubes from './mcubes'
-import Cylinder from 'mol-geo/primitive/cylinder';
+// import Cylinder from 'mol-geo/primitive/cylinder';
 
 export default class State {
     async initRenderer (container: HTMLDivElement) {
@@ -41,8 +41,8 @@ export default class State {
         const p1 = Vec3.create(0, 4, 0)
         const p2 = Vec3.create(-3, 0, 0)
 
-        const position = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
-        const normal = ValueCell.create(new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
+        // const position = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
+        // const normal = ValueCell.create(new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
 
         const transformArray1 = ValueCell.create(new Float32Array(16))
         const transformArray2 = ValueCell.create(new Float32Array(16 * 3))
@@ -61,41 +61,41 @@ export default class State {
             255, 0, 0
         ])
 
-        const points = createRenderObject('point', {
-            position,
-            transform: transformArray1
-        })
-        renderer.add(points)
+        // const points = createRenderObject('point', {
+        //     position,
+        //     transform: transformArray1
+        // })
+        // // renderer.add(points)
 
-        const mesh = createRenderObject('mesh', {
-            position,
-            normal,
-            color,
-            transform: transformArray2
-        })
-        renderer.add(mesh)
+        // const mesh = createRenderObject('mesh', {
+        //     position,
+        //     normal,
+        //     color,
+        //     transform: transformArray2
+        // })
+        // renderer.add(mesh)
 
-        const cylinder = Cylinder({ height: 3, radiusBottom: 0.5, radiusTop: 0.5 })
-        console.log(cylinder)
-        const cylinderMesh = createRenderObject('mesh', {
-            position: ValueCell.create(cylinder.vertices),
-            normal: ValueCell.create(cylinder.normals),
-            color,
-            transform: transformArray2
-        }, cylinder.indices)
-        renderer.add(cylinderMesh)
+        // const cylinder = Cylinder({ height: 3, radiusBottom: 0.5, radiusTop: 0.5 })
+        // console.log(cylinder)
+        // const cylinderMesh = createRenderObject('mesh', {
+        //     position: ValueCell.create(cylinder.vertices),
+        //     normal: ValueCell.create(cylinder.normals),
+        //     color,
+        //     transform: transformArray2
+        // }, cylinder.indices)
+        // renderer.add(cylinderMesh)
 
-        const sphere = Icosahedron()
-        console.log(sphere)
+        // const sphere = Icosahedron()
+        // console.log(sphere)
 
-        const box = Box()
-        console.log(box)
+        // const box = Box()
+        // console.log(box)
 
-        const points2 = createRenderObject('point', {
-            position: ValueCell.create(new Float32Array(box.vertices)),
-            transform: transformArray1
-        })
-        renderer.add(points2)
+        // const points2 = createRenderObject('point', {
+        //     position: ValueCell.create(new Float32Array(box.vertices)),
+        //     transform: transformArray1
+        // })
+        // renderer.add(points2)
 
         let rr = 0.7;
         function cubesF(x: number, y: number, z: number) {
@@ -107,8 +107,13 @@ export default class State {
             position: cubes.surface.vertexBuffer,
             normal: cubes.surface.normalBuffer,
             color,
-            transform: transformArray1,
-        }, cubes.surface.indexBuffer.ref.value);
+            transform: transformArray2,
+            elements: cubes.surface.indexBuffer,
+
+            instanceCount: transformArray2.ref.value.length / 16,
+            elementCount: cubes.surface.triangleCount,
+            positionCount: cubes.surface.vertexCount
+        }, {});
         const mesh2 = makeCubesMesh();
         renderer.add(mesh2)
 
@@ -120,18 +125,11 @@ export default class State {
         async function createSpacefills (structure: Structure) {
             const spacefills: RenderObject[] = []
             const { elements, units } = structure;
-            const unitIds = ElementSet.unitIds(elements);
-            for (let i = 0, _i = unitIds.length; i < _i; i++) {
-                const unitId = unitIds[i];
-                const unit = units[unitId];
-                const atomGroup = ElementSet.unitGetByIndex(elements, i);
-
-                const spacefill = Spacefill()
-                spacefills.push(...await Run(spacefill.create(unit, atomGroup), log, 1))
-            }
+            const spacefill = Spacefill()
+            spacefills.push(...await Run(spacefill.create(units, elements), log, 100))
             return spacefills
         }
-        const structures = await getPdb('1crn')
+        const structures = await getPdb('3pqr')
         const spacefills = await createSpacefills(structures[0])
         spacefills.forEach(renderer.add)
 

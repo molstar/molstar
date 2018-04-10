@@ -18,52 +18,49 @@ type Mesh = 'mesh'
 type Uniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 
 namespace Mesh {
-    export type DataType = {
-        position: { type: Float32Array, itemSize: 3 }
-        normal: { type: Float32Array, itemSize: 3 }
-        transform: { type: Float32Array, itemSize: 16 }
-        color: { type: ColorTexture, itemSize: 16 }
-    }
-    export type Data = { [K in keyof DataType]: DataType[K]['type'] }
-    export type BoxedData = { [K in keyof Data]: ValueCell<Data[K]> }
+    export type Data = {
+        position: ValueCell<Float32Array>
+        normal: ValueCell<Float32Array>
+        transform: ValueCell<Float32Array>
+        color: ValueCell<ColorTexture>
+        elements: ValueCell<Uint32Array>
 
-    export function create(regl: REGL.Regl, data: BoxedData, uniforms: Uniforms, elements?: Helpers.UintArray): Renderable<Data> {
-        // console.log('mesh', {
-        //     count: attributes.position.getCount(),
-        //     instances: attributes.transformColumn0.getCount(),
-        //     attributes,
-        //     uniforms
-        // })
-        const instanceCount = data.transform.ref.value.length / 16
-        const instanceId = ValueCell.create(fillSerial(new Float32Array(instanceCount)))
-        // console.log(instanceId)
+        instanceCount: number
+        elementCount: number
+        positionCount: number
+    }
+
+    export function create(regl: REGL.Regl, data: Data, uniforms: Uniforms): Renderable {
+        console.log(data)
+        const instanceId = ValueCell.create(fillSerial(new Float32Array(data.instanceCount)))
         const command = regl({
             ...MeshShaders,
             uniforms: {
                 objectId: uniforms.objectId || 0,
-                instanceCount,
+                instanceCount: data.instanceCount,
                 ...createColorUniforms(regl, data.color),
                 ...uniforms
             },
             attributes: getBuffers({
-                instanceId: Attribute.create(regl, instanceId, { size: 1, divisor: 1 }),
-                position: Attribute.create(regl, data.position, { size: 3 }),
-                normal: Attribute.create(regl, data.normal, { size: 3 }),
-                ...createTransformAttributes(regl, data.transform)
+                instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
+                position: Attribute.create(regl, data.position, data.positionCount, { size: 3 }),
+                normal: Attribute.create(regl, data.normal, data.positionCount, { size: 3 }),
+                ...createTransformAttributes(regl, data.transform, data.instanceCount)
             }),
-            elements: elements && regl.elements({
-                data: new Uint16Array(elements),
+            elements: regl.elements({
+                data: data.elements.ref.value,
                 primitive: 'triangles',
-                // type: 'uint16',
-                // count: elements.length / 3,
-                // length: elements.length * 2
+                type: 'uint32',
+                count: data.elementCount * 3,
+                // length: count * 3 * 2
             }),
-            count: elements ? elements.length : data.position.ref.value.length / 3,
-            instances: instanceCount,
-            primitive: 'triangles'
+            instances: data.instanceCount,
         })
         return {
-            draw: () => command(),
+            draw: () => {
+                command()
+                console.log(command.stats)
+            }
         }
     }
 }

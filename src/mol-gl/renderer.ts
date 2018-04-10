@@ -28,13 +28,12 @@ export type RenderData = { [k: string]: ValueCell<Helpers.TypedArray> }
 export interface RenderObject {
     id: number
     type: 'mesh' | 'point'
-    data: any
-    elements: any
-    uniforms: any
+    data: PointRenderable.Data | MeshRenderable.Data
+    uniforms: { [k: string]: REGL.Uniform }
 }
 
-export function createRenderObject(type: 'mesh' | 'point', data: any, elements?: any, uniforms?: any) {
-    return { id: getNextId(), type, data, elements, uniforms }
+export function createRenderObject(type: 'mesh' | 'point', data: PointRenderable.Data | MeshRenderable.Data, uniforms: { [k: string]: REGL.Uniform }) {
+    return { id: getNextId(), type, data, uniforms }
 }
 
 export interface Renderer {
@@ -46,14 +45,14 @@ export interface Renderer {
 
 export function createRenderable(regl: REGL.Regl, o: RenderObject) {
     switch (o.type) {
-        case 'mesh': return MeshRenderable.create(regl, o.data, o.uniforms || {}, o.elements)
-        case 'point': return PointRenderable.create(regl, o.data)
+        case 'mesh': return MeshRenderable.create(regl, o.data as MeshRenderable.Data, o.uniforms || {})
+        case 'point': return PointRenderable.create(regl, o.data as PointRenderable.Data)
     }
 }
 
 export function createRenderer(container: HTMLDivElement): Renderer {
-    const renderableList: Renderable<any>[] = []
-    const objectIdRenderableMap: { [k: number]: Renderable<any> } = {}
+    const renderableList: Renderable[] = []
+    const objectIdRenderableMap: { [k: number]: Renderable } = {}
 
     const regl = glContext.create({
         container,
@@ -65,7 +64,7 @@ export function createRenderer(container: HTMLDivElement): Renderer {
             'EXT_blend_minmax',
             'ANGLE_instanced_arrays'
         ],
-        // profile: true
+        profile: true
     })
 
     const camera = Camera.create(regl, container, {
