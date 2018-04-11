@@ -70,7 +70,9 @@ export function createRenderer(container: HTMLDivElement): Renderer {
     const camera = Camera.create(regl, container, {
         center: Vec3.create(0, 0, 0),
         near: 0.01,
-        far: 1000
+        far: 10000,
+        minDistance: 0.01,
+        maxDistance: 10000
     })
 
     const baseContext = regl({

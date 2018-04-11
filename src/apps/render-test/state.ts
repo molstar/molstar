@@ -7,16 +7,16 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import { createRenderer, createRenderObject, RenderObject } from 'mol-gl/renderer'
+import { createRenderer, createRenderObject } from 'mol-gl/renderer'
 import { createColorTexture } from 'mol-gl/util';
-import Icosahedron from 'mol-geo/primitive/icosahedron'
-import Box from 'mol-geo/primitive/box'
+// import Icosahedron from 'mol-geo/primitive/icosahedron'
+// import Box from 'mol-geo/primitive/box'
 import Spacefill from 'mol-geo/representation/structure/spacefill'
 import Point from 'mol-geo/representation/structure/point'
 
 import CIF from 'mol-io/reader/cif'
 import { Run, Progress } from 'mol-task'
-import { Structure } from 'mol-model/structure'
+import { Structure, Symmetry } from 'mol-model/structure'
 
 function log(progress: Progress) {
     const p = progress.root.progress
@@ -38,6 +38,7 @@ async function getPdb(pdb: string) {
 }
 
 import mcubes from './mcubes'
+import { StructureRepresentation } from 'mol-geo/representation/structure';
 // import Cylinder from 'mol-geo/primitive/cylinder';
 
 export default class State {
@@ -123,16 +124,16 @@ export default class State {
         const mesh2 = makeCubesMesh();
         renderer.add(mesh2)
 
-        const structures = await getPdb('4v99')
-        const { elements, units } = structures[0];
+        const structures = await getPdb('1rb8')
+        const struct = Symmetry.buildAssembly(structures[0], '1')
 
-        // const spacefill = Spacefill()
-        // const spacefills = await Run(spacefill.create(units, elements), log, 100)
-        // spacefills.forEach(renderer.add)
+        const structPointRepr = StructureRepresentation(Point)
+        await Run(structPointRepr.create(struct))
+        structPointRepr.renderObjects.forEach(renderer.add)
 
-        const point = Point()
-        const points = await Run(point.create(units, elements), log, 100)
-        points.forEach(renderer.add)
+        const structSpacefillRepr = StructureRepresentation(Spacefill)
+        await Run(structSpacefillRepr.create(struct))
+        structSpacefillRepr.renderObjects.forEach(renderer.add)
 
         renderer.frame()
     }

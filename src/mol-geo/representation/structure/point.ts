@@ -11,43 +11,42 @@ import { createColorTexture } from 'mol-gl/util';
 import { Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
 import { ChunkedArray } from 'mol-data/util';
-import { Element, Unit, ElementSet } from 'mol-model/structure';
-import P from 'mol-model/structure/query/properties';
-import { RepresentationProps, UnitRepresentation } from './index';
+import { Unit, ElementGroup } from 'mol-model/structure';
+import { RepresentationProps, UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 
+export const DefaultPointProps = {
 
-export default function Point(): UnitRepresentation {
+}
+export type PointProps = Partial<typeof DefaultPointProps>
+
+export default function Point(): UnitsRepresentation<PointProps> {
     const renderObjects: RenderObject[] = []
     const vertices = ChunkedArray.create(Float32Array, 3, 1024, 2048);
 
     return {
-        create: (units: ReadonlyArray<Unit>, elements: ElementSet, props: Partial<RepresentationProps> = {}) => Task.create('Spacefill', async ctx => {
-            const l = Element.Location();
+        renderObjects,
+        create: (units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: PointProps = {}) => Task.create('Spacefill', async ctx => {
+            // const l = Element.Location();
 
-            const unitIds = ElementSet.unitIds(elements);
-            for (let i = 0, _i = unitIds.length; i < _i; i++) {
-                const unitId = unitIds[i];
-                const unit = units[unitId];
-                const elementGroup = ElementSet.unitGetByIndex(elements, i);
-                const elementCount = OrderedSet.size(elementGroup.elements)
-                l.unit = unit;
-
-                for (let i = 0; i < elementCount; i++) {
-                    l.element = OrderedSet.getAt(elementGroup.elements, i)
-                    ChunkedArray.add3(vertices, P.atom.x(l), P.atom.y(l), P.atom.z(l))
-                }
+            const { x, y, z } = units[0].model.conformation
+            const elementCount = OrderedSet.size(elementGroup.elements)
+            for (let i = 0; i < elementCount; i++) {
+                const e = OrderedSet.getAt(elementGroup.elements, i)
+                ChunkedArray.add3(vertices, x[e], y[e], z[e])
 
                 if (i % 10 === 0 && ctx.shouldUpdate) {
-                    await ctx.update({ message: 'Point', current: i, max: _i });
+                    await ctx.update({ message: 'Point', current: i, max: elementCount });
                 }
             }
 
-            const transformArray = new Float32Array(32)
-            const m4 = Mat4.identity()
-            Mat4.toArray(m4, transformArray, 0)
+            const unitsCount = units.length
+            const transformArray = new Float32Array(unitsCount * 16)
+            for (let i = 0; i < unitsCount; i++) {
+                Mat4.toArray(units[i].operator.matrix, transformArray, i * 16)
+            }
 
-            const color = ValueCell.create(createColorTexture(1))
+            const color = ValueCell.create(createColorTexture(unitsCount))
             color.ref.value.set([ 0, 0, 255 ])
 
             const points = createRenderObject('point', {
@@ -55,12 +54,10 @@ export default function Point(): UnitRepresentation {
                 color,
                 transform: ValueCell.create(transformArray),
 
-                instanceCount: transformArray.length / 16,
+                instanceCount: unitsCount,
                 positionCount: vertices.elementCount
             }, {})
             renderObjects.push(points)
-
-            return renderObjects
         }),
         update: (props: RepresentationProps) => false
     }

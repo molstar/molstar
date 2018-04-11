@@ -21,6 +21,6 @@ attribute vec4 transformColumn0, transformColumn1, transformColumn2, transformCo
 void main(){
     mat4 transform = mat4(transformColumn0, transformColumn1, transformColumn2, transformColumn3);
     // vColor = color;
-    gl_PointSize = 5.0;
+    gl_PointSize = 1.0;
     gl_Position = projection * view * model * transform * vec4(position, 1.0);
 }
