@@ -39,7 +39,8 @@ export function createRenderObject(type: 'mesh' | 'point', data: PointRenderable
 export interface Renderer {
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
-    draw: () => void
+    clear: () => void
+    draw: (force: boolean) => void
     frame: () => void
 }
 
@@ -54,18 +55,33 @@ export function createRenderer(container: HTMLDivElement): Renderer {
     const renderableList: Renderable[] = []
     const objectIdRenderableMap: { [k: number]: Renderable } = {}
 
-    const regl = glContext.create({
-        container,
-        extensions: [
-            'OES_texture_float',
-            'OES_texture_float_linear',
-            'OES_element_index_uint',
-            // 'EXT_disjoint_timer_query',
-            'EXT_blend_minmax',
-            'ANGLE_instanced_arrays'
-        ],
-        profile: true
-    })
+    let regl: REGL.Regl
+    try {
+        regl = glContext.create({
+            container,
+            extensions: [
+                'OES_texture_float',
+                'OES_texture_float_linear',
+                'OES_element_index_uint',
+                'EXT_disjoint_timer_query',
+                'EXT_blend_minmax',
+                'ANGLE_instanced_arrays'
+            ],
+            profile: true
+        })
+    } catch (e) {
+        regl = glContext.create({
+            container,
+            extensions: [
+                'OES_texture_float',
+                'OES_texture_float_linear',
+                'OES_element_index_uint',
+                'EXT_blend_minmax',
+                'ANGLE_instanced_arrays'
+            ],
+            profile: true
+        })
+    }
 
     const camera = Camera.create(regl, container, {
         center: Vec3.create(0, 0, 0),
@@ -91,12 +107,12 @@ export function createRenderer(container: HTMLDivElement): Renderer {
         }
     })
 
-    const draw = () => {
+    const draw = (force = false) => {
         camera.update((state: any) => {
-            if (!camera.isDirty()) return;
+            if (!force && !camera.dirty) return;
             baseContext(() => {
                 // console.log(ctx)
-                regl.clear({color: [0, 0, 0, 1]})
+                regl.clear({ color: [0, 0, 0, 1] })
                 // TODO painters sort, filter visible, filter picking, visibility culling?
                 renderableList.forEach(r => {
                     r.draw()
@@ -117,6 +133,15 @@ export function createRenderer(container: HTMLDivElement): Renderer {
                 // objectIdRenderableMap[o.id].destroy()
                 delete objectIdRenderableMap[o.id]
             }
+        },
+        clear: () => {
+            for (const id in objectIdRenderableMap) {
+                // TODO
+                // objectIdRenderableMap[id].destroy()
+                delete objectIdRenderableMap[id]
+            }
+            renderableList.length = 0
+            camera.dirty = true
         },
         draw,
         frame: () => {

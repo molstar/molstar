@@ -10,4 +10,4 @@ import * as React from 'react'
 import * as ReactDOM from 'react-dom'
 
 const state = new State()
-ReactDOM.render(<UI state={state} />, document.getElementById('app'));
+ReactDOM.render(<UI state={ state } />, document.getElementById('app'));

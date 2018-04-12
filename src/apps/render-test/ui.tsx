@@ -5,18 +5,75 @@
  */
 
 import * as React from 'react'
+import { withStyles, WithStyles, Theme, StyleRulesCallback } from 'material-ui/styles';
+import Typography from 'material-ui/Typography';
+import Toolbar from 'material-ui/Toolbar';
+import AppBar from 'material-ui/AppBar';
+import Drawer from 'material-ui/Drawer';
+
+import Viewport from './components/viewport'
+import FileInput from './components/file-input'
 import State from './state'
 
-export default class Root extends React.Component<{ state: State }, { initialized: boolean }> {
-    private canvasContainer: HTMLDivElement | null = null;
-    state = { initialized: false }
+const styles: StyleRulesCallback<any> = (theme: Theme) => ({
+    root: {
+        flexGrow: 1,
+        height: 830,
+        zIndex: 1,
+        overflow: 'hidden',
+        position: 'relative',
+        display: 'flex',
+    },
+    appBar: {
+        zIndex: theme.zIndex.drawer + 1,
+    },
+    drawerPaper: {
+        position: 'relative',
+        width: 240,
+    },
+    content: {
+        flexGrow: 1,
+        backgroundColor: theme.palette.background.default,
+        padding: theme.spacing.unit * 3,
+        minWidth: 0, // So the Typography noWrap works
+    },
+    toolbar: theme.mixins.toolbar,
+    textField: {
+        marginLeft: theme.spacing.unit,
+        marginRight: theme.spacing.unit,
+        width: 200,
+    },
+});
 
-    componentDidMount() {
-        if (this.canvasContainer) this.props.state.initRenderer(this.canvasContainer).then(() => this.setState({ initialized: true }))
-    }
+const decorate = withStyles(styles);
 
+interface Props {
+    state: State;
+};
+
+class UI extends React.Component<{ state: State } & WithStyles, {  }> {
     render() {
-        return <div ref={elm => this.canvasContainer = elm} style={{ position: 'absolute', top: 0, right: 0, left: 0, bottom: 0, overflow: 'hidden' }}>
-        </div>
+        const { classes, state } = this.props;
+        return (
+            <div className={classes.root}>
+                <AppBar position='absolute' className={classes.appBar}>
+                    <Toolbar>
+                    <Typography variant='title' color='inherit' noWrap>
+                        Mol* Render Test
+                    </Typography>
+                    </Toolbar>
+                </AppBar>
+                <Drawer variant='permanent' classes={{ paper: classes.drawerPaper, }}>
+                    <div className={classes.toolbar} />
+                    <FileInput state={state} classes={classes}></FileInput>
+                </Drawer>
+                <main className={classes.content}>
+                    <div className={classes.toolbar} />
+                    <Viewport state={state}></Viewport>
+                </main>
+            </div>
+        );
     }
 }
+
+export default decorate<Props>(UI)

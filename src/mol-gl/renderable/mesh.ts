@@ -31,7 +31,6 @@ namespace Mesh {
     }
 
     export function create(regl: REGL.Regl, data: Data, uniforms: Uniforms): Renderable {
-        console.log(data)
         const instanceId = ValueCell.create(fillSerial(new Float32Array(data.instanceCount)))
         const command = regl({
             ...MeshShaders,

@@ -24,7 +24,6 @@ namespace Point {
     }
 
     export function create(regl: REGL.Regl, data: Data): Renderable {
-        console.log(data)
         const instanceId = ValueCell.create(fillSerial(new Float32Array(data.instanceCount)))
         const command = regl({
             ...PointShaders,

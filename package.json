@@ -80,8 +80,10 @@
   "dependencies": {
     "argparse": "^1.0.10",
     "express": "^4.16.3",
+    "material-ui": "^1.0.0-beta.41",
     "node-fetch": "^2.1.2",
     "react": "^16.3.1",
-    "react-dom": "^16.3.1"
+    "react-dom": "^16.3.1",
+    "rxjs": "^6.0.0-beta.4"
   }
 }

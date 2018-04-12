@@ -49,7 +49,7 @@ export interface Camera {
     update: (props: any, block: any) => void,
     setState: (newState: CameraState) => void,
     getState: () => CameraState,
-    isDirty: () => boolean
+    dirty: boolean
 }
 
 export namespace Camera {
@@ -185,7 +185,8 @@ export namespace Camera {
             update,
             setState,
             getState: () => Object.assign({}, state),
-            isDirty: () => dirty
+            get dirty() { return dirty },
+            set dirty(value: boolean) { dirty = value }
         }
     }
 }
