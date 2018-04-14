@@ -136,6 +136,10 @@ namespace Vec3 {
         return x * x + y * y + z * z;
     }
 
+    export function setMagnitude(out: Vec3, a: Vec3, l: number) {
+        return Vec3.scale(out, Vec3.normalize(out, a), l)
+    }
+
     export function normalize(out: Vec3, a: Vec3) {
         const x = a[0],
             y = a[1],
