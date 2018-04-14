@@ -17,7 +17,6 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import Quat from './quat';
 import Mat4 from './mat4';
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
@@ -79,7 +78,7 @@ namespace Vec4 {
         return out;
     }
 
-    export function add(out: Quat, a: Quat, b: Quat) {
+    export function add(out: Vec4, a: Vec4, b: Vec4) {
         out[0] = a[0] + b[0];
         out[1] = a[1] + b[1];
         out[2] = a[2] + b[2];
@@ -119,7 +118,7 @@ namespace Vec4 {
         return x * x + y * y + z * z + w * w;
     }
 
-    export function transform(out: Vec4, a: Vec4, m: Mat4) {
+    export function transformMat4(out: Vec4, a: Vec4, m: Mat4) {
         const x = a[0], y = a[1], z = a[2], w = a[3];
         out[0] = m[0] * x + m[4] * y + m[8] * z + m[12] * w;
         out[1] = m[1] * x + m[5] * y + m[9] * z + m[13] * w;

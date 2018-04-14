@@ -38,6 +38,10 @@ namespace Point {
         })
         return {
             draw: () => command(),
+            get stats() {
+                return command.stats
+            },
+            name: 'point'
         }
     }
 }

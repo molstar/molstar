@@ -9,7 +9,7 @@ import { BehaviorSubject } from 'rxjs';
 // import { ValueCell } from 'mol-util/value-cell'
 
 // import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import { createRenderer, Renderer } from 'mol-gl/renderer'
+import Renderer from 'mol-gl/renderer'
 // import { createColorTexture } from 'mol-gl/util';
 // import Icosahedron from 'mol-geo/primitive/icosahedron'
 // import Box from 'mol-geo/primitive/box'
@@ -31,7 +31,7 @@ export default class State {
     loading = new BehaviorSubject<boolean>(false)
 
     async initRenderer (container: HTMLDivElement) {
-        this.renderer = createRenderer(container)
+        this.renderer = Renderer.fromElement(container)
         this.initialized.next(true)
         this.loadPdbId()
         this.renderer.frame()
@@ -54,8 +54,6 @@ export default class State {
         const structSpacefillRepr = StructureRepresentation(Spacefill)
         await Run(structSpacefillRepr.create(struct))
         structSpacefillRepr.renderObjects.forEach(renderer.add)
-
-        renderer.draw(true)
 
         this.loading.next(false)
     }

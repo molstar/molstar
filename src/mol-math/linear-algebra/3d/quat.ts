@@ -17,8 +17,14 @@
  * furnished to do so, subject to the following conditions:
  */
 
+/*
+ * Quat.fromUnitVec3 has been modified from https://github.com/Jam3/quat-from-unit-vec3,
+ * copyright (c) 2015 Jam3. MIT License
+ */
+
 import Mat3 from './mat3';
 import Vec3 from './vec3';
+import { EPSILON } from './common';
 
 interface Quat extends Array<number> { [d: number]: number, '@type': 'quat', length: 4 }
 
@@ -256,6 +262,34 @@ namespace Quat {
         }
 
         return out;
+    }
+
+    const fromUnitVec3Temp = Vec3.zero()
+    /** Quaternion from two normalized unit vectors. */
+    export function fromUnitVec3 (out: Quat, a: Vec3, b: Vec3) {
+        // assumes a and b are normalized
+        let r = Vec3.dot(a, b) + 1
+        if (r < EPSILON.Value) {
+            // If u and v are exactly opposite, rotate 180 degrees
+            // around an arbitrary orthogonal axis. Axis normalisation
+            // can happen later, when we normalise the quaternion.
+            r = 0
+            if (Math.abs(a[0]) > Math.abs(a[2])) {
+                Vec3.set(fromUnitVec3Temp, -a[1], a[0], 0)
+            } else {
+                Vec3.set(fromUnitVec3Temp, 0, -a[2], a[1])
+            }
+        } else {
+            // Otherwise, build quaternion the standard way.
+            Vec3.cross(fromUnitVec3Temp, a, b)
+        }
+
+        out[0] = fromUnitVec3Temp[0]
+        out[1] = fromUnitVec3Temp[1]
+        out[2] = fromUnitVec3Temp[2]
+        out[3] = r
+        normalize(out, out)
+        return out
     }
 
     export function clone(a: Quat) {

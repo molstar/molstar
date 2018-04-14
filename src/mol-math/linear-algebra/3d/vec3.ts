@@ -18,6 +18,7 @@
  */
 
 import Mat4 from './mat4';
+import { Quat } from '../3d';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
@@ -238,6 +239,26 @@ namespace Vec3 {
         return out;
     }
 
+    /** Transforms the vec3 with a quat */
+    export function transformQuat(out: Vec3, a: Vec3, q: Quat) {
+        // benchmarks: http://jsperf.com/quaternion-transform-vec3-implementations
+
+        const x = a[0], y = a[1], z = a[2];
+        const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+
+        // calculate quat * vec
+        const ix = qw * x + qy * z - qz * y;
+        const iy = qw * y + qz * x - qx * z;
+        const iz = qw * z + qx * y - qy * x;
+        const iw = -qx * x - qy * y - qz * z;
+
+        // calculate result * inverse quat
+        out[0] = ix * qw + iw * -qx + iy * -qz - iz * -qy;
+        out[1] = iy * qw + iw * -qy + iz * -qx - ix * -qz;
+        out[2] = iz * qw + iw * -qz + ix * -qy - iy * -qx;
+        return out;
+    }
+
     const angleTempA = zero(), angleTempB = zero();
     export function angle(a: Vec3, b: Vec3) {
         copy(angleTempA, a);
@@ -264,6 +285,10 @@ namespace Vec3 {
         if (Math.abs(by) < 0.0001) return Mat4.setIdentity(mat);
         const axis = cross(rotTemp, a, b);
         return Mat4.fromRotation(mat, by, axis);
+    }
+
+    export function isZero(v: Vec3) {
+        return v[0] === 0 && v[1] === 0 && v[2] === 0
     }
 }
 

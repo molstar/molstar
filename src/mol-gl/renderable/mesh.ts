@@ -58,8 +58,11 @@ namespace Mesh {
         return {
             draw: () => {
                 command()
-                console.log(command.stats)
-            }
+            },
+            get stats() {
+                return command.stats
+            },
+            name: 'mesh'
         }
     }
 }

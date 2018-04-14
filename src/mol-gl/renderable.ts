@@ -16,6 +16,8 @@ export type AttributesBuffers<T extends AttributesData> = { [K in keyof T]: REGL
 
 export interface Renderable {
     draw(): void
+    stats: REGL.CommandStats
+    name: string
     // isPicking: () => boolean
     // isVisible: () => boolean
     // isTransparent: () => boolean

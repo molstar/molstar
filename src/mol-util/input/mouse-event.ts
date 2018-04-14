@@ -37,7 +37,7 @@ export function buttons(event: MouseEvent) {
 }
 
 export function element(event: MouseEvent) {
-    return event.target as Element || event.srcElement || window
+    return event.target as Element
 }
 
 export function x(event: MouseEvent) {
