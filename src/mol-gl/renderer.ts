@@ -12,8 +12,8 @@ import Stats from './stats'
 
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { ValueCell } from 'mol-util';
-import { isNull } from 'util';
-import OrbitControls from './controls/orbit';
+import TrackballControls from './controls/trackball';
+import { element } from 'mol-util/input/mouse-event';
 
 let _renderObjectId = 0;
 function getNextId() {
@@ -67,7 +67,7 @@ function resizeCanvas (canvas: HTMLCanvasElement, element: HTMLElement) {
     }
     canvas.width = window.devicePixelRatio * w
     canvas.height = window.devicePixelRatio * h
-    Object.assign(canvas.style, { width: w + 'px', height: h + 'px' })
+    Object.assign(canvas.style, { width: `${w}px`, height: `${h}px` })
 }
 
 namespace Renderer {
@@ -94,35 +94,12 @@ namespace Renderer {
 
         resize()
 
-        return fromCanvas(canvas, contexAttributes)
+        return create(canvas)
     }
 
-    export function fromCanvas(canvas: HTMLCanvasElement, contexAttributes?: WebGLContextAttributes) {
-        function get (name: 'webgl' | 'experimental-webgl') {
-            try {
-                return canvas.getContext(name, contexAttributes)
-            } catch (e) {
-                return null
-            }
-        }
-        const gl = get('webgl') || get('experimental-webgl')
-        if (isNull(gl)) throw new Error('unable to create webgl context')
-        return create(gl, canvas)
-    }
-
-    export function create(gl: WebGLRenderingContext, element: Element): Renderer {
+    export function create(canvas: HTMLCanvasElement): Renderer {
         const renderableList: Renderable[] = []
         const objectIdRenderableMap: { [k: number]: Renderable } = {}
-
-        const camera = PerspectiveCamera.create({
-            near: 0.01,
-            far: 1000,
-            position: Vec3.create(0, 0, 50)
-        })
-
-        const controls = OrbitControls.create(element, {
-            position: Vec3.create(0, 0, 50)
-        })
 
         const extensions = [
             'OES_texture_float',
@@ -131,13 +108,29 @@ namespace Renderer {
             'EXT_blend_minmax',
             'ANGLE_instanced_arrays'
         ]
-        if (gl.getExtension('EXT_disjoint_timer_query') !== null) {
-            extensions.push('EXT_disjoint_timer_query')
-        }
+        const optionalExtensions = [
+            'EXT_disjoint_timer_query'
+        ]
 
-        const regl = glContext.create({ gl, extensions, profile: true })
+        const regl = glContext.create({ canvas, extensions, optionalExtensions, profile: true })
+
+        const camera = PerspectiveCamera.create({
+            near: 0.01,
+            far: 1000,
+            position: Vec3.create(0, 0, 50)
+        })
+
+        const controls = TrackballControls.create(canvas, camera, {
+            
+        })
+
+        // window.addEventListener('resize', (ev: Event) => {
+        //     console.log({ viewport: { x: 0, y: 0, width: canvas.width, height: canvas.height }})
+        //     regl({ viewport: { x: 0, y: 0, width: canvas.width, height: canvas.height }})
+        // }, false)
 
         const baseContext = regl({
+            viewport: { x: 0, y: 0, width: canvas.width, height: canvas.height },
             context: {
                 model: Mat4.identity(),
                 transform: Mat4.identity(),
@@ -162,7 +155,7 @@ namespace Renderer {
 
         const draw = () => {
             controls.update()
-            controls.copyInto(camera.position, camera.direction, camera.up)
+            // controls.copyInto(camera.position, camera.direction, camera.up)
             camera.update()
             baseContext(state => {
                 regl.clear({ color: [0, 0, 0, 1] })

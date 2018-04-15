@@ -75,6 +75,12 @@ namespace Vec2 {
         return out;
     }
 
+    export function scale(out: Vec2, a: Vec2, b: number) {
+        out[0] = a[0] * b;
+        out[1] = a[1] * b;
+        return out;
+    }
+
     export function distance(a: Vec2, b: Vec2) {
         const x = b[0] - a[0],
             y = b[1] - a[1];
