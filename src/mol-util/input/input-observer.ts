@@ -99,6 +99,10 @@ export type PinchInput = {
     isStart: boolean
 }
 
+export type ResizeInput = {
+
+}
+
 const enum DraggingState {
     Stopped = 0,
     Started = 1,
@@ -120,6 +124,7 @@ interface InputObserver {
     wheel: Subject<WheelInput>,
     pinch: Subject<PinchInput>,
     click: Subject<ClickInput>,
+    resize: Subject<ResizeInput>,
 
     dispose: () => void
 }
@@ -150,6 +155,7 @@ namespace InputObserver {
         const click = new Subject<ClickInput>()
         const wheel = new Subject<WheelInput>()
         const pinch = new Subject<PinchInput>()
+        const resize = new Subject<ResizeInput>()
 
         attach()
 
@@ -163,6 +169,7 @@ namespace InputObserver {
             wheel,
             pinch,
             click,
+            resize,
 
             dispose
         }
@@ -185,6 +192,8 @@ namespace InputObserver {
             element.addEventListener('keyup', handleMods as EventListener)
             element.addEventListener('keydown', handleMods as EventListener)
             element.addEventListener('keypress', handleMods as EventListener)
+
+            window.addEventListener('resize', onResize, false)
         }
 
         function dispose () {
@@ -206,6 +215,8 @@ namespace InputObserver {
             element.removeEventListener('keyup', handleMods as EventListener)
             element.removeEventListener('keydown', handleMods as EventListener)
             element.removeEventListener('keypress', handleMods as EventListener)
+
+            window.removeEventListener('resize', onResize, false)
         }
 
         function preventDefault (ev: Event | Touch) {
@@ -366,6 +377,10 @@ namespace InputObserver {
             if (dx || dy || dz) {
                 wheel.next({ dx, dy, dz, buttons, modifiers })
             }
+        }
+
+        function onResize (ev: Event) {
+            resize.next()
         }
 
         function insideBounds (pos: Vec2) {

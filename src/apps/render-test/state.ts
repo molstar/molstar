@@ -9,7 +9,7 @@ import { BehaviorSubject } from 'rxjs';
 // import { ValueCell } from 'mol-util/value-cell'
 
 // import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import Renderer from 'mol-gl/renderer'
+import Viewer from 'mol-view/viewer'
 // import { createColorTexture } from 'mol-gl/util';
 // import Icosahedron from 'mol-geo/primitive/icosahedron'
 // import Box from 'mol-geo/primitive/box'
@@ -25,21 +25,21 @@ import { StructureRepresentation } from 'mol-geo/representation/structure';
 // import Cylinder from 'mol-geo/primitive/cylinder';
 
 export default class State {
-    renderer: Renderer
+    viewer: Viewer
     pdbId = '1crn'
     initialized = new BehaviorSubject<boolean>(false)
     loading = new BehaviorSubject<boolean>(false)
 
-    async initRenderer (container: HTMLDivElement) {
-        this.renderer = Renderer.fromElement(container)
+    async initRenderer (canvas: HTMLCanvasElement, container: HTMLDivElement) {
+        this.viewer = Viewer.create(canvas, container)
         this.initialized.next(true)
         this.loadPdbId()
-        this.renderer.frame()
+        this.viewer.animate()
     }
 
     async loadPdbId () {
-        const { renderer, pdbId } = this
-        renderer.clear()
+        const { viewer, pdbId } = this
+        viewer.clear()
 
         if (pdbId.length !== 4) return
         this.loading.next(true)
@@ -49,11 +49,11 @@ export default class State {
 
         const structPointRepr = StructureRepresentation(Point)
         await Run(structPointRepr.create(struct))
-        structPointRepr.renderObjects.forEach(renderer.add)
+        structPointRepr.renderObjects.forEach(viewer.add)
 
         const structSpacefillRepr = StructureRepresentation(Spacefill)
         await Run(structSpacefillRepr.create(struct))
-        structSpacefillRepr.renderObjects.forEach(renderer.add)
+        structSpacefillRepr.renderObjects.forEach(viewer.add)
 
         this.loading.next(false)
     }

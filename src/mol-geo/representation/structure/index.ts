@@ -8,7 +8,7 @@ import { ElementGroup, ElementSet, Structure, Unit } from 'mol-model/structure';
 import { EquivalenceClasses } from 'mol-data/util';
 import { OrderedSet } from 'mol-data/int'
 import { Task } from 'mol-task'
-import { RenderObject } from 'mol-gl/renderer';
+import { RenderObject } from 'mol-gl/scene';
 
 export interface RepresentationProps {
 

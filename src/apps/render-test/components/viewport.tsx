@@ -8,15 +8,21 @@ import * as React from 'react'
 import State from '../state'
 
 export default class Viewport extends React.Component<{ state: State }, { initialized: boolean }> {
-    private canvasContainer: HTMLDivElement | null = null;
+    private container: HTMLDivElement | null = null;
+    private canvas: HTMLCanvasElement | null = null;
     state = { initialized: false }
 
     componentDidMount() {
-        if (this.canvasContainer) this.props.state.initRenderer(this.canvasContainer).then(() => this.setState({ initialized: true }))
+        if (this.container && this.canvas) {
+            this.props.state.initRenderer(this.canvas, this.container).then(() => {
+                this.setState({ initialized: true })
+            })
+        }
     }
 
     render() {
-        return <div ref={elm => this.canvasContainer = elm} style={{ height: '100%' }}>
+        return <div ref={elm => this.container = elm} style={{ height: '100%' }}>
+            <canvas ref={elm => this.canvas = elm}></canvas>
         </div>
     }
 }

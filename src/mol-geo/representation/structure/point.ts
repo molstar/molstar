@@ -6,7 +6,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createRenderObject, RenderObject } from 'mol-gl/renderer'
+import { createRenderObject, RenderObject } from 'mol-gl/scene'
 import { createColorTexture } from 'mol-gl/util';
 import { Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'

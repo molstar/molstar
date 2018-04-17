@@ -48,7 +48,7 @@ interface TrackballControls {
 }
 
 namespace TrackballControls {
-    export function create (element: Element, object: Object, props: TrackballControlsProps = {}): TrackballControls {
+    export function create (input: InputObserver, object: Object, props: TrackballControlsProps = {}): TrackballControls {
         const p = { ...DefaultTrackballControlsProps, ...props }
 
         const viewport: Viewport = { x: 0, y: 0, width: 0, height: 0 }
@@ -59,10 +59,9 @@ namespace TrackballControls {
 
         let disposed = false
 
-        const input = InputObserver.create(element)
-        input.drag.subscribe(onDrag)
-        input.wheel.subscribe(onWheel)
-        input.pinch.subscribe(onPinch)
+        const dragSub = input.drag.subscribe(onDrag)
+        const wheelSub = input.wheel.subscribe(onWheel)
+        const pinchSub = input.pinch.subscribe(onPinch)
 
         // internals
         const target = Vec3.zero()
@@ -284,7 +283,10 @@ namespace TrackballControls {
         function dispose() {
             if (disposed) return
             disposed = true
-            input.dispose()
+
+            dragSub.unsubscribe()
+            wheelSub.unsubscribe()
+            pinchSub.unsubscribe()
         }
 
         // force an update at start
