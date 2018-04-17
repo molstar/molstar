@@ -9,7 +9,6 @@ import { Subject } from 'rxjs';
 import { Vec2 } from 'mol-math/linear-algebra';
 
 import toPixels from '../to-pixels'
-import TouchPinch from './touch-pinch'
 
 function getButtons(event: MouseEvent | Touch) {
     if (typeof event === 'object') {
@@ -51,7 +50,7 @@ export type ModifiersKeys = {
     meta: boolean
 }
 
-export const enum MouseButtonsFlag {
+export const enum ButtonsFlag {
     /** No button or un-initialized */
     None = 0x0,
     /** Primary button (usually left) */
@@ -78,7 +77,7 @@ export type DragInput = {
     dy: number,
     pageX: number,
     pageY: number,
-    started: boolean
+    isStart: boolean
 } & BaseInput
 
 export type WheelInput = {
@@ -96,7 +95,8 @@ export type ClickInput = {
 
 export type PinchInput = {
     delta: number,
-    distance: number
+    distance: number,
+    isStart: boolean
 }
 
 const enum DraggingState {
@@ -142,8 +142,6 @@ namespace InputObserver {
             meta: false
         }
 
-        // const touchPinch = TouchPinch.create(element)
-
         let dragging: DraggingState = DraggingState.Stopped
         let disposed = false
         let buttons = 0
@@ -183,10 +181,6 @@ namespace InputObserver {
             element.addEventListener('touchmove', onTouchMove as any, false)
             element.addEventListener('touchend', onTouchEnd as any, false)
 
-            // touchPinch.place.subscribe(onPinchPlace)
-            // touchPinch.lift.subscribe(onPinchLift)
-            // touchPinch.change.subscribe(onPinchChange)
-
             element.addEventListener('blur', handleBlur)
             element.addEventListener('keyup', handleMods as EventListener)
             element.addEventListener('keydown', handleMods as EventListener)
@@ -196,8 +190,6 @@ namespace InputObserver {
         function dispose () {
             if (disposed) return
             disposed = true
-
-            // touchPinch.dispose()
 
             element.removeEventListener( 'contextmenu', onContextMenu, false )
 
@@ -260,78 +252,42 @@ namespace InputObserver {
         function onTouchStart (ev: TouchEvent) {
             preventDefault(ev)
 
-            console.log('onTouchStart', ev)
             if (ev.touches.length === 1) {
-                buttons = MouseButtonsFlag.Primary
+                buttons = ButtonsFlag.Primary
                 onPointerDown(ev.touches[0])
             } else if (ev.touches.length >= 2) {
-                buttons = MouseButtonsFlag.Secondary
+                buttons = ButtonsFlag.Secondary
                 onPointerDown(getCenterTouch(ev))
 
-                let lastTouchDistance = getTouchDistance(ev)
-                pinch.next({ distance: lastTouchDistance, delta: 0 })
+                pinch.next({ distance: lastTouchDistance, delta: 0, isStart: true })
             }
         }
 
         function onTouchEnd (ev: TouchEvent) {
             preventDefault(ev)
-
-            console.log('onTouchEnd', ev)
         }
 
         function onTouchMove (ev: TouchEvent) {
             preventDefault(ev)
 
             if (ev.touches.length === 1) {
-                buttons = MouseButtonsFlag.Primary
+                buttons = ButtonsFlag.Primary
                 onPointerMove(ev.touches[0])
             } else if (ev.touches.length >= 2) {
-                buttons = MouseButtonsFlag.Secondary
-                onPointerDown(getCenterTouch(ev))
-
                 const touchDistance = getTouchDistance(ev)
-                pinch.next({ delta: lastTouchDistance - touchDistance, distance: touchDistance })
+                if (lastTouchDistance - touchDistance < 4) {
+                    buttons = ButtonsFlag.Secondary
+                    onPointerMove(getCenterTouch(ev))
+                } else {
+                    pinch.next({
+                        delta: lastTouchDistance - touchDistance,
+                        distance: touchDistance,
+                        isStart: false
+                    })
+                }
                 lastTouchDistance = touchDistance
             }
-
-            // if (dragging === DraggingState.Stopped || isPinching()) return
-
-            // // find currently active finger
-            // for (let i = 0; i < ev.changedTouches.length; i++) {
-            //     const changed = ev.changedTouches[i]
-            //     const idx = touchPinch.indexOfTouch(changed)
-            //     if (idx !== -1) {
-            //         onInputMove(changed)
-            //         break
-            //     }
-            // }
         }
-
-        // function onPinchPlace ({ newTouch, oldTouch }: { newTouch?: Touch, oldTouch?: Touch }) {
-        //     dragging = isPinching() ? DraggingState.Stopped : DraggingState.Started
-        //     if (dragging === DraggingState.Started) {
-        //         const firstFinger = oldTouch || newTouch
-        //         if (firstFinger) onInputDown(firstFinger)
-        //     }
-        // }
-
-        // function onPinchLift ({ removed, otherTouch }: { removed?: Touch, otherTouch?: Touch }) {
-        //     // if either finger is down, consider it dragging
-        //     const sum = touchPinch.fingers.reduce((sum, item) => sum + (item ? 1 : 0), 0)
-        //     dragging = sum >= 1 ? DraggingState.Moving : DraggingState.Stopped
-
-        //     if (dragging && otherTouch) {
-        //         eventOffset(mouseStart, otherTouch, element)
-        //     }
-        // }
-
-        // function isPinching () {
-        //     return touchPinch.pinching
-        // }
-
-        // function onPinchChange ({ currentDistance, lastDistance }: { currentDistance: number, lastDistance: number }) {
-        //     pinch.next({ delta: currentDistance - lastDistance })
-        // }
 
         function onMouseDown (ev: MouseEvent) {
             preventDefault(ev)
@@ -370,27 +326,21 @@ namespace InputObserver {
                 const { pageX, pageY } = ev
                 const [ x, y ] = pointerEnd
 
-                console.log('click', { x, y, pageX, pageY, buttons, modifiers })
                 click.next({ x, y, pageX, pageY, buttons, modifiers })
             }
         }
 
         function onPointerMove (ev: PointerEvent) {
             eventOffset(pointerEnd, ev)
-            // if (pinch && isPinching()) {
-            //     Vec2.copy(pointerStart, pointerEnd)
-            //     return
-            // }
             if (dragging === DraggingState.Stopped) return
 
             Vec2.div(pointerDelta, Vec2.sub(pointerDelta, pointerEnd, pointerStart), getClientSize(rectSize))
 
-            const started = dragging === DraggingState.Started
+            const isStart = dragging === DraggingState.Started
             const { pageX, pageY } = ev
             const [ x, y ] = pointerEnd
             const [ dx, dy ] = pointerDelta
-            // console.log({ x, y, dx, dy, pageX, pageY, buttons, modifiers, started })
-            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers, started })
+            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers, isStart })
 
             Vec2.copy(pointerStart, pointerEnd)
             dragging = DraggingState.Moving
