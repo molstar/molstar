@@ -23,7 +23,7 @@ export function eventOffset (out: Vec2, ev: MouseEvent | Touch, target: Element)
 }
 
 function getBoundingClientOffset (element: Element | Window | Document) {
-    if (element !== window && element !== document && element !== document.body) {
+    if (element instanceof Window || element instanceof Document || element === document.body) {
         return rootPosition
     } else {
         return (element as Element).getBoundingClientRect()

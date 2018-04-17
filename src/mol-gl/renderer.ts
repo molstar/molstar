@@ -13,7 +13,7 @@ import Stats from './stats'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { ValueCell } from 'mol-util';
 import TrackballControls from './controls/trackball';
-import { element } from 'mol-util/input/mouse-event';
+import { Viewport } from './camera/util';
 
 let _renderObjectId = 0;
 function getNextId() {
@@ -55,6 +55,7 @@ interface Renderer {
     clear: () => void
     draw: () => void
     frame: () => void
+    handleResize: () => void
 }
 
 function resizeCanvas (canvas: HTMLCanvasElement, element: HTMLElement) {
@@ -102,10 +103,7 @@ namespace Renderer {
         const objectIdRenderableMap: { [k: number]: Renderable } = {}
 
         const extensions = [
-            'OES_texture_float',
-            'OES_texture_float_linear',
             'OES_element_index_uint',
-            'EXT_blend_minmax',
             'ANGLE_instanced_arrays'
         ]
         const optionalExtensions = [
@@ -116,26 +114,20 @@ namespace Renderer {
 
         const camera = PerspectiveCamera.create({
             near: 0.01,
-            far: 1000,
+            far: 10000,
             position: Vec3.create(0, 0, 50)
         })
 
         const controls = TrackballControls.create(canvas, camera, {
-            
+
         })
 
-        // window.addEventListener('resize', (ev: Event) => {
-        //     console.log({ viewport: { x: 0, y: 0, width: canvas.width, height: canvas.height }})
-        //     regl({ viewport: { x: 0, y: 0, width: canvas.width, height: canvas.height }})
-        // }, false)
-
         const baseContext = regl({
-            viewport: { x: 0, y: 0, width: canvas.width, height: canvas.height },
             context: {
                 model: Mat4.identity(),
                 transform: Mat4.identity(),
                 view: camera.view,
-                projection: camera.projection
+                projection: camera.projection,
             },
             uniforms: {
                 model: regl.context('model' as any),
@@ -167,6 +159,9 @@ namespace Renderer {
                 prevTime = state.time
             })
         }
+
+        window.addEventListener('resize', handleResize, false)
+        handleResize()
 
         // TODO animate, draw, requestDraw
         return {
@@ -200,7 +195,15 @@ namespace Renderer {
             draw,
             frame: () => {
                 regl.frame((ctx) => draw())
-            }
+            },
+            handleResize
+        }
+
+        function handleResize() {
+            const viewport = { x: 0, y: 0, width: canvas.width, height: canvas.height }
+            regl({ viewport })
+            Viewport.copy(camera.viewport, viewport)
+            Viewport.copy(controls.viewport, viewport)
         }
     }
 }

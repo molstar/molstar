@@ -147,9 +147,9 @@ namespace TouchPinch {
                         eventOffset(finger.position, movedTouch, target)
                     }
                 }
-                }
+            }
 
-                if (activeCount === 2 && changed) {
+            if (activeCount === 2 && changed) {
                 const currentDistance = computeDistance()
                 change.next({ currentDistance, lastDistance })
                 lastDistance = currentDistance

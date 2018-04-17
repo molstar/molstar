@@ -8,11 +8,10 @@ import { Subject } from 'rxjs';
 
 import { Vec2 } from 'mol-math/linear-algebra';
 
-import MouseWheel from './mouse-wheel'
+import toPixels from '../to-pixels'
 import TouchPinch from './touch-pinch'
-import { eventOffset } from './event-offset'
 
-export function getButtons(event: MouseEvent | Touch) {
+function getButtons(event: MouseEvent | Touch) {
     if (typeof event === 'object') {
         if ('buttons' in event) {
             return event.buttons
@@ -40,131 +39,191 @@ export function getButtons(event: MouseEvent | Touch) {
 }
 
 export const DefaultInputObserverProps = {
-    parent: window as Window | Element,
-    noScroll: true
+    noScroll: true,
+    noContextMenu: true
 }
 export type InputObserverProps = Partial<typeof DefaultInputObserverProps>
 
-export type MouseModifiers = {
+export type ModifiersKeys = {
     shift: boolean,
     alt: boolean,
     control: boolean,
     meta: boolean
 }
 
+export const enum MouseButtonsFlag {
+    /** No button or un-initialized */
+    None = 0x0,
+    /** Primary button (usually left) */
+    Primary = 0x1,
+    /** Secondary button (usually right) */
+    Secondary = 0x2,
+    /** Auxilary button (usually middle or mouse wheel button)  */
+    Auxilary = 0x4,
+    /** 4th button (typically the "Browser Back" button) */
+    Forth = 0x8,
+    /** 5th button (typically the "Browser Forward" button) */
+    Five = 0x10,
+}
+
+type BaseInput = {
+    buttons: number
+    modifiers: ModifiersKeys
+}
+
+export type DragInput = {
+    x: number,
+    y: number,
+    dx: number,
+    dy: number,
+    pageX: number,
+    pageY: number,
+    started: boolean
+} & BaseInput
+
+export type WheelInput = {
+    dx: number,
+    dy: number,
+    dz: number,
+} & BaseInput
+
+export type ClickInput = {
+    x: number,
+    y: number,
+    pageX: number,
+    pageY: number,
+} & BaseInput
+
+export type PinchInput = {
+    delta: number,
+    distance: number
+}
+
+const enum DraggingState {
+    Stopped = 0,
+    Started = 1,
+    Moving = 2
+}
+
+type PointerEvent = {
+    clientX: number
+    clientY: number
+    pageX: number
+    pageY: number
+}
+
 interface InputObserver {
     noScroll: boolean
-    isDragging: () => boolean
-    isPinching: () => boolean
+    noContextMenu: boolean
 
-    drag: Subject<{ dx: number, dy: number, buttons: number, modifiers: MouseModifiers }>,
-    wheel: Subject<{ dx: number, dy: number, dz: number, event: WheelEvent }>,
-    pinch: Subject<number>,
-    // click: Subject<{ x: number, y: number, buttons: number, modifiers: MouseModifiers }>,
+    drag: Subject<DragInput>,
+    wheel: Subject<WheelInput>,
+    pinch: Subject<PinchInput>,
+    click: Subject<ClickInput>,
 
     dispose: () => void
 }
 
 namespace InputObserver {
     export function create (element: Element, props: InputObserverProps = {}): InputObserver {
-        const { parent, noScroll } = { ...DefaultInputObserverProps, ...props }
+        let { noScroll, noContextMenu } = { ...DefaultInputObserverProps, ...props }
 
-        const mouseStart = Vec2.zero()
-        const tmp = Vec2.zero()
-        const tmp2 = Vec2.zero()
-        const modifiers: MouseModifiers = {
+        const lineHeight = toPixels('ex', element)
+
+        let lastTouchDistance = 0
+        const pointerStart = Vec2.zero()
+        const pointerEnd = Vec2.zero()
+        const pointerDelta = Vec2.zero()
+        const rectSize = Vec2.zero()
+        const modifiers: ModifiersKeys = {
             shift: false,
             alt: false,
             control: false,
             meta: false
         }
 
-        const touchPinch = TouchPinch.create(element)
-        const mouseWheel = MouseWheel.create(element, noScroll)
+        // const touchPinch = TouchPinch.create(element)
 
-        let dragging = false
+        let dragging: DraggingState = DraggingState.Stopped
         let disposed = false
         let buttons = 0
 
-        const drag = new Subject<{ dx: number, dy: number, buttons: number, modifiers: MouseModifiers }>()
-        const wheel = mouseWheel.wheel
-        const pinch = new Subject<number>()
+        const drag = new Subject<DragInput>()
+        const click = new Subject<ClickInput>()
+        const wheel = new Subject<WheelInput>()
+        const pinch = new Subject<PinchInput>()
 
         attach()
 
         return {
-            get noScroll () { return mouseWheel.noScroll },
-            set noScroll (value: boolean) { mouseWheel.noScroll = value },
-            isDragging: () => dragging,
-            isPinching,
+            get noScroll () { return noScroll },
+            set noScroll (value: boolean) { noScroll = value },
+            get noContextMenu () { return noContextMenu },
+            set noContextMenu (value: boolean) { noContextMenu = value },
 
             drag,
             wheel,
             pinch,
+            click,
 
             dispose
         }
 
         function attach () {
-            element.addEventListener('mousedown', onInputDown as any, false)
+            element.addEventListener( 'contextmenu', onContextMenu, false )
 
+            element.addEventListener('wheel', onMouseWheel, false)
+            element.addEventListener('mousedown', onPointerDown as any, false)
             // for dragging to work outside canvas bounds,
-            // mouse move/up events have to be added to parent, i.e. window
-            parent.addEventListener('mousemove', onInputMove as any, false)
-            parent.addEventListener('mouseup', onInputUp as any, false)
+            // mouse move/up events have to be added to a parent, i.e. window
+            window.addEventListener('mousemove', onMouseMove as any, false)
+            window.addEventListener('mouseup', onPointerUp as any, false)
 
-            // don't allow simulated mouse events
-            element.addEventListener('touchstart', preventDefault as any, false)
-
+            element.addEventListener('touchstart', onTouchStart as any, false)
             element.addEventListener('touchmove', onTouchMove as any, false)
+            element.addEventListener('touchend', onTouchEnd as any, false)
 
-            touchPinch.place.subscribe(onPinchPlace)
-            touchPinch.lift.subscribe(onPinchLift)
-            touchPinch.change.subscribe(onPinchChange)
+            // touchPinch.place.subscribe(onPinchPlace)
+            // touchPinch.lift.subscribe(onPinchLift)
+            // touchPinch.change.subscribe(onPinchChange)
 
             element.addEventListener('blur', handleBlur)
             element.addEventListener('keyup', handleMods as EventListener)
             element.addEventListener('keydown', handleMods as EventListener)
             element.addEventListener('keypress', handleMods as EventListener)
-
-            if (!(element instanceof Window)) {
-                window.addEventListener('blur', handleBlur)
-                window.addEventListener('keyup', handleMods)
-                window.addEventListener('keydown', handleMods)
-                window.addEventListener('keypress', handleMods)
-            }
         }
 
         function dispose () {
             if (disposed) return
             disposed = true
 
-            mouseWheel.dispose()
-            touchPinch.dispose()
+            // touchPinch.dispose()
 
-            element.removeEventListener('touchstart', preventDefault as any, false)
+            element.removeEventListener( 'contextmenu', onContextMenu, false )
+
+            element.removeEventListener('wheel', onMouseWheel, false)
+            element.removeEventListener('mousedown', onMouseDown as any, false)
+            window.removeEventListener('mousemove', onMouseMove as any, false)
+            window.removeEventListener('mouseup', onMouseUp as any, false)
+
+            element.removeEventListener('touchstart', onTouchStart as any, false)
             element.removeEventListener('touchmove', onTouchMove as any, false)
-
-            element.removeEventListener('mousedown', onInputDown as any, false)
-
-            parent.removeEventListener('mousemove', onInputMove as any, false)
-            parent.removeEventListener('mouseup', onInputUp as any, false)
+            element.removeEventListener('touchend', onTouchEnd as any, false)
 
             element.removeEventListener('blur', handleBlur)
             element.removeEventListener('keyup', handleMods as EventListener)
             element.removeEventListener('keydown', handleMods as EventListener)
             element.removeEventListener('keypress', handleMods as EventListener)
-
-            if (!(element instanceof Window)) {
-                window.removeEventListener('blur', handleBlur)
-                window.removeEventListener('keyup', handleMods)
-                window.removeEventListener('keydown', handleMods)
-                window.removeEventListener('keypress', handleMods)
-            }
         }
 
         function preventDefault (ev: Event | Touch) {
             if ('preventDefault' in ev) ev.preventDefault()
+        }
+
+        function onContextMenu(event: Event) {
+            if (noContextMenu) {
+                event.preventDefault()
+            }
         }
 
         function handleBlur () {
@@ -181,72 +240,182 @@ namespace InputObserver {
             if ('metaKey' in event) modifiers.meta = !!event.metaKey
         }
 
-        function onTouchMove (ev: TouchEvent) {
-            if (!dragging || isPinching()) return
-
-            // find currently active finger
-            for (let i = 0; i < ev.changedTouches.length; i++) {
-                const changed = ev.changedTouches[i]
-                const idx = touchPinch.indexOfTouch(changed)
-                if (idx !== -1) {
-                    onInputMove(changed)
-                    break
-                }
+        function getCenterTouch (ev: TouchEvent): PointerEvent {
+            const t0 = ev.touches[0]
+            const t1 = ev.touches[1]
+            return {
+                clientX: (t0.clientX + t1.clientX) / 2,
+                clientY: (t0.clientY + t1.clientY) / 2,
+                pageX: (t0.pageX + t1.pageX) / 2,
+                pageY: (t0.pageY + t1.pageY) / 2
             }
         }
 
-        function onPinchPlace ({ newTouch, oldTouch }: { newTouch?: Touch, oldTouch?: Touch }) {
-            dragging = !isPinching()
-            if (dragging) {
-                const firstFinger = oldTouch || newTouch
-                if (firstFinger) onInputDown(firstFinger)
-            }
+        function getTouchDistance (ev: TouchEvent) {
+            const dx = ev.touches[0].pageX - ev.touches[1].pageX;
+            const dy = ev.touches[0].pageY - ev.touches[1].pageY;
+            return Math.sqrt(dx * dx + dy * dy);
         }
 
-        function onPinchLift ({ removed, otherTouch }: { removed?: Touch, otherTouch?: Touch }) {
-            // if either finger is down, consider it dragging
-            const sum = touchPinch.fingers.reduce((sum, item) => sum + (item ? 1 : 0), 0)
-            dragging = sum >= 1
-
-            if (dragging && otherTouch) {
-                eventOffset(mouseStart, otherTouch, element)
-            }
-        }
-
-        function isPinching () {
-            return touchPinch.pinching
-        }
-
-        function onPinchChange ({ currentDistance, lastDistance }: { currentDistance: number, lastDistance: number }) {
-            pinch.next(currentDistance - lastDistance)
-        }
-
-        function onInputDown (ev: MouseEvent | Touch) {
+        function onTouchStart (ev: TouchEvent) {
             preventDefault(ev)
-            eventOffset(mouseStart, ev, element)
-            if (insideBounds(mouseStart)) {
-                dragging = true
+
+            console.log('onTouchStart', ev)
+            if (ev.touches.length === 1) {
+                buttons = MouseButtonsFlag.Primary
+                onPointerDown(ev.touches[0])
+            } else if (ev.touches.length >= 2) {
+                buttons = MouseButtonsFlag.Secondary
+                onPointerDown(getCenterTouch(ev))
+
+                let lastTouchDistance = getTouchDistance(ev)
+                pinch.next({ distance: lastTouchDistance, delta: 0 })
             }
         }
 
-        function onInputUp () {
-            dragging = false
+        function onTouchEnd (ev: TouchEvent) {
+            preventDefault(ev)
+
+            console.log('onTouchEnd', ev)
         }
 
-        function onInputMove (ev: MouseEvent | Touch) {
+        function onTouchMove (ev: TouchEvent) {
+            preventDefault(ev)
+
+            if (ev.touches.length === 1) {
+                buttons = MouseButtonsFlag.Primary
+                onPointerMove(ev.touches[0])
+            } else if (ev.touches.length >= 2) {
+                buttons = MouseButtonsFlag.Secondary
+                onPointerDown(getCenterTouch(ev))
+
+                const touchDistance = getTouchDistance(ev)
+                pinch.next({ delta: lastTouchDistance - touchDistance, distance: touchDistance })
+                lastTouchDistance = touchDistance
+            }
+
+            // if (dragging === DraggingState.Stopped || isPinching()) return
+
+            // // find currently active finger
+            // for (let i = 0; i < ev.changedTouches.length; i++) {
+            //     const changed = ev.changedTouches[i]
+            //     const idx = touchPinch.indexOfTouch(changed)
+            //     if (idx !== -1) {
+            //         onInputMove(changed)
+            //         break
+            //     }
+            // }
+        }
+
+        // function onPinchPlace ({ newTouch, oldTouch }: { newTouch?: Touch, oldTouch?: Touch }) {
+        //     dragging = isPinching() ? DraggingState.Stopped : DraggingState.Started
+        //     if (dragging === DraggingState.Started) {
+        //         const firstFinger = oldTouch || newTouch
+        //         if (firstFinger) onInputDown(firstFinger)
+        //     }
+        // }
+
+        // function onPinchLift ({ removed, otherTouch }: { removed?: Touch, otherTouch?: Touch }) {
+        //     // if either finger is down, consider it dragging
+        //     const sum = touchPinch.fingers.reduce((sum, item) => sum + (item ? 1 : 0), 0)
+        //     dragging = sum >= 1 ? DraggingState.Moving : DraggingState.Stopped
+
+        //     if (dragging && otherTouch) {
+        //         eventOffset(mouseStart, otherTouch, element)
+        //     }
+        // }
+
+        // function isPinching () {
+        //     return touchPinch.pinching
+        // }
+
+        // function onPinchChange ({ currentDistance, lastDistance }: { currentDistance: number, lastDistance: number }) {
+        //     pinch.next({ delta: currentDistance - lastDistance })
+        // }
+
+        function onMouseDown (ev: MouseEvent) {
+            preventDefault(ev)
+
             buttons = getButtons(ev)
-            const end = eventOffset(tmp, ev, element)
-            if (pinch && isPinching()) {
-                Vec2.copy(mouseStart, end)
-                return
+            onPointerDown(ev)
+        }
+
+        function onMouseMove (ev: MouseEvent) {
+            preventDefault(ev)
+
+            buttons = getButtons(ev)
+            onPointerMove(ev)
+        }
+
+        function onMouseUp (ev: MouseEvent) {
+            preventDefault(ev)
+
+            buttons = getButtons(ev)
+            onPointerUp(ev)
+        }
+
+        function onPointerDown (ev: PointerEvent) {
+            eventOffset(pointerStart, ev)
+            if (insideBounds(pointerStart)) {
+                dragging = DraggingState.Started
             }
-            if (!dragging) return
-            const rect = getClientSize(tmp2)
-            const dx = (end[0] - mouseStart[0]) / rect[0]
-            const dy = (end[1] - mouseStart[1]) / rect[1]
-            drag.next({ dx, dy, buttons, modifiers })
-            mouseStart[0] = end[0]
-            mouseStart[1] = end[1]
+        }
+
+        function onPointerUp (ev: PointerEvent) {
+            dragging = DraggingState.Stopped
+
+            if (Vec2.distance(pointerEnd, pointerStart) < 4) {
+                eventOffset(pointerEnd, ev)
+
+                const { pageX, pageY } = ev
+                const [ x, y ] = pointerEnd
+
+                console.log('click', { x, y, pageX, pageY, buttons, modifiers })
+                click.next({ x, y, pageX, pageY, buttons, modifiers })
+            }
+        }
+
+        function onPointerMove (ev: PointerEvent) {
+            eventOffset(pointerEnd, ev)
+            // if (pinch && isPinching()) {
+            //     Vec2.copy(pointerStart, pointerEnd)
+            //     return
+            // }
+            if (dragging === DraggingState.Stopped) return
+
+            Vec2.div(pointerDelta, Vec2.sub(pointerDelta, pointerEnd, pointerStart), getClientSize(rectSize))
+
+            const started = dragging === DraggingState.Started
+            const { pageX, pageY } = ev
+            const [ x, y ] = pointerEnd
+            const [ dx, dy ] = pointerDelta
+            // console.log({ x, y, dx, dy, pageX, pageY, buttons, modifiers, started })
+            drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers, started })
+
+            Vec2.copy(pointerStart, pointerEnd)
+            dragging = DraggingState.Moving
+        }
+
+        function onMouseWheel(ev: MouseWheelEvent) {
+            if (noScroll) {
+                ev.preventDefault()
+            }
+            const mode = ev.deltaMode
+            let dx = ev.deltaX || 0
+            let dy = ev.deltaY || 0
+            let dz = ev.deltaZ || 0
+            let scale = 1
+            switch (mode) {
+                case 1: scale = lineHeight; break
+                case 2: scale = window.innerHeight; break
+            }
+            scale *= 0.0001
+            dx *= scale
+            dy *= scale
+            dz *= scale
+            if (dx || dy || dz) {
+                wheel.next({ dx, dy, dz, buttons, modifiers })
+            }
         }
 
         function insideBounds (pos: Vec2) {
@@ -259,12 +428,17 @@ namespace InputObserver {
         }
 
         function getClientSize (out: Vec2) {
-            let source = element
-            if (source instanceof Window || source instanceof Document || source === document.body) {
-                source = document.documentElement
-            }
-            out[0] = source.clientWidth
-            out[1] = source.clientHeight
+            out[0] = element.clientWidth
+            out[1] = element.clientHeight
+            return out
+        }
+
+        function eventOffset (out: Vec2, ev: PointerEvent) {
+            const cx = ev.clientX || 0
+            const cy = ev.clientY || 0
+            const rect = element.getBoundingClientRect()
+            out[0] = cx - rect.left
+            out[1] = cy - rect.top
             return out
         }
     }

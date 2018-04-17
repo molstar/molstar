@@ -9,16 +9,15 @@
  * copyright (c) 2010-2018 three.js authors. MIT License
  */
 
-import { Subject } from 'rxjs';
-
 import { Quat, Vec2, Vec3, EPSILON } from 'mol-math/linear-algebra';
-import { clamp } from 'mol-math/interpolate';
-import InputObserver from 'mol-util/input/input-observer';
-import { cameraLookAt } from '../camera/util';
+import { cameraLookAt, Viewport } from '../camera/util';
+import InputObserver, { DragInput, WheelInput, MouseButtonsFlag, PinchInput } from 'mol-util/input/input-observer';
 
 export const DefaultTrackballControlsProps = {
+    noScroll: true,
+
     rotateSpeed: 3.0,
-    zoomSpeed: 2.2,
+    zoomSpeed: 2.0,
     panSpeed: 0.1,
 
     staticMoving: false,
@@ -29,32 +28,14 @@ export const DefaultTrackballControlsProps = {
 }
 export type TrackballControlsProps = Partial<typeof DefaultTrackballControlsProps>
 
-const enum STATE {
-    NONE = - 1,
-    ROTATE = 0,
-    ZOOM = 1,
-    PAN = 2,
-    TOUCH_ROTATE = 3,
-    TOUCH_ZOOM_PAN = 4
-}
-
 interface Object {
     position: Vec3,
     direction: Vec3,
     up: Vec3,
 }
 
-interface Screen {
-    left: number
-    top: number
-    width: number
-    height: number
-}
-
 interface TrackballControls {
-    change: Subject<void>
-    start: Subject<void>
-    end: Subject<void>
+    viewport: Viewport
 
     dynamicDampingFactor: number
     rotateSpeed: number
@@ -62,7 +43,6 @@ interface TrackballControls {
     panSpeed: number
 
     update: () => void
-    handleResize: () => void
     reset: () => void
     dispose: () => void
 }
@@ -71,22 +51,22 @@ namespace TrackballControls {
     export function create (element: Element, object: Object, props: TrackballControlsProps = {}): TrackballControls {
         const p = { ...DefaultTrackballControlsProps, ...props }
 
-        const screen: Screen = { left: 0, top: 0, width: 0, height: 0 }
+        const viewport: Viewport = { x: 0, y: 0, width: 0, height: 0 }
 
         let { rotateSpeed, zoomSpeed, panSpeed } = p
         let { staticMoving, dynamicDampingFactor } = p
         let { minDistance, maxDistance } = p
 
-        const change = new Subject<void>()
-        const start = new Subject<void>()
-        const end = new Subject<void>()
+        let disposed = false
+
+        const input = InputObserver.create(element)
+        input.drag.subscribe(onDrag)
+        input.wheel.subscribe(onWheel)
+        input.pinch.subscribe(onPinch)
 
         // internals
         const target = Vec3.zero()
         const lastPosition = Vec3.zero()
-
-        let _state = STATE.NONE
-        let _prevState = STATE.NONE
 
         const _eye = Vec3.zero()
 
@@ -99,8 +79,8 @@ namespace TrackballControls {
         const _zoomStart = Vec2.zero()
         const _zoomEnd = Vec2.zero()
 
-        let _touchZoomDistanceStart = 0
-        let _touchZoomDistanceEnd = 0
+        // let _touchZoomDistanceStart = 0
+        // let _touchZoomDistanceEnd = 0
 
         const _panStart = Vec2.zero()
         const _panEnd = Vec2.zero()
@@ -110,30 +90,12 @@ namespace TrackballControls {
         const position0 = Vec3.clone(object.position)
         const up0 = Vec3.clone(object.up)
 
-        // methods
-        function handleResize () {
-            if ( element instanceof Document ) {
-                screen.left = 0;
-                screen.top = 0;
-                screen.width = window.innerWidth;
-                screen.height = window.innerHeight;
-            } else {
-                const box = element.getBoundingClientRect();
-                // adjustments come from similar code in the jquery offset() function
-                const d = element.ownerDocument.documentElement;
-                screen.left = box.left + window.pageXOffset - d.clientLeft;
-                screen.top = box.top + window.pageYOffset - d.clientTop;
-                screen.width = box.width;
-                screen.height = box.height;
-            }
-        }
-
         const mouseOnScreenVec2 = Vec2.zero()
         function getMouseOnScreen(pageX: number, pageY: number) {
             Vec2.set(
                 mouseOnScreenVec2,
-                (pageX - screen.left) / screen.width,
-                (pageY - screen.top) / screen.height
+                (pageX - viewport.x) / viewport.width,
+                (pageY - viewport.y) / viewport.height
             );
             return mouseOnScreenVec2;
         }
@@ -142,8 +104,8 @@ namespace TrackballControls {
         function getMouseOnCircle(pageX: number, pageY: number) {
             Vec2.set(
                 mouseOnCircleVec2,
-                ((pageX - screen.width * 0.5 - screen.left) / (screen.width * 0.5)),
-                ((screen.height + 2 * (screen.top - pageY)) / screen.width) // screen.width intentional
+                ((pageX - viewport.width * 0.5 - viewport.x) / (viewport.width * 0.5)),
+                ((viewport.height + 2 * (viewport.y - pageY)) / viewport.width) // screen.width intentional
             );
             return mouseOnCircleVec2;
         }
@@ -196,21 +158,32 @@ namespace TrackballControls {
 
 
         function zoomCamera () {
-            if (_state === STATE.TOUCH_ZOOM_PAN) {
-                const factor = _touchZoomDistanceStart / _touchZoomDistanceEnd
-                _touchZoomDistanceStart = _touchZoomDistanceEnd;
-                Vec3.scale(_eye, _eye, factor)
-            } else {
-                const factor = 1.0 + ( _zoomEnd[1] - _zoomStart[1] ) * zoomSpeed
-                if (factor !== 1.0 && factor > 0.0) {
-                    Vec3.scale(_eye, _eye, factor)
-                }
+            // if (_state === STATE.TOUCH_ZOOM_PAN) {
+            //     const factor = _touchZoomDistanceStart / _touchZoomDistanceEnd
+            //     _touchZoomDistanceStart = _touchZoomDistanceEnd;
+            //     Vec3.scale(_eye, _eye, factor)
+            // } else {
+            //     const factor = 1.0 + ( _zoomEnd[1] - _zoomStart[1] ) * zoomSpeed
+            //     if (factor !== 1.0 && factor > 0.0) {
+            //         Vec3.scale(_eye, _eye, factor)
+            //     }
 
-                if (staticMoving) {
-                    Vec2.copy(_zoomStart, _zoomEnd)
-                } else {
-                    _zoomStart[1] += ( _zoomEnd[1] - _zoomStart[1] ) * dynamicDampingFactor
-                }
+            //     if (staticMoving) {
+            //         Vec2.copy(_zoomStart, _zoomEnd)
+            //     } else {
+            //         _zoomStart[1] += ( _zoomEnd[1] - _zoomStart[1] ) * dynamicDampingFactor
+            //     }
+            // }
+
+            const factor = 1.0 + ( _zoomEnd[1] - _zoomStart[1] ) * zoomSpeed
+            if (factor !== 1.0 && factor > 0.0) {
+                Vec3.scale(_eye, _eye, factor)
+            }
+
+            if (staticMoving) {
+                Vec2.copy(_zoomStart, _zoomEnd)
+            } else {
+                _zoomStart[1] += ( _zoomEnd[1] - _zoomStart[1] ) * dynamicDampingFactor
             }
         }
 
@@ -271,197 +244,130 @@ namespace TrackballControls {
             cameraLookAt(object.position, object.up, object.direction, target)
 
             if (Vec3.squaredDistance(lastPosition, object.position) > EPSILON.Value) {
-                change.next()
                 Vec3.copy(lastPosition, object.position)
             }
         }
 
         function reset() {
-            _state = STATE.NONE;
-            _prevState = STATE.NONE;
-
             Vec3.copy(target, target0)
             Vec3.copy(object.position, position0)
             Vec3.copy(object.up, up0)
 
             Vec3.sub(_eye, object.position, target)
-
             cameraLookAt(object.position, object.up, object.direction, target)
-
-            change.next()
             Vec3.copy(lastPosition, object.position)
         }
 
         // listeners
 
-        function mousedown(event: MouseEvent) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (_state === STATE.NONE) {
-                _state = event.button;
-            }
-
-            if (_state === STATE.ROTATE) {
-                Vec2.copy(_moveCurr, getMouseOnCircle(event.pageX, event.pageY))
-                Vec2.copy(_movePrev, _moveCurr)
-            } else if (_state === STATE.ZOOM) {
-                Vec2.copy(_zoomStart, getMouseOnScreen(event.pageX, event.pageY))
-                Vec2.copy(_zoomEnd, _zoomStart)
-            } else if (_state === STATE.PAN) {
-                Vec2.copy(_panStart, getMouseOnScreen(event.pageX, event.pageY))
-                Vec2.copy(_panEnd, _panStart)
-            }
-
-            document.addEventListener('mousemove', mousemove, false);
-            document.addEventListener('mouseup', mouseup, false);
-
-            start.next()
-        }
-
-        function mousemove(event: MouseEvent) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            if (_state === STATE.ROTATE) {
-                Vec2.copy(_movePrev, _moveCurr)
-                Vec2.copy(_moveCurr, getMouseOnCircle(event.pageX, event.pageY))
-            } else if (_state === STATE.ZOOM) {
-                Vec2.copy(_zoomEnd, getMouseOnScreen(event.pageX, event.pageY))
-            } else if (_state === STATE.PAN) {
-                Vec2.copy(_panEnd, getMouseOnScreen(event.pageX, event.pageY))
-            }
-        }
-
-        function mouseup(event: MouseEvent) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            _state = STATE.NONE;
-
-            document.removeEventListener( 'mousemove', mousemove );
-            document.removeEventListener( 'mouseup', mouseup );
-
-            end.next()
-        }
-
-        function mousewheel( event: MouseWheelEvent ) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            switch ( event.deltaMode ) {
-                case 2:
-                    // Zoom in pages
-                    _zoomStart[1] -= event.deltaY * 0.025;
-                    break;
-                case 1:
-                    // Zoom in lines
-                    _zoomStart[1] -= event.deltaY * 0.01;
-                    break;
-                default:
-                    // undefined, 0, assume pixels
-                    _zoomStart[1] -= event.deltaY * 0.00025;
-                    break;
-            }
-
-            start.next()
-            end.next()
-        }
-
-        function touchstart(event: TouchEvent ) {
-            switch ( event.touches.length ) {
-                case 1:
-                    _state = STATE.TOUCH_ROTATE;
-                    Vec2.copy(_moveCurr, getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY))
+        function onDrag({ pageX, pageY, buttons, modifiers, started }: DragInput) {
+            if (started) {
+                if (buttons === MouseButtonsFlag.Primary) {
+                    Vec2.copy(_moveCurr, getMouseOnCircle(pageX, pageY))
                     Vec2.copy(_movePrev, _moveCurr)
-                    break;
-                default: // 2 or more
-                    _state = STATE.TOUCH_ZOOM_PAN;
-                    const dx = event.touches[0].pageX - event.touches[1].pageX;
-                    const dy = event.touches[0].pageY - event.touches[1].pageY;
-                    _touchZoomDistanceEnd = _touchZoomDistanceStart = Math.sqrt(dx * dx + dy * dy);
-
-                    const x = ( event.touches[0].pageX + event.touches[1].pageX) / 2;
-                    const y = ( event.touches[0].pageY + event.touches[1].pageY) / 2;
-                    Vec2.copy(_panStart, getMouseOnScreen(x, y))
+                } else if (buttons === MouseButtonsFlag.Auxilary) {
+                    Vec2.copy(_zoomStart, getMouseOnScreen(pageX, pageY))
+                    Vec2.copy(_zoomEnd, _zoomStart)
+                } else if (buttons === MouseButtonsFlag.Secondary) {
+                    Vec2.copy(_panStart, getMouseOnScreen(pageX, pageY))
                     Vec2.copy(_panEnd, _panStart)
-                    break;
+                }
             }
 
-            start.next()
-        }
-
-        function touchmove(event: TouchEvent) {
-            event.preventDefault();
-            event.stopPropagation();
-
-            switch ( event.touches.length ) {
-                case 1:
-                    Vec2.copy(_movePrev, _moveCurr)
-                    Vec2.copy(_moveCurr, getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY))
-                    break;
-                default: // 2 or more
-                    const dx = event.touches[0].pageX - event.touches[1].pageX;
-                    const dy = event.touches[0].pageY - event.touches[1].pageY;
-                    _touchZoomDistanceEnd = Math.sqrt(dx * dx + dy * dy);
-
-                    const x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
-                    const y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
-                    Vec2.copy(_panEnd, getMouseOnScreen(x, y))
-                    break;
+            if (buttons === MouseButtonsFlag.Primary) {
+                Vec2.copy(_movePrev, _moveCurr)
+                Vec2.copy(_moveCurr, getMouseOnCircle(pageX, pageY))
+            } else if (buttons === MouseButtonsFlag.Auxilary) {
+                Vec2.copy(_zoomEnd, getMouseOnScreen(pageX, pageY))
+            } else if (buttons === MouseButtonsFlag.Secondary) {
+                Vec2.copy(_panEnd, getMouseOnScreen(pageX, pageY))
             }
         }
 
-        function touchend(event: TouchEvent) {
-            switch ( event.touches.length ) {
-                case 0:
-                    _state = STATE.NONE;
-                    break;
-                case 1:
-                    _state = STATE.TOUCH_ROTATE;
-                    Vec2.copy(_moveCurr, getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY))
-                    Vec2.copy(_movePrev, _moveCurr)
-                    break;
-
-            }
-
-            end.next()
+        function onWheel({ dy }: WheelInput) {
+            _zoomStart[1] -= dy
         }
 
-        function contextmenu(event: Event) {
-            event.preventDefault();
+        function onPinch({ delta }: PinchInput) {
+            console.log(delta)
+            _zoomStart[1] -= delta
         }
+
+        // function touchstart(event: TouchEvent ) {
+        //     switch ( event.touches.length ) {
+        //         case 1:
+        //             // _state = STATE.TOUCH_ROTATE;
+        //             Vec2.copy(_moveCurr, getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY))
+        //             Vec2.copy(_movePrev, _moveCurr)
+        //             break;
+        //         default: // 2 or more
+        //             // _state = STATE.TOUCH_ZOOM_PAN;
+        //             const dx = event.touches[0].pageX - event.touches[1].pageX;
+        //             const dy = event.touches[0].pageY - event.touches[1].pageY;
+        //             _touchZoomDistanceEnd = _touchZoomDistanceStart = Math.sqrt(dx * dx + dy * dy);
+
+        //             const x = ( event.touches[0].pageX + event.touches[1].pageX) / 2;
+        //             const y = ( event.touches[0].pageY + event.touches[1].pageY) / 2;
+        //             Vec2.copy(_panStart, getMouseOnScreen(x, y))
+        //             Vec2.copy(_panEnd, _panStart)
+        //             break;
+        //     }
+        // }
+
+        // function touchmove(event: TouchEvent) {
+        //     event.preventDefault();
+        //     event.stopPropagation();
+
+        //     switch ( event.touches.length ) {
+        //         case 1:
+        //             Vec2.copy(_movePrev, _moveCurr)
+        //             Vec2.copy(_moveCurr, getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY))
+        //             break;
+        //         default: // 2 or more
+        //             const dx = event.touches[0].pageX - event.touches[1].pageX;
+        //             const dy = event.touches[0].pageY - event.touches[1].pageY;
+        //             _touchZoomDistanceEnd = Math.sqrt(dx * dx + dy * dy);
+
+        //             const x = (event.touches[0].pageX + event.touches[1].pageX) / 2;
+        //             const y = (event.touches[0].pageY + event.touches[1].pageY) / 2;
+        //             Vec2.copy(_panEnd, getMouseOnScreen(x, y))
+        //             break;
+        //     }
+        // }
+
+        // function touchend(event: TouchEvent) {
+        //     switch ( event.touches.length ) {
+        //         case 0:
+        //             // _state = STATE.NONE;
+        //             break;
+        //         case 1:
+        //             // _state = STATE.TOUCH_ROTATE;
+        //             Vec2.copy(_moveCurr, getMouseOnCircle(event.touches[0].pageX, event.touches[0].pageY))
+        //             Vec2.copy(_movePrev, _moveCurr)
+        //             break;
+
+        //     }
+        // }
 
         function dispose() {
-            element.removeEventListener( 'contextmenu', contextmenu, false );
-            element.removeEventListener( 'mousedown', mousedown as any, false );
-            element.removeEventListener( 'wheel', mousewheel, false );
+            if (disposed) return
+            disposed = true
+            input.dispose()
 
-            element.removeEventListener( 'touchstart', touchstart as any, false );
-            element.removeEventListener( 'touchend', touchend as any, false );
-            element.removeEventListener( 'touchmove', touchmove as any, false );
-
-            document.removeEventListener( 'mousemove', mousemove, false );
-            document.removeEventListener( 'mouseup', mouseup, false );
+            // element.removeEventListener( 'touchstart', touchstart as any, false );
+            // element.removeEventListener( 'touchend', touchend as any, false );
+            // element.removeEventListener( 'touchmove', touchmove as any, false );
         }
 
-        element.addEventListener( 'contextmenu', contextmenu, false );
-        element.addEventListener( 'mousedown', mousedown as any, false );
-        element.addEventListener( 'wheel', mousewheel, false );
-
-        element.addEventListener( 'touchstart', touchstart as any, false );
-        element.addEventListener( 'touchend', touchend as any, false );
-        element.addEventListener( 'touchmove', touchmove as any, false );
-
-        handleResize();
+        // element.addEventListener( 'touchstart', touchstart as any, false );
+        // element.addEventListener( 'touchend', touchend as any, false );
+        // element.addEventListener( 'touchmove', touchmove as any, false );
 
         // force an update at start
         update();
 
         return {
-            change,
-            start,
-            end,
+            viewport,
 
             get dynamicDampingFactor() { return dynamicDampingFactor },
             set dynamicDampingFactor(value: number ) { dynamicDampingFactor = value },
@@ -473,7 +379,6 @@ namespace TrackballControls {
             set panSpeed(value: number ) { panSpeed = value },
 
             update,
-            handleResize,
             reset,
             dispose
         }

@@ -20,6 +20,10 @@ export namespace Viewport {
     export function clone(viewport: Viewport): Viewport {
         return { ...viewport }
     }
+
+    export function copy(target: Viewport, source: Viewport): Viewport {
+        return Object.assign(target, source)
+    }
 }
 
 const tmpVec3 = Vec3.zero()

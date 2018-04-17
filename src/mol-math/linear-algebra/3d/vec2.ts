@@ -75,6 +75,18 @@ namespace Vec2 {
         return out;
     }
 
+    export function mul(out: Vec2, a: Vec2, b: Vec2) {
+        out[0] = a[0] * b[0];
+        out[1] = a[1] * b[1];
+        return out;
+    }
+
+    export function div(out: Vec2, a: Vec2, b: Vec2) {
+        out[0] = a[0] / b[0];
+        out[1] = a[1] / b[1];
+        return out;
+    }
+
     export function scale(out: Vec2, a: Vec2, b: number) {
         out[0] = a[0] * b;
         out[1] = a[1] * b;
