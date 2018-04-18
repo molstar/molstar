@@ -20,7 +20,7 @@ type Uniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }
 type InstanceColor = { type: 'instance', value: ValueCell<ColorTexture> }
 type ElementColor = { type: 'element', value: ValueCell<ColorTexture> }
-type Color = AttributeColor | InstanceColor | ElementColor
+export type Color = AttributeColor | InstanceColor | ElementColor
 
 namespace Mesh {
     export type Data = {

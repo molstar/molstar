@@ -37,20 +37,16 @@ export function StructureRepresentation<Props>(reprCtor: () => UnitsRepresentati
                 const { elements, units } = structure;
                 const uniqueGroups = EquivalenceClasses<number, ElementGroup>(
                     ElementGroup.hashCode,
-                    (a, b) => units[a.id].model.id === units[b.id].model.id &&
-                        OrderedSet.areEqual(a.elements, b.elements)
+                    (a, b) => {
+                        console.log(units, a.id, b.id)
+                        return units[a.id].model.id === units[b.id].model.id && OrderedSet.areEqual(a.elements, b.elements)
+                    }
                 );
-                // TODO
-                // const uniqueOperators = EquivalenceClasses<number, ElementGroup>(
-                //     ElementGroup.hashCode,
-                //     (a, b) => units[a.id].model.id === units[b.id].model.id &&
-                //         OrderedSet.areEqual(a.elements, b.elements)
-                // );
 
                 for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
                     const group = ElementSet.unitGetByIndex(elements, i);
                     uniqueGroups.add(i, group);
-                    // console.log(i, group)
+                    console.log(i, group)
                 }
 
                 for (let i = 0, _i = uniqueGroups.groups.length; i < _i; i++) {

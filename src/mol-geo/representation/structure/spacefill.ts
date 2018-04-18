@@ -15,12 +15,24 @@ import { RepresentationProps, UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
-import { ElementColor } from '../../color';
+import { ElementColor, hexColorToArray } from '../../color';
+import { ChunkedArray } from 'mol-data/util';
+import { Color } from 'mol-gl/renderable/mesh';
+import { createColorTexture } from 'mol-gl/util';
 
 export const DefaultSpacefillProps = {
     detail: 0
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
+
+// function buildColorBuffer() {
+//     if (props && props.color) {
+//         colors = new Float32Array(icosahedron.vertices.length)
+//         for (let i = 0, il = colors.length; i < il; i += 3) {
+//             hexColorToArray(props.color, colors, i)
+//         }
+//     }
+// }
 
 export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
@@ -44,9 +56,9 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 v[2] = z[e]
                 Mat4.setTranslation(m, v)
 
+                meshBuilder.setId(i)
                 meshBuilder.addIcosahedron(m, {
                     radius: VdwRadius(type_symbol.value(e)),
-                    color: ElementColor(type_symbol.value(e)),
                     detail
                 })
 
@@ -55,22 +67,46 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 }
             }
 
+            const mesh = meshBuilder.getMesh()
+            console.log(mesh)
+
             const unitsCount = units.length
             const transformArray = new Float32Array(unitsCount * 16)
             for (let i = 0; i < unitsCount; i++) {
                 Mat4.toArray(units[i].operator.matrix, transformArray, i * 16)
             }
 
-            // const color = ValueCell.create(createColorTexture(unitsCount))
-            // color.ref.value.set([ 0, 0, 255 ])
+            console.log({ unitsCount, elementCount })
 
-            const mesh = meshBuilder.getMesh()
-            console.log(mesh)
+            let colorType = 'instance'
+            let color: Color
+
+            if (colorType === 'attribute') {
+                const colors = new Float32Array(mesh.vertexCount * 3);
+                if (mesh.offsetBuffer.ref.value) {
+                    const offsets = mesh.offsetBuffer.ref.value
+                    for (let i = 0, il = mesh.offsetCount - 1; i < il; ++i) {
+                        const start = offsets[i]
+                        const end = offsets[i + 1]
+                        const e = OrderedSet.getAt(elementGroup.elements, i)
+                        const hexColor = ElementColor(type_symbol.value(e))
+                        for (let i = start, il = end; i < il; ++i) {
+                            hexColorToArray(hexColor, colors, i * 3)
+                        }
+                    }
+                    color = { type: 'attribute', value: ValueCell.create(colors) }
+                }
+            } else if (colorType === 'instance') {
+                const colors = createColorTexture(unitsCount)
+                colors.set([ 0, 0, 255 ])
+
+                color = { type: 'instance', value: ValueCell.create(colors) }
+            }
 
             const spheres = createRenderObject('mesh', {
                 position: mesh.vertexBuffer,
                 normal: mesh.normalBuffer,
-                color: { type: 'attribute', value: (mesh as any).colorBuffer },
+                color: color!,
                 transform: ValueCell.create(transformArray),
                 elements: mesh.indexBuffer,
 

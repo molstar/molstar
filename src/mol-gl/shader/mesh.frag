@@ -4,6 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+// #define ATTRIBUTE_COLOR
+#define INSTANCE_COLOR
+
 precision highp float;
 
 struct Light {
@@ -17,7 +20,13 @@ struct Light {
 uniform Light light;
 uniform mat4 view;
 
-varying vec3 vNormal, vViewPosition, vColor;
+varying vec3 vNormal, vViewPosition;
+
+#if defined( UNIFORM_COLOR )
+    uniform vec3 color;
+#elif defined( ATTRIBUTE_COLOR ) || defined( INSTANCE_COLOR ) || defined( ELEMENT_COLOR )
+    varying vec3 vColor;
+#endif
 
 float phongSpecular(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNormal, float shininess) {
     //Calculate Phong power
@@ -50,6 +59,13 @@ const float roughness = 5.0;
 const float albedo = 0.95;
 
 void main() {
+    // material color
+    #if defined( UNIFORM_COLOR )
+        vec3 material = color;
+    #elif defined( ATTRIBUTE_COLOR ) || defined( INSTANCE_COLOR ) || defined( ELEMENT_COLOR )
+        vec3 material = vColor;
+    #endif
+
     // determine surface to light direction
     // vec4 lightPosition = view * vec4(light.position, 1.0);
     vec4 lightPosition = vec4(vec3(0.0, 0.0, -10000.0), 1.0);
@@ -69,10 +85,10 @@ void main() {
     vec3 ambient = light.ambient;
 
     // add the lighting
-    vec3 color = vColor * (diffuse + ambient) + specular;
+    vec3 finalColor = material * (diffuse + ambient) + specular;
 
     // gl_FragColor.rgb = N;
     // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
-    gl_FragColor.rgb = color;
+    gl_FragColor.rgb = finalColor;
     gl_FragColor.a = 1.0;
 }

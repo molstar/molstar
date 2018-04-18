@@ -26,7 +26,7 @@ import { StructureRepresentation } from 'mol-geo/representation/structure';
 
 export default class State {
     viewer: Viewer
-    pdbId = '1crn'
+    pdbId = '4cup'
     initialized = new BehaviorSubject<boolean>(false)
     loading = new BehaviorSubject<boolean>(false)
 
@@ -52,7 +52,7 @@ export default class State {
         // structPointRepr.renderObjects.forEach(viewer.add)
 
         const structSpacefillRepr = StructureRepresentation(Spacefill)
-        await Run(structSpacefillRepr.create(struct, { detail: 2 }))
+        await Run(structSpacefillRepr.create(struct, { detail: 0 }))
         structSpacefillRepr.renderObjects.forEach(viewer.add)
 
         this.loading.next(false)

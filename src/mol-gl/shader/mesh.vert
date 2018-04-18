@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-#define ATTRIBUTE_COLOR
-// #define INSTANCE_COLOR
+// #define ATTRIBUTE_COLOR
+#define INSTANCE_COLOR
 
 precision highp float;
 
@@ -14,7 +14,9 @@ uniform mat4 projection, model, view;
 uniform int objectId;
 uniform int instanceCount;
 
-#if defined( ATTRIBUTE_COLOR )
+#if defined( UNIFORM_COLOR )
+    uniform vec3 color;
+#elif defined( ATTRIBUTE_COLOR )
     attribute vec3 color;
 #elif defined( INSTANCE_COLOR ) || defined( ELEMENT_COLOR )
     uniform vec2 colorTexSize;
@@ -42,8 +44,6 @@ void main(){
         vColor = read_vec3(colorTex, instanceId, colorTexSize);
     // #elif defined( ELEMENT_COLOR )
     //     vColor = read_vec3(colorTex, instanceId * instanceCount + elementId, colorTexSize);
-    #else
-        vColor = vec3(0.0, 1.0, 0.0);
     #endif
 
     mat4 transform = mat4(transformColumn0, transformColumn1, transformColumn2, transformColumn3);

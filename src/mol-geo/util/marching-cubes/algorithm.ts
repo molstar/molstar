@@ -71,15 +71,20 @@ class MarchingCubesComputation {
         this.state.vertexBuffer = <any>void 0;
         this.state.verticesOnEdges = <any>void 0;
 
+        const os = this.parameters.oldSurface
+
         let ret: Mesh = {
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
-            vertexBuffer: this.parameters.oldSurface ? ValueCell.update(this.parameters.oldSurface.vertexBuffer, vb) : ValueCell.create(vb),
-            indexBuffer: this.parameters.oldSurface ? ValueCell.update(this.parameters.oldSurface.indexBuffer, ib) : ValueCell.create(ib),
-            normalBuffer: this.parameters.oldSurface ? this.parameters.oldSurface.normalBuffer : ValueCell.create(void 0),
+            offsetCount: 0,
+            vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),
+            indexBuffer: os ? ValueCell.update(os.indexBuffer, ib) : ValueCell.create(ib),
+            normalBuffer: os ? os.normalBuffer : ValueCell.create(void 0),
+            idBuffer: os ? os.idBuffer : ValueCell.create(void 0),
+            offsetBuffer: os ? os.offsetBuffer : ValueCell.create(void 0),
             vertexAnnotation: this.state.annotate
-                ? this.parameters.oldSurface && this.parameters.oldSurface.vertexAnnotation
-                    ? ValueCell.update(this.parameters.oldSurface.vertexAnnotation, ChunkedArray.compact(this.state.annotationBuffer))
+                ? os && os.vertexAnnotation
+                    ? ValueCell.update(os.vertexAnnotation, ChunkedArray.compact(this.state.annotationBuffer))
                     : ValueCell.create(ChunkedArray.compact(this.state.annotationBuffer))
                 : void 0,
             normalsComputed: false

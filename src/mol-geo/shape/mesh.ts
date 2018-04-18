@@ -13,9 +13,12 @@ import { transformPositionArray } from '../util';
 export interface Mesh {
     vertexCount: number,
     triangleCount: number,
+    offsetCount: number,
     vertexBuffer: ValueCell<Float32Array>,
     indexBuffer: ValueCell<Uint32Array>,
     normalBuffer: ValueCell<Float32Array | undefined>,
+    idBuffer: ValueCell<Uint32Array | undefined>,
+    offsetBuffer: ValueCell<Uint32Array | undefined>,
     normalsComputed: boolean,
 
     vertexAnnotation?: ValueCell<ArrayLike<number>>
@@ -26,8 +29,8 @@ export namespace Mesh {
     export function computeNormalsImmediate(surface: Mesh) {
         if (surface.normalsComputed) return;
 
-        const normals = surface.normalBuffer.ref.value && surface.normalBuffer.ref.value!.length >= surface.vertexCount * 3
-            ? surface.normalBuffer.ref.value : new Float32Array(surface.vertexBuffer.ref.value!.length);
+        const normals = surface.normalBuffer.ref.value && surface.normalBuffer.ref.value.length >= surface.vertexCount * 3
+            ? surface.normalBuffer.ref.value : new Float32Array(surface.vertexBuffer.ref.value.length);
 
         const v = surface.vertexBuffer.ref.value, triangles = surface.indexBuffer.ref.value;
 
@@ -54,7 +57,7 @@ export namespace Mesh {
             const f = 1.0 / Math.sqrt(nx * nx + ny * ny + nz * nz);
             normals[i] *= f; normals[i + 1] *= f; normals[i + 2] *= f;
 
-           // console.log([normals[i], normals[i + 1], normals[i + 2]], [v[i], v[i + 1], v[i + 2]])
+            // console.log([normals[i], normals[i + 1], normals[i + 2]], [v[i], v[i + 1], v[i + 2]])
         }
         surface.normalBuffer = ValueCell.update(surface.normalBuffer, normals);
         surface.normalsComputed = true;
