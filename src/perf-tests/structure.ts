@@ -11,11 +11,12 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Element, ElementGroup, ElementSet, Selection, Symmetry } from 'mol-model/structure'
-import { Segmentation } from 'mol-data/int'
+import { Structure, Model, Queries as Q, Element, ElementGroup, ElementSet, Selection, Symmetry, Unit } from 'mol-model/structure'
+import { Segmentation, OrderedSet } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
 import { Run } from 'mol-task';
+import { EquivalenceClasses } from 'mol-data/util';
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
@@ -100,7 +101,7 @@ async function ensureBcifAvailable(pdbId: string) {
     }
 }
 
-async function getBcif(pdbId: string) {
+export async function getBcif(pdbId: string) {
     await ensureBcifAvailable(pdbId);
     return await readCIF(getBcifPath(pdbId));
 }
@@ -301,11 +302,35 @@ export namespace PropertyAccess {
         console.log('exported');
     }
 
+    export function testGrouping(structure: Structure) {
+        const { elements, units } = Symmetry.buildAssembly(structure, '1');
+        console.log('grouping', units.length);
+        console.log('built asm');
+
+        const uniqueGroups = EquivalenceClasses<number, { unit: Unit, group: ElementGroup }>(
+            ({ unit, group }) => ElementGroup.hashCode(group),
+            (a, b) => a.unit.model.id === b.unit.model.id && (a.group.key === b.group.key && OrderedSet.areEqual(a.group.elements, b.group.elements))
+        );
+
+        for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
+            const group = ElementSet.unitGetByIndex(elements, i);
+            const unitId = ElementSet.unitGetId(elements, i);
+            uniqueGroups.add(unitId, { unit: units[unitId], group });
+        }
+
+        console.log('group count', uniqueGroups.groups.length);
+    }
+
     export async function run() {
-        const { structures, models/*, mmcif*/ } = await getBcif('1cbs');
+        //const { structures, models/*, mmcif*/ } = await getBcif('1cbs');
         // const { structures, models } = await getBcif('3j3q');
 
-        //const { structures, models, mmcif } = await readCIF('e:/test/quick/1cbs_updated.cif');
+        const { structures, models /*, mmcif*/ } = await readCIF('e:/test/quick/1hrv_updated.cif');
+        const { structures: s1, /*, mmcif*/ } = await readCIF('e:/test/quick/1tqn_updated.cif');
+
+        testGrouping(structures[0]);
+        console.log('------');
+        testGrouping(s1[0]);
         //const { structures, models/*, mmcif*/ } = await readCIF('e:/test/quick/5j7v_updated.cif');
 
         //console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());

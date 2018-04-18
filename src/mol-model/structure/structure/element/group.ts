@@ -9,7 +9,8 @@ import Unit from '../unit'
 
 interface ElementGroup {
     elements: OrderedSet,
-    id: number
+    // Unique identifier of the group, usable as partial key for various "caches".
+    key: number
 }
 
 namespace ElementGroup {
@@ -20,7 +21,7 @@ namespace ElementGroup {
     }
 
     export function createNew(elements: OrderedSet): ElementGroup {
-        return { id: nextId(), elements };
+        return { key: nextKey(), elements };
     }
 
     export function create(unit: Unit, elements: OrderedSet): ElementGroup {
@@ -61,7 +62,7 @@ namespace ElementGroup {
     }
 
     let _id = 0;
-    function nextId() {
+    function nextKey() {
         const ret = _id;
         _id = (_id + 1) % 0x3fffffff;
         return ret;

@@ -35,18 +35,15 @@ export function StructureRepresentation<Props>(reprCtor: () => UnitsRepresentati
         create(structure: Structure, props: Props = {} as Props) {
             return Task.create('StructureRepresentation', async ctx => {
                 const { elements, units } = structure;
-                const uniqueGroups = EquivalenceClasses<number, ElementGroup>(
-                    ElementGroup.hashCode,
-                    (a, b) => {
-                        console.log(units, a.id, b.id)
-                        return units[a.id].model.id === units[b.id].model.id && OrderedSet.areEqual(a.elements, b.elements)
-                    }
+                const uniqueGroups = EquivalenceClasses<number, { unit: Unit, group: ElementGroup }>(
+                    ({ unit, group }) => ElementGroup.hashCode(group),
+                    (a, b) => a.unit.model.id === b.unit.model.id && OrderedSet.areEqual(a.group.elements, b.group.elements)
                 );
 
                 for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
                     const group = ElementSet.unitGetByIndex(elements, i);
-                    uniqueGroups.add(i, group);
-                    console.log(i, group)
+                    const unitId = ElementSet.unitGetId(elements, i);
+                    uniqueGroups.add(unitId, { unit: units[unitId], group });
                 }
 
                 for (let i = 0, _i = uniqueGroups.groups.length; i < _i; i++) {
@@ -55,7 +52,6 @@ export function StructureRepresentation<Props>(reprCtor: () => UnitsRepresentati
                     // console.log('group', i)
                     for (let j = 0, _j = group.length; j < _j; j++) {
                         groupUnits.push(units[group[j]])
-                        // console.log(units[group[j]].operator.matrix)
                     }
                     const elementGroup = ElementSet.unitGetByIndex(elements, group[0])
                     const repr = reprCtor()
