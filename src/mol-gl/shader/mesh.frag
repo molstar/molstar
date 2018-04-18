@@ -45,17 +45,18 @@ float orenNayarDiffuse(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNorm
 #pragma glslify: attenuation = require(./attenuation.glsl)
 
 const float specularScale = 0.65;
-const float shininess = 10.0;
+const float shininess = 30.0;
 const float roughness = 5.0;
 const float albedo = 0.95;
 
 void main() {
     // determine surface to light direction
-    vec4 lightPosition = view * vec4(light.position, 1.0);
+    // vec4 lightPosition = view * vec4(light.position, 1.0);
+    vec4 lightPosition = vec4(vec3(0.0, 0.0, -10000.0), 1.0);
     vec3 lightVector = lightPosition.xyz - vViewPosition;
 
     // calculate attenuation
-    float lightDistance = length(lightVector);
+    // float lightDistance = length(lightVector);
     float falloff = 1.0; // attenuation(light.radius, light.falloff, lightDistance);
 
     vec3 L = normalize(lightVector); // light direction

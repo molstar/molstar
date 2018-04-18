@@ -70,7 +70,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             const spheres = createRenderObject('mesh', {
                 position: mesh.vertexBuffer,
                 normal: mesh.normalBuffer,
-                color: { '@type': 'attribute', value: (mesh as any).colorBuffer },
+                color: { type: 'attribute', value: (mesh as any).colorBuffer },
                 transform: ValueCell.create(transformArray),
                 elements: mesh.indexBuffer,
 

@@ -17,9 +17,9 @@ type Mesh = 'mesh'
 
 type Uniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 
-type AttributeColor = { '@type': 'attribute', value: ValueCell<Float32Array> }
-type InstanceColor = { '@type': 'instance', value: ValueCell<ColorTexture> }
-type ElementColor = { '@type': 'element', value: ValueCell<ColorTexture> }
+type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }
+type InstanceColor = { type: 'instance', value: ValueCell<ColorTexture> }
+type ElementColor = { type: 'element', value: ValueCell<ColorTexture> }
 type Color = AttributeColor | InstanceColor | ElementColor
 
 namespace Mesh {
@@ -42,7 +42,7 @@ namespace Mesh {
             instanceCount: data.instanceCount,
             ..._uniforms
         }
-        if (data.color['@type'] === 'instance' || data.color['@type'] === 'element') {
+        if (data.color.type === 'instance' || data.color.type === 'element') {
             Object.assign(uniforms, createColorUniforms(regl, data.color.value as ValueCell<ColorTexture>))
         }
         const attributes = getBuffers({
@@ -51,7 +51,7 @@ namespace Mesh {
             normal: Attribute.create(regl, data.normal, data.positionCount, { size: 3 }),
             ...createTransformAttributes(regl, data.transform, data.instanceCount)
         })
-        if (data.color['@type'] === 'attribute') {
+        if (data.color.type === 'attribute') {
             attributes.color = Attribute.create(regl, data.color.value as ValueCell<Float32Array>, data.positionCount, { size: 3 }).buffer
         }
         const command = regl({
