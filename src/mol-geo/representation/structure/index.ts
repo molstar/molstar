@@ -34,11 +34,11 @@ export class StructureRepresentation {
             const { elements, units } = structure;
             const uniqueGroups = EquivalenceClasses<number, ElementGroup>(
                 ElementGroup.hashCode,
-                (a, b) => units[a.id].model.id === units[b.id].model.id && OrderedSet.areEqual(a.elements, b.elements));
+                (a, b) => units[a.key].model.id === units[b.key].model.id && OrderedSet.areEqual(a.elements, b.elements));
 
             for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
                 const group = ElementSet.unitGetByIndex(elements, i);
-                uniqueGroups.add(group.id, group);
+                uniqueGroups.add(group.key, group);
 
             }
 
