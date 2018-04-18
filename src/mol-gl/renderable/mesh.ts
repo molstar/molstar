@@ -17,12 +17,17 @@ type Mesh = 'mesh'
 
 type Uniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 
+type AttributeColor = { '@type': 'attribute', value: ValueCell<Float32Array> }
+type InstanceColor = { '@type': 'instance', value: ValueCell<ColorTexture> }
+type ElementColor = { '@type': 'element', value: ValueCell<ColorTexture> }
+type Color = AttributeColor | InstanceColor | ElementColor
+
 namespace Mesh {
     export type Data = {
         position: ValueCell<Float32Array>
         normal: ValueCell<Float32Array>
+        readonly color: Color
         transform: ValueCell<Float32Array>
-        color: ValueCell<ColorTexture>
         elements: ValueCell<Uint32Array>
 
         instanceCount: number
@@ -30,22 +35,29 @@ namespace Mesh {
         positionCount: number
     }
 
-    export function create(regl: REGL.Regl, data: Data, uniforms: Uniforms): Renderable {
+    export function create(regl: REGL.Regl, data: Data, _uniforms: Uniforms): Renderable {
         const instanceId = ValueCell.create(fillSerial(new Float32Array(data.instanceCount)))
+        const uniforms = {
+            objectId: _uniforms.objectId || 0,
+            instanceCount: data.instanceCount,
+            ..._uniforms
+        }
+        if (data.color['@type'] === 'instance' || data.color['@type'] === 'element') {
+            Object.assign(uniforms, createColorUniforms(regl, data.color.value as ValueCell<ColorTexture>))
+        }
+        const attributes = getBuffers({
+            instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
+            position: Attribute.create(regl, data.position, data.positionCount, { size: 3 }),
+            normal: Attribute.create(regl, data.normal, data.positionCount, { size: 3 }),
+            ...createTransformAttributes(regl, data.transform, data.instanceCount)
+        })
+        if (data.color['@type'] === 'attribute') {
+            attributes.color = Attribute.create(regl, data.color.value as ValueCell<Float32Array>, data.positionCount, { size: 3 }).buffer
+        }
         const command = regl({
             ...MeshShaders,
-            uniforms: {
-                objectId: uniforms.objectId || 0,
-                instanceCount: data.instanceCount,
-                ...createColorUniforms(regl, data.color),
-                ...uniforms
-            },
-            attributes: getBuffers({
-                instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
-                position: Attribute.create(regl, data.position, data.positionCount, { size: 3 }),
-                normal: Attribute.create(regl, data.normal, data.positionCount, { size: 3 }),
-                ...createTransformAttributes(regl, data.transform, data.instanceCount)
-            }),
+            uniforms,
+            attributes,
             elements: regl.elements({
                 data: data.elements.ref.value,
                 primitive: 'triangles',

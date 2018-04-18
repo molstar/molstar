@@ -17,6 +17,7 @@ type Point = 'point'
 namespace Point {
     export type Data = {
         position: ValueCell<Float32Array>
+        size?: ValueCell<Float32Array>
         transform: ValueCell<Float32Array>
 
         instanceCount: number
@@ -25,13 +26,17 @@ namespace Point {
 
     export function create(regl: REGL.Regl, data: Data): Renderable {
         const instanceId = ValueCell.create(fillSerial(new Float32Array(data.instanceCount)))
+        const attributes = getBuffers({
+            instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
+            position: Attribute.create(regl, data.position, data.positionCount, { size: 3 }),
+            ...createTransformAttributes(regl, data.transform, data.positionCount)
+        })
+        if (data.size) {
+            attributes.size = Attribute.create(regl, data.size, data.positionCount, { size: 1 }).buffer
+        }
         const command = regl({
             ...PointShaders,
-            attributes: getBuffers({
-                instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
-                position: Attribute.create(regl, data.position, data.positionCount, { size: 3 }),
-                ...createTransformAttributes(regl, data.transform, data.positionCount)
-            }),
+            attributes,
             count: data.positionCount,
             instances: data.instanceCount,
             primitive: 'points'

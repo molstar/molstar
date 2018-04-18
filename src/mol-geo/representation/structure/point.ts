@@ -14,6 +14,7 @@ import { ChunkedArray } from 'mol-data/util';
 import { Unit, ElementGroup } from 'mol-model/structure';
 import { RepresentationProps, UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
+import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
 
 export const DefaultPointProps = {
 
@@ -23,6 +24,7 @@ export type PointProps = Partial<typeof DefaultPointProps>
 export default function Point(): UnitsRepresentation<PointProps> {
     const renderObjects: RenderObject[] = []
     const vertices = ChunkedArray.create(Float32Array, 3, 1024, 2048);
+    const sizes = ChunkedArray.create(Float32Array, 1, 1024, 2048);
 
     return {
         renderObjects,
@@ -30,10 +32,12 @@ export default function Point(): UnitsRepresentation<PointProps> {
             // const l = Element.Location();
 
             const { x, y, z } = units[0].model.conformation
+            const { type_symbol } = units[0].model.hierarchy.atoms
             const elementCount = OrderedSet.size(elementGroup.elements)
             for (let i = 0; i < elementCount; i++) {
                 const e = OrderedSet.getAt(elementGroup.elements, i)
                 ChunkedArray.add3(vertices, x[e], y[e], z[e])
+                ChunkedArray.add(sizes, VdwRadius(type_symbol.value(e)))
 
                 if (i % 10 === 0 && ctx.shouldUpdate) {
                     await ctx.update({ message: 'Point', current: i, max: elementCount });
@@ -51,6 +55,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
 
             const points = createRenderObject('point', {
                 position: ValueCell.create(ChunkedArray.compact(vertices, true) as Float32Array),
+                size: ValueCell.create(ChunkedArray.compact(sizes, true) as Float32Array),
                 color,
                 transform: ValueCell.create(transformArray),
 

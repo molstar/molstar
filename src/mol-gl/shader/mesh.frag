@@ -60,7 +60,7 @@ void main() {
 
     vec3 L = normalize(lightVector); // light direction
     vec3 V = normalize(vViewPosition); // eye direction
-    vec3 N = normalize(vNormal); // surface normal
+    vec3 N = normalize(-vNormal); // surface normal
 
     // compute our diffuse & specular terms
     float specular = phongSpecular(L, V, N, shininess) * specularScale * falloff;
@@ -70,7 +70,8 @@ void main() {
     // add the lighting
     vec3 color = vColor * (diffuse + ambient) + specular;
 
-    gl_FragColor.rgb = N;
+    // gl_FragColor.rgb = N;
     // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
+    gl_FragColor.rgb = color;
     gl_FragColor.a = 1.0;
 }

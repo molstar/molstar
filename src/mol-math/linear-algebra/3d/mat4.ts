@@ -293,6 +293,7 @@ namespace Mat4 {
         return mul(out, mul(out, a, b), c);
     }
 
+    /** Translate a Mat4 by the given Vec3 */
     export function translate(out: Mat4, a: Mat4, v: Vec3) {
         const x = v[0], y = v[1], z = v[2];
         let a00: number, a01: number, a02: number, a03: number,

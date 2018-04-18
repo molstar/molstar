@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-#define INSTANCE_COLOR
+#define ATTRIBUTE_COLOR
+// #define INSTANCE_COLOR
 
 precision highp float;
 
@@ -52,7 +53,6 @@ void main(){
     vViewPosition = mvPosition.xyz;
     gl_Position = projection * mvPosition;
 
-    // TODO do on CPU side
     mat3 normalMatrix = transpose(inverse(mat3(modelView)));
     vNormal = normalize(normalMatrix * normal);
 }

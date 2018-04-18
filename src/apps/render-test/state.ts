@@ -47,12 +47,12 @@ export default class State {
         const structures = await getStructuresFromPdbId(pdbId)
         const struct = Symmetry.buildAssembly(structures[0], '1')
 
-        const structPointRepr = StructureRepresentation(Point)
-        await Run(structPointRepr.create(struct))
-        structPointRepr.renderObjects.forEach(viewer.add)
+        // const structPointRepr = StructureRepresentation(Point)
+        // await Run(structPointRepr.create(struct))
+        // structPointRepr.renderObjects.forEach(viewer.add)
 
         const structSpacefillRepr = StructureRepresentation(Spacefill)
-        await Run(structSpacefillRepr.create(struct))
+        await Run(structSpacefillRepr.create(struct, { detail: 2 }))
         structSpacefillRepr.renderObjects.forEach(viewer.add)
 
         this.loading.next(false)
