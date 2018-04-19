@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
+import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { arrayFind } from 'mol-data/util'
 import { Query } from '../../query'
 import { Model } from '../../model'

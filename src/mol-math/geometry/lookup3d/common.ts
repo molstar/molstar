@@ -32,6 +32,5 @@ export interface Lookup3D {
     // The result is mutated with each call to find.
     find(x: number, y: number, z: number, radius: number): Result,
     check(x: number, y: number, z: number, radius: number): boolean,
-    boundingBox: Box3D,
-    boundingSphere: Sphere3D
+    boundary: { box: Box3D, sphere: Sphere3D }
 }

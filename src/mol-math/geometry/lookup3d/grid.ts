@@ -5,26 +5,47 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Result/*, Lookup3D*/ } from './common'
+import { Result, Lookup3D } from './common'
 import { Box3D } from '../primitives/box3d';
 import { Sphere3D } from '../primitives/sphere3d';
 import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
+import { OrderedSet } from 'mol-data/int';
 
-// class GridLookup3D implements Lookup3D {
-//     private result = Result.create();
-//     private pivot = [0.1, 0.1, 0.1];
-//     private radiusSq = 0.1;
+function GridLookup3D(data: PositionData): Lookup3D {
+    return new GridLookup3DImpl(data);
+}
 
-//     find(x: number, y: number, z: number, radius: number): Result {
-//         throw new Error("Method not implemented.");
-//     }
-//     check(x: number, y: number, z: number, radius: number): boolean {
-//         throw new Error("Method not implemented.");
-//     }
-//     boundingBox: Box3D;
-//     boundingSphere: Sphere3D;
-// }
+export { GridLookup3D }
+
+class GridLookup3DImpl implements Lookup3D {
+    private ctx: QueryContext;
+    boundary: Lookup3D['boundary'];
+
+    find(x: number, y: number, z: number, radius: number): Result {
+        this.ctx.x = x;
+        this.ctx.y = y;
+        this.ctx.z = z;
+        this.ctx.radius = radius;
+        this.ctx.isCheck = false;
+        query(this.ctx);
+        return this.ctx.result;
+    }
+    check(x: number, y: number, z: number, radius: number): boolean {
+        this.ctx.x = x;
+        this.ctx.y = y;
+        this.ctx.z = z;
+        this.ctx.radius = radius;
+        this.ctx.isCheck = true;
+        return query(this.ctx);
+    }
+
+    constructor(data: PositionData) {
+        const structure = build(data);
+        this.ctx = createContext(structure);
+        this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
+    }
+}
 
 /**
  * Adapted from https://github.com/arose/ngl
@@ -35,11 +56,11 @@ interface InputData {
     x: ArrayLike<number>,
     y: ArrayLike<number>,
     z: ArrayLike<number>,
+    indices: OrderedSet,
     radius?: ArrayLike<number>,
-    indices: ArrayLike<number>
 }
 
-interface SpatialHash {
+interface Grid3D {
     size: number[],
     min: number[],
     grid: Uint32Array,
@@ -64,7 +85,7 @@ interface BuildState {
     count: number
 }
 
-function _build(state: BuildState): SpatialHash {
+function _build(state: BuildState): Grid3D {
     const { expandedBox, size: [sX, sY, sZ], data: { x: px, y: py, z: pz, radius, indices }, count, delta } = state;
     const n = sX * sY * sZ;
     const { min: [minX, minY, minZ] } = expandedBox;
@@ -73,8 +94,8 @@ function _build(state: BuildState): SpatialHash {
     let bucketCount = 0;
     const grid = new Uint32Array(n);
     const bucketIndex = new Int32Array(count);
-    for (let t = 0, _t = indices.length; t < _t; t++) {
-        const i = indices[t];
+    for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
+        const i = OrderedSet.getAt(indices, t);
         const x = Math.floor((px[i] - minX) / delta[0]);
         const y = Math.floor((py[i] - minY) / delta[1]);
         const z = Math.floor((pz[i] - minZ) / delta[2]);
@@ -87,8 +108,8 @@ function _build(state: BuildState): SpatialHash {
     }
 
     if (radius) {
-        for (let t = 0, _t = indices.length; t < _t; t++) {
-            const i = indices[t];
+        for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
+            const i = OrderedSet.getAt(indices, t);
             if (radius[i] > maxRadius) maxRadius = radius[i];
         }
     }
@@ -135,24 +156,22 @@ function _build(state: BuildState): SpatialHash {
     }
 }
 
-export function build(data: PositionData) {
+function build(data: PositionData) {
     const boundingBox = Box3D.computeBounding(data);
+    // need to expand the grid bounds to avoid rounding errors
     const expandedBox = Box3D.expand(boundingBox, Vec3.create(0.5, 0.5, 0.5));
     const boundingSphere = Sphere3D.computeBounding(data);
-
-    // TODO: specialized code that does not require the indices annotation?
-    const indices = data.indices ? data.indices as number[] : new Int32Array(data.x.length) as any as number[];
-    if (!data.indices) {
-        for (let i = 0, _i = data.x.length; i < _i; i++) indices[i] = i;
-    }
+    const { indices } = data;
 
     const S = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min);
     let delta, size;
 
-    if (indices.length > 0) {
+    const elementCount = OrderedSet.size(indices);
+
+    if (elementCount > 0) {
         // size of the box
         // required "grid volume" so that each cell contains on average 32 elements.
-        const V = Math.ceil(indices.length / 32);
+        const V = Math.ceil(elementCount / 32);
         const f = Math.pow(V / (S[0] * S[1] * S[2]), 1 / 3);
         size = [Math.ceil(S[0] * f), Math.ceil(S[1] * f), Math.ceil(S[2] * f)];
         delta = [S[0] / size[0], S[1] / size[1], S[2] / size[2]];
@@ -175,19 +194,35 @@ export function build(data: PositionData) {
         expandedBox,
         boundingBox,
         boundingSphere,
-        count: indices.length,
+        count: elementCount,
         delta
     }
 
     return _build(state);
 }
 
-export function inSphere(structure: SpatialHash, x: number, y: number, z: number, radius: number): Result {
-    const { min, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices }, delta } = structure;
-    //const { radius: r, radiusSq: rSq, pivot: [x, y, z], isCheck, mask } = ctx;
-    const r = radius, rSq = r * r;
+interface QueryContext {
+    structure: Grid3D,
+    x: number,
+    y: number,
+    z: number,
+    radius: number,
+    result: Result,
+    isCheck: boolean
+}
 
-    const result = Result.create();
+function createContext(structure: Grid3D): QueryContext {
+    return { structure, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, result: Result.create(), isCheck: false }
+}
+
+function query(ctx: QueryContext): boolean {
+    const { min, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices, radius }, delta, maxRadius } = ctx.structure;
+    const { radius: inputRadius, isCheck, x, y, z, result } = ctx;
+
+    const r = inputRadius + maxRadius;
+    const rSq = r * r;
+
+    Result.reset(result);
 
     const loX = Math.max(0, Math.floor((x - r - min[0]) / delta[0]));
     const loY = Math.max(0, Math.floor((y - r - min[1]) / delta[1]));
@@ -197,7 +232,7 @@ export function inSphere(structure: SpatialHash, x: number, y: number, z: number
     const hiY = Math.min(sY - 1, Math.floor((y + r - min[1]) / delta[1]));
     const hiZ = Math.min(sZ - 1, Math.floor((z + r - min[2]) / delta[2]));
 
-    if (loX > hiX || loY > hiY || loZ > hiZ) return result;
+    if (loX > hiX || loY > hiY || loZ > hiZ) return false;
 
     for (let ix = loX; ix <= hiX; ix++) {
         for (let iy = loY; iy <= hiY; iy++) {
@@ -211,7 +246,7 @@ export function inSphere(structure: SpatialHash, x: number, y: number, z: number
                 const end = offset + count;
 
                 for (let i = offset; i < end; i++) {
-                    const idx = indices[bucketArray[i]];
+                    const idx = OrderedSet.getAt(indices, bucketArray[i]);
 
                     const dx = px[idx] - x;
                     const dy = py[idx] - y;
@@ -219,12 +254,13 @@ export function inSphere(structure: SpatialHash, x: number, y: number, z: number
                     const distSq = dx * dx + dy * dy + dz * dz;
 
                     if (distSq <= rSq) {
-                        // if (isCheck) return true;
+                        if (maxRadius > 0 && Math.sqrt(distSq) - radius![idx] > inputRadius) continue;
+                        if (isCheck) return true;
                         Result.add(result, bucketArray[i], distSq);
                     }
                 }
             }
         }
     }
-    return result;
+    return result.count > 0;
 }
