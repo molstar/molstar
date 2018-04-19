@@ -15,8 +15,7 @@ import { RepresentationProps, UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
-import { ElementColor, colorToArray, normalizedColorToArray, ColorScale, colorToRgb } from '../../color';
-import { ChunkedArray } from 'mol-data/util';
+import { ElementColor, colorToArray, normalizedColorToArray, ColorScale } from '../../color';
 import { Color } from 'mol-gl/renderable/mesh';
 import { createColorTexture } from 'mol-gl/util';
 
@@ -68,7 +67,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             }
 
             const mesh = meshBuilder.getMesh()
-            console.log(mesh)
+            // console.log(mesh)
             if (!mesh.offsetBuffer.ref.value) return
 
             const unitsCount = units.length
@@ -77,7 +76,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 Mat4.toArray(units[i].operator.matrix, transformArray, i * 16)
             }
 
-            console.log({ unitsCount, elementCount })
+            // console.log({ unitsCount, elementCount })
 
             let colorType = 'element'
             let color: Color

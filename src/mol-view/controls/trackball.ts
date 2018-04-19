@@ -17,10 +17,10 @@ export const DefaultTrackballControlsProps = {
     noScroll: true,
 
     rotateSpeed: 3.0,
-    zoomSpeed: 2.0,
-    panSpeed: 0.1,
+    zoomSpeed: 4.0,
+    panSpeed: 0.8,
 
-    staticMoving: false,
+    staticMoving: true,
     dynamicDampingFactor: 0.2,
 
     minDistance: 0,

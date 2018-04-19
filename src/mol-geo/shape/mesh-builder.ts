@@ -13,6 +13,12 @@ import Cylinder, { CylinderProps } from '../primitive/cylinder';
 import Icosahedron, { IcosahedronProps } from '../primitive/icosahedron';
 import { Mesh } from './mesh';
 
+type Primitive = {
+    vertices: Float32Array
+    normals: Float32Array
+    indices: Uint32Array
+}
+
 export interface MeshBuilder {
     add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices?: Uint32Array): number
     addBox(t: Mat4, props?: BoxProps): number
@@ -36,6 +42,8 @@ export namespace MeshBuilder {
         const offsets = ChunkedArray.create(Uint32Array, 1, chunkSize, initialCount);
 
         let currentId = -1
+
+        const icosahedronMap = new Map<string, Primitive>()
 
         const add = (t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices: Uint32Array) => {
             const { elementCount, elementSize } = vertices
@@ -67,8 +75,13 @@ export namespace MeshBuilder {
                 const cylinder = Cylinder(props)
                 return add(t, cylinder.vertices, cylinder.normals, cylinder.indices)
             },
-            addIcosahedron: (t: Mat4, props?: IcosahedronProps) => {
-                const icosahedron = Icosahedron(props)
+            addIcosahedron: (t: Mat4, props: IcosahedronProps) => {
+                const key = JSON.stringify(props)
+                let icosahedron = icosahedronMap.get(key)
+                if (icosahedron === undefined) {
+                    icosahedron = Icosahedron(props)
+                    icosahedronMap.set(key, icosahedron)
+                }
                 return add(t, icosahedron.vertices, icosahedron.normals, icosahedron.indices)
             },
             setId: (id: number) => {

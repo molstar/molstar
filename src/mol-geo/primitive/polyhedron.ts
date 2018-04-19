@@ -7,7 +7,7 @@
 // adapted from three.js, MIT License Copyright 2010-2018 three.js authors
 
 import { Vec3 } from 'mol-math/linear-algebra'
-import { computeVertexNormals, appplyRadius } from '../util'
+import { computeIndexedVertexNormals, appplyRadius } from '../util'
 
 export const DefaultPolyhedronProps = {
     radius: 1,
@@ -17,9 +17,8 @@ export type PolyhedronProps = Partial<typeof DefaultPolyhedronProps>
 
 export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, props?: PolyhedronProps) {
     const { radius, detail } = { ...DefaultPolyhedronProps, ...props }
-
-    const vertices: number[] = [];
-    const indices: number[] = [];
+    const builder = createBuilder()
+    const { vertices, indices } = builder
 
     // the subdivision creates the vertex buffer data
     subdivide(detail);
@@ -28,7 +27,7 @@ export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Hel
     appplyRadius(vertices, radius);
 
     const normals = new Float32Array(vertices.length);
-    computeVertexNormals(vertices, normals)
+    computeIndexedVertexNormals(vertices, indices, normals)
     // this.normalizeNormals(); // smooth normals
 
     return {
@@ -86,18 +85,63 @@ export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Hel
             }
         }
 
+        // // construct all of the faces
+        // for (let i = 0; i < cols; ++i) {
+        //     for (let j = 0; j < 2 * (cols - i) - 1; ++j) {
+        //         const k = Math.floor(j / 2)
+        //         if (j % 2 === 0) {
+        //             vertices.push(...v[i][k + 1], ...v[i + 1][k], ...v[i][k])
+        //         } else {
+        //             vertices.push(...v[i][k + 1], ...v[i + 1][k + 1], ...v[i + 1][k])
+        //         }
+        //         const l = vertices.length / 3
+        //         indices.push(l - 3, l - 2, l - 1)
+        //     }
+        // }
+
         // construct all of the faces
         for (let i = 0; i < cols; ++i) {
             for (let j = 0; j < 2 * (cols - i) - 1; ++j) {
                 const k = Math.floor(j / 2)
                 if (j % 2 === 0) {
-                    vertices.push(...v[i][k + 1], ...v[i + 1][k], ...v[i][k])
+                    builder.add
+                    builder.add(v[i][k + 1], v[i + 1][k], v[i][k])
                 } else {
-                    vertices.push(...v[i][k + 1], ...v[i + 1][k + 1], ...v[i + 1][k])
+                    builder.add(v[i][k + 1], v[i + 1][k + 1], v[i + 1][k])
                 }
-                const l = vertices.length / 3
-                indices.push(l - 3, l - 2, l - 1)
             }
+        }
+    }
+}
+
+interface Builder {
+    vertices: number[]
+    indices: number[]
+    add: (v1: Vec3, v2: Vec3, v3: Vec3) => void
+}
+
+function createBuilder(): Builder {
+    const vertices: number[] = []
+    const indices: number[] = []
+
+    const vertexMap = new Map<string, number>()
+
+    function addVertex(v: Vec3) {
+        const key = `${v[0].toFixed(5)}|${v[1].toFixed(5)}|${v[2].toFixed(5)}`
+        let idx = vertexMap.get(key)
+        if (idx === undefined) {
+            idx = vertices.length / 3
+            vertexMap.set(key, idx)
+            vertices.push(...v)
+        }
+        return idx
+    }
+
+    return {
+        vertices,
+        indices,
+        add: (v1: Vec3, v2: Vec3, v3: Vec3) => {
+            indices.push(addVertex(v1), addVertex(v2), addVertex(v3))
         }
     }
 }
