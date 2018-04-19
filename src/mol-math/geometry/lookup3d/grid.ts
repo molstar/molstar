@@ -18,11 +18,11 @@ function GridLookup3D(data: PositionData): Lookup3D {
 
 export { GridLookup3D }
 
-class GridLookup3DImpl implements Lookup3D {
+class GridLookup3DImpl implements Lookup3D<number> {
     private ctx: QueryContext;
     boundary: Lookup3D['boundary'];
 
-    find(x: number, y: number, z: number, radius: number): Result {
+    find(x: number, y: number, z: number, radius: number): Result<number> {
         this.ctx.x = x;
         this.ctx.y = y;
         this.ctx.z = z;
@@ -207,7 +207,7 @@ interface QueryContext {
     y: number,
     z: number,
     radius: number,
-    result: Result,
+    result: Result<number>,
     isCheck: boolean
 }
 

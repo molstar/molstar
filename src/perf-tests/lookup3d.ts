@@ -41,17 +41,21 @@ export async function readCIF(path: string) {
 }
 
 export async function test() {
-    const { mmcif  } = await readCIF('e:/test/quick/1tqn_updated.cif');
+    const { mmcif, structures } = await readCIF('e:/test/quick/1tqn_updated.cif');
 
     const lookup = GridLookup3D({ x: mmcif.atom_site.Cartn_x.toArray(), y: mmcif.atom_site.Cartn_y.toArray(), z: mmcif.atom_site.Cartn_z.toArray(),
-        indices: OrderedSet.ofBounds(0, 4),
-        radius: [1, 1, 1, 1]
+        indices: OrderedSet.ofBounds(0, mmcif.atom_site._rowCount),
+        //radius: [1, 1, 1, 1]
         //indices: [1]
     });
     console.log(lookup.boundary.box, lookup.boundary.sphere);
 
-    const result = lookup.find(-30.07, 8.178, -13.897, 1);
-    console.log(result.count, sortArray(result.indices));
+    const result = lookup.find(-30.07, 8.178, -13.897, 10);
+    console.log(result.count)//, sortArray(result.indices));
+
+    const sl = Structure.getLookup3d(structures[0]);
+    const result1 = sl.find(-30.07, 8.178, -13.897, 10);
+    console.log(result1.count);//, result1.indices);
 }
 
 test();
