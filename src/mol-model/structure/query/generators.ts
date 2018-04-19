@@ -10,7 +10,7 @@ import P from './properties'
 import { Structure, ElementSet, Element } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
 
-export const all: Query = s => Selection.Singletons(s, s.elements);
+export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s.elements);
 
 export interface AtomQueryParams {
     entityTest: Element.Predicate,
@@ -27,7 +27,7 @@ export interface AtomGroupsQueryParams extends AtomQueryParams {
 export function residues(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.residue.key }); }
 export function chains(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.chain.key }); }
 
-export function atoms(params?: Partial<AtomGroupsQueryParams>): Query {
+export function atoms(params?: Partial<AtomGroupsQueryParams>): Query.Provider {
     if (!params || (!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy)) return all;
     if (!!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy) return atomGroupsLinear(params.atomTest);
 
@@ -43,8 +43,8 @@ export function atoms(params?: Partial<AtomGroupsQueryParams>): Query {
     return atomGroupsGrouped(normalized);
 }
 
-function atomGroupsLinear(atomTest: Element.Predicate): Query {
-    return structure => {
+function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
+    return async (structure, ctx) => {
         const { elements, units } = structure;
         const unitIds = ElementSet.unitIds(elements);
         const l = Element.Location();
@@ -61,14 +61,16 @@ function atomGroupsLinear(atomTest: Element.Predicate): Query {
                 if (atomTest(l)) builder.addToUnit(l.element);
             }
             builder.commitUnit(unitId);
+
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: unitIds.length });
         }
 
         return Selection.Singletons(structure, builder.getSet());
     };
 }
 
-function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query {
-    return structure => {
+function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query.Provider {
+    return async (structure, ctx) => {
         const { elements, units } = structure;
         const unitIds = ElementSet.unitIds(elements);
         const l = Element.Location();
@@ -104,6 +106,8 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
                 }
             }
             builder.commitUnit(unitId);
+
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: unitIds.length });
         }
 
         return Selection.Singletons(structure, builder.getSet());
@@ -157,8 +161,8 @@ class LinearGroupingBuilder {
     constructor(private structure: Structure) { }
 }
 
-function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query {
-    return structure => {
+function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query.Provider {
+    return async (structure, ctx) => {
         const { elements, units } = structure;
         const unitIds = ElementSet.unitIds(elements);
         const l = Element.Location();
@@ -192,6 +196,8 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
                     }
                 }
             }
+
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: unitIds.length });
         }
 
         return builder.getSelection();
