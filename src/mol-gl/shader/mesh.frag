@@ -5,7 +5,8 @@
  */
 
 // #define ATTRIBUTE_COLOR
-#define INSTANCE_COLOR
+// #define INSTANCE_COLOR
+#define ELEMENT_COLOR
 
 precision highp float;
 
@@ -54,7 +55,7 @@ float orenNayarDiffuse(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNorm
 #pragma glslify: attenuation = require(./attenuation.glsl)
 
 const float specularScale = 0.65;
-const float shininess = 30.0;
+const float shininess = 100.0;
 const float roughness = 5.0;
 const float albedo = 0.95;
 

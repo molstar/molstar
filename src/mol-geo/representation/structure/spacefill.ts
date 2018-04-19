@@ -15,7 +15,7 @@ import { RepresentationProps, UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
-import { ElementColor, hexColorToArray } from '../../color';
+import { ElementColor, colorToArray, normalizedColorToArray, ColorScale, colorToRgb } from '../../color';
 import { ChunkedArray } from 'mol-data/util';
 import { Color } from 'mol-gl/renderable/mesh';
 import { createColorTexture } from 'mol-gl/util';
@@ -69,6 +69,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             const mesh = meshBuilder.getMesh()
             console.log(mesh)
+            if (!mesh.offsetBuffer.ref.value) return
 
             const unitsCount = units.length
             const transformArray = new Float32Array(unitsCount * 16)
@@ -78,40 +79,56 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             console.log({ unitsCount, elementCount })
 
-            let colorType = 'instance'
+            let colorType = 'element'
             let color: Color
 
             if (colorType === 'attribute') {
                 const colors = new Float32Array(mesh.vertexCount * 3);
-                if (mesh.offsetBuffer.ref.value) {
-                    const offsets = mesh.offsetBuffer.ref.value
-                    for (let i = 0, il = mesh.offsetCount - 1; i < il; ++i) {
-                        const start = offsets[i]
-                        const end = offsets[i + 1]
-                        const e = OrderedSet.getAt(elementGroup.elements, i)
-                        const hexColor = ElementColor(type_symbol.value(e))
-                        for (let i = start, il = end; i < il; ++i) {
-                            hexColorToArray(hexColor, colors, i * 3)
-                        }
+                const offsets = mesh.offsetBuffer.ref.value
+                for (let i = 0, il = mesh.offsetCount - 1; i < il; ++i) {
+                    const start = offsets[i]
+                    const end = offsets[i + 1]
+                    const e = OrderedSet.getAt(elementGroup.elements, i)
+                    const hexColor = ElementColor(type_symbol.value(e))
+                    for (let i = start, il = end; i < il; ++i) {
+                        normalizedColorToArray(hexColor, colors, i * 3)
                     }
-                    color = { type: 'attribute', value: ValueCell.create(colors) }
                 }
+                color = { type: 'attribute', value: ValueCell.create(colors) }
             } else if (colorType === 'instance') {
                 const colors = createColorTexture(unitsCount)
-                colors.set([ 0, 0, 255 ])
-
+                const scale = ColorScale.create({ domain: [ 0, unitsCount - 1 ] })
+                for (let i = 0; i < unitsCount; i++) {
+                    scale.colorToArray(i, colors, i * 3)
+                }
                 color = { type: 'instance', value: ValueCell.create(colors) }
+            } else if (colorType === 'element') {
+                const elementCount = mesh.offsetCount - 1
+                const count = unitsCount * elementCount
+                const colors = createColorTexture(count)
+                const scale = ColorScale.create({ domain: [ 0, count - 1 ] })
+                let colorOffset = 0
+                for (let i = 0; i < unitsCount; i++) {
+                    for (let j = 0, jl = elementCount; j < jl; ++j) {
+                        const hexColor = scale.color(i * elementCount + j)
+                        colorToArray(hexColor, colors, colorOffset)
+                        colorOffset += 3
+                    }
+                }
+                color = { type: 'element', value: ValueCell.create(colors) }
             }
 
             const spheres = createRenderObject('mesh', {
                 position: mesh.vertexBuffer,
                 normal: mesh.normalBuffer,
                 color: color!,
+                id: mesh.idBuffer,
                 transform: ValueCell.create(transformArray),
-                elements: mesh.indexBuffer,
+                index: mesh.indexBuffer,
 
                 instanceCount: unitsCount,
-                elementCount: mesh.triangleCount,
+                indexCount: mesh.triangleCount,
+                elementCount: mesh.offsetCount - 1,
                 positionCount: mesh.vertexCount
             }, {})
             renderObjects.push(spheres)

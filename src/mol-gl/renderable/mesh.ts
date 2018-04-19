@@ -26,10 +26,13 @@ namespace Mesh {
     export type Data = {
         position: ValueCell<Float32Array>
         normal: ValueCell<Float32Array>
+        id: ValueCell<Float32Array>
+
         readonly color: Color
         transform: ValueCell<Float32Array>
-        elements: ValueCell<Uint32Array>
+        index: ValueCell<Uint32Array>
 
+        indexCount: number
         instanceCount: number
         elementCount: number
         positionCount: number
@@ -40,6 +43,7 @@ namespace Mesh {
         const uniforms = {
             objectId: _uniforms.objectId || 0,
             instanceCount: data.instanceCount,
+            elementCount: data.elementCount,
             ..._uniforms
         }
         if (data.color.type === 'instance' || data.color.type === 'element') {
@@ -49,6 +53,8 @@ namespace Mesh {
             instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
             position: Attribute.create(regl, data.position, data.positionCount, { size: 3 }),
             normal: Attribute.create(regl, data.normal, data.positionCount, { size: 3 }),
+
+            elementId: Attribute.create(regl, data.id, data.positionCount, { size: 1 }),
             ...createTransformAttributes(regl, data.transform, data.instanceCount)
         })
         if (data.color.type === 'attribute') {
@@ -59,11 +65,10 @@ namespace Mesh {
             uniforms,
             attributes,
             elements: regl.elements({
-                data: data.elements.ref.value,
+                data: data.index.ref.value,
                 primitive: 'triangles',
                 type: 'uint32',
-                count: data.elementCount * 3,
-                // length: count * 3 * 2
+                count: data.indexCount * 3
             }),
             instances: data.instanceCount,
         })

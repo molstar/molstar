@@ -14,10 +14,11 @@ export interface Mesh {
     vertexCount: number,
     triangleCount: number,
     offsetCount: number,
+
     vertexBuffer: ValueCell<Float32Array>,
     indexBuffer: ValueCell<Uint32Array>,
     normalBuffer: ValueCell<Float32Array | undefined>,
-    idBuffer: ValueCell<Uint32Array | undefined>,
+    idBuffer: ValueCell<Float32Array | undefined>,
     offsetBuffer: ValueCell<Uint32Array | undefined>,
     normalsComputed: boolean,
 

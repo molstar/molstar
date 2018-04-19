@@ -32,7 +32,7 @@ export namespace MeshBuilder {
         const normals = ChunkedArray.create(Float32Array, 3, chunkSize, initialCount);
         const indices = ChunkedArray.create(Uint32Array, 3, chunkSize * 3, initialCount * 3);
 
-        const ids = ChunkedArray.create(Uint32Array, 1, chunkSize, initialCount);
+        const ids = ChunkedArray.create(Float32Array, 1, chunkSize, initialCount);
         const offsets = ChunkedArray.create(Uint32Array, 1, chunkSize, initialCount);
 
         let currentId = -1
@@ -86,7 +86,7 @@ export namespace MeshBuilder {
                     vertexBuffer: ValueCell.create(ChunkedArray.compact(vertices, true) as Float32Array),
                     indexBuffer: ValueCell.create(ChunkedArray.compact(indices, true) as Uint32Array),
                     normalBuffer: ValueCell.create(ChunkedArray.compact(normals, true) as Float32Array),
-                    idBuffer: ValueCell.create(ChunkedArray.compact(ids, true) as Uint32Array),
+                    idBuffer: ValueCell.create(ChunkedArray.compact(ids, true) as Float32Array),
                     offsetBuffer: ValueCell.create(ChunkedArray.compact(offsets, true) as Uint32Array),
                     normalsComputed: true,
                 }

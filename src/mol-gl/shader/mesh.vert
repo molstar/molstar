@@ -5,7 +5,8 @@
  */
 
 // #define ATTRIBUTE_COLOR
-#define INSTANCE_COLOR
+// #define INSTANCE_COLOR
+#define ELEMENT_COLOR
 
 precision highp float;
 
@@ -13,6 +14,7 @@ uniform mat4 projection, model, view;
 
 uniform int objectId;
 uniform int instanceCount;
+uniform int elementCount;
 
 #if defined( UNIFORM_COLOR )
     uniform vec3 color;
@@ -27,7 +29,7 @@ attribute vec3 position;
 attribute vec3 normal;
 attribute vec4 transformColumn0, transformColumn1, transformColumn2, transformColumn3;
 attribute float instanceId;
-// attribute int elementId;
+attribute float elementId;
 
 varying vec3 vColor;
 varying vec3 vNormal;
@@ -42,8 +44,9 @@ void main(){
         vColor = color;
     #elif defined( INSTANCE_COLOR )
         vColor = read_vec3(colorTex, instanceId, colorTexSize);
-    // #elif defined( ELEMENT_COLOR )
-    //     vColor = read_vec3(colorTex, instanceId * instanceCount + elementId, colorTexSize);
+    #elif defined( ELEMENT_COLOR )
+        // vColor = read_vec3(colorTex, elementId, colorTexSize);
+        vColor = read_vec3(colorTex, instanceId * float(elementCount) + elementId, colorTexSize);
     #endif
 
     mat4 transform = mat4(transformColumn0, transformColumn1, transformColumn2, transformColumn3);
