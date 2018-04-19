@@ -66,6 +66,14 @@ namespace Vec3 {
         return out;
     }
 
+    export function ofArray(array: ArrayLike<number>) {
+        const out = zero();
+        out[0] = array[0];
+        out[1] = array[1];
+        out[2] = array[2];
+        return out;
+    }
+
     export function set(out: Vec3, x: number, y: number, z: number): Vec3 {
         out[0] = x;
         out[1] = y;

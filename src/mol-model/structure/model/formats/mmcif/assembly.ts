@@ -5,7 +5,7 @@
  */
 
 import { Mat4, Tensor } from 'mol-math/linear-algebra'
-import SymmetryOperator from 'mol-math/geometry/symmetry-operator'
+import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import Format from '../../format'
 import { Assembly, OperatorGroup, OperatorGroups } from '../../properties/symmetry'
 import { Queries as Q } from '../../../query'

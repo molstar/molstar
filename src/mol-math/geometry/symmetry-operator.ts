@@ -61,7 +61,7 @@ namespace SymmetryOperator {
     }
 }
 
-export default SymmetryOperator
+export { SymmetryOperator }
 
 interface Projections { x(index: number): number, y(index: number): number, z(index: number): number }
 

@@ -5,12 +5,15 @@
  */
 
 import { OrderedSet } from 'mol-data/int'
+import { Lookup3D, GridLookup3D } from 'mol-math/geometry';
 import Unit from '../unit'
 
 interface ElementGroup {
     elements: OrderedSet,
     // Unique identifier of the group, usable as partial key for various "caches".
-    key: number
+    key: number,
+
+    __lookup3d__?: Lookup3D
 }
 
 namespace ElementGroup {
@@ -59,6 +62,17 @@ namespace ElementGroup {
         const set = OrderedSet.subtract(a.elements, b.elements);
         if (set === a.elements) return a;
         return createNew(set);
+    }
+
+    export function getLookup3d(unit: Unit, group: ElementGroup) {
+        if (group.__lookup3d__)  return group.__lookup3d__;
+        if (Unit.isAtomic(unit)) {
+            const { x, y, z } = unit.model.conformation;
+            group.__lookup3d__ = GridLookup3D({ x, y, z, indices: group.elements });
+            return group.__lookup3d__;
+        }
+
+        throw 'not implemented';
     }
 
     let _id = 0;

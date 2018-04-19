@@ -26,7 +26,7 @@ async function getPdb(pdb: string) {
     return CIF.schema.mmCIF(parsed.result.blocks[0])
 }
 
-function atomLabel(model: Model, aI: number) {
+export function atomLabel(model: Model, aI: number) {
     const { atoms, residues, chains, residueSegments, chainSegments } = model.hierarchy
     const { label_atom_id } = atoms
     const { label_comp_id, label_seq_id } = residues
@@ -36,15 +36,17 @@ function atomLabel(model: Model, aI: number) {
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`
 }
 
+
 function printBonds(model: Model) {
-    const { count, offset, neighbor } = Model.bonds(model)
-    for (let i = 0; i < count; ++i) {
-        const start = offset[i];
-        const end = offset[i + 1];
-        for (let bI = start; bI < end; bI++) {
-            console.log(`${atomLabel(model, i)} -- ${atomLabel(model, neighbor[bI])}`)
-        }
-    }
+    // TODO: do bonds again
+    // const { count, offset, neighbor } = Model.bonds(model)
+    // for (let i = 0; i < count; ++i) {
+    //     const start = offset[i];
+    //     const end = offset[i + 1];
+    //     for (let bI = start; bI < end; bI++) {
+    //         console.log(`${atomLabel(model, i)} -- ${atomLabel(model, neighbor[bI])}`)
+    //     }
+    // }
 }
 
 async function run(pdb: string) {
