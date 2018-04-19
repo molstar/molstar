@@ -39,6 +39,13 @@ namespace Box3D {
 
         return { min: Vec3.create(min[0], min[1], min[2]), max: Vec3.create(max[0], max[1], max[2]) }
     }
+
+    export function expand(box: Box3D, delta: Vec3): Box3D {
+        return {
+            min: Vec3.sub(Vec3.zero(), box.min, delta),
+            max: Vec3.add(Vec3.zero(), box.max, delta)
+        }
+    }
 }
 
 export { Box3D }

@@ -6,6 +6,7 @@ import { Structure, Model } from 'mol-model/structure'
 
 import { Run } from 'mol-task';
 import { build, inSphere } from 'mol-math/geometry/lookup3d/grid';
+import { sortArray } from 'mol-data/util';
 
 require('util.promisify').shim();
 const readFileAsync = util.promisify(fs.readFile);
@@ -41,11 +42,14 @@ export async function readCIF(path: string) {
 export async function test() {
     const { mmcif  } = await readCIF('e:/test/quick/1tqn_updated.cif');
 
-    const data = build({ x: mmcif.atom_site.Cartn_x.toArray(), y: mmcif.atom_site.Cartn_y.toArray(), z: mmcif.atom_site.Cartn_z.toArray(), indices: void 0 });
-    console.log(data.boundingBox);
+    const data = build({ x: mmcif.atom_site.Cartn_x.toArray(), y: mmcif.atom_site.Cartn_y.toArray(), z: mmcif.atom_site.Cartn_z.toArray(),
+        //indices: [0, 1, 2, 3]
+        //indices: [1]
+    });
+    console.log(data.boundingBox, data.boundingSphere);
 
     const result = inSphere(data, -30.07, 8.178, -13.897, 10);
-    console.log(result.count);
+    console.log(result.count, sortArray(result.indices));
 }
 
 test();
