@@ -10,6 +10,7 @@ import { Lookup3D, GridLookup3D, Result, Box3D, Sphere3D } from 'mol-math/geomet
 import { ElementGroup, ElementSet } from '../../structure';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { OrderedSet } from 'mol-data/int';
+import { computeStructureBoundary } from './boundary';
 
 interface StructureLookup3D extends Lookup3D<Element> {}
 
@@ -25,8 +26,6 @@ namespace StructureLookup3D {
             const closeUnits = this.unitLookup.find(x, y, z, radius);
             if (closeUnits.count === 0) return this.result;
 
-            console.log({ closeUnits });
-
             for (let t = 0, _t = closeUnits.count; t < _t; t++) {
                 const i = closeUnits.indices[t];
                 const unitId = ElementSet.unitGetId(elements, i);
@@ -38,8 +37,6 @@ namespace StructureLookup3D {
                 }
                 const groupLookup = ElementGroup.getLookup3d(unit, group);
                 const groupResult = groupLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius);
-                //console.log(groupLookup);
-                //console.log({ groupCount: groupResult.count });
                 for (let j = 0, _j = groupResult.count; j < _j; j++) {
                     Result.add(this.result, Element.create(unitId, groupResult.indices[j]), groupResult.squaredDistances[j]);
                 }
@@ -47,10 +44,29 @@ namespace StructureLookup3D {
 
             return this.result;
         }
+
         check(x: number, y: number, z: number, radius: number): boolean {
-            throw new Error("Method not implemented.");
+            const { units, elements } = this.structure;
+            const closeUnits = this.unitLookup.find(x, y, z, radius);
+            if (closeUnits.count === 0) return false;
+
+            for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+                const i = closeUnits.indices[t];
+                const unitId = ElementSet.unitGetId(elements, i);
+                const group = ElementSet.unitGetByIndex(elements, i);
+                const unit = units[unitId];
+                Vec3.set(this.pivot, x, y, z);
+                if (!unit.operator.isIdentity) {
+                    Vec3.transformMat4(this.pivot, this.pivot, unit.operator.inverse);
+                }
+                const groupLookup = ElementGroup.getLookup3d(unit, group);
+                if (groupLookup.check(this.pivot[0], this.pivot[1], this.pivot[2], radius)) return true;
+            }
+
+            return false;
         }
-        boundary: { box: Box3D; sphere: Sphere3D; } = 0 as any;
+
+        boundary: { box: Box3D; sphere: Sphere3D; };
 
         constructor(private structure: Structure) {
             const { units, elements } = structure;
@@ -75,9 +91,8 @@ namespace StructureLookup3D {
                 radius[i] = s.radius;
             }
 
-            console.log({ xs, ys, zs, radius, unitCount })
-
             this.unitLookup = GridLookup3D({ x: xs, y: ys, z: zs, radius, indices: OrderedSet.ofBounds(0, unitCount) });
+            this.boundary = computeStructureBoundary(structure);
         }
     }
 

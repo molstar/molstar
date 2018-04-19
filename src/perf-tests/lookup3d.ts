@@ -56,6 +56,9 @@ export async function test() {
     const sl = Structure.getLookup3d(structures[0]);
     const result1 = sl.find(-30.07, 8.178, -13.897, 10);
     console.log(result1.count);//, result1.indices);
+
+    console.log(Structure.getBoundary(structures[0]));
+    console.log(lookup.boundary);
 }
 
 test();

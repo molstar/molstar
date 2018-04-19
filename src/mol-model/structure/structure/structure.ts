@@ -91,6 +91,10 @@ namespace Structure {
         return s.__lookup3d__;
     }
 
+    export function getBoundary(s: Structure) {
+        return getLookup3d(s).boundary;
+    }
+
     // TODO: "lift" atom set operators?
     // TODO: "diff"
 }
