@@ -6,7 +6,7 @@ import { Structure, Model } from 'mol-model/structure'
 
 import { Run } from 'mol-task';
 import { GridLookup3D } from 'mol-math/geometry';
-import { sortArray } from 'mol-data/util';
+// import { sortArray } from 'mol-data/util';
 import { OrderedSet } from 'mol-data/int';
 
 require('util.promisify').shim();
