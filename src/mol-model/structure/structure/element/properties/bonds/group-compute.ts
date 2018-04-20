@@ -112,7 +112,7 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
 
     const { x, y, z } = unit.model.conformation;
     const atomCount = ElementGroup.size(atoms);
-    const { residueKey } = unit.model.hierarchy;
+    const { residueIndex } = unit;
     const { type_symbol, label_atom_id, label_alt_id } = unit.model.hierarchy.atoms;
     const { label_comp_id } = unit.model.hierarchy.residues;
     const query3d = Unit.getLookup3d(unit, atoms);
@@ -130,12 +130,10 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
 
     for (let _aI = 0; _aI < atomCount; _aI++) {
         const aI = ElementGroup.getAt(atoms, _aI);
-        const raI = residueKey.value(aI);
-        // const rowA = dataIndex[aI];  // TODO
-        const rowA = aI;
+        const raI = residueIndex[aI];
 
         if (!params.forceCompute && raI !== lastResidue) {
-            const resn = label_comp_id.value(rowA)!;
+            const resn = label_comp_id.value(raI)!;
             if (!!component && component.entries.has(resn)) {
                 componentMap = component.entries.get(resn)!.map;
             } else {
@@ -144,37 +142,35 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
         }
         lastResidue = raI;
 
-        const componentPairs = componentMap ? componentMap.get(label_atom_id.value(rowA)) : void 0;
+        const componentPairs = componentMap ? componentMap.get(label_atom_id.value(aI)) : void 0;
 
-        const aeI = idx(type_symbol.value(rowA)!);
+        const aeI = idx(type_symbol.value(aI)!);
 
         const { indices, count, squaredDistances } = query3d.find(x[aI], y[aI], z[aI], MAX_RADIUS);
         const isHa = isHydrogen(aeI);
         const thresholdA = threshold(aeI);
-        const altA = label_alt_id.value(rowA);
+        const altA = label_alt_id.value(aI);
         const metalA = MetalsSet.has(aeI);
         const structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
 
         for (let ni = 0; ni < count; ni++) {
-            const bI = indices[ni];
+            const _bI = indices[ni];
+            const bI = ElementGroup.getAt(atoms, _bI);
             if (bI <= aI) continue;
 
-            // const rowB = dataIndex[bI];  // TODO
-            const rowB = bI;
-
-            const altB = label_alt_id.value(rowB);
+            const altB = label_alt_id.value(bI);
             if (altA && altB && altA !== altB) continue;
 
-            const beI = idx(type_symbol.value(rowB)!);
+            const beI = idx(type_symbol.value(bI)!);
             const isMetal = metalA || MetalsSet.has(beI);
 
-            const rbI = residueKey.value(bI);
+            const rbI = residueIndex[bI];
             // handle "component dictionary" bonds.
             if (raI === rbI && componentPairs) {
-                const e = componentPairs.get(label_atom_id.value(rowB)!);
+                const e = componentPairs.get(label_atom_id.value(bI)!);
                 if (e) {
-                    atomA[atomA.length] = aI;
-                    atomB[atomB.length] = bI;
+                    atomA[atomA.length] = _aI;
+                    atomB[atomB.length] = _bI;
                     order[order.length] = e.order;
                     let flag = e.flags;
                     if (isMetal) {
@@ -198,8 +194,8 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
                 for (const se of structConnEntries) {
                     for (const p of se.partners) {
                         if (p.atomIndex === bI) {
-                            atomA[atomA.length] = aI;
-                            atomB[atomB.length] = bI;
+                            atomA[atomA.length] = _aI;
+                            atomB[atomB.length] = _bI;
                             flags[flags.length] = se.flags;
                             order[order.length] = se.order;
                             added = true;
@@ -213,8 +209,8 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
 
             if (isHa || isHb) {
                 if (dist < params.maxHbondLength) {
-                    atomA[atomA.length] = aI;
-                    atomB[atomB.length] = bI;
+                    atomA[atomA.length] = _aI;
+                    atomB[atomB.length] = _bI;
                     order[order.length] = 1;
                     flags[flags.length] = BondType.Flag.Covalent | BondType.Flag.Computed; // TODO: check if correct
                 }
@@ -228,8 +224,8 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
 
 
             if (dist <= pairingThreshold) {
-                atomA[atomA.length] = aI;
-                atomB[atomB.length] = bI;
+                atomA[atomA.length] = _aI;
+                atomB[atomB.length] = _bI;
                 order[order.length] = 1;
                 flags[flags.length] = (isMetal ? BondType.Flag.MetallicCoordination : BondType.Flag.Covalent) | BondType.Flag.Computed;
             }
@@ -237,6 +233,7 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
     }
 
     const bonds = computePerAtomBonds(atomA, atomB, order, flags, atomCount);
+
     return {
         offset: bonds.offsets,
         neighbor: bonds.neighbor,

@@ -256,7 +256,7 @@ function query(ctx: QueryContext): boolean {
                     if (distSq <= rSq) {
                         if (maxRadius > 0 && Math.sqrt(distSq) - radius![idx] > inputRadius) continue;
                         if (isCheck) return true;
-                        Result.add(result, idx, distSq);
+                        Result.add(result, bucketArray[i], distSq);
                     }
                 }
             }

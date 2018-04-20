@@ -10,7 +10,7 @@ require('util.promisify').shim();
 
 // import { Table } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
-import { Model, Structure, ElementSet, Unit } from 'mol-model/structure'
+import { Model, Structure, ElementSet, Unit, ElementGroup } from 'mol-model/structure'
 import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 
@@ -22,7 +22,8 @@ async function parseCif(data: string|Uint8Array) {
 }
 
 async function getPdb(pdb: string) {
-    const data = await fetch(`https://files.rcsb.org/download/${pdb}.cif`)
+    //const data = await fetch(`https://files.rcsb.org/download/${pdb}.cif`)
+    const data = await fetch(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`);
     const parsed = await parseCif(await data.text())
     return CIF.schema.mmCIF(parsed.result.blocks[0])
 }
@@ -39,7 +40,6 @@ export function atomLabel(model: Model, aI: number) {
 
 
 function printBonds(structure: Structure) {
-
     const { units, elements } = structure;
     const unitIds = ElementSet.unitIndices(elements);
 
@@ -50,11 +50,18 @@ function printBonds(structure: Structure) {
         const { count, offset, neighbor } = Unit.getGroupBonds(unit, group);
         const { model }  = unit;
 
-        for (let j = 0; j < count; ++j) {
+        if (!count) continue;
+
+        for (let j = 0; j < offset.length - 1; ++j) {
             const start = offset[j];
             const end = offset[j + 1];
-            for (let bI = start; bI < end; bI++) {
-                console.log(`${atomLabel(model, j)} -- ${atomLabel(model, neighbor[bI])}`)
+
+            if (end <= start) continue;
+
+            const aI = ElementGroup.getAt(group, j);
+            for (let _bI = start; _bI < end; _bI++) {
+                const bI = ElementGroup.getAt(group, neighbor[_bI])
+                console.log(`${atomLabel(model, aI)} -- ${atomLabel(model, bI)}`);
             }
         }
     }

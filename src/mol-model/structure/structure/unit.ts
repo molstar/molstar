@@ -103,7 +103,7 @@ namespace Unit {
             group.__bonds__ = computeUnitBonds(unit, group);
             return group.__bonds__;
         }
-        
+
         throw 'not implemented';
     }
 }
