@@ -4,10 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// #define ATTRIBUTE_COLOR
-// #define INSTANCE_COLOR
-#define ELEMENT_COLOR
-
 precision highp float;
 
 uniform mat4 projection, model, view;
@@ -16,11 +12,11 @@ uniform int objectId;
 uniform int instanceCount;
 uniform int elementCount;
 
-#if defined( UNIFORM_COLOR )
+#if defined(UNIFORM_COLOR)
     uniform vec3 color;
-#elif defined( ATTRIBUTE_COLOR )
+#elif defined(ATTRIBUTE_COLOR)
     attribute vec3 color;
-#elif defined( INSTANCE_COLOR ) || defined( ELEMENT_COLOR )
+#elif defined(INSTANCE_COLOR) || defined(ELEMENT_COLOR) || defined(ELEMENT_INSTANCE_COLOR)
     uniform vec2 colorTexSize;
     uniform sampler2D colorTex;
 #endif
@@ -35,16 +31,18 @@ varying vec3 vColor;
 varying vec3 vNormal;
 varying vec3 vViewPosition;
 
-#pragma glslify: inverse = require(./inverse.glsl)
-#pragma glslify: read_vec3 = require(./read-vec3.glsl)
-#pragma glslify: transpose = require(./transpose.glsl)
+#pragma glslify: inverse = require(./util/inverse.glsl)
+#pragma glslify: read_vec3 = require(./util/read-vec3.glsl)
+#pragma glslify: transpose = require(./util/transpose.glsl)
 
 void main(){
-    #if defined( ATTRIBUTE_COLOR )
+    #if defined(ATTRIBUTE_COLOR)
         vColor = color;
-    #elif defined( INSTANCE_COLOR )
+    #elif defined(INSTANCE_COLOR)
         vColor = read_vec3(colorTex, instanceId, colorTexSize);
-    #elif defined( ELEMENT_COLOR )
+    #elif defined(ELEMENT_COLOR)
+        vColor = read_vec3(colorTex, elementId, colorTexSize);
+    #elif defined(ELEMENT_INSTANCE_COLOR)
         vColor = read_vec3(colorTex, instanceId * float(elementCount) + elementId, colorTexSize);
     #endif
 

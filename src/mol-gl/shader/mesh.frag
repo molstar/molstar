@@ -4,10 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// #define ATTRIBUTE_COLOR
-// #define INSTANCE_COLOR
-#define ELEMENT_COLOR
-
 precision highp float;
 
 struct Light {
@@ -23,36 +19,15 @@ uniform mat4 view;
 
 varying vec3 vNormal, vViewPosition;
 
-#if defined( UNIFORM_COLOR )
+#if defined(UNIFORM_COLOR)
     uniform vec3 color;
-#elif defined( ATTRIBUTE_COLOR ) || defined( INSTANCE_COLOR ) || defined( ELEMENT_COLOR )
+#elif defined(ATTRIBUTE_COLOR) || defined(INSTANCE_COLOR) || defined(ELEMENT_COLOR) || defined(ELEMENT_INSTANCE_COLOR)
     varying vec3 vColor;
 #endif
 
-float phongSpecular(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNormal, float shininess) {
-    //Calculate Phong power
-    vec3 R = -reflect(lightDirection, surfaceNormal);
-    return pow(max(0.0, dot(viewDirection, R)), shininess);
-}
-
-#define PI 3.14159265
-
-float orenNayarDiffuse(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNormal, float roughness, float albedo) {
-    float LdotV = dot(lightDirection, viewDirection);
-    float NdotL = dot(lightDirection, surfaceNormal);
-    float NdotV = dot(surfaceNormal, viewDirection);
-
-    float s = LdotV - NdotL * NdotV;
-    float t = mix(1.0, max(NdotL, NdotV), step(0.0, s));
-
-    float sigma2 = roughness * roughness;
-    float A = 1.0 + sigma2 * (albedo / (sigma2 + 0.13) + 0.5 / (sigma2 + 0.33));
-    float B = 0.45 * sigma2 / (sigma2 + 0.09);
-
-    return albedo * max(0.0, NdotL) * (A + B * s / t) / PI;
-}
-
-#pragma glslify: attenuation = require(./attenuation.glsl)
+#pragma glslify: attenuation = require(./util/attenuation.glsl)
+#pragma glslify: calculateSpecular = require(./util/phong-specular.glsl)
+#pragma glslify: calculateDiffuse = require(./util/oren-nayar-diffuse.glsl)
 
 const float specularScale = 0.65;
 const float shininess = 100.0;
@@ -61,9 +36,9 @@ const float albedo = 0.95;
 
 void main() {
     // material color
-    #if defined( UNIFORM_COLOR )
+    #if defined(UNIFORM_COLOR)
         vec3 material = color;
-    #elif defined( ATTRIBUTE_COLOR ) || defined( INSTANCE_COLOR ) || defined( ELEMENT_COLOR )
+    #elif defined(ATTRIBUTE_COLOR) || defined(INSTANCE_COLOR) || defined(ELEMENT_COLOR) || defined(ELEMENT_INSTANCE_COLOR)
         vec3 material = vColor;
     #endif
 
@@ -81,8 +56,8 @@ void main() {
     vec3 N = normalize(-vNormal); // surface normal
 
     // compute our diffuse & specular terms
-    float specular = phongSpecular(L, V, N, shininess) * specularScale * falloff;
-    vec3 diffuse = light.color * orenNayarDiffuse(L, V, N, roughness, albedo) * falloff;
+    float specular = calculateSpecular(L, V, N, shininess) * specularScale * falloff;
+    vec3 diffuse = light.color * calculateDiffuse(L, V, N, roughness, albedo) * falloff;
     vec3 ambient = light.ambient;
 
     // add the lighting

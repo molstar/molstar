@@ -6,21 +6,28 @@
 
 import REGL = require('regl');
 import { ValueCell } from 'mol-util/value-cell'
+import { ColorData } from 'mol-geo/color';
 
 import { Renderable } from '../renderable'
-import { ColorTexture } from '../util'
 import { getBuffers, createTransformAttributes, fillSerial, createColorUniforms } from './util'
 import Attribute from '../attribute';
-import { MeshShaders } from '../shaders'
+import { MeshShaders, addDefines, ShaderDefines } from '../shaders'
 
 type Mesh = 'mesh'
 
 type Uniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 
-type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }
-type InstanceColor = { type: 'instance', value: ValueCell<ColorTexture> }
-type ElementColor = { type: 'element', value: ValueCell<ColorTexture> }
-export type Color = AttributeColor | InstanceColor | ElementColor
+function getColorDefines(color: ColorData) {
+    const defines: ShaderDefines = {}
+    switch (color.type) {
+        case 'uniform': defines.UNIFORM_COLOR = ''; break;
+        case 'attribute': defines.ATTRIBUTE_COLOR = ''; break;
+        case 'element': defines.ELEMENT_COLOR = ''; break;
+        case 'instance': defines.INSTANCE_COLOR = ''; break;
+        case 'element-instance': defines.ELEMENT_INSTANCE_COLOR = ''; break;
+    }
+    return defines
+}
 
 namespace Mesh {
     export type Data = {
@@ -28,7 +35,7 @@ namespace Mesh {
         normal: ValueCell<Float32Array>
         id: ValueCell<Float32Array>
 
-        readonly color: Color
+        readonly color: ColorData
         transform: ValueCell<Float32Array>
         index: ValueCell<Uint32Array>
 
@@ -39,6 +46,7 @@ namespace Mesh {
     }
 
     export function create(regl: REGL.Regl, data: Data, _uniforms: Uniforms): Renderable {
+        const defines = getColorDefines(data.color)
         const instanceId = ValueCell.create(fillSerial(new Float32Array(data.instanceCount)))
         const uniforms = {
             objectId: _uniforms.objectId || 0,
@@ -46,8 +54,10 @@ namespace Mesh {
             elementCount: data.elementCount,
             ..._uniforms
         }
-        if (data.color.type === 'instance' || data.color.type === 'element') {
-            Object.assign(uniforms, createColorUniforms(regl, data.color.value as ValueCell<ColorTexture>))
+        if (data.color.type === 'instance' || data.color.type === 'element' || data.color.type === 'element-instance') {
+            Object.assign(uniforms, createColorUniforms(regl, data.color.value))
+        } else if (data.color.type === 'uniform') {
+            Object.assign(uniforms, { color: data.color.value })
         }
         const attributes = getBuffers({
             instanceId: Attribute.create(regl, instanceId, data.instanceCount, { size: 1, divisor: 1 }),
@@ -58,10 +68,10 @@ namespace Mesh {
             ...createTransformAttributes(regl, data.transform, data.instanceCount)
         })
         if (data.color.type === 'attribute') {
-            attributes.color = Attribute.create(regl, data.color.value as ValueCell<Float32Array>, data.positionCount, { size: 3 }).buffer
+            attributes.color = Attribute.create(regl, data.color.value, data.positionCount, { size: 3 }).buffer
         }
         const command = regl({
-            ...MeshShaders,
+            ...addDefines(defines, MeshShaders),
             uniforms,
             attributes,
             elements: regl.elements({
