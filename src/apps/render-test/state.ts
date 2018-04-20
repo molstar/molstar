@@ -45,7 +45,7 @@ export default class State {
         this.loading.next(true)
 
         const structures = await getStructuresFromPdbId(pdbId)
-        const struct = Symmetry.buildAssembly(structures[0], '1')
+        const struct = await Run(Symmetry.buildAssembly(structures[0], '1'))
 
         // const structPointRepr = StructureRepresentation(Point)
         // await Run(structPointRepr.create(struct))

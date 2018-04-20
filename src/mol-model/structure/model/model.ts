@@ -14,7 +14,6 @@ import CoarseGrained from './properties/coarse-grained'
 import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
 
-
 /**
  * Interface to the "source data" of the molecule.
  *

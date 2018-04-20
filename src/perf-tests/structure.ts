@@ -11,7 +11,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Element, ElementGroup, ElementSet, Selection, Symmetry, Unit } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, Element, ElementGroup, ElementSet, Selection, Symmetry, Unit, Query } from 'mol-model/structure'
 import { Segmentation, OrderedSet } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -120,14 +120,14 @@ export namespace PropertyAccess {
 
     function sumProperty(structure: Structure, p: Element.Property<number>) {
         const { elements, units } = structure;
-        const unitIds = ElementSet.unitIds(elements);
+        const unitIds = ElementSet.unitIndices(elements);
         const l = Element.Location();
 
         let s = 0;
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             l.unit = units[unitIds[i]];
-            const set = ElementSet.unitGetByIndex(elements, i);
+            const set = ElementSet.groupAt(elements, i);
 
 
             for (let j = 0, _j = ElementGroup.size(set); j < _j; j++) {
@@ -141,7 +141,7 @@ export namespace PropertyAccess {
 
     function sumPropertySegmented(structure: Structure, p: Element.Property<number>) {
         const { elements, units } = structure;
-        const unitIds = ElementSet.unitIds(elements);
+        const unitIds = ElementSet.unitIndices(elements);
         const l = Element.Location();
 
         let s = 0;
@@ -150,7 +150,7 @@ export namespace PropertyAccess {
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unit = units[unitIds[i]];
             l.unit = unit;
-            const set = ElementSet.unitGetByIndex(elements, i);
+            const set = ElementSet.groupAt(elements, i);
 
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set.elements);
             const residues = unit.hierarchy.residueSegments;
@@ -294,16 +294,16 @@ export namespace PropertyAccess {
         console.log(to_mmCIF('test', s));
     }
 
-    export function testAssembly(id: string, s: Structure) {
+    export async function testAssembly(id: string, s: Structure) {
         console.time('assembly')
-        const a = Symmetry.buildAssembly(s, '1');
+        const a = await Run(Symmetry.buildAssembly(s, '1'));
         console.timeEnd('assembly')
         fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, a, true));
         console.log('exported');
     }
 
-    export function testGrouping(structure: Structure) {
-        const { elements, units } = Symmetry.buildAssembly(structure, '1');
+    export async function testGrouping(structure: Structure) {
+        const { elements, units } = await Run(Symmetry.buildAssembly(structure, '1'));
         console.log('grouping', units.length);
         console.log('built asm');
 
@@ -312,13 +312,17 @@ export namespace PropertyAccess {
             (a, b) => a.unit.model.id === b.unit.model.id && (a.group.key === b.group.key && OrderedSet.areEqual(a.group.elements, b.group.elements))
         );
 
-        for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
-            const group = ElementSet.unitGetByIndex(elements, i);
-            const unitId = ElementSet.unitGetId(elements, i);
+        for (let i = 0, _i = ElementSet.groupCount(elements); i < _i; i++) {
+            const group = ElementSet.groupAt(elements, i);
+            const unitId = ElementSet.groupUnitIndex(elements, i);
             uniqueGroups.add(unitId, { unit: units[unitId], group });
         }
 
         console.log('group count', uniqueGroups.groups.length);
+    }
+
+    function query(q: Query, s: Structure) {
+        return Run((q(s)));
     }
 
     export async function run() {
@@ -375,26 +379,26 @@ export namespace PropertyAccess {
         //const auth_asym_id = Q.props.chain.auth_asym_id;
         //const set =  new Set(['A', 'B', 'C', 'D']);
         //const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
-        const q = Q.generators.atoms({ atomTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA') });
+        const q = Query(Q.generators.atoms({ atomTest: Q.pred.eq(Q.props.residue.auth_comp_id, 'ALA') }));
         const P = Q.props
         //const q0 = Q.generators.atoms({ atomTest: l => auth_comp_id(l) === 'ALA' });
-        const q1 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' });
-        const q2 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA', groupBy: Q.props.residue.key });
-        const q3 = Q.generators.atoms({
+        const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
+        const q2 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA', groupBy: Q.props.residue.key }));
+        const q3 = Query(Q.generators.atoms({
             chainTest: Q.pred.inSet(P.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
             residueTest: Q.pred.eq(P.residue.auth_comp_id, 'ALA')
-        });
-        q(structures[0]);
+        }));
+        await query(q, structures[0]);
         //console.log(to_mmCIF('test', Selection.union(q0r)));
 
         console.time('q1')
-        q1(structures[0]);
+        await query(q1, structures[0]);
         console.timeEnd('q1')
         console.time('q1')
-        q1(structures[0]);
+        await query(q1, structures[0]);
         console.timeEnd('q1')
         console.time('q2')
-        const q2r = q2(structures[0]);
+        const q2r = await query(q2, structures[0]);
         console.timeEnd('q2')
         console.log(Selection.structureCount(q2r));
         //console.log(q1(structures[0]));
@@ -404,8 +408,8 @@ export namespace PropertyAccess {
         suite
             //.add('test q', () => q1(structures[0]))
             //.add('test q', () => q(structures[0]))
-            .add('test q1', () => q1(structures[0]))
-            .add('test q3', () => q3(structures[0]))
+            .add('test q1', async () => await q1(structures[0]))
+            .add('test q3', async () => await q3(structures[0]))
             //.add('test int', () => sumProperty(structures[0], l => col(l.element))
             // .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
 

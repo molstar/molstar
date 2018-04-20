@@ -6,12 +6,12 @@
  */
 
 import Model from '../../model'
-import Bonds from '../../properties/bonds'
 import { BondType } from '../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from './util'
 import { Column } from 'mol-data/db'
+import { GroupBonds } from '../../../structure/element/properties/bonds/group-data';
 
-export class StructConn implements Bonds.StructConn {
+export class StructConn implements GroupBonds.StructConn {
     private _residuePairIndex: Map<string, StructConn.Entry[]> | undefined = void 0;
     private _atomIndex: Map<number, StructConn.Entry[]> | undefined = void 0;
 
@@ -71,7 +71,7 @@ export class StructConn implements Bonds.StructConn {
 }
 
 export namespace StructConn {
-    export interface Entry extends Bonds.StructConnEntry {
+    export interface Entry extends GroupBonds.StructConnEntry {
         distance: number,
         order: number,
         flags: number,
@@ -181,7 +181,7 @@ export namespace StructConn {
     }
 }
 
-export class ComponentBondInfo implements Bonds.ComponentBondInfo {
+export class ComponentBondInfo implements GroupBonds.ComponentBondInfo {
     entries: Map<string, ComponentBondInfo.Entry> = new Map();
 
     newEntry(id: string) {
@@ -192,7 +192,7 @@ export class ComponentBondInfo implements Bonds.ComponentBondInfo {
 }
 
 export namespace ComponentBondInfo {
-    export class Entry implements Bonds.ComponentBondInfoEntry {
+    export class Entry implements GroupBonds.ComponentBondInfoEntry {
         map: Map<string, Map<string, { order: number, flags: number }>> = new Map();
 
         add(a: string, b: string, order: number, flags: number, swap = true) {

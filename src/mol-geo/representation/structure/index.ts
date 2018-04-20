@@ -40,10 +40,11 @@ export function StructureRepresentation<Props>(reprCtor: () => UnitsRepresentati
                     (a, b) => a.unit.model.id === b.unit.model.id && OrderedSet.areEqual(a.group.elements, b.group.elements)
                 );
 
-                for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
-                    const group = ElementSet.unitGetByIndex(elements, i);
-                    const unitId = ElementSet.unitGetId(elements, i);
-                    uniqueGroups.add(unitId, { unit: units[unitId], group });
+                const unitIndices = ElementSet.unitIndices(elements);
+                for (let i = 0, _i = unitIndices.length; i < _i; i++) {
+                    const unitIndex = unitIndices[i];
+                    const group = ElementSet.groupFromUnitIndex(elements, unitIndex);
+                    uniqueGroups.add(unitIndex, { unit: units[unitIndex], group });
                 }
 
                 for (let i = 0, _i = uniqueGroups.groups.length; i < _i; i++) {
@@ -53,24 +54,13 @@ export function StructureRepresentation<Props>(reprCtor: () => UnitsRepresentati
                     for (let j = 0, _j = group.length; j < _j; j++) {
                         groupUnits.push(units[group[j]])
                     }
-                    const elementGroup = ElementSet.unitGetByIndex(elements, group[0])
+                    const elementGroup = ElementSet.groupFromUnitIndex(elements, group[0])
                     const repr = reprCtor()
                     unitReprs.push(repr)
                     await ctx.update({ message: 'Building units...', current: i, max: _i });
                     await ctx.runChild(repr.create(groupUnits, elementGroup, props));
                     renderObjects.push(...repr.renderObjects)
                 }
-
-                // console.log(ElementSet.unitCount(elements))
-                // console.log(uniqueGroups)
-
-                // console.log({ elements, units })
-
-                // const repr = reprCtor()
-                // unitReprs.push(repr)
-                // await ctx.update('Building units...');
-                // await ctx.runChild(repr.create(units, elements, props));
-                // renderObjects.push(...repr.renderObjects)
             });
         },
         update(elements: ElementSet, props: RepresentationProps) {

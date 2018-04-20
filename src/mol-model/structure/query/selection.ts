@@ -35,7 +35,7 @@ namespace Selection {
 
     export function getAt(sel: Selection, i: number): Structure {
         if (isSingleton(sel)) {
-            const atom = ElementSet.elementGetAt(sel.set, i);
+            const atom = ElementSet.elementAt(sel.set, i);
             return Structure.create(sel.structure.units, ElementSet.singleton(atom, sel.structure.elements));
         }
         return Structure.create(sel.structure.units, sel.sets[i]);
