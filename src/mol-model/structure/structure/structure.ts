@@ -12,15 +12,12 @@ import Unit from './unit'
 import ElementSet from './element/set'
 import ElementGroup from './element/group'
 import Element from './element'
-import { StructureLookup3D } from './util/lookup3d';
 
 // A structure is a pair of "units" and an element set.
 // Each unit contains the data and transformation of its corresponding elements.
 interface Structure {
     readonly units: ReadonlyArray<Unit>,
-    readonly elements: ElementSet,
-
-    __lookup3d__?: StructureLookup3D
+    readonly elements: ElementSet
 }
 
 namespace Structure {
@@ -77,7 +74,7 @@ namespace Structure {
     export function getModels(s: Structure) {
         const { units, elements } = s;
         const arr = UniqueArray.create<Model['id'], Model>();
-        const ids = ElementSet.unitIds(elements);
+        const ids = ElementSet.unitIndices(elements);
         for (let i = 0; i < ids.length; i++) {
             const u = units[ids[i]];
             UniqueArray.add(arr, u.model.id, u.model);
@@ -86,9 +83,7 @@ namespace Structure {
     }
 
     export function getLookup3d(s: Structure) {
-        if (s.__lookup3d__) return s.__lookup3d__;
-        s.__lookup3d__ = StructureLookup3D.create(s);
-        return s.__lookup3d__;
+        return ElementSet.getLookup3d(s);
     }
 
     export function getBoundary(s: Structure) {

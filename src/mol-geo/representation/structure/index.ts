@@ -36,8 +36,8 @@ export class StructureRepresentation {
                 ElementGroup.hashCode,
                 (a, b) => units[a.key].model.id === units[b.key].model.id && OrderedSet.areEqual(a.elements, b.elements));
 
-            for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
-                const group = ElementSet.unitGetByIndex(elements, i);
+            for (let i = 0, _i = ElementSet.groupCount(elements); i < _i; i++) {
+                const group = ElementSet.groupAt(elements, i);
                 uniqueGroups.add(group.key, group);
 
             }

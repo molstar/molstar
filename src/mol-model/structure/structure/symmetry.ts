@@ -32,12 +32,12 @@ function buildAssemblyImpl(structure: Structure, name: string) {
             if (Selection.structureCount(selection) === 0) continue;
             const { units, elements } = Selection.unionStructure(selection);
 
-            const unitIds = ElementSet.unitIds(elements);
+            const unitIds = ElementSet.unitIndices(elements);
 
             for (const oper of g.operators) {
                 for (let uI = 0, _uI = unitIds.length; uI < _uI; uI++) {
                     const unit = units[unitIds[uI]];
-                    assembler.add(Unit.withOperator(unit, oper), ElementSet.unitGetByIndex(elements, uI));
+                    assembler.add(Unit.withOperator(unit, oper), ElementSet.groupAt(elements, uI));
                 }
             }
         }

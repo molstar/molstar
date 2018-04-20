@@ -120,11 +120,11 @@ export default class State {
         async function createSpacefills (structure: Structure) {
             const spacefills: RenderObject[] = []
             const { elements, units } = structure;
-            const unitIds = ElementSet.unitIds(elements);
+            const unitIds = ElementSet.unitIndices(elements);
             for (let i = 0, _i = unitIds.length; i < _i; i++) {
                 const unitId = unitIds[i];
                 const unit = units[unitId];
-                const atomGroup = ElementSet.unitGetByIndex(elements, i);
+                const atomGroup = ElementSet.groupAt(elements, i);
 
                 const spacefill = Spacefill()
                 spacefills.push(...await Run(spacefill.create(unit, atomGroup), log, 1))

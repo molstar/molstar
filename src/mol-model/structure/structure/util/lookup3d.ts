@@ -12,10 +12,10 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { OrderedSet } from 'mol-data/int';
 import { computeStructureBoundary } from './boundary';
 
-interface StructureLookup3D extends Lookup3D<Element> {}
+interface ElementSetLookup3D extends Lookup3D<Element> {}
 
-namespace StructureLookup3D {
-    class Impl implements StructureLookup3D {
+namespace ElementSetLookup3D {
+    class Impl implements ElementSetLookup3D {
         private unitLookup: Lookup3D;
         private result = Result.create<Element>();
         private pivot = Vec3.zero();
@@ -28,8 +28,8 @@ namespace StructureLookup3D {
 
             for (let t = 0, _t = closeUnits.count; t < _t; t++) {
                 const i = closeUnits.indices[t];
-                const unitId = ElementSet.unitGetId(elements, i);
-                const group = ElementSet.unitGetByIndex(elements, i);
+                const unitId = ElementSet.groupUnitIndex(elements, i);
+                const group = ElementSet.groupAt(elements, i);
                 const unit = units[unitId];
                 Vec3.set(this.pivot, x, y, z);
                 if (!unit.operator.isIdentity) {
@@ -52,8 +52,8 @@ namespace StructureLookup3D {
 
             for (let t = 0, _t = closeUnits.count; t < _t; t++) {
                 const i = closeUnits.indices[t];
-                const unitId = ElementSet.unitGetId(elements, i);
-                const group = ElementSet.unitGetByIndex(elements, i);
+                const unitId = ElementSet.groupUnitIndex(elements, i);
+                const group = ElementSet.groupAt(elements, i);
                 const unit = units[unitId];
                 Vec3.set(this.pivot, x, y, z);
                 if (!unit.operator.isIdentity) {
@@ -70,7 +70,7 @@ namespace StructureLookup3D {
 
         constructor(private structure: Structure) {
             const { units, elements } = structure;
-            const unitCount = ElementSet.unitCount(elements);
+            const unitCount = ElementSet.groupCount(elements);
             const xs = new Float32Array(unitCount);
             const ys = new Float32Array(unitCount);
             const zs = new Float32Array(unitCount);
@@ -78,8 +78,8 @@ namespace StructureLookup3D {
 
             const center = Vec3.zero();
             for (let i = 0; i < unitCount; i++) {
-                const group = ElementSet.unitGetByIndex(elements, i);
-                const unit = units[ElementSet.unitGetId(elements, i)];
+                const group = ElementSet.groupAt(elements, i);
+                const unit = units[ElementSet.groupUnitIndex(elements, i)];
                 const lookup = Unit.getLookup3d(unit, group);
                 const s = lookup.boundary.sphere;
 
@@ -96,9 +96,9 @@ namespace StructureLookup3D {
         }
     }
 
-    export function create(s: Structure): StructureLookup3D {
+    export function create(s: Structure): ElementSetLookup3D {
         return new Impl(s);
     }
 }
 
-export { StructureLookup3D }
+export { ElementSetLookup3D }

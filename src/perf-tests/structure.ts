@@ -120,14 +120,14 @@ export namespace PropertyAccess {
 
     function sumProperty(structure: Structure, p: Element.Property<number>) {
         const { elements, units } = structure;
-        const unitIds = ElementSet.unitIds(elements);
+        const unitIds = ElementSet.unitIndices(elements);
         const l = Element.Location();
 
         let s = 0;
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             l.unit = units[unitIds[i]];
-            const set = ElementSet.unitGetByIndex(elements, i);
+            const set = ElementSet.groupAt(elements, i);
 
 
             for (let j = 0, _j = ElementGroup.size(set); j < _j; j++) {
@@ -141,7 +141,7 @@ export namespace PropertyAccess {
 
     function sumPropertySegmented(structure: Structure, p: Element.Property<number>) {
         const { elements, units } = structure;
-        const unitIds = ElementSet.unitIds(elements);
+        const unitIds = ElementSet.unitIndices(elements);
         const l = Element.Location();
 
         let s = 0;
@@ -150,7 +150,7 @@ export namespace PropertyAccess {
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unit = units[unitIds[i]];
             l.unit = unit;
-            const set = ElementSet.unitGetByIndex(elements, i);
+            const set = ElementSet.groupAt(elements, i);
 
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set.elements);
             const residues = unit.hierarchy.residueSegments;
@@ -312,9 +312,9 @@ export namespace PropertyAccess {
             (a, b) => a.unit.model.id === b.unit.model.id && (a.group.key === b.group.key && OrderedSet.areEqual(a.group.elements, b.group.elements))
         );
 
-        for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
-            const group = ElementSet.unitGetByIndex(elements, i);
-            const unitId = ElementSet.unitGetId(elements, i);
+        for (let i = 0, _i = ElementSet.groupCount(elements); i < _i; i++) {
+            const group = ElementSet.groupAt(elements, i);
+            const unitId = ElementSet.groupUnitIndex(elements, i);
             uniqueGroups.add(unitId, { unit: units[unitId], group });
         }
 

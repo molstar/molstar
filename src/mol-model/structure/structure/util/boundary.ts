@@ -20,9 +20,9 @@ function computeStructureBoundary(s: Structure): { box: Box3D, sphere: Sphere3D 
     let radiusSq = 0;
     let size = 0;
 
-    for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
-        const group = ElementSet.unitGetByIndex(elements, i);
-        const { x, y, z } = units[ElementSet.unitGetId(elements, i)];
+    for (let i = 0, _i = ElementSet.groupCount(elements); i < _i; i++) {
+        const group = ElementSet.groupAt(elements, i);
+        const { x, y, z } = units[ElementSet.groupUnitIndex(elements, i)];
 
         size += ElementGroup.size(group);
         for (let j = 0, _j = ElementGroup.size(group); j < _j; j++) {
@@ -48,9 +48,9 @@ function computeStructureBoundary(s: Structure): { box: Box3D, sphere: Sphere3D 
         cz /= size;
     }
 
-    for (let i = 0, _i = ElementSet.unitCount(elements); i < _i; i++) {
-        const group = ElementSet.unitGetByIndex(elements, i);
-        const { x, y, z } = units[ElementSet.unitGetId(elements, i)];
+    for (let i = 0, _i = ElementSet.groupCount(elements); i < _i; i++) {
+        const group = ElementSet.groupAt(elements, i);
+        const { x, y, z } = units[ElementSet.groupUnitIndex(elements, i)];
 
         size += ElementGroup.size(group);
         for (let j = 0, _j = ElementGroup.size(group); j < _j; j++) {

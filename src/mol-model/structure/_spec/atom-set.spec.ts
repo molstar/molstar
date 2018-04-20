@@ -26,7 +26,7 @@ describe('atom set', () => {
         expect(setToPairs(set)).toEqual([p(10, 11)]);
         expect(ElementSet.elementHas(set, p(10, 11))).toBe(true);
         expect(ElementSet.elementHas(set, p(11, 11))).toBe(false);
-        expect(ElementSet.elementGetAt(set, 0)).toBe(p(10, 11));
+        expect(ElementSet.elementAt(set, 0)).toBe(p(10, 11));
         expect(ElementSet.elementCount(set)).toBe(1);
     });
 
@@ -35,7 +35,7 @@ describe('atom set', () => {
         expect(setToPairs(set)).toEqual([p(10, 11)]);
         expect(ElementSet.elementHas(set, p(10, 11))).toBe(true);
         expect(ElementSet.elementHas(set, p(11, 11))).toBe(false);
-        expect(ElementSet.elementGetAt(set, 0)).toBe(p(10, 11));
+        expect(ElementSet.elementAt(set, 0)).toBe(p(10, 11));
         expect(ElementSet.elementCount(set)).toBe(1);
     });
 
@@ -51,7 +51,7 @@ describe('atom set', () => {
         expect(ElementSet.elementHas(set, p(3, 0))).toBe(true);
         expect(ElementSet.elementHas(set, p(1, 7))).toBe(true);
         for (let i = 0; i < ElementSet.elementCount(set); i++) {
-            expect(Element.areEqual(ElementSet.elementGetAt(set, i), ret[i])).toBe(true);
+            expect(Element.areEqual(ElementSet.elementAt(set, i), ret[i])).toBe(true);
         }
     });
 
@@ -62,8 +62,8 @@ describe('atom set', () => {
         gen.add(1, OrderedSet.ofSingleton(3));
         const set = gen.getSet();
 
-        expect(ElementSet.unitGetById(set, 0)).toBe(ElementSet.unitGetById(template, 0));
-        expect(ElementSet.unitGetById(set, 1)).toBe(ElementSet.unitGetById(template, 1));
+        expect(ElementSet.groupFromUnitIndex(set, 0)).toBe(ElementSet.groupFromUnitIndex(template, 0));
+        expect(ElementSet.groupFromUnitIndex(set, 1)).toBe(ElementSet.groupFromUnitIndex(template, 1));
         expect(set).toBe(template);
     });
 
@@ -74,8 +74,8 @@ describe('atom set', () => {
         gen.add(1, OrderedSet.ofSingleton(4));
         const set = gen.getSet();
 
-        expect(ElementSet.unitGetById(set, 0)).toBe(ElementSet.unitGetById(template, 0));
-        expect(ElementSet.unitGetById(set, 1) === ElementSet.unitGetById(template, 1)).toBe(false);
+        expect(ElementSet.groupFromUnitIndex(set, 0)).toBe(ElementSet.groupFromUnitIndex(template, 0));
+        expect(ElementSet.groupFromUnitIndex(set, 1) === ElementSet.groupFromUnitIndex(template, 1)).toBe(false);
         expect(set === template).toBe(false);
     });
 
@@ -89,9 +89,9 @@ describe('atom set', () => {
 
         const u0 = ElementSet.union([p01, p02, p06], template);
         const u1 = ElementSet.union([p01, p02, p06, p13], template);
-        expect(ElementSet.unitGetById(u0, 0)).toBe(ElementSet.unitGetById(template, 0));
-        expect(ElementSet.unitGetById(u1, 0)).toBe(ElementSet.unitGetById(template, 0));
-        expect(ElementSet.unitGetById(u1, 1)).toBe(ElementSet.unitGetById(template, 1));
+        expect(ElementSet.groupFromUnitIndex(u0, 0)).toBe(ElementSet.groupFromUnitIndex(template, 0));
+        expect(ElementSet.groupFromUnitIndex(u1, 0)).toBe(ElementSet.groupFromUnitIndex(template, 0));
+        expect(ElementSet.groupFromUnitIndex(u1, 1)).toBe(ElementSet.groupFromUnitIndex(template, 1));
         expect(u1).toBe(template);
     });
 
@@ -108,7 +108,7 @@ describe('atom set', () => {
         }
         const ms = gen.getSet();
         for (let i = 0; i < control.length; i++) {
-            expect(Element.areEqual(ElementSet.elementGetAt(ms, i), control[i])).toBe(true);
+            expect(Element.areEqual(ElementSet.elementAt(ms, i), control[i])).toBe(true);
         }
 
         for (let i = 0; i < control.length; i++) {

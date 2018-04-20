@@ -46,14 +46,14 @@ export function atoms(params?: Partial<AtomGroupsQueryParams>): Query.Provider {
 function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
     return async (structure, ctx) => {
         const { elements, units } = structure;
-        const unitIds = ElementSet.unitIds(elements);
+        const unitIds = ElementSet.unitIndices(elements);
         const l = Element.Location();
         const builder = ElementSet.LinearBuilder(elements);
 
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
             l.unit = units[unitId];
-            const set = ElementSet.unitGetByIndex(elements, i).elements;
+            const set = ElementSet.groupAt(elements, i).elements;
 
             builder.beginUnit();
             for (let j = 0, _j = OrderedSet.size(set); j < _j; j++) {
@@ -72,7 +72,7 @@ function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
 function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query.Provider {
     return async (structure, ctx) => {
         const { elements, units } = structure;
-        const unitIds = ElementSet.unitIds(elements);
+        const unitIds = ElementSet.unitIndices(elements);
         const l = Element.Location();
         const builder = ElementSet.LinearBuilder(elements);
 
@@ -80,7 +80,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             const unitId = unitIds[i];
             const unit = units[unitId];
             l.unit = unit;
-            const set = ElementSet.unitGetByIndex(elements, i).elements;
+            const set = ElementSet.groupAt(elements, i).elements;
 
             builder.beginUnit();
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
@@ -164,7 +164,7 @@ class LinearGroupingBuilder {
 function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query.Provider {
     return async (structure, ctx) => {
         const { elements, units } = structure;
-        const unitIds = ElementSet.unitIds(elements);
+        const unitIds = ElementSet.unitIndices(elements);
         const l = Element.Location();
         const builder = new LinearGroupingBuilder(structure);
 
@@ -172,7 +172,7 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
             const unitId = unitIds[i];
             const unit = units[unitId];
             l.unit = unit;
-            const set = ElementSet.unitGetByIndex(elements, i).elements;
+            const set = ElementSet.groupAt(elements, i).elements;
 
             const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
             const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
