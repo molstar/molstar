@@ -11,6 +11,14 @@ import { Camera } from 'mol-view/camera/base';
 import * as glContext from './context'
 import Scene, { RenderObject } from './scene';
 
+export interface RendererStats {
+    elementsCount: number
+    bufferCount: number
+    textureCount: number
+    shaderCount: number
+    renderableCount: number
+}
+
 interface Renderer {
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
@@ -19,6 +27,7 @@ interface Renderer {
 
     setViewport: (viewport: Viewport) => void
 
+    stats: RendererStats
     dispose: () => void
 }
 
@@ -32,7 +41,7 @@ const optionalExtensions = [
 
 namespace Renderer {
     export function create(canvas: HTMLCanvasElement, camera: Camera): Renderer {
-        const regl = glContext.create({ canvas, extensions, optionalExtensions, profile: true })
+        const regl = glContext.create({ canvas, extensions, optionalExtensions, profile: false })
         const scene = Scene.create(regl)
 
         const baseContext = regl({
@@ -71,19 +80,25 @@ namespace Renderer {
         return {
             add: (o: RenderObject) => {
                 scene.add(o)
-                draw()
             },
             remove: (o: RenderObject) => {
                 scene.remove(o)
-                draw()
             },
             clear: () => {
                 scene.clear()
-                draw()
             },
             draw,
             setViewport: (viewport: Viewport) => {
                 regl({ viewport })
+            },
+            get stats() {
+                return {
+                    elementsCount: regl.stats.elementsCount,
+                    bufferCount: regl.stats.bufferCount,
+                    textureCount: regl.stats.textureCount,
+                    shaderCount: regl.stats.shaderCount,
+                    renderableCount: scene.count
+                }
             },
             dispose: () => {
                 regl.destroy()

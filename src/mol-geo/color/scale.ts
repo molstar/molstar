@@ -28,9 +28,10 @@ export namespace ColorScale {
         const { domain, reverse, colors } = { ...DefaultColorScale, ...props }
         const [ min, max ] = reverse ? domain.slice().reverse() : domain
         const count1 = colors.length - 1
+        const diff = (max - min) || 1
 
         function color(value: number) {
-            const t = ((value - min) / (max - min)) * count1
+            const t = ((value - min) / diff) * count1
             const tf = Math.floor(t)
             const c1 = colors[tf]
             const c2 = colors[Math.ceil(t)]

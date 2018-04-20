@@ -4,6 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+precision highp float;
+
+#pragma glslify: import('./chunks/color-frag-params.glsl')
+
 void main(){
-    gl_FragColor = vec4(1, 0, 0, 1);
+    #pragma glslify: import('./chunks/color-assign-material.glsl')
+    gl_FragColor = vec4(material, 1);
 }

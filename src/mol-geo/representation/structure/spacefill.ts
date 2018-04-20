@@ -6,7 +6,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createRenderObject, RenderObject } from 'mol-gl/scene'
+import { RenderObject, createMeshRenderObject } from 'mol-gl/scene'
 // import { createColorTexture } from 'mol-gl/util';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
@@ -53,7 +53,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     detail
                 })
 
-                if (i % 10 === 0 && ctx.shouldUpdate) {
+                if (i % 10000 === 0 && ctx.shouldUpdate) {
                     await ctx.update({ message: 'Spacefill', current: i, max: elementCount });
                 }
             }
@@ -70,35 +70,31 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             // console.log({ unitCount, elementCount })
 
-            let colorType = 'element-instance'
-            let color: ColorData
+            // const color = createUniformColor({ value: 0xFF4411 })
 
-            if (colorType === 'uniform') {
-                color = createUniformColor({ value: 0xFF4411 })
-            } else if (colorType === 'attribute') {
-                color = elementSymbolColorData({ units, elementGroup, mesh })
-            } else if (colorType === 'instance') {
-                const scale = ColorScale.create({ domain: [ 0, unitCount - 1 ] })
-                color = createInstanceColor({
-                    colorFn: scale.color,
-                    unitCount
-                })
-            } else if (colorType === 'element-instance') {
-                const scale = ColorScale.create({ domain: [ 0, unitCount * elementCount - 1 ] })
-                color = createElementInstanceColor({
-                    colorFn: (unitIdx, elementIdx) => scale.color(unitIdx * elementCount + elementIdx),
-                    unitCount,
-                    offsetCount: mesh.offsetCount,
-                    offsets: mesh.offsetBuffer as any
-                })
-            }
-            console.log(color!)
+            // const color = elementSymbolColorData({ units, elementGroup, mesh })
 
-            const spheres = createRenderObject('mesh', {
+            const scale = ColorScale.create({ domain: [ 0, unitCount - 1 ] })
+            const color = createInstanceColor({
+                colorFn: scale.color,
+                unitCount
+            })
+
+            // const scale = ColorScale.create({ domain: [ 0, unitCount * elementCount - 1 ] })
+            // const color = createElementInstanceColor({
+            //     colorFn: (unitIdx, elementIdx) => scale.color(unitIdx * elementCount + elementIdx),
+            //     unitCount,
+            //     offsetCount: mesh.offsetCount,
+            //     offsets: mesh.offsetBuffer as any
+            // })
+
+            const spheres = createMeshRenderObject({
+                objectId: 0,
+
                 position: mesh.vertexBuffer,
-                normal: mesh.normalBuffer,
-                color: color!,
-                id: mesh.idBuffer,
+                normal: mesh.normalBuffer as ValueCell<Float32Array>,
+                color: color as ColorData,
+                id: mesh.idBuffer as ValueCell<Float32Array>,
                 transform: ValueCell.create(transformArray),
                 index: mesh.indexBuffer,
 
@@ -106,7 +102,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 indexCount: mesh.triangleCount,
                 elementCount: mesh.offsetCount - 1,
                 positionCount: mesh.vertexCount
-            }, {})
+            })
             renderObjects.push(spheres)
         }),
         update: (props: RepresentationProps) => false

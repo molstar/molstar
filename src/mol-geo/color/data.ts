@@ -5,30 +5,9 @@
  */
 
 import { ValueCell } from 'mol-util';
+import { ColorTexture, createColorTexture } from 'mol-gl/renderable/util';
 import Color from './color';
 import { Mesh } from '../shape/mesh';
-
-function calculateTextureInfo (n: number, itemSize: number) {
-    const sqN = Math.sqrt(n * itemSize)
-    let width = Math.ceil(sqN)
-    width = width + (itemSize - (width % itemSize)) % itemSize
-    const height = width > 0 ? Math.ceil(n * itemSize / width) : 0
-    return { width, height, length: width * height * itemSize }
-}
-
-interface ColorTexture extends Uint8Array {
-    width: number,
-    height: number
-}
-
-function createColorTexture (n: number): ColorTexture {
-    const colorTexInfo = calculateTextureInfo(n, 3)
-    const colorTexture = new Uint8Array(colorTexInfo.length)
-    return Object.assign(colorTexture, {
-        width: colorTexInfo.width,
-        height: colorTexInfo.height
-    })
-}
 
 export type UniformColor = { type: 'uniform', value: number[] }
 export type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }

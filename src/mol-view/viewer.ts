@@ -6,7 +6,7 @@
 
 import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
-import Renderer from 'mol-gl/renderer'
+import Renderer, { RendererStats } from 'mol-gl/renderer'
 import { RenderObject } from 'mol-gl/scene'
 
 import TrackballControls from './controls/trackball'
@@ -25,6 +25,7 @@ interface Viewer {
 
     handleResize: () => void
 
+    stats: RendererStats
     dispose: () => void
 }
 
@@ -48,7 +49,6 @@ namespace Viewer {
         let drawPending = false
 
         function draw () {
-
             controls.update()
             camera.update()
             renderer.draw()
@@ -84,6 +84,9 @@ namespace Viewer {
 
             handleResize,
 
+            get stats() {
+                return renderer.stats
+            }
             dispose: () => {
                 input.dispose()
                 controls.dispose()

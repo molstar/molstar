@@ -19,15 +19,11 @@ uniform mat4 view;
 
 varying vec3 vNormal, vViewPosition;
 
-#if defined(UNIFORM_COLOR)
-    uniform vec3 color;
-#elif defined(ATTRIBUTE_COLOR) || defined(INSTANCE_COLOR) || defined(ELEMENT_COLOR) || defined(ELEMENT_INSTANCE_COLOR)
-    varying vec3 vColor;
-#endif
+#pragma glslify: import('./chunks/color-frag-params.glsl')
 
-#pragma glslify: attenuation = require(./util/attenuation.glsl)
-#pragma glslify: calculateSpecular = require(./util/phong-specular.glsl)
-#pragma glslify: calculateDiffuse = require(./util/oren-nayar-diffuse.glsl)
+#pragma glslify: attenuation = require(./utils/attenuation.glsl)
+#pragma glslify: calculateSpecular = require(./utils/phong-specular.glsl)
+#pragma glslify: calculateDiffuse = require(./utils/oren-nayar-diffuse.glsl)
 
 const float specularScale = 0.65;
 const float shininess = 100.0;
@@ -36,11 +32,7 @@ const float albedo = 0.95;
 
 void main() {
     // material color
-    #if defined(UNIFORM_COLOR)
-        vec3 material = color;
-    #elif defined(ATTRIBUTE_COLOR) || defined(INSTANCE_COLOR) || defined(ELEMENT_COLOR) || defined(ELEMENT_INSTANCE_COLOR)
-        vec3 material = vColor;
-    #endif
+    #pragma glslify: import('./chunks/color-assign-material.glsl')
 
     // determine surface to light direction
     // vec4 lightPosition = view * vec4(light.position, 1.0);

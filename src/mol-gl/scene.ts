@@ -16,21 +16,21 @@ function getNextId() {
 
 export type RenderData = { [k: string]: ValueCell<Helpers.TypedArray> }
 
-export interface RenderObject {
-    id: number
-    type: 'mesh' | 'point'
-    data: PointRenderable.Data | MeshRenderable.Data
-    uniforms: { [k: string]: REGL.Uniform }
-}
+export interface MeshRenderObject { id: number, type: 'mesh', props: MeshRenderable.Data }
+export interface PointRenderObject { id: number, type: 'point', props: PointRenderable.Data }
+export type RenderObject = MeshRenderObject | PointRenderObject
 
-export function createRenderObject(type: 'mesh' | 'point', data: PointRenderable.Data | MeshRenderable.Data, uniforms: { [k: string]: REGL.Uniform }) {
-    return { id: getNextId(), type, data, uniforms }
+export function createMeshRenderObject(props: MeshRenderable.Data): MeshRenderObject {
+    return { id: getNextId(), type: 'mesh', props }
+}
+export function createPointRenderObject(props: PointRenderable.Data): PointRenderObject {
+    return { id: getNextId(), type: 'point', props }
 }
 
 export function createRenderable(regl: REGL.Regl, o: RenderObject) {
     switch (o.type) {
-        case 'mesh': return MeshRenderable.create(regl, o.data as MeshRenderable.Data, o.uniforms || {})
-        case 'point': return PointRenderable.create(regl, o.data as PointRenderable.Data)
+        case 'mesh': return MeshRenderable.create(regl, o.props)
+        case 'point': return PointRenderable.create(regl, o.props)
     }
 }
 
@@ -39,6 +39,7 @@ interface Scene {
     remove: (o: RenderObject) => void
     clear: () => void
     forEach: (callbackFn: (value: Renderable) => void) => void
+    count: number
 }
 
 namespace Scene {
@@ -54,21 +55,22 @@ namespace Scene {
             },
             remove: (o: RenderObject) => {
                 if (o.id in objectIdRenderableMap) {
-                    // TODO
-                    // objectIdRenderableMap[o.id].destroy()
+                    objectIdRenderableMap[o.id].dispose()
                     delete objectIdRenderableMap[o.id]
                 }
             },
             clear: () => {
                 for (const id in objectIdRenderableMap) {
-                    // TODO
-                    // objectIdRenderableMap[id].destroy()
+                    objectIdRenderableMap[id].dispose()
                     delete objectIdRenderableMap[id]
                 }
                 renderableList.length = 0
             },
             forEach: (callbackFn: (value: Renderable) => void) => {
                 renderableList.forEach(callbackFn)
+            },
+            get count() {
+                return renderableList.length
             }
         }
     }

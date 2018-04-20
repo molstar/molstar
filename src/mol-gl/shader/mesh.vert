@@ -12,39 +12,23 @@ uniform int objectId;
 uniform int instanceCount;
 uniform int elementCount;
 
-#if defined(UNIFORM_COLOR)
-    uniform vec3 color;
-#elif defined(ATTRIBUTE_COLOR)
-    attribute vec3 color;
-#elif defined(INSTANCE_COLOR) || defined(ELEMENT_COLOR) || defined(ELEMENT_INSTANCE_COLOR)
-    uniform vec2 colorTexSize;
-    uniform sampler2D colorTex;
-#endif
+#pragma glslify: import('./chunks/color-vert-params.glsl')
 
 attribute vec3 position;
-attribute vec3 normal;
 attribute vec4 transformColumn0, transformColumn1, transformColumn2, transformColumn3;
 attribute float instanceId;
 attribute float elementId;
 
-varying vec3 vColor;
+attribute vec3 normal;
+
 varying vec3 vNormal;
 varying vec3 vViewPosition;
 
-#pragma glslify: inverse = require(./util/inverse.glsl)
-#pragma glslify: read_vec3 = require(./util/read-vec3.glsl)
-#pragma glslify: transpose = require(./util/transpose.glsl)
+#pragma glslify: inverse = require(./utils/inverse.glsl)
+#pragma glslify: transpose = require(./utils/transpose.glsl)
 
 void main(){
-    #if defined(ATTRIBUTE_COLOR)
-        vColor = color;
-    #elif defined(INSTANCE_COLOR)
-        vColor = read_vec3(colorTex, instanceId, colorTexSize);
-    #elif defined(ELEMENT_COLOR)
-        vColor = read_vec3(colorTex, elementId, colorTexSize);
-    #elif defined(ELEMENT_INSTANCE_COLOR)
-        vColor = read_vec3(colorTex, instanceId * float(elementCount) + elementId, colorTexSize);
-    #endif
+    #pragma glslify: import('./chunks/color-assign-varying.glsl')
 
     mat4 transform = mat4(transformColumn0, transformColumn1, transformColumn2, transformColumn3);
     mat4 modelView = view * model * transform;
