@@ -7,13 +7,15 @@
 import { OrderedSet } from 'mol-data/int'
 import { Lookup3D } from 'mol-math/geometry'
 import Unit from '../unit'
+import { GroupBonds } from './properties/bonds/group-data';
 
 interface ElementGroup {
     elements: OrderedSet,
     // Unique identifier of the group, usable as partial key for various "caches".
     key: number,
 
-    __lookup3d__?: Lookup3D
+    __lookup3d__?: Lookup3D,
+    __bonds__?: GroupBonds
 }
 
 namespace ElementGroup {

@@ -8,6 +8,7 @@ import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import ElementGroup from './element/group'
 import { Model } from '../model'
 import { GridLookup3D } from 'mol-math/geometry'
+import { computeUnitBonds } from './element/properties/bonds/group-compute';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -93,6 +94,16 @@ namespace Unit {
             return group.__lookup3d__;
         }
 
+        throw 'not implemented';
+    }
+
+    export function getGroupBonds(unit: Unit, group: ElementGroup) {
+        if (group.__bonds__) return group.__bonds__;
+        if (Unit.isAtomic(unit)) {
+            group.__bonds__ = computeUnitBonds(unit, group);
+            return group.__bonds__;
+        }
+        
         throw 'not implemented';
     }
 }
