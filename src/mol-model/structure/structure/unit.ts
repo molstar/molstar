@@ -7,6 +7,7 @@
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import ElementGroup from './element/group'
 import { Model } from '../model'
+import { GridLookup3D } from 'mol-math/geometry'
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -82,6 +83,17 @@ namespace Unit {
             case Kind.Atomic: return createAtomic(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.fullGroup);
             case Kind.Coarse: return createCoarse(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.fullGroup);
         }
+    }
+
+    export function getLookup3d(unit: Unit, group: ElementGroup) {
+        if (group.__lookup3d__)  return group.__lookup3d__;
+        if (Unit.isAtomic(unit)) {
+            const { x, y, z } = unit.model.conformation;
+            group.__lookup3d__ = GridLookup3D({ x, y, z, indices: group.elements });
+            return group.__lookup3d__;
+        }
+
+        throw 'not implemented';
     }
 }
 

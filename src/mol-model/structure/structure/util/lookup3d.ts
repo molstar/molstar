@@ -7,7 +7,7 @@
 import Structure from '../structure'
 import Element from '../element'
 import { Lookup3D, GridLookup3D, Result, Box3D, Sphere3D } from 'mol-math/geometry';
-import { ElementGroup, ElementSet } from '../../structure';
+import { ElementSet, Unit } from '../../structure';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { OrderedSet } from 'mol-data/int';
 import { computeStructureBoundary } from './boundary';
@@ -35,7 +35,7 @@ namespace StructureLookup3D {
                 if (!unit.operator.isIdentity) {
                     Vec3.transformMat4(this.pivot, this.pivot, unit.operator.inverse);
                 }
-                const groupLookup = ElementGroup.getLookup3d(unit, group);
+                const groupLookup = Unit.getLookup3d(unit, group);
                 const groupResult = groupLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius);
                 for (let j = 0, _j = groupResult.count; j < _j; j++) {
                     Result.add(this.result, Element.create(unitId, groupResult.indices[j]), groupResult.squaredDistances[j]);
@@ -59,7 +59,7 @@ namespace StructureLookup3D {
                 if (!unit.operator.isIdentity) {
                     Vec3.transformMat4(this.pivot, this.pivot, unit.operator.inverse);
                 }
-                const groupLookup = ElementGroup.getLookup3d(unit, group);
+                const groupLookup = Unit.getLookup3d(unit, group);
                 if (groupLookup.check(this.pivot[0], this.pivot[1], this.pivot[2], radius)) return true;
             }
 
@@ -80,7 +80,7 @@ namespace StructureLookup3D {
             for (let i = 0; i < unitCount; i++) {
                 const group = ElementSet.unitGetByIndex(elements, i);
                 const unit = units[ElementSet.unitGetId(elements, i)];
-                const lookup = ElementGroup.getLookup3d(unit, group);
+                const lookup = Unit.getLookup3d(unit, group);
                 const s = lookup.boundary.sphere;
 
                 Vec3.transformMat4(center, s.center, unit.operator.matrix);
