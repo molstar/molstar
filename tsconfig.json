@@ -15,11 +15,13 @@
         "baseUrl": "src",
         "paths": {
             "mol-data": ["./mol-data", "./mol-data/index.ts"],
+            "mol-geo": ["./mol-geo"],
             "mol-gl": ["./mol-gl"],
             "mol-io": ["./mol-io"],
             "mol-math": ["./mol-math"],
             "mol-model": ["./mol-model"],
             "mol-ql": ["./mol-ql"],
+            "mol-script": ["./mol-script"],
             "mol-task": ["./mol-task", "./mol-task/index.ts"],
             "mol-util": ["./mol-util", "./mol-util/index.ts"],
             "mol-view": ["./mol-view"]

@@ -35,11 +35,13 @@
     ],
     "moduleNameMapper": {
       "mol-data($|/.*)": "<rootDir>/src/mol-data$1",
+      "mol-geo($|/.*)": "<rootDir>/src/mol-geo$1",
       "mol-gl($|/.*)": "<rootDir>/src/mol-gl$1",
       "mol-io($|/.*)": "<rootDir>/src/mol-io$1",
       "mol-math($|/.*)": "<rootDir>/src/mol-math$1",
       "mol-model($|/.*)": "<rootDir>/src/mol-model$1",
       "mol-ql($|/.*)": "<rootDir>/src/mol-ql$1",
+      "mol-script($|/.*)": "<rootDir>/src/mol-script$1",
       "mol-task($|/.*)": "<rootDir>/src/mol-task$1",
       "mol-util($|/.*)": "<rootDir>/src/mol-util$1",
       "mol-view($|/.*)": "<rootDir>/src/mol-view$1"
