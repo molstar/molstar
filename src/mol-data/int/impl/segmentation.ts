@@ -10,7 +10,14 @@ import Interval from '../interval'
 import SortedArray from '../sorted-array'
 import Segs from '../segmentation'
 
-type Segmentation = { segments: SortedArray, segmentMap: Int32Array, count: number }
+interface Segmentation {
+    /** Segments stored as a sorted array */
+    segments: SortedArray,
+    /** Mapping of values to segments */
+    segmentMap: Int32Array,
+    /** Number of segments */
+    count: number
+}
 
 export function create(values: ArrayLike<number>): Segmentation {
     const segments = SortedArray.ofSortedArray(values);
