@@ -41,7 +41,8 @@
       "mol-model($|/.*)": "<rootDir>/src/mol-model$1",
       "mol-ql($|/.*)": "<rootDir>/src/mol-ql$1",
       "mol-task($|/.*)": "<rootDir>/src/mol-task$1",
-      "mol-util($|/.*)": "<rootDir>/src/mol-util$1"
+      "mol-util($|/.*)": "<rootDir>/src/mol-util$1",
+      "mol-view($|/.*)": "<rootDir>/src/mol-view$1"
     },
     "testRegex": "\\.spec\\.ts$"
   },

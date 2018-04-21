@@ -22,6 +22,7 @@
             "mol-ql": ["./mol-ql"],
             "mol-task": ["./mol-task", "./mol-task/index.ts"],
             "mol-util": ["./mol-util", "./mol-util/index.ts"],
+            "mol-view": ["./mol-view"]
         }
     },
     "include": [ "**/*" ]
