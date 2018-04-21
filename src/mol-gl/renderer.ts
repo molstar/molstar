@@ -44,8 +44,8 @@ function getPixelRatio() {
 }
 
 namespace Renderer {
-    export function create(canvas: HTMLCanvasElement, camera: Camera): Renderer {
-        const regl = glContext.create({ canvas, extensions, optionalExtensions, profile: false })
+    export function create(gl: WebGLRenderingContext, camera: Camera): Renderer {
+        const regl = glContext.create({ gl, extensions, optionalExtensions, profile: false })
         const scene = Scene.create(regl)
 
         const baseContext = regl({

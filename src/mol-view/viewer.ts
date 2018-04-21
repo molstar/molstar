@@ -29,6 +29,17 @@ interface Viewer {
     dispose: () => void
 }
 
+function getWebGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes) {
+    function getContext(contextId: 'webgl' | 'experimental-webgl') {
+        try {
+            return canvas.getContext(contextId, contextAttributes)
+        } catch (e) {
+            return null
+        }
+    }
+    return getContext('webgl') || getContext('experimental-webgl')
+}
+
 namespace Viewer {
     export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
         const input = InputObserver.create(canvas)
@@ -44,7 +55,10 @@ namespace Viewer {
 
         })
 
-        const renderer = Renderer.create(canvas, camera)
+        const gl = getWebGLContext(canvas)
+        if (gl === null) throw new Error('Could not create a WebGL rendering context')
+
+        const renderer = Renderer.create(gl, camera)
 
         let drawPending = false
 

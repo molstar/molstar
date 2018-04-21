@@ -26,7 +26,8 @@
       "js"
     ],
     "transform": {
-      "\\.ts$": "ts-jest"
+      "\\.ts$": "ts-jest",
+      "\\.(glsl|frag|vert)$": "jest-raw-loader"
     },
     "moduleDirectories": [
       "node_modules",
@@ -67,6 +68,7 @@
     "glslify-import": "^3.1.0",
     "glslify-loader": "^1.0.2",
     "jest": "^22.4.3",
+    "jest-raw-loader": "^1.0.1",
     "raw-loader": "^0.5.1",
     "regl": "git+https://github.com/regl-project/regl.git#45c6ec570232420fca21567499c9c5a2a054432e",
     "ts-jest": "^22.4.2",
