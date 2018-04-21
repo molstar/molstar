@@ -11,6 +11,7 @@ import { Attributes, AttributesData, AttributesBuffers } from '../renderable'
 import Attribute from '../attribute'
 import { ColorData } from 'mol-geo/color';
 import { ShaderDefines } from '../shaders';
+import { SizeData } from 'mol-geo/size';
 
 export type ReglUniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 export type ReglAttributes = { [k: string]: REGL.AttributeConfig }
@@ -23,12 +24,12 @@ export function calculateTextureInfo (n: number, itemSize: number) {
     return { width, height, length: width * height * itemSize }
 }
 
-export interface ColorTexture extends Uint8Array {
+export interface Texture extends Uint8Array {
     width: number,
     height: number
 }
 
-export function createColorTexture (n: number): ColorTexture {
+export function createColorTexture (n: number): Texture {
     const colorTexInfo = calculateTextureInfo(n, 3)
     const colorTexture = new Uint8Array(colorTexInfo.length)
     return Object.assign(colorTexture, {
@@ -50,7 +51,7 @@ export function createTransformAttributes (regl: REGL.Regl, transform: ValueCell
     }
 }
 
-export function createColorUniforms (regl: REGL.Regl, color: ValueCell<ColorTexture>) {
+export function createColorUniforms (regl: REGL.Regl, color: ValueCell<Texture>) {
     const colorTex = regl.texture({
         width: color.ref.value.width,
         height: color.ref.value.height,
@@ -78,6 +79,15 @@ export function getColorDefines(color: ColorData) {
     return defines
 }
 
+export function getSizeDefines(size: SizeData) {
+    const defines: ShaderDefines = {}
+    switch (size.type) {
+        case 'uniform': defines.UNIFORM_SIZE = ''; break;
+        case 'attribute': defines.ATTRIBUTE_SIZE = ''; break;
+    }
+    return defines
+}
+
 export function getBuffers<T extends AttributesData>(attributes: Attributes<T>): AttributesBuffers<T> {
     const buffers: AttributesBuffers<any> = {}
     for (const k of Object.keys(attributes)) {
@@ -100,19 +110,23 @@ interface BaseProps {
 
     position: ValueCell<Float32Array>
     normal?: ValueCell<Float32Array>
-    size?: ValueCell<Float32Array>
     id: ValueCell<Float32Array>
     transform: ValueCell<Float32Array>
+
+    size?: SizeData
     color: ColorData
 }
 
 export function createBaseUniforms(regl: REGL.Regl, props: BaseProps): ReglUniforms {
-    const { objectId, instanceCount, elementCount, color } = props
+    const { objectId, instanceCount, elementCount, color, size } = props
     const uniforms = { objectId, instanceCount, elementCount }
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
         Object.assign(uniforms, createColorUniforms(regl, color.value))
     } else if (color.type === 'uniform') {
         Object.assign(uniforms, { color: color.value })
+    }
+    if (size && size.type === 'uniform') {
+        Object.assign(uniforms, { size: size.value })
     }
     return uniforms
 }
@@ -126,20 +140,23 @@ export function createBaseAttributes(regl: REGL.Regl, props: BaseProps): ReglAtt
         elementId: Attribute.create(regl, id, positionCount, { size: 1 }),
         ...createTransformAttributes(regl, transform, instanceCount)
     })
-    if (color.type === 'attribute') {
-        attributes.color = Attribute.create(regl, color.value, positionCount, { size: 3 }).buffer
-    }
     if (normal) {
         attributes.normal = Attribute.create(regl, normal as any, positionCount, { size: 3 }).buffer
     }
-    if (size) {
-        attributes.size = Attribute.create(regl, size, positionCount, { size: 1 }).buffer
+    if (color.type === 'attribute') {
+        attributes.color = Attribute.create(regl, color.value, positionCount, { size: 3 }).buffer
+    }
+    if (size && size.type === 'attribute') {
+        attributes.size = Attribute.create(regl, size.value, positionCount, { size: 1 }).buffer
     }
     return attributes
 }
 
-export function createBaseDefines(regl: REGL.Regl, props: BaseProps) {
-    return getColorDefines(props.color)
+export function createBaseDefines(regl: REGL.Regl, props: BaseProps): ShaderDefines {
+    return {
+        ...getColorDefines(props.color),
+        ...(props.size ? getSizeDefines(props.size) : undefined)
+    }
 }
 
 export function destroyAttributes(attributes: ReglAttributes) {

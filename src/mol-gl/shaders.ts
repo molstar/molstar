@@ -21,7 +21,9 @@ export const MeshShaders = {
 }
 
 type ShaderDefine = (
-    'UNIFORM_COLOR' | 'ATTRIBUTE_COLOR' | 'INSTANCE_COLOR' | 'ELEMENT_COLOR' | 'ELEMENT_INSTANCE_COLOR'
+    'UNIFORM_COLOR' | 'ATTRIBUTE_COLOR' | 'INSTANCE_COLOR' | 'ELEMENT_COLOR' | 'ELEMENT_INSTANCE_COLOR' |
+    'UNIFORM_SIZE' | 'ATTRIBUTE_SIZE' |
+    'POINT_SIZE_ATTENUATION'
 )
 export type ShaderDefines = {
     [k in ShaderDefine]?: number|string

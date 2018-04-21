@@ -86,7 +86,7 @@ namespace Viewer {
 
             get stats() {
                 return renderer.stats
-            }
+            },
             dispose: () => {
                 input.dispose()
                 controls.dispose()

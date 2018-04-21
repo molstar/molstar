@@ -17,6 +17,8 @@ import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
 import { createUniformColor, createInstanceColor } from '../../color/data';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { ColorScale } from '../../color/scale';
+import { createUniformSize } from '../../size/data';
+import { vdwSizeData } from '../../size/structure/vdw';
 
 export const DefaultPointProps = {
 
@@ -59,18 +61,32 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 unitCount
             })
 
+            // const size = createUniformSize({ value: 1 })
+            const size = vdwSizeData({
+                units,
+                elementGroup,
+                offsetData: {
+                    primitiveCount: elementCount,
+                    offsetCount: elementCount + 1,
+                    offsets: fillSerial(new Uint32Array(elementCount + 1))
+                }
+            })
+            console.log(size)
+
             const points = createPointRenderObject({
                 objectId: 0,
 
                 position: ValueCell.create(ChunkedArray.compact(vertices, true) as Float32Array),
                 id: ValueCell.create(fillSerial(new Float32Array(unitCount))),
-                size: ValueCell.create(ChunkedArray.compact(sizes, true) as Float32Array),
+                size,
                 color,
                 transform: ValueCell.create(transformArray),
 
                 instanceCount: unitCount,
                 elementCount,
-                positionCount: vertices.elementCount
+                positionCount: vertices.elementCount,
+
+                usePointSizeAttenuation: true
             })
             renderObjects.push(points)
         }),

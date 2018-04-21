@@ -5,15 +5,15 @@
  */
 
 import { ValueCell } from 'mol-util';
-import { ColorTexture, createColorTexture } from 'mol-gl/renderable/util';
+import { Texture, createColorTexture } from 'mol-gl/renderable/util';
 import Color from './color';
 import { Mesh } from '../shape/mesh';
 
 export type UniformColor = { type: 'uniform', value: number[] }
 export type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }
-export type InstanceColor = { type: 'instance', value: ValueCell<ColorTexture> }
-export type ElementColor = { type: 'element', value: ValueCell<ColorTexture> }
-export type ElementInstanceColor = { type: 'element-instance', value: ValueCell<ColorTexture> }
+export type InstanceColor = { type: 'instance', value: ValueCell<Texture> }
+export type ElementColor = { type: 'element', value: ValueCell<Texture> }
+export type ElementInstanceColor = { type: 'element-instance', value: ValueCell<Texture> }
 export type ColorData = UniformColor | AttributeColor | InstanceColor | ElementColor | ElementInstanceColor
 
 export interface UniformColorProps {

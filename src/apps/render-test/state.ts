@@ -20,7 +20,7 @@ import { Run } from 'mol-task'
 import { Symmetry } from 'mol-model/structure'
 
 // import mcubes from './utils/mcubes'
-import { getStructuresFromPdbId } from './utils'
+import { getStructuresFromPdbId, log } from './utils'
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 // import Cylinder from 'mol-geo/primitive/cylinder';
 
@@ -45,14 +45,14 @@ export default class State {
         this.loading.next(true)
 
         const structures = await getStructuresFromPdbId(pdbId)
-        const struct = await Run(Symmetry.buildAssembly(structures[0], '1'))
+        const struct = await Run(Symmetry.buildAssembly(structures[0], '1'), log, 100)
 
         const structPointRepr = StructureRepresentation(Point)
-        await Run(structPointRepr.create(struct))
+        await Run(structPointRepr.create(struct), log, 100)
         structPointRepr.renderObjects.forEach(viewer.add)
 
         // const structSpacefillRepr = StructureRepresentation(Spacefill)
-        // await Run(structSpacefillRepr.create(struct, { detail: 0 }))
+        // await Run(structSpacefillRepr.create(struct, { detail: 2 }), log, 100)
         // structSpacefillRepr.renderObjects.forEach(viewer.add)
 
         viewer.requestDraw()

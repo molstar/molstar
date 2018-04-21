@@ -11,6 +11,7 @@ import { Renderable } from '../renderable'
 import { createBaseDefines, createBaseUniforms, createBaseAttributes, destroyUniforms, destroyAttributes } from './util'
 import { PointShaders, addDefines } from '../shaders'
 import { ColorData } from 'mol-geo/color';
+import { SizeData } from 'mol-geo/size';
 
 type Point = 'point'
 
@@ -19,21 +20,25 @@ namespace Point {
         objectId: number
 
         position: ValueCell<Float32Array>
-        size?: ValueCell<Float32Array>
         id: ValueCell<Float32Array>
 
+        size: SizeData
         color: ColorData
         transform: ValueCell<Float32Array>
 
         instanceCount: number
         elementCount: number
-        positionCount: number
+        positionCount: number,
+
+        usePointSizeAttenuation?: boolean
     }
 
     export function create(regl: REGL.Regl, props: Data): Renderable {
         const defines = createBaseDefines(regl, props)
         const uniforms = createBaseUniforms(regl, props)
         const attributes = createBaseAttributes(regl, props)
+
+        if (props.usePointSizeAttenuation) defines.POINT_SIZE_ATTENUATION = ''
 
         const command = regl({
             ...addDefines(defines, PointShaders),

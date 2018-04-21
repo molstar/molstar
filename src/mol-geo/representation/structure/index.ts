@@ -9,6 +9,7 @@ import { EquivalenceClasses } from 'mol-data/util';
 import { OrderedSet } from 'mol-data/int'
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/scene';
+// import { Mat4, EPSILON } from 'mol-math/linear-algebra';
 
 export interface RepresentationProps {
 
@@ -40,12 +41,21 @@ export function StructureRepresentation<Props>(reprCtor: () => UnitsRepresentati
                     (a, b) => a.unit.model.id === b.unit.model.id && OrderedSet.areEqual(a.group.elements, b.group.elements)
                 );
 
+                // const uniqueTransformations = EquivalenceClasses<number, { unit: Unit, group: ElementGroup }>(
+                //     ({ unit, group }) => unit.operator.matrix.join(','),
+                //     (a, b) => Mat4.areEqual(a.unit.operator.matrix, b.unit.operator.matrix, EPSILON.Value)
+                // );
+
                 const unitIndices = ElementSet.unitIndices(elements);
                 for (let i = 0, _i = unitIndices.length; i < _i; i++) {
                     const unitIndex = unitIndices[i];
                     const group = ElementSet.groupFromUnitIndex(elements, unitIndex);
-                    uniqueGroups.add(unitIndex, { unit: units[unitIndex], group });
+                    const unit = units[unitIndex]
+                    uniqueGroups.add(unitIndex, { unit, group });
+                    // uniqueTransformations.add(unitIndex, { unit, group });
                 }
+
+                // console.log({ uniqueGroups, uniqueTransformations })
 
                 for (let i = 0, _i = uniqueGroups.groups.length; i < _i; i++) {
                     const groupUnits: Unit[] = []

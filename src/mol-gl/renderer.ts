@@ -39,6 +39,10 @@ const optionalExtensions = [
     'EXT_disjoint_timer_query'
 ]
 
+function getPixelRatio() {
+    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
+}
+
 namespace Renderer {
     export function create(canvas: HTMLCanvasElement, camera: Camera): Renderer {
         const regl = glContext.create({ canvas, extensions, optionalExtensions, profile: false })
@@ -52,10 +56,14 @@ namespace Renderer {
                 projection: camera.projection,
             },
             uniforms: {
+                pixelRatio: getPixelRatio(),
+                viewportHeight: regl.context('viewportHeight'),
+
                 model: regl.context('model' as any),
                 transform: regl.context('transform' as any),
                 view: regl.context('view' as any),
                 projection: regl.context('projection' as any),
+
                 'light.position': Vec3.create(0, 0, -100),
                 'light.color': Vec3.create(1.0, 1.0, 1.0),
                 'light.ambient': Vec3.create(0.5, 0.5, 0.5),

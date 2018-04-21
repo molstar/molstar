@@ -9,4 +9,4 @@
     uniform sampler2D colorTex;
 #endif
 
-#pragma glslify: read_vec3 = require(../utils/read-vec3.glsl)
+#pragma glslify: read_vec3 = require(../utils/read-from-texture.glsl)
