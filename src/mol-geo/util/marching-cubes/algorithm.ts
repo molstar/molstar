@@ -21,7 +21,7 @@ export interface MarchingCubesParameters {
     bottomLeft?: ArrayLike<number>,
     topRight?: ArrayLike<number>,
 
-    annotationField?: Tensor,
+    idField?: Tensor,
 
     oldSurface?: Mesh
 }
@@ -73,20 +73,17 @@ class MarchingCubesComputation {
 
         const os = this.parameters.oldSurface
 
-        let ret: Mesh = {
+        const ret: Mesh = {
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
-            offsetCount: 0,
             vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),
             indexBuffer: os ? ValueCell.update(os.indexBuffer, ib) : ValueCell.create(ib),
             normalBuffer: os ? os.normalBuffer : ValueCell.create(void 0),
-            idBuffer: os ? os.idBuffer : ValueCell.create(void 0),
-            offsetBuffer: os ? os.offsetBuffer : ValueCell.create(void 0),
-            vertexAnnotation: this.state.annotate
-                ? os && os.vertexAnnotation
-                    ? ValueCell.update(os.vertexAnnotation, ChunkedArray.compact(this.state.annotationBuffer))
-                    : ValueCell.create(ChunkedArray.compact(this.state.annotationBuffer))
-                : void 0,
+            idBuffer: this.state.assignIds
+                ? os && os.idBuffer
+                    ? ValueCell.update(os.idBuffer, ChunkedArray.compact(this.state.idBuffer) as Float32Array)
+                    : ValueCell.create(ChunkedArray.compact(this.state.idBuffer) as Float32Array)
+                : ValueCell.create(void 0),
             normalsComputed: false
         }
 
@@ -124,9 +121,9 @@ class MarchingCubesState {
     isoLevel: number;
     scalarFieldGet: Tensor.Space['get'];
     scalarField: Tensor.Data;
-    annotationFieldGet?: Tensor.Space['get'];
-    annotationField?: Tensor.Data;
-    annotate: boolean;
+    idFieldGet?: Tensor.Space['get'];
+    idField?: Tensor.Data;
+    assignIds: boolean;
 
     // two layers of vertex indices. Each vertex has 3 edges associated.
     verticesOnEdges: Int32Array;
@@ -134,7 +131,7 @@ class MarchingCubesState {
     i: number = 0; j: number = 0; k: number = 0;
 
     vertexBuffer: ChunkedArray<number, 3>;
-    annotationBuffer: ChunkedArray<number, 1>;
+    idBuffer: ChunkedArray<number, 1>;
     triangleBuffer: ChunkedArray<number, 3>;
     vertexCount = 0;
     triangleCount = 0;
@@ -164,7 +161,8 @@ class MarchingCubesState {
         const a = edge.a, b = edge.b;
         const li = a.i + this.i, lj = a.j + this.j, lk = a.k + this.k;
         const hi = b.i + this.i, hj = b.j + this.j, hk = b.k + this.k;
-        const v0 = this.scalarFieldGet(this.scalarField, li, lj, lk), v1 = this.scalarFieldGet(this.scalarField, hi, hj, hk);
+        const v0 = this.scalarFieldGet(this.scalarField, li, lj, lk);
+        const v1 = this.scalarFieldGet(this.scalarField, hi, hj, hk);
         const t = (this.isoLevel - v0) / (v0 - v1);
 
         const id = ChunkedArray.add3(
@@ -175,12 +173,12 @@ class MarchingCubesState {
 
         this.verticesOnEdges[edgeId] = id + 1;
 
-        if (this.annotate) {
-            const u = this.annotationFieldGet!(this.annotationField!, li, lj, lk);
-            const v = this.annotationFieldGet!(this.annotationField!, hi, hj, hk)
+        if (this.assignIds) {
+            const u = this.idFieldGet!(this.idField!, li, lj, lk);
+            const v = this.idFieldGet!(this.idField!, hi, hj, hk)
             let a = t < 0.5 ? u : v;
             if (a < 0) a = t < 0.5 ? v : u;
-            ChunkedArray.add(this.annotationBuffer, a);
+            ChunkedArray.add(this.idBuffer, a);
         }
 
         this.vertexCount++;
@@ -194,9 +192,9 @@ class MarchingCubesState {
         this.isoLevel = params.isoLevel;
         this.scalarFieldGet = params.scalarField.space.get;
         this.scalarField = params.scalarField.data;
-        if (params.annotationField) {
-            this.annotationField = params.annotationField.data;
-            this.annotationFieldGet = params.annotationField.space.get;
+        if (params.idField) {
+            this.idField = params.idField.data;
+            this.idFieldGet = params.idField.space.get;
         }
 
         let dX = params.topRight![0] - params.bottomLeft![0], dY = params.topRight![1] - params.bottomLeft![1], dZ = params.topRight![2] - params.bottomLeft![2],
@@ -208,8 +206,8 @@ class MarchingCubesState {
         this.triangleBuffer = ChunkedArray.create(Uint32Array, 3, triangleBufferSize,
             params.oldSurface && params.oldSurface.indexBuffer.ref.value);
 
-        this.annotate = !!params.annotationField;
-        if (this.annotate) this.annotationBuffer = ChunkedArray.create(Int32Array, 1, vertexBufferSize);
+        this.assignIds = !!params.idField;
+        if (this.assignIds) this.idBuffer = ChunkedArray.create(Int32Array, 1, vertexBufferSize);
 
         // two layers of vertex indices. Each vertex has 3 edges associated.
         this.verticesOnEdges = new Int32Array(3 * this.nX * this.nY * 2);

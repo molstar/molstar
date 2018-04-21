@@ -19,6 +19,7 @@ import { fillSerial } from 'mol-gl/renderable/util';
 import { ColorScale } from '../../color/scale';
 import { createUniformSize } from '../../size/data';
 import { vdwSizeData } from '../../size/structure/vdw';
+import VertexMap from '../../shape/vertex-map';
 
 export const DefaultPointProps = {
 
@@ -65,11 +66,12 @@ export default function Point(): UnitsRepresentation<PointProps> {
             const size = vdwSizeData({
                 units,
                 elementGroup,
-                offsetData: {
-                    primitiveCount: elementCount,
-                    offsetCount: elementCount + 1,
-                    offsets: fillSerial(new Uint32Array(elementCount + 1))
-                }
+                vertexMap: VertexMap.create(
+                    elementCount,
+                    elementCount + 1,
+                    fillSerial(new Uint32Array(elementCount)),
+                    fillSerial(new Uint32Array(elementCount + 1))
+                )
             })
             console.log(size)
 

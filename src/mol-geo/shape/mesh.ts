@@ -11,18 +11,24 @@ import Sphere from 'mol-math/geometry/sphere'
 import { transformPositionArray } from '../util';
 
 export interface Mesh {
+    /** Number of vertices in the mesh */
     vertexCount: number,
+    /** Number of triangles in the mesh */
     triangleCount: number,
-    offsetCount: number,
 
+    /** Vertex buffer as array of xyz values wrapped in a value cell */
     vertexBuffer: ValueCell<Float32Array>,
+    /** Index buffer as array of vertex index triplets wrapped in a value cell */
     indexBuffer: ValueCell<Uint32Array>,
+    /** Normal buffer as array of xyz values for each vertex wrapped in a value cell */
     normalBuffer: ValueCell<Float32Array | undefined>,
+    /** Id buffer as array of ids for each vertex wrapped in a value cell */
     idBuffer: ValueCell<Float32Array | undefined>,
-    offsetBuffer: ValueCell<Uint32Array | undefined>,
+
+    /** Flag indicating if normals are computed for the current set of vertices */
     normalsComputed: boolean,
 
-    vertexAnnotation?: ValueCell<ArrayLike<number>>
+    /** Bounding sphere of the mesh */
     boundingSphere?: Sphere
 }
 
@@ -83,6 +89,38 @@ export namespace Mesh {
         // transformDirectionArray(n, mesh.normalBuffer.ref.value, offset, count)  // TODO
         mesh.normalsComputed = false;
         // mesh.boundingSphere = void 0;
+    }
+
+    export function computeBoundingSphere(mesh: Mesh): Task<Mesh> {
+        return Task.create<Mesh>('Mesh (Compute Bounding Sphere)', async ctx => {
+            if (mesh.boundingSphere) {
+                return mesh;
+            }
+            await ctx.update('Computing bounding sphere...');
+
+            const vertices = mesh.vertexBuffer.ref.value;
+            let x = 0, y = 0, z = 0;
+            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
+                x += vertices[i];
+                y += vertices[i + 1];
+                z += vertices[i + 2];
+            }
+            x /= mesh.vertexCount;
+            y /= mesh.vertexCount;
+            z /= mesh.vertexCount;
+            let r = 0;
+            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
+                const dx = x - vertices[i];
+                const dy = y - vertices[i + 1];
+                const dz = z - vertices[i + 2];
+                r = Math.max(r, dx * dx + dy * dy + dz * dz);
+            }
+            mesh.boundingSphere = {
+                center: Vec3.create(x, y, z),
+                radius: Math.sqrt(r)
+            }
+            return mesh;
+        });
     }
 }
 
@@ -168,44 +206,3 @@ export namespace Mesh {
 
 //         return computation(async ctx => await laplacianSmoothComputation(ctx, surface, iterCount, (1.1 * vertexWeight) / 1.1));
 //     }
-
-    export function computeBoundingSphere(mesh: Mesh): Task<Mesh> {
-        return Task.create<Mesh>('Mesh (Compute Bounding Sphere)', async ctx => {
-            if (mesh.boundingSphere) {
-                return mesh;
-            }
-            await ctx.update('Computing bounding sphere...');
-
-            const vertices = mesh.vertexBuffer.ref.value;
-            let x = 0, y = 0, z = 0;
-            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
-                x += vertices[i];
-                y += vertices[i + 1];
-                z += vertices[i + 2];
-            }
-            x /= mesh.vertexCount;
-            y /= mesh.vertexCount;
-            z /= mesh.vertexCount;
-            let r = 0;
-            for (let i = 0, _c = vertices.length; i < _c; i += 3) {
-                const dx = x - vertices[i];
-                const dy = y - vertices[i + 1];
-                const dz = z - vertices[i + 2];
-                r = Math.max(r, dx * dx + dy * dy + dz * dz);
-            }
-            mesh.boundingSphere = {
-                center: Vec3.create(x, y, z),
-                radius: Math.sqrt(r)
-            }
-            return mesh;
-        });
-    }
-
-//     export function transform(surface: Surface, t: number[]): Computation<Surface> {
-//         return computation<Surface>(async ctx => {
-//             ctx.updateProgress('Updating surface...');
-//             transformImmediate(surface, t);
-//             return surface;
-//         });
-//     }
-// }

@@ -60,7 +60,6 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             const mesh = meshBuilder.getMesh()
             // console.log(mesh)
-            if (!mesh.offsetBuffer.ref.value) return
 
             const unitCount = units.length
             const transformArray = new Float32Array(unitCount * 16)
@@ -100,7 +99,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                 instanceCount: unitCount,
                 indexCount: mesh.triangleCount,
-                elementCount: mesh.offsetCount - 1,
+                elementCount: elementCount,
                 positionCount: mesh.vertexCount
             })
             renderObjects.push(spheres)

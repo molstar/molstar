@@ -105,5 +105,6 @@ export function createElementInstanceColor(props: ElementInstanceColorProps): El
 
 /** Create color attribute or texture, depending on the mesh */
 export function createAttributeOrElementColor(mesh: Mesh, props: AttributeColorProps) {
-    return mesh.vertexCount < 4 * mesh.offsetCount ? createAttributeColor(props) : createElementColor(props)
+    // return mesh.vertexCount < 4 * mesh.offsetCount ? createAttributeColor(props) : createElementColor(props)
+    return createAttributeColor(props)
 }

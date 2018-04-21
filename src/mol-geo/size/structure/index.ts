@@ -5,10 +5,10 @@
  */
 
 import { ElementGroup, Unit } from 'mol-model/structure';
-import { OffsetData } from '../data';
+import VertexMap from '../../shape/vertex-map';
 
 export interface StructureSizeDataProps {
     units: ReadonlyArray<Unit>,
     elementGroup: ElementGroup,
-    offsetData: OffsetData
+    vertexMap: VertexMap
 }

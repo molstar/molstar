@@ -51,9 +51,9 @@ export default class State {
         await Run(structPointRepr.create(struct), log, 100)
         structPointRepr.renderObjects.forEach(viewer.add)
 
-        // const structSpacefillRepr = StructureRepresentation(Spacefill)
-        // await Run(structSpacefillRepr.create(struct, { detail: 2 }), log, 100)
-        // structSpacefillRepr.renderObjects.forEach(viewer.add)
+        const structSpacefillRepr = StructureRepresentation(Spacefill)
+        await Run(structSpacefillRepr.create(struct, { detail: 2 }), log, 100)
+        structSpacefillRepr.renderObjects.forEach(viewer.add)
 
         viewer.requestDraw()
         console.log(viewer.stats)
