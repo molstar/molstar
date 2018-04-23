@@ -12,7 +12,7 @@ export interface UniformColorTheme {
 }
 
 export interface ScaleColorTheme {
-    name: 'instance-id' | 'element-symbol' | 'atom-id'
+    name:  'atom-index' | 'chain-id' | 'element-symbol' | 'instance-index'
     domain?: [number, number]
 }
 

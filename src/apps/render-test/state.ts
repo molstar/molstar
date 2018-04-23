@@ -49,7 +49,8 @@ export default class State {
 
         const structPointRepr = StructureRepresentation(Point)
         const pointProps: PointProps = {
-            colorTheme: { name: 'uniform', value: 0xFF4411 },
+            // colorTheme: { name: 'uniform', value: 0xFF4411 },
+            colorTheme: { name: 'chain-id' },
             sizeTheme: { name: 'uniform', value: 0.1 }
         }
         await Run(structPointRepr.create(struct, pointProps), log, 100)
@@ -59,9 +60,10 @@ export default class State {
         const spacefillProps: SpacefillProps = {
             detail: 1,
             // colorTheme: { name: 'uniform', value: 0xFF4411 },
-            // colorTheme: { name: 'instance-id' },
+            // colorTheme: { name: 'instance-index' },
             // colorTheme: { name: 'element-symbol' },
-            colorTheme: { name: 'atom-id' },
+            // colorTheme: { name: 'atom-index' },
+            colorTheme: { name: 'chain-id' },
         }
         await Run(structSpacefillRepr.create(struct, spacefillProps), log, 100)
         structSpacefillRepr.renderObjects.forEach(viewer.add)

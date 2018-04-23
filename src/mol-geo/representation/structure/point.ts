@@ -19,7 +19,7 @@ import { ColorTheme, SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes } from './utils';
 
 export const DefaultPointProps = {
-    colorTheme: { name: 'instance-id' } as ColorTheme,
+    colorTheme: { name: 'instance-index' } as ColorTheme,
     sizeTheme: { name: 'vdw' } as SizeTheme
 }
 export type PointProps = Partial<typeof DefaultPointProps>

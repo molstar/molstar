@@ -12,3 +12,5 @@ export interface StructureSizeDataProps {
     elementGroup: ElementGroup,
     vertexMap: VertexMap
 }
+
+export { vdwSizeData } from './vdw'

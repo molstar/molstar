@@ -21,7 +21,7 @@ import VertexMap from '../../shape/vertex-map';
 
 export const DefaultSpacefillProps = {
     detail: 0,
-    colorTheme: { name: 'instance-id' } as ColorTheme,
+    colorTheme: { name: 'instance-index' } as ColorTheme,
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 

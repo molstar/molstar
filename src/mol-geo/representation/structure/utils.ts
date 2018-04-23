@@ -7,14 +7,12 @@
 import { Unit, ElementGroup } from 'mol-model/structure';
 import { Mat4 } from 'mol-math/linear-algebra'
 
-import { ColorScale } from 'mol-util/color';
-import { createUniformColor, createInstanceColor, createElementInstanceColor } from '../../util/color-data';
+import { createUniformColor } from '../../util/color-data';
 import { createUniformSize } from '../../util/size-data';
 import { vdwSizeData } from '../../theme/structure/size/vdw';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
-import { elementSymbolColorData } from '../../theme/structure/color/element';
-import { OrderedSet } from 'mol-data/int';
+import { atomIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
 
 export function createTransforms(units: ReadonlyArray<Unit>) {
     const unitCount = units.length
@@ -26,25 +24,17 @@ export function createTransforms(units: ReadonlyArray<Unit>) {
 }
 
 export function createColors(units: ReadonlyArray<Unit>, elementGroup: ElementGroup, vertexMap: VertexMap, props: ColorTheme) {
-    const instanceCount = units.length
-    const elementCount = OrderedSet.size(elementGroup.elements)
     switch (props.name) {
-        case 'uniform':
-            return createUniformColor(props)
-        case 'instance-id':
-            const instanceDomain = props.domain ? props.domain : [ 0, instanceCount - 1 ]
-            const instanceScale = ColorScale.create({ domain: instanceDomain })
-            return createInstanceColor({ colorFn: instanceScale.color, instanceCount })
-        case 'atom-id':
-            const atomDomain = props.domain ? props.domain : [ 0, instanceCount * elementCount - 1 ]
-            const atomScale = ColorScale.create({ domain: atomDomain })
-            return createElementInstanceColor({
-                colorFn: (unitIdx, elementIdx) => atomScale.color(unitIdx * elementCount + elementIdx),
-                instanceCount,
-                vertexMap
-            })
+        case 'atom-index':
+            return atomIndexColorData({ units, elementGroup, vertexMap })
+        case 'chain-id':
+            return chainIdColorData({ units, elementGroup, vertexMap })
         case 'element-symbol':
             return elementSymbolColorData({ units, elementGroup, vertexMap })
+        case 'instance-index':
+            return instanceIndexColorData({ units, elementGroup, vertexMap })
+        case 'uniform':
+            return createUniformColor(props)
     }
 }
 

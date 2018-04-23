@@ -12,3 +12,8 @@ export interface StructureColorDataProps {
     elementGroup: ElementGroup,
     vertexMap: VertexMap
 }
+
+export { atomIndexColorData } from './atom-index'
+export { chainIdColorData } from './chain-id'
+export { elementSymbolColorData } from './element-symbol'
+export { instanceIndexColorData } from './instance-index'
