@@ -5,10 +5,10 @@
  */
 
 import { ElementSymbol } from 'mol-model/structure/model/types';
-import Color from '../color';
-import { createAttributeOrElementColor } from '../data';
+import { Color } from 'mol-util/color';
 import { StructureColorDataProps } from '.';
 import { OrderedSet } from 'mol-data/int';
+import { createAttributeOrElementColor } from '../../../util/color-data';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors: { [k: string]: Color } = {
@@ -23,15 +23,13 @@ export function elementSymbolColor(element: ElementSymbol): Color {
 }
 
 export function elementSymbolColorData(props: StructureColorDataProps) {
-    const { units, elementGroup, mesh } = props
+    const { units, elementGroup, vertexMap } = props
     const { type_symbol } = units[0].model.hierarchy.atoms
-    return createAttributeOrElementColor(mesh, {
+    return createAttributeOrElementColor(vertexMap, {
         colorFn: (elementIdx: number) => {
             const e = OrderedSet.getAt(elementGroup.elements, elementIdx)
             return elementSymbolColor(type_symbol.value(e))
         },
-        vertexCount: mesh.vertexCount,
-        offsetCount: mesh.offsetCount,
-        offsets: mesh.offsetBuffer as any
+        vertexMap
     })
 }

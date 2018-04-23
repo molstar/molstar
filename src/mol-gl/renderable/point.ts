@@ -10,8 +10,8 @@ import { ValueCell } from 'mol-util/value-cell'
 import { Renderable } from '../renderable'
 import { createBaseDefines, createBaseUniforms, createBaseAttributes, destroyUniforms, destroyAttributes } from './util'
 import { PointShaders, addDefines } from '../shaders'
-import { ColorData } from 'mol-geo/color';
-import { SizeData } from 'mol-geo/size';
+import { ColorData } from 'mol-geo/util/color-data';
+import { SizeData } from 'mol-geo/util/size-data';
 
 type Point = 'point'
 

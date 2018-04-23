@@ -13,8 +13,8 @@ import Viewer from 'mol-view/viewer'
 // import { createColorTexture } from 'mol-gl/util';
 // import Icosahedron from 'mol-geo/primitive/icosahedron'
 // import Box from 'mol-geo/primitive/box'
-import Spacefill from 'mol-geo/representation/structure/spacefill'
-import Point from 'mol-geo/representation/structure/point'
+import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spacefill'
+import Point, { PointProps } from 'mol-geo/representation/structure/point'
 
 import { Run } from 'mol-task'
 import { Symmetry } from 'mol-model/structure'
@@ -48,11 +48,22 @@ export default class State {
         const struct = await Run(Symmetry.buildAssembly(structures[0], '1'), log, 100)
 
         const structPointRepr = StructureRepresentation(Point)
-        await Run(structPointRepr.create(struct), log, 100)
+        const pointProps: PointProps = {
+            colorTheme: { name: 'uniform', value: 0xFF4411 },
+            sizeTheme: { name: 'uniform', value: 0.1 }
+        }
+        await Run(structPointRepr.create(struct, pointProps), log, 100)
         structPointRepr.renderObjects.forEach(viewer.add)
 
         const structSpacefillRepr = StructureRepresentation(Spacefill)
-        await Run(structSpacefillRepr.create(struct, { detail: 2 }), log, 100)
+        const spacefillProps: SpacefillProps = {
+            detail: 1,
+            // colorTheme: { name: 'uniform', value: 0xFF4411 },
+            // colorTheme: { name: 'instance-id' },
+            // colorTheme: { name: 'element-symbol' },
+            colorTheme: { name: 'atom-id' },
+        }
+        await Run(structSpacefillRepr.create(struct, spacefillProps), log, 100)
         structSpacefillRepr.renderObjects.forEach(viewer.add)
 
         viewer.requestDraw()

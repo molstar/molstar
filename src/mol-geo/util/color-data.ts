@@ -6,8 +6,8 @@
 
 import { ValueCell } from 'mol-util';
 import { Texture, createColorTexture } from 'mol-gl/renderable/util';
-import Color from './color';
-import { Mesh } from '../shape/mesh';
+import { Color } from 'mol-util/color';
+import VertexMap from '../shape/vertex-map';
 
 export type UniformColor = { type: 'uniform', value: number[] }
 export type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }
@@ -27,19 +27,17 @@ export function createUniformColor(props: UniformColorProps): UniformColor {
 
 export interface AttributeColorProps {
     colorFn: (elementIdx: number) => Color
-    vertexCount: number,
-    offsetCount: number,
-    offsets: ValueCell<Uint32Array>
+    vertexMap: VertexMap
 }
 
 /** Creates color attribute with color for each element (i.e. shared across indtances/units) */
 export function createAttributeColor(props: AttributeColorProps): AttributeColor {
-    const { colorFn, vertexCount, offsetCount, offsets} = props
-    const colors = new Float32Array(vertexCount * 3);
-    const _offsets = offsets.ref.value
+    const { colorFn, vertexMap } = props
+    const { idCount, offsetCount, offsets } = vertexMap
+    const colors = new Float32Array(idCount * 3);
     for (let i = 0, il = offsetCount - 1; i < il; ++i) {
-        const start = _offsets[i]
-        const end = _offsets[i + 1]
+        const start = offsets[i]
+        const end = offsets[i + 1]
         const hexColor = colorFn(i)
         for (let i = start, il = end; i < il; ++i) {
             Color.toArrayNormalized(hexColor, colors, i * 3)
@@ -49,15 +47,15 @@ export function createAttributeColor(props: AttributeColorProps): AttributeColor
 }
 
 export interface InstanceColorProps {
-    colorFn: (unitIdx: number) => Color
-    unitCount: number
+    colorFn: (instanceIdx: number) => Color
+    instanceCount: number
 }
 
 /** Creates color texture with color for each instance/unit */
 export function createInstanceColor(props: InstanceColorProps): InstanceColor {
-    const { colorFn, unitCount} = props
-    const colors = createColorTexture(unitCount)
-    for (let i = 0; i < unitCount; i++) {
+    const { colorFn, instanceCount} = props
+    const colors = createColorTexture(instanceCount)
+    for (let i = 0; i < instanceCount; i++) {
         Color.toArray(colorFn(i), colors, i * 3)
     }
     return { type: 'instance', value: ValueCell.create(colors) }
@@ -65,14 +63,13 @@ export function createInstanceColor(props: InstanceColorProps): InstanceColor {
 
 export interface ElementColorProps {
     colorFn: (elementIdx: number) => Color
-    offsetCount: number,
-    offsets: ValueCell<Uint32Array>
+    vertexMap: VertexMap
 }
 
 /** Creates color texture with color for each element (i.e. shared across indtances/units) */
 export function createElementColor(props: ElementColorProps): ElementColor {
-    const { colorFn, offsetCount } = props
-    const elementCount = offsetCount - 1
+    const { colorFn, vertexMap } = props
+    const elementCount = vertexMap.offsetCount - 1
     const colors = createColorTexture(elementCount)
     for (let i = 0, il = elementCount; i < il; ++i) {
         Color.toArray(colorFn(i), colors, i * 3)
@@ -81,20 +78,19 @@ export function createElementColor(props: ElementColorProps): ElementColor {
 }
 
 export interface ElementInstanceColorProps {
-    colorFn: (unitIdx: number, elementIdx: number) => Color
-    unitCount: number,
-    offsetCount: number,
-    offsets: ValueCell<Uint32Array>
+    colorFn: (instanceIdx: number, elementIdx: number) => Color
+    instanceCount: number,
+    vertexMap: VertexMap
 }
 
 /** Creates color texture with color for each element instance (i.e. for each unit) */
 export function createElementInstanceColor(props: ElementInstanceColorProps): ElementInstanceColor {
-    const { colorFn, unitCount, offsetCount } = props
-    const elementCount = offsetCount - 1
-    const count = unitCount * elementCount
+    const { colorFn, instanceCount, vertexMap } = props
+    const elementCount = vertexMap.offsetCount - 1
+    const count = instanceCount * elementCount
     const colors = createColorTexture(count)
     let colorOffset = 0
-    for (let i = 0; i < unitCount; i++) {
+    for (let i = 0; i < instanceCount; i++) {
         for (let j = 0, jl = elementCount; j < jl; ++j) {
             Color.toArray(colorFn(i, j), colors, colorOffset)
             colorOffset += 3
@@ -103,8 +99,7 @@ export function createElementInstanceColor(props: ElementInstanceColorProps): El
     return { type: 'element-instance', value: ValueCell.create(colors) }
 }
 
-/** Create color attribute or texture, depending on the mesh */
-export function createAttributeOrElementColor(mesh: Mesh, props: AttributeColorProps) {
-    // return mesh.vertexCount < 4 * mesh.offsetCount ? createAttributeColor(props) : createElementColor(props)
-    return createAttributeColor(props)
+/** Create color attribute or texture, depending on the vertexMap */
+export function createAttributeOrElementColor(vertexMap: VertexMap, props: AttributeColorProps) {
+    return vertexMap.idCount < 4 * vertexMap.offsetCount ? createAttributeColor(props) : createElementColor(props)
 }

@@ -7,7 +7,8 @@
 import { OrderedSet } from 'mol-data/int';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
 import { StructureSizeDataProps } from '.';
-import { createAttributeSize } from '../data';
+import { createAttributeSize } from '../../../util/size-data';
+
 
 export function vdwSizeData(props: StructureSizeDataProps) {
     const { units, elementGroup, vertexMap } = props

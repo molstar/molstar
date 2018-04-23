@@ -6,12 +6,12 @@
 
 import REGL = require('regl');
 import { ValueCell } from 'mol-util/value-cell'
+import { ColorData } from 'mol-geo/util/color-data';
+import { SizeData } from 'mol-geo/util/size-data';
 
 import { Attributes, AttributesData, AttributesBuffers } from '../renderable'
 import Attribute from '../attribute'
-import { ColorData } from 'mol-geo/color';
 import { ShaderDefines } from '../shaders';
-import { SizeData } from 'mol-geo/size';
 
 export type ReglUniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 export type ReglAttributes = { [k: string]: REGL.AttributeConfig }

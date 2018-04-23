@@ -5,10 +5,10 @@
  */
 
 import { ElementGroup, Unit } from 'mol-model/structure';
-import { Mesh } from '../../shape/mesh';
+import VertexMap from '../../../shape/vertex-map';
 
-export interface StructureColorDataProps {
+export interface StructureSizeDataProps {
     units: ReadonlyArray<Unit>,
     elementGroup: ElementGroup,
-    mesh: Mesh
+    vertexMap: VertexMap
 }

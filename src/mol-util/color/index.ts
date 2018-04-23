@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SizeData } from './data'
+import Color from './color'
+import { ColorScale } from './scale';
 
-export { SizeData }
+export { Color, ColorScale }
+export { ColorBrewer, ColorNames } from './tables'

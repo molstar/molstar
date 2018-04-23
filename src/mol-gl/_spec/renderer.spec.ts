@@ -13,8 +13,8 @@ import { ValueCell } from 'mol-util';
 import Renderer from '../renderer';
 import { createPointRenderObject } from '../scene';
 import { fillSerial } from '../renderable/util';
-import { createUniformColor } from 'mol-geo/color/data';
-import { createUniformSize } from 'mol-geo/size/data';
+import { createUniformColor } from 'mol-geo/util/color-data';
+import { createUniformSize } from 'mol-geo/util/size-data';
 
 function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
     const pixels = new Uint8Array(width * height * 4)

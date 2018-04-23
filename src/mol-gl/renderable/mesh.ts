@@ -6,7 +6,7 @@
 
 import REGL = require('regl');
 import { ValueCell } from 'mol-util/value-cell'
-import { ColorData } from 'mol-geo/color';
+import { ColorData } from 'mol-geo/util/color-data';
 
 import { Renderable } from '../renderable'
 import { createBaseDefines, createBaseUniforms, createBaseAttributes, destroyAttributes, destroyUniforms } from './util'
