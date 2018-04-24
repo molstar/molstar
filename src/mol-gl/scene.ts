@@ -16,15 +16,16 @@ function getNextId() {
 
 export type RenderData = { [k: string]: ValueCell<Helpers.TypedArray> }
 
-export interface MeshRenderObject { id: number, type: 'mesh', props: MeshRenderable.Data }
-export interface PointRenderObject { id: number, type: 'point', props: PointRenderable.Data }
+export interface BaseRenderObject { id: number, type: string, props: {}, visible: boolean }
+export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', props: MeshRenderable.Data }
+export interface PointRenderObject extends BaseRenderObject { type: 'point', props: PointRenderable.Data }
 export type RenderObject = MeshRenderObject | PointRenderObject
 
 export function createMeshRenderObject(props: MeshRenderable.Data): MeshRenderObject {
-    return { id: getNextId(), type: 'mesh', props }
+    return { id: getNextId(), type: 'mesh', props, visible: true }
 }
 export function createPointRenderObject(props: PointRenderable.Data): PointRenderObject {
-    return { id: getNextId(), type: 'point', props }
+    return { id: getNextId(), type: 'point', props, visible: true }
 }
 
 export function createRenderable(regl: REGL.Regl, o: RenderObject) {
@@ -38,39 +39,38 @@ interface Scene {
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
     clear: () => void
-    forEach: (callbackFn: (value: Renderable) => void) => void
+    forEach: (callbackFn: (value: Renderable, key: RenderObject) => void) => void
     count: number
 }
 
 namespace Scene {
     export function create(regl: REGL.Regl): Scene {
-        const renderableList: Renderable[] = []
-        const objectIdRenderableMap: { [k: number]: Renderable } = {}
+        const renderableMap = new Map<RenderObject, Renderable>()
 
         return {
             add: (o: RenderObject) => {
-                const renderable = createRenderable(regl, o)
-                renderableList.push(renderable)
-                objectIdRenderableMap[o.id] = renderable
+                if (!renderableMap.has(o)) {
+                    renderableMap.set(o, createRenderable(regl, o))
+                } else {
+                    console.warn(`RenderObject with id '${o.id}' already present`)
+                }
             },
             remove: (o: RenderObject) => {
-                if (o.id in objectIdRenderableMap) {
-                    objectIdRenderableMap[o.id].dispose()
-                    delete objectIdRenderableMap[o.id]
+                const renderable = renderableMap.get(o)
+                if (renderable) {
+                    renderable.dispose()
+                    renderableMap.delete(o)
                 }
             },
             clear: () => {
-                for (const id in objectIdRenderableMap) {
-                    objectIdRenderableMap[id].dispose()
-                    delete objectIdRenderableMap[id]
-                }
-                renderableList.length = 0
+                renderableMap.forEach(renderable => renderable.dispose())
+                renderableMap.clear()
             },
-            forEach: (callbackFn: (value: Renderable) => void) => {
-                renderableList.forEach(callbackFn)
+            forEach: (callbackFn: (value: Renderable, key: RenderObject) => void) => {
+                renderableMap.forEach(callbackFn)
             },
             get count() {
-                return renderableList.length
+                return renderableMap.size
             }
         }
     }

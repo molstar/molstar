@@ -11,11 +11,16 @@ import Toolbar from 'material-ui/Toolbar';
 import AppBar from 'material-ui/AppBar';
 import Drawer from 'material-ui/Drawer';
 
-import Viewport from './components/viewport'
-import FileInput from './components/file-input'
 import State from './state'
 
-const styles: StyleRulesCallback<any> = (theme: Theme) => ({
+import Viewport from './components/viewport'
+import FileInput from './components/file-input'
+import ColorTheme from './components/color-theme'
+import Detail from './components/detail'
+import Visibility from './components/visibility'
+
+
+const styles: StyleRulesCallback = (theme: Theme) => ({
     root: {
         flexGrow: 1,
         height: 830,
@@ -38,12 +43,16 @@ const styles: StyleRulesCallback<any> = (theme: Theme) => ({
         minWidth: 0, // So the Typography noWrap works
     },
     toolbar: theme.mixins.toolbar,
+    formControl: {
+        margin: theme.spacing.unit,
+        width: 200,
+    },
     textField: {
         marginLeft: theme.spacing.unit,
         marginRight: theme.spacing.unit,
         width: 200,
     },
-});
+} as any);
 
 const decorate = withStyles(styles);
 
@@ -66,6 +75,13 @@ class UI extends React.Component<{ state: State } & WithStyles, {  }> {
                 <Drawer variant='permanent' classes={{ paper: classes.drawerPaper, }}>
                     <div className={classes.toolbar} />
                     <FileInput state={state} classes={classes}></FileInput>
+                    <form className={classes.root} autoComplete='off'>
+                        <div>
+                            <ColorTheme state={state} classes={classes}></ColorTheme>
+                            <Detail state={state} classes={classes}></Detail>
+                            <Visibility state={state} classes={classes}></Visibility>
+                        </div>
+                    </form>
                 </Drawer>
                 <main className={classes.content}>
                     <div className={classes.toolbar} />

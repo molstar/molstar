@@ -78,13 +78,12 @@ namespace Renderer {
             baseContext(state => {
                 regl.clear({ color: [0, 0, 0, 1] })
                 // TODO painters sort, filter visible, filter picking, visibility culling?
-                scene.forEach(r => {
-                    r.draw()
+                scene.forEach((r, o) => {
+                    if (o.visible) r.draw()
                 })
             })
         }
 
-        // TODO animate, draw, requestDraw
         return {
             add: (o: RenderObject) => {
                 scene.add(o)

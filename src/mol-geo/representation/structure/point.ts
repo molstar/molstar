@@ -6,7 +6,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createPointRenderObject, RenderObject } from 'mol-gl/scene'
+import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/scene'
 
 import { OrderedSet } from 'mol-data/int'
 import { Unit, ElementGroup } from 'mol-model/structure';
@@ -40,50 +40,61 @@ export function createPointVertices(unit: Unit, elementGroup: ElementGroup) {
 
 export default function Point(): UnitsRepresentation<PointProps> {
     const renderObjects: RenderObject[] = []
+    let points: PointRenderObject
 
     return {
         renderObjects,
-        create: (units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: PointProps = {}) => Task.create('Spacefill', async ctx => {
-            const { colorTheme, sizeTheme } = { ...DefaultPointProps, ...props }
-            const elementCount = OrderedSet.size(elementGroup.elements)
-            const unitCount = units.length
+        create(units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: PointProps = {}) {
+            return Task.create('Point.create', async ctx => {
+                renderObjects.length = 0 // clear
 
-            const vertexMap = VertexMap.create(
-                elementCount,
-                elementCount + 1,
-                fillSerial(new Uint32Array(elementCount)),
-                fillSerial(new Uint32Array(elementCount + 1))
-            )
+                const { colorTheme, sizeTheme } = { ...DefaultPointProps, ...props }
+                const elementCount = OrderedSet.size(elementGroup.elements)
+                const unitCount = units.length
 
-            await ctx.update('Computing point vertices');
-            const vertices = createPointVertices(units[0], elementGroup)
+                const vertexMap = VertexMap.create(
+                    elementCount,
+                    elementCount + 1,
+                    fillSerial(new Uint32Array(elementCount)),
+                    fillSerial(new Uint32Array(elementCount + 1))
+                )
 
-            await ctx.update('Computing point transforms');
-            const transforms = createTransforms(units)
+                await ctx.update('Computing point vertices');
+                const vertices = createPointVertices(units[0], elementGroup)
 
-            await ctx.update('Computing point colors');
-            const color = createColors(units, elementGroup, vertexMap, colorTheme)
+                await ctx.update('Computing point transforms');
+                const transforms = createTransforms(units)
 
-            await ctx.update('Computing point sizes');
-            const size = createSizes(units, elementGroup, vertexMap, sizeTheme)
+                await ctx.update('Computing point colors');
+                const color = createColors(units, elementGroup, vertexMap, colorTheme)
 
-            const points = createPointRenderObject({
-                objectId: 0,
+                await ctx.update('Computing point sizes');
+                const size = createSizes(units, elementGroup, vertexMap, sizeTheme)
 
-                position: ValueCell.create(vertices),
-                id: ValueCell.create(fillSerial(new Float32Array(unitCount))),
-                size,
-                color,
-                transform: ValueCell.create(transforms),
+                points = createPointRenderObject({
+                    objectId: 0,
 
-                instanceCount: unitCount,
-                elementCount,
-                positionCount: vertices.length / 3,
+                    position: ValueCell.create(vertices),
+                    id: ValueCell.create(fillSerial(new Float32Array(unitCount))),
+                    size,
+                    color,
+                    transform: ValueCell.create(transforms),
 
-                usePointSizeAttenuation: true
+                    instanceCount: unitCount,
+                    elementCount,
+                    positionCount: vertices.length / 3,
+
+                    usePointSizeAttenuation: true
+                })
+                renderObjects.push(points)
             })
-            renderObjects.push(points)
-        }),
-        update: (props: RepresentationProps) => false
+        },
+        update(props: RepresentationProps) {
+            return Task.create('Point.update', async ctx => {
+                if (!points) return false
+
+                return false
+            })
+        }
     }
 }

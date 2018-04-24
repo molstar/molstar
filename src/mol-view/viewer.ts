@@ -6,8 +6,10 @@
 
 import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
+import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
 import { RenderObject } from 'mol-gl/scene'
+import { StructureRepresentation } from 'mol-geo/representation/structure';
 
 import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
@@ -15,11 +17,14 @@ import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
 
 interface Viewer {
-    add: (o: RenderObject) => void
-    remove: (o: RenderObject) => void
-    clear: () => void
-    draw: () => void
+    hide: (repr: StructureRepresentation) => void
+    show: (repr: StructureRepresentation) => void
 
+    add: (repr: StructureRepresentation) => void
+    remove: (repr: StructureRepresentation) => void
+    clear: () => void
+
+    draw: () => void
     requestDraw: () => void
     animate: () => void
 
@@ -42,6 +47,8 @@ function getWebGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLCon
 
 namespace Viewer {
     export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
+        const reprMap = new Map<StructureRepresentation, Set<RenderObject>>()
+
         const input = InputObserver.create(canvas)
         input.resize.subscribe(handleResize)
 
@@ -82,13 +89,33 @@ namespace Viewer {
         handleResize()
 
         return {
-            add: (o: RenderObject) => {
-                renderer.add(o)
+            hide: (repr: StructureRepresentation) => {
+                const renderObjectSet = reprMap.get(repr)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.visible = false)
             },
-            remove: (o: RenderObject) => {
-                renderer.remove(o)
+            show: (repr: StructureRepresentation) => {
+                const renderObjectSet = reprMap.get(repr)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.visible = true)
+            },
+
+            add: (repr: StructureRepresentation) => {
+                const oldRO = reprMap.get(repr)
+                const newRO = new Set<RenderObject>()
+                repr.renderObjects.forEach(o => newRO.add(o))
+                if (oldRO) {
+                    SetUtils.difference(newRO, oldRO).forEach(o => renderer.add(o))
+                    SetUtils.difference(oldRO, newRO).forEach(o => renderer.remove(o))
+                } else {
+                    repr.renderObjects.forEach(o => renderer.add(o))
+                }
+                reprMap.set(repr, newRO)
+            },
+            remove: (repr: StructureRepresentation) => {
+                const renderObjectSet = reprMap.get(repr)
+                if (renderObjectSet) renderObjectSet.forEach(o => renderer.remove(o))
             },
             clear: () => {
+                reprMap.clear()
                 renderer.clear()
             },
 

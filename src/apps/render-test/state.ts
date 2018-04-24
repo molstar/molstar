@@ -24,11 +24,51 @@ import { getStructuresFromPdbId, log } from './utils'
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 // import Cylinder from 'mol-geo/primitive/cylinder';
 
+
+export const ColorTheme = {
+    'atom-index': {},
+    'chain-id': {},
+    'element-symbol': {},
+    'instance-index': {}
+}
+export type ColorTheme = keyof typeof ColorTheme
+
 export default class State {
     viewer: Viewer
     pdbId = '4cup'
     initialized = new BehaviorSubject<boolean>(false)
     loading = new BehaviorSubject<boolean>(false)
+
+    colorTheme = new BehaviorSubject<ColorTheme>('chain-id')
+    detail = new BehaviorSubject<number>(2)
+
+    pointVisibility = new BehaviorSubject<boolean>(true)
+    spacefillVisibility = new BehaviorSubject<boolean>(true)
+
+    pointRepr: StructureRepresentation<PointProps>
+    spacefillRepr: StructureRepresentation<SpacefillProps>
+
+    constructor() {
+        this.colorTheme.subscribe(() => this.update())
+        this.detail.subscribe(() => this.update())
+
+        this.pointVisibility.subscribe(() => this.updateVisibility())
+        this.spacefillVisibility.subscribe(() => this.updateVisibility())
+    }
+
+    getSpacefillProps (): SpacefillProps {
+        return {
+            detail: this.detail.getValue(),
+            colorTheme: { name: this.colorTheme.getValue() },
+        }
+    }
+
+    getPointProps (): PointProps {
+        return {
+            colorTheme: { name: this.colorTheme.getValue() },
+            sizeTheme: { name: 'uniform', value: 0.1 }
+        }
+    }
 
     async initRenderer (canvas: HTMLCanvasElement, container: HTMLDivElement) {
         this.viewer = Viewer.create(canvas, container)
@@ -38,40 +78,57 @@ export default class State {
     }
 
     async loadPdbId () {
-        const { viewer, pdbId } = this
+        const { viewer, pdbId, loading } = this
         viewer.clear()
 
         if (pdbId.length !== 4) return
-        this.loading.next(true)
+        loading.next(true)
 
         const structures = await getStructuresFromPdbId(pdbId)
         const struct = await Run(Symmetry.buildAssembly(structures[0], '1'), log, 100)
 
-        const structPointRepr = StructureRepresentation(Point)
-        const pointProps: PointProps = {
-            // colorTheme: { name: 'uniform', value: 0xFF4411 },
-            colorTheme: { name: 'chain-id' },
-            sizeTheme: { name: 'uniform', value: 0.1 }
-        }
-        await Run(structPointRepr.create(struct, pointProps), log, 100)
-        structPointRepr.renderObjects.forEach(viewer.add)
+        this.pointRepr = StructureRepresentation(Point)
+        await Run(this.pointRepr.create(struct, this.getPointProps()), log, 100)
+        viewer.add(this.pointRepr)
 
-        const structSpacefillRepr = StructureRepresentation(Spacefill)
-        const spacefillProps: SpacefillProps = {
-            detail: 1,
-            // colorTheme: { name: 'uniform', value: 0xFF4411 },
-            // colorTheme: { name: 'instance-index' },
-            // colorTheme: { name: 'element-symbol' },
-            // colorTheme: { name: 'atom-index' },
-            colorTheme: { name: 'chain-id' },
-        }
-        await Run(structSpacefillRepr.create(struct, spacefillProps), log, 100)
-        structSpacefillRepr.renderObjects.forEach(viewer.add)
+        this.spacefillRepr = StructureRepresentation(Spacefill)
+        await Run(this.spacefillRepr.create(struct, this.getSpacefillProps()), log, 100)
+        viewer.add(this.spacefillRepr)
 
+        this.updateVisibility()
         viewer.requestDraw()
         console.log(viewer.stats)
 
-        this.loading.next(false)
+        loading.next(false)
+    }
+
+    async update () {
+        if (!this.spacefillRepr) return
+        await Run(this.spacefillRepr.update(this.getSpacefillProps()), log, 100)
+        await Run(this.pointRepr.update(this.getPointProps()), log, 100)
+        this.viewer.add(this.spacefillRepr)
+        this.viewer.add(this.pointRepr)
+        this.viewer.requestDraw()
+        console.log(this.viewer.stats)
+    }
+
+    updateVisibility () {
+        if (!this.viewer) return
+        if (this.pointRepr) {
+            if (this.pointVisibility.getValue()) {
+                this.viewer.show(this.pointRepr)
+            } else {
+                this.viewer.hide(this.pointRepr)
+            }
+        }
+        if (this.spacefillRepr) {
+            if (this.spacefillVisibility.getValue()) {
+                this.viewer.show(this.spacefillRepr)
+            } else {
+                this.viewer.hide(this.spacefillRepr)
+            }
+        }
+        this.viewer.requestDraw()
     }
 }
 

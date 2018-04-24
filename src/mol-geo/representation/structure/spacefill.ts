@@ -6,7 +6,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { RenderObject, createMeshRenderObject } from 'mol-gl/scene'
+import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/scene'
 // import { createColorTexture } from 'mol-gl/util';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
@@ -59,44 +59,52 @@ function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: num
 
 export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
+    let spheres: MeshRenderObject
 
     return {
         renderObjects,
-        create: (units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: SpacefillProps = {}) => Task.create('Spacefill', async ctx => {
-            const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+        create(units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: SpacefillProps = {}) {
+            return Task.create('Spacefill.create', async ctx => {
+                renderObjects.length = 0 // clear
 
-            const unitCount = units.length
-            const elementCount = OrderedSet.size(elementGroup.elements)
+                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
 
-            await ctx.update('Computing spacefill mesh');
-            const mesh = await ctx.runChild(createSpacefillMesh(units[0], elementGroup, detail))
-            // console.log(mesh)
+                await ctx.update('Computing spacefill mesh');
+                const mesh = await ctx.runChild(createSpacefillMesh(units[0], elementGroup, detail))
+                // console.log(mesh)
 
-            const vertexMap = VertexMap.fromMesh(mesh)
+                const vertexMap = VertexMap.fromMesh(mesh)
 
-            await ctx.update('Computing spacefill transforms');
-            const transforms = createTransforms(units)
+                await ctx.update('Computing spacefill transforms');
+                const transforms = createTransforms(units)
 
-            await ctx.update('Computing spacefill colors');
-            const color = createColors(units, elementGroup, vertexMap, colorTheme)
+                await ctx.update('Computing spacefill colors');
+                const color = createColors(units, elementGroup, vertexMap, colorTheme)
 
-            const spheres = createMeshRenderObject({
-                objectId: 0,
+                spheres = createMeshRenderObject({
+                    objectId: 0,
 
-                position: mesh.vertexBuffer,
-                normal: mesh.normalBuffer as ValueCell<Float32Array>,
-                color: color,
-                id: mesh.idBuffer as ValueCell<Float32Array>,
-                transform: ValueCell.create(transforms),
-                index: mesh.indexBuffer,
+                    position: mesh.vertexBuffer,
+                    normal: mesh.normalBuffer as ValueCell<Float32Array>,
+                    color: color,
+                    id: mesh.idBuffer as ValueCell<Float32Array>,
+                    transform: ValueCell.create(transforms),
+                    index: mesh.indexBuffer,
 
-                instanceCount: unitCount,
-                indexCount: mesh.triangleCount,
-                elementCount: elementCount,
-                positionCount: mesh.vertexCount
+                    instanceCount: units.length,
+                    indexCount: mesh.triangleCount,
+                    elementCount: OrderedSet.size(elementGroup.elements),
+                    positionCount: mesh.vertexCount
+                })
+                renderObjects.push(spheres)
             })
-            renderObjects.push(spheres)
-        }),
-        update: (props: RepresentationProps) => false
+        },
+        update(props: RepresentationProps) {
+            return Task.create('Spacefill.update', async ctx => {
+                if (!spheres) return false
+
+                return false
+            })
+        }
     }
 }

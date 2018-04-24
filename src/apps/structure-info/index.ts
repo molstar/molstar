@@ -22,7 +22,7 @@ async function parseCif(data: string|Uint8Array) {
 }
 
 async function getPdb(pdb: string) {
-    //const data = await fetch(`https://files.rcsb.org/download/${pdb}.cif`)
+    // const data = await fetch(`https://files.rcsb.org/download/${pdb}.cif`)
     const data = await fetch(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`);
     const parsed = await parseCif(await data.text())
     return CIF.schema.mmCIF(parsed.result.blocks[0])
