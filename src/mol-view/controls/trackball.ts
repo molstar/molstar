@@ -63,7 +63,7 @@ namespace TrackballControls {
         const wheelSub = input.wheel.subscribe(onWheel)
         const pinchSub = input.pinch.subscribe(onPinch)
 
-        // internals
+        // For internal use
         const target = Vec3.zero()
         const lastPosition = Vec3.zero()
 
@@ -84,7 +84,7 @@ namespace TrackballControls {
         const _panStart = Vec2.zero()
         const _panEnd = Vec2.zero()
 
-        // for reset
+        // Initial values for reseting
         const target0 = Vec3.clone(target)
         const position0 = Vec3.clone(object.position)
         const up0 = Vec3.clone(object.up)
@@ -197,6 +197,7 @@ namespace TrackballControls {
             }
         }
 
+        /** Ensure the distance between object and target is within the min/max distance */
         function checkDistances() {
             if (Vec3.squaredMagnitude(_eye) > maxDistance * maxDistance) {
                 Vec3.setMagnitude(_eye, _eye, maxDistance)
@@ -211,6 +212,7 @@ namespace TrackballControls {
             }
         }
 
+        /** Update the object's position, direction and up vectors */
         function update() {
             Vec3.sub(_eye, object.position, target)
 
@@ -229,6 +231,7 @@ namespace TrackballControls {
             }
         }
 
+        /** Reset object's vectors and the target vector to their initial values */
         function reset() {
             Vec3.copy(target, target0)
             Vec3.copy(object.position, position0)

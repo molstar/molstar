@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3 } from 'mol-math/linear-algebra'
+import { Vec3, Mat4, EPSILON } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
 import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
@@ -24,7 +24,7 @@ interface Viewer {
     remove: (repr: StructureRepresentation) => void
     clear: () => void
 
-    draw: () => void
+    draw: (force?: boolean) => void
     requestDraw: () => void
     animate: () => void
 
@@ -68,22 +68,27 @@ namespace Viewer {
         const renderer = Renderer.create(gl, camera)
 
         let drawPending = false
+        const prevProjectionView = Mat4.zero()
 
-        function draw () {
+        function draw (force?: boolean) {
             controls.update()
             camera.update()
-            renderer.draw()
+            if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value)) {
+                Mat4.copy(prevProjectionView, camera.projectionView)
+                renderer.draw()
+            }
+            drawPending = false
         }
 
         function requestDraw () {
             if (drawPending) return
             drawPending = true
-            window.requestAnimationFrame(draw)
+            window.requestAnimationFrame(() => draw(true))
         }
 
         function animate () {
             draw()
-            window.requestAnimationFrame(animate)
+            window.requestAnimationFrame(() => animate())
         }
 
         handleResize()

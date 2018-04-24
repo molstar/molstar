@@ -39,7 +39,7 @@ export default class State {
     initialized = new BehaviorSubject<boolean>(false)
     loading = new BehaviorSubject<boolean>(false)
 
-    colorTheme = new BehaviorSubject<ColorTheme>('chain-id')
+    colorTheme = new BehaviorSubject<ColorTheme>('atom-index')
     detail = new BehaviorSubject<number>(2)
 
     pointVisibility = new BehaviorSubject<boolean>(true)

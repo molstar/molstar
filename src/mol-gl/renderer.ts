@@ -74,7 +74,6 @@ namespace Renderer {
 
         const draw = () => {
             regl.poll() // updates timers and viewport
-            camera.update()
             baseContext(state => {
                 regl.clear({ color: [0, 0, 0, 1] })
                 // TODO painters sort, filter visible, filter picking, visibility culling?

@@ -75,7 +75,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                     objectId: 0,
 
                     position: ValueCell.create(vertices),
-                    id: ValueCell.create(fillSerial(new Float32Array(unitCount))),
+                    id: ValueCell.create(fillSerial(new Float32Array(elementCount))),
                     size,
                     color,
                     transform: ValueCell.create(transforms),
