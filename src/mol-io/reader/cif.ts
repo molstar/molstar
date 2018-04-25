@@ -12,6 +12,7 @@ import { toDatabaseCollection, toDatabase } from './cif/schema'
 import { mmCIF_Schema, mmCIF_Database } from './cif/schema/mmcif'
 import { CCD_Schema, CCD_Database } from './cif/schema/ccd'
 import { BIRD_Schema, BIRD_Database } from './cif/schema/bird'
+import { dic_Schema, dic_Database } from './cif/schema/dic';
 
 export default {
     parse: (data: string|Uint8Array) => typeof data === 'string' ? parseText(data) : parseBinary(data),
@@ -22,7 +23,8 @@ export default {
     schema: {
         mmCIF: (frame: Frame) => toDatabase<mmCIF_Schema, mmCIF_Database>(mmCIF_Schema, frame),
         CCD: (frame: Frame) => toDatabase<CCD_Schema, CCD_Database>(CCD_Schema, frame),
-        BIRD: (frame: Frame) => toDatabase<BIRD_Schema, BIRD_Database>(BIRD_Schema, frame)
+        BIRD: (frame: Frame) => toDatabase<BIRD_Schema, BIRD_Database>(BIRD_Schema, frame),
+        dic: (frame: Frame) => toDatabase<dic_Schema, dic_Database>(dic_Schema, frame)
     }
 }
 

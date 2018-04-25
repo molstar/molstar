@@ -11,7 +11,7 @@ import { generate } from './util/generate'
 
 function generateSchema (name: string, path: string) {
     const str = fs.readFileSync(path, 'utf8')
-    return generate(name, JSON.parse(str))
+    return generate(name, '', JSON.parse(str))
 }
 
 const parser = new argparse.ArgumentParser({

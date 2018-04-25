@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
@@ -60,7 +60,7 @@ const item_units_conversion = {
 
 // TODO save frame dic schema
 
-export const CIFDictionary_Schema = {
+export const dic_Schema = {
     datablock,
     dictionary,
     dictionary_history,
@@ -71,5 +71,5 @@ export const CIFDictionary_Schema = {
     item_units_conversion
 }
 
-export type CIFDictionary_Schema = typeof CIFDictionary_Schema;
-export type CIFDictionary_Database = Database.Tables<CIFDictionary_Schema>
+export type dic_Schema = typeof dic_Schema;
+export interface dic_Database extends Database<dic_Schema> {}

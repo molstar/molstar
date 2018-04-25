@@ -10,34 +10,30 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 
 import Csv from 'mol-io/reader/csv/parser'
-import CIF from 'mol-io/reader/cif'
+import CIF, { Frame } from 'mol-io/reader/cif'
 import { generateSchema } from './util/cif-dic'
 import { generate } from './util/generate'
-import { Filter, mergeFilters } from './util/json-schema'
-import { Run } from 'mol-task';
+import { Filter } from './util/json-schema'
+import { Run } from 'mol-task'
 
-async function runGenerateSchema(name: string, fieldNamesPath?: string, minCount = 0, typescript = false, out?: string) {
+async function runGenerateSchema(name: string, fieldNamesPath?: string, typescript = false, out?: string) {
     await ensureMmcifDicAvailable()
-    const comp = CIF.parseText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8'))
-    const parsed = await Run(comp);
-    if (parsed.isError) throw parsed
+    const mmcifDic = await Run(CIF.parseText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8')));
+    if (mmcifDic.isError) throw mmcifDic
 
-    // console.log(fieldNamesPath, minCount)
+    await ensureIhmDicAvailable()
+    const ihmDic = await Run(CIF.parseText(fs.readFileSync(IHM_DIC_PATH, 'utf8')));
+    if (ihmDic.isError) throw ihmDic
 
-    let filter: Filter | undefined
-    if (minCount && fieldNamesPath) {
-        filter = mergeFilters(
-            await getUsageCountsFilter(minCount),
-            await getFieldNamesFilter(fieldNamesPath)
-        )
-    } else if (minCount) {
-        filter = await getUsageCountsFilter(minCount)
-    } else if (fieldNamesPath) {
-        filter = await getFieldNamesFilter(fieldNamesPath)
-    }
+    const mmcifDicVersion = CIF.schema.dic(mmcifDic.result.blocks[0]).dictionary.version.value(0)
+    const ihmDicVersion = CIF.schema.dic(ihmDic.result.blocks[0]).dictionary.version.value(0)
+    const version = `Dictionary versions: mmCIF ${mmcifDicVersion}, IHM ${ihmDicVersion}.`
 
-    const schema = generateSchema(parsed.result.blocks[0])
-    const output = typescript ? generate(name, schema, filter) : JSON.stringify(schema, undefined, 4)
+    const frames: Frame[] = [...mmcifDic.result.blocks[0].saveFrames, ...ihmDic.result.blocks[0].saveFrames]
+    const schema = generateSchema(frames)
+
+    const filter = fieldNamesPath ? await getFieldNamesFilter(fieldNamesPath) : undefined
+    const output = typescript ? generate(name, version, schema, filter) : JSON.stringify(schema, undefined, 4)
 
     if (out) {
         fs.writeFileSync(out, output)
@@ -67,44 +63,31 @@ async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
     return filter
 }
 
-async function getUsageCountsFilter(minCount: number): Promise<Filter> {
-    const usageCountsStr = fs.readFileSync(MMCIF_USAGE_COUNTS_PATH, 'utf8')
-    const parsed = await Run(Csv(usageCountsStr, { delimiter: ' ' }));
-    if (parsed.isError) throw parser.error
-    const csvFile = parsed.result;
-
-    const fieldNamesCol = csvFile.table.getColumn('field_name')
-    const usageCountsCol = csvFile.table.getColumn('usage_count')
-    if (!fieldNamesCol || !usageCountsCol) throw 'error getting usage columns'
-    const fieldNames = fieldNamesCol.toStringArray()
-    const usageCounts = usageCountsCol.toIntArray()
-
-    const filter: Filter = {}
-    fieldNames.forEach((name, i) => {
-        if (usageCounts[i] < minCount) return
-        const [ category, field ] = name.substr(1).split('.')
-        if (!filter[ category ]) filter[ category ] = {}
-        filter[ category ][ field ] = true
-    })
-    return filter
+async function ensureMmcifDicAvailable() {
+    await ensureDicAvailable(MMCIF_DIC_PATH, MMCIF_DIC_URL)
 }
 
-async function ensureMmcifDicAvailable() {
-    if (FORCE_MMCIF_DOWNLOAD || !fs.existsSync(MMCIF_DIC_PATH)) {
+async function ensureIhmDicAvailable() {
+    await ensureDicAvailable(IHM_DIC_PATH, IHM_DIC_URL)
+}
+
+async function ensureDicAvailable(dicPath: string, dicUrl: string) {
+    if (FORCE_DIC_DOWNLOAD || !fs.existsSync(dicPath)) {
         console.log('downloading mmcif dic...')
-        const data = await fetch(MMCIF_DIC_URL)
-        if (!fs.existsSync(MMCIF_DIC_DIR)) {
-            fs.mkdirSync(MMCIF_DIC_DIR);
+        const data = await fetch(dicUrl)
+        if (!fs.existsSync(DIC_DIR)) {
+            fs.mkdirSync(DIC_DIR);
         }
-        fs.writeFileSync(MMCIF_DIC_PATH, await data.text())
+        fs.writeFileSync(dicPath, await data.text())
         console.log('done downloading mmcif dic')
     }
 }
 
-const MMCIF_USAGE_COUNTS_PATH = './data/mmcif-usage-counts.txt'
-const MMCIF_DIC_DIR = './build/dics'
-const MMCIF_DIC_PATH = `${MMCIF_DIC_DIR}/mmcif_pdbx_v50.dic`
+const DIC_DIR = './build/dics'
+const MMCIF_DIC_PATH = `${DIC_DIR}/mmcif_pdbx_v50.dic`
 const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic'
+const IHM_DIC_PATH = `${DIC_DIR}/ihm-extension.dic`
+const IHM_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/IHM-dictionary/master/ihm-extension.dic'
 
 const parser = new argparse.ArgumentParser({
   addHelp: true,
@@ -121,31 +104,25 @@ parser.addArgument([ '--typescript', '-ts' ], {
     action: 'storeTrue',
     help: 'Output schema as TypeScript instead of as JSON'
 });
-parser.addArgument([ '--minFieldUsageCount', '-mc' ], {
-    defaultValue: 0,
-    type: parseInt,
-    help: 'Minimum mmcif field usage counts'
-});
 parser.addArgument([ '--fieldNamesPath', '-fn' ], {
     defaultValue: '',
     help: 'Field names to include'
 });
-parser.addArgument([ '--forceMmcifDicDownload', '-f' ], {
+parser.addArgument([ '--forceDicDownload', '-f' ], {
     action: 'storeTrue',
-    help: 'Force download of mmcif dictionary'
+    help: 'Force download of dictionaries'
 });
 interface Args {
     name: string
-    forceMmcifDicDownload: boolean
+    forceDicDownload: boolean
     fieldNamesPath: string
-    minFieldUsageCount: number
     typescript: boolean
     out: string
 }
 const args: Args = parser.parseArgs();
 
-const FORCE_MMCIF_DOWNLOAD = args.forceMmcifDicDownload
+const FORCE_DIC_DOWNLOAD = args.forceDicDownload
 
 if (args.name) {
-    runGenerateSchema(args.name, args.fieldNamesPath, args.minFieldUsageCount, args.typescript, args.out)
+    runGenerateSchema(args.name, args.fieldNamesPath, args.typescript, args.out)
 }

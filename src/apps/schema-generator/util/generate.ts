@@ -7,11 +7,11 @@
 import { validate } from './validate'
 import { Database, getTypeAndArgs, Filter } from './json-schema'
 
-function header (name: string, importDatabasePath = 'mol-data/db') {
+function header (name: string, info: string, importDatabasePath = 'mol-data/db') {
     return `/**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated '${name}' schema file
+ * Code-generated '${name}' schema file. ${info}
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -39,7 +39,7 @@ export interface ${name}_Database extends Database<${name}_Schema> {}`
 
 const value: { [k: string]: (...args: any[]) => string } = {
     enum: function (type: string, values: string[]) {
-        return `Aliased<'${values.join(`' | '`)}'>(${type})`
+        return `Aliased<'${values.map(v => v.replace(/'/g, '\\\'')).join(`' | '`)}'>(${type})`
     },
     matrix: function (rows: number, cols: number) {
         return `Matrix(${rows}, ${cols})`
@@ -63,7 +63,7 @@ function safePropertyString(name: string) {
     return name.match(reSafePropertyName) ? name : `'${name}'`
 }
 
-export function generate (name: string, schema: Database, fields?: Filter, importDatabasePath?: string) {
+export function generate (name: string, info: string, schema: Database, fields?: Filter, importDatabasePath?: string) {
     const validationResult = validate(schema)
     if (validationResult !== true) {
         throw validationResult
@@ -92,5 +92,5 @@ export function generate (name: string, schema: Database, fields?: Filter, impor
     })
     codeLines.push('}')
 
-    return `${header(name, importDatabasePath)}\n\n${codeLines.join('\n')}\n${footer(name)}`
+    return `${header(name, info, importDatabasePath)}\n\n${codeLines.join('\n')}\n${footer(name)}`
 }
