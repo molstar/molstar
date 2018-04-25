@@ -6,6 +6,7 @@
 
 import { Database, ValueColumn, ListColumn } from './json-schema'
 import * as Data from 'mol-io/reader/cif/data-model'
+import { Frame } from 'mol-io/reader/cif/data-model';
 
 export function getFieldType (type: string, values?: string[]): ValueColumn|ListColumn {
     switch (type) {
@@ -92,7 +93,12 @@ function getField ( category: string, field: string, d: Data.Frame, ctx: FrameDa
         return cat.getField(field)
     } else {
         if (d.header in links) {
-            return getField(category, field, categories[links[d.header]], ctx)
+            const linkName = links[d.header]
+            if (linkName in categories) {
+                return getField(category, field, categories[linkName], ctx)
+            } else {
+                console.log(`link '${linkName}' not found`)
+            }
         } else {
             // console.log(`no links found for '${d.header}'`)
         }
@@ -172,14 +178,14 @@ const SPACE_SEPARATED_LIST_FIELDS = [
     '_pdbx_soln_scatter.data_analysis_software_list', // SCTPL5 GNOM
 ];
 
-export function generateSchema (dic: Data.Block) {
+export function generateSchema (frames: Frame[]) {
     const schema: Database = {}
 
     const categories: FrameCategories = {}
     const links: FrameLinks = {}
     const ctx = { categories, links }
 
-    dic.saveFrames.forEach(d => {
+    frames.forEach(d => {
         if (d.header[0] !== '_') return
         categories[d.header] = d
         const item_linked = d.categories['item_linked']
@@ -201,6 +207,10 @@ export function generateSchema (dic: Data.Block) {
 
     Object.keys(categories).forEach(fullName => {
         const d = categories[fullName]
+        if (!d) {
+            console.log('foo', fullName)
+            return
+        }
         const categoryName = d.header.substring(1, d.header.indexOf('.'))
         const itemName = d.header.substring(d.header.indexOf('.') + 1)
         let fields
