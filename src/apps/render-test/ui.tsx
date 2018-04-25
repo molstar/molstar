@@ -52,6 +52,12 @@ const styles: StyleRulesCallback = (theme: Theme) => ({
         marginRight: theme.spacing.unit,
         width: 200,
     },
+    button: {
+        margin: theme.spacing.unit,
+    },
+    input: {
+        display: 'none',
+    },
 } as any);
 
 const decorate = withStyles(styles);

@@ -25,3 +25,20 @@ export async function getStructuresFromPdbId(pdbid: string) {
     const parsed = await parseCif(await data.text())
     return Structure.ofData({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
 }
+
+const readFileAsText = (file: File) => {
+    const fileReader = new FileReader()
+    return new Promise<string>((resolve, reject) => {
+        fileReader.onerror = () => {
+            fileReader.abort()
+            reject(new DOMException('Error parsing input file.'))
+        }
+        fileReader.onload = () => resolve(fileReader.result)
+        fileReader.readAsText(file)
+    })
+}
+
+export async function getStructuresFromFile(file: File) {
+    const parsed = await parseCif(await readFileAsText(file))
+    return Structure.ofData({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
+}

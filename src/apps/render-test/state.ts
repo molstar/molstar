@@ -17,10 +17,10 @@ import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spac
 import Point, { PointProps } from 'mol-geo/representation/structure/point'
 
 import { Run } from 'mol-task'
-import { Symmetry } from 'mol-model/structure'
+import { Symmetry, Structure } from 'mol-model/structure'
 
 // import mcubes from './utils/mcubes'
-import { getStructuresFromPdbId, log } from './utils'
+import { getStructuresFromPdbId, getStructuresFromFile, log } from './utils'
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 // import Cylinder from 'mol-geo/primitive/cylinder';
 
@@ -77,15 +77,11 @@ export default class State {
         this.viewer.animate()
     }
 
-    async loadPdbId () {
-        const { viewer, pdbId, loading } = this
+    async initStructure (structure: Structure) {
+        const { viewer, loading } = this
         viewer.clear()
 
-        if (pdbId.length !== 4) return
-        loading.next(true)
-
-        const structures = await getStructuresFromPdbId(pdbId)
-        const struct = await Run(Symmetry.buildAssembly(structures[0], '1'), log, 100)
+        const struct = await Run(Symmetry.buildAssembly(structure, '1'), log, 100)
 
         this.pointRepr = StructureRepresentation(Point)
         await Run(this.pointRepr.create(struct, this.getPointProps()), log, 100)
@@ -100,6 +96,23 @@ export default class State {
         console.log(viewer.stats)
 
         loading.next(false)
+    }
+
+    async loadFile (file: File) {
+        this.viewer.clear()
+        this.loading.next(true)
+
+        const structures = await getStructuresFromFile(file)
+        this.initStructure(structures[0])
+    }
+
+    async loadPdbId () {
+        this.viewer.clear()
+        if (this.pdbId.length !== 4) return
+        this.loading.next(true)
+
+        const structures = await getStructuresFromPdbId(this.pdbId)
+        this.initStructure(structures[0])
     }
 
     async update () {
