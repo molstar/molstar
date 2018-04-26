@@ -18,6 +18,7 @@ import { ElementSymbol} from '../types'
 import createAssemblies from './mmcif/assembly'
 
 import mmCIF_Format = Format.mmCIF
+import { getSequence } from './mmcif/sequence';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -106,11 +107,15 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
     const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
+
+    const hierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
+
     return {
         id: UUID.create(),
         sourceData: format,
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
-        hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
+        hierarchy,
+        sequence: getSequence(format.data, hierarchy),
         conformation: getConformation(format, bounds),
         coarseGrained: CoarseGrained.Empty,
         symmetry: getSymmetry(format),

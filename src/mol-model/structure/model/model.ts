@@ -6,6 +6,7 @@
 
 import UUID from 'mol-util/uuid'
 import Format from './format'
+import Sequence from './properties/sequence'
 import Hierarchy from './properties/hierarchy'
 import Conformation from './properties/conformation'
 import Symmetry from './properties/symmetry'
@@ -26,6 +27,7 @@ interface Model extends Readonly<{
 
     sourceData: Format,
 
+    sequence: Sequence,
     hierarchy: Hierarchy,
     conformation: Conformation,
     symmetry: Symmetry,

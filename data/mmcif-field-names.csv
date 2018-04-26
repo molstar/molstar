@@ -58,6 +58,11 @@ entity.pdbx_mutation
 entity.pdbx_fragment
 entity.pdbx_ec
 
+entity_poly_seq.entity_id
+entity_poly_seq.num
+entity_poly_seq.mon_id
+entity_poly_seq.hetero
+
 entry.id
 
 exptl.entry_id

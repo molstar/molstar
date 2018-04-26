@@ -39,7 +39,7 @@ export function atomLabel(model: Model, aI: number) {
 }
 
 
-function printBonds(structure: Structure) {
+export function printBonds(structure: Structure) {
     const { units, elements } = structure;
     const unitIds = ElementSet.unitIndices(elements);
 
@@ -67,12 +67,24 @@ function printBonds(structure: Structure) {
     }
 }
 
+export function printSequence(model: Model) {
+    const { byEntityKey } = model.sequence;
+    for (const key of Object.keys(byEntityKey)) {
+        const seq = byEntityKey[+key];
+        console.log(`${seq.entityId} (${seq.num.value(0)}, ${seq.num.value(seq.num.rowCount - 1)}) (${seq.compId.value(0)}, ${seq.compId.value(seq.compId.rowCount - 1)})`);
+        // for (let i = 0; i < seq.compId.rowCount; i++) {
+        //     console.log(`${seq.entityId} ${seq.num.value(i)} ${seq.compId.value(i)}`);
+        // }
+    }
+}
+
 async function run(pdb: string) {
     const mmcif = await getPdb(pdb)
     const models = Model.create({ kind: 'mmCIF', data: mmcif });
-    const structure = Structure.ofModel(models[0])
+    //const structure = Structure.ofModel(models[0])
     // console.log(structure)
-    printBonds(structure)
+    // printBonds(structure)
+    printSequence(models[0]);
 }
 
 const parser = new argparse.ArgumentParser({

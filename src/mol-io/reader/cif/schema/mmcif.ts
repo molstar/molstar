@@ -86,6 +86,12 @@ export const mmCIF_Schema = {
         pdbx_fragment: str,
         pdbx_ec: List(',', x => x),
     },
+    entity_poly_seq: {
+        entity_id: str,
+        num: int,
+        mon_id: str,
+        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str)
+    },
     entry: {
         id: str,
     },

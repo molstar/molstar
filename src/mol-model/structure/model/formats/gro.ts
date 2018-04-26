@@ -18,6 +18,7 @@ import { guessElement } from '../utils/guess-element'
 import { ElementSymbol} from '../types'
 
 import gro_Format = Format.gro
+import Sequence from '../properties/sequence';
 
 type HierarchyOffsets = { residues: ArrayLike<number>, chains: ArrayLike<number> }
 
@@ -112,11 +113,13 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
     const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
+    const hierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
     return {
         id: UUID.create(),
         sourceData: format,
         modelNum,
-        hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
+        hierarchy,
+        sequence: Sequence.fromHierarchy(hierarchy),
         conformation: getConformation(structure.atoms),
         coarseGrained: CoarseGrained.Empty,
         symmetry: { assemblies: [] },

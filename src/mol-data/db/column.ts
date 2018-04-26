@@ -169,7 +169,7 @@ function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> {
     const map = new Map<T, number>();
     for (let i = 0, _i = c.rowCount; i < _i; i++) {
         const v = c.value(i);
-        if (!map.has(v)) return map.set(c.value(i), i);
+        if (!map.has(v)) map.set(c.value(i), i);
     }
     return map;
 }
