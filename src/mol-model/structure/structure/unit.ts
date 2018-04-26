@@ -47,7 +47,7 @@ namespace Unit {
         // Reference some commonly accessed things for faster access.
         readonly residueIndex: ArrayLike<number>,
         readonly chainIndex: ArrayLike<number>,
-        readonly conformation: Model['conformation']
+        readonly conformation: Model['atomSiteConformation']
     }
 
     // Coarse grained representations.
@@ -58,7 +58,7 @@ namespace Unit {
 
     export function createAtomic(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit {
         const h = model.hierarchy;
-        const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.conformation);
+        const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.atomSiteConformation);
 
         return {
             model,
@@ -68,7 +68,7 @@ namespace Unit {
             residueIndex: h.residueSegments.segmentMap,
             chainIndex: h.chainSegments.segmentMap,
             hierarchy: model.hierarchy,
-            conformation: model.conformation,
+            conformation: model.atomSiteConformation,
             invariantPosition,
             position,
             x, y, z
@@ -89,7 +89,7 @@ namespace Unit {
     export function getLookup3d(unit: Unit, group: ElementGroup) {
         if (group.__lookup3d__)  return group.__lookup3d__;
         if (Unit.isAtomic(unit)) {
-            const { x, y, z } = unit.model.conformation;
+            const { x, y, z } = unit.model.atomSiteConformation;
             group.__lookup3d__ = GridLookup3D({ x, y, z, indices: group.elements });
             return group.__lookup3d__;
         }

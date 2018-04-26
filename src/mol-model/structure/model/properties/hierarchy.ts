@@ -40,15 +40,10 @@ export const ChainsSchema = {
 export type ChainsSchema = typeof ChainsSchema
 export interface Chains extends Table<ChainsSchema> { }
 
-// export const EntitySchema = mmCIF['entity']
-// export type EntitySchema = typeof EntitySchema
-// export interface Entities extends Table<EntitySchema> { }
-
 export interface Data {
     atoms: Atoms,
     residues: Residues,
-    chains: Chains,
-    //entities: Entities
+    chains: Chains
 }
 
 export interface Segments {

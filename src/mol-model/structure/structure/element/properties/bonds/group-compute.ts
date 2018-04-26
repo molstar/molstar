@@ -110,7 +110,7 @@ function computePerAtomBonds(atomA: number[], atomB: number[], _order: number[],
 function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondComputationParameters): GroupBonds {
     const MAX_RADIUS = 3;
 
-    const { x, y, z } = unit.model.conformation;
+    const { x, y, z } = unit.model.atomSiteConformation;
     const atomCount = ElementGroup.size(atoms);
     const { residueIndex } = unit;
     const { type_symbol, label_atom_id, label_alt_id } = unit.model.hierarchy.atoms;

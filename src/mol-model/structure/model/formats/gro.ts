@@ -11,7 +11,7 @@ import { Atoms } from 'mol-io/reader/gro/schema'
 import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
-import Conformation from '../properties/conformation'
+import AtomSiteConformation from '../properties/atom-site-conformation'
 import CoarseGrained from '../properties/coarse-grained'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { guessElement } from '../utils/guess-element'
@@ -77,7 +77,7 @@ function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Hiera
     return { atoms, residues, chains };
 }
 
-function getConformation(atoms: Atoms): Conformation {
+function getConformation(atoms: Atoms): AtomSiteConformation {
     return {
         id: UUID.create(),
         atomId: atoms.atomNumber,
@@ -105,7 +105,7 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
     if (previous && isHierarchyDataEqual(previous.hierarchy, hierarchyData)) {
         return {
             ...previous,
-            conformation: getConformation(structure.atoms)
+            atomSiteConformation: getConformation(structure.atoms)
         };
     }
 
@@ -133,7 +133,7 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
         hierarchy,
         entities,
         sequence: Sequence.fromHierarchy(hierarchy),
-        conformation: getConformation(structure.atoms),
+        atomSiteConformation: getConformation(structure.atoms),
         coarseGrained: CoarseGrained.Empty,
         symmetry: { assemblies: [] },
         atomCount: structure.atoms.count

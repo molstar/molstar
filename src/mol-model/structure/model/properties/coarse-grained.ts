@@ -9,13 +9,14 @@ import { Tensor } from 'mol-math/linear-algebra';
 import { Column } from 'mol-data/db';
 
 interface CoarseGrained {
+    isDefined: boolean,
     modelList: mmCIF['ihm_model_list'],
-    spheres: { [P in keyof CoarseGrained.Sphere]: Column<CoarseGrained.Sphere[P]> },
-    gaussians: { [P in keyof CoarseGrained.Gaussian]: Column<CoarseGrained.Gaussian[P]> }
+    spheres: CoarseGrained.Spheres,
+    gaussians: CoarseGrained.Gaussians
 }
 
 namespace CoarseGrained {
-    export const Empty: CoarseGrained = { } as any;
+    export const Empty: CoarseGrained = { isDefined: false } as any;
 
     interface Site {
         // index to the Model.hierarchy.entities table
@@ -40,6 +41,9 @@ namespace CoarseGrained {
         weight: number,
         covarianceMatrix: Tensor.Data
     }
+
+    export type Spheres = { count: number} & { [P in keyof Sphere]: Column<Sphere[P]> }
+    export type Gaussians = { count: number} & { [P in keyof Gaussian]: Column<Gaussian[P]> }
 }
 
 export default CoarseGrained;

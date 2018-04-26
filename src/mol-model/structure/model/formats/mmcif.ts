@@ -10,7 +10,7 @@ import { Interval, Segmentation } from 'mol-data/int'
 import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
-import Conformation from '../properties/conformation'
+import AtomSiteConformation from '../properties/atom-site-conformation'
 import CoarseGrained from '../properties/coarse-grained'
 import Symmetry from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
@@ -67,7 +67,7 @@ function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: 
     return { atoms, residues, chains };
 }
 
-function getConformation({ data }: mmCIF_Format, bounds: Interval): Conformation {
+function getConformation({ data }: mmCIF_Format, bounds: Interval): AtomSiteConformation {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const { atom_site } = data;
     return {
@@ -99,7 +99,7 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
     if (previous && isHierarchyDataEqual(previous.hierarchy, hierarchyData)) {
         return {
             ...previous,
-            conformation: getConformation(format, bounds)
+            atomSiteConformation: getConformation(format, bounds)
         };
     }
 
@@ -121,7 +121,7 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         entities,
         hierarchy,
         sequence: getSequence(format.data, entities, hierarchy),
-        conformation: getConformation(format, bounds),
+        atomSiteConformation: getConformation(format, bounds),
         coarseGrained: CoarseGrained.Empty,
         symmetry: getSymmetry(format),
         atomCount: Interval.size(bounds)
