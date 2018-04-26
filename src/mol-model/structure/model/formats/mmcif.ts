@@ -19,6 +19,7 @@ import createAssemblies from './mmcif/assembly'
 
 import mmCIF_Format = Format.mmCIF
 import { getSequence } from './mmcif/sequence';
+import { Entities } from '../properties/common';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -63,7 +64,7 @@ function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: 
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
     const chains = Table.view(atom_site, Hierarchy.ChainsSchema, offsets.chains);
-    return { atoms, residues, chains, entities: data.entity };
+    return { atoms, residues, chains };
 }
 
 function getConformation({ data }: mmCIF_Format, bounds: Interval): Conformation {
@@ -106,7 +107,10 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
-    const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
+
+    const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
+
+    const hierarchyKeys = findHierarchyKeys(hierarchyData, entities, hierarchySegments);
 
     const hierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
 
@@ -114,8 +118,9 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         id: UUID.create(),
         sourceData: format,
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
+        entities,
         hierarchy,
-        sequence: getSequence(format.data, hierarchy),
+        sequence: getSequence(format.data, entities, hierarchy),
         conformation: getConformation(format, bounds),
         coarseGrained: CoarseGrained.Empty,
         symmetry: getSymmetry(format),

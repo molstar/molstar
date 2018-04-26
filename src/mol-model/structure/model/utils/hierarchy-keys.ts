@@ -7,6 +7,7 @@
 import { Column } from 'mol-data/db'
 import { Data, Segments, Keys } from '../properties/hierarchy'
 import { Interval, Segmentation } from 'mol-data/int'
+import { Entities } from '../properties/common';
 
 function getResidueId(comp_id: string, seq_id: number, ins_code: string) {
     return `${comp_id} ${seq_id} ${ins_code}`;
@@ -26,24 +27,26 @@ function getElementSubstructureKeyMap(map: Map<number, Map<string, number>>, key
     return ret;
 }
 
-function createLookUp(entity: Map<string, number>, chain: Map<number, Map<string, number>>, residue: Map<number, Map<string, number>>) {
-    const findEntityKey: Keys['findEntityKey'] = (id) => entity.has(id) ? entity.get(id)! : -1;
+function createLookUp(entities: Entities, chain: Map<number, Map<string, number>>, residue: Map<number, Map<string, number>>) {
+    const getEntKey = entities.getEntityIndex;
     const findChainKey: Keys['findChainKey'] = (e, c) => {
-        if (!entity.has(e)) return -1;
-        const cm = chain.get(entity.get(e)!)!;
+        let eKey = getEntKey(e);
+        if (eKey < 0) return -1;
+        const cm = chain.get(eKey)!;
         if (!cm.has(c)) return -1;
         return cm.get(c)!;
     }
     const findResidueKey: Keys['findResidueKey'] = (e, c, name, seq, ins) => {
-        if (!entity.has(e)) return -1;
-        const cm = chain.get(entity.get(e)!)!;
+        let eKey = getEntKey(e);
+        if (eKey < 0) return -1;
+        const cm = chain.get(eKey)!;
         if (!cm.has(c)) return -1;
         const rm = residue.get(cm.get(c)!)!
         const id = getResidueId(name, seq, ins);
         if (!rm.has(id)) return -1;
         return rm.get(id)!;
     }
-    return { findEntityKey, findChainKey, findResidueKey };
+    return { findChainKey, findResidueKey };
 }
 
 function checkMonotonous(xs: ArrayLike<number>) {
@@ -55,10 +58,13 @@ function checkMonotonous(xs: ArrayLike<number>) {
     return true;
 }
 
-function create(data: Data, segments: Segments): Keys {
-    const { chains, residues, entities } = data;
+function missingEntity(k: string) {
+    throw new Error(`Missing entity entry for entity id '${k}'.`);
+}
 
-    const entityMap = Column.createFirstIndexMap(entities.id);
+function create(data: Data, entities: Entities, segments: Segments): Keys {
+    const { chains, residues } = data;
+
     const chainMaps = new Map<number, Map<string, number>>(), chainCounter = { index: 0 };
     const residueMaps = new Map<number, Map<string, number>>(), residueCounter = { index: 0 };
 
@@ -78,7 +84,8 @@ function create(data: Data, segments: Segments): Keys {
         const chainSegment = chainsIt.move();
         const cI = chainSegment.index;
 
-        const eKey = entityMap.get(label_entity_id.value(cI)) || 0;
+        let eKey = entities.getEntityIndex(label_entity_id.value(cI));
+        if (eKey < 0) missingEntity(label_entity_id.value(cI));
         const chainMap = getElementSubstructureKeyMap(chainMaps, eKey);
         const cKey = getElementKey(chainMap, label_asym_id.value(cI), chainCounter);
 
@@ -99,14 +106,13 @@ function create(data: Data, segments: Segments): Keys {
         }
     }
 
-    const { findEntityKey, findChainKey, findResidueKey } = createLookUp(entityMap, chainMaps, residueMaps);
+    const { findChainKey, findResidueKey } = createLookUp(entities, chainMaps, residueMaps);
 
     return {
         isMonotonous: isMonotonous && checkMonotonous(entityKey) && checkMonotonous(chainKey) && checkMonotonous(residueKey),
         residueKey: Column.ofIntArray(residueKey),
         chainKey: Column.ofIntArray(chainKey),
         entityKey: Column.ofIntArray(entityKey),
-        findEntityKey,
         findChainKey,
         findResidueKey
     };

@@ -58,7 +58,7 @@ namespace Table {
         return ret;
     }
 
-    export function ofRows<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, rows: ArrayLike<Row<S>>): R {
+    export function ofRows<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, rows: ArrayLike<Partial<Row<S>>>): R {
         const ret = Object.create(null);
         const rowCount = rows.length;
         const columns = Object.keys(schema);
@@ -83,7 +83,7 @@ namespace Table {
         ret._columns = columns;
         ret._schema = schema;
         for (const k of columns) {
-            (ret as any)[k] = Column.ofArray({ array: arrays[k], schema: schema[k] })
+            (ret as any)[k] = typeof arrays[k] !== 'undefined' ? Column.ofArray({ array: arrays[k], schema: schema[k] }) : Column.Undefined(ret._rowCount, schema[k]);
         }
         return ret as R;
     }

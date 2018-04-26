@@ -59,16 +59,16 @@ function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() :
 const entity = {
     key: eK,
 
-    id: Element.property(l => l.unit.hierarchy.entities.id.value(eK(l))),
-    type: Element.property(l => l.unit.hierarchy.entities.type.value(eK(l))),
-    src_method: Element.property(l => l.unit.hierarchy.entities.src_method.value(eK(l))),
-    pdbx_description: Element.property(l => l.unit.hierarchy.entities.pdbx_description.value(eK(l))),
-    formula_weight: Element.property(l => l.unit.hierarchy.entities.formula_weight.value(eK(l))),
-    pdbx_number_of_molecules: Element.property(l => l.unit.hierarchy.entities.pdbx_number_of_molecules.value(eK(l))),
-    details: Element.property(l => l.unit.hierarchy.entities.details.value(eK(l))),
-    pdbx_mutation: Element.property(l => l.unit.hierarchy.entities.pdbx_mutation.value(eK(l))),
-    pdbx_fragment: Element.property(l => l.unit.hierarchy.entities.pdbx_fragment.value(eK(l))),
-    pdbx_ec: Element.property(l => l.unit.hierarchy.entities.pdbx_ec.value(eK(l)))
+    id: Element.property(l => l.unit.model.entities.data.id.value(eK(l))),
+    type: Element.property(l => l.unit.model.entities.data.type.value(eK(l))),
+    src_method: Element.property(l => l.unit.model.entities.data.src_method.value(eK(l))),
+    pdbx_description: Element.property(l => l.unit.model.entities.data.pdbx_description.value(eK(l))),
+    formula_weight: Element.property(l => l.unit.model.entities.data.formula_weight.value(eK(l))),
+    pdbx_number_of_molecules: Element.property(l => l.unit.model.entities.data.pdbx_number_of_molecules.value(eK(l))),
+    details: Element.property(l => l.unit.model.entities.data.details.value(eK(l))),
+    pdbx_mutation: Element.property(l => l.unit.model.entities.data.pdbx_mutation.value(eK(l))),
+    pdbx_fragment: Element.property(l => l.unit.model.entities.data.pdbx_fragment.value(eK(l))),
+    pdbx_ec: Element.property(l => l.unit.model.entities.data.pdbx_ec.value(eK(l)))
 }
 
 const unit = {

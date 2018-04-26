@@ -11,6 +11,7 @@ import Hierarchy from './properties/hierarchy'
 import Conformation from './properties/conformation'
 import Symmetry from './properties/symmetry'
 import CoarseGrained from './properties/coarse-grained'
+import { Entities } from './properties/common';
 
 import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
@@ -27,7 +28,9 @@ interface Model extends Readonly<{
 
     sourceData: Format,
 
+    entities: Entities,
     sequence: Sequence,
+
     hierarchy: Hierarchy,
     conformation: Conformation,
     symmetry: Symmetry,

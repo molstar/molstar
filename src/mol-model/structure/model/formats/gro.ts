@@ -16,9 +16,11 @@ import CoarseGrained from '../properties/coarse-grained'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { guessElement } from '../utils/guess-element'
 import { ElementSymbol} from '../types'
+import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 
 import gro_Format = Format.gro
 import Sequence from '../properties/sequence';
+import { Entities } from '../properties/common';
 
 type HierarchyOffsets = { residues: ArrayLike<number>, chains: ArrayLike<number> }
 
@@ -71,9 +73,8 @@ function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Hiera
     // });
 
     const chains = Table.ofUndefinedColumns(Hierarchy.ChainsSchema, 0);
-    const entities = Table.ofUndefinedColumns(Hierarchy.EntitySchema, 0);
 
-    return { atoms, residues, chains, entities };
+    return { atoms, residues, chains };
 }
 
 function getConformation(atoms: Atoms): Conformation {
@@ -112,13 +113,25 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
-    const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
+
+    // TODO: create a better mock entity
+    const entityTable = Table.ofRows<mmCIF['entity']>(mmCIF.entity, [{
+        id: '0',
+        src_method: 'syn',
+        type: 'polymer',
+        pdbx_number_of_molecules: 1
+    }]);
+
+    const entities: Entities = { data: entityTable, getEntityIndex: Column.createIndexer(entityTable.id) };
+
+    const hierarchyKeys = findHierarchyKeys(hierarchyData, entities, hierarchySegments);
     const hierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
     return {
         id: UUID.create(),
         sourceData: format,
         modelNum,
         hierarchy,
+        entities,
         sequence: Sequence.fromHierarchy(hierarchy),
         conformation: getConformation(structure.atoms),
         coarseGrained: CoarseGrained.Empty,

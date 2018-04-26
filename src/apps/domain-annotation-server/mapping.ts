@@ -112,6 +112,6 @@ function getDomain(name: string, schema: any, allData: any) {
     return domains.length > 0 ? {
         name,
         domains: Table.ofRows({ ...S.Base, ...schema }, domains),
-        mappings: Table.ofRows(S.mapping, mappings)
+        mappings: Table.ofRows<S.mapping>(S.mapping, mappings)
     } : void 0;
 }

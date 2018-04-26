@@ -8,8 +8,9 @@ import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import Sequence from '../../properties/sequence'
 import { Column } from 'mol-data/db';
 import { Hierarchy } from '../../properties/hierarchy';
+import { Entities } from '../../properties/common';
 
-export function getSequence(cif: mmCIF, hierarchy: Hierarchy): Sequence {
+export function getSequence(cif: mmCIF, entities: Entities, hierarchy: Hierarchy): Sequence {
     if (!cif.entity_poly_seq._rowCount) return Sequence.fromHierarchy(hierarchy);
 
     const { entity_id, num, mon_id } = cif.entity_poly_seq;
@@ -24,7 +25,7 @@ export function getSequence(cif: mmCIF, hierarchy: Hierarchy): Sequence {
         i++;
 
         const id = entity_id.value(start);
-        byEntityKey[hierarchy.findEntityKey(id)] = { entityId: id, compId: Column.window(mon_id, start, i), num: Column.window(num, start, i)  }
+        byEntityKey[entities.getEntityIndex(id)] = { entityId: id, compId: Column.window(mon_id, start, i), num: Column.window(num, start, i)  }
     }
 
     return { byEntityKey };
