@@ -11,7 +11,6 @@ import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
 import AtomSiteConformation from '../properties/atom-site-conformation'
-import CoarseGrained from '../properties/coarse-grained'
 import Symmetry from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { ElementSymbol} from '../types'
@@ -20,6 +19,7 @@ import createAssemblies from './mmcif/assembly'
 import mmCIF_Format = Format.mmCIF
 import { getSequence } from './mmcif/sequence';
 import { Entities } from '../properties/common';
+import { coarseGrainedFromIHM } from './mmcif/ihm';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -31,6 +31,8 @@ function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
 }
 
 function findHierarchyOffsets({ data }: mmCIF_Format, bounds: Interval) {
+    if (Interval.size(bounds) === 0) return { residues: [], chains: [] };
+
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const residues = [start], chains = [start];
 
@@ -122,18 +124,23 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         hierarchy,
         sequence: getSequence(format.data, entities, hierarchy),
         atomSiteConformation: getConformation(format, bounds),
-        coarseGrained: CoarseGrained.Empty,
+        coarseGrained: coarseGrainedFromIHM(format.data, entities),
         symmetry: getSymmetry(format),
         atomCount: Interval.size(bounds)
     };
 }
 
 function buildModels(format: mmCIF_Format): ReadonlyArray<Model> {
-    const models: Model[] = [];
     const atomCount = format.data.atom_site._rowCount;
+    const isIHM = format.data.ihm_model_list._rowCount > 0;
 
-    if (atomCount === 0) return models;
+    if (atomCount === 0) {
+        return isIHM
+            ? [createModel(format, Interval.Empty, void 0)]
+            : [];
+    }
 
+    const models: Model[] = [];
     let modelStart = 0;
     while (modelStart < atomCount) {
         const bounds = findModelBounds(format, modelStart);

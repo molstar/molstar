@@ -9,6 +9,7 @@ import ElementGroup from './element/group'
 import { Model } from '../model'
 import { GridLookup3D } from 'mol-math/geometry'
 import { computeUnitBonds } from './element/properties/bonds/group-compute';
+import CoarseGrained from '../model/properties/coarse-grained';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -29,9 +30,7 @@ namespace Unit {
         // Things like inter-unit bonds or spatial lookups
         // can be be implemented efficiently as "views" of the
         // full group.
-        readonly fullGroup: ElementGroup,
-
-        readonly hierarchy: Model['hierarchy'],
+        readonly fullGroup: ElementGroup
     }
 
     // A bulding block of a structure that corresponds
@@ -47,16 +46,21 @@ namespace Unit {
         // Reference some commonly accessed things for faster access.
         readonly residueIndex: ArrayLike<number>,
         readonly chainIndex: ArrayLike<number>,
-        readonly conformation: Model['atomSiteConformation']
+        readonly conformation: Model['atomSiteConformation'],
+        readonly hierarchy: Model['hierarchy']
     }
 
     // Coarse grained representations.
-    // TODO: can we use the ArrayMapping here?
     export interface Coarse extends Base  {
-        readonly kind: Unit.Kind.Coarse
+        readonly kind: Unit.Kind.Coarse,
+        readonly elementType: CoarseGrained.ElementType,
+
+        readonly siteBases: CoarseGrained.SiteBases,
+        readonly spheres: CoarseGrained.Spheres,
+        readonly gaussians: CoarseGrained.Gaussians
     }
 
-    export function createAtomic(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit {
+    export function createAtomic(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit.Atomic {
         const h = model.hierarchy;
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.atomSiteConformation);
 
@@ -75,14 +79,29 @@ namespace Unit {
         };
     }
 
-    export function createCoarse(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit {
-        throw 'not implemented'
+    export function createCoarse(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup, elementType: CoarseGrained.ElementType): Unit.Coarse {
+        const siteBases = elementType === CoarseGrained.ElementType.Sphere ? model.coarseGrained.spheres : model.coarseGrained.gaussians;
+        const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, siteBases);
+
+        return {
+            model,
+            kind: Kind.Coarse,
+            elementType,
+            operator,
+            fullGroup,
+            siteBases,
+            spheres: model.coarseGrained.spheres,
+            gaussians: model.coarseGrained.gaussians,
+            invariantPosition,
+            position,
+            x, y, z
+        };
     }
 
     export function withOperator(unit: Unit, operator: SymmetryOperator): Unit {
         switch (unit.kind) {
             case Kind.Atomic: return createAtomic(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.fullGroup);
-            case Kind.Coarse: return createCoarse(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.fullGroup);
+            case Kind.Coarse: return createCoarse(unit.model, SymmetryOperator.compose(unit.operator, operator), unit.fullGroup, unit.elementType);
         }
     }
 

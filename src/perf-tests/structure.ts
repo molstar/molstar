@@ -148,7 +148,7 @@ export namespace PropertyAccess {
 
         let vA = 0, cC = 0, rC = 0;
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unit = units[unitIds[i]];
+            const unit = units[unitIds[i]] as Unit.Atomic;
             l.unit = unit;
             const set = ElementSet.groupAt(elements, i);
 
