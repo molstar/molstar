@@ -86,7 +86,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                     position: mesh.vertexBuffer,
                     normal: mesh.normalBuffer as ValueCell<Float32Array>,
-                    color: color,
+                    color: ValueCell.create(color),
                     id: mesh.idBuffer as ValueCell<Float32Array>,
                     transform: ValueCell.create(transforms),
                     index: mesh.indexBuffer,

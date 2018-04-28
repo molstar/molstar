@@ -12,6 +12,9 @@ import { SizeData } from 'mol-geo/util/size-data';
 import { Attributes, AttributesData, AttributesBuffers } from '../renderable'
 import Attribute from '../attribute'
 import { ShaderDefines } from '../shaders';
+import { UniformDefs, UniformValues } from '../webgl/uniform';
+import { AttributeDefs } from '../webgl/buffer';
+
 
 export type ReglUniforms = { [k: string]: REGL.Uniform | REGL.Texture }
 export type ReglAttributes = { [k: string]: REGL.AttributeConfig }
@@ -67,9 +70,9 @@ export function createColorUniforms (regl: REGL.Regl, color: ValueCell<Texture>)
     }
 }
 
-export function getColorDefines(color: ColorData) {
+export function getColorDefines(color: ValueCell<ColorData>) {
     const defines: ShaderDefines = {}
-    switch (color.type) {
+    switch (color.ref.value.type) {
         case 'uniform': defines.UNIFORM_COLOR = ''; break;
         case 'attribute': defines.ATTRIBUTE_COLOR = ''; break;
         case 'element': defines.ELEMENT_COLOR = ''; break;
@@ -79,9 +82,9 @@ export function getColorDefines(color: ColorData) {
     return defines
 }
 
-export function getSizeDefines(size: SizeData) {
+export function getSizeDefines(size: ValueCell<SizeData>) {
     const defines: ShaderDefines = {}
-    switch (size.type) {
+    switch (size.ref.value.type) {
         case 'uniform': defines.UNIFORM_SIZE = ''; break;
         case 'attribute': defines.ATTRIBUTE_SIZE = ''; break;
     }
@@ -113,26 +116,80 @@ interface BaseProps {
     id: ValueCell<Float32Array>
     transform: ValueCell<Float32Array>
 
-    size?: SizeData
-    color: ColorData
+    size?: ValueCell<SizeData>
+    color: ValueCell<ColorData>
 }
 
-export function createBaseUniforms(regl: REGL.Regl, props: BaseProps): ReglUniforms {
-    const { objectId, instanceCount, elementCount, color, size } = props
-    const uniforms = { objectId, instanceCount, elementCount }
+export function getBaseUniformDefs(props: BaseProps) {
+    const uniformDefs: UniformDefs = {
+        model: 'm4',
+        view: 'm4',
+        projection: 'm4',
+
+        objectId: 'i',
+        instanceCount: 'i',
+        elementCount: 'i'
+    }
+    const color = props.color.ref.value
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
-        Object.assign(uniforms, createColorUniforms(regl, color.value))
+        uniformDefs.colorTexSize = 'v2'
+        uniformDefs.colorTex = 't2'
     } else if (color.type === 'uniform') {
-        Object.assign(uniforms, { color: color.value })
+        uniformDefs.color = 'v3'
     }
+    const size = props.size ? props.size.ref.value : undefined
     if (size && size.type === 'uniform') {
-        Object.assign(uniforms, { size: size.value })
+        uniformDefs.size = 'f'
     }
-    return uniforms
+    return uniformDefs
+}
+
+export function getBaseUniformValues(props: BaseProps) {
+    const { objectId, instanceCount, elementCount } = props
+    const uniformValues: UniformValues<any> = {
+        objectId, instanceCount, elementCount
+    }
+    const color = props.color.ref.value
+    if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
+        const { width, height } = color.value.ref.value
+        uniformValues.colorTex = new ImageData(new Uint8ClampedArray(color.value.ref.value), width, height)
+        uniformValues.colorTexSize = [ width, height ]
+    } else if (color.type === 'uniform') {
+        uniformValues.color = color.value
+    }
+    const size = props.size ? props.size.ref.value : undefined
+    if (size && size.type === 'uniform') {
+        uniformValues.size = size.value
+    }
+    return uniformValues
+}
+
+export function getBaseAttributeDefs(props: BaseProps) {
+    const attributeDefs: AttributeDefs = {
+        instanceId: { kind: 'float32', itemSize: 1, divisor: 1 },
+        position: { kind: 'float32', itemSize: 1, divisor: 0 },
+        elementId: { kind: 'float32', itemSize: 1, divisor: 0 },
+        transformColumn0: { kind: 'float32', itemSize: 4, divisor: 1 },
+        transformColumn1: { kind: 'float32', itemSize: 4, divisor: 1 },
+        transformColumn2: { kind: 'float32', itemSize: 4, divisor: 1 },
+        transformColumn3: { kind: 'float32', itemSize: 4, divisor: 1 },
+    }
+    const color = props.color.ref.value
+    if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
+        uniformDefs.colorTexSize = 'v2'
+        uniformDefs.colorTex = 't2'
+    } else if (color.type === 'uniform') {
+        uniformDefs.color = 'v3'
+    }
+    const size = props.size ? props.size.ref.value : undefined
+    if (size && size.type === 'uniform') {
+        uniformDefs.size = 'f'
+    }
+    return attributeDefs
 }
 
 export function createBaseAttributes(regl: REGL.Regl, props: BaseProps): ReglAttributes {
-    const { instanceCount, positionCount, position, color, id, normal, size, transform } = props
+    const { instanceCount, positionCount, position, id, normal, transform } = props
     const instanceId = ValueCell.create(fillSerial(new Float32Array(instanceCount)))
     const attributes = getBuffers({
         instanceId: Attribute.create(regl, instanceId, instanceCount, { size: 1, divisor: 1 }),
@@ -143,9 +200,11 @@ export function createBaseAttributes(regl: REGL.Regl, props: BaseProps): ReglAtt
     if (normal) {
         attributes.normal = Attribute.create(regl, normal as any, positionCount, { size: 3 }).buffer
     }
+    const color = props.color.ref.value
     if (color.type === 'attribute') {
         attributes.color = Attribute.create(regl, color.value, positionCount, { size: 3 }).buffer
     }
+    const size = props.size ? props.size.ref.value : undefined
     if (size && size.type === 'attribute') {
         attributes.size = Attribute.create(regl, size.value, positionCount, { size: 1 }).buffer
     }

@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-interface Shaders {
+export interface Shaders {
     vert: string
     frag: string
 }
@@ -18,6 +18,11 @@ export const PointShaders = {
 export const MeshShaders = {
     vert: require('mol-gl/shader/mesh.vert'),
     frag: require('mol-gl/shader/mesh.frag')
+}
+
+export const SimpleShaders = {
+    vert: require('mol-gl/shader/simple.vert'),
+    frag: require('mol-gl/shader/simple.frag')
 }
 
 type ShaderDefine = (

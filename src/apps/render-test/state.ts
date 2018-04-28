@@ -22,6 +22,7 @@ import { Symmetry, Structure } from 'mol-model/structure'
 // import mcubes from './utils/mcubes'
 import { getStructuresFromPdbId, getStructuresFromFile, log } from './utils'
 import { StructureRepresentation } from 'mol-geo/representation/structure';
+import { Color } from 'mol-util/color';
 // import Cylinder from 'mol-geo/primitive/cylinder';
 
 
@@ -29,7 +30,8 @@ export const ColorTheme = {
     'atom-index': {},
     'chain-id': {},
     'element-symbol': {},
-    'instance-index': {}
+    'instance-index': {},
+    'uniform': {}
 }
 export type ColorTheme = keyof typeof ColorTheme
 
@@ -39,7 +41,8 @@ export default class State {
     initialized = new BehaviorSubject<boolean>(false)
     loading = new BehaviorSubject<boolean>(false)
 
-    colorTheme = new BehaviorSubject<ColorTheme>('atom-index')
+    colorTheme = new BehaviorSubject<ColorTheme>('uniform')
+    colorValue = new BehaviorSubject<Color>(0xFF0000)
     detail = new BehaviorSubject<number>(2)
 
     pointVisibility = new BehaviorSubject<boolean>(true)
@@ -50,6 +53,7 @@ export default class State {
 
     constructor() {
         this.colorTheme.subscribe(() => this.update())
+        this.colorValue.subscribe(() => this.update())
         this.detail.subscribe(() => this.update())
 
         this.pointVisibility.subscribe(() => this.updateVisibility())
@@ -57,16 +61,22 @@ export default class State {
     }
 
     getSpacefillProps (): SpacefillProps {
+        const colorThemeName = this.colorTheme.getValue()
         return {
             detail: this.detail.getValue(),
-            colorTheme: { name: this.colorTheme.getValue() },
+            colorTheme: colorThemeName === 'uniform' ?
+                { name: colorThemeName, value: this.colorValue.getValue() } :
+                { name: colorThemeName }
         }
     }
 
     getPointProps (): PointProps {
+        const colorThemeName = this.colorTheme.getValue()
         return {
-            colorTheme: { name: this.colorTheme.getValue() },
-            sizeTheme: { name: 'uniform', value: 0.1 }
+            sizeTheme: { name: 'uniform', value: 0.1 },
+            colorTheme: colorThemeName === 'uniform' ?
+                { name: colorThemeName, value: this.colorValue.getValue() } :
+                { name: colorThemeName }
         }
     }
 
@@ -88,8 +98,8 @@ export default class State {
         viewer.add(this.pointRepr)
 
         this.spacefillRepr = StructureRepresentation(Spacefill)
-        await Run(this.spacefillRepr.create(struct, this.getSpacefillProps()), log, 100)
-        viewer.add(this.spacefillRepr)
+        // await Run(this.spacefillRepr.create(struct, this.getSpacefillProps()), log, 100)
+        // viewer.add(this.spacefillRepr)
 
         this.updateVisibility()
         viewer.requestDraw()
@@ -121,6 +131,7 @@ export default class State {
         await Run(this.pointRepr.update(this.getPointProps()), log, 100)
         this.viewer.add(this.spacefillRepr)
         this.viewer.add(this.pointRepr)
+        this.viewer.update()
         this.viewer.requestDraw()
         console.log(this.viewer.stats)
     }

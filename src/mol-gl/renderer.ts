@@ -8,8 +8,10 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Viewport } from 'mol-view/camera/util';
 import { Camera } from 'mol-view/camera/base';
 
-import * as glContext from './context'
 import Scene, { RenderObject } from './scene';
+import { createContext } from './webgl/context';
+import { SimpleShaders } from './shaders';
+import { createRenderable, RenderableProps, RenderableState } from './renderable';
 
 export interface RendererStats {
     elementsCount: number
@@ -22,6 +24,7 @@ export interface RendererStats {
 interface Renderer {
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
+    update: () => void
     clear: () => void
     draw: () => void
 
@@ -45,69 +48,112 @@ function getPixelRatio() {
 
 namespace Renderer {
     export function create(gl: WebGLRenderingContext, camera: Camera): Renderer {
-        const regl = glContext.create({ gl, extensions, optionalExtensions, profile: false })
-        const scene = Scene.create(regl)
 
-        const baseContext = regl({
-            context: {
-                model: Mat4.identity(),
-                transform: Mat4.identity(),
-                view: camera.view,
-                projection: camera.projection,
+        const ctx = createContext(gl)
+
+        const renderableProps: RenderableProps = {
+            shaders: SimpleShaders,
+            uniform: {
+                model: 'm4',
+                view: 'm4',
+                projection: 'm4'
             },
-            uniforms: {
-                pixelRatio: getPixelRatio(),
-                viewportHeight: regl.context('viewportHeight'),
+            attribute: {
+                position: { kind: 'float32', itemSize: 3, divisor: 0 }
+            },
+            texture: {
 
-                model: regl.context('model' as any),
-                transform: regl.context('transform' as any),
-                view: regl.context('view' as any),
-                projection: regl.context('projection' as any),
-
-                'light.position': Vec3.create(0, 0, -100),
-                'light.color': Vec3.create(1.0, 1.0, 1.0),
-                'light.ambient': Vec3.create(0.5, 0.5, 0.5),
-                'light.falloff': 0,
-                'light.radius': 500
             }
-        })
+        }
+
+        const renderableState: RenderableState<typeof renderableProps> = {
+            uniform: {
+                model: Mat4.identity(),
+                view: camera.view,
+                projection: camera.projection
+            },
+            attribute: {
+                position: new Float32Array([0, 0, 0, 10, 10, 0, -10, 0, 0])
+            },
+            texture: {
+
+            },
+
+            drawCount: 3
+        }
+
+        const renderable = createRenderable(ctx, renderableProps, renderableState)
+
+        // const regl = glContext.create({ gl, extensions, optionalExtensions, profile: false })
+        // const scene = Scene.create(regl)
+
+        // const baseContext = regl({
+        //     context: {
+        //         model: Mat4.identity(),
+        //         transform: Mat4.identity(),
+        //         view: camera.view,
+        //         projection: camera.projection,
+        //     },
+        //     uniforms: {
+        //         pixelRatio: getPixelRatio(),
+        //         viewportHeight: regl.context('viewportHeight'),
+
+        //         model: regl.context('model' as any),
+        //         transform: regl.context('transform' as any),
+        //         view: regl.context('view' as any),
+        //         projection: regl.context('projection' as any),
+
+        //         'light.position': Vec3.create(0, 0, -100),
+        //         'light.color': Vec3.create(1.0, 1.0, 1.0),
+        //         'light.ambient': Vec3.create(0.5, 0.5, 0.5),
+        //         'light.falloff': 0,
+        //         'light.radius': 500
+        //     }
+        // })
 
         const draw = () => {
-            regl.poll() // updates timers and viewport
-            baseContext(state => {
-                regl.clear({ color: [0, 0, 0, 1] })
-                // TODO painters sort, filter visible, filter picking, visibility culling?
-                scene.forEach((r, o) => {
-                    if (o.visible) r.draw()
-                })
-            })
+            // regl.poll() // updates timers and viewport
+            // baseContext(state => {
+            //     regl.clear({ color: [0, 0, 0, 1] })
+            //     // TODO painters sort, filter visible, filter picking, visibility culling?
+            //     scene.forEach((r, o) => {
+            //         if (o.visible) r.draw()
+            //     })
+            // })
+
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            renderable.draw()
         }
 
         return {
             add: (o: RenderObject) => {
-                scene.add(o)
+                // scene.add(o)
             },
             remove: (o: RenderObject) => {
-                scene.remove(o)
+                // scene.remove(o)
+            },
+            update: () => {
+                // scene.forEach((r, o) => r.update(o))
             },
             clear: () => {
-                scene.clear()
+                // scene.clear()
             },
             draw,
             setViewport: (viewport: Viewport) => {
-                regl({ viewport })
+                gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
+                // regl({ viewport })
             },
             get stats() {
                 return {
-                    elementsCount: regl.stats.elementsCount,
-                    bufferCount: regl.stats.bufferCount,
-                    textureCount: regl.stats.textureCount,
-                    shaderCount: regl.stats.shaderCount,
-                    renderableCount: scene.count
-                }
+                    // elementsCount: regl.stats.elementsCount,
+                    // bufferCount: regl.stats.bufferCount,
+                    // textureCount: regl.stats.textureCount,
+                    // shaderCount: regl.stats.shaderCount,
+                    // renderableCount: scene.count
+                } as any
             },
             dispose: () => {
-                regl.destroy()
+                // regl.destroy()
             }
         }
     }

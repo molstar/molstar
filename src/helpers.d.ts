@@ -12,4 +12,5 @@ declare module Helpers {
     export type TypedArray = Int8Array | Uint8Array | Int16Array | Uint16Array | Int32Array | Uint32Array | Uint8ClampedArray | Float32Array | Float64Array
     export type NumberArray = TypedArray | number[]
     export type UintArray = Uint8Array | Uint16Array | Uint32Array | number[]
+    export type ValueOf<T> = T[keyof T]
 }

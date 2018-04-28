@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import REGL = require('regl');
 import { PointRenderable, MeshRenderable, Renderable } from './renderable'
 
 import { ValueCell } from 'mol-util';
+import { Context } from './webgl/context';
 
 let _renderObjectId = 0;
 function getNextId() {
@@ -28,10 +28,10 @@ export function createPointRenderObject(props: PointRenderable.Data): PointRende
     return { id: getNextId(), type: 'point', props, visible: true }
 }
 
-export function createRenderable(regl: REGL.Regl, o: RenderObject) {
+export function createRenderable(ctx: Context, o: RenderObject) {
     switch (o.type) {
-        case 'mesh': return MeshRenderable.create(regl, o.props)
-        case 'point': return PointRenderable.create(regl, o.props)
+        case 'mesh': return MeshRenderable.create(ctx, o.props)
+        case 'point': return PointRenderable.create(ctx, o.props)
     }
 }
 
@@ -39,18 +39,18 @@ interface Scene {
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
     clear: () => void
-    forEach: (callbackFn: (value: Renderable, key: RenderObject) => void) => void
+    forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
     count: number
 }
 
 namespace Scene {
-    export function create(regl: REGL.Regl): Scene {
-        const renderableMap = new Map<RenderObject, Renderable>()
+    export function create(ctx: Context): Scene {
+        const renderableMap = new Map<RenderObject, Renderable<any>>()
 
         return {
             add: (o: RenderObject) => {
                 if (!renderableMap.has(o)) {
-                    renderableMap.set(o, createRenderable(regl, o))
+                    renderableMap.set(o, createRenderable(ctx, o))
                 } else {
                     console.warn(`RenderObject with id '${o.id}' already present`)
                 }
@@ -66,7 +66,7 @@ namespace Scene {
                 renderableMap.forEach(renderable => renderable.dispose())
                 renderableMap.clear()
             },
-            forEach: (callbackFn: (value: Renderable, key: RenderObject) => void) => {
+            forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach(callbackFn)
             },
             get count() {

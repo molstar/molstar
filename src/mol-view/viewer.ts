@@ -22,6 +22,7 @@ interface Viewer {
 
     add: (repr: StructureRepresentation) => void
     remove: (repr: StructureRepresentation) => void
+    update: () => void
     clear: () => void
 
     draw: (force?: boolean) => void
@@ -119,6 +120,7 @@ namespace Viewer {
                 const renderObjectSet = reprMap.get(repr)
                 if (renderObjectSet) renderObjectSet.forEach(o => renderer.remove(o))
             },
+            update: () => renderer.update(),
             clear: () => {
                 reprMap.clear()
                 renderer.clear()

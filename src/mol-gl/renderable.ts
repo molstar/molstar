@@ -4,24 +4,70 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import REGL = require('regl');
-import Attribute from './attribute'
 import PointRenderable from './renderable/point'
 import MeshRenderable from './renderable/mesh'
+import { Shaders } from './shaders';
+import { UniformDefs, UniformValues } from './webgl/uniform';
+import { AttributeDefs, AttributeValues, createAttributeBuffers } from './webgl/buffer';
+import { TextureDefs, TextureValues, createTextures } from './webgl/texture';
+import { Context } from './webgl/context';
+import { createProgram } from './webgl/program';
 
-export type AttributesMutator<T extends AttributesData> = (data: T) => (boolean | void)
-export type AttributesData = { [k: string]: Helpers.TypedArray }
-export type Attributes<T extends AttributesData> = { [K in keyof T]: Attribute<T[K]> }
-export type AttributesBuffers<T extends AttributesData> = { [K in keyof T]: REGL.AttributeConfig }
+export type RenderableProps = {
+    shaders: Shaders
+    uniform: UniformDefs
+    attribute: AttributeDefs
+    texture: TextureDefs
+}
 
-export interface Renderable {
-    draw(): void
-    dispose(): void
-    stats: REGL.CommandStats
-    name: string
-    // isPicking: () => boolean
-    // isVisible: () => boolean
-    // isTransparent: () => boolean
+export type RenderableState<T extends RenderableProps> = {
+    uniform: UniformValues<T['uniform']>
+    attribute: AttributeValues<T['attribute']>
+    texture: TextureValues<T['texture']>
+
+    drawCount: number
+}
+
+export interface Renderable<T extends RenderableProps> {
+    readonly hash: string
+    readonly programId: number
+
+    loadAttributes: (state: Partial<AttributeValues<T['attribute']>>) => void
+
+    draw: () => void
+    dispose: () => void
+}
+
+export function createRenderable<T extends RenderableProps>(ctx: Context, props: T, state: RenderableState<T>): Renderable<T> {
+    const { gl } = ctx
+    const hash = JSON.stringify(props)
+    const program = createProgram(ctx, props.shaders, props.uniform, props.attribute, props.texture)
+    const attributeBuffers = createAttributeBuffers(ctx, props.attribute, state.attribute)
+    const textures = createTextures(gl, props.texture, state.texture)
+
+    function loadAttributes(state: Partial<AttributeValues<T['attribute']>>) {
+        Object.keys(state).forEach(k => {
+            const value = state[k]
+            if (value !== undefined) attributeBuffers[k].updateData(value)
+        })
+    }
+
+    return {
+        hash,
+        programId: program.id,
+
+        loadAttributes,
+
+        draw: () => {
+            program.setUniforms(state.uniform)
+            program.bindAttributes(attributeBuffers)
+            program.bindTextures(textures)
+            gl.drawArrays(gl.TRIANGLES, 0, state.drawCount);
+        },
+        dispose: () => {
+            // TODO
+        }
+    }
 }
 
 export { PointRenderable, MeshRenderable }

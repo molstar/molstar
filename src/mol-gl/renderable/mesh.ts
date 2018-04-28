@@ -22,7 +22,7 @@ namespace Mesh {
         normal?: ValueCell<Float32Array>
         id: ValueCell<Float32Array>
 
-        color: ColorData
+        color: ValueCell<ColorData>
         transform: ValueCell<Float32Array>
         index: ValueCell<Uint32Array>
 
@@ -58,6 +58,9 @@ namespace Mesh {
                 return command.stats
             },
             name: 'mesh',
+            update: (newProps: Data) => {
+                console.log('Updating mesh renderable')
+            },
             dispose: () => {
                 destroyAttributes(attributes)
                 destroyUniforms(uniforms)

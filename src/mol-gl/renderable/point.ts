@@ -8,7 +8,7 @@ import REGL = require('regl');
 import { ValueCell } from 'mol-util/value-cell'
 
 import { Renderable } from '../renderable'
-import { createBaseDefines, createBaseUniforms, createBaseAttributes, destroyUniforms, destroyAttributes } from './util'
+import { createBaseDefines, createBaseUniforms, createBaseAttributes, destroyUniforms, destroyAttributes, updateBaseUniforms } from './util'
 import { PointShaders, addDefines } from '../shaders'
 import { ColorData } from 'mol-geo/util/color-data';
 import { SizeData } from 'mol-geo/util/size-data';
@@ -22,8 +22,8 @@ namespace Point {
         position: ValueCell<Float32Array>
         id: ValueCell<Float32Array>
 
-        size: SizeData
-        color: ColorData
+        size: ValueCell<SizeData>
+        color: ValueCell<ColorData>
         transform: ValueCell<Float32Array>
 
         instanceCount: number
@@ -34,6 +34,8 @@ namespace Point {
     }
 
     export function create(regl: REGL.Regl, props: Data): Renderable {
+        let curProps = props
+
         const defines = createBaseDefines(regl, props)
         const uniforms = createBaseUniforms(regl, props)
         const attributes = createBaseAttributes(regl, props)
@@ -54,6 +56,13 @@ namespace Point {
                 return command.stats
             },
             name: 'point',
+            update: (newProps: Data) => {
+                console.log('Updating point renderable')
+                // const newUniforms = updateBaseUniforms(regl, uniforms, newProps, curProps)
+                const newUniforms = { ...uniforms, color: 0xFF4411 }
+                console.log(newUniforms)
+                // command({ uniforms: newUniforms })
+            },
             dispose: () => {
                 destroyAttributes(attributes)
                 destroyUniforms(uniforms)

@@ -5,18 +5,17 @@
  */
 
 import { ValueCell } from 'mol-util/value-cell'
-
 import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/scene'
-
 import { OrderedSet } from 'mol-data/int'
 import { Unit, ElementGroup } from 'mol-model/structure';
-import { RepresentationProps, UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
+import { RepresentationProps, UnitsRepresentation } from './index';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes } from './utils';
+import { deepEqual } from 'mol-util';
 
 export const DefaultPointProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
@@ -41,14 +40,22 @@ export function createPointVertices(unit: Unit, elementGroup: ElementGroup) {
 export default function Point(): UnitsRepresentation<PointProps> {
     const renderObjects: RenderObject[] = []
     let points: PointRenderObject
+    let curProps = DefaultPointProps
+
+    let _units: ReadonlyArray<Unit>
+    let _elementGroup: ElementGroup
 
     return {
         renderObjects,
         create(units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: PointProps = {}) {
             return Task.create('Point.create', async ctx => {
                 renderObjects.length = 0 // clear
+                curProps = { ...DefaultPointProps, ...props }
 
-                const { colorTheme, sizeTheme } = { ...DefaultPointProps, ...props }
+                _units = units
+                _elementGroup = elementGroup
+
+                const { colorTheme, sizeTheme } = curProps
                 const elementCount = OrderedSet.size(elementGroup.elements)
                 const unitCount = units.length
 
@@ -76,8 +83,8 @@ export default function Point(): UnitsRepresentation<PointProps> {
 
                     position: ValueCell.create(vertices),
                     id: ValueCell.create(fillSerial(new Float32Array(elementCount))),
-                    size,
-                    color,
+                    size: ValueCell.create(size),
+                    color: ValueCell.create(color),
                     transform: ValueCell.create(transforms),
 
                     instanceCount: unitCount,
@@ -91,9 +98,37 @@ export default function Point(): UnitsRepresentation<PointProps> {
         },
         update(props: RepresentationProps) {
             return Task.create('Point.update', async ctx => {
-                if (!points) return false
+                if (!points || !_units || !_elementGroup) return false
 
-                return false
+                const newProps = { ...curProps, ...props }
+                if (deepEqual(curProps, newProps)) {
+                    console.log('props identical, nothing to change')
+                    return true
+                }
+
+                const elementCount = OrderedSet.size(_elementGroup.elements)
+                // const unitCount = _units.length
+
+                const vertexMap = VertexMap.create(
+                    elementCount,
+                    elementCount + 1,
+                    fillSerial(new Uint32Array(elementCount)),
+                    fillSerial(new Uint32Array(elementCount + 1))
+                )
+
+                if (!deepEqual(curProps.colorTheme, newProps.colorTheme)) {
+                    console.log('colorTheme changed', curProps.colorTheme, newProps.colorTheme)
+                    await ctx.update('Computing point colors');
+                    const color = createColors(_units, _elementGroup, vertexMap, newProps.colorTheme)
+                    ValueCell.update(points.props.color, color)
+                }
+
+                if (!deepEqual(curProps.sizeTheme, newProps.sizeTheme)) {
+                    console.log('sizeTheme changed', curProps.sizeTheme, newProps.sizeTheme)
+                }
+
+                curProps = newProps
+                return true
             })
         }
     }

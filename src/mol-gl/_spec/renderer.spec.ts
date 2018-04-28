@@ -39,8 +39,8 @@ function createRenderer(gl: WebGLRenderingContext) {
 function createPoints() {
     const position = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
     const id = ValueCell.create(fillSerial(new Float32Array(3)))
-    const color = createUniformColor({ value: 0xFF0000 })
-    const size = createUniformSize({ value: 1 })
+    const color = ValueCell.create(createUniformColor({ value: 0xFF0000 }))
+    const size = ValueCell.create(createUniformSize({ value: 1 }))
 
     const transform = ValueCell.create(new Float32Array(16))
     const m4 = Mat4.identity()
