@@ -4,79 +4,88 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Shaders } from '../shaders'
-import { getShader } from './shader'
+import { ShaderCode } from '../shader-code'
 import { Context } from './context';
 import { getUniformSetters, UniformDefs, UniformValues } from './uniform';
 import {AttributeDefs, AttributeBuffers } from './buffer';
 import { TextureId, TextureDefs, TextureUniforms, Textures } from './texture';
+import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 
-export interface Program<U extends UniformDefs, A extends AttributeDefs, T extends TextureDefs> {
+export interface Program {
     readonly id: number
 
-    setUniforms: (uniformValues: Partial<UniformValues<U>>) => void
-    bindAttributes: (attribueBuffers: AttributeBuffers<A>) => void
-    bindTextures: (textures: Textures<T>) => void
+    setUniforms: (uniformValues: UniformValues) => void
+    bindAttributes: (attribueBuffers: AttributeBuffers) => void
+    bindTextures: (textures: Textures) => void
 
     destroy: () => void
 }
 
-type AttributeLocations<T extends AttributeDefs> = { [K in keyof T]: number }
+type AttributeLocations = { [k: string]: number }
 
-function getAttributeLocations<A extends AttributeDefs>(gl: WebGLRenderingContext, program: WebGLProgram, attributes: A) {
+function getAttributeLocations(ctx: Context, program: WebGLProgram, attributeDefs: AttributeDefs) {
+    const { gl } = ctx
+    const locations: AttributeLocations = {}
     gl.useProgram(program)
-    const locations: Partial<AttributeLocations<A>> = {}
-    Object.keys(attributes).forEach(k => {
+    Object.keys(attributeDefs).forEach(k => {
         const loc = gl.getAttribLocation(program, k)
         gl.enableVertexAttribArray(loc)
         locations[k] = loc
     })
-    return locations as AttributeLocations<A>
+    return locations
 }
 
-function getTextureUniforms<T extends TextureDefs>(textures: T) {
-    const textureUniforms: Partial<TextureUniforms<T>> = {}
+function getTextureUniforms(textures: TextureDefs) {
+    const textureUniforms: TextureUniforms = {}
     Object.keys(textureUniforms).forEach(k => textureUniforms[k] = 't2')
-    return textureUniforms as TextureUniforms<T>
+    return textureUniforms
 }
 
-export function createProgram<U extends UniformDefs, A extends AttributeDefs, T extends TextureDefs>(ctx: Context, shaders: Shaders, uniformDefs: U, attributeDefs: A, textureDefs: T): Program<U, A, T> {
-    const { gl } = ctx
+export interface ProgramProps {
+    shaderCode: ShaderCode,
+    uniformDefs: UniformDefs,
+    attributeDefs: AttributeDefs,
+    textureDefs: TextureDefs
+}
+
+export function createProgram(ctx: Context, props: ProgramProps): Program {
+    const { gl, shaderCache } = ctx
+    const { shaderCode, uniformDefs, attributeDefs, textureDefs } = props
 
     const program = gl.createProgram()
     if (program === null) {
         throw new Error('Could not create WebGL program')
     }
 
-    const glVertShader = getShader(ctx, 'vert', shaders.vert)
-    const glFragShader = getShader(ctx, 'frag', shaders.frag)
+    const vertShaderRef = shaderCache.get(ctx, { type: 'vert', source: shaderCode.vert })
+    const fragShaderRef = shaderCache.get(ctx, { type: 'frag', source: shaderCode.frag })
 
-    gl.attachShader(program, glVertShader.value)
-    gl.attachShader(program, glFragShader.value)
+    vertShaderRef.value.attach(program)
+    fragShaderRef.value.attach(program)
     gl.linkProgram(program)
 
-    const uniformSetters = getUniformSetters(gl, program, uniformDefs)
-    const attributeLocations = getAttributeLocations(gl, program, attributeDefs)
+    const uniformSetters = getUniformSetters(ctx, program, uniformDefs)
+    const attributeLocations = getAttributeLocations(ctx, program, attributeDefs)
     const textureUniforms = getTextureUniforms(textureDefs)
-    const textureUniformSetters = getUniformSetters(gl, program, textureUniforms)
+    const textureUniformSetters = getUniformSetters(ctx, program, textureUniforms)
 
     let destroyed = false
 
     return {
         id: 0,
 
-        setUniforms: (uniformValues: Partial<UniformValues<U>>) => {
+        setUniforms: (uniformValues: UniformValues) => {
             Object.keys(uniformValues).forEach(k => {
                 const value = uniformValues[k]
                 if (value !== undefined) uniformSetters[k](value)
             })
         },
-        bindAttributes: (attribueBuffers: AttributeBuffers<A>) => {
+        bindAttributes: (attribueBuffers: AttributeBuffers) => {
             Object.keys(attribueBuffers).forEach(k => {
-                attribueBuffers[k].bind(attributeLocations[k], 0, 0)
+                attribueBuffers[k].bind(attributeLocations[k])
             })
         },
-        bindTextures: (textures: Textures<T>) => {
+        bindTextures: (textures: Textures) => {
             Object.keys(textures).forEach((k, i) => {
                 textures[k].bind(i as TextureId)
                 textureUniformSetters[k](i)
@@ -85,10 +94,20 @@ export function createProgram<U extends UniformDefs, A extends AttributeDefs, T 
 
         destroy: () => {
             if (destroyed) return
-            glVertShader.free()
-            glFragShader.free()
+            vertShaderRef.free()
+            fragShaderRef.free()
             gl.deleteProgram(program)
             destroyed = true
         }
     }
+}
+
+export type ProgramCache = ReferenceCache<Program, ProgramProps, Context>
+
+export function createProgramCache(): ProgramCache {
+    return createReferenceCache(
+        (props: ProgramProps) => JSON.stringify(props),
+        (ctx: Context, props: ProgramProps) => createProgram(ctx, props),
+        (program: Program) => { program.destroy() }
+    )
 }

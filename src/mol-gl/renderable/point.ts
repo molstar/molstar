@@ -4,19 +4,20 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import REGL = require('regl');
 import { ValueCell } from 'mol-util/value-cell'
 
 import { Renderable } from '../renderable'
-import { createBaseDefines, createBaseUniforms, createBaseAttributes, destroyUniforms, destroyAttributes, updateBaseUniforms } from './util'
-import { PointShaders, addDefines } from '../shaders'
+import { getBaseValues, getBaseDefs, getBaseDefines } from './util'
+import { PointShaderCode, addShaderDefines } from '../shader-code'
 import { ColorData } from 'mol-geo/util/color-data';
 import { SizeData } from 'mol-geo/util/size-data';
+import { Context } from '../webgl/context';
+import { createRenderItem, RenderItemState, RenderItemProps } from '../webgl/render-item';
 
 type Point = 'point'
 
 namespace Point {
-    export type Data = {
+    export type Props = {
         objectId: number
 
         position: ValueCell<Float32Array>
@@ -33,39 +34,38 @@ namespace Point {
         usePointSizeAttenuation?: boolean
     }
 
-    export function create(regl: REGL.Regl, props: Data): Renderable {
-        let curProps = props
-
-        const defines = createBaseDefines(regl, props)
-        const uniforms = createBaseUniforms(regl, props)
-        const attributes = createBaseAttributes(regl, props)
-
+    export function create<T = Props>(ctx: Context, props: Props): Renderable<Props> {
+        const defines = getBaseDefines(props)
         if (props.usePointSizeAttenuation) defines.POINT_SIZE_ATTENUATION = ''
 
-        const command = regl({
-            ...addDefines(defines, PointShaders),
-            uniforms,
-            attributes,
-            count: props.positionCount,
-            instances: props.instanceCount,
-            primitive: 'points'
-        })
+        const defs: RenderItemProps = {
+            ...getBaseDefs(props),
+            shaderCode: addShaderDefines(defines, PointShaderCode),
+            drawMode: 'points'
+        }
+        const values: RenderItemState = {
+            ...getBaseValues(props),
+            drawCount: props.positionCount,
+            instanceCount: props.instanceCount
+        }
+
+        let renderItem = createRenderItem(ctx, defs, values)
+        // let curProps = props
+
         return {
-            draw: () => command(),
-            get stats() {
-                return command.stats
+            draw: () => {
+                renderItem.draw()
             },
-            name: 'point',
-            update: (newProps: Data) => {
+            name: 'mesh',
+            update: (newProps: Props) => {
                 console.log('Updating point renderable')
                 // const newUniforms = updateBaseUniforms(regl, uniforms, newProps, curProps)
-                const newUniforms = { ...uniforms, color: 0xFF4411 }
-                console.log(newUniforms)
+                // const newUniforms = { ...uniforms, color: 0xFF4411 }
+                // console.log(newUniforms)
                 // command({ uniforms: newUniforms })
             },
             dispose: () => {
-                destroyAttributes(attributes)
-                destroyUniforms(uniforms)
+                renderItem.dispose()
             }
         }
     }

@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context'
+import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
+import { Context } from './context';
 
 function addLineNumbers(source: string) {
     const lines = source.split('\n')
@@ -14,11 +15,18 @@ function addLineNumbers(source: string) {
     return lines.join('\n')
 }
 
-type ShaderType = 'vert' | 'frag'
+export type ShaderType = 'vert' | 'frag'
+export interface ShaderProps { type: ShaderType, source: string }
+export interface Shader {
+    attach: (program: WebGLProgram) => void
+    destroy: () => void
+}
 
-function createShader(gl: WebGLRenderingContext, type: ShaderType, source: string) {
+function createShader(ctx: Context, props: ShaderProps): Shader {
+    const { gl } = ctx
+    const { type, source } = props
+
     const shader = gl.createShader(type === 'vert' ? gl.VERTEX_SHADER : gl.FRAGMENT_SHADER)
-
     if (shader === null) {
         throw new Error(`Error creating ${type} shader`)
     }
@@ -31,23 +39,22 @@ function createShader(gl: WebGLRenderingContext, type: ShaderType, source: strin
         throw new Error(`Error compiling ${type} shader`)
     }
 
-    return shader
+    return {
+        attach: (program: WebGLProgram) => {
+            gl.attachShader(program, shader)
+        },
+        destroy: () => {
+            gl.deleteShader(shader)
+        }
+    }
 }
 
-export function getShader(ctx: Context, type: ShaderType, source: string) {
-    let shaderRef = ctx.shaderCache.get(source)
-    if (!shaderRef) {
-        shaderRef = { usageCount: 0, value: createShader(ctx.gl, type, source) }
-        ctx.shaderCache.set(source, shaderRef)
-    }
-    shaderRef.usageCount += 1
-    return {
-        free: () => {
-            if (shaderRef) {
-                shaderRef.usageCount -= 1
-                shaderRef = undefined
-            }
-        },
-        value: shaderRef.value
-    }
+export type ShaderCache = ReferenceCache<Shader, ShaderProps, Context>
+
+export function createShaderCache(): ShaderCache {
+    return createReferenceCache(
+        (props: ShaderProps) => JSON.stringify(props),
+        (ctx: Context, props: ShaderProps) => createShader(ctx, props),
+        (shader: Shader) => { shader.destroy() }
+    )
 }

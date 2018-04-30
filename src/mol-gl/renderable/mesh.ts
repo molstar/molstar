@@ -4,18 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import REGL = require('regl');
 import { ValueCell } from 'mol-util/value-cell'
 import { ColorData } from 'mol-geo/util/color-data';
 
 import { Renderable } from '../renderable'
-import { createBaseDefines, createBaseUniforms, createBaseAttributes, destroyAttributes, destroyUniforms } from './util'
-import { MeshShaders, addDefines } from '../shaders'
+import { getBaseDefs, getBaseValues, getBaseDefines } from './util'
+import { MeshShaderCode, addShaderDefines } from '../shader-code'
+import { Context } from '../webgl/context';
+import { createRenderItem, RenderItemProps, RenderItemState } from '../webgl/render-item';
 
 type Mesh = 'mesh'
 
 namespace Mesh {
-    export type Data = {
+    export type Props = {
         objectId: number
 
         position: ValueCell<Float32Array>
@@ -32,39 +33,31 @@ namespace Mesh {
         positionCount: number
     }
 
-    export function create(regl: REGL.Regl, props: Data): Renderable {
-        const defines = createBaseDefines(regl, props)
-        const uniforms = createBaseUniforms(regl, props)
-        const attributes = createBaseAttributes(regl, props)
-        const elements = regl.elements({
-            data: props.index.ref.value,
-            primitive: 'triangles',
-            type: 'uint32',
-            count: props.indexCount * 3
-        })
+    export function create(ctx: Context, props: Props): Renderable<Props> {
+        const defs: RenderItemProps = {
+            ...getBaseDefs(props),
+            shaderCode: addShaderDefines(getBaseDefines(props), MeshShaderCode),
+            drawMode: 'triangles'
+        }
+        const values: RenderItemState = {
+            ...getBaseValues(props),
+            drawCount: props.indexCount * 3,
+            instanceCount: props.instanceCount
+        }
 
-        const command = regl({
-            ...addDefines(defines, MeshShaders),
-            uniforms,
-            attributes,
-            elements,
-            instances: props.instanceCount,
-        })
+        let renderItem = createRenderItem(ctx, defs, values)
+        // let curProps = props
+
         return {
             draw: () => {
-                command()
-            },
-            get stats() {
-                return command.stats
+                renderItem.draw()
             },
             name: 'mesh',
-            update: (newProps: Data) => {
+            update: (newProps: Props) => {
                 console.log('Updating mesh renderable')
             },
             dispose: () => {
-                destroyAttributes(attributes)
-                destroyUniforms(uniforms)
-                elements.destroy()
+                renderItem.dispose()
             }
         }
     }

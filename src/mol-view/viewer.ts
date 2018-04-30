@@ -15,6 +15,7 @@ import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
 import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
+import { createContext } from 'mol-gl/webgl/context';
 
 interface Viewer {
     hide: (repr: StructureRepresentation) => void
@@ -64,9 +65,12 @@ namespace Viewer {
         })
 
         const gl = getWebGLContext(canvas)
-        if (gl === null) throw new Error('Could not create a WebGL rendering context')
+        if (gl === null) {
+            throw new Error('Could not create a WebGL rendering context')
+        }
+        const ctx = createContext(gl)
 
-        const renderer = Renderer.create(gl, camera)
+        const renderer = Renderer.create(ctx, camera)
 
         let drawPending = false
         const prevProjectionView = Mat4.zero()

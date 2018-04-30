@@ -15,6 +15,7 @@ import { createPointRenderObject } from '../scene';
 import { fillSerial } from '../renderable/util';
 import { createUniformColor } from 'mol-geo/util/color-data';
 import { createUniformSize } from 'mol-geo/util/size-data';
+import { createContext } from '../webgl/context';
 
 function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
     const pixels = new Uint8Array(width * height * 4)
@@ -28,12 +29,13 @@ function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 }
 
 function createRenderer(gl: WebGLRenderingContext) {
+    const ctx = createContext(gl)
     const camera = PerspectiveCamera.create({
         near: 0.01,
         far: 10000,
         position: Vec3.create(0, 0, 50)
     })
-    return Renderer.create(gl, camera)
+    return Renderer.create(ctx, camera)
 }
 
 function createPoints() {

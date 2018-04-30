@@ -5,24 +5,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export interface Shaders {
+export interface ShaderCode {
     vert: string
     frag: string
 }
 
-export const PointShaders = {
+export const PointShaderCode: ShaderCode = {
     vert: require('mol-gl/shader/point.vert'),
     frag: require('mol-gl/shader/point.frag')
 }
 
-export const MeshShaders = {
+export const MeshShaderCode: ShaderCode = {
     vert: require('mol-gl/shader/mesh.vert'),
     frag: require('mol-gl/shader/mesh.frag')
-}
-
-export const SimpleShaders = {
-    vert: require('mol-gl/shader/simple.vert'),
-    frag: require('mol-gl/shader/simple.frag')
 }
 
 type ShaderDefine = (
@@ -34,7 +29,7 @@ export type ShaderDefines = {
     [k in ShaderDefine]?: number|string
 }
 
-function getDefines (defines: ShaderDefines) {
+function getDefinesCode (defines: ShaderDefines) {
     if (defines === undefined) return ''
     const lines = []
     for (const name in defines) {
@@ -48,8 +43,8 @@ function getDefines (defines: ShaderDefines) {
     return lines.join('\n') + '\n'
 }
 
-export function addDefines(defines: ShaderDefines, shaders: Shaders) {
-    const header = getDefines(defines)
+export function addShaderDefines(defines: ShaderDefines, shaders: ShaderCode) {
+    const header = getDefinesCode(defines)
     return {
         vert: `${header}${shaders.vert}`,
         frag: `${header}${shaders.frag}`

@@ -17,14 +17,14 @@ function getNextId() {
 export type RenderData = { [k: string]: ValueCell<Helpers.TypedArray> }
 
 export interface BaseRenderObject { id: number, type: string, props: {}, visible: boolean }
-export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', props: MeshRenderable.Data }
-export interface PointRenderObject extends BaseRenderObject { type: 'point', props: PointRenderable.Data }
+export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', props: MeshRenderable.Props }
+export interface PointRenderObject extends BaseRenderObject { type: 'point', props: PointRenderable.Props }
 export type RenderObject = MeshRenderObject | PointRenderObject
 
-export function createMeshRenderObject(props: MeshRenderable.Data): MeshRenderObject {
+export function createMeshRenderObject(props: MeshRenderable.Props): MeshRenderObject {
     return { id: getNextId(), type: 'mesh', props, visible: true }
 }
-export function createPointRenderObject(props: PointRenderable.Data): PointRenderObject {
+export function createPointRenderObject(props: PointRenderable.Props): PointRenderObject {
     return { id: getNextId(), type: 'point', props, visible: true }
 }
 

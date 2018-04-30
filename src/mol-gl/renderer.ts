@@ -4,14 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4 } from 'mol-math/linear-algebra'
+// import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Viewport } from 'mol-view/camera/util';
 import { Camera } from 'mol-view/camera/base';
 
 import Scene, { RenderObject } from './scene';
-import { createContext } from './webgl/context';
-import { SimpleShaders } from './shaders';
-import { createRenderable, RenderableProps, RenderableState } from './renderable';
+import { Context } from './webgl/context';
 
 export interface RendererStats {
     elementsCount: number
@@ -34,58 +32,14 @@ interface Renderer {
     dispose: () => void
 }
 
-const extensions = [
-    'OES_element_index_uint',
-    'ANGLE_instanced_arrays'
-]
-const optionalExtensions = [
-    'EXT_disjoint_timer_query'
-]
-
-function getPixelRatio() {
-    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
-}
+// function getPixelRatio() {
+//     return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
+// }
 
 namespace Renderer {
-    export function create(gl: WebGLRenderingContext, camera: Camera): Renderer {
-
-        const ctx = createContext(gl)
-
-        const renderableProps: RenderableProps = {
-            shaders: SimpleShaders,
-            uniform: {
-                model: 'm4',
-                view: 'm4',
-                projection: 'm4'
-            },
-            attribute: {
-                position: { kind: 'float32', itemSize: 3, divisor: 0 }
-            },
-            texture: {
-
-            }
-        }
-
-        const renderableState: RenderableState<typeof renderableProps> = {
-            uniform: {
-                model: Mat4.identity(),
-                view: camera.view,
-                projection: camera.projection
-            },
-            attribute: {
-                position: new Float32Array([0, 0, 0, 10, 10, 0, -10, 0, 0])
-            },
-            texture: {
-
-            },
-
-            drawCount: 3
-        }
-
-        const renderable = createRenderable(ctx, renderableProps, renderableState)
-
-        // const regl = glContext.create({ gl, extensions, optionalExtensions, profile: false })
-        // const scene = Scene.create(regl)
+    export function create(ctx: Context, camera: Camera): Renderer {
+        const { gl } = ctx
+        const scene = Scene.create(ctx)
 
         // const baseContext = regl({
         //     context: {
@@ -112,36 +66,31 @@ namespace Renderer {
         // })
 
         const draw = () => {
-            // regl.poll() // updates timers and viewport
-            // baseContext(state => {
-            //     regl.clear({ color: [0, 0, 0, 1] })
-            //     // TODO painters sort, filter visible, filter picking, visibility culling?
-            //     scene.forEach((r, o) => {
-            //         if (o.visible) r.draw()
-            //     })
-            // })
-
+            // TODO clear color
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            renderable.draw()
+
+            // TODO painters sort, filter visible, filter picking, visibility culling?
+            scene.forEach((r, o) => {
+                if (o.visible) r.draw()
+            })
         }
 
         return {
             add: (o: RenderObject) => {
-                // scene.add(o)
+                scene.add(o)
             },
             remove: (o: RenderObject) => {
-                // scene.remove(o)
+                scene.remove(o)
             },
             update: () => {
-                // scene.forEach((r, o) => r.update(o))
+                scene.forEach((r, o) => r.update(o))
             },
             clear: () => {
-                // scene.clear()
+                scene.clear()
             },
             draw,
             setViewport: (viewport: Viewport) => {
                 gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
-                // regl({ viewport })
             },
             get stats() {
                 return {
@@ -153,7 +102,7 @@ namespace Renderer {
                 } as any
             },
             dispose: () => {
-                // regl.destroy()
+                scene.clear()
             }
         }
     }

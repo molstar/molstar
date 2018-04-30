@@ -5,15 +5,15 @@
  */
 
 import { ValueCell } from 'mol-util';
-import { Texture, createColorTexture } from 'mol-gl/renderable/util';
+import { TextureImage, createColorTexture } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import VertexMap from '../shape/vertex-map';
 
 export type UniformColor = { type: 'uniform', value: number[] }
 export type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }
-export type InstanceColor = { type: 'instance', value: ValueCell<Texture> }
-export type ElementColor = { type: 'element', value: ValueCell<Texture> }
-export type ElementInstanceColor = { type: 'element-instance', value: ValueCell<Texture> }
+export type InstanceColor = { type: 'instance', value: ValueCell<TextureImage> }
+export type ElementColor = { type: 'element', value: ValueCell<TextureImage> }
+export type ElementInstanceColor = { type: 'element-instance', value: ValueCell<TextureImage> }
 export type ColorData = UniformColor | AttributeColor | InstanceColor | ElementColor | ElementInstanceColor
 
 export interface UniformColorProps {
@@ -56,7 +56,7 @@ export function createInstanceColor(props: InstanceColorProps): InstanceColor {
     const { colorFn, instanceCount} = props
     const colors = createColorTexture(instanceCount)
     for (let i = 0; i < instanceCount; i++) {
-        Color.toArray(colorFn(i), colors, i * 3)
+        Color.toArray(colorFn(i), colors.array, i * 3)
     }
     return { type: 'instance', value: ValueCell.create(colors) }
 }
@@ -72,7 +72,7 @@ export function createElementColor(props: ElementColorProps): ElementColor {
     const elementCount = vertexMap.offsetCount - 1
     const colors = createColorTexture(elementCount)
     for (let i = 0, il = elementCount; i < il; ++i) {
-        Color.toArray(colorFn(i), colors, i * 3)
+        Color.toArray(colorFn(i), colors.array, i * 3)
     }
     return { type: 'element', value: ValueCell.create(colors) }
 }
@@ -92,7 +92,7 @@ export function createElementInstanceColor(props: ElementInstanceColorProps): El
     let colorOffset = 0
     for (let i = 0; i < instanceCount; i++) {
         for (let j = 0, jl = elementCount; j < jl; ++j) {
-            Color.toArray(colorFn(i, j), colors, colorOffset)
+            Color.toArray(colorFn(i, j), colors.array, colorOffset)
             colorOffset += 3
         }
     }

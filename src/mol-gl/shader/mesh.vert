@@ -15,7 +15,7 @@ uniform int elementCount;
 #pragma glslify: import('./chunks/color-vert-params.glsl')
 
 attribute vec3 position;
-attribute vec4 transformColumn0, transformColumn1, transformColumn2, transformColumn3;
+attribute mat4 transform;
 attribute float instanceId;
 attribute float elementId;
 
@@ -30,9 +30,7 @@ varying vec3 vViewPosition;
 void main(){
     #pragma glslify: import('./chunks/color-assign-varying.glsl')
 
-    mat4 transform = mat4(transformColumn0, transformColumn1, transformColumn2, transformColumn3);
     mat4 modelView = view * model * transform;
-
     vec4 mvPosition = modelView * vec4(position, 1.0);
     vViewPosition = mvPosition.xyz;
     gl_Position = projection * mvPosition;
