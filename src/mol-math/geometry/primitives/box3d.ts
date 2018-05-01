@@ -12,7 +12,7 @@ interface Box3D { min: Vec3, max: Vec3 }
 
 namespace Box3D {
     export function create(min: Vec3, max: Vec3): Box3D { return { min, max }; }
-    
+
     export function computeBounding(data: PositionData): Box3D {
         const min = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
         const max = [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE];

@@ -30,4 +30,36 @@ namespace VolumeData {
     }
 }
 
-export { VolumeData }
+type VolumeIsoValue = VolumeIsoValue.Absolute | VolumeIsoValue.Relative
+
+namespace VolumeIsoValue {
+    export type Relative = Readonly<{ kind: 'relative', stats: VolumeData['dataStats'], relativeValue: number }>
+    export type Absolute = Readonly<{ kind: 'absolute', stats: VolumeData['dataStats'], absoluteValue: number }>
+
+    export function absolute(stats: VolumeData['dataStats'], value: number): Absolute { return { kind: 'absolute', stats, absoluteValue: value }; }
+    export function relative(stats: VolumeData['dataStats'], value: number): Relative { return { kind: 'relative', stats, relativeValue: value }; }
+
+    export function toAbsolute(value: VolumeIsoValue): Absolute {
+        if (value.kind === 'absolute') return value;
+
+        const { mean, sigma } = value.stats
+        return {
+            kind: 'absolute',
+            stats: value.stats,
+            absoluteValue: value.relativeValue * sigma + mean
+        }
+    }
+
+    export function toRelative(value: VolumeIsoValue): Relative {
+        if (value.kind === 'relative') return value;
+
+        const { mean, sigma } = value.stats
+        return {
+            kind: 'relative',
+            stats: value.stats,
+            relativeValue: (mean - value.absoluteValue) / sigma
+        }
+    }
+}
+
+export { VolumeData, VolumeIsoValue }

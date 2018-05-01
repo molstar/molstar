@@ -26,7 +26,7 @@ export interface MarchingCubesParameters {
     oldSurface?: Mesh
 }
 
-export function compute(parameters: MarchingCubesParameters) {
+export function computeMarchingCubes(parameters: MarchingCubesParameters) {
     return Task.create('Marching Cubes', async ctx => {
         let comp = new MarchingCubesComputation(parameters, ctx);
         return await comp.run();

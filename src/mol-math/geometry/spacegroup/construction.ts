@@ -15,8 +15,7 @@ interface SpacegroupCell {
     /** Transfrom cartesian -> fractional coordinates within the cell */
     readonly toFractional: Mat4,
     /** Transfrom fractional coordinates within the cell -> cartesian */
-    readonly fromFractional: Mat4,
-    readonly fractionalBasis: Vec3[]
+    readonly fromFractional: Mat4
 }
 
 interface Spacegroup {
@@ -59,14 +58,8 @@ namespace SpacegroupCell {
         ]);
         const toFractional = Mat4.invert(Mat4.zero(), fromFractional)!;
 
-        const fractionalBasis = [
-            Vec3.transformMat4(Vec3.zero(), Vec3.create(1, 0, 0), toFractional),
-            Vec3.transformMat4(Vec3.zero(), Vec3.create(0, 1, 0), toFractional),
-            Vec3.transformMat4(Vec3.zero(), Vec3.create(0, 0, 1), toFractional)
-        ];
-
         const num = typeof nameOrNumber === 'number' ? nameOrNumber : SpacegroupNumbers[nameOrNumber];
-        return { number: num, size, anglesInRadians, toFractional, fromFractional, fractionalBasis };
+        return { number: num, size, anglesInRadians, toFractional, fromFractional };
     }
 }
 
