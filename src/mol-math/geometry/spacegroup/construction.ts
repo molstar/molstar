@@ -9,23 +9,34 @@ import { SpacegroupName, TransformData, GroupData, SpacegroupNumbers, Spacegroup
 import { SymmetryOperator } from '../../geometry';
 
 interface SpacegroupCell {
+    readonly number: number,
     readonly size: Vec3,
     readonly anglesInRadians: Vec3,
     /** Transfrom cartesian -> fractional coordinates within the cell */
     readonly toFractional: Mat4,
     /** Transfrom fractional coordinates within the cell -> cartesian */
-    readonly fromFractional: Mat4
+    readonly fromFractional: Mat4,
+    readonly fractionalBasis: Vec3[]
 }
 
 interface Spacegroup {
-    readonly number: number,
     readonly name: string,
     readonly cell: SpacegroupCell,
     readonly operators: ReadonlyArray<Mat4>
 }
 
 namespace SpacegroupCell {
-    export function create(size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
+    // Create a 'P 1' with cellsize [1, 1, 1]
+    export function zero() {
+        return create(0, Vec3.create(1, 1, 1), Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2));
+    }
+
+    // True if 'P 1' with cellsize [1, 1, 1]
+    export function isZero(cell: SpacegroupCell) {
+        return cell.size[0] === 1 && cell.size[1] === 1 && cell.size[1] === 1;
+    }
+
+    export function create(nameOrNumber: number | SpacegroupName, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
         const alpha = anglesInRadians[0];
         const beta = anglesInRadians[1];
         const gamma = anglesInRadians[2];
@@ -48,7 +59,14 @@ namespace SpacegroupCell {
         ]);
         const toFractional = Mat4.invert(Mat4.zero(), fromFractional)!;
 
-        return { size, anglesInRadians, toFractional, fromFractional };
+        const fractionalBasis = [
+            Vec3.transformMat4(Vec3.zero(), Vec3.create(1, 0, 0), toFractional),
+            Vec3.transformMat4(Vec3.zero(), Vec3.create(0, 1, 0), toFractional),
+            Vec3.transformMat4(Vec3.zero(), Vec3.create(0, 0, 1), toFractional)
+        ];
+
+        const num = typeof nameOrNumber === 'number' ? nameOrNumber : SpacegroupNumbers[nameOrNumber];
+        return { number: num, size, anglesInRadians, toFractional, fromFractional, fractionalBasis };
     }
 }
 
@@ -63,7 +81,7 @@ namespace Spacegroup {
 
         const operators = GroupData[num].map(i => getOperatorMatrix(OperatorData[i]));
 
-        return { number: num, name, cell, operators };
+        return { name, cell, operators };
     }
 
     const _tempVec = Vec3.zero(), _tempMat = Mat4.zero();

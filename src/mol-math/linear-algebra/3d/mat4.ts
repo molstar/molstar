@@ -79,6 +79,11 @@ namespace Mat4 {
         return mat;
     }
 
+    export function setZero(mat: Mat4): Mat4 {
+        for (let i = 0; i < 16; i++) mat[i] = 0;
+        return mat;
+    }
+
     export function ofRows(rows: number[][]): Mat4 {
         const out = zero();
         for (let i = 0; i < 4; i++) {
@@ -739,6 +744,18 @@ namespace Mat4 {
         out[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
         out[15] = 1;
 
+        return out;
+    }
+
+    /**
+     * Perm is 0-indexed permutation
+     */
+    export function fromPermutation(out: Mat4, perm: number[]) {
+        setZero(out);
+        for (let i = 0; i < 4; i++) {
+            const p = perm[i];
+            setValue(out, i, p, 1);
+        }
         return out;
     }
 }

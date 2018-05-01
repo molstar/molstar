@@ -49,6 +49,8 @@ export namespace Tensor {
         return { rank: dimensions.length, dimensions, axisOrderSlowToFast, create: creator(layout), get, set };
     }
 
+    export function Data1(values: ArrayLike<number>): Data { return values as Data; }
+
     export function Vector(d: number, ctor?: ArrayCtor) { return Space([d], [0], ctor); }
     export function ColumnMajorMatrix(rows: number, cols: number, ctor?: ArrayCtor) { return Space([rows, cols], [1, 0], ctor); }
     export function RowMajorMatrix(rows: number, cols: number, ctor?: ArrayCtor) { return Space([rows, cols], [0, 1], ctor); }

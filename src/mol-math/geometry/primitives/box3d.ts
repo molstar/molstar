@@ -11,6 +11,8 @@ import { OrderedSet } from 'mol-data/int';
 interface Box3D { min: Vec3, max: Vec3 }
 
 namespace Box3D {
+    export function create(min: Vec3, max: Vec3): Box3D { return { min, max }; }
+    
     export function computeBounding(data: PositionData): Box3D {
         const min = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
         const max = [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE];
@@ -26,6 +28,10 @@ namespace Box3D {
             max[2] = Math.max(z[i], max[2]);
         }
         return { min: Vec3.create(min[0], min[1], min[2]), max: Vec3.create(max[0], max[1], max[2]) }
+    }
+
+    export function size(box: Box3D) {
+        return Vec3.sub(Vec3.zero(), box.max, box.min);
     }
 
     export function expand(box: Box3D, delta: Vec3): Box3D {

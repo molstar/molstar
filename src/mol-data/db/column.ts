@@ -34,7 +34,7 @@ namespace Column {
         export type Float = { '@type': 'float', T: number } & Base<'float'>
         export type Coordinate = { '@type': 'coord', T: number } & Base<'float'>
 
-        export type Tensor = { '@type': 'tensor', T: Tensors.Data, space: Tensors.Space } & Base<'tensor'>
+        export type Tensor = { '@type': 'tensor', T: Tensors.Data, space: Tensors.Space, baseType: Int | Float } & Base<'tensor'>
         export type Aliased<T> = { '@type': 'aliased', T: T } & Base<'str' | 'int'>
         export type List<T extends number|string> = { '@type': 'list', T: T[], separator: string, itemParse: (x: string) => T } & Base<'list'>
 
@@ -46,9 +46,9 @@ namespace Column {
         export function Str(defaultValue = ''): Str { return { '@type': 'str', T: defaultValue, valueType: 'str' } };
         export function Int(defaultValue = 0): Int { return { '@type': 'int', T: defaultValue, valueType: 'int' } };
         export function Float(defaultValue = 0): Float { return { '@type': 'float', T: defaultValue, valueType: 'float' } };
-        export function Tensor(space: Tensors.Space): Tensor { return { '@type': 'tensor', T: space.create(), space, valueType: 'tensor' }; }
-        export function Vector(dim: number): Tensor { return Tensor(Tensors.Vector(dim)); }
-        export function Matrix(rows: number, cols: number): Tensor { return Tensor(Tensors.ColumnMajorMatrix(rows, cols)); }
+        export function Tensor(space: Tensors.Space, baseType: Int | Float = float): Tensor { return { '@type': 'tensor', T: space.create(), space, valueType: 'tensor', baseType }; }
+        export function Vector(dim: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.Vector(dim), baseType); }
+        export function Matrix(rows: number, cols: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.ColumnMajorMatrix(rows, cols), baseType); }
 
         export function Aliased<T>(t: Str | Int, defaultValue?: T): Aliased<T> {
             if (typeof defaultValue !== 'undefined') return { ...t, T: defaultValue } as any as Aliased<T>;

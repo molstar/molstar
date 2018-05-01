@@ -2,54 +2,32 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import * as argparse from 'argparse'
-import * as util from 'util'
-import * as fs from 'fs'
-import fetch from 'node-fetch'
 require('util.promisify').shim();
 
 // import { Table } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
 import { Model, Structure, Element, ElementSet, Unit, ElementGroup, Queries } from 'mol-model/structure'
-import { Run, Progress } from 'mol-task'
+// import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
+import { openCif, downloadCif } from './helpers';
 
-const readFileAsync = util.promisify(fs.readFile);
 
-async function readFile(path: string) {
-    if (path.match(/\.bcif$/)) {
-        const input = await readFileAsync(path)
-        const data = new Uint8Array(input.byteLength);
-        for (let i = 0; i < input.byteLength; i++) data[i] = input[i];
-        return data;
-    } else {
-        return readFileAsync(path, 'utf8');
-    }
+async function downloadFromPdb(pdb: string) {
+    // `https://files.rcsb.org/download/${pdb}.cif`
+    const parsed = await downloadCif(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`, false);
+    return CIF.schema.mmCIF(parsed.result.blocks[0]);
 }
 
-async function readCif(path: string) {
-    const data = await readFile(path);
-    const parsed = await parseCif(data);
-    return CIF.schema.mmCIF(parsed.result.blocks[0])
-}
-
-async function parseCif(data: string|Uint8Array) {
-    const comp = CIF.parse(data);
-    const parsed = await Run(comp, p => console.log(Progress.format(p)), 250);
-    if (parsed.isError) throw parsed;
-    return parsed
-}
-
-async function getPdb(pdb: string) {
-    // const data = await fetch(`https://files.rcsb.org/download/${pdb}.cif`)
-    const data = await fetch(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`);
-    const parsed = await parseCif(await data.text())
-    return CIF.schema.mmCIF(parsed.result.blocks[0])
+async function readPdbFile(path: string) {
+    const parsed = await openCif(path);
+    return CIF.schema.mmCIF(parsed.result.blocks[0]);
 }
 
 export function atomLabel(model: Model, aI: number) {
@@ -154,12 +132,12 @@ async function run(mmcif: mmCIF_Database) {
 }
 
 async function runDL(pdb: string) {
-    const mmcif = await getPdb(pdb)
+    const mmcif = await downloadFromPdb(pdb)
     run(mmcif);
 }
 
 async function runFile(filename: string) {
-    const mmcif = await readCif(filename);
+    const mmcif = await readPdbFile(filename);
     run(mmcif);
 }
 
