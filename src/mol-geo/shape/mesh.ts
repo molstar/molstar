@@ -7,7 +7,7 @@
 import { Task } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import Sphere from 'mol-math/geometry/sphere'
+import { Sphere3D } from 'mol-math/geometry'
 import { transformPositionArray } from '../util';
 
 export interface Mesh {
@@ -29,7 +29,7 @@ export interface Mesh {
     normalsComputed: boolean,
 
     /** Bounding sphere of the mesh */
-    boundingSphere?: Sphere
+    boundingSphere?: Sphere3D
 }
 
 export namespace Mesh {

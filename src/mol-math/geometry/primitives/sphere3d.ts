@@ -11,6 +11,10 @@ import { OrderedSet } from 'mol-data/int';
 interface Sphere3D { center: Vec3, radius: number }
 
 namespace Sphere3D {
+    export function create(center: Vec3, radius: number): Sphere3D {
+        return { center, radius };
+    }
+
     export function computeBounding(data: PositionData): Sphere3D {
         const { x, y, z, indices } = data;
         let cx = 0, cy = 0, cz = 0;

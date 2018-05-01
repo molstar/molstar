@@ -6,6 +6,7 @@
 
 export * from './geometry/common'
 export * from './geometry/symmetry-operator'
+export * from './geometry/spacegroup/construction'
 export * from './geometry/lookup3d/common'
 export * from './geometry/lookup3d/grid'
 export * from './geometry/primitives/box3d'
