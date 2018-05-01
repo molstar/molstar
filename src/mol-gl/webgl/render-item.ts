@@ -9,6 +9,7 @@ import { AttributeDefs, AttributeValues, createAttributeBuffers, createElementsB
 import { TextureDefs, TextureValues, createTextures } from './texture';
 import { Context } from './context';
 import { ShaderCode } from '../shader-code';
+import { Program } from './program';
 
 export type DrawMode = 'points' | 'lines' | 'line-strip' | 'line-loop' | 'triangles' | 'triangle-strip' | 'triangle-fan'
 
@@ -27,7 +28,7 @@ export function getDrawMode(ctx: Context, drawMode: DrawMode) {
 
 export type RenderItemProps = {
     shaderCode: ShaderCode
-    
+
     uniformDefs: UniformDefs
     attributeDefs: AttributeDefs
     textureDefs: TextureDefs
@@ -49,6 +50,7 @@ export type RenderItemState = {
 export interface RenderItem {
     readonly hash: string
     readonly programId: number
+    readonly program: Program
 
     update: (state: RenderItemState) => void
 
@@ -58,18 +60,25 @@ export interface RenderItem {
 
 export function createRenderItem(ctx: Context, props: RenderItemProps, state: RenderItemState): RenderItem {
     const { programCache } = ctx
-    const { angleInstancedArrays } = ctx.extensions
+    const { angleInstancedArrays, oesVertexArrayObject } = ctx.extensions
     const { shaderCode, uniformDefs, attributeDefs, textureDefs, elementsKind } = props
     const { attributeValues, textureValues, uniformValues, elements } = state
-    
+
     const hash = JSON.stringify(props)
     const drawMode = getDrawMode(ctx, props.drawMode)
     const programRef = programCache.get(ctx, { shaderCode, uniformDefs, attributeDefs, textureDefs })
     const program = programRef.value
 
-    const attributeBuffers = createAttributeBuffers(ctx, attributeDefs, attributeValues)
     const textures = createTextures(ctx, textureDefs, textureValues)
-    
+    const attributeBuffers = createAttributeBuffers(ctx, attributeDefs, attributeValues)
+
+    let vertexArray: WebGLVertexArrayObjectOES
+    if (oesVertexArrayObject) {
+        vertexArray = oesVertexArrayObject.createVertexArrayOES()
+        oesVertexArrayObject.bindVertexArrayOES(vertexArray)
+        program.bindAttributes(attributeBuffers)
+    }
+
     let elementsBuffer: ElementsBuffer
     if (elements && elementsKind) {
         elementsBuffer = createElementsBuffer(ctx, elements)
@@ -80,16 +89,20 @@ export function createRenderItem(ctx: Context, props: RenderItemProps, state: Re
     return {
         hash,
         programId: program.id,
+        program,
 
         draw: () => {
             program.setUniforms(uniformValues)
-            program.bindAttributes(attributeBuffers)
+            if (oesVertexArrayObject) {
+                oesVertexArrayObject.bindVertexArrayOES(vertexArray)
+            } else {
+                program.bindAttributes(attributeBuffers)
+            }
             program.bindTextures(textures)
             if (elementsBuffer) {
                 angleInstancedArrays.drawElementsInstancedANGLE(drawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
             } else {
                 angleInstancedArrays.drawArraysInstancedANGLE(drawMode, 0, drawCount, instanceCount)
-                // gl.drawArrays(drawMode, 0, drawCount)
             }
         },
         update: (state: RenderItemState) => {

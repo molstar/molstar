@@ -83,8 +83,8 @@ export default function Point(): UnitsRepresentation<PointProps> {
 
                     position: ValueCell.create(vertices),
                     id: ValueCell.create(fillSerial(new Float32Array(elementCount))),
-                    size: ValueCell.create(size),
-                    color: ValueCell.create(color),
+                    size: size,
+                    color: color,
                     transform: ValueCell.create(transforms),
 
                     instanceCount: unitCount,
@@ -106,21 +106,21 @@ export default function Point(): UnitsRepresentation<PointProps> {
                     return true
                 }
 
-                const elementCount = OrderedSet.size(_elementGroup.elements)
+                // const elementCount = OrderedSet.size(_elementGroup.elements)
                 // const unitCount = _units.length
 
-                const vertexMap = VertexMap.create(
-                    elementCount,
-                    elementCount + 1,
-                    fillSerial(new Uint32Array(elementCount)),
-                    fillSerial(new Uint32Array(elementCount + 1))
-                )
+                // const vertexMap = VertexMap.create(
+                //     elementCount,
+                //     elementCount + 1,
+                //     fillSerial(new Uint32Array(elementCount)),
+                //     fillSerial(new Uint32Array(elementCount + 1))
+                // )
 
                 if (!deepEqual(curProps.colorTheme, newProps.colorTheme)) {
                     console.log('colorTheme changed', curProps.colorTheme, newProps.colorTheme)
-                    await ctx.update('Computing point colors');
-                    const color = createColors(_units, _elementGroup, vertexMap, newProps.colorTheme)
-                    ValueCell.update(points.props.color, color)
+                    // await ctx.update('Computing point colors');
+                    // const color = createColors(_units, _elementGroup, vertexMap, newProps.colorTheme)
+                    // ValueCell.update(points.props.color, color)
                 }
 
                 if (!deepEqual(curProps.sizeTheme, newProps.sizeTheme)) {
@@ -128,7 +128,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 }
 
                 curProps = newProps
-                return true
+                return false
             })
         }
     }

@@ -23,8 +23,8 @@ namespace Point {
         position: ValueCell<Float32Array>
         id: ValueCell<Float32Array>
 
-        size: ValueCell<SizeData>
-        color: ValueCell<ColorData>
+        size: SizeData
+        color: ColorData
         transform: ValueCell<Float32Array>
 
         instanceCount: number
@@ -56,13 +56,10 @@ namespace Point {
             draw: () => {
                 renderItem.draw()
             },
-            name: 'mesh',
+            name: 'point',
+            get program () { return renderItem.program },
             update: (newProps: Props) => {
                 console.log('Updating point renderable')
-                // const newUniforms = updateBaseUniforms(regl, uniforms, newProps, curProps)
-                // const newUniforms = { ...uniforms, color: 0xFF4411 }
-                // console.log(newUniforms)
-                // command({ uniforms: newUniforms })
             },
             dispose: () => {
                 renderItem.dispose()

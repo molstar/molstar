@@ -117,7 +117,7 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
             gl.bindBuffer(_bufferType, _buffer)
             gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count))
         },
-        
+
         destroy: () => {
             gl.bindBuffer(_bufferType, _buffer)
             // set size to 1 before deleting
@@ -128,7 +128,7 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
 }
 
 export type AttributeDefs = {
-    [k: string]: { kind: ArrayKind, itemSize: BufferItemSize, divisor: number } 
+    [k: string]: { kind: ArrayKind, itemSize: BufferItemSize, divisor: number }
 }
 export type AttributeValues = { [k: string]: ArrayType }
 export type AttributeBuffers = { [k: string]: AttributeBuffer }
@@ -151,13 +151,14 @@ export function createAttributeBuffer<T extends ArrayType, S extends BufferItemS
             if (itemSize === 16) {
                 for (let i = 0; i < 4; ++i) {
                     gl.enableVertexAttribArray(location + i)
-                    gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * _bpe, i * _bpe)
+                    gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, i * 4 * _bpe)
+                    angleInstancedArrays.vertexAttribDivisorANGLE(location + i, divisor)
                 }
             } else {
                 gl.enableVertexAttribArray(location)
                 gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, 0)
+                angleInstancedArrays.vertexAttribDivisorANGLE(location, divisor)
             }
-            angleInstancedArrays.vertexAttribDivisorANGLE(location, divisor)
         }
     }
 }
@@ -171,7 +172,7 @@ export function createAttributeBuffers<T extends AttributeDefs>(ctx: Context, pr
 }
 
 export type ElementsType = Uint16Array | Uint32Array
-export type ElementsKind = 'uint16' | 'unit32'
+export type ElementsKind = 'uint16' | 'uint32'
 
 export interface ElementsBuffer extends Buffer {
     bind: () => void

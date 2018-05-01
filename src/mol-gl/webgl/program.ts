@@ -8,12 +8,16 @@ import { ShaderCode } from '../shader-code'
 import { Context } from './context';
 import { getUniformSetters, UniformDefs, UniformValues } from './uniform';
 import {AttributeDefs, AttributeBuffers } from './buffer';
-import { TextureId, TextureDefs, TextureUniforms, Textures } from './texture';
+import { TextureId, TextureDefs, TextureUniformDefs, Textures } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
+import { idFactory } from 'mol-util/id-factory';
+
+const getNextProgramId = idFactory()
 
 export interface Program {
     readonly id: number
 
+    use: () => void
     setUniforms: (uniformValues: UniformValues) => void
     bindAttributes: (attribueBuffers: AttributeBuffers) => void
     bindTextures: (textures: Textures) => void
@@ -29,16 +33,18 @@ function getAttributeLocations(ctx: Context, program: WebGLProgram, attributeDef
     gl.useProgram(program)
     Object.keys(attributeDefs).forEach(k => {
         const loc = gl.getAttribLocation(program, k)
-        gl.enableVertexAttribArray(loc)
+        if (loc === -1) {
+            console.info(`Could not get attribute location for '${k}'`)
+        }
         locations[k] = loc
     })
     return locations
 }
 
-function getTextureUniforms(textures: TextureDefs) {
-    const textureUniforms: TextureUniforms = {}
-    Object.keys(textureUniforms).forEach(k => textureUniforms[k] = 't2')
-    return textureUniforms
+function getTextureUniformDefs(textureDefs: TextureDefs) {
+    const textureUniformDefs: TextureUniformDefs = {}
+    Object.keys(textureDefs).forEach(k => textureUniformDefs[k] = 't2')
+    return textureUniformDefs
 }
 
 export interface ProgramProps {
@@ -66,14 +72,17 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
 
     const uniformSetters = getUniformSetters(ctx, program, uniformDefs)
     const attributeLocations = getAttributeLocations(ctx, program, attributeDefs)
-    const textureUniforms = getTextureUniforms(textureDefs)
-    const textureUniformSetters = getUniformSetters(ctx, program, textureUniforms)
+    const textureUniformDefs = getTextureUniformDefs(textureDefs)
+    const textureUniformSetters = getUniformSetters(ctx, program, textureUniformDefs)
 
     let destroyed = false
 
     return {
-        id: 0,
+        id: getNextProgramId(),
 
+        use: () => {
+            gl.useProgram(program)
+        },
         setUniforms: (uniformValues: UniformValues) => {
             Object.keys(uniformValues).forEach(k => {
                 const value = uniformValues[k]
@@ -82,7 +91,8 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
         },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
             Object.keys(attribueBuffers).forEach(k => {
-                attribueBuffers[k].bind(attributeLocations[k])
+                const loc = attributeLocations[k]
+                if (loc !== -1) attribueBuffers[k].bind(loc)
             })
         },
         bindTextures: (textures: Textures) => {

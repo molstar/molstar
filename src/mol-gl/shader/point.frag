@@ -10,5 +10,5 @@ precision highp float;
 
 void main(){
     #pragma glslify: import('./chunks/color-assign-material.glsl')
-    gl_FragColor = vec4(material, 1);
+    gl_FragColor = vec4(material, 1.0);
 }

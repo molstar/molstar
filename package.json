@@ -60,27 +60,26 @@
     "@types/benchmark": "^1.0.31",
     "@types/express": "^4.11.1",
     "@types/jest": "^22.2.3",
-    "@types/node": "^9.6.6",
-    "@types/node-fetch": "^1.6.8",
-    "@types/react": "^16.3.12",
+    "@types/node": "^9.6.8",
+    "@types/node-fetch": "^1.6.9",
+    "@types/react": "^16.3.13",
     "@types/react-dom": "^16.0.5",
     "benchmark": "^2.1.4",
     "copyfiles": "^2.0.0",
     "cpx": "^1.5.0",
-    "extra-watch-webpack-plugin": "^1.0.1",
+    "extra-watch-webpack-plugin": "^1.0.3",
     "glslify-import": "^3.1.0",
     "glslify-loader": "^1.0.2",
     "jest": "^22.4.3",
     "jest-raw-loader": "^1.0.1",
     "raw-loader": "^0.5.1",
-    "regl": "git+https://github.com/regl-project/regl.git#45c6ec570232420fca21567499c9c5a2a054432e",
     "ts-jest": "^22.4.4",
     "tslint": "^5.9.1",
     "typescript": "^2.8.3",
-    "uglify-js": "^3.3.22",
+    "uglify-js": "^3.3.23",
     "util.promisify": "^1.0.0",
     "webpack": "^4.6.0",
-    "webpack-cli": "^2.0.15"
+    "webpack-cli": "^2.1.2"
   },
   "dependencies": {
     "argparse": "^1.0.10",
@@ -90,6 +89,6 @@
     "node-fetch": "^2.1.2",
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
-    "rxjs": "^6.0.0-beta.4"
+    "rxjs": "^6.0.0"
   }
 }

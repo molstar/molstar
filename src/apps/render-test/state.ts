@@ -41,9 +41,9 @@ export default class State {
     initialized = new BehaviorSubject<boolean>(false)
     loading = new BehaviorSubject<boolean>(false)
 
-    colorTheme = new BehaviorSubject<ColorTheme>('uniform')
-    colorValue = new BehaviorSubject<Color>(0xFF0000)
-    detail = new BehaviorSubject<number>(2)
+    colorTheme = new BehaviorSubject<ColorTheme>('element-symbol')
+    colorValue = new BehaviorSubject<Color>(0xFF4411)
+    detail = new BehaviorSubject<number>(0)
 
     pointVisibility = new BehaviorSubject<boolean>(true)
     spacefillVisibility = new BehaviorSubject<boolean>(true)
@@ -98,8 +98,8 @@ export default class State {
         viewer.add(this.pointRepr)
 
         this.spacefillRepr = StructureRepresentation(Spacefill)
-        // await Run(this.spacefillRepr.create(struct, this.getSpacefillProps()), log, 100)
-        // viewer.add(this.spacefillRepr)
+        await Run(this.spacefillRepr.create(struct, this.getSpacefillProps()), log, 100)
+        viewer.add(this.spacefillRepr)
 
         this.updateVisibility()
         viewer.requestDraw()

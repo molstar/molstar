@@ -39,14 +39,15 @@ function unbindResources (gl: WebGLRenderingContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 }
 
-type RequiredExtensions = {
+type Extensions = {
     angleInstancedArrays: ANGLE_instanced_arrays
-    oesElementIndexUint: OES_element_index_uint
+    oesElementIndexUint: OES_element_index_uint | null
+    oesVertexArrayObject: OES_vertex_array_object | null
 }
 
 export interface Context {
     gl: WebGLRenderingContext
-    extensions: RequiredExtensions
+    extensions: Extensions
     shaderCache: ShaderCache
     programCache: ProgramCache
     destroy: () => void
@@ -59,11 +60,16 @@ export function createContext(gl: WebGLRenderingContext): Context {
     }
     const oesElementIndexUint = gl.getExtension('OES_element_index_uint')
     if (oesElementIndexUint === null) {
-        throw new Error('Could not get "OES_element_index_uint" extension')
+        console.warn('Could not get "OES_element_index_uint" extension')
     }
+    const oesVertexArrayObject = gl.getExtension('OES_vertex_array_object')
+    if (oesVertexArrayObject === null) {
+        console.log('Could not get "OES_vertex_array_object" extension')
+    }
+
     return {
         gl,
-        extensions: { angleInstancedArrays, oesElementIndexUint },
+        extensions: { angleInstancedArrays, oesElementIndexUint, oesVertexArrayObject },
         shaderCache: createShaderCache(),
         programCache: createProgramCache(),
         destroy: () => {

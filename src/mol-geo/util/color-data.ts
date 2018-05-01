@@ -9,11 +9,11 @@ import { TextureImage, createColorTexture } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import VertexMap from '../shape/vertex-map';
 
-export type UniformColor = { type: 'uniform', value: number[] }
-export type AttributeColor = { type: 'attribute', value: ValueCell<Float32Array> }
-export type InstanceColor = { type: 'instance', value: ValueCell<TextureImage> }
-export type ElementColor = { type: 'element', value: ValueCell<TextureImage> }
-export type ElementInstanceColor = { type: 'element-instance', value: ValueCell<TextureImage> }
+export type UniformColor = { type: 'uniform', data: number[] }
+export type AttributeColor = { type: 'attribute', data: ValueCell<Float32Array> }
+export type InstanceColor = { type: 'instance', data: ValueCell<TextureImage> }
+export type ElementColor = { type: 'element', data: ValueCell<TextureImage> }
+export type ElementInstanceColor = { type: 'element-instance', data: ValueCell<TextureImage> }
 export type ColorData = UniformColor | AttributeColor | InstanceColor | ElementColor | ElementInstanceColor
 
 export interface UniformColorProps {
@@ -22,7 +22,7 @@ export interface UniformColorProps {
 
 /** Creates color uniform */
 export function createUniformColor(props: UniformColorProps): UniformColor {
-    return { type: 'uniform', value: Color.toRgbNormalized(props.value) }
+    return { type: 'uniform', data: Color.toRgbNormalized(props.value) }
 }
 
 export interface AttributeColorProps {
@@ -30,7 +30,7 @@ export interface AttributeColorProps {
     vertexMap: VertexMap
 }
 
-/** Creates color attribute with color for each element (i.e. shared across indtances/units) */
+/** Creates color attribute with color for each element (i.e. shared across instances/units) */
 export function createAttributeColor(props: AttributeColorProps): AttributeColor {
     const { colorFn, vertexMap } = props
     const { idCount, offsetCount, offsets } = vertexMap
@@ -43,7 +43,7 @@ export function createAttributeColor(props: AttributeColorProps): AttributeColor
             Color.toArrayNormalized(hexColor, colors, i * 3)
         }
     }
-    return { type: 'attribute', value: ValueCell.create(colors) }
+    return { type: 'attribute', data: ValueCell.create(colors) }
 }
 
 export interface InstanceColorProps {
@@ -58,7 +58,7 @@ export function createInstanceColor(props: InstanceColorProps): InstanceColor {
     for (let i = 0; i < instanceCount; i++) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
-    return { type: 'instance', value: ValueCell.create(colors) }
+    return { type: 'instance', data: ValueCell.create(colors) }
 }
 
 export interface ElementColorProps {
@@ -66,7 +66,7 @@ export interface ElementColorProps {
     vertexMap: VertexMap
 }
 
-/** Creates color texture with color for each element (i.e. shared across indtances/units) */
+/** Creates color texture with color for each element (i.e. shared across instances/units) */
 export function createElementColor(props: ElementColorProps): ElementColor {
     const { colorFn, vertexMap } = props
     const elementCount = vertexMap.offsetCount - 1
@@ -74,7 +74,7 @@ export function createElementColor(props: ElementColorProps): ElementColor {
     for (let i = 0, il = elementCount; i < il; ++i) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
-    return { type: 'element', value: ValueCell.create(colors) }
+    return { type: 'element', data: ValueCell.create(colors) }
 }
 
 export interface ElementInstanceColorProps {
@@ -96,7 +96,7 @@ export function createElementInstanceColor(props: ElementInstanceColorProps): El
             colorOffset += 3
         }
     }
-    return { type: 'element-instance', value: ValueCell.create(colors) }
+    return { type: 'element-instance', data: ValueCell.create(colors) }
 }
 
 /** Create color attribute or texture, depending on the vertexMap */

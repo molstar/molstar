@@ -23,7 +23,7 @@ namespace Mesh {
         normal?: ValueCell<Float32Array>
         id: ValueCell<Float32Array>
 
-        color: ValueCell<ColorData>
+        color: ColorData
         transform: ValueCell<Float32Array>
         index: ValueCell<Uint32Array>
 
@@ -37,12 +37,14 @@ namespace Mesh {
         const defs: RenderItemProps = {
             ...getBaseDefs(props),
             shaderCode: addShaderDefines(getBaseDefines(props), MeshShaderCode),
-            drawMode: 'triangles'
+            drawMode: 'triangles',
+            elementsKind: 'uint32'
         }
         const values: RenderItemState = {
             ...getBaseValues(props),
             drawCount: props.indexCount * 3,
-            instanceCount: props.instanceCount
+            instanceCount: props.instanceCount,
+            elements: props.index.ref.value
         }
 
         let renderItem = createRenderItem(ctx, defs, values)
@@ -53,6 +55,7 @@ namespace Mesh {
                 renderItem.draw()
             },
             name: 'mesh',
+            get program () { return renderItem.program },
             update: (newProps: Props) => {
                 console.log('Updating mesh renderable')
             },

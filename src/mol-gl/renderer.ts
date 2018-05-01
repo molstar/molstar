@@ -10,6 +10,7 @@ import { Camera } from 'mol-view/camera/base';
 
 import Scene, { RenderObject } from './scene';
 import { Context } from './webgl/context';
+import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 
 export interface RendererStats {
     elementsCount: number
@@ -32,46 +33,50 @@ interface Renderer {
     dispose: () => void
 }
 
-// function getPixelRatio() {
-//     return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
-// }
+function getPixelRatio() {
+    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
+}
 
 namespace Renderer {
     export function create(ctx: Context, camera: Camera): Renderer {
         const { gl } = ctx
         const scene = Scene.create(ctx)
 
-        // const baseContext = regl({
-        //     context: {
-        //         model: Mat4.identity(),
-        //         transform: Mat4.identity(),
-        //         view: camera.view,
-        //         projection: camera.projection,
-        //     },
-        //     uniforms: {
-        //         pixelRatio: getPixelRatio(),
-        //         viewportHeight: regl.context('viewportHeight'),
+        const model = Mat4.identity()
+        const viewport = Viewport.create(0, 0, 0, 0)
+        const pixelRatio = getPixelRatio()
 
-        //         model: regl.context('model' as any),
-        //         transform: regl.context('transform' as any),
-        //         view: regl.context('view' as any),
-        //         projection: regl.context('projection' as any),
-
-        //         'light.position': Vec3.create(0, 0, -100),
-        //         'light.color': Vec3.create(1.0, 1.0, 1.0),
-        //         'light.ambient': Vec3.create(0.5, 0.5, 0.5),
-        //         'light.falloff': 0,
-        //         'light.radius': 500
-        //     }
-        // })
+        // const light_position = Vec3.create(0, 0, -100)
+        const light_color = Vec3.create(1.0, 1.0, 1.0)
+        const light_ambient = Vec3.create(0.5, 0.5, 0.5)
 
         const draw = () => {
             // TODO clear color
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+            gl.enable(gl.DEPTH_TEST)
 
             // TODO painters sort, filter visible, filter picking, visibility culling?
+            let currentProgramId = -1
             scene.forEach((r, o) => {
-                if (o.visible) r.draw()
+                if (o.visible) {
+                    if (currentProgramId !== r.program.id) {
+                        r.program.use()
+                        r.program.setUniforms({
+                            model,
+                            view: camera.view,
+                            projection: camera.projection,
+
+                            pixelRatio,
+                            viewportHeight: viewport.height,
+
+                            // light_position,
+                            light_color,
+                            light_ambient,
+                        })
+                        currentProgramId = r.program.id
+                    }
+                    r.draw()
+                }
             })
         }
 
@@ -89,16 +94,13 @@ namespace Renderer {
                 scene.clear()
             },
             draw,
-            setViewport: (viewport: Viewport) => {
+            setViewport: (newViewport: Viewport) => {
+                Viewport.copy(viewport, newViewport)
                 gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
             },
             get stats() {
                 return {
-                    // elementsCount: regl.stats.elementsCount,
-                    // bufferCount: regl.stats.bufferCount,
-                    // textureCount: regl.stats.textureCount,
-                    // shaderCount: regl.stats.shaderCount,
-                    // renderableCount: scene.count
+                    renderableCount: scene.count
                 } as any
             },
             dispose: () => {

@@ -16,7 +16,7 @@ export interface Texture {
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 
 export type TextureDefs = { [k: string]: true }
-export type TextureUniforms = { [k: string]: 't2' }
+export type TextureUniformDefs = { [k: string]: 't2' }
 export type TextureValues = { [k: string]: TextureImage }
 export type Textures = { [k: string]: Texture }
 
@@ -30,17 +30,21 @@ export function createTexture(ctx: Context): Texture {
     const _textureType = gl.TEXTURE_2D
     const _magFilter = gl.NEAREST
     const _minFilter = gl.NEAREST
-    const _format = gl.RGBA
+    const _format = gl.RGB
     const _arrayType = gl.UNSIGNED_BYTE
 
     return {
         load: (image: TextureImage) => {
             const { array, width, height } = image
             gl.bindTexture(_textureType, texture)
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+            // unpack alignment of 1 since we use textures only for data
+            gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
             gl.texImage2D(_textureType, 0, _format, width, height, 0, _format, _arrayType, array)
             gl.texParameteri(_textureType, gl.TEXTURE_MAG_FILTER, _magFilter)
             gl.texParameteri(_textureType, gl.TEXTURE_MIN_FILTER, _minFilter)
+            // clamp-to-edge needed for non-power-of-two textures
+            gl.texParameteri(_textureType, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(_textureType, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.bindTexture(_textureType, null)
         },
         bind: (id: TextureId) => {

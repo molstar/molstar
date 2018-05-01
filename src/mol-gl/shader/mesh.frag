@@ -6,15 +6,9 @@
 
 precision highp float;
 
-struct Light {
-    vec3 position;
-    vec3 color;
-    vec3 ambient;
-    float falloff;
-    float radius;
-};
-
-uniform Light light;
+// uniform vec3 light_position;
+uniform vec3 light_color;
+uniform vec3 light_ambient;
 uniform mat4 view;
 
 varying vec3 vNormal, vViewPosition;
@@ -35,22 +29,18 @@ void main() {
     #pragma glslify: import('./chunks/color-assign-material.glsl')
 
     // determine surface to light direction
-    // vec4 lightPosition = view * vec4(light.position, 1.0);
-    vec4 lightPosition = vec4(vec3(0.0, 0.0, -10000.0), 1.0);
-    vec3 lightVector = lightPosition.xyz - vViewPosition;
-
-    // calculate attenuation
-    // float lightDistance = length(lightVector);
-    float falloff = 1.0; // attenuation(light.radius, light.falloff, lightDistance);
+    // vec4 lightPosition = view * vec4(light_position, 1.0);
+    // vec3 lightVector = lightPosition.xyz - vViewPosition;
+    vec3 lightVector = vViewPosition;
 
     vec3 L = normalize(lightVector); // light direction
     vec3 V = normalize(vViewPosition); // eye direction
     vec3 N = normalize(-vNormal); // surface normal
 
     // compute our diffuse & specular terms
-    float specular = calculateSpecular(L, V, N, shininess) * specularScale * falloff;
-    vec3 diffuse = light.color * calculateDiffuse(L, V, N, roughness, albedo) * falloff;
-    vec3 ambient = light.ambient;
+    float specular = calculateSpecular(L, V, N, shininess) * specularScale;
+    vec3 diffuse = light_color * calculateDiffuse(L, V, N, roughness, albedo);
+    vec3 ambient = light_ambient;
 
     // add the lighting
     vec3 finalColor = material * (diffuse + ambient) + specular;

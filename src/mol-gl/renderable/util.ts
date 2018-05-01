@@ -33,9 +33,9 @@ export function createColorTexture (n: number): TextureImage {
     return { array: new Uint8Array(length), width, height }
 }
 
-export function getColorDefines(color: ValueCell<ColorData>) {
+export function getColorDefines(color: ColorData) {
     const defines: ShaderDefines = {}
-    switch (color.ref.value.type) {
+    switch (color.type) {
         case 'uniform': defines.UNIFORM_COLOR = ''; break;
         case 'attribute': defines.ATTRIBUTE_COLOR = ''; break;
         case 'element': defines.ELEMENT_COLOR = ''; break;
@@ -45,9 +45,9 @@ export function getColorDefines(color: ValueCell<ColorData>) {
     return defines
 }
 
-export function getSizeDefines(size: ValueCell<SizeData>) {
+export function getSizeDefines(size: SizeData) {
     const defines: ShaderDefines = {}
-    switch (size.ref.value.type) {
+    switch (size.type) {
         case 'uniform': defines.UNIFORM_SIZE = ''; break;
         case 'attribute': defines.ATTRIBUTE_SIZE = ''; break;
     }
@@ -71,8 +71,8 @@ interface BaseProps {
     id: ValueCell<Float32Array>
     transform: ValueCell<Float32Array>
 
-    size?: ValueCell<SizeData>
-    color: ValueCell<ColorData>
+    size?: SizeData
+    color: ColorData
 }
 
 export function getBaseUniformDefs(props: BaseProps) {
@@ -81,18 +81,25 @@ export function getBaseUniformDefs(props: BaseProps) {
         view: 'm4',
         projection: 'm4',
 
+        pixelRatio: 'f',
+        viewportHeight: 'f',
+
+        // light_position: 'v3',
+        light_color: 'v3',
+        light_ambient: 'v3',
+
         objectId: 'i',
         instanceCount: 'i',
         elementCount: 'i'
     }
-    const color = props.color.ref.value
+    const color = props.color
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
+        // uniformDefs.colorTex = 't2'
         uniformDefs.colorTexSize = 'v2'
-        uniformDefs.colorTex = 't2'
     } else if (color.type === 'uniform') {
         uniformDefs.color = 'v3'
     }
-    const size = props.size ? props.size.ref.value : undefined
+    const size = props.size
     if (size && size.type === 'uniform') {
         uniformDefs.size = 'f'
     }
@@ -104,15 +111,15 @@ export function getBaseUniformValues(props: BaseProps) {
     const uniformValues: UniformValues = {
         objectId, instanceCount, elementCount
     }
-    const color = props.color.ref.value
+    const color = props.color
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
-        const { width, height } = color.value.ref.value
-        uniformValues.colorTex = new ImageData(new Uint8ClampedArray(color.value.ref.value.array), width, height)
+        const { width, height } = color.data.ref.value
+        // uniformValues.colorTex = color.value.ref.value.array
         uniformValues.colorTexSize = Vec2.create(width, height)
     } else if (color.type === 'uniform') {
-        uniformValues.color = color.value as Vec3
+        uniformValues.color = color.data as Vec3
     }
-    const size = props.size ? props.size.ref.value : undefined
+    const size = props.size
     if (size && size.type === 'uniform') {
         uniformValues.size = size.value
     }
@@ -122,20 +129,20 @@ export function getBaseUniformValues(props: BaseProps) {
 export function getBaseAttributeDefs(props: BaseProps) {
     const attributeDefs: AttributeDefs = {
         instanceId: { kind: 'float32', itemSize: 1, divisor: 1 },
-        position: { kind: 'float32', itemSize: 1, divisor: 0 },
+        position: { kind: 'float32', itemSize: 3, divisor: 0 },
         elementId: { kind: 'float32', itemSize: 1, divisor: 0 },
         transform: { kind: 'float32', itemSize: 16, divisor: 1 },
     }
     if (props.normal) {
-        attributeDefs.normal = { kind: 'float32', itemSize: 3, divisor:0 }
+        attributeDefs.normal = { kind: 'float32', itemSize: 3, divisor: 0 }
     }
-    const color = props.color.ref.value
+    const color = props.color
     if (color.type === 'attribute') {
-        attributeDefs.color = { kind: 'float32', itemSize: 3, divisor:0 }
+        attributeDefs.color = { kind: 'float32', itemSize: 3, divisor: 0 }
     }
-    const size = props.size ? props.size.ref.value : undefined
+    const size = props.size
     if (size && size.type === 'attribute') {
-        attributeDefs.size = { kind: 'float32', itemSize: 1, divisor:0 }
+        attributeDefs.size = { kind: 'float32', itemSize: 1, divisor: 0 }
     }
     return attributeDefs
 }
@@ -152,11 +159,11 @@ export function getBaseAttributeValues(props: BaseProps) {
     if (normal) {
         attributeValues.normal = normal.ref.value
     }
-    const color = props.color.ref.value
+    const color = props.color
     if (color.type === 'attribute') {
-        attributeValues.color = color.value.ref.value
+        attributeValues.color = color.data.ref.value
     }
-    const size = props.size ? props.size.ref.value : undefined
+    const size = props.size
     if (size && size.type === 'attribute') {
         attributeValues.size = size.value.ref.value
     }
@@ -165,7 +172,7 @@ export function getBaseAttributeValues(props: BaseProps) {
 
 export function getBaseTextureDefs(props: BaseProps) {
     const textureDefs: TextureDefs = {}
-    const color = props.color.ref.value
+    const color = props.color
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
         textureDefs.colorTex = true
     }
@@ -174,9 +181,9 @@ export function getBaseTextureDefs(props: BaseProps) {
 
 export function getBaseTextureValues(props: BaseProps) {
     const textureValues: TextureValues = {}
-    const color = props.color.ref.value
+    const color = props.color
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
-        textureValues.colorTex = color.value.ref.value
+        textureValues.colorTex = color.data.ref.value
     }
     return textureValues
 }

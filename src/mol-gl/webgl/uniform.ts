@@ -6,6 +6,7 @@
 
 import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
 import { Context } from './context';
+import { TextureImage } from '../renderable/util';
 
 export type UniformKindValue = {
     'f': number
@@ -18,7 +19,7 @@ export type UniformKindValue = {
     't2': number
 }
 export type UniformKind = keyof UniformKindValue
-export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4 | ImageData
+export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4 | TextureImage
 
 export type UniformDefs = { [k: string]: UniformKind }
 export type UniformValues = { [k: string]: UniformType }
@@ -28,7 +29,7 @@ export function createUniformSetter(ctx: Context, program: WebGLProgram, name: s
     const { gl } = ctx
     const location = gl.getUniformLocation(program, name)
     if (location === null) {
-        throw new Error(`Could not get WebGL uniform location for '${name}'`)
+        console.info(`Could not get WebGL uniform location for '${name}'`)
     }
     switch (kind) {
         case 'f': return (value: number) => gl.uniform1f(location, value)
@@ -39,7 +40,6 @@ export function createUniformSetter(ctx: Context, program: WebGLProgram, name: s
         case 'm3': return (value: Mat3) => gl.uniformMatrix3fv(location, false, value)
         case 'm4': return (value: Mat4) => gl.uniformMatrix4fv(location, false, value)
     }
-    throw new Error('Should never happen')
 }
 
 export function getUniformSetters(ctx: Context, program: WebGLProgram, uniforms: UniformDefs) {
