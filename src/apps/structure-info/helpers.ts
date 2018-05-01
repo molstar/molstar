@@ -29,7 +29,7 @@ async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data);
     const parsed = await Run(comp, p => console.log(Progress.format(p)), 250);
     if (parsed.isError) throw parsed;
-    return parsed
+    return parsed.result;
 }
 
 export async function openCif(path: string) {

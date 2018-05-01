@@ -47,8 +47,8 @@ namespace Column {
         export function Int(defaultValue = 0): Int { return { '@type': 'int', T: defaultValue, valueType: 'int' } };
         export function Float(defaultValue = 0): Float { return { '@type': 'float', T: defaultValue, valueType: 'float' } };
         export function Tensor(space: Tensors.Space, baseType: Int | Float = float): Tensor { return { '@type': 'tensor', T: space.create(), space, valueType: 'tensor', baseType }; }
-        export function Vector(dim: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.Vector(dim), baseType); }
-        export function Matrix(rows: number, cols: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.ColumnMajorMatrix(rows, cols), baseType); }
+        export function Vector(dim: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.Vector(dim, baseType['@type'] === 'int' ? Int32Array : Float64Array), baseType); }
+        export function Matrix(rows: number, cols: number, baseType: Int | Float = float): Tensor { return Tensor(Tensors.ColumnMajorMatrix(rows, cols, baseType['@type'] === 'int' ? Int32Array : Float64Array), baseType); }
 
         export function Aliased<T>(t: Str | Int, defaultValue?: T): Aliased<T> {
             if (typeof defaultValue !== 'undefined') return { ...t, T: defaultValue } as any as Aliased<T>;

@@ -22,12 +22,12 @@ import { openCif, downloadCif } from './helpers';
 async function downloadFromPdb(pdb: string) {
     // `https://files.rcsb.org/download/${pdb}.cif`
     const parsed = await downloadCif(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`, false);
-    return CIF.schema.mmCIF(parsed.result.blocks[0]);
+    return CIF.schema.mmCIF(parsed.blocks[0]);
 }
 
 async function readPdbFile(path: string) {
     const parsed = await openCif(path);
-    return CIF.schema.mmCIF(parsed.result.blocks[0]);
+    return CIF.schema.mmCIF(parsed.blocks[0]);
 }
 
 export function atomLabel(model: Model, aI: number) {

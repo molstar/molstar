@@ -78,19 +78,21 @@ export interface Field {
     toFloatArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>
 }
 
-export function getTensor(category: Category, field: string, space: Tensor.Space, row: number): Tensor.Data {
+export function getTensor(category: Category, field: string, space: Tensor.Space, row: number, zeroIndexed: boolean): Tensor.Data {
     const ret = space.create();
+    const offset = zeroIndexed ? 0 : 1;
+
     if (space.rank === 1) {
         const rows = space.dimensions[0];
         for (let i = 0; i < rows; i++) {
-            const f = category.getField(`${field}[${i + 1}]`);
+            const f = category.getField(`${field}[${i + offset}]`);
             space.set(ret, i, !!f ? f.float(row) : 0.0);
         }
     } else if (space.rank === 2) {
         const rows = space.dimensions[0], cols = space.dimensions[1];
         for (let i = 0; i < rows; i++) {
             for (let j = 0; j < cols; j++) {
-                const f = category.getField(`${field}[${i + 1}][${j + 1}]`);
+                const f = category.getField(`${field}[${i + offset}][${j + offset}]`);
                 space.set(ret, i, j, !!f ? f.float(row) : 0.0);
             }
         }
@@ -99,7 +101,7 @@ export function getTensor(category: Category, field: string, space: Tensor.Space
         for (let i = 0; i < d0; i++) {
             for (let j = 0; j < d1; j++) {
                 for (let k = 0; k < d2; k++) {
-                    const f = category.getField(`${field}[${i + 1}][${j + 1}][${k + 1}]`);
+                    const f = category.getField(`${field}[${i + offset}][${j + offset}][${k + offset}]`);
                     space.set(ret, i, j, k, !!f ? f.float(row) : 0.0);
                 }
             }
