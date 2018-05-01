@@ -40,15 +40,10 @@ export const ChainsSchema = {
 export type ChainsSchema = typeof ChainsSchema
 export interface Chains extends Table<ChainsSchema> { }
 
-export const EntitySchema = mmCIF['entity']
-export type EntitySchema = typeof EntitySchema
-export interface Entities extends Table<EntitySchema> { }
-
 export interface Data {
     atoms: Atoms,
     residues: Residues,
-    chains: Chains,
-    entities: Entities
+    chains: Chains
 }
 
 export interface Segments {
@@ -70,7 +65,6 @@ export interface Keys {
     // also index to the Entities table.
     entityKey: Column<number>,
 
-    findEntityKey(id: string): number,
     findChainKey(entityId: string, label_asym_id: string): number,
     findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }

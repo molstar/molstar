@@ -6,6 +6,7 @@
 
 import Column from './column'
 import { sortArray } from '../util/sort'
+import { StringBuilder } from 'mol-util';
 
 /** A collection of columns */
 type Table<Schema extends Table.Schema> = {
@@ -58,7 +59,7 @@ namespace Table {
         return ret;
     }
 
-    export function ofRows<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, rows: ArrayLike<Row<S>>): R {
+    export function ofRows<S extends Schema, R extends Table<S> = Table<S>>(schema: Schema, rows: ArrayLike<Partial<Row<S>>>): R {
         const ret = Object.create(null);
         const rowCount = rows.length;
         const columns = Object.keys(schema);
@@ -83,7 +84,7 @@ namespace Table {
         ret._columns = columns;
         ret._schema = schema;
         for (const k of columns) {
-            (ret as any)[k] = Column.ofArray({ array: arrays[k], schema: schema[k] })
+            (ret as any)[k] = typeof arrays[k] !== 'undefined' ? Column.ofArray({ array: arrays[k], schema: schema[k] }) : Column.Undefined(ret._rowCount, schema[k]);
         }
         return ret as R;
     }
@@ -187,6 +188,38 @@ namespace Table {
             ret[i] = getRow(table, i);
         }
         return ret;
+    }
+
+    export function formatToString<S extends Schema>(table: Table<S>) {
+        const sb = StringBuilder.create();
+
+        const { _columns: cols, _rowCount } = table;
+
+        let headerLength = 1;
+        StringBuilder.write(sb, '|');
+        for (let i = 0; i < cols.length; i++) {
+            StringBuilder.write(sb, cols[i]);
+            StringBuilder.write(sb, '|');
+            headerLength += cols[i].length + 1;
+        }
+        StringBuilder.newline(sb);
+        StringBuilder.write(sb, new Array(headerLength + 1).join('-'));
+        StringBuilder.newline(sb);
+
+        for (let r = 0; r < _rowCount; r++) {
+            StringBuilder.write(sb, '|');
+            for (let i = 0; i < cols.length; i++) {
+                const c = table[cols[i]];
+                if (c.valueKind(r) === Column.ValueKind.Present) {
+                    StringBuilder.write(sb, c.value(r));
+                    StringBuilder.write(sb, '|');
+                } else {
+                    StringBuilder.write(sb, '.|');
+                }
+            }
+            StringBuilder.newline(sb);
+        }
+        return StringBuilder.getString(sb);
     }
 }
 

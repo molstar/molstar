@@ -32,7 +32,7 @@ function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: num
         const v = Vec3.zero()
         const m = Mat4.identity()
 
-        const { x, y, z } = unit.model.conformation
+        const { x, y, z } = unit.model.atomSiteConformation
         const { type_symbol } = unit.model.hierarchy.atoms
         const elementCount = OrderedSet.size(elementGroup.elements)
         for (let i = 0; i < elementCount; i++) {

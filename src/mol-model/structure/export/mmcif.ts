@@ -102,10 +102,10 @@ const atom_site: Encoder.CategoryDefinition<Element.Location> = {
 
 function entityProvider({ model }: Context): Encoder.CategoryInstance {
     return {
-        data: model.hierarchy.entities,
-        definition: Encoder.CategoryDefinition.ofTable('entity', model.hierarchy.entities),
-        keys: () => Iterator.Range(0, model.hierarchy.entities._rowCount - 1),
-        rowCount: model.hierarchy.entities._rowCount
+        data: model.entities.data,
+        definition: Encoder.CategoryDefinition.ofTable('entity', model.entities.data),
+        keys: () => Iterator.Range(0, model.entities.data._rowCount - 1),
+        rowCount: model.entities.data._rowCount
     }
 }
 

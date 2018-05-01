@@ -10,14 +10,16 @@ import { Interval, Segmentation } from 'mol-data/int'
 import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
-import Conformation from '../properties/conformation'
-import CoarseGrained from '../properties/coarse-grained'
+import AtomSiteConformation from '../properties/atom-site-conformation'
 import Symmetry from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { ElementSymbol} from '../types'
 import createAssemblies from './mmcif/assembly'
 
 import mmCIF_Format = Format.mmCIF
+import { getSequence } from './mmcif/sequence';
+import { Entities } from '../properties/common';
+import { coarseGrainedFromIHM } from './mmcif/ihm';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -29,6 +31,8 @@ function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
 }
 
 function findHierarchyOffsets({ data }: mmCIF_Format, bounds: Interval) {
+    if (Interval.size(bounds) === 0) return { residues: [], chains: [] };
+
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const residues = [start], chains = [start];
 
@@ -62,10 +66,10 @@ function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: 
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
     const chains = Table.view(atom_site, Hierarchy.ChainsSchema, offsets.chains);
-    return { atoms, residues, chains, entities: data.entity };
+    return { atoms, residues, chains };
 }
 
-function getConformation({ data }: mmCIF_Format, bounds: Interval): Conformation {
+function getConformation({ data }: mmCIF_Format, bounds: Interval): AtomSiteConformation {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const { atom_site } = data;
     return {
@@ -97,7 +101,7 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
     if (previous && isHierarchyDataEqual(previous.hierarchy, hierarchyData)) {
         return {
             ...previous,
-            conformation: getConformation(format, bounds)
+            atomSiteConformation: getConformation(format, bounds)
         };
     }
 
@@ -105,25 +109,38 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
-    const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
+
+    const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
+
+    const hierarchyKeys = findHierarchyKeys(hierarchyData, entities, hierarchySegments);
+
+    const hierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
+
     return {
         id: UUID.create(),
         sourceData: format,
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
-        hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
-        conformation: getConformation(format, bounds),
-        coarseGrained: CoarseGrained.Empty,
+        entities,
+        hierarchy,
+        sequence: getSequence(format.data, entities, hierarchy),
+        atomSiteConformation: getConformation(format, bounds),
+        coarseGrained: coarseGrainedFromIHM(format.data, entities),
         symmetry: getSymmetry(format),
         atomCount: Interval.size(bounds)
     };
 }
 
 function buildModels(format: mmCIF_Format): ReadonlyArray<Model> {
-    const models: Model[] = [];
     const atomCount = format.data.atom_site._rowCount;
+    const isIHM = format.data.ihm_model_list._rowCount > 0;
 
-    if (atomCount === 0) return models;
+    if (atomCount === 0) {
+        return isIHM
+            ? [createModel(format, Interval.Empty, void 0)]
+            : [];
+    }
 
+    const models: Model[] = [];
     let modelStart = 0;
     while (modelStart < atomCount) {
         const bounds = findModelBounds(format, modelStart);

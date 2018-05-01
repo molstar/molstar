@@ -11,13 +11,16 @@ import { Atoms } from 'mol-io/reader/gro/schema'
 import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
-import Conformation from '../properties/conformation'
+import AtomSiteConformation from '../properties/atom-site-conformation'
 import CoarseGrained from '../properties/coarse-grained'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { guessElement } from '../utils/guess-element'
 import { ElementSymbol} from '../types'
+import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 
 import gro_Format = Format.gro
+import Sequence from '../properties/sequence';
+import { Entities } from '../properties/common';
 
 type HierarchyOffsets = { residues: ArrayLike<number>, chains: ArrayLike<number> }
 
@@ -70,12 +73,11 @@ function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Hiera
     // });
 
     const chains = Table.ofUndefinedColumns(Hierarchy.ChainsSchema, 0);
-    const entities = Table.ofUndefinedColumns(Hierarchy.EntitySchema, 0);
 
-    return { atoms, residues, chains, entities };
+    return { atoms, residues, chains };
 }
 
-function getConformation(atoms: Atoms): Conformation {
+function getConformation(atoms: Atoms): AtomSiteConformation {
     return {
         id: UUID.create(),
         atomId: atoms.atomNumber,
@@ -103,7 +105,7 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
     if (previous && isHierarchyDataEqual(previous.hierarchy, hierarchyData)) {
         return {
             ...previous,
-            conformation: getConformation(structure.atoms)
+            atomSiteConformation: getConformation(structure.atoms)
         };
     }
 
@@ -111,13 +113,27 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
-    const hierarchyKeys = findHierarchyKeys(hierarchyData, hierarchySegments);
+
+    // TODO: create a better mock entity
+    const entityTable = Table.ofRows<mmCIF['entity']>(mmCIF.entity, [{
+        id: '0',
+        src_method: 'syn',
+        type: 'polymer',
+        pdbx_number_of_molecules: 1
+    }]);
+
+    const entities: Entities = { data: entityTable, getEntityIndex: Column.createIndexer(entityTable.id) };
+
+    const hierarchyKeys = findHierarchyKeys(hierarchyData, entities, hierarchySegments);
+    const hierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
     return {
         id: UUID.create(),
         sourceData: format,
         modelNum,
-        hierarchy: { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments },
-        conformation: getConformation(structure.atoms),
+        hierarchy,
+        entities,
+        sequence: Sequence.fromHierarchy(hierarchy),
+        atomSiteConformation: getConformation(structure.atoms),
         coarseGrained: CoarseGrained.Empty,
         symmetry: { assemblies: [] },
         atomCount: structure.atoms.count

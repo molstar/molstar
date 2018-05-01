@@ -7,7 +7,7 @@
 import Query from './query'
 import Selection from './selection'
 import P from './properties'
-import { Structure, ElementSet, Element } from '../structure'
+import { Structure, ElementSet, Element, Unit } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
 
 export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s.elements);
@@ -79,6 +79,9 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
             const unit = units[unitId];
+
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
             l.unit = unit;
             const set = ElementSet.groupAt(elements, i).elements;
 
@@ -171,6 +174,9 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
             const unitId = unitIds[i];
             const unit = units[unitId];
+
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
             l.unit = unit;
             const set = ElementSet.groupAt(elements, i).elements;
 

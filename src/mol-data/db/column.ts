@@ -132,6 +132,10 @@ namespace Column {
         return createFirstIndexMapOfColumn(column);
     }
 
+    export function createIndexer<T>(column: Column<T>) {
+        return createIndexerOfColumn(column);
+    }
+
     export function mapToArray<T, S>(column: Column<T>, f: (v: T) => S, ctor?: ArrayCtor<S>): ArrayLike<S> {
         return mapToArrayImpl<T, S>(column, f, ctor || Array);
     }
@@ -169,9 +173,18 @@ function createFirstIndexMapOfColumn<T>(c: Column<T>): Map<T, number> {
     const map = new Map<T, number>();
     for (let i = 0, _i = c.rowCount; i < _i; i++) {
         const v = c.value(i);
-        if (!map.has(v)) return map.set(c.value(i), i);
+        if (!map.has(v)) map.set(c.value(i), i);
     }
     return map;
+}
+
+function createIndexerOfColumn<T>(c: Column<T>): (value: T) => number {
+    const map = new Map<T, number>();
+    for (let i = 0, _i = c.rowCount; i < _i; i++) {
+        const v = c.value(i);
+        if (!map.has(v)) map.set(c.value(i), i);
+    }
+    return v => map.has(v) ? map.get(v)! : -1;
 }
 
 function constColumn<T extends Column.Schema>(v: T['T'], rowCount: number, schema: T, valueKind: Column.ValueKind): Column<T['T']> {

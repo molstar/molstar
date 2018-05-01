@@ -148,7 +148,7 @@ export namespace PropertyAccess {
 
         let vA = 0, cC = 0, rC = 0;
         for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unit = units[unitIds[i]];
+            const unit = units[unitIds[i]] as Unit.Atomic;
             l.unit = unit;
             const set = ElementSet.groupAt(elements, i);
 
@@ -356,11 +356,11 @@ export namespace PropertyAccess {
         // return;
 
         console.log('bs', baseline(models[0]));
-        console.log('sp', sumProperty(structures[0], l => l.unit.model.conformation.atomId.value(l.element)));
-        console.log(sumPropertySegmented(structures[0], l => l.unit.model.conformation.atomId.value(l.element)));
+        console.log('sp', sumProperty(structures[0], l => l.unit.model.atomSiteConformation.atomId.value(l.element)));
+        console.log(sumPropertySegmented(structures[0], l => l.unit.model.atomSiteConformation.atomId.value(l.element)));
 
         //console.log(sumPropertySegmentedMutable(structures[0], l => l.unit.model.conformation.atomId.value(l.element));
-        console.log(sumPropertyAtomSetIt(structures[0], l => l.unit.model.conformation.atomId.value(l.element)));
+        console.log(sumPropertyAtomSetIt(structures[0], l => l.unit.model.atomSiteConformation.atomId.value(l.element)));
         //console.log(sumProperty(structures[0], Property.cachedAtomColumn(m => m.conformation.atomId)));
         //console.log(sumDirect(structures[0]));
         //console.log('r', sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])));

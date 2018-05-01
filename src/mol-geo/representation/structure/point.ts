@@ -26,7 +26,7 @@ export type PointProps = Partial<typeof DefaultPointProps>
 export function createPointVertices(unit: Unit, elementGroup: ElementGroup) {
     const elementCount = OrderedSet.size(elementGroup.elements)
     const vertices = new Float32Array(elementCount * 3)
-    const { x, y, z } = unit.model.conformation
+    const { x, y, z } = unit.model.atomSiteConformation
     for (let i = 0; i < elementCount; i++) {
         const e = OrderedSet.getAt(elementGroup.elements, i)
         const i3 = i * 3

@@ -2,11 +2,10 @@
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Element, Unit } from '../structure'
-import { VdwRadius, AtomWeight, AtomNumber } from '../model/properties/atomic';
+import CoarseGrained from '../model/properties/coarse-grained';
 
 const constant = {
     true: Element.property(l => true),
@@ -18,6 +17,11 @@ function notAtomic(): never {
     throw 'Property only available for atomic models.';
 }
 
+function notCoarse(kind?: string): never {
+    if (!!kind) throw `Property only available for coarse models (${kind}).`;
+    throw `Property only available for coarse models.`;
+}
+
 const atom = {
     key: Element.property(l => l.element),
 
@@ -26,20 +30,15 @@ const atom = {
     y: Element.property(l => l.unit.y(l.element)),
     z: Element.property(l => l.unit.z(l.element)),
     id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.atomId.value(l.element)),
-    occupancy: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.occupancy.value(l.element)),
-    B_iso_or_equiv: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.B_iso_or_equiv.value(l.element)),
+    occupancy: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.conformation.occupancy.value(l.element)),
+    B_iso_or_equiv: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.conformation.B_iso_or_equiv.value(l.element)),
 
     // Hierarchy
-    type_symbol: Element.property(l => l.unit.hierarchy.atoms.type_symbol.value(l.element)),
-    label_atom_id: Element.property(l => l.unit.hierarchy.atoms.label_atom_id.value(l.element)),
-    auth_atom_id: Element.property(l => l.unit.hierarchy.atoms.auth_atom_id.value(l.element)),
-    label_alt_id: Element.property(l => l.unit.hierarchy.atoms.label_alt_id.value(l.element)),
-    pdbx_formal_charge: Element.property(l => l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element)),
-
-    // Derived
-    vdw: Element.property(l => VdwRadius(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
-    mass: Element.property(l => AtomWeight(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
-    number: Element.property(l => AtomNumber(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
+    type_symbol: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.type_symbol.value(l.element)),
+    label_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_atom_id.value(l.element)),
+    auth_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.auth_atom_id.value(l.element)),
+    label_alt_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_alt_id.value(l.element)),
+    pdbx_formal_charge: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element))
 }
 
 const residue = {
@@ -61,21 +60,44 @@ const chain = {
     label_entity_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.element]))
 }
 
+const coarse_grained = {
+    modelKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.modelKey[l.element]),
+    entityKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.entityKey[l.element]),
+
+    x: atom.x,
+    y: atom.y,
+    z: atom.z,
+
+    asym_id: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.asym_id.value(l.element)),
+    seq_id_begin: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.seq_id_begin.value(l.element)),
+    seq_id_end: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.seq_id_end.value(l.element)),
+
+    sphere_radius: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Sphere
+        ? notCoarse('spheres') : l.unit.spheres.radius.value(l.element)),
+    sphere_rmsf: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Sphere
+        ? notCoarse('spheres') : l.unit.spheres.rmsf.value(l.element)),
+
+    gaussian_weight: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Gaussian
+        ? notCoarse('gaussians') : l.unit.gaussians.weight.value(l.element)),
+    gaussian_covariance_matrix: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Gaussian
+        ? notCoarse('gaussians') : l.unit.gaussians.covariance_matrix.value(l.element)),
+}
+
 function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.entityKey.value(l.unit.chainIndex[l.element]); }
 
 const entity = {
     key: eK,
 
-    id: Element.property(l => l.unit.hierarchy.entities.id.value(eK(l))),
-    type: Element.property(l => l.unit.hierarchy.entities.type.value(eK(l))),
-    src_method: Element.property(l => l.unit.hierarchy.entities.src_method.value(eK(l))),
-    pdbx_description: Element.property(l => l.unit.hierarchy.entities.pdbx_description.value(eK(l))),
-    formula_weight: Element.property(l => l.unit.hierarchy.entities.formula_weight.value(eK(l))),
-    pdbx_number_of_molecules: Element.property(l => l.unit.hierarchy.entities.pdbx_number_of_molecules.value(eK(l))),
-    details: Element.property(l => l.unit.hierarchy.entities.details.value(eK(l))),
-    pdbx_mutation: Element.property(l => l.unit.hierarchy.entities.pdbx_mutation.value(eK(l))),
-    pdbx_fragment: Element.property(l => l.unit.hierarchy.entities.pdbx_fragment.value(eK(l))),
-    pdbx_ec: Element.property(l => l.unit.hierarchy.entities.pdbx_ec.value(eK(l)))
+    id: Element.property(l => l.unit.model.entities.data.id.value(eK(l))),
+    type: Element.property(l => l.unit.model.entities.data.type.value(eK(l))),
+    src_method: Element.property(l => l.unit.model.entities.data.src_method.value(eK(l))),
+    pdbx_description: Element.property(l => l.unit.model.entities.data.pdbx_description.value(eK(l))),
+    formula_weight: Element.property(l => l.unit.model.entities.data.formula_weight.value(eK(l))),
+    pdbx_number_of_molecules: Element.property(l => l.unit.model.entities.data.pdbx_number_of_molecules.value(eK(l))),
+    details: Element.property(l => l.unit.model.entities.data.details.value(eK(l))),
+    pdbx_mutation: Element.property(l => l.unit.model.entities.data.pdbx_mutation.value(eK(l))),
+    pdbx_fragment: Element.property(l => l.unit.model.entities.data.pdbx_fragment.value(eK(l))),
+    pdbx_ec: Element.property(l => l.unit.model.entities.data.pdbx_ec.value(eK(l)))
 }
 
 const unit = {
@@ -89,7 +111,8 @@ const Properties = {
     residue,
     chain,
     entity,
-    unit
+    unit,
+    coarse_grained
 }
 
 type Properties = typeof Properties
