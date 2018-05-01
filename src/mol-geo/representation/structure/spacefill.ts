@@ -18,6 +18,7 @@ import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
 import { createTransforms, createColors } from './utils';
 import { ColorTheme } from '../../theme';
 import VertexMap from '../../shape/vertex-map';
+import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
 
 export const DefaultSpacefillProps = {
     detail: 0,
@@ -25,9 +26,9 @@ export const DefaultSpacefillProps = {
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
-function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: number) {
-    return Task.create('Spacefill', async ctx => {
-        const meshBuilder = MeshBuilder.create()
+function buildAtomSpheres(meshBuilder: MeshBuilder, unit: Unit, elementGroup: ElementGroup, detail: number) {
+    return Task.create('Atom spheres', async ctx => {
+        if (!Unit.isAtomic(unit)) return
 
         const v = Vec3.zero()
         const m = Mat4.identity()
@@ -43,14 +44,53 @@ function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: num
             Mat4.setTranslation(m, v)
 
             meshBuilder.setId(i)
-            meshBuilder.addIcosahedron(m, {
-                radius: VdwRadius(type_symbol.value(e)),
-                detail
-            })
+            meshBuilder.addIcosahedron(m, { radius: VdwRadius(type_symbol.value(e)), detail })
 
             if (i % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Spacefill', current: i, max: elementCount });
+                await ctx.update({ message: 'Atom spheres', current: i, max: elementCount });
             }
+        }
+    })
+}
+
+function buildCoarseSpheres(meshBuilder: MeshBuilder, unit: Unit, elementGroup: ElementGroup, detail: number) {
+    return Task.create('Coarse spheres', async ctx => {
+        if (!Unit.isCoarse(unit) || unit.elementType !== CoarseGrained.ElementType.Sphere) return
+
+        const v = Vec3.zero()
+        const m = Mat4.identity()
+
+        const { x, y, z, radius } = unit.model.coarseGrained.spheres
+        const elementCount = OrderedSet.size(elementGroup.elements)
+        console.log('building coarse spheres', elementCount)
+        for (let i = 0; i < elementCount; i++) {
+            const e = OrderedSet.getAt(elementGroup.elements, i)
+            v[0] = x[e]
+            v[1] = y[e]
+            v[2] = z[e]
+            Mat4.setTranslation(m, v)
+
+            meshBuilder.setId(i)
+            meshBuilder.addIcosahedron(m, { radius: radius.value(e), detail })
+
+            if (i % 10000 === 0 && ctx.shouldUpdate) {
+                await ctx.update({ message: 'Coarse spheres', current: i, max: elementCount });
+            }
+        }
+    })
+}
+
+function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: number) {
+    return Task.create('Spacefill', async ctx => {
+        const meshBuilder = MeshBuilder.create()
+
+        if (Unit.isAtomic(unit)) {
+            await ctx.runChild(buildAtomSpheres(meshBuilder, unit, elementGroup, detail))
+        }
+
+        if (Unit.isCoarse(unit) && unit.elementType === CoarseGrained.ElementType.Sphere) {
+            console.log('building coarse spheres')
+            await ctx.runChild(buildCoarseSpheres(meshBuilder, unit, elementGroup, detail))
         }
 
         return meshBuilder.getMesh()

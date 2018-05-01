@@ -6,7 +6,7 @@
 
 import CIF from 'mol-io/reader/cif'
 import { Run, Progress } from 'mol-task'
-import { Structure } from 'mol-model/structure'
+import { Model } from 'mol-model/structure'
 
 export function log(progress: Progress) {
     const p = progress.root.progress
@@ -20,10 +20,10 @@ export async function parseCif(data: string|Uint8Array) {
     return parsed
 }
 
-export async function getStructuresFromPdbId(pdbid: string) {
+export async function getModelFromPdbId(pdbid: string) {
     const data = await fetch(`https://files.rcsb.org/download/${pdbid}.cif`)
     const parsed = await parseCif(await data.text())
-    return Structure.ofData({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
+    return Model.create({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
 }
 
 const readFileAsText = (file: File) => {
@@ -38,7 +38,7 @@ const readFileAsText = (file: File) => {
     })
 }
 
-export async function getStructuresFromFile(file: File) {
+export async function getModelFromFile(file: File) {
     const parsed = await parseCif(await readFileAsText(file))
-    return Structure.ofData({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
+    return Model.create({ kind: 'mmCIF', data: CIF.schema.mmCIF(parsed.result.blocks[0]) })
 }

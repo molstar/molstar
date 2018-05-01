@@ -55,7 +55,7 @@ namespace Viewer {
         input.resize.subscribe(handleResize)
 
         const camera = PerspectiveCamera.create({
-            near: 0.01,
+            near: 0.1,
             far: 10000,
             position: Vec3.create(0, 0, 50)
         })

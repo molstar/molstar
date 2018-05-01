@@ -17,10 +17,10 @@ import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spac
 import Point, { PointProps } from 'mol-geo/representation/structure/point'
 
 import { Run } from 'mol-task'
-import { Symmetry, Structure } from 'mol-model/structure'
+import { Symmetry, Structure, Model } from 'mol-model/structure'
 
 // import mcubes from './utils/mcubes'
-import { getStructuresFromPdbId, getStructuresFromFile, log } from './utils'
+import { getModelFromPdbId, getModelFromFile, log } from './utils'
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { Color } from 'mol-util/color';
 // import Cylinder from 'mol-geo/primitive/cylinder';
@@ -87,18 +87,24 @@ export default class State {
         this.viewer.animate()
     }
 
-    async initStructure (structure: Structure) {
+    async initStructure (model: Model) {
         const { viewer, loading } = this
         viewer.clear()
 
-        const struct = await Run(Symmetry.buildAssembly(structure, '1'), log, 100)
+        let structure: Structure
+        const assemblies = model.symmetry.assemblies
+        if (assemblies.length) {
+            structure = await Run(Symmetry.buildAssembly(Structure.ofModel(model), '1'), log, 100)
+        } else {
+            structure = Structure.ofModel(model)
+        }
 
         this.pointRepr = StructureRepresentation(Point)
-        await Run(this.pointRepr.create(struct, this.getPointProps()), log, 100)
+        await Run(this.pointRepr.create(structure, this.getPointProps()), log, 100)
         viewer.add(this.pointRepr)
 
         this.spacefillRepr = StructureRepresentation(Spacefill)
-        await Run(this.spacefillRepr.create(struct, this.getSpacefillProps()), log, 100)
+        await Run(this.spacefillRepr.create(structure, this.getSpacefillProps()), log, 100)
         viewer.add(this.spacefillRepr)
 
         this.updateVisibility()
@@ -112,7 +118,7 @@ export default class State {
         this.viewer.clear()
         this.loading.next(true)
 
-        const structures = await getStructuresFromFile(file)
+        const structures = await getModelFromFile(file)
         this.initStructure(structures[0])
     }
 
@@ -121,7 +127,7 @@ export default class State {
         if (this.pdbId.length !== 4) return
         this.loading.next(true)
 
-        const structures = await getStructuresFromPdbId(this.pdbId)
+        const structures = await getModelFromPdbId(this.pdbId)
         this.initStructure(structures[0])
     }
 
@@ -155,86 +161,3 @@ export default class State {
         this.viewer.requestDraw()
     }
 }
-
-
-
-// async foo () {
-//     const p1 = Vec3.create(0, 4, 0)
-//     const p2 = Vec3.create(-3, 0, 0)
-
-//     // const position = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
-//     // const normal = ValueCell.create(new Float32Array([0, 0, 0, 0, 0, 0, 0, 0, 0]))
-
-//     const transformArray1 = ValueCell.create(new Float32Array(16))
-//     const transformArray2 = ValueCell.create(new Float32Array(16 * 3))
-//     const m4 = Mat4.identity()
-//     Mat4.toArray(m4, transformArray1.ref.value, 0)
-//     Mat4.toArray(m4, transformArray2.ref.value, 0)
-//     Mat4.setTranslation(m4, p1)
-//     Mat4.toArray(m4, transformArray2.ref.value, 16)
-//     Mat4.setTranslation(m4, p2)
-//     Mat4.toArray(m4, transformArray2.ref.value, 32)
-
-//     const color = ValueCell.create(createColorTexture(3))
-//     color.ref.value.set([
-//         0, 0, 255,
-//         0, 255, 0,
-//         255, 0, 0
-//     ])
-
-//     // const points = createRenderObject('point', {
-//     //     position,
-//     //     transform: transformArray1
-//     // })
-//     // // renderer.add(points)
-
-//     // const mesh = createRenderObject('mesh', {
-//     //     position,
-//     //     normal,
-//     //     color,
-//     //     transform: transformArray2
-//     // })
-//     // renderer.add(mesh)
-
-//     // const cylinder = Cylinder({ height: 3, radiusBottom: 0.5, radiusTop: 0.5 })
-//     // console.log(cylinder)
-//     // const cylinderMesh = createRenderObject('mesh', {
-//     //     position: ValueCell.create(cylinder.vertices),
-//     //     normal: ValueCell.create(cylinder.normals),
-//     //     color,
-//     //     transform: transformArray2
-//     // }, cylinder.indices)
-//     // renderer.add(cylinderMesh)
-
-//     // const sphere = Icosahedron()
-//     // console.log(sphere)
-
-//     // const box = Box()
-//     // console.log(box)
-
-//     // const points2 = createRenderObject('point', {
-//     //     position: ValueCell.create(new Float32Array(box.vertices)),
-//     //     transform: transformArray1
-//     // })
-//     // renderer.add(points2)
-
-//     // let rr = 0.7;
-//     // function cubesF(x: number, y: number, z: number) {
-//     //     return x * x + y * y + z * z - rr * rr;
-//     // }
-//     // let cubes = await mcubes(cubesF);
-
-//     // const makeCubesMesh = () => createRenderObject('mesh', {
-//     //     position: cubes.surface.vertexBuffer,
-//     //     normal: cubes.surface.normalBuffer,
-//     //     color,
-//     //     transform: transformArray2,
-//     //     elements: cubes.surface.indexBuffer,
-
-//     //     instanceCount: transformArray2.ref.value.length / 16,
-//     //     elementCount: cubes.surface.triangleCount,
-//     //     positionCount: cubes.surface.vertexCount
-//     // }, {});
-//     // const mesh2 = makeCubesMesh();
-//     // renderer.add(mesh2)
-// }
