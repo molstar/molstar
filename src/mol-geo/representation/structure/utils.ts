@@ -9,7 +9,7 @@ import { Mat4 } from 'mol-math/linear-algebra'
 
 import { createUniformColor } from '../../util/color-data';
 import { createUniformSize } from '../../util/size-data';
-import { vdwSizeData } from '../../theme/structure/size/vdw';
+import { elementSizeData } from '../../theme/structure/size/element';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
@@ -43,6 +43,6 @@ export function createSizes(units: ReadonlyArray<Unit>, elementGroup: ElementGro
         case 'uniform':
             return createUniformSize(props)
         case 'vdw':
-            return vdwSizeData({ units, elementGroup, vertexMap })
+            return elementSizeData({ units, elementGroup, vertexMap })
     }
 }

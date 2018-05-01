@@ -38,7 +38,7 @@ export default class Detail extends Observer<{ state: State } & WithStyles, Deta
     render() {
         const { classes } = this.props;
 
-        const items = [0, 1, 2].map((value, idx) => {
+        const items = [0, 1, 2, 3].map((value, idx) => {
             return <MenuItem key={idx} value={value}>{value.toString()}</MenuItem>
         })
 

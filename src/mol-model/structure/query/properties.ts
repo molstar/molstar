@@ -1,11 +1,12 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { Element, Unit } from '../structure'
 import CoarseGrained from '../model/properties/coarse-grained';
+import { VdwRadius } from '../model/properties/atomic';
 
 const constant = {
     true: Element.property(l => true),
@@ -38,7 +39,10 @@ const atom = {
     label_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_atom_id.value(l.element)),
     auth_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.auth_atom_id.value(l.element)),
     label_alt_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_alt_id.value(l.element)),
-    pdbx_formal_charge: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element))
+    pdbx_formal_charge: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element)),
+
+    // Derived
+    vdw_radius: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
 }
 
 const residue = {

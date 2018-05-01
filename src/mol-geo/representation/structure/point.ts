@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/scene'
 import { OrderedSet } from 'mol-data/int'
-import { Unit, ElementGroup } from 'mol-model/structure';
+import { Unit, ElementGroup, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
@@ -26,13 +26,17 @@ export type PointProps = Partial<typeof DefaultPointProps>
 export function createPointVertices(unit: Unit, elementGroup: ElementGroup) {
     const elementCount = OrderedSet.size(elementGroup.elements)
     const vertices = new Float32Array(elementCount * 3)
-    const { x, y, z } = unit.model.atomSiteConformation
+
+    const { x, y, z } = unit
+    const l = Element.Location()
+    l.unit = unit
+
     for (let i = 0; i < elementCount; i++) {
-        const e = OrderedSet.getAt(elementGroup.elements, i)
+        l.element = ElementGroup.getAt(elementGroup, i)
         const i3 = i * 3
-        vertices[i3] = x[e]
-        vertices[i3 + 1] = y[e]
-        vertices[i3 + 2] = z[e]
+        vertices[i3] = x(l.element)
+        vertices[i3 + 1] = y(l.element)
+        vertices[i3 + 2] = z(l.element)
     }
     return vertices
 }
