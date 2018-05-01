@@ -13,44 +13,49 @@ import Select from 'material-ui/Select';
 
 import State from '../state'
 import Observer from './observer';
+import { Assembly } from 'mol-model/structure/model/properties/symmetry';
 
-interface DetailState {
+interface AssemblyState {
     loading: boolean
-    value: number
+    assemblies: ReadonlyArray<Assembly>
+    value: string
 }
 
-export default class Detail extends Observer<{ state: State } & WithStyles, DetailState> {
-    state: DetailState = { loading: false, value: 2 }
+export default class Assemblies extends Observer<{ state: State } & WithStyles, AssemblyState> {
+    state: AssemblyState = { loading: false, assemblies: [], value: '' }
 
     componentDidMount() {
         this.subscribe(this.props.state.loading, value => {
            this.setState({ loading: value });
         });
-        this.subscribe(this.props.state.detail, value => {
+        this.subscribe(this.props.state.model, value => {
+            this.setState({ assemblies: value ? value.symmetry.assemblies : [] });
+        });
+        this.subscribe(this.props.state.assembly, value => {
             this.setState({ value });
-         });
+        });
     }
 
     handleValueChange = (event: React.ChangeEvent<any>) => {
-        this.props.state.detail.next(event.target.value)
+        this.props.state.assembly.next(event.target.value)
     }
 
     render() {
         const { classes } = this.props;
 
-        const items = [0, 1, 2].map((value, idx) => {
-            return <MenuItem key={idx} value={value}>{value.toString()}</MenuItem>
+        const items = this.state.assemblies.map((value, idx) => {
+            return <MenuItem key={idx} value={value.id}>{value.details}</MenuItem>
         })
 
         return <FormControl className={classes.formControl}>
-            <InputLabel htmlFor='detail-value'>Detail</InputLabel>
+            <InputLabel htmlFor='assembly-value'>Assembly</InputLabel>
             <Select
                 className={classes.selectField}
                 value={this.state.value}
                 onChange={this.handleValueChange}
                 inputProps={{
                     name: 'value',
-                    id: 'detail-value',
+                    id: 'assembly-value',
                 }}
             >
                 {items}

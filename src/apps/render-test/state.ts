@@ -38,12 +38,14 @@ export type ColorTheme = keyof typeof ColorTheme
 export default class State {
     viewer: Viewer
     pdbId = '4cup'
+    model = new BehaviorSubject<Model | undefined>(undefined)
     initialized = new BehaviorSubject<boolean>(false)
     loading = new BehaviorSubject<boolean>(false)
 
     colorTheme = new BehaviorSubject<ColorTheme>('element-symbol')
     colorValue = new BehaviorSubject<Color>(0xFF4411)
     detail = new BehaviorSubject<number>(0)
+    assembly = new BehaviorSubject<string>('')
 
     pointVisibility = new BehaviorSubject<boolean>(true)
     spacefillVisibility = new BehaviorSubject<boolean>(true)
@@ -55,6 +57,7 @@ export default class State {
         this.colorTheme.subscribe(() => this.update())
         this.colorValue.subscribe(() => this.update())
         this.detail.subscribe(() => this.update())
+        this.assembly.subscribe(() => this.initStructure())
 
         this.pointVisibility.subscribe(() => this.updateVisibility())
         this.spacefillVisibility.subscribe(() => this.updateVisibility())
@@ -87,17 +90,28 @@ export default class State {
         this.viewer.animate()
     }
 
-    async initStructure (model: Model) {
-        const { viewer, loading } = this
-        viewer.clear()
-
+    async getStructure () {
+        const model = this.model.getValue()
+        if (!model) return
+        const assembly = this.assembly.getValue()
         let structure: Structure
         const assemblies = model.symmetry.assemblies
         if (assemblies.length) {
-            structure = await Run(Symmetry.buildAssembly(Structure.ofModel(model), '1'), log, 100)
+            structure = await Run(Symmetry.buildAssembly(Structure.ofModel(model), assembly || '1'), log, 100)
         } else {
             structure = Structure.ofModel(model)
         }
+        return structure
+    }
+
+    async initStructure () {
+        const { viewer, model } = this
+        if (!viewer || !model) return
+
+        viewer.clear()
+
+        const structure = await this.getStructure()
+        if (!structure) return
 
         this.pointRepr = StructureRepresentation(Point)
         await Run(this.pointRepr.create(structure, this.getPointProps()), log, 100)
@@ -110,25 +124,25 @@ export default class State {
         this.updateVisibility()
         viewer.requestDraw()
         console.log(viewer.stats)
+    }
 
-        loading.next(false)
+    setModel(model: Model) {
+        this.model.next(model)
+        this.initStructure()
+        this.loading.next(false)
     }
 
     async loadFile (file: File) {
         this.viewer.clear()
         this.loading.next(true)
-
-        const structures = await getModelFromFile(file)
-        this.initStructure(structures[0])
+        this.setModel((await getModelFromFile(file))[0])
     }
 
     async loadPdbId () {
         this.viewer.clear()
         if (this.pdbId.length !== 4) return
         this.loading.next(true)
-
-        const structures = await getModelFromPdbId(this.pdbId)
-        this.initStructure(structures[0])
+        this.setModel((await getModelFromPdbId(this.pdbId))[0])
     }
 
     async update () {
