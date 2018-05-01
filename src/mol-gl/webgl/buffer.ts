@@ -105,6 +105,9 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
     }
     updateData(array)
 
+    let destroyed = false
+    ctx.bufferCount += 1
+
     return {
         _buffer,
         _usageHint,
@@ -119,10 +122,13 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
         },
 
         destroy: () => {
+            if (destroyed) return
             gl.bindBuffer(_bufferType, _buffer)
             // set size to 1 before deleting
             gl.bufferData(_bufferType, 1, _usageHint)
             gl.deleteBuffer(_buffer)
+            destroyed = true
+            ctx.bufferCount -= 1
         }
     }
 }

@@ -55,7 +55,7 @@ export interface RenderItem {
     update: (state: RenderItemState) => void
 
     draw: () => void
-    dispose: () => void
+    destroy: () => void
 }
 
 export function createRenderItem(ctx: Context, props: RenderItemProps, state: RenderItemState): RenderItem {
@@ -77,6 +77,7 @@ export function createRenderItem(ctx: Context, props: RenderItemProps, state: Re
         vertexArray = oesVertexArrayObject.createVertexArrayOES()
         oesVertexArrayObject.bindVertexArrayOES(vertexArray)
         program.bindAttributes(attributeBuffers)
+        ctx.vaoCount += 1
     }
 
     let elementsBuffer: ElementsBuffer
@@ -84,7 +85,13 @@ export function createRenderItem(ctx: Context, props: RenderItemProps, state: Re
         elementsBuffer = createElementsBuffer(ctx, elements)
     }
 
+    // needs to come after elements buffer creation to include it in the vao
+    if (oesVertexArrayObject) {
+        oesVertexArrayObject.bindVertexArrayOES(null!)
+    }
+
     let { drawCount, instanceCount } = state
+    let destroyed = false
 
     return {
         hash,
@@ -97,6 +104,7 @@ export function createRenderItem(ctx: Context, props: RenderItemProps, state: Re
                 oesVertexArrayObject.bindVertexArrayOES(vertexArray)
             } else {
                 program.bindAttributes(attributeBuffers)
+                elementsBuffer.bind()
             }
             program.bindTextures(textures)
             if (elementsBuffer) {
@@ -113,9 +121,19 @@ export function createRenderItem(ctx: Context, props: RenderItemProps, state: Re
                 if (value !== undefined) attributeBuffers[k].updateData(value)
             })
         },
-        dispose: () => {
-            // TODO
+        destroy: () => {
+            if (destroyed) return
             programRef.free()
+            Object.keys(textures).forEach(k => textures[k].destroy())
+            Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
+            if (elements && elementsKind) {
+                elementsBuffer.destroy()
+            }
+            if (oesVertexArrayObject) {
+                oesVertexArrayObject.deleteVertexArrayOES(vertexArray)
+                ctx.vaoCount -= 1
+            }
+            destroyed = true
         }
     }
 }

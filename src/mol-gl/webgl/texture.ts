@@ -11,6 +11,7 @@ export interface Texture {
     load: (image: TextureImage) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
+    destroy: () => void
 }
 
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
@@ -33,6 +34,9 @@ export function createTexture(ctx: Context): Texture {
     const _format = gl.RGB
     const _arrayType = gl.UNSIGNED_BYTE
 
+    let destroyed = false
+    ctx.textureCount += 1
+
     return {
         load: (image: TextureImage) => {
             const { array, width, height } = image
@@ -54,6 +58,13 @@ export function createTexture(ctx: Context): Texture {
         unbind: (id: TextureId) => {
             gl.activeTexture(gl.TEXTURE0 + id)
             gl.bindTexture(_textureType, null)
+        },
+
+        destroy: () => {
+            if (destroyed) return
+            gl.deleteTexture(texture)
+            destroyed = true
+            ctx.textureCount -= 1
         }
     }
 }

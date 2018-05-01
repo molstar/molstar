@@ -60,7 +60,7 @@ namespace Mesh {
                 console.log('Updating mesh renderable')
             },
             dispose: () => {
-                renderItem.dispose()
+                renderItem.destroy()
             }
         }
     }

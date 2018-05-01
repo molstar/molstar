@@ -7,14 +7,6 @@
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
 
-// const extensions = [
-//     'OES_element_index_uint',
-//     'ANGLE_instanced_arrays'
-// ]
-// const optionalExtensions = [
-//     'EXT_disjoint_timer_query'
-// ]
-
 function unbindResources (gl: WebGLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)
@@ -50,6 +42,9 @@ export interface Context {
     extensions: Extensions
     shaderCache: ShaderCache
     programCache: ProgramCache
+    bufferCount: number
+    textureCount: number
+    vaoCount: number
     destroy: () => void
 }
 
@@ -67,13 +62,21 @@ export function createContext(gl: WebGLRenderingContext): Context {
         console.log('Could not get "OES_vertex_array_object" extension')
     }
 
+    const shaderCache = createShaderCache()
+    const programCache = createProgramCache()
+
     return {
         gl,
         extensions: { angleInstancedArrays, oesElementIndexUint, oesVertexArrayObject },
-        shaderCache: createShaderCache(),
-        programCache: createProgramCache(),
+        shaderCache,
+        programCache,
+        bufferCount: 0,
+        textureCount: 0,
+        vaoCount: 0,
         destroy: () => {
             unbindResources(gl)
+            programCache.dispose()
+            shaderCache.dispose()
             // TODO destroy buffers and textures
         }
     }

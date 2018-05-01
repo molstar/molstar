@@ -62,7 +62,7 @@ namespace Point {
                 console.log('Updating point renderable')
             },
             dispose: () => {
-                renderItem.dispose()
+                renderItem.destroy()
             }
         }
     }

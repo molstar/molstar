@@ -13,11 +13,12 @@ import { Context } from './webgl/context';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 
 export interface RendererStats {
-    elementsCount: number
+    renderableCount: number
+    programCount: number
+    shaderCount: number
     bufferCount: number
     textureCount: number
-    shaderCount: number
-    renderableCount: number
+    vaoCount: number
 }
 
 interface Renderer {
@@ -98,10 +99,15 @@ namespace Renderer {
                 Viewport.copy(viewport, newViewport)
                 gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
             },
-            get stats() {
+            get stats(): RendererStats {
                 return {
-                    renderableCount: scene.count
-                } as any
+                    renderableCount: scene.count,
+                    programCount: ctx.programCache.count,
+                    shaderCount: ctx.shaderCache.count,
+                    bufferCount: ctx.bufferCount,
+                    textureCount: ctx.textureCount,
+                    vaoCount: ctx.vaoCount,
+                }
             },
             dispose: () => {
                 scene.clear()
