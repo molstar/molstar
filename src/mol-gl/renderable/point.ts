@@ -19,6 +19,7 @@ type Point = 'point'
 namespace Point {
     export type Props = {
         objectId: number
+        alpha: number
 
         position: ValueCell<Float32Array>
         id: ValueCell<Float32Array>

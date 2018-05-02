@@ -11,6 +11,8 @@ import { Camera } from 'mol-view/camera/base';
 import Scene, { RenderObject } from './scene';
 import { Context } from './webgl/context';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
+import { Renderable } from './renderable';
+import { Color } from 'mol-util/color';
 
 export interface RendererStats {
     renderableCount: number
@@ -29,6 +31,7 @@ interface Renderer {
     draw: () => void
 
     setViewport: (viewport: Viewport) => void
+    setClearColor: (color: Color) => void
 
     stats: RendererStats
     dispose: () => void
@@ -38,47 +41,69 @@ function getPixelRatio() {
     return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
 }
 
+export const DefaultRendererProps = {
+    clearColor: 0x000000 as Color,
+    viewport: Viewport.create(0, 0, 0, 0)
+}
+export type RendererProps = Partial<typeof DefaultRendererProps>
+
 namespace Renderer {
-    export function create(ctx: Context, camera: Camera): Renderer {
+    export function create(ctx: Context, camera: Camera, props: RendererProps = {}): Renderer {
         const { gl } = ctx
+        let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
         const scene = Scene.create(ctx)
 
         const model = Mat4.identity()
-        const viewport = Viewport.create(0, 0, 0, 0)
+        const viewport = Viewport.clone(_viewport)
         const pixelRatio = getPixelRatio()
 
         // const light_position = Vec3.create(0, 0, -100)
         const light_color = Vec3.create(1.0, 1.0, 1.0)
         const light_ambient = Vec3.create(0.5, 0.5, 0.5)
 
-        const draw = () => {
-            // TODO clear color
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-            gl.enable(gl.DEPTH_TEST)
+        function setClearColor(color: Color) {
+            const [ r, g, b ] = Color.toRgbNormalized(color)
+            gl.clearColor(r, g, b, 1.0)
+        }
+        setClearColor(clearColor)
 
-            // TODO painters sort, filter visible, filter picking, visibility culling?
-            let currentProgramId = -1
-            scene.forEach((r, o) => {
-                if (o.visible) {
-                    if (currentProgramId !== r.program.id) {
-                        r.program.use()
-                        r.program.setUniforms({
-                            model,
-                            view: camera.view,
-                            projection: camera.projection,
+        let currentProgramId = -1
+        const drawObject = (r: Renderable<any>, o: RenderObject) => {
+            if (o.visible) {
+                if (currentProgramId !== r.program.id) {
+                    r.program.use()
+                    r.program.setUniforms({
+                        model,
+                        view: camera.view,
+                        projection: camera.projection,
 
-                            pixelRatio,
-                            viewportHeight: viewport.height,
+                        pixelRatio,
+                        viewportHeight: viewport.height,
 
-                            // light_position,
-                            light_color,
-                            light_ambient,
-                        })
-                        currentProgramId = r.program.id
-                    }
-                    r.draw()
+                        // light_position,
+                        light_color,
+                        light_ambient,
+                    })
+                    currentProgramId = r.program.id
                 }
-            })
+                r.draw()
+            }
+        }
+
+        const draw = () => {
+            currentProgramId = -1
+
+            gl.depthMask(true)
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+            gl.disable(gl.BLEND)
+            gl.enable(gl.DEPTH_TEST)
+            scene.eachOpaque(drawObject)
+
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+            gl.enable(gl.BLEND)
+            gl.depthMask(false)
+            scene.eachTransparent(drawObject)
         }
 
         return {
@@ -95,10 +120,13 @@ namespace Renderer {
                 scene.clear()
             },
             draw,
+
+            setClearColor,
             setViewport: (newViewport: Viewport) => {
                 Viewport.copy(viewport, newViewport)
                 gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
             },
+
             get stats(): RendererStats {
                 return {
                     renderableCount: scene.count,

@@ -40,8 +40,8 @@ export type ColorTheme = keyof typeof ColorTheme
 
 export default class State {
     viewer: Viewer
-    pdbId = ''
-    emdId = '8689'
+    pdbId = '5ire'
+    emdId = '8116'
     model = new BehaviorSubject<Model | undefined>(undefined)
     volume = new BehaviorSubject<Volume | undefined>(undefined)
     initialized = new BehaviorSubject<boolean>(false)
@@ -115,7 +115,8 @@ export default class State {
         const { viewer } = this
         if (!viewer || !this.model.getValue()) return
 
-        viewer.clear()
+        if (this.pointRepr) this.viewer.remove(this.pointRepr)
+        if (this.spacefillRepr) this.viewer.remove(this.spacefillRepr)
 
         const structure = await this.getStructure()
         if (!structure) return
@@ -150,7 +151,7 @@ export default class State {
         const v = this.volume.getValue()
         if (!viewer || !v) return
 
-        viewer.clear()
+        if (this.surfaceRepr) this.viewer.remove(this.surfaceRepr)
 
         this.surfaceRepr = VolumeRepresentation(Surface)
         await Run(this.surfaceRepr.create(v.volume, { isoValue: VolumeIsoValue.relative(v.volume.dataStats, 1.5) }), log, 500)
@@ -161,7 +162,8 @@ export default class State {
     }
 
     async loadPdbId () {
-        this.viewer.clear()
+        if (this.pointRepr) this.viewer.remove(this.pointRepr)
+        if (this.spacefillRepr) this.viewer.remove(this.spacefillRepr)
         if (this.pdbId.length !== 4) return
         this.loading.next(true)
         this.setModel((await getModelFromPdbId(this.pdbId))[0])
@@ -174,7 +176,7 @@ export default class State {
     }
 
     async loadEmdId () {
-        this.viewer.clear()
+        if (this.surfaceRepr) this.viewer.remove(this.surfaceRepr)
         if (this.emdId.length !== 4) return
         this.loading.next(true)
         this.setVolume(await getVolumeFromEmdId(this.emdId))

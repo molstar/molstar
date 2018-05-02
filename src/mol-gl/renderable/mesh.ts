@@ -18,6 +18,7 @@ type Mesh = 'mesh'
 namespace Mesh {
     export type Props = {
         objectId: number
+        alpha: number
 
         position: ValueCell<Float32Array>
         normal: ValueCell<Float32Array | undefined>

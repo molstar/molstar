@@ -64,7 +64,12 @@ namespace Viewer {
 
         })
 
-        const gl = getWebGLContext(canvas)
+        const gl = getWebGLContext(canvas, {
+            alpha: true,
+            antialias: true,
+            depth: true,
+            preserveDrawingBuffer: true
+        })
         if (gl === null) {
             throw new Error('Could not create a WebGL rendering context')
         }

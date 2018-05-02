@@ -23,6 +23,7 @@ import { icosahedronVertexCount } from '../../primitive/icosahedron';
 export const DefaultSpacefillProps = {
     detail: 0,
     colorTheme: { name: 'instance-index' } as ColorTheme,
+    alpha: 1
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
@@ -78,7 +79,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
 
-                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme, alpha } = { ...DefaultSpacefillProps, ...props }
 
                 await ctx.update('Computing spacefill mesh');
                 const mesh = await ctx.runChild(createSpacefillMesh(units[0], elementGroup, detail))
@@ -94,6 +95,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                 spheres = createMeshRenderObject({
                     objectId: 0,
+                    alpha,
 
                     position: mesh.vertexBuffer,
                     normal: mesh.normalBuffer as ValueCell<Float32Array>,

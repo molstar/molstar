@@ -34,7 +34,8 @@ export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValu
 }
 
 export const DefaultSurfaceProps = {
-    isoValue: VolumeIsoValue.relative({ min: 0, max: 0, mean: 0, sigma: 0 }, 0)
+    isoValue: VolumeIsoValue.relative({ min: 0, max: 0, mean: 0, sigma: 0 }, 0),
+    alpha: 0.5
 }
 export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
 
@@ -49,11 +50,13 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
             return Task.create('Point.create', async ctx => {
                 renderObjects.length = 0 // clear
                 curProps = { ...DefaultSurfaceProps, ...props }
+                const { alpha } = curProps
 
                 const mesh = await ctx.runChild(computeVolumeSurface(volume, curProps.isoValue))
 
                 surface = createMeshRenderObject({
                     objectId: 0,
+                    alpha,
 
                     position: mesh.vertexBuffer,
                     normal: mesh.normalBuffer,

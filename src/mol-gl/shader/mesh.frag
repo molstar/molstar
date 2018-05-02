@@ -14,6 +14,7 @@ precision highp float;
 uniform vec3 light_color;
 uniform vec3 light_ambient;
 uniform mat4 view;
+uniform float alpha;
 
 #ifndef FLAT_SHADED
     varying vec3 vNormal;
@@ -47,7 +48,7 @@ void main() {
     #ifdef FLAT_SHADED
         vec3 fdx = dFdx(vViewPosition);
         vec3 fdy = dFdy(vViewPosition);
-        vec3 N = -normalize(cross(fdx, fdy));
+        vec3 N = normalize(cross(fdx, fdy));
     #else
         vec3 N = -normalize(vNormal);
         #ifdef DOUBLE_SIDED
@@ -66,5 +67,5 @@ void main() {
     // gl_FragColor.rgb = N;
     // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
     gl_FragColor.rgb = finalColor;
-    gl_FragColor.a = 1.0;
+    gl_FragColor.a = alpha;
 }

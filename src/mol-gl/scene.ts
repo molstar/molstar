@@ -16,16 +16,16 @@ function getNextId() {
 
 export type RenderData = { [k: string]: ValueCell<Helpers.TypedArray> }
 
-export interface BaseRenderObject { id: number, type: string, props: {}, visible: boolean }
+export interface BaseRenderObject { id: number, type: string, props: {}, visible: boolean, transparent: boolean }
 export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', props: MeshRenderable.Props }
 export interface PointRenderObject extends BaseRenderObject { type: 'point', props: PointRenderable.Props }
 export type RenderObject = MeshRenderObject | PointRenderObject
 
 export function createMeshRenderObject(props: MeshRenderable.Props): MeshRenderObject {
-    return { id: getNextId(), type: 'mesh', props, visible: true }
+    return { id: getNextId(), type: 'mesh', props, visible: true, transparent: props.alpha < 1 }
 }
 export function createPointRenderObject(props: PointRenderable.Props): PointRenderObject {
-    return { id: getNextId(), type: 'point', props, visible: true }
+    return { id: getNextId(), type: 'point', props, visible: true, transparent: props.alpha < 1 }
 }
 
 export function createRenderable(ctx: Context, o: RenderObject) {
@@ -40,6 +40,8 @@ interface Scene {
     remove: (o: RenderObject) => void
     clear: () => void
     forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
+    eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
+    eachTransparent: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
     count: number
 }
 
@@ -68,6 +70,16 @@ namespace Scene {
             },
             forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach(callbackFn)
+            },
+            eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
+                renderableMap.forEach((r, o) => {
+                    if (!o.transparent) callbackFn(r, o)
+                })
+            },
+            eachTransparent: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
+                renderableMap.forEach((r, o) => {
+                    if (o.transparent) callbackFn(r, o)
+                })
             },
             get count() {
                 return renderableMap.size
