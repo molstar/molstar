@@ -12,7 +12,6 @@ import Unit from './unit'
 import ElementSet from './element/set'
 import ElementGroup from './element/group'
 import Element from './element'
-import CoarseGrained from '../model/properties/coarse-grained';
 
 // A structure is a pair of "units" and an element set.
 // Each unit contains the data and transformation of its corresponding elements.
@@ -36,7 +35,7 @@ namespace Structure {
 
         for (let c = 0; c < chains.count; c++) {
             const group = ElementGroup.createNew(OrderedSet.ofBounds(chains.segments[c], chains.segments[c + 1]));
-            const unit = Unit.createAtomic(model, SymmetryOperator.Default, group);
+            const unit = Unit.create(Unit.Kind.Atomic, model, SymmetryOperator.Default, group);
             builder.add(unit, unit.fullGroup);
         }
 
@@ -44,12 +43,12 @@ namespace Structure {
         if (cs.isDefined) {
             if (cs.spheres.count > 0) {
                 const group = ElementGroup.createNew(OrderedSet.ofBounds(0, cs.spheres.count));
-                const unit = Unit.createCoarse(model, SymmetryOperator.Default, group, CoarseGrained.ElementType.Sphere);
+                const unit = Unit.create(Unit.Kind.CoarseSpheres, model, SymmetryOperator.Default, group);
                 builder.add(unit, unit.fullGroup);
             }
             if (cs.gaussians.count > 0) {
                 const group = ElementGroup.createNew(OrderedSet.ofBounds(0, cs.gaussians.count));
-                const unit = Unit.createCoarse(model, SymmetryOperator.Default, group, CoarseGrained.ElementType.Gaussian);
+                const unit = Unit.create(Unit.Kind.CoarseGaussians, model, SymmetryOperator.Default, group);
                 builder.add(unit, unit.fullGroup);
             }
         }

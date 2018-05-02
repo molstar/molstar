@@ -45,7 +45,7 @@ namespace CoarseGrained {
         entityKey: ArrayLike<number>
     }
 
-    export type SiteBases =  Common & { [P in keyof SiteBase]: Column<SiteBase[P]> }
+    export type SitesBase =  Common & { [P in keyof SiteBase]: Column<SiteBase[P]> }
     export type Spheres =  Common & { [P in keyof Sphere]: Column<Sphere[P]> }
     export type Gaussians = Common & { matrix_space: Tensor.Space } & { [P in keyof Gaussian]: Column<Gaussian[P]> }
 }

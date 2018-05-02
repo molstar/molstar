@@ -15,7 +15,6 @@ import { Model, Structure, Element, ElementSet, Unit, ElementGroup, Queries } fr
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
 import { openCif, downloadCif } from './helpers';
 
 
@@ -97,7 +96,7 @@ export function printUnits(structure: Structure) {
         if (Unit.isAtomic(l.unit)) {
             console.log(`Atomic unit ${unitId}: ${size} elements`);
         } else if (Unit.isCoarse(l.unit)) {
-            console.log(`Coarse unit ${unitId} (${l.unit.elementType === CoarseGrained.ElementType.Sphere ? 'spheres' : 'gaussians'}): ${size} elements.`);
+            console.log(`Coarse unit ${unitId} (${Unit.isCoarseSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
             const props = Queries.props.coarse_grained;
             const seq = l.unit.model.sequence;
