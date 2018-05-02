@@ -14,25 +14,25 @@ import Select from 'material-ui/Select';
 import State from '../state'
 import Observer from './observer';
 
-interface DetailState {
+interface SphereDetailState {
     loading: boolean
     value: number
 }
 
-export default class Detail extends Observer<{ state: State } & WithStyles, DetailState> {
-    state: DetailState = { loading: false, value: 2 }
+export default class SphereDetail extends Observer<{ state: State } & WithStyles, SphereDetailState> {
+    state: SphereDetailState = { loading: false, value: 2 }
 
     componentDidMount() {
         this.subscribe(this.props.state.loading, value => {
            this.setState({ loading: value });
         });
-        this.subscribe(this.props.state.detail, value => {
+        this.subscribe(this.props.state.sphereDetail, value => {
             this.setState({ value });
          });
     }
 
     handleValueChange = (event: React.ChangeEvent<any>) => {
-        this.props.state.detail.next(event.target.value)
+        this.props.state.sphereDetail.next(event.target.value)
     }
 
     render() {
@@ -43,14 +43,14 @@ export default class Detail extends Observer<{ state: State } & WithStyles, Deta
         })
 
         return <FormControl className={classes.formControl}>
-            <InputLabel htmlFor='detail-value'>Detail</InputLabel>
+            <InputLabel htmlFor='sphere-detail-value'>Sphere Detail</InputLabel>
             <Select
                 className={classes.selectField}
                 value={this.state.value}
                 onChange={this.handleValueChange}
                 inputProps={{
                     name: 'value',
-                    id: 'detail-value',
+                    id: 'sphere-detail-value',
                 }}
             >
                 {items}

@@ -11,7 +11,7 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/s
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
 import { Unit, ElementGroup, Element, Queries } from 'mol-model/structure';
-import { RepresentationProps, UnitsRepresentation } from './index';
+import { UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { createTransforms, createColors } from './utils';
@@ -110,7 +110,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 renderObjects.push(spheres)
             })
         },
-        update(props: RepresentationProps) {
+        update(props: SpacefillProps) {
             return Task.create('Spacefill.update', async ctx => {
                 if (!spheres) return false
 

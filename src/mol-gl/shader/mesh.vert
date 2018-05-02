@@ -19,9 +19,11 @@ attribute mat4 transform;
 attribute float instanceId;
 attribute float elementId;
 
-attribute vec3 normal;
+#ifndef FLAT_SHADED
+    attribute vec3 normal;
+    varying vec3 vNormal;
+#endif
 
-varying vec3 vNormal;
 varying vec3 vViewPosition;
 
 #pragma glslify: inverse = require(./utils/inverse.glsl)
@@ -35,6 +37,8 @@ void main(){
     vViewPosition = mvPosition.xyz;
     gl_Position = projection * mvPosition;
 
-    mat3 normalMatrix = transpose(inverse(mat3(modelView)));
-    vNormal = normalize(normalMatrix * normal);
+    #ifndef FLAT_SHADED
+        mat3 normalMatrix = transpose(inverse(mat3(modelView)));
+        vNormal = normalize(normalMatrix * normal);
+    #endif
 }

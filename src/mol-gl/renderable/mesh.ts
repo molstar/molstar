@@ -20,7 +20,7 @@ namespace Mesh {
         objectId: number
 
         position: ValueCell<Float32Array>
-        normal?: ValueCell<Float32Array>
+        normal: ValueCell<Float32Array | undefined>
         id: ValueCell<Float32Array>
 
         color: ColorData
@@ -31,12 +31,19 @@ namespace Mesh {
         instanceCount: number
         elementCount: number
         positionCount: number
+
+        flatShaded?: boolean
+        doubleSided?: boolean
     }
 
     export function create(ctx: Context, props: Props): Renderable<Props> {
+        const defines = getBaseDefines(props)
+        if (props.flatShaded) defines.FLAT_SHADED = ''
+        if (props.doubleSided) defines.DOUBLE_SIDED = ''
+
         const defs: RenderItemProps = {
             ...getBaseDefs(props),
-            shaderCode: addShaderDefines(getBaseDefines(props), MeshShaderCode),
+            shaderCode: addShaderDefines(defines, MeshShaderCode),
             drawMode: 'triangles',
             elementsKind: 'uint32'
         }

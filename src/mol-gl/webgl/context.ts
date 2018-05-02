@@ -33,6 +33,7 @@ function unbindResources (gl: WebGLRenderingContext) {
 
 type Extensions = {
     angleInstancedArrays: ANGLE_instanced_arrays
+    standardDerivatives: OES_standard_derivatives
     oesElementIndexUint: OES_element_index_uint | null
     oesVertexArrayObject: OES_vertex_array_object | null
 }
@@ -53,6 +54,10 @@ export function createContext(gl: WebGLRenderingContext): Context {
     if (angleInstancedArrays === null) {
         throw new Error('Could not get "ANGLE_instanced_arrays" extension')
     }
+    const standardDerivatives = gl.getExtension('OES_standard_derivatives')
+    if (standardDerivatives === null) {
+        throw new Error('Could not get "OES_standard_derivatives" extension')
+    }
     const oesElementIndexUint = gl.getExtension('OES_element_index_uint')
     if (oesElementIndexUint === null) {
         console.warn('Could not get "OES_element_index_uint" extension')
@@ -67,7 +72,7 @@ export function createContext(gl: WebGLRenderingContext): Context {
 
     return {
         gl,
-        extensions: { angleInstancedArrays, oesElementIndexUint, oesVertexArrayObject },
+        extensions: { angleInstancedArrays, standardDerivatives, oesElementIndexUint, oesVertexArrayObject },
         shaderCache,
         programCache,
         bufferCount: 0,

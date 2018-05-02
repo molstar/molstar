@@ -67,7 +67,7 @@ interface BaseProps {
     positionCount: number,
 
     position: ValueCell<Float32Array>
-    normal?: ValueCell<Float32Array>
+    normal?: ValueCell<Float32Array | undefined>
     id: ValueCell<Float32Array>
     transform: ValueCell<Float32Array>
 
@@ -133,7 +133,7 @@ export function getBaseAttributeDefs(props: BaseProps) {
         elementId: { kind: 'float32', itemSize: 1, divisor: 0 },
         transform: { kind: 'float32', itemSize: 16, divisor: 1 },
     }
-    if (props.normal) {
+    if (props.normal && props.normal.ref.value) {
         attributeDefs.normal = { kind: 'float32', itemSize: 3, divisor: 0 }
     }
     const color = props.color
@@ -156,7 +156,7 @@ export function getBaseAttributeValues(props: BaseProps) {
         elementId: id.ref.value,
         transform: transform.ref.value
     }
-    if (normal) {
+    if (normal && normal.ref.value) {
         attributeValues.normal = normal.ref.value
     }
     const color = props.color

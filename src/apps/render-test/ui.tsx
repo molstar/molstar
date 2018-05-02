@@ -16,7 +16,7 @@ import State from './state'
 import Viewport from './components/viewport'
 import FileInput from './components/file-input'
 import ColorTheme from './components/color-theme'
-import Detail from './components/detail'
+import SphereDetail from './components/sphere-detail'
 import Visibility from './components/visibility'
 import Assemblies from './components/assemblies'
 
@@ -86,7 +86,7 @@ class UI extends React.Component<{ state: State } & WithStyles, {  }> {
                         <div>
                             <Assemblies state={state} classes={classes}></Assemblies>
                             <ColorTheme state={state} classes={classes}></ColorTheme>
-                            <Detail state={state} classes={classes}></Detail>
+                            <SphereDetail state={state} classes={classes}></SphereDetail>
                             <Visibility state={state} classes={classes}></Visibility>
                         </div>
                     </form>

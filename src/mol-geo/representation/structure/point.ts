@@ -11,7 +11,7 @@ import { Unit, ElementGroup, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
-import { RepresentationProps, UnitsRepresentation } from './index';
+import { UnitsRepresentation } from './index';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes } from './utils';
@@ -100,7 +100,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 renderObjects.push(points)
             })
         },
-        update(props: RepresentationProps) {
+        update(props: PointProps) {
             return Task.create('Point.update', async ctx => {
                 if (!points || !_units || !_elementGroup) return false
 

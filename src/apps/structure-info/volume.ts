@@ -14,7 +14,7 @@ import CIF from 'mol-io/reader/cif'
 import { DensityServer_Data_Database } from 'mol-io/reader/cif/schema/density-server';
 import { Run } from 'mol-task';
 import { Table } from 'mol-data/db';
-import { computeVolumeMesh } from 'mol-geo/representation/volume/Mesh';
+import { computeVolumeSurface } from 'mol-geo/representation/volume/surface';
 import { StringBuilder } from 'mol-util';
 
 require('util.promisify').shim();
@@ -38,7 +38,7 @@ function print(data: Volume) {
 }
 
 async function doMesh(data: Volume, filename: string) {
-    const mesh = await Run(computeVolumeMesh(data.volume, VolumeIsoValue.relative(data.volume.dataStats, 1.5)));
+    const mesh = await Run(computeVolumeSurface(data.volume, VolumeIsoValue.relative(data.volume.dataStats, 1.5)));
     console.log({ vc: mesh.vertexCount, tc: mesh.triangleCount });
 
     // Export the mesh in OBJ format.

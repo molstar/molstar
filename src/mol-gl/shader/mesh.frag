@@ -4,6 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+#ifdef FLAT_SHADED
+    #extension GL_OES_standard_derivatives : enable
+#endif
+
 precision highp float;
 
 // uniform vec3 light_position;
@@ -11,7 +15,10 @@ uniform vec3 light_color;
 uniform vec3 light_ambient;
 uniform mat4 view;
 
-varying vec3 vNormal, vViewPosition;
+#ifndef FLAT_SHADED
+    varying vec3 vNormal;
+#endif
+varying vec3 vViewPosition;
 
 #pragma glslify: import('./chunks/color-frag-params.glsl')
 
@@ -35,7 +42,18 @@ void main() {
 
     vec3 L = normalize(lightVector); // light direction
     vec3 V = normalize(vViewPosition); // eye direction
-    vec3 N = normalize(-vNormal); // surface normal
+
+    // surface normal
+    #ifdef FLAT_SHADED
+        vec3 fdx = dFdx(vViewPosition);
+        vec3 fdy = dFdy(vViewPosition);
+        vec3 N = -normalize(cross(fdx, fdy));
+    #else
+        vec3 N = -normalize(vNormal);
+        #ifdef DOUBLE_SIDED
+            N = N * (float(gl_FrontFacing) * 2.0 - 1.0);
+        #endif
+    #endif
 
     // compute our diffuse & specular terms
     float specular = calculateSpecular(L, V, N, shininess) * specularScale;
