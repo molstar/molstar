@@ -43,12 +43,12 @@ namespace Structure {
         if (cs.isDefined) {
             if (cs.spheres.count > 0) {
                 const group = ElementGroup.createNew(OrderedSet.ofBounds(0, cs.spheres.count));
-                const unit = Unit.create(Unit.Kind.CoarseSpheres, model, SymmetryOperator.Default, group);
+                const unit = Unit.create(Unit.Kind.Spheres, model, SymmetryOperator.Default, group);
                 builder.add(unit, unit.fullGroup);
             }
             if (cs.gaussians.count > 0) {
                 const group = ElementGroup.createNew(OrderedSet.ofBounds(0, cs.gaussians.count));
-                const unit = Unit.create(Unit.Kind.CoarseGaussians, model, SymmetryOperator.Default, group);
+                const unit = Unit.create(Unit.Kind.Gaussians, model, SymmetryOperator.Default, group);
                 builder.add(unit, unit.fullGroup);
             }
         }

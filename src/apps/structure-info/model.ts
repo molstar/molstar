@@ -96,7 +96,7 @@ export function printUnits(structure: Structure) {
         if (Unit.isAtomic(l.unit)) {
             console.log(`Atomic unit ${unitId}: ${size} elements`);
         } else if (Unit.isCoarse(l.unit)) {
-            console.log(`Coarse unit ${unitId} (${Unit.isCoarseSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
+            console.log(`Coarse unit ${unitId} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
             const props = Queries.props.coarse_grained;
             const seq = l.unit.model.sequence;

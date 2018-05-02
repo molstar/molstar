@@ -13,15 +13,15 @@ import CoarseGrained from '../model/properties/coarse-grained';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
-type Unit = Unit.Atomic | Unit.CoarseSpheres | Unit.CoarseGaussians
+type Unit = Unit.Atomic | Unit.Spheres | Unit.Gaussians
 
 namespace Unit {
-    export const enum Kind { Atomic, CoarseSpheres, CoarseGaussians }
+    export const enum Kind { Atomic, Spheres, Gaussians }
 
     export function isAtomic(u: Unit): u is Atomic { return u.kind === Kind.Atomic; }
-    export function isCoarse(u: Unit): u is CoarseSpheres | CoarseGaussians { return u.kind === Kind.CoarseSpheres || u.kind === Kind.CoarseGaussians; }
-    export function isCoarseSpheres(u: Unit): u is CoarseSpheres { return u.kind === Kind.CoarseSpheres; }
-    export function isCoarseGaussians(u: Unit): u is CoarseGaussians { return u.kind === Kind.CoarseGaussians; }
+    export function isCoarse(u: Unit): u is Spheres | Gaussians { return u.kind === Kind.Spheres || u.kind === Kind.Gaussians; }
+    export function isSpheres(u: Unit): u is Spheres { return u.kind === Kind.Spheres; }
+    export function isGaussians(u: Unit): u is Gaussians { return u.kind === Kind.Gaussians; }
 
     export interface Base extends SymmetryOperator.ArrayMapping {
         // Provides access to the underlying data.
@@ -58,14 +58,14 @@ namespace Unit {
         readonly sites: S
     }
 
-    export interface CoarseSpheres extends CoarseBase<Kind.CoarseSpheres, CoarseGrained.Spheres> { }
-    export interface CoarseGaussians extends CoarseBase<Kind.CoarseGaussians, CoarseGrained.Gaussians> { }
+    export interface Spheres extends CoarseBase<Kind.Spheres, CoarseGrained.Spheres> { }
+    export interface Gaussians extends CoarseBase<Kind.Gaussians, CoarseGrained.Gaussians> { }
 
     export function create(kind: Kind, model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit {
         switch (kind) {
             case Kind.Atomic: return createAtomic(model, operator, fullGroup);
-            case Kind.CoarseSpheres: return createCoarseSpheres(model, operator, fullGroup);
-            case Kind.CoarseGaussians: return createCoarseGaussians(model, operator, fullGroup);
+            case Kind.Spheres: return createSpheres(model, operator, fullGroup);
+            case Kind.Gaussians: return createGaussians(model, operator, fullGroup);
         }
     }
 
@@ -88,12 +88,12 @@ namespace Unit {
         };
     }
 
-    function createCoarseSpheres(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit.CoarseSpheres {
+    function createSpheres(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit.Spheres {
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.coarseGrained.spheres);
 
         return {
             model,
-            kind: Kind.CoarseSpheres,
+            kind: Kind.Spheres,
             sites: model.coarseGrained.spheres,
             operator,
             fullGroup,
@@ -103,12 +103,12 @@ namespace Unit {
         };
     }
 
-    function createCoarseGaussians(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit.CoarseGaussians {
+    function createGaussians(model: Model, operator: SymmetryOperator, fullGroup: ElementGroup): Unit.Gaussians {
         const { invariantPosition, position, x, y, z } = SymmetryOperator.createMapping(operator, model.coarseGrained.gaussians);
 
         return {
             model,
-            kind: Kind.CoarseGaussians,
+            kind: Kind.Gaussians,
             sites: model.coarseGrained.gaussians,
             operator,
             fullGroup,

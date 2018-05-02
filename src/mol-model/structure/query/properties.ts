@@ -60,6 +60,7 @@ const chain = {
 }
 
 const coarse_grained = {
+    key: atom.key,
     modelKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.sites.modelKey[l.element]),
     entityKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.sites.entityKey[l.element]),
 
@@ -71,11 +72,11 @@ const coarse_grained = {
     seq_id_begin: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.sites.seq_id_begin.value(l.element)),
     seq_id_end: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.sites.seq_id_end.value(l.element)),
 
-    sphere_radius: Element.property(l => !Unit.isCoarseSpheres(l.unit) ? notCoarse('spheres') : l.unit.sites.radius.value(l.element)),
-    sphere_rmsf: Element.property(l => !Unit.isCoarseSpheres(l.unit) ? notCoarse('spheres') : l.unit.sites.rmsf.value(l.element)),
+    sphere_radius: Element.property(l => !Unit.isSpheres(l.unit) ? notCoarse('spheres') : l.unit.sites.radius.value(l.element)),
+    sphere_rmsf: Element.property(l => !Unit.isSpheres(l.unit) ? notCoarse('spheres') : l.unit.sites.rmsf.value(l.element)),
 
-    gaussian_weight: Element.property(l => !Unit.isCoarseGaussians(l.unit) ? notCoarse('gaussians') : l.unit.sites.weight.value(l.element)),
-    gaussian_covariance_matrix: Element.property(l => !Unit.isCoarseGaussians(l.unit) ? notCoarse('gaussians') : l.unit.sites.covariance_matrix.value(l.element))
+    gaussian_weight: Element.property(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.sites.weight.value(l.element)),
+    gaussian_covariance_matrix: Element.property(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.sites.covariance_matrix.value(l.element))
 }
 
 function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.entityKey.value(l.unit.chainIndex[l.element]); }

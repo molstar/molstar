@@ -45,6 +45,14 @@ export function hash4(i: number, j: number, k: number, l: number) {
     return a;
 }
 
+export function hashString(s: string) {
+    let h = 0;
+    for (let i = 0, l = s.length; i < l; i++) {
+        h = (h << 5) - h + s.charCodeAt(i++) | 0;
+    }
+    return h;
+}
+
 /**
  * A unique number for each pair of integers
  * Biggest representable pair is (67108863, 67108863) (limit imposed by Number.MAX_SAFE_INTEGER)
