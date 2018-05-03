@@ -161,7 +161,7 @@ export default class State {
         this.surfaceRepr = VolumeRepresentation(Surface)
         await Run(this.surfaceRepr.create(v.volume, {
             isoValue: VolumeIsoValue.relative(v.volume.dataStats, 3.0),
-            alpha: 0.3
+            alpha: 1.0
         }), log, 500)
         viewer.add(this.surfaceRepr)
 

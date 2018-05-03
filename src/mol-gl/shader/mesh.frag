@@ -49,6 +49,9 @@ void main() {
         vec3 fdx = dFdx(vViewPosition);
         vec3 fdy = dFdy(vViewPosition);
         vec3 N = normalize(cross(fdx, fdy));
+        #ifdef FLIP_SIDED
+            N = -N;
+        #endif
     #else
         vec3 N = -normalize(vNormal);
         #ifdef DOUBLE_SIDED
