@@ -40,7 +40,7 @@ export type ColorTheme = keyof typeof ColorTheme
 
 export default class State {
     viewer: Viewer
-    pdbId = ''
+    pdbId = '1crn'
     // pdbId = '5ire'
     emdId = '8116'
     // pdbId = '6G1K'
@@ -77,6 +77,7 @@ export default class State {
     getSpacefillProps (): SpacefillProps {
         const colorThemeName = this.colorTheme.getValue()
         return {
+            doubleSided: true,
             detail: this.sphereDetail.getValue(),
             colorTheme: colorThemeName === 'uniform' ?
                 { name: colorThemeName, value: this.colorValue.getValue() } :
@@ -161,7 +162,10 @@ export default class State {
         this.surfaceRepr = VolumeRepresentation(Surface)
         await Run(this.surfaceRepr.create(v.volume, {
             isoValue: VolumeIsoValue.relative(v.volume.dataStats, 3.0),
-            alpha: 1.0
+            alpha: 0.5,
+            flatShaded: false,
+            flipSided: true,
+            doubleSided: true
         }), log, 500)
         viewer.add(this.surfaceRepr)
 

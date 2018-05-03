@@ -106,11 +106,11 @@ namespace Viewer {
         return {
             hide: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.visible = false)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.props.visible = false)
             },
             show: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.visible = true)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.props.visible = true)
             },
 
             add: (repr: Representation<any>) => {

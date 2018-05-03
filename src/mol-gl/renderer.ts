@@ -69,8 +69,22 @@ namespace Renderer {
 
         let currentProgramId = -1
         const drawObject = (r: Renderable<any>, o: RenderObject) => {
-            if (o.visible) {
+            if (o.props.visible) {
                 if (currentProgramId !== r.program.id) {
+                    if (o.props.doubleSided) {
+                        gl.disable(gl.CULL_FACE)
+                    } else {
+                        gl.enable(gl.CULL_FACE)
+                    }
+
+                    if (o.props.flipSided) {
+                        gl.frontFace(gl.CW)
+                        gl.cullFace(gl.FRONT)
+                    } else {
+                        gl.frontFace(gl.CCW)
+                        gl.cullFace(gl.BACK)
+                    }
+
                     r.program.use()
                     r.program.setUniforms({
                         model,

@@ -179,6 +179,19 @@ namespace Mat3 {
         out[8] = (a11 * a00 - a01 * a10) * det;
         return out;
     }
+
+    export function determinant(a: Mat3) {
+        const a00 = a[0], a01 = a[1], a02 = a[2];
+        const a10 = a[3], a11 = a[4], a12 = a[5];
+        const a20 = a[6], a21 = a[7], a22 = a[8];
+
+        const b01 = a22 * a11 - a12 * a21;
+        const b11 = -a22 * a10 + a12 * a20;
+        const b21 = a21 * a10 - a11 * a20;
+
+        // Calculate the determinant
+        return a00 * b01 + a01 * b11 + a02 * b21;
+    }
 }
 
 export default Mat3

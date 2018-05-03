@@ -19,21 +19,28 @@ export function normalizeVec3Array<T extends Helpers.NumberArray> (a: T) {
     }
 }
 
-const tmpV = Vec3.zero()
+export function getNormalMatrix(out: Mat3, t: Mat4) {
+    Mat3.fromMat4(out, t)
+    Mat3.invert(out, out)
+    Mat3.transpose(out, out)
+    return out
+}
+
+const tmpV3 = Vec3.zero()
 
 export function transformPositionArray (t: Mat4, array: Helpers.NumberArray, offset: number, count: number) {
     for (let i = 0, il = count * 3; i < il; i += 3) {
-        Vec3.fromArray(tmpV, array, offset + i)
-        Vec3.transformMat4(tmpV, tmpV, t)
-        Vec3.toArray(tmpV, array, offset + i)
+        Vec3.fromArray(tmpV3, array, offset + i)
+        Vec3.transformMat4(tmpV3, tmpV3, t)
+        Vec3.toArray(tmpV3, array, offset + i)
     }
 }
 
 export function transformDirectionArray (n: Mat3, array: Helpers.NumberArray, offset: number, count: number) {
     for (let i = 0, il = count * 3; i < il; i += 3) {
-        Vec3.fromArray(tmpV, array, offset + i)
-        Vec3.transformMat3(tmpV, tmpV, n)
-        Vec3.toArray(tmpV, array, offset + i)
+        Vec3.fromArray(tmpV3, array, offset + i)
+        Vec3.transformMat3(tmpV3, tmpV3, n)
+        Vec3.toArray(tmpV3, array, offset + i)
     }
 }
 

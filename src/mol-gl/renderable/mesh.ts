@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 import { ColorData } from 'mol-geo/util/color-data';
 
-import { Renderable } from '../renderable'
+import { Renderable, BaseProps } from '../renderable'
 import { getBaseDefs, getBaseValues, getBaseDefines } from './util'
 import { MeshShaderCode, addShaderDefines } from '../shader-code'
 import { Context } from '../webgl/context';
@@ -17,9 +17,6 @@ type Mesh = 'mesh'
 
 namespace Mesh {
     export type Props = {
-        objectId: number
-        alpha: number
-
         position: ValueCell<Float32Array>
         normal: ValueCell<Float32Array | undefined>
         id: ValueCell<Float32Array>
@@ -32,11 +29,7 @@ namespace Mesh {
         instanceCount: number
         elementCount: number
         positionCount: number
-
-        flatShaded?: boolean
-        doubleSided?: boolean
-        flipSided?: boolean
-    }
+    } & BaseProps
 
     export function create(ctx: Context, props: Props): Renderable<Props> {
         const defines = getBaseDefines(props)

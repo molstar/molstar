@@ -39,8 +39,8 @@ void main(){
 
     #ifndef FLAT_SHADED
         mat3 normalMatrix = transpose(inverse(mat3(modelView)));
-        vec3 transformedNormal = normalize(normalMatrix * normal);
-        #ifdef FLIP_SIDED
+        vec3 transformedNormal = normalize(normalMatrix * normalize(normal));
+        #if defined(FLIP_SIDED) && !defined(DOUBLE_SIDED) // TODO checking DOUBLE_SIDED should not be required, ASR
             transformedNormal = -transformedNormal;
         #endif
         vNormal = transformedNormal;

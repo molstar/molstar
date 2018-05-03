@@ -48,10 +48,7 @@ void main() {
     #ifdef FLAT_SHADED
         vec3 fdx = dFdx(vViewPosition);
         vec3 fdy = dFdy(vViewPosition);
-        vec3 N = normalize(cross(fdx, fdy));
-        #ifdef FLIP_SIDED
-            N = -N;
-        #endif
+        vec3 N = -normalize(cross(fdx, fdy));
     #else
         vec3 N = -normalize(vNormal);
         #ifdef DOUBLE_SIDED

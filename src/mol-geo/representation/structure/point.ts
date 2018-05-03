@@ -20,7 +20,8 @@ import { deepEqual } from 'mol-util';
 export const DefaultPointProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
     sizeTheme: { name: 'vdw' } as SizeTheme,
-    alpha: 1
+    alpha: 1,
+    visible: true
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
@@ -60,7 +61,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 _units = units
                 _elementGroup = elementGroup
 
-                const { colorTheme, sizeTheme, alpha } = curProps
+                const { colorTheme, sizeTheme, alpha, visible } = curProps
                 const elementCount = OrderedSet.size(elementGroup.elements)
                 const unitCount = units.length
 
@@ -86,6 +87,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 points = createPointRenderObject({
                     objectId: 0,
                     alpha,
+                    visible,
 
                     position: ValueCell.create(vertices),
                     id: ValueCell.create(fillSerial(new Float32Array(elementCount))),

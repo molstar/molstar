@@ -6,7 +6,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { Renderable } from '../renderable'
+import { Renderable, BaseProps } from '../renderable'
 import { getBaseValues, getBaseDefs, getBaseDefines } from './util'
 import { PointShaderCode, addShaderDefines } from '../shader-code'
 import { ColorData } from 'mol-geo/util/color-data';
@@ -18,9 +18,6 @@ type Point = 'point'
 
 namespace Point {
     export type Props = {
-        objectId: number
-        alpha: number
-
         position: ValueCell<Float32Array>
         id: ValueCell<Float32Array>
 
@@ -33,7 +30,7 @@ namespace Point {
         positionCount: number,
 
         usePointSizeAttenuation?: boolean
-    }
+    } & BaseProps
 
     export function create<T = Props>(ctx: Context, props: Props): Renderable<Props> {
         const defines = getBaseDefines(props)
