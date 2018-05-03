@@ -65,7 +65,7 @@ namespace Viewer {
         })
 
         const gl = getWebGLContext(canvas, {
-            alpha: true,
+            alpha: false,
             antialias: true,
             depth: true,
             preserveDrawingBuffer: true

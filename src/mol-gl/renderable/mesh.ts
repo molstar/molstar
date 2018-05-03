@@ -35,12 +35,14 @@ namespace Mesh {
 
         flatShaded?: boolean
         doubleSided?: boolean
+        flipSided?: boolean
     }
 
     export function create(ctx: Context, props: Props): Renderable<Props> {
         const defines = getBaseDefines(props)
         if (props.flatShaded) defines.FLAT_SHADED = ''
         if (props.doubleSided) defines.DOUBLE_SIDED = ''
+        if (props.flipSided) defines.FLIP_SIDED = ''
 
         const defs: RenderItemProps = {
             ...getBaseDefs(props),

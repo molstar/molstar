@@ -61,7 +61,7 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                     position: mesh.vertexBuffer,
                     normal: mesh.normalBuffer,
                     id: ValueCell.create(fillSerial(new Float32Array(mesh.vertexCount / 3))),
-                    color: createUniformColor({ value: 0x999999 }),
+                    color: createUniformColor({ value: 0x7ec0ee }),
                     transform: ValueCell.create(new Float32Array(Mat4.identity())),
                     index: mesh.indexBuffer,
 
@@ -70,7 +70,9 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                     elementCount: mesh.triangleCount,
                     positionCount: mesh.vertexCount / 3,
 
-                    flatShaded: true
+                    flatShaded: true,
+                    doubleSided: true,
+                    flipSided: true
                 })
                 renderObjects.push(surface)
             })

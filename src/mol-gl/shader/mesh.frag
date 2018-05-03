@@ -65,6 +65,7 @@ void main() {
     vec3 finalColor = material * (diffuse + ambient) + specular;
 
     // gl_FragColor.rgb = N;
+    // gl_FragColor.a = 1.0;
     // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
     gl_FragColor.rgb = finalColor;
     gl_FragColor.a = alpha;

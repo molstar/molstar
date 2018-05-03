@@ -29,8 +29,12 @@ export function transformPositionArray (t: Mat4, array: Helpers.NumberArray, off
     }
 }
 
-export function transformDirectionArray (t: Mat3, array: Helpers.NumberArray, offset: number, count: number) {
-    // TODO
+export function transformDirectionArray (n: Mat3, array: Helpers.NumberArray, offset: number, count: number) {
+    for (let i = 0, il = count * 3; i < il; i += 3) {
+        Vec3.fromArray(tmpV, array, offset + i)
+        Vec3.transformMat3(tmpV, tmpV, n)
+        Vec3.toArray(tmpV, array, offset + i)
+    }
 }
 
 export function setArrayZero(array: Helpers.NumberArray) {

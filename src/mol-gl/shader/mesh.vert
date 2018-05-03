@@ -39,6 +39,10 @@ void main(){
 
     #ifndef FLAT_SHADED
         mat3 normalMatrix = transpose(inverse(mat3(modelView)));
-        vNormal = normalize(normalMatrix * normal);
+        vec3 transformedNormal = normalize(normalMatrix * normal);
+        #ifdef FLIP_SIDED
+            transformedNormal = -transformedNormal;
+        #endif
+        vNormal = transformedNormal;
     #endif
 }

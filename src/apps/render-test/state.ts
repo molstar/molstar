@@ -40,8 +40,13 @@ export type ColorTheme = keyof typeof ColorTheme
 
 export default class State {
     viewer: Viewer
-    pdbId = '5ire'
+    pdbId = ''
+    // pdbId = '5ire'
     emdId = '8116'
+    // pdbId = '6G1K'
+    // emdId = '4339'
+    // pdbId = '4cup'
+    // emdId = ''
     model = new BehaviorSubject<Model | undefined>(undefined)
     volume = new BehaviorSubject<Volume | undefined>(undefined)
     initialized = new BehaviorSubject<boolean>(false)
@@ -154,7 +159,10 @@ export default class State {
         if (this.surfaceRepr) this.viewer.remove(this.surfaceRepr)
 
         this.surfaceRepr = VolumeRepresentation(Surface)
-        await Run(this.surfaceRepr.create(v.volume, { isoValue: VolumeIsoValue.relative(v.volume.dataStats, 1.5) }), log, 500)
+        await Run(this.surfaceRepr.create(v.volume, {
+            isoValue: VolumeIsoValue.relative(v.volume.dataStats, 3.0),
+            alpha: 0.3
+        }), log, 500)
         viewer.add(this.surfaceRepr)
 
         viewer.requestDraw()
