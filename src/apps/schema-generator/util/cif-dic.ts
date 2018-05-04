@@ -6,7 +6,7 @@
 
 import { Database, ValueColumn, ListColumn } from './json-schema'
 import * as Data from 'mol-io/reader/cif/data-model'
-import { Frame } from 'mol-io/reader/cif/data-model';
+import { CifFrame } from 'mol-io/reader/cif/data-model';
 
 export function getFieldType (type: string, values?: string[]): ValueColumn|ListColumn {
     switch (type) {
@@ -76,7 +76,7 @@ export function getFieldType (type: string, values?: string[]): ValueColumn|List
     return 'str'
 }
 
-type FrameCategories = { [category: string]: Data.Frame }
+type FrameCategories = { [category: string]: Data.CifFrame }
 type FrameLinks = { [k: string]: string }
 
 interface FrameData {
@@ -85,7 +85,7 @@ interface FrameData {
 }
 
 // get field from given or linked category
-function getField ( category: string, field: string, d: Data.Frame, ctx: FrameData): Data.Field|undefined {
+function getField ( category: string, field: string, d: Data.CifFrame, ctx: FrameData): Data.CifField|undefined {
     const { categories, links } = ctx
 
     const cat = d.categories[category]
@@ -105,7 +105,7 @@ function getField ( category: string, field: string, d: Data.Frame, ctx: FrameDa
     }
 }
 
-function getEnums (d: Data.Frame, ctx: FrameData) {
+function getEnums (d: Data.CifFrame, ctx: FrameData) {
     const value = getField('item_enumeration', 'value', d, ctx)
     const enums: string[] = []
     if (value) {
@@ -119,7 +119,7 @@ function getEnums (d: Data.Frame, ctx: FrameData) {
     }
 }
 
-function getCode (d: Data.Frame, ctx: FrameData): [string, string[]|undefined]|undefined {
+function getCode (d: Data.CifFrame, ctx: FrameData): [string, string[]|undefined]|undefined {
     const code = getField('item_type', 'code', d, ctx)
     if (code) {
         return [ code.str(0), getEnums(d, ctx) ]
@@ -128,7 +128,7 @@ function getCode (d: Data.Frame, ctx: FrameData): [string, string[]|undefined]|u
     }
 }
 
-function getSubCategory (d: Data.Frame, ctx: FrameData): string|undefined {
+function getSubCategory (d: Data.CifFrame, ctx: FrameData): string|undefined {
     const value = getField('item_sub_category', 'id', d, ctx)
     if (value) {
         return value.str(0)
@@ -178,7 +178,7 @@ const SPACE_SEPARATED_LIST_FIELDS = [
     '_pdbx_soln_scatter.data_analysis_software_list', // SCTPL5 GNOM
 ];
 
-export function generateSchema (frames: Frame[]) {
+export function generateSchema (frames: CifFrame[]) {
     const schema: Database = {}
 
     const categories: FrameCategories = {}

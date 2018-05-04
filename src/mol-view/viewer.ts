@@ -4,6 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { BehaviorSubject } from 'rxjs';
+
 import { Vec3, Mat4, EPSILON } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
 import * as SetUtils from 'mol-util/set'
@@ -29,8 +31,11 @@ interface Viewer {
     draw: (force?: boolean) => void
     requestDraw: () => void
     animate: () => void
+    reprCount: BehaviorSubject<number>
 
     handleResize: () => void
+    resetCamera: () => void
+    downloadScreenshot: () => void
 
     stats: RendererStats
     dispose: () => void
@@ -50,6 +55,7 @@ function getWebGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLCon
 namespace Viewer {
     export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
         const reprMap = new Map<Representation<any>, Set<RenderObject>>()
+        const reprCount = new BehaviorSubject(0)
 
         const input = InputObserver.create(canvas)
         input.resize.subscribe(handleResize)
@@ -124,10 +130,15 @@ namespace Viewer {
                     repr.renderObjects.forEach(o => renderer.add(o))
                 }
                 reprMap.set(repr, newRO)
+                reprCount.next(reprMap.size)
             },
             remove: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => renderer.remove(o))
+                if (renderObjectSet) {
+                    renderObjectSet.forEach(o => renderer.remove(o))
+                    reprMap.delete(repr)
+                    reprCount.next(reprMap.size)
+                }
             },
             update: () => renderer.update(),
             clear: () => {
@@ -140,6 +151,13 @@ namespace Viewer {
             animate,
 
             handleResize,
+            resetCamera: () => {
+                // TODO
+            },
+            downloadScreenshot: () => {
+                // TODO
+            },
+            reprCount,
 
             get stats() {
                 return renderer.stats

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { File as GroFile } from 'mol-io/reader/gro/schema'
+import { GroFile as GroFile } from 'mol-io/reader/gro/schema'
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif'
 
 type Format =

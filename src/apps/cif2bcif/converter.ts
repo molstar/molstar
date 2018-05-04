@@ -5,7 +5,7 @@
  */
 
 import Iterator from 'mol-data/iterator'
-import CIF, { Category } from 'mol-io/reader/cif'
+import CIF, { CifCategory } from 'mol-io/reader/cif'
 import * as Encoder from 'mol-io/writer/cif'
 import * as fs from 'fs'
 import classify from './field-classifier'
@@ -20,14 +20,14 @@ async function getCIF(path: string) {
     return parsed.result;
 }
 
-function createDefinition(cat: Category): Encoder.CategoryDefinition {
+function createDefinition(cat: CifCategory): Encoder.CategoryDefinition {
     return {
         name: cat.name,
         fields: cat.fieldNames.map(n => classify(n, cat.getField(n)!))
     }
 }
 
-function getCategoryInstanceProvider(cat: Category): Encoder.CategoryProvider {
+function getCategoryInstanceProvider(cat: CifCategory): Encoder.CategoryProvider {
     return function (ctx: any) {
         return {
             data: cat,
@@ -50,4 +50,3 @@ export default async function convert(path: string, asText = false) {
     }
     return encoder.getData();
 }
-

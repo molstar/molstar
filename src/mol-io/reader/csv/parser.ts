@@ -248,24 +248,24 @@ function init(state: State) {
     }
 }
 
-async function handleRecords(state: State): Promise<Data.Table> {
+async function handleRecords(state: State): Promise<Data.CsvTable> {
     init(state)
     await readRecordsChunks(state)
 
-    const columns: Data.Columns = Object.create(null);
+    const columns: Data.CsvColumns = Object.create(null);
     for (let i = 0; i < state.columnCount; ++i) {
         columns[state.columnNames[i]] = Field(state.tokens[i], state.recordCount);
     }
 
-    return Data.Table(state.recordCount, state.columnNames, columns)
+    return Data.CsvTable(state.recordCount, state.columnNames, columns)
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext, opts: CsvOptions): Promise<Result<Data.File>> {
+async function parseInternal(data: string, ctx: RuntimeContext, opts: CsvOptions): Promise<Result<Data.CsvFile>> {
     const state = State(data, ctx, opts);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     const table = await handleRecords(state)
-    const result = Data.File(table)
+    const result = Data.CsvFile(table)
     return Result.success(result);
 }
 
@@ -278,7 +278,7 @@ interface CsvOptions {
 
 export function parse(data: string, opts?: Partial<CsvOptions>) {
     const completeOpts = Object.assign({}, { quote: '"', comment: '#', delimiter: ',', noColumnNames: false }, opts)
-    return Task.create<Result<Data.File>>('Parse CSV', async ctx => {
+    return Task.create<Result<Data.CsvFile>>('Parse CSV', async ctx => {
         return await parseInternal(data, ctx, completeOpts);
     });
 }

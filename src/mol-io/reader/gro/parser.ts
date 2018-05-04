@@ -14,12 +14,12 @@ import { Task, RuntimeContext } from 'mol-task'
 
 interface State {
     tokenizer: Tokenizer,
-    header: Schema.Header,
+    header: Schema.GroHeader,
     numberOfAtoms: number,
     runtimeCtx: RuntimeContext
 }
 
-function createEmptyHeader(): Schema.Header {
+function createEmptyHeader(): Schema.GroHeader {
     return {
         title: '',
         timeInPs: 0,
@@ -88,7 +88,7 @@ function handleNumberOfAtoms(state: State) {
  *     position (in nm, x y z in 3 columns, each 8 positions with 3 decimal places)
  *     velocity (in nm/ps (or km/s), x y z in 3 columns, each 8 positions with 4 decimal places)
  */
-async function handleAtoms(state: State): Promise<Schema.Atoms> {
+async function handleAtoms(state: State): Promise<Schema.GroAtoms> {
     const { tokenizer, numberOfAtoms } = state;
     const lines = await Tokenizer.readLinesAsync(tokenizer, numberOfAtoms, state.runtimeCtx, 100000);
 
@@ -137,11 +137,11 @@ function handleBoxVectors(state: State) {
     state.header.box = [+values[0], +values[1], +values[2]];
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Schema.File>> {
+async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
     const tokenizer = Tokenizer(data);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
-    const structures: Schema.Structure[] = [];
+    const structures: Schema.GroStructure[] = [];
     while (tokenizer.position < data.length) {
         const state = State(tokenizer, ctx);
         handleTitleString(state);
@@ -151,12 +151,12 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
         structures.push({ header: state.header, atoms });
     }
 
-    const result: Schema.File = { structures };
+    const result: Schema.GroFile = { structures };
     return Result.success(result);
 }
 
 export function parse(data: string) {
-    return Task.create<Result<Schema.File>>('Parse GRO', async ctx => {
+    return Task.create<Result<Schema.GroFile>>('Parse GRO', async ctx => {
         return await parseInternal(data, ctx);
     });
 }

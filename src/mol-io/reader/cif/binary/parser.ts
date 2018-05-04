@@ -18,7 +18,7 @@ function checkVersions(min: number[], current: number[]) {
     return true;
 }
 
-function Category(data: EncodedCategory): Data.Category {
+function Category(data: EncodedCategory): Data.CifCategory {
     const map = Object.create(null);
     const cache = Object.create(null);
     for (const col of data.columns) map[col.name] = col;
@@ -37,22 +37,22 @@ function Category(data: EncodedCategory): Data.Category {
 }
 
 export default function parse(data: Uint8Array) {
-    return Task.create<Result<Data.File>>('Parse BinaryCIF', async ctx => {
+    return Task.create<Result<Data.CifFile>>('Parse BinaryCIF', async ctx => {
         const minVersion = [0, 3];
 
         try {
             const unpacked = decodeMsgPack(data) as EncodedFile;
             if (!checkVersions(minVersion, unpacked.version.match(/(\d)\.(\d)\.\d/)!.slice(1).map(v => +v))) {
-                return Result.error<Data.File>(`Unsupported format version. Current ${unpacked.version}, required ${minVersion.join('.')}.`);
+                return Result.error<Data.CifFile>(`Unsupported format version. Current ${unpacked.version}, required ${minVersion.join('.')}.`);
             }
-            const file = Data.File(unpacked.dataBlocks.map(block => {
+            const file = Data.CifFile(unpacked.dataBlocks.map(block => {
                 const cats = Object.create(null);
                 for (const cat of block.categories) cats[cat.name.substr(1)] = Category(cat);
-                return Data.Block(block.categories.map(c => c.name.substr(1)), cats, block.header);
+                return Data.CifBlock(block.categories.map(c => c.name.substr(1)), cats, block.header);
             }));
             return Result.success(file);
         } catch (e) {
-            return Result.error<Data.File>('' + e);
+            return Result.error<Data.CifFile>('' + e);
         }
     })
 }

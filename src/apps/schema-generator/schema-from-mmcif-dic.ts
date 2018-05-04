@@ -10,7 +10,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 
 import Csv from 'mol-io/reader/csv/parser'
-import CIF, { Frame } from 'mol-io/reader/cif'
+import CIF, { CifFrame } from 'mol-io/reader/cif'
 import { generateSchema } from './util/cif-dic'
 import { generate } from './util/generate'
 import { Filter } from './util/json-schema'
@@ -29,7 +29,7 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, typescri
     const ihmDicVersion = CIF.schema.dic(ihmDic.result.blocks[0]).dictionary.version.value(0)
     const version = `Dictionary versions: mmCIF ${mmcifDicVersion}, IHM ${ihmDicVersion}.`
 
-    const frames: Frame[] = [...mmcifDic.result.blocks[0].saveFrames, ...ihmDic.result.blocks[0].saveFrames]
+    const frames: CifFrame[] = [...mmcifDic.result.blocks[0].saveFrames, ...ihmDic.result.blocks[0].saveFrames]
     const schema = generateSchema(frames)
 
     const filter = fieldNamesPath ? await getFieldNamesFilter(fieldNamesPath) : undefined

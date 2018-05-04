@@ -11,6 +11,7 @@
 
 const reUnit = /[\d.\-\+]*\s*(.*)/
 
+/** Parsing value of, for example, CSS unit strings */
 export default function parseUnit(str: string, out: [number, string] = [ 0, '' ]) {
     str = String(str)
     const num = parseFloat(str)

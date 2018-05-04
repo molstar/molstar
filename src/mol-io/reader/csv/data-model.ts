@@ -4,32 +4,32 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Field as Column } from '../cif/data-model'
+import { CifField as CsvColumn } from '../cif/data-model'
 
-export { Column }
+export { CsvColumn }
 
-export interface File {
+export interface CsvFile {
     readonly name?: string,
-    readonly table: Table
+    readonly table: CsvTable
 }
 
-export function File(table: Table, name?: string): File {
+export function CsvFile(table: CsvTable, name?: string): CsvFile {
     return { name, table };
 }
 
-export interface Table {
+export interface CsvTable {
     readonly rowCount: number,
     readonly columnNames: ReadonlyArray<string>,
-    getColumn(name: string): Column | undefined
+    getColumn(name: string): CsvColumn | undefined
 }
 
-export function Table(rowCount: number, columnNames: string[], columns: Columns): Table {
+export function CsvTable(rowCount: number, columnNames: string[], columns: CsvColumns): CsvTable {
     return { rowCount, columnNames: [...columnNames], getColumn(name) { return columns[name]; } };
 }
 
-export type Columns = { [name: string]: Column }
+export type CsvColumns = { [name: string]: CsvColumn }
 
-// export namespace Table {
+// export namespace CsvTable {
 //     export function empty(name: string): Table {
 //         return { rowCount: 0, name, fieldNames: [], getColumn(name: string) { return void 0; } };
 //     };

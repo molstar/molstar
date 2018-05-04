@@ -7,7 +7,7 @@
 
 import parseText from './cif/text/parser'
 import parseBinary from './cif/binary/parser'
-import { Frame } from './cif/data-model'
+import { CifFrame } from './cif/data-model'
 import { toDatabaseCollection, toDatabase } from './cif/schema'
 import { mmCIF_Schema, mmCIF_Database } from './cif/schema/mmcif'
 import { CCD_Schema, CCD_Database } from './cif/schema/ccd'
@@ -22,11 +22,11 @@ export default {
     toDatabaseCollection,
     toDatabase,
     schema: {
-        mmCIF: (frame: Frame) => toDatabase<mmCIF_Schema, mmCIF_Database>(mmCIF_Schema, frame),
-        CCD: (frame: Frame) => toDatabase<CCD_Schema, CCD_Database>(CCD_Schema, frame),
-        BIRD: (frame: Frame) => toDatabase<BIRD_Schema, BIRD_Database>(BIRD_Schema, frame),
-        dic: (frame: Frame) => toDatabase<dic_Schema, dic_Database>(dic_Schema, frame),
-        densityServer: (frame: Frame) => toDatabase<DensityServer_Data_Schema, DensityServer_Data_Database>(DensityServer_Data_Schema, frame)
+        mmCIF: (frame: CifFrame) => toDatabase<mmCIF_Schema, mmCIF_Database>(mmCIF_Schema, frame),
+        CCD: (frame: CifFrame) => toDatabase<CCD_Schema, CCD_Database>(CCD_Schema, frame),
+        BIRD: (frame: CifFrame) => toDatabase<BIRD_Schema, BIRD_Database>(BIRD_Schema, frame),
+        dic: (frame: CifFrame) => toDatabase<dic_Schema, dic_Database>(dic_Schema, frame),
+        densityServer: (frame: CifFrame) => toDatabase<DensityServer_Data_Schema, DensityServer_Data_Database>(DensityServer_Data_Schema, frame)
     }
 }
 

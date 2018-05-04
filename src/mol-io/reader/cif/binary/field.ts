@@ -10,12 +10,12 @@ import * as Data from '../data-model'
 import { EncodedColumn, decode } from '../../../common/binary-cif'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
 
-export default function Field(column: EncodedColumn): Data.Field {
+export default function Field(column: EncodedColumn): Data.CifField {
     const mask = column.mask ? decode(column.mask) as number[] : void 0;
     const data = decode(column.data);
     const isNumeric = ColumnHelpers.isTypedArray(data);
 
-    const str: Data.Field['str'] = isNumeric
+    const str: Data.CifField['str'] = isNumeric
         ? mask
             ? row => mask[row] === Column.ValueKind.Present ? '' + data[row] : ''
             : row => '' + data[row]
@@ -23,15 +23,15 @@ export default function Field(column: EncodedColumn): Data.Field {
             ? row => mask[row] === Column.ValueKind.Present ? data[row] : ''
             : row => data[row];
 
-    const int: Data.Field['int'] = isNumeric
+    const int: Data.CifField['int'] = isNumeric
         ? row => data[row]
         : row => { const v = data[row]; return fastParseInt(v, 0, v.length); };
 
-    const float: Data.Field['float'] = isNumeric
+    const float: Data.CifField['float'] = isNumeric
         ? row => data[row]
         : row => { const v = data[row]; return fastParseFloat(v, 0, v.length); };
 
-    const valueKind: Data.Field['valueKind'] = mask
+    const valueKind: Data.CifField['valueKind'] = mask
         ? row => mask[row]
         : row => Column.ValueKind.Present;
 

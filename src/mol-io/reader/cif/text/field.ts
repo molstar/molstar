@@ -11,24 +11,24 @@ import { Tokens } from '../../common/text/tokenizer'
 import * as Data from '../data-model'
 import { parseInt as fastParseInt, parseFloat as fastParseFloat } from '../../common/text/number-parser'
 
-export default function CifTextField(tokens: Tokens, rowCount: number): Data.Field {
+export default function CifTextField(tokens: Tokens, rowCount: number): Data.CifField {
     const { data, indices } = tokens;
 
-    const str: Data.Field['str'] = row => {
+    const str: Data.CifField['str'] = row => {
         const ret = data.substring(indices[2 * row], indices[2 * row + 1]);
         if (ret === '.' || ret === '?') return '';
         return ret;
     };
 
-    const int: Data.Field['int'] = row => {
+    const int: Data.CifField['int'] = row => {
         return fastParseInt(data, indices[2 * row], indices[2 * row + 1]) || 0;
     };
 
-    const float: Data.Field['float'] = row => {
+    const float: Data.CifField['float'] = row => {
         return fastParseFloat(data, indices[2 * row], indices[2 * row + 1]) || 0;
     };
 
-    const valueKind: Data.Field['valueKind'] = row => {
+    const valueKind: Data.CifField['valueKind'] = row => {
         const s = indices[2 * row];
         if (indices[2 * row + 1] - s !== 1) return Column.ValueKind.Present;
         const v = data.charCodeAt(s);

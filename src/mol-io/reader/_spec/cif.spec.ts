@@ -18,8 +18,8 @@ const strField = TextField({ data: columnData, indices: [3, 4, 4, 5, 5, 6], coun
 const strListField = TextField({ data: columnData, indices: [7, 12], count: 1 }, 1);
 const intListField = TextField({ data: columnData, indices: [14, 19], count: 1 }, 1);
 
-const testBlock = Data.Block(['test'], {
-    test: Data.Category('test', 3, ['int', 'str', 'strList', 'intList'], {
+const testBlock = Data.CifBlock(['test'], {
+    test: Data.CifCategory('test', 3, ['int', 'str', 'strList', 'intList'], {
         int: intField,
         str: strField,
         strList: strListField,

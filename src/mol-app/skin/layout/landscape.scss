@@ -1,0 +1,81 @@
+
+.molstar-layout-main {
+    position: absolute;
+    left: $expanded-left-width;
+    right: $expanded-right-width;
+    bottom: $expanded-bottom-height;
+    top: $expanded-top-height;
+}
+
+.molstar-layout-top {
+    position: absolute;
+    left: $expanded-left-width;
+    right: $expanded-right-width;
+    height: $expanded-top-height;
+    top: 0;
+    border-bottom: 1px solid $border-color;
+}
+
+.molstar-layout-bottom {
+    position: absolute;
+    left: $expanded-left-width;
+    right: $expanded-right-width;
+    height: $expanded-bottom-height;
+    bottom: 0;
+    border-top: 1px solid $border-color;
+}
+
+.molstar-layout-right {
+    position: absolute;
+    width: $expanded-right-width;
+    right: 0;
+    bottom: 0;
+    top: 0;
+    border-left: 1px solid $border-color;
+}
+
+.molstar-layout-left {
+    position: absolute;
+    width: $expanded-left-width;
+    left: 0;
+    bottom: 0;
+    top: 0;
+    border-right: 1px solid $border-color;
+}
+
+.molstar-layout-hide-right {
+    .molstar-layout-right {
+        display: none;
+    }
+    .molstar-layout-main, .molstar-layout-top, .molstar-layout-bottom {
+        right: 0;
+    }
+}
+
+
+.molstar-layout-hide-left {
+    .molstar-layout-left {
+        display: none;
+    }
+    .molstar-layout-main, .molstar-layout-top, .molstar-layout-bottom {
+        left: 0;
+    }
+}
+
+.molstar-layout-hide-bottom {
+    .molstar-layout-bottom {
+        display: none;
+    }
+    .molstar-layout-main {
+        bottom: 0;
+    }
+}
+
+.molstar-layout-hide-top {
+    .molstar-layout-top {
+        display: none;
+    }
+    .molstar-layout-main {
+        top: 0;
+    }
+}

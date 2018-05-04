@@ -22,11 +22,11 @@ const { skipWhitespace, eatValue, markLine, getTokenString, readLine } = Tokeniz
 
 interface State {
     tokenizer: Tokenizer,
-    molecule: Schema.Molecule,
+    molecule: Schema.Mol2Molecule,
     runtimeCtx: RuntimeContext
 }
 
-function createEmptyMolecule(): Schema.Molecule {
+function createEmptyMolecule(): Schema.Mol2Molecule {
     return {
         mol_name: '',
         num_atoms: 0,
@@ -93,7 +93,7 @@ function isStatus_bit(aString: String): Boolean {
     return false;
 }
 
-async function handleAtoms(state: State): Promise<Schema.Atoms> {
+async function handleAtoms(state: State): Promise<Schema.Mol2Atoms> {
     const { tokenizer, molecule } = state;
     let hasSubst_id = false;
     let hasSubst_name = false;
@@ -239,7 +239,7 @@ async function handleAtoms(state: State): Promise<Schema.Atoms> {
     return ret;
 }
 
-async function handleBonds(state: State): Promise<Schema.Bonds> {
+async function handleBonds(state: State): Promise<Schema.Mol2Bonds> {
     const { tokenizer, molecule } = state;
     let hasStatus_bit = false;
 
@@ -324,11 +324,11 @@ async function handleBonds(state: State): Promise<Schema.Bonds> {
     return ret;
 }
 
-async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Schema.File>> {
+async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Schema.Mol2File>> {
     const tokenizer = Tokenizer(data);
 
     ctx.update({ message: 'Parsing...', current: 0, max: data.length });
-    const structures: Schema.Structure[] = [];
+    const structures: Schema.Mol2Structure[] = [];
     while (tokenizer.position < data.length) {
         const state = State(tokenizer, ctx);
         handleMolecule(state);
@@ -337,12 +337,12 @@ async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<
         structures.push({ molecule: state.molecule, atoms, bonds });
     }
 
-    const result: Schema.File = { structures };
+    const result: Schema.Mol2File = { structures };
     return Result.success(result);
 }
 
 export function parse(data: string) {
-    return Task.create<Result<Schema.File>>('Parse MOL2', async ctx => {
+    return Task.create<Result<Schema.Mol2File>>('Parse MOL2', async ctx => {
         return await parseInternal(data, ctx);
     });
 }

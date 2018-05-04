@@ -10,7 +10,7 @@ import { Tensor } from 'mol-math/linear-algebra'
 import { arrayEqual } from 'mol-util'
 import * as Data from './data-model'
 
-export function toDatabaseCollection<Schema extends Database.Schema>(schema: Schema, file: Data.File): DatabaseCollection<Schema> {
+export function toDatabaseCollection<Schema extends Database.Schema>(schema: Schema, file: Data.CifFile): DatabaseCollection<Schema> {
     const dbc: DatabaseCollection<Schema> = {}
     for (const data of file.blocks) {
         dbc[data.header] = toDatabase(schema, data)
@@ -18,15 +18,15 @@ export function toDatabaseCollection<Schema extends Database.Schema>(schema: Sch
     return dbc;
 }
 
-export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.Frame): Frame {
+export function toDatabase<Schema extends Database.Schema, Frame extends Database<Schema> = Database<Schema>>(schema: Schema, frame: Data.CifFrame): Frame {
     return createDatabase(schema, frame) as Frame;
 }
 
-export function toTable<Schema extends Table.Schema, R extends Table<Schema> = Table<Schema>>(schema: Schema, category: Data.Category): R {
+export function toTable<Schema extends Table.Schema, R extends Table<Schema> = Table<Schema>>(schema: Schema, category: Data.CifCategory): R {
     return new CategoryTable(category, schema, true) as any;
 }
 
-type ColumnCtor = (field: Data.Field, category: Data.Category, key: string) => Column<any>
+type ColumnCtor = (field: Data.CifField, category: Data.CifCategory, key: string) => Column<any>
 
 function getColumnCtor(t: Column.Schema): ColumnCtor {
     switch (t.valueType) {
@@ -38,7 +38,7 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
     }
 }
 
-function createColumn<T>(schema: Column.Schema, field: Data.Field, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
+function createColumn<T>(schema: Column.Schema, field: Data.CifField, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
     return {
         schema,
         '@array': field['@array'],
@@ -51,7 +51,7 @@ function createColumn<T>(schema: Column.Schema, field: Data.Field, value: (row: 
     };
 }
 
-function createListColumn<T extends number|string>(schema: Column.Schema.List<T>, category: Data.Category, key: string): Column<(number|string)[]> {
+function createListColumn<T extends number|string>(schema: Column.Schema.List<T>, category: Data.CifCategory, key: string): Column<(number|string)[]> {
     const separator = schema.separator;
     const itemParse = schema.itemParse;
 
@@ -71,7 +71,7 @@ function createListColumn<T extends number|string>(schema: Column.Schema.List<T>
     };
 }
 
-function createTensorColumn(schema: Column.Schema.Tensor, category: Data.Category, key: string): Column<Tensor.Data> {
+function createTensorColumn(schema: Column.Schema.Tensor, category: Data.CifCategory, key: string): Column<Tensor.Data> {
     const space = schema.space;
     const zeroOffset = category.fieldNames.indexOf(`${key}[0]`) >= 0;
     const fst = zeroOffset ? 0 : 1;
@@ -105,7 +105,7 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
     _schema: any;
     [k: string]: any;
 
-    constructor(category: Data.Category, schema: Table.Schema, public _isDefined: boolean) {
+    constructor(category: Data.CifCategory, schema: Table.Schema, public _isDefined: boolean) {
         const fieldKeys = Object.keys(schema);
         this._rowCount = category.rowCount;
         this._columns = fieldKeys;
@@ -134,7 +134,7 @@ class CategoryTable implements Table<any> { // tslint:disable-line:class-name
     }
 }
 
-function createDatabase(schema: Database.Schema, frame: Data.Frame): Database<any> {
+function createDatabase(schema: Database.Schema, frame: Data.CifFrame): Database<any> {
     const tables = Object.create(null);
     for (const k of Object.keys(schema)) {
         tables[k] = createTable(k, (schema as any)[k], frame);
@@ -142,7 +142,7 @@ function createDatabase(schema: Database.Schema, frame: Data.Frame): Database<an
     return Database.ofTables(frame.header, schema, tables);
 }
 
-function createTable(key: string, schema: Table.Schema, frame: Data.Frame) {
+function createTable(key: string, schema: Table.Schema, frame: Data.CifFrame) {
     const cat = frame.categories[key];
-    return new CategoryTable(cat || Data.Category.empty(key), schema, !!cat);
+    return new CategoryTable(cat || Data.CifCategory.empty(key), schema, !!cat);
 }

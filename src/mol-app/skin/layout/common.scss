@@ -1,0 +1,60 @@
+
+.molstar-layout-expanded, .molstar-layout-standard {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.molstar-layout-region {
+    overflow: hidden;
+    background: $default-background;
+}
+
+.molstar-layout-static, .molstar-layout-scrollable {
+    position: absolute;
+}
+
+.molstar-layout-scrollable {
+    overflow-y: auto;
+}
+
+.molstar-layout-static {
+    overflow: hidden;
+}
+
+.molstar-layout-main, .molstar-layout-bottom {
+    .molstar-layout-static {
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+    }
+}
+
+.molstar-layout-right {
+
+    .molstar-layout-static {
+        left: 0;
+        right: 0;
+        top: 0;
+        height: $row-height + $control-spacing;
+    }
+
+    .molstar-layout-scrollable {
+        left: 0;
+        right: 0;
+        top: $row-height + $control-spacing + 1;
+        bottom: 0;
+     }
+
+}
+
+.molstar-layout-left {
+    .molstar-layout-static {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        top: 0;
+    }
+}

@@ -1,0 +1,45 @@
+
+@font-face {
+    font-family: 'fontello';
+    src: url('./fonts/fontello.eot');
+    src: url('./fonts/fontello.eot#iefix') format('embedded-opentype'),
+         url('./fonts/fontello.woff2') format('woff2'),
+         url('./fonts/fontello.woff') format('woff'),
+         url('./fonts/fontello.ttf') format('truetype'),
+         url('./fonts/fontello.svg#fontello') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@import url(https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,400italic,700);
+
+.molstar-plugin {
+    font-family: "Helvetica Neue", "Source Sans Pro", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.42857143;
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    @import 'variables';
+
+    // for bootstrap
+    $border-radius-base:        0;
+    $border-radius-large:       0;
+    $border-radius-small:       0;
+
+    @import 'bootstrap';
+
+    @import 'icons';
+    @import 'layout';
+    @import 'ui';
+    @import 'logo';
+
+    .molstar-plugin-content {
+        color: $font-color;
+    }
+
+    background: $default-background;
+}

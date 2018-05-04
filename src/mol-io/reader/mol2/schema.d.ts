@@ -14,7 +14,7 @@ import { Column } from 'mol-data/db'
 //
 // note that the format is not a fixed column format but white space separated
 
-export interface Molecule {
+export interface Mol2Molecule {
     mol_name: string
     num_atoms: number
     num_bonds: number
@@ -27,7 +27,7 @@ export interface Molecule {
     mol_comment: string
 }
 
-export interface Atoms {
+export interface Mol2Atoms {
     count: number,
 
     atom_id: Column<number>,
@@ -44,7 +44,7 @@ export interface Atoms {
     status_bit: Column<string>
 }
 
-export interface Bonds {
+export interface Mol2Bonds {
     count: number,
 
     bond_id: Column<number>,
@@ -56,12 +56,12 @@ export interface Bonds {
     status_bits: Column<string>
 }
 
-export interface Structure {
-    molecule: Readonly<Molecule>,
-    atoms: Readonly<Atoms>,
-    bonds: Readonly<Bonds>
+export interface Mol2Structure {
+    molecule: Readonly<Mol2Molecule>,
+    atoms: Readonly<Mol2Atoms>,
+    bonds: Readonly<Mol2Bonds>
 }
 
-export interface File {
-    structures: Structure[]
+export interface Mol2File {
+    structures: Mol2Structure[]
 }

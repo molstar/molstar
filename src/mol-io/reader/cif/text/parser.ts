@@ -413,7 +413,7 @@ interface CifCategoryResult {
 
 type FrameContext = {
     categoryNames: string[],
-    categories: { [name: string]: Data.Category }
+    categories: { [name: string]: Data.CifCategory }
 }
 
 function FrameContext(): FrameContext {
@@ -451,7 +451,7 @@ function handleSingle(tokenizer: TokenizerState, ctx: FrameContext): CifCategory
     }
 
     const catName = name.substr(1);
-    ctx.categories[catName] = Data.Category(catName, 1, fieldNames, fields);
+    ctx.categories[catName] = Data.CifCategory(catName, 1, fieldNames, fields);
     ctx.categoryNames.push(catName);
 
     return {
@@ -533,7 +533,7 @@ async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise
     }
 
     const catName = name.substr(1);
-    ctx.categories[catName] = Data.Category(catName, rowCount, fieldNames, fields);
+    ctx.categories[catName] = Data.CifCategory(catName, rowCount, fieldNames, fields);
     ctx.categoryNames.push(catName);
 
     return {
@@ -547,13 +547,13 @@ async function handleLoop(tokenizer: TokenizerState, ctx: FrameContext): Promise
  * Creates an error result.
  */
 function error(line: number, message: string) {
-    return Result.error<Data.File>(message, line);
+    return Result.error<Data.CifFile>(message, line);
 }
 
 /**
  * Creates a data result.
  */
-function result(data: Data.File) {
+function result(data: Data.CifFile) {
     return Result.success(data);
 }
 
@@ -563,7 +563,7 @@ function result(data: Data.File) {
  * @returns CifParserResult wrapper of the result.
  */
 async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
-    const dataBlocks: Data.Block[] = [];
+    const dataBlocks: Data.CifBlock[] = [];
     const tokenizer = createTokenizer(data, runtimeCtx);
     let blockHeader = '';
 
@@ -572,9 +572,9 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
     let inSaveFrame = false;
 
     // the next three initial values are never used in valid files
-    let saveFrames: Data.Frame[] = [];
+    let saveFrames: Data.CifFrame[] = [];
     let saveCtx = FrameContext();
-    let saveFrame: Data.Frame = Data.SafeFrame(saveCtx.categoryNames, saveCtx.categories, '');
+    let saveFrame: Data.CifFrame = Data.CifSafeFrame(saveCtx.categoryNames, saveCtx.categories, '');
 
     runtimeCtx.update({ message: 'Parsing...', current: 0, max: data.length });
 
@@ -588,7 +588,7 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
                 return error(tokenizer.lineNumber, 'Unexpected data block inside a save frame.');
             }
             if (blockCtx.categoryNames.length > 0) {
-                dataBlocks.push(Data.Block(blockCtx.categoryNames, blockCtx.categories, blockHeader, saveFrames));
+                dataBlocks.push(Data.CifBlock(blockCtx.categoryNames, blockCtx.categories, blockHeader, saveFrames));
             }
             blockHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
             blockCtx = FrameContext();
@@ -609,7 +609,7 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
                 inSaveFrame = true;
                 const safeHeader = data.substring(tokenizer.tokenStart + 5, tokenizer.tokenEnd);
                 saveCtx = FrameContext();
-                saveFrame = Data.SafeFrame(saveCtx.categoryNames, saveCtx.categories, safeHeader);
+                saveFrame = Data.CifSafeFrame(saveCtx.categoryNames, saveCtx.categories, safeHeader);
             }
             moveNext(tokenizer);
         // Loop
@@ -636,14 +636,14 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
     }
 
     if (blockCtx.categoryNames.length > 0) {
-        dataBlocks.push(Data.Block(blockCtx.categoryNames, blockCtx.categories, blockHeader, saveFrames));
+        dataBlocks.push(Data.CifBlock(blockCtx.categoryNames, blockCtx.categories, blockHeader, saveFrames));
     }
 
-    return result(Data.File(dataBlocks));
+    return result(Data.CifFile(dataBlocks));
 }
 
 export default function parse(data: string) {
-    return Task.create<Result<Data.File>>('Parse CIF', async ctx => {
+    return Task.create<Result<Data.CifFile>>('Parse CIF', async ctx => {
         return await parseInternal(data, ctx);
     });
 }

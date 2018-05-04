@@ -1,0 +1,244 @@
+//
+// Button groups
+// --------------------------------------------------
+
+// Make the div behave like a button
+.molstar-btn-group,
+.molstar-btn-group-vertical {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle; // match .molstar-btn alignment given font-size hack above
+  > .molstar-btn {
+    position: relative;
+    float: left;
+    // Bring the "active" button to the front
+    &:hover,
+    &:focus,
+    &:active,
+    &.active {
+      z-index: 2;
+    }
+  }
+}
+
+// Prevent double borders when buttons are next to each other
+.molstar-btn-group {
+  .molstar-btn + .molstar-btn,
+  .molstar-btn + .molstar-btn-group,
+  .molstar-btn-group + .molstar-btn,
+  .molstar-btn-group + .molstar-btn-group {
+    margin-left: -1px;
+  }
+}
+
+// Optional: Group multiple button groups together for a toolbar
+.molstar-btn-toolbar {
+  margin-left: -5px; // Offset the first child's margin
+  @include clearfix;
+
+  .molstar-btn,
+  .molstar-btn-group,
+  .input-group {
+    float: left;
+  }
+  > .molstar-btn,
+  > .molstar-btn-group,
+  > .input-group {
+    margin-left: 5px;
+  }
+}
+
+.molstar-btn-group > .molstar-btn:not(:first-child):not(:last-child):not(.dropdown-toggle) {
+  border-radius: 0;
+}
+
+// Set corners individual because sometimes a single button can be in a .molstar-btn-group and we need :first-child and :last-child to both match
+.molstar-btn-group > .molstar-btn:first-child {
+  margin-left: 0;
+  &:not(:last-child):not(.dropdown-toggle) {
+    @include border-right-radius(0);
+  }
+}
+// Need .dropdown-toggle since :last-child doesn't apply given a .dropdown-menu immediately after it
+.molstar-btn-group > .molstar-btn:last-child:not(:first-child),
+.molstar-btn-group > .dropdown-toggle:not(:first-child) {
+  @include border-left-radius(0);
+}
+
+// Custom edits for including molstar-btn-groups within molstar-btn-groups (useful for including dropdown buttons within a molstar-btn-group)
+.molstar-btn-group > .molstar-btn-group {
+  float: left;
+}
+.molstar-btn-group > .molstar-btn-group:not(:first-child):not(:last-child) > .molstar-btn {
+  border-radius: 0;
+}
+.molstar-btn-group > .molstar-btn-group:first-child:not(:last-child) {
+  > .molstar-btn:last-child,
+  > .dropdown-toggle {
+    @include border-right-radius(0);
+  }
+}
+.molstar-btn-group > .molstar-btn-group:last-child:not(:first-child) > .molstar-btn:first-child {
+  @include border-left-radius(0);
+}
+
+// On active and open, don't show outline
+.molstar-btn-group .dropdown-toggle:active,
+.molstar-btn-group.open .dropdown-toggle {
+  outline: 0;
+}
+
+
+// Sizing
+//
+// Remix the default button sizing classes into new ones for easier manipulation.
+
+.molstar-btn-group-xs > .molstar-btn { @extend .molstar-btn-xs; }
+.molstar-btn-group-sm > .molstar-btn { @extend .molstar-btn-sm; }
+.molstar-btn-group-lg > .molstar-btn { @extend .molstar-btn-lg; }
+
+
+// Split button dropdowns
+// ----------------------
+
+// Give the line between buttons some depth
+.molstar-btn-group > .molstar-btn + .dropdown-toggle {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.molstar-btn-group > .molstar-btn-lg + .dropdown-toggle {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+// The clickable button for toggling the menu
+// Remove the gradient and set the same inset shadow as the :active state
+.molstar-btn-group.open .dropdown-toggle {
+  @include box-shadow(inset 0 3px 5px rgba(0,0,0,.125));
+
+  // Show no shadow for `.molstar-btn-link` since it has no other button styles.
+  &.molstar-btn-link {
+    @include box-shadow(none);
+  }
+}
+
+
+// Reposition the caret
+.molstar-btn .caret {
+  margin-left: 0;
+}
+// Carets in other button sizes
+.molstar-btn-lg .caret {
+  border-width: $caret-width-large $caret-width-large 0;
+  border-bottom-width: 0;
+}
+// Upside down carets for .dropup
+.dropup .molstar-btn-lg .caret {
+  border-width: 0 $caret-width-large $caret-width-large;
+}
+
+
+// Vertical button groups
+// ----------------------
+
+.molstar-btn-group-vertical {
+  > .molstar-btn,
+  > .molstar-btn-group,
+  > .molstar-btn-group > .molstar-btn {
+    display: block;
+    float: none;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  // Clear floats so dropdown menus can be properly placed
+  > .molstar-btn-group {
+    @include clearfix;
+    > .molstar-btn {
+      float: none;
+    }
+  }
+
+  > .molstar-btn + .molstar-btn,
+  > .molstar-btn + .molstar-btn-group,
+  > .molstar-btn-group + .molstar-btn,
+  > .molstar-btn-group + .molstar-btn-group {
+    margin-top: -1px;
+    margin-left: 0;
+  }
+}
+
+.molstar-btn-group-vertical > .molstar-btn {
+  &:not(:first-child):not(:last-child) {
+    border-radius: 0;
+  }
+  &:first-child:not(:last-child) {
+    @include border-top-radius($molstar-btn-border-radius-base);
+    @include border-bottom-radius(0);
+  }
+  &:last-child:not(:first-child) {
+    @include border-top-radius(0);
+    @include border-bottom-radius($molstar-btn-border-radius-base);
+  }
+}
+.molstar-btn-group-vertical > .molstar-btn-group:not(:first-child):not(:last-child) > .molstar-btn {
+  border-radius: 0;
+}
+.molstar-btn-group-vertical > .molstar-btn-group:first-child:not(:last-child) {
+  > .molstar-btn:last-child,
+  > .dropdown-toggle {
+    @include border-bottom-radius(0);
+  }
+}
+.molstar-btn-group-vertical > .molstar-btn-group:last-child:not(:first-child) > .molstar-btn:first-child {
+  @include border-top-radius(0);
+}
+
+
+// Justified button groups
+// ----------------------
+
+.molstar-btn-group-justified {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  > .molstar-btn,
+  > .molstar-btn-group {
+    float: none;
+    display: table-cell;
+    width: 1%;
+  }
+  > .molstar-btn-group .molstar-btn {
+    width: 100%;
+  }
+
+  > .molstar-btn-group .dropdown-menu {
+    left: auto;
+  }
+}
+
+
+// Checkbox and radio options
+//
+// In order to support the browser's form validation feedback, powered by the
+// `required` attribute, we have to "hide" the inputs via `clip`. We cannot use
+// `display: none;` or `visibility: hidden;` as that also hides the popover.
+// Simply visually hiding the inputs via `opacity` would leave them clickable in
+// certain cases which is prevented by using `clip` and `pointer-events`.
+// This way, we ensure a DOM element is visible to position the popover from.
+//
+// See https://github.com/twbs/bootstrap/pull/12794 and
+// https://github.com/twbs/bootstrap/pull/14559 for more information.
+
+[data-toggle="buttons"] {
+  > .molstar-btn,
+  > .molstar-btn-group > .molstar-btn {
+    input[type="radio"],
+    input[type="checkbox"] {
+      position: absolute;
+      clip: rect(0,0,0,0);
+      pointer-events: none;
+    }
+  }
+}

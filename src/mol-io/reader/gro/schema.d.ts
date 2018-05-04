@@ -7,7 +7,7 @@
 
 import { Column } from 'mol-data/db'
 
-export interface Header {
+export interface GroHeader {
     title: string,
     timeInPs: number,
     /** number of decimal places */
@@ -16,7 +16,7 @@ export interface Header {
     box: [number, number, number]
 }
 
-export interface Atoms {
+export interface GroAtoms {
     count: number,
     residueNumber: Column<number>,
     residueName: Column<string>,
@@ -30,11 +30,11 @@ export interface Atoms {
     vz: Column<number>
 }
 
-export interface Structure {
-    header: Readonly<Header>,
-    atoms: Readonly<Atoms>
+export interface GroStructure {
+    header: Readonly<GroHeader>,
+    atoms: Readonly<GroAtoms>
 }
 
-export interface File {
-    structures: Structure[]
+export interface GroFile {
+    structures: GroStructure[]
 }

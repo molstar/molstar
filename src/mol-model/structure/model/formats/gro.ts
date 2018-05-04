@@ -7,7 +7,7 @@
 import UUID from 'mol-util/uuid'
 import { Column, Table } from 'mol-data/db'
 import { Interval, Segmentation } from 'mol-data/int'
-import { Atoms } from 'mol-io/reader/gro/schema'
+import { GroAtoms } from 'mol-io/reader/gro/schema'
 import Format from '../format'
 import Model from '../model'
 import * as Hierarchy from '../properties/hierarchy'
@@ -24,7 +24,7 @@ import { Entities } from '../properties/common';
 
 type HierarchyOffsets = { residues: ArrayLike<number>, chains: ArrayLike<number> }
 
-function findHierarchyOffsets(atomsData: Atoms, bounds: Interval) {
+function findHierarchyOffsets(atomsData: GroAtoms, bounds: Interval) {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const residues = [start], chains = [start];
 
@@ -44,7 +44,7 @@ function guessElementSymbol (value: string) {
     return ElementSymbol(guessElement(value));
 }
 
-function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Hierarchy.Data {
+function createHierarchyData(atomsData: GroAtoms, offsets: HierarchyOffsets): Hierarchy.Data {
     console.log(atomsData.atomName)
     const atoms = Table.ofColumns(Hierarchy.AtomsSchema, {
         type_symbol: Column.ofArray({ array: Column.mapToArray(atomsData.atomName, guessElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
@@ -77,7 +77,7 @@ function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Hiera
     return { atoms, residues, chains };
 }
 
-function getConformation(atoms: Atoms): AtomSiteConformation {
+function getConformation(atoms: GroAtoms): AtomSiteConformation {
     return {
         id: UUID.create(),
         atomId: atoms.atomNumber,

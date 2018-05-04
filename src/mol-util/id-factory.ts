@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export function idFactory() {
-    let _nextId = 0
+export function idFactory(firstId = 0) {
+    let _nextId = firstId
     return () => _nextId++
 }

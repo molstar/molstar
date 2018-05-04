@@ -8,49 +8,49 @@
 import { Column } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
 
-export interface File {
+export interface CifFile {
     readonly name?: string,
-    readonly blocks: ReadonlyArray<Block>
+    readonly blocks: ReadonlyArray<CifBlock>
 }
 
-export function File(blocks: ArrayLike<Block>, name?: string): File {
+export function CifFile(blocks: ArrayLike<CifBlock>, name?: string): CifFile {
     return { name, blocks: blocks as any };
 }
 
-export interface Frame {
+export interface CifFrame {
     readonly header: string,
     // Category names stored separately so that the ordering can be preserved.
     readonly categoryNames: ReadonlyArray<string>,
-    readonly categories: Categories
+    readonly categories: CifCategories
 }
 
-export interface Block extends Frame {
-    readonly saveFrames: Frame[]
+export interface CifBlock extends CifFrame {
+    readonly saveFrames: CifFrame[]
 }
 
-export function Block(categoryNames: string[], categories: Categories, header: string, saveFrames: Frame[] = []): Block {
+export function CifBlock(categoryNames: string[], categories: CifCategories, header: string, saveFrames: CifFrame[] = []): CifBlock {
     return { categoryNames, header, categories, saveFrames };
 }
 
-export function SafeFrame(categoryNames: string[], categories: Categories, header: string): Frame {
+export function CifSafeFrame(categoryNames: string[], categories: CifCategories, header: string): CifFrame {
     return { categoryNames, header, categories };
 }
 
-export type Categories = { readonly [name: string]: Category }
+export type CifCategories = { readonly [name: string]: CifCategory }
 
-export interface Category {
+export interface CifCategory {
     readonly rowCount: number,
     readonly name: string,
     readonly fieldNames: ReadonlyArray<string>,
-    getField(name: string): Field | undefined
+    getField(name: string): CifField | undefined
 }
 
-export function Category(name: string, rowCount: number, fieldNames: string[], fields: { [name: string]: Field }): Category {
+export function CifCategory(name: string, rowCount: number, fieldNames: string[], fields: { [name: string]: CifField }): CifCategory {
     return { rowCount, name, fieldNames: [...fieldNames], getField(name) { return fields[name]; } };
 }
 
-export namespace Category {
-    export function empty(name: string): Category {
+export namespace CifCategory {
+    export function empty(name: string): CifCategory {
         return { rowCount: 0, name, fieldNames: [], getField(name: string) { return void 0; } };
     };
 }
@@ -60,7 +60,7 @@ export namespace Category {
  * Always implement without using "this." in any of the interface functions.
  * This is to ensure that the functions can invoked without having to "bind" them.
  */
-export interface Field {
+export interface CifField {
     readonly '@array': ArrayLike<any> | undefined
     readonly isDefined: boolean,
     readonly rowCount: number,
@@ -78,7 +78,7 @@ export interface Field {
     toFloatArray(params?: Column.ToArrayParams<number>): ReadonlyArray<number>
 }
 
-export function getTensor(category: Category, field: string, space: Tensor.Space, row: number, zeroIndexed: boolean): Tensor.Data {
+export function getTensor(category: CifCategory, field: string, space: Tensor.Space, row: number, zeroIndexed: boolean): Tensor.Data {
     const ret = space.create();
     const offset = zeroIndexed ? 0 : 1;
 
