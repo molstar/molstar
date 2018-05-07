@@ -62,6 +62,20 @@ namespace Vec4 {
         return a
     }
 
+    export function toVec3Array(a: Vec4, out: Helpers.NumberArray, offset: number) {
+        out[offset + 0] = a[0];
+        out[offset + 1] = a[1];
+        out[offset + 2] = a[2];
+    }
+
+    export function fromVec3Array(a: Vec4, array: Helpers.NumberArray, offset: number) {
+        a[0] = array[offset + 0]
+        a[1] = array[offset + 1]
+        a[2] = array[offset + 2]
+        a[3] = 0
+        return a
+    }
+
     export function copy(out: Vec4, a: Vec4) {
         out[0] = a[0];
         out[1] = a[1];

@@ -6,9 +6,11 @@
 
 precision highp float;
 
+uniform float alpha;
+
 #pragma glslify: import('./chunks/color-frag-params.glsl')
 
 void main(){
     #pragma glslify: import('./chunks/color-assign-material.glsl')
-    gl_FragColor = vec4(material, 1.0);
+    gl_FragColor = vec4(material, alpha);
 }

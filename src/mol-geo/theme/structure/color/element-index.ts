@@ -9,7 +9,7 @@ import { StructureColorDataProps } from '.';
 import { OrderedSet } from 'mol-data/int';
 import { createElementInstanceColor } from '../../../util/color-data';
 
-export function atomIndexColorData(props: StructureColorDataProps) {
+export function elementIndexColorData(props: StructureColorDataProps) {
     const { units, elementGroup, vertexMap } = props
     const instanceCount = units.length
     const elementCount = OrderedSet.size(elementGroup.elements)

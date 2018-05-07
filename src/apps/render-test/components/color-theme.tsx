@@ -22,7 +22,7 @@ interface ColorThemeState {
 }
 
 export default class ColorTheme extends Observer<{ state: State } & WithStyles, ColorThemeState> {
-    state = { loading: false, name: 'element-symbol' as _ColorTheme, value: 0xFF0000 }
+    state: ColorThemeState = { loading: false, name: 'element-symbol' as _ColorTheme, value: 0xFF0000 }
 
     componentDidMount() {
         this.subscribe(this.props.state.loading, value => {

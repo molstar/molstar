@@ -50,6 +50,8 @@ function createPoints() {
 
     return createPointRenderObject({
         objectId: 0,
+        alpha: 1.0,
+        visible: true,
 
         position,
         id,

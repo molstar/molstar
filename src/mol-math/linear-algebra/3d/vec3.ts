@@ -18,7 +18,7 @@
  */
 
 import Mat4 from './mat4';
-import { Quat } from '../3d';
+import { Quat, Mat3 } from '../3d';
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
@@ -265,7 +265,18 @@ namespace Vec3 {
         return out;
     }
 
-    /** Transforms the vec3 with a quat */
+    /**
+     * Transforms the Vec3 with a Mat3.
+     */
+    export function transformMat3(out: Vec3, a: Vec3, m: Mat3) {
+        const x = a[0], y = a[1], z = a[2];
+        out[0] = x * m[0] + y * m[3] + z * m[6];
+        out[1] = x * m[1] + y * m[4] + z * m[7];
+        out[2] = x * m[2] + y * m[5] + z * m[8];
+        return out;
+    }
+
+    /** Transforms the Vec3 with a quat */
     export function transformQuat(out: Vec3, a: Vec3, q: Quat) {
         // benchmarks: http://jsperf.com/quaternion-transform-vec3-implementations
 

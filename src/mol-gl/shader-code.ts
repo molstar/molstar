@@ -23,7 +23,8 @@ export const MeshShaderCode: ShaderCode = {
 type ShaderDefine = (
     'UNIFORM_COLOR' | 'ATTRIBUTE_COLOR' | 'INSTANCE_COLOR' | 'ELEMENT_COLOR' | 'ELEMENT_INSTANCE_COLOR' |
     'UNIFORM_SIZE' | 'ATTRIBUTE_SIZE' |
-    'POINT_SIZE_ATTENUATION'
+    'POINT_SIZE_ATTENUATION' |
+    'FLAT_SHADED' | 'DOUBLE_SIDED' | 'FLIP_SIDED'
 )
 export type ShaderDefines = {
     [k in ShaderDefine]?: number|string

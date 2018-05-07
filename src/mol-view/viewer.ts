@@ -9,20 +9,20 @@ import InputObserver from 'mol-util/input/input-observer'
 import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
 import { RenderObject } from 'mol-gl/scene'
-import { StructureRepresentation } from 'mol-geo/representation/structure';
 
 import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
 import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
 import { createContext } from 'mol-gl/webgl/context';
+import { Representation } from 'mol-geo/representation';
 
 interface Viewer {
-    hide: (repr: StructureRepresentation) => void
-    show: (repr: StructureRepresentation) => void
+    hide: (repr: Representation<any>) => void
+    show: (repr: Representation<any>) => void
 
-    add: (repr: StructureRepresentation) => void
-    remove: (repr: StructureRepresentation) => void
+    add: (repr: Representation<any>) => void
+    remove: (repr: Representation<any>) => void
     update: () => void
     clear: () => void
 
@@ -49,13 +49,13 @@ function getWebGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLCon
 
 namespace Viewer {
     export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
-        const reprMap = new Map<StructureRepresentation, Set<RenderObject>>()
+        const reprMap = new Map<Representation<any>, Set<RenderObject>>()
 
         const input = InputObserver.create(canvas)
         input.resize.subscribe(handleResize)
 
         const camera = PerspectiveCamera.create({
-            near: 0.01,
+            near: 0.1,
             far: 10000,
             position: Vec3.create(0, 0, 50)
         })
@@ -64,7 +64,12 @@ namespace Viewer {
 
         })
 
-        const gl = getWebGLContext(canvas)
+        const gl = getWebGLContext(canvas, {
+            alpha: false,
+            antialias: true,
+            depth: true,
+            preserveDrawingBuffer: true
+        })
         if (gl === null) {
             throw new Error('Could not create a WebGL rendering context')
         }
@@ -99,16 +104,16 @@ namespace Viewer {
         handleResize()
 
         return {
-            hide: (repr: StructureRepresentation) => {
+            hide: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.visible = false)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.props.visible = false)
             },
-            show: (repr: StructureRepresentation) => {
+            show: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.visible = true)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.props.visible = true)
             },
 
-            add: (repr: StructureRepresentation) => {
+            add: (repr: Representation<any>) => {
                 const oldRO = reprMap.get(repr)
                 const newRO = new Set<RenderObject>()
                 repr.renderObjects.forEach(o => newRO.add(o))
@@ -120,7 +125,7 @@ namespace Viewer {
                 }
                 reprMap.set(repr, newRO)
             },
-            remove: (repr: StructureRepresentation) => {
+            remove: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
                 if (renderObjectSet) renderObjectSet.forEach(o => renderer.remove(o))
             },

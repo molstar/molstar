@@ -8,6 +8,16 @@ import PointRenderable from './renderable/point'
 import MeshRenderable from './renderable/mesh'
 import { Program } from './webgl/program';
 
+export type BaseProps = {
+    objectId: number
+    alpha: number
+    visible: boolean
+
+    flatShaded?: boolean
+    doubleSided?: boolean
+    flipSided?: boolean
+}
+
 export interface Renderable<T> {
     draw: () => void
     name: string

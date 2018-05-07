@@ -7,11 +7,11 @@
 import { ValueCell } from 'mol-util/value-cell'
 import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/scene'
 import { OrderedSet } from 'mol-data/int'
-import { Unit, ElementGroup } from 'mol-model/structure';
+import { Unit, ElementGroup, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
-import { RepresentationProps, UnitsRepresentation } from './index';
+import { UnitsRepresentation } from './index';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes } from './utils';
@@ -19,20 +19,26 @@ import { deepEqual } from 'mol-util';
 
 export const DefaultPointProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
-    sizeTheme: { name: 'vdw' } as SizeTheme
+    sizeTheme: { name: 'vdw' } as SizeTheme,
+    alpha: 1,
+    visible: true
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
 export function createPointVertices(unit: Unit, elementGroup: ElementGroup) {
     const elementCount = OrderedSet.size(elementGroup.elements)
     const vertices = new Float32Array(elementCount * 3)
-    const { x, y, z } = unit.model.atomSiteConformation
+
+    const { x, y, z } = unit
+    const l = Element.Location()
+    l.unit = unit
+
     for (let i = 0; i < elementCount; i++) {
-        const e = OrderedSet.getAt(elementGroup.elements, i)
+        l.element = ElementGroup.getAt(elementGroup, i)
         const i3 = i * 3
-        vertices[i3] = x[e]
-        vertices[i3 + 1] = y[e]
-        vertices[i3 + 2] = z[e]
+        vertices[i3] = x(l.element)
+        vertices[i3 + 1] = y(l.element)
+        vertices[i3 + 2] = z(l.element)
     }
     return vertices
 }
@@ -55,7 +61,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 _units = units
                 _elementGroup = elementGroup
 
-                const { colorTheme, sizeTheme } = curProps
+                const { colorTheme, sizeTheme, alpha, visible } = curProps
                 const elementCount = OrderedSet.size(elementGroup.elements)
                 const unitCount = units.length
 
@@ -80,6 +86,8 @@ export default function Point(): UnitsRepresentation<PointProps> {
 
                 points = createPointRenderObject({
                     objectId: 0,
+                    alpha,
+                    visible,
 
                     position: ValueCell.create(vertices),
                     id: ValueCell.create(fillSerial(new Float32Array(elementCount))),
@@ -96,7 +104,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 renderObjects.push(points)
             })
         },
-        update(props: RepresentationProps) {
+        update(props: PointProps) {
             return Task.create('Point.update', async ctx => {
                 if (!points || !_units || !_elementGroup) return false
 

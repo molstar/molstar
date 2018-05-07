@@ -23,6 +23,10 @@ const indices = [
      4, 9, 5, 	2, 4, 11,	6, 2, 10,	8, 6, 7,	9, 8, 1
 ];
 
+export function icosahedronVertexCount(detail: number) {
+    return 10 * Math.pow(Math.pow(2, detail), 2) + 2
+}
+
 export const DefaultIcosahedronProps = {
     radius: 1,
     detail: 0

@@ -9,10 +9,10 @@ import { Mat4 } from 'mol-math/linear-algebra'
 
 import { createUniformColor } from '../../util/color-data';
 import { createUniformSize } from '../../util/size-data';
-import { vdwSizeData } from '../../theme/structure/size/vdw';
+import { elementSizeData } from '../../theme/structure/size/element';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
-import { atomIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
+import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
 
 export function createTransforms(units: ReadonlyArray<Unit>) {
     const unitCount = units.length
@@ -26,7 +26,7 @@ export function createTransforms(units: ReadonlyArray<Unit>) {
 export function createColors(units: ReadonlyArray<Unit>, elementGroup: ElementGroup, vertexMap: VertexMap, props: ColorTheme) {
     switch (props.name) {
         case 'atom-index':
-            return atomIndexColorData({ units, elementGroup, vertexMap })
+            return elementIndexColorData({ units, elementGroup, vertexMap })
         case 'chain-id':
             return chainIdColorData({ units, elementGroup, vertexMap })
         case 'element-symbol':
@@ -43,6 +43,6 @@ export function createSizes(units: ReadonlyArray<Unit>, elementGroup: ElementGro
         case 'uniform':
             return createUniformSize(props)
         case 'vdw':
-            return vdwSizeData({ units, elementGroup, vertexMap })
+            return elementSizeData({ units, elementGroup, vertexMap })
     }
 }

@@ -8,7 +8,7 @@ import { Task } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
-import { transformPositionArray } from '../util';
+import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../util';
 
 export interface Mesh {
     /** Number of vertices in the mesh */
@@ -86,7 +86,12 @@ export namespace Mesh {
 
     export function transformRangeImmediate(mesh: Mesh, t: Mat4, offset: number, count: number) {
         transformPositionArray(t, mesh.vertexBuffer.ref.value, offset, count)
-        // transformDirectionArray(n, mesh.normalBuffer.ref.value, offset, count)  // TODO
+        // TODO normals transformation does not work for an unknown reason, ASR
+        // if (mesh.normalBuffer.ref.value) {
+        //     const n = getNormalMatrix(Mat3.zero(), t)
+        //     transformDirectionArray(n, mesh.normalBuffer.ref.value, offset, count)
+        //     mesh.normalsComputed = true;
+        // }
         mesh.normalsComputed = false;
         // mesh.boundingSphere = void 0;
     }

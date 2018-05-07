@@ -10,46 +10,60 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/s
 // import { createColorTexture } from 'mol-gl/util';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { OrderedSet } from 'mol-data/int'
-import { Unit, ElementGroup } from 'mol-model/structure';
-import { RepresentationProps, UnitsRepresentation } from './index';
+import { Unit, ElementGroup, Element, Queries } from 'mol-model/structure';
+import { UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
-import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
 import { createTransforms, createColors } from './utils';
 import { ColorTheme } from '../../theme';
 import VertexMap from '../../shape/vertex-map';
+import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
+import { icosahedronVertexCount } from '../../primitive/icosahedron';
 
 export const DefaultSpacefillProps = {
     detail: 0,
     colorTheme: { name: 'instance-index' } as ColorTheme,
+    alpha: 1,
+    visible: true,
+    doubleSided: false
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
 function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: number) {
-    return Task.create('Spacefill', async ctx => {
-        const meshBuilder = MeshBuilder.create()
+    return Task.create('Sphere mesh', async ctx => {
+        const elementCount = OrderedSet.size(elementGroup.elements)
+        const vertexCount = elementCount * icosahedronVertexCount(detail)
+        const meshBuilder = MeshBuilder.create(vertexCount)
+
+        let radius: Element.Property<number>
+        if (Unit.isAtomic(unit)) {
+            radius = Queries.props.atom.vdw_radius
+        } else if (Unit.isCoarse(unit) && unit.elementType === CoarseGrained.ElementType.Sphere) {
+            radius = Queries.props.coarse_grained.sphere_radius
+        } else {
+            console.warn('Unsupported unit type')
+            return meshBuilder.getMesh()
+        }
 
         const v = Vec3.zero()
         const m = Mat4.identity()
 
-        const { x, y, z } = unit.model.atomSiteConformation
-        const { type_symbol } = unit.model.hierarchy.atoms
-        const elementCount = OrderedSet.size(elementGroup.elements)
+        const { x, y, z } = unit
+        const l = Element.Location()
+        l.unit = unit
+
         for (let i = 0; i < elementCount; i++) {
-            const e = OrderedSet.getAt(elementGroup.elements, i)
-            v[0] = x[e]
-            v[1] = y[e]
-            v[2] = z[e]
+            l.element = ElementGroup.getAt(elementGroup, i)
+            v[0] = x(l.element)
+            v[1] = y(l.element)
+            v[2] = z(l.element)
             Mat4.setTranslation(m, v)
 
             meshBuilder.setId(i)
-            meshBuilder.addIcosahedron(m, {
-                radius: VdwRadius(type_symbol.value(e)),
-                detail
-            })
+            meshBuilder.addIcosahedron(m, { radius: radius(l), detail })
 
             if (i % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Spacefill', current: i, max: elementCount });
+                await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
             }
         }
 
@@ -67,7 +81,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
 
-                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme, alpha, visible, doubleSided } = { ...DefaultSpacefillProps, ...props }
 
                 await ctx.update('Computing spacefill mesh');
                 const mesh = await ctx.runChild(createSpacefillMesh(units[0], elementGroup, detail))
@@ -83,6 +97,9 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                 spheres = createMeshRenderObject({
                     objectId: 0,
+                    alpha,
+                    visible,
+                    doubleSided,
 
                     position: mesh.vertexBuffer,
                     normal: mesh.normalBuffer as ValueCell<Float32Array>,
@@ -99,7 +116,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 renderObjects.push(spheres)
             })
         },
-        update(props: RepresentationProps) {
+        update(props: SpacefillProps) {
             return Task.create('Spacefill.update', async ctx => {
                 if (!spheres) return false
 

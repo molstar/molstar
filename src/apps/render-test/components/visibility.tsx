@@ -19,7 +19,7 @@ interface VisibilityState {
 }
 
 export default class Visibility extends Observer<{ state: State } & WithStyles, VisibilityState> {
-    state = { loading: false, spacefill: true, point: true }
+    state: VisibilityState = { loading: false, spacefill: true, point: true }
 
     componentDidMount() {
         this.subscribe(this.props.state.loading, value => {
