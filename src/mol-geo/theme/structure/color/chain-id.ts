@@ -21,8 +21,8 @@ function createChainIdMap(unit: Unit) {
         asym_id = unit.hierarchy.chains.label_asym_id
         count = unit.hierarchy.chains._rowCount
     } else if (Unit.isCoarse(unit)) {
-        asym_id = unit.siteBases.asym_id
-        count = unit.siteBases.count
+        asym_id = unit.sites.asym_id
+        count = unit.sites.count
     } else {
         console.warn('Unknown unit type')
         return { map, count: index }

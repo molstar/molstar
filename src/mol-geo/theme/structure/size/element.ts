@@ -5,7 +5,6 @@
  */
 
 import { ElementGroup, Element, Unit, Queries } from 'mol-model/structure';
-import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
 import { StructureSizeDataProps } from '.';
 import { createAttributeSize } from '../../../util/size-data';
 
@@ -16,7 +15,7 @@ export function elementSizeData(props: StructureSizeDataProps) {
     let radius: Element.Property<number>
     if (Unit.isAtomic(unit)) {
         radius = Queries.props.atom.vdw_radius
-    } else if (Unit.isCoarse(unit) && unit.elementType === CoarseGrained.ElementType.Sphere) {
+    } else if (Unit.isSpheres(unit)) {
         radius = Queries.props.coarse_grained.sphere_radius
     }
     const l = Element.Location()

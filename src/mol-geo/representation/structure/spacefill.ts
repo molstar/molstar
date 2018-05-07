@@ -17,7 +17,6 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { createTransforms, createColors } from './utils';
 import { ColorTheme } from '../../theme';
 import VertexMap from '../../shape/vertex-map';
-import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 
 export const DefaultSpacefillProps = {
@@ -38,7 +37,7 @@ function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: num
         let radius: Element.Property<number>
         if (Unit.isAtomic(unit)) {
             radius = Queries.props.atom.vdw_radius
-        } else if (Unit.isCoarse(unit) && unit.elementType === CoarseGrained.ElementType.Sphere) {
+        } else if (Unit.isSpheres(unit)) {
             radius = Queries.props.coarse_grained.sphere_radius
         } else {
             console.warn('Unsupported unit type')
