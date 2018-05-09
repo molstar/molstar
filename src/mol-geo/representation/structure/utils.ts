@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureSymmetry } from 'mol-model/structure';
+import { Unit } from 'mol-model/structure';
 import { Mat4 } from 'mol-math/linear-algebra'
 
 import { createUniformColor } from '../../util/color-data';
@@ -15,7 +15,7 @@ import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
 
-export function createTransforms({ units }: StructureSymmetry.UnitGroup) {
+export function createTransforms({ units }: Unit.SymmetryGroup) {
     const unitCount = units.length
     const transforms = new Float32Array(unitCount * 16)
     for (let i = 0; i < unitCount; i++) {
@@ -24,7 +24,7 @@ export function createTransforms({ units }: StructureSymmetry.UnitGroup) {
     return transforms
 }
 
-export function createColors(group: StructureSymmetry.UnitGroup, vertexMap: VertexMap, props: ColorTheme) {
+export function createColors(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: ColorTheme) {
     switch (props.name) {
         case 'atom-index':
             return elementIndexColorData({ group, vertexMap })
@@ -39,7 +39,7 @@ export function createColors(group: StructureSymmetry.UnitGroup, vertexMap: Vert
     }
 }
 
-export function createSizes(group: StructureSymmetry.UnitGroup, vertexMap: VertexMap, props: SizeTheme) {
+export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: SizeTheme) {
     switch (props.name) {
         case 'uniform':
             return createUniformSize(props)

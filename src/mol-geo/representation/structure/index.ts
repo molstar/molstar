@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureSymmetry } from 'mol-model/structure';
+import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/scene';
 import { Representation, RepresentationProps } from '..';
@@ -14,7 +14,7 @@ import { Representation, RepresentationProps } from '..';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
-    create: (group: StructureSymmetry.UnitGroup, props: P) => Task<void>
+    create: (group: Unit.SymmetryGroup, props: P) => Task<void>
     update: (props: P) => Task<boolean>
 }
 
@@ -26,7 +26,7 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 
 interface GroupRepresentation<T> {
     repr: UnitsRepresentation<T>
-    group: StructureSymmetry.UnitGroup
+    group: Unit.SymmetryGroup
 }
 
 export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P>): StructureRepresentation<P> {

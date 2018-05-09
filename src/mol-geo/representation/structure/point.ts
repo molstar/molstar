@@ -7,7 +7,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/scene'
-import { Unit, Element, StructureSymmetry } from 'mol-model/structure';
+import { Unit, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
@@ -55,7 +55,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
 
     return {
         renderObjects,
-        create(group: StructureSymmetry.UnitGroup, props: PointProps = {}) {
+        create(group: Unit.SymmetryGroup, props: PointProps = {}) {
             return Task.create('Point.create', async ctx => {
                 renderObjects.length = 0 // clear
                 curProps = { ...DefaultPointProps, ...props }

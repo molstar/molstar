@@ -12,6 +12,7 @@ import { sortArray, sort, arraySwap, hash1 } from 'mol-data/util';
 import Element from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
+import StructureSymmetry from './symmetry';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -184,6 +185,8 @@ namespace Structure {
             const newUnits: Unit[] = [];
             sortArray(this.ids);
 
+            const symmGroups = StructureSymmetry.UnitEquivalenceBuilder();
+
             for (let i = 0, _i = this.ids.length; i < _i; i++) {
                 const id = this.ids[i];
                 const parent = this.parent.unitMap.get(id);
@@ -194,13 +197,16 @@ namespace Structure {
                 // if the length is the same, just copy the old unit.
                 if (unit.length === parent.elements.length) {
                     newUnits[newUnits.length] = parent;
+                    symmGroups.add(parent.id, parent);
                     continue;
                 }
 
                 if (!this.isSorted && l > 1) sortArray(unit);
 
-                // TODO: checking if two units are equal in the same symmetry group to reuse computed properties.
-                newUnits[newUnits.length] = parent.getChild(SortedArray.ofSortedArray(unit));
+                let child = parent.getChild(SortedArray.ofSortedArray(unit));
+                const pivot = symmGroups.add(child.id, child);
+                if (child !== pivot) child = pivot.applyOperator(child.id, child.conformation.operator, true);
+                newUnits[newUnits.length] = child;
             }
 
             return create(newUnits);

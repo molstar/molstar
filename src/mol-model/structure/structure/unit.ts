@@ -32,9 +32,8 @@ namespace Unit {
         }
     }
 
-    export function applyOperator(id: number, unit: Unit, operator: SymmetryOperator): Unit {
-        return create(id, unit.kind, unit.model, SymmetryOperator.compose(unit.conformation.operator, operator), unit.elements);
-    }
+    // A group of units that differ only by symmetry operators.
+    export type SymmetryGroup = { readonly elements: SortedArray, readonly units: ReadonlyArray<Unit> }
 
     export interface Base {
         readonly id: number,
@@ -45,7 +44,7 @@ namespace Unit {
         readonly conformation: SymmetryOperator.ArrayMapping,
 
         getChild(elements: SortedArray): Unit,
-        applyOperator(id: number, operator: SymmetryOperator): Unit,
+        applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
 
         readonly lookup3d: Lookup3D
     }
@@ -77,8 +76,8 @@ namespace Unit {
             return new Atomic(this.id, this.invariantId, this.model, elements, this.conformation);
         }
 
-        applyOperator(id: number, operator: SymmetryOperator): Unit {
-            const op = SymmetryOperator.compose(this.conformation.operator, operator);
+        applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
+            const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
             return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomSiteConformation));
         }
 
@@ -129,8 +128,8 @@ namespace Unit {
             return createCoarse(this.id, this.invariantId, this.model, this.kind, this.sites, elements, this.conformation);
         }
 
-        applyOperator(id: number, operator: SymmetryOperator): Unit {
-            const op = SymmetryOperator.compose(this.conformation.operator, operator);
+        applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
+            const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
             return createCoarse(id, this.invariantId, this.model, this.kind, this.sites, this.elements, SymmetryOperator.createMapping(op, this.sites));
         }
 

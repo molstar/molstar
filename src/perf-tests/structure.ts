@@ -292,8 +292,13 @@ export namespace PropertyAccess {
     export async function testAssembly(id: string, s: Structure) {
         console.time('assembly')
         const a = await Run(StructureSymmetry.buildAssembly(s, '1'));
+        //const auth_comp_id = Q.props.residue.auth_comp_id;
+        //const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
+        //const alas = await query(q1, a);
+
         console.timeEnd('assembly')
         fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, a, true));
+        //fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, Selection.unionStructure(alas), true));
         console.log('exported');
     }
 
@@ -404,8 +409,8 @@ export namespace PropertyAccess {
             //.add('test q', () => q1(structures[0]))
             //.add('test q', () => q(structures[0]))
             .add('test int', () => sumProperty(structures[0], l => col(l.element)))
-            .add('test q1', async () => await q1(structures[0]))
-            .add('test q3', async () => await q3(structures[0]))
+            .add('test q1', async () => await query(q1, structures[0]))
+            .add('test q3', async () => await query(q3, structures[0]))
             // .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
 
             // .add('baseline', () =>  baseline(models[0]))

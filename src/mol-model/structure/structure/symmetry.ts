@@ -10,13 +10,9 @@ import { ModelSymmetry } from '../model'
 import { Task } from 'mol-task';
 import { SortedArray } from 'mol-data/int';
 import Unit from './unit';
-import { EquivalenceClasses } from 'mol-data/util';
+import { EquivalenceClasses, hash2 } from 'mol-data/util';
 
 namespace StructureSymmetry {
-    // Units that have the same elements but differ with operator only.
-    export type UnitGroup = { readonly elements: SortedArray, readonly units: ReadonlyArray<Unit> }
-    export type TransformGroups = ReadonlyArray<UnitGroup>
-
     export function buildAssembly(structure: Structure, name: string) {
         return Task.create('Build Symmetry', async ctx => {
             const models = Structure.getModels(structure);
@@ -45,25 +41,26 @@ namespace StructureSymmetry {
         });
     }
 
-    export function getTransformGroups(s: Structure): StructureSymmetry.TransformGroups {
-        // group everything by the "invariantId"
-        const invariantGroups = EquivalenceClasses<number, Unit>(u => u.invariantId, (a, b) => a.invariantId === b.invariantId && a.model.id === b.model.id);
-        for (const u of s.units) invariantGroups.add(u.id, u);
+    function hashUnit(u: Unit) {
+        return hash2(u.invariantId, SortedArray.hashCode(u.elements));
+    }
 
-        const ret: UnitGroup[] = [];
-        // group everything by the "element array"
-        for (const group of invariantGroups.groups) {
-            const setGrouping = EquivalenceClasses<number, Unit>(u => SortedArray.hashCode(u.elements), (a, b) => SortedArray.areEqual(a.elements, b.elements));
+    function areUnitsEquivalent(a: Unit, b: Unit) {
+        return a.invariantId === b.invariantId && a.model.id === b.model.id && SortedArray.areEqual(a.elements, b.elements);
+    }
 
-            for (const id of group) {
-                const unit = s.unitMap.get(id);
-                setGrouping.add(unit.id, unit);
-            }
+    export function UnitEquivalenceBuilder() {
+        return EquivalenceClasses<number, Unit>(hashUnit, areUnitsEquivalent);
+    }
 
-            for (const eqUnits of setGrouping.groups) {
-                const first = s.unitMap.get(eqUnits[0]);
-                ret.push({ elements: first.elements, units: eqUnits.map(id => s.unitMap.get(id)) });
-            }
+    export function getTransformGroups(s: Structure): ReadonlyArray<Unit.SymmetryGroup> {
+        const groups = UnitEquivalenceBuilder();
+        for (const u of s.units) groups.add(u.id, u);
+
+        const ret: Unit.SymmetryGroup[] = [];
+        for (const eqUnits of groups.groups) {
+            const first = s.unitMap.get(eqUnits[0]);
+            ret.push({ elements: first.elements, units: eqUnits.map(id => s.unitMap.get(id)) });
         }
 
         return ret;

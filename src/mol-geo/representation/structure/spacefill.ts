@@ -10,7 +10,7 @@ import { ValueCell } from 'mol-util/value-cell'
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/scene'
 // import { createColorTexture } from 'mol-gl/util';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import { Unit, Element, Queries, StructureSymmetry } from 'mol-model/structure';
+import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
@@ -77,7 +77,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
     return {
         renderObjects,
-        create(group: StructureSymmetry.UnitGroup, props: SpacefillProps = {}) {
+        create(group: Unit.SymmetryGroup, props: SpacefillProps = {}) {
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
 
