@@ -1,6 +1,6 @@
 import * as B from 'benchmark'
 import { Tuple, Segmentation, OrderedSet as OrdSet } from 'mol-data/int'
-import { ElementSet } from 'mol-model/structure'
+//import { ElementSet } from 'mol-model/structure'
 
 // export namespace Iteration {
 //     const U = 1000, V = 2500;
@@ -198,39 +198,39 @@ export namespace Union {
     }
 }
 
-export namespace Build {
-    function createSorted() {
-        const b = ElementSet.LinearBuilder(ElementSet.Empty);
-        for (let i = 0; i < 10; i++) {
-            for (let j = 0; j < 1000; j++) {
-                b.add(i, j);
-            }
-        }
-        return b.getSet();
-    }
+// export namespace Build {
+//     function createSorted() {
+//         const b = ElementSet.LinearBuilder(ElementSet.Empty);
+//         for (let i = 0; i < 10; i++) {
+//             for (let j = 0; j < 1000; j++) {
+//                 b.add(i, j);
+//             }
+//         }
+//         return b.getSet();
+//     }
 
-    function createByUnit() {
-        const b = ElementSet.LinearBuilder(ElementSet.Empty);
-        for (let i = 0; i < 10; i++) {
-            b.beginUnit();
-            for (let j = 0; j < 1000; j++) {
-                b.addToUnit(j);
-            }
-            b.commitUnit(i);
-        }
-        return b.getSet();
-    }
+//     function createByUnit() {
+//         const b = ElementSet.LinearBuilder(ElementSet.Empty);
+//         for (let i = 0; i < 10; i++) {
+//             b.beginUnit();
+//             for (let j = 0; j < 1000; j++) {
+//                 b.addToUnit(j);
+//             }
+//             b.commitUnit(i);
+//         }
+//         return b.getSet();
+//     }
 
 
-    export function run() {
-        const suite = new B.Suite();
-        suite
-            .add('create sorted', () => createSorted())
-            .add('create by unit', () => createByUnit())
-            .on('cycle', (e: any) => console.log(String(e.target)))
-            .run();
-    }
-}
+//     export function run() {
+//         const suite = new B.Suite();
+//         suite
+//             .add('create sorted', () => createSorted())
+//             .add('create by unit', () => createByUnit())
+//             .on('cycle', (e: any) => console.log(String(e.target)))
+//             .run();
+//     }
+// }
 
 export namespace Tuples {
     function createData(n: number) {

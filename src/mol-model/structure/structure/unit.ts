@@ -5,13 +5,12 @@
  */
 
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
-import ElementGroup from './element/group'
 import { Model } from '../model'
-import { GridLookup3D } from 'mol-math/geometry'
-import { computeUnitBonds } from './element/properties/bonds/group-compute';
+import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
 import CoarseGrained from '../model/properties/coarse-grained';
 import { SortedArray } from 'mol-data/int';
 import { idFactory } from 'mol-util/id-factory';
+import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -46,7 +45,9 @@ namespace Unit {
         readonly conformation: SymmetryOperator.ArrayMapping,
 
         getChild(elements: SortedArray): Unit,
-        applyOperator(id: number, operator: SymmetryOperator): Unit
+        applyOperator(id: number, operator: SymmetryOperator): Unit,
+
+        readonly lookup3d: Lookup3D
     }
 
     const unitIdFactory = idFactory();
@@ -72,12 +73,28 @@ namespace Unit {
         readonly chainIndex: ArrayLike<number>;
 
         getChild(elements: SortedArray): Unit {
+            if (elements.length === this.elements.length) return this;
             return new Atomic(this.id, this.invariantId, this.model, elements, this.conformation);
         }
 
         applyOperator(id: number, operator: SymmetryOperator): Unit {
             const op = SymmetryOperator.compose(this.conformation.operator, operator);
             return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomSiteConformation));
+        }
+
+        private _lookup3d?: Lookup3D = void 0;
+        get lookup3d() {
+            if (this._lookup3d) return this._lookup3d;
+            const { x, y, z } = this.model.atomSiteConformation;
+            this._lookup3d = GridLookup3D({ x, y, z, indices: this.elements });
+            return this._lookup3d;
+        }
+
+        private _bonds?: IntraUnitBonds = void 0;
+        get bonds() {
+            if (this._bonds) return this._bonds;
+            this._bonds = computeIntraUnitBonds(this);
+            return this._bonds;
         }
 
         constructor(id: number, invariantId: number, model: Model, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping) {
@@ -108,12 +125,22 @@ namespace Unit {
         readonly sites: S;
 
         getChild(elements: SortedArray): Unit {
+            if (elements.length === this.elements.length) return this as any as Unit /** lets call this an ugly temporary hack */;
             return createCoarse(this.id, this.invariantId, this.model, this.kind, this.sites, elements, this.conformation);
         }
 
         applyOperator(id: number, operator: SymmetryOperator): Unit {
             const op = SymmetryOperator.compose(this.conformation.operator, operator);
             return createCoarse(id, this.invariantId, this.model, this.kind, this.sites, this.elements, SymmetryOperator.createMapping(op, this.sites));
+        }
+
+        private _lookup3d?: Lookup3D = void 0;
+        get lookup3d() {
+            if (this._lookup3d) return this._lookup3d;
+            const { x, y, z } = this.sites;
+            // TODO: support sphere radius
+            this._lookup3d = GridLookup3D({ x, y, z, indices: this.elements });
+            return this._lookup3d;
         }
 
         constructor(id: number, invariantId: number, model: Model, kind: Kind, sites: S, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping) {
@@ -133,27 +160,6 @@ namespace Unit {
 
     export interface Spheres extends CoarseBase<CoarseGrained.Spheres> { kind: Kind.Spheres }
     export interface Gaussians extends CoarseBase<CoarseGrained.Gaussians> { kind: Kind.Gaussians }
-
-    export function getLookup3d(unit: Unit, group: ElementGroup) {
-        if (group.__lookup3d__)  return group.__lookup3d__;
-        if (Unit.isAtomic(unit)) {
-            const { x, y, z } = unit.model.atomSiteConformation;
-            group.__lookup3d__ = GridLookup3D({ x, y, z, indices: group.elements });
-            return group.__lookup3d__;
-        }
-
-        throw 'not implemented';
-    }
-
-    export function getGroupBonds(unit: Unit, group: ElementGroup) {
-        if (group.__bonds__) return group.__bonds__;
-        if (Unit.isAtomic(unit)) {
-            group.__bonds__ = computeUnitBonds(unit, group);
-            return group.__bonds__;
-        }
-
-        throw 'not implemented';
-    }
 }
 
 export default Unit;

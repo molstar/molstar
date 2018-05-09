@@ -136,9 +136,10 @@ class LinearGroupingBuilder {
 
     private singletonSelection(): Selection {
         const builder = this.source.subsetBuilder(true);
+        const loc = Element.Location();
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            const e = this.builders[i].singleton();
-            builder.addToUnit(Element.unit(e), Element.index(e));
+            this.builders[i].setSingletonLocation(loc);
+            builder.addToUnit(loc.unit.id, loc.element);
         }
         return Selection.Singletons(this.source, builder.getStructure());
     }

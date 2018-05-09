@@ -4,11 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { BondType, ElementSymbol } from '../../../../model/types'
-import { GroupBonds } from './group-data'
-import { StructConn, ComponentBondInfo } from '../../../../model/formats/mmcif/bonds'
-import Unit from '../../../unit';
-import ElementGroup from '../../group';
+import { BondType, ElementSymbol } from '../../../model/types'
+import { IntraUnitBonds } from './intra-data'
+import { StructConn, ComponentBondInfo } from '../../../model/formats/mmcif/bonds'
+import Unit from '../../unit'
 
 export interface BondComputationParameters {
     maxHbondLength: number,
@@ -107,15 +106,15 @@ function computePerAtomBonds(atomA: number[], atomB: number[], _order: number[],
     };
 }
 
-function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondComputationParameters): GroupBonds {
+function _computeBonds(unit: Unit.Atomic, params: BondComputationParameters): IntraUnitBonds {
     const MAX_RADIUS = 3;
 
     const { x, y, z } = unit.model.atomSiteConformation;
-    const atomCount = ElementGroup.size(atoms);
-    const { residueIndex } = unit;
+    const atomCount = unit.elements.length;
+    const { elements: atoms, residueIndex } = unit;
     const { type_symbol, label_atom_id, label_alt_id } = unit.model.hierarchy.atoms;
     const { label_comp_id } = unit.model.hierarchy.residues;
-    const query3d = Unit.getLookup3d(unit, atoms);
+    const query3d = unit.lookup3d;
 
     const structConn = unit.model.sourceData.kind === 'mmCIF' ? StructConn.create(unit.model) : void 0
     const component = unit.model.sourceData.kind === 'mmCIF' ? ComponentBondInfo.create(unit.model) : void 0
@@ -129,7 +128,7 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
     let componentMap: Map<string, Map<string, { flags: number, order: number }>> | undefined = void 0;
 
     for (let _aI = 0; _aI < atomCount; _aI++) {
-        const aI = ElementGroup.getAt(atoms, _aI);
+        const aI =  atoms[_aI];
         const raI = residueIndex[aI];
 
         if (!params.forceCompute && raI !== lastResidue) {
@@ -155,7 +154,7 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];
-            const bI = ElementGroup.getAt(atoms, _bI);
+            const bI = atoms[_bI];
             if (bI <= aI) continue;
 
             const altB = label_alt_id.value(bI);
@@ -243,11 +242,11 @@ function _computeBonds(unit: Unit.Atomic, atoms: ElementGroup, params: BondCompu
     };
 }
 
-function computeUnitBonds(unit: Unit.Atomic, atoms: ElementGroup, params?: Partial<BondComputationParameters>) {
-    return _computeBonds(unit, atoms, {
+function computeIntraUnitBonds(unit: Unit.Atomic, params?: Partial<BondComputationParameters>) {
+    return _computeBonds(unit, {
         maxHbondLength: (params && params.maxHbondLength) || 1.15,
         forceCompute: !!(params && params.forceCompute),
     });
 }
 
-export { computeUnitBonds }
+export { computeIntraUnitBonds }

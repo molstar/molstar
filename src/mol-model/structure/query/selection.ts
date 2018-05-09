@@ -6,7 +6,7 @@
 
 import { HashSet } from 'mol-data/generic'
 import { Structure } from '../structure'
-import { SortedArray } from 'mol-data/int';
+import { StructureUtils } from './utils';
 
 // A selection is a pair of a Structure and a sequence of unique AtomSets
 type Selection = Selection.Singletons | Selection.Sequence
@@ -31,7 +31,7 @@ namespace Selection {
     export function unionStructure(sel: Selection): Structure {
         if (isEmpty(sel)) return Structure.Empty;
         if (isSingleton(sel)) return sel.structure;
-        return union(sel.source, sel.structures);
+        return StructureUtils.union(sel.source, sel.structures);
     }
 
     export interface Builder {
@@ -42,7 +42,7 @@ namespace Selection {
     function getSelection(source: Structure, structures: Structure[], allSingletons: boolean) {
         const len = structures.length;
         if (len === 0) return Empty(source);
-        if (allSingletons) return Singletons(source, union(source, structures));
+        if (allSingletons) return Singletons(source, StructureUtils.union(source, structures));
         return Sequence(source, structures);
     }
 
@@ -83,38 +83,6 @@ namespace Selection {
     export function UniqueBuilder(structure: Structure): Builder { return new HashBuilderImpl(structure); }
 
     // TODO: spatial lookup
-
-    function union(source: Structure, structures: Structure[]) {
-        if (structures.length === 0) return Structure.Empty;
-        if (structures.length === 1) return structures[0];
-
-        const unitMap = new Map<number, SortedArray>();
-        const fullUnits = new Set<number>();
-
-        for (const { units } of structures) {
-            for (let i = 0, _i = units.length; i < _i; i++) {
-                const u = units[i];
-                if (unitMap.has(u.id)) {
-                    // check if there is anything more to union in this particual unit.
-                    if (fullUnits.has(u.id)) continue;
-                    const merged = SortedArray.union(unitMap.get(u.id)!, u.elements);
-                    unitMap.set(u.id, merged);
-                    if (merged.length === source.unitMap.get(u.id).elements.length) fullUnits.add(u.id);
-                } else {
-                    unitMap.set(u.id, u.elements);
-                    if (u.elements.length === source.unitMap.get(u.id).elements.length) fullUnits.add(u.id);
-                }
-            }
-        }
-
-        const builder = source.subsetBuilder(true);
-        unitMap.forEach(buildUnion, builder);
-        return builder.getStructure();
-    }
-
-    function buildUnion(this: Structure.SubsetBuilder, elements: SortedArray, id: number) {
-        this.setUnit(id, elements);
-    }
 }
 
 export default Selection

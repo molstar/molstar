@@ -12,9 +12,8 @@ import { sortArray, sort, arraySwap, hash1 } from 'mol-data/util';
 import Element from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
+import { computeStructureBoundary } from './util/boundary';
 
-// A structure is a pair of "units" and an element set.
-// Each unit contains the data and transformation of its corresponding elements.
 class Structure {
     readonly unitMap: IntMap<Unit>;
     readonly units: ReadonlyArray<Unit>;
@@ -46,6 +45,10 @@ class Structure {
 
     elementLocations(): Iterator<Element.Location> {
         return new Structure.ElementLocationIterator(this);
+    }
+
+    get boundary() {
+        return computeStructureBoundary(this);
     }
 
     constructor(units: ArrayLike<Unit>) {
@@ -197,8 +200,10 @@ namespace Structure {
             return create(newUnits);
         }
 
-        singleton(): Element {
-            return Element.create(this.ids[0], this.unitMap.get(this.ids[0])[0]);
+        setSingletonLocation(location: Element.Location) {
+            const id = this.ids[0];
+            location.unit = this.parent.unitMap.get(id);
+            location.element = this.unitMap.get(id)[0];
         }
 
         get isEmpty() {
@@ -257,11 +262,11 @@ namespace Structure {
         hasNext: boolean;
         move(): Element.Location {
             this.current.element = this.elements[this.idx];
-            this.next();
+            this.advance();
             return this.current;
         }
 
-        private next() {
+        private advance() {
             if (this.idx < this.len - 1) {
                 this.idx++;
                 return;

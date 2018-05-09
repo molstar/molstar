@@ -15,7 +15,7 @@ namespace Element {
     export const Zero: Element = Tuple.Zero;
     export const create: (unit: number, index: number) => Element = Tuple.create;
     export const is: (x: any) => x is Element = Tuple.is;
-    export const unit: (e: Element) => number = Tuple.fst;
+    export const unitId: (e: Element) => number = Tuple.fst;
     export const index: (e: Element) => number = Tuple.snd;
     export const areEqual: (e: Element, b: Element) => boolean = Tuple.areEqual;
     export const hashCode: (e: Element) => number = Tuple.hashCode;
@@ -29,7 +29,7 @@ namespace Element {
     export interface Predicate extends Property<boolean> { }
 
     export function updateLocation(structure: Structure, l: Location, element: Element) {
-        l.unit = structure.units[unit(element)];
+        l.unit = structure.units[unitId(element)];
         l.element = index(element);
         return l;
     }

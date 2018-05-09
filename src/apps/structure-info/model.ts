@@ -41,29 +41,28 @@ export function atomLabel(model: Model, aI: number) {
 
 
 export function printBonds(structure: Structure) {
-    // TODO
-    // for (const unit of structure.units) {
-    //     const unit = units[OrderedSet.getAt(unitIds, i)];
-    //     const group = ElementSet.groupFromUnitIndex(elements, OrderedSet.getAt(unitIds, i));
+    for (const unit of structure.units) {
+        if (!Unit.isAtomic(unit)) continue;
 
-    //     const { count, offset, neighbor } = Unit.getGroupBonds(unit, group);
-    //     const { model }  = unit;
+        const elements = unit.elements;
+        const { count, offset, neighbor } = unit.bonds;
+        const { model }  = unit;
 
-    //     if (!count) continue;
+        if (!count) continue;
 
-    //     for (let j = 0; j < offset.length - 1; ++j) {
-    //         const start = offset[j];
-    //         const end = offset[j + 1];
+        for (let j = 0; j < offset.length - 1; ++j) {
+            const start = offset[j];
+            const end = offset[j + 1];
 
-    //         if (end <= start) continue;
+            if (end <= start) continue;
 
-    //         const aI = ElementGroup.getAt(group, j);
-    //         for (let _bI = start; _bI < end; _bI++) {
-    //             const bI = ElementGroup.getAt(group, neighbor[_bI])
-    //             console.log(`${atomLabel(model, aI)} -- ${atomLabel(model, bI)}`);
-    //         }
-    //     }
-    // }
+            const aI = elements[j];
+            for (let _bI = start; _bI < end; _bI++) {
+                const bI = elements[neighbor[_bI]];
+                console.log(`${atomLabel(model, aI)} -- ${atomLabel(model, bI)}`);
+            }
+        }
+    }
 }
 
 export function printSequence(model: Model) {
@@ -123,6 +122,7 @@ async function run(mmcif: mmCIF_Database) {
     printSequence(models[0]);
     printIHMModels(models[0]);
     printUnits(structure);
+    printBonds(structure);
 }
 
 async function runDL(pdb: string) {
