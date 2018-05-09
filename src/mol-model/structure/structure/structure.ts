@@ -12,7 +12,6 @@ import { sortArray, sort, arraySwap, hash1 } from 'mol-data/util';
 import Element from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
-import { computeStructureBoundary } from './util/boundary';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -48,7 +47,14 @@ class Structure {
     }
 
     get boundary() {
-        return computeStructureBoundary(this);
+        return this.lookup3d.boundary;
+    }
+
+    private _lookup3d?: StructureLookup3D = void 0;
+    get lookup3d() {
+        if (this._lookup3d) return this._lookup3d;
+        this._lookup3d = StructureLookup3D.create(this);
+        return this._lookup3d;
     }
 
     constructor(units: ArrayLike<Unit>) {
