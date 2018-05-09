@@ -17,7 +17,7 @@ import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spac
 import Point, { PointProps } from 'mol-geo/representation/structure/point'
 
 import { Run } from 'mol-task'
-import { Symmetry, Structure, Model } from 'mol-model/structure'
+import { StructureSymmetry, Structure, Model } from 'mol-model/structure'
 
 // import mcubes from './utils/mcubes'
 import { getModelFromPdbId, getModelFromFile, log, Volume, getVolumeFromEmdId } from './utils'
@@ -110,7 +110,7 @@ export default class State {
         let structure: Structure
         const assemblies = model.symmetry.assemblies
         if (assemblies.length) {
-            structure = await Run(Symmetry.buildAssembly(Structure.ofModel(model), assembly || '1'), log, 500)
+            structure = await Run(StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly || '1'), log, 500)
         } else {
             structure = Structure.ofModel(model)
         }

@@ -2,11 +2,10 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ElementGroup, ElementSet, Structure, Unit } from 'mol-model/structure';
-import { EquivalenceClasses } from 'mol-data/util';
-import { OrderedSet } from 'mol-data/int'
+import { Structure, StructureSymmetry } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/scene';
 import { Representation, RepresentationProps } from '..';
@@ -15,7 +14,7 @@ import { Representation, RepresentationProps } from '..';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
-    create: (units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: P) => Task<void>
+    create: (group: StructureSymmetry.UnitGroup, props: P) => Task<void>
     update: (props: P) => Task<boolean>
 }
 
@@ -27,8 +26,7 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 
 interface GroupRepresentation<T> {
     repr: UnitsRepresentation<T>
-    units: Unit[]
-    elementGroup: ElementGroup
+    group: StructureSymmetry.UnitGroup
 }
 
 export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P>): StructureRepresentation<P> {
@@ -39,40 +37,12 @@ export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P
         renderObjects,
         create(structure: Structure, props: P = {} as P) {
             return Task.create('StructureRepresentation.create', async ctx => {
-                const { elements, units } = structure;
-                const uniqueGroups = EquivalenceClasses<number, { unit: Unit, group: ElementGroup }>(
-                    ({ unit, group }) => ElementGroup.hashCode(group),
-                    (a, b) => a.unit.model.id === b.unit.model.id && OrderedSet.areEqual(a.group.elements, b.group.elements)
-                );
-
-                // const uniqueTransformations = EquivalenceClasses<number, { unit: Unit, group: ElementGroup }>(
-                //     ({ unit, group }) => unit.operator.matrix.join(','),
-                //     (a, b) => Mat4.areEqual(a.unit.operator.matrix, b.unit.operator.matrix, EPSILON.Value)
-                // );
-
-                const unitIndices = ElementSet.unitIndices(elements);
-                for (let i = 0, _i = unitIndices.length; i < _i; i++) {
-                    const unitIndex = unitIndices[i];
-                    const group = ElementSet.groupFromUnitIndex(elements, unitIndex);
-                    const unit = units[unitIndex]
-                    uniqueGroups.add(unitIndex, { unit, group });
-                    // uniqueTransformations.add(unitIndex, { unit, group });
-                }
-
-                // console.log({ uniqueGroups, uniqueTransformations })
-
-                for (let i = 0, il = uniqueGroups.groups.length; i < il; i++) {
-                    const groupUnits: Unit[] = []
-                    const group = uniqueGroups.groups[i]
-                    // console.log('group', i)
-                    for (let j = 0, jl = group.length; j < jl; j++) {
-                        groupUnits.push(units[group[j]])
-                    }
-                    const elementGroup = ElementSet.groupFromUnitIndex(elements, group[0])
+                const groups = StructureSymmetry.getTransformGroups(structure);
+                for (let i = 0; i < groups.length; i++) {
+                    const group = groups[i];
                     const repr = reprCtor()
-                    groupReprs.push({ repr, units: groupUnits, elementGroup })
-                    await ctx.update({ message: 'Building structure unit representations...', current: i, max: il });
-                    await ctx.runChild(repr.create(groupUnits, elementGroup, props));
+                    groupReprs.push({ repr, group })
+                    await ctx.runChild(repr.create(group, props), { message: 'Building structure unit representations...', current: i, max: groups.length });
                     renderObjects.push(...repr.renderObjects)
                 }
             });
@@ -83,10 +53,10 @@ export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P
                 renderObjects.length = 0 // clear
                 for (let i = 0, il = groupReprs.length; i < il; ++i) {
                     const groupRepr = groupReprs[i]
-                    const { repr, units, elementGroup } = groupRepr
-                    await ctx.update({ message: 'Updating structure unit representations...', current: i, max: il });
-                    if (!await ctx.runChild(repr.update(props))) {
-                        await ctx.runChild(repr.create(units, elementGroup, props))
+                    const { repr, group } = groupRepr
+                    const state = { message: 'Updating structure unit representations...', current: i, max: il };
+                    if (!await ctx.runChild(repr.update(props), state)) {
+                        await ctx.runChild(repr.create(group, props), state)
                     }
                     renderObjects.push(...repr.renderObjects)
                 }

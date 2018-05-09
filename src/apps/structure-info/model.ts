@@ -10,7 +10,7 @@ require('util.promisify').shim();
 
 // import { Table } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
-import { Model, Structure, Element, ElementSet, Unit, ElementGroup, Queries } from 'mol-model/structure'
+import { Model, Structure, Element, Unit, Queries } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
@@ -41,31 +41,29 @@ export function atomLabel(model: Model, aI: number) {
 
 
 export function printBonds(structure: Structure) {
-    const { units, elements } = structure;
-    const unitIds = ElementSet.unitIndices(elements);
+    // TODO
+    // for (const unit of structure.units) {
+    //     const unit = units[OrderedSet.getAt(unitIds, i)];
+    //     const group = ElementSet.groupFromUnitIndex(elements, OrderedSet.getAt(unitIds, i));
 
-    for (let i = 0, _i = OrderedSet.size(unitIds); i < _i; i++) {
-        const unit = units[OrderedSet.getAt(unitIds, i)];
-        const group = ElementSet.groupFromUnitIndex(elements, OrderedSet.getAt(unitIds, i));
+    //     const { count, offset, neighbor } = Unit.getGroupBonds(unit, group);
+    //     const { model }  = unit;
 
-        const { count, offset, neighbor } = Unit.getGroupBonds(unit, group);
-        const { model }  = unit;
+    //     if (!count) continue;
 
-        if (!count) continue;
+    //     for (let j = 0; j < offset.length - 1; ++j) {
+    //         const start = offset[j];
+    //         const end = offset[j + 1];
 
-        for (let j = 0; j < offset.length - 1; ++j) {
-            const start = offset[j];
-            const end = offset[j + 1];
+    //         if (end <= start) continue;
 
-            if (end <= start) continue;
-
-            const aI = ElementGroup.getAt(group, j);
-            for (let _bI = start; _bI < end; _bI++) {
-                const bI = ElementGroup.getAt(group, neighbor[_bI])
-                console.log(`${atomLabel(model, aI)} -- ${atomLabel(model, bI)}`);
-            }
-        }
-    }
+    //         const aI = ElementGroup.getAt(group, j);
+    //         for (let _bI = start; _bI < end; _bI++) {
+    //             const bI = ElementGroup.getAt(group, neighbor[_bI])
+    //             console.log(`${atomLabel(model, aI)} -- ${atomLabel(model, bI)}`);
+    //         }
+    //     }
+    // }
 }
 
 export function printSequence(model: Model) {
@@ -83,26 +81,23 @@ export function printSequence(model: Model) {
 
 export function printUnits(structure: Structure) {
     console.log('Units\n=============');
-    const { elements, units } = structure;
-    const unitIds = ElementSet.unitIndices(elements);
     const l = Element.Location();
 
-    for (let i = 0, _i = unitIds.length; i < _i; i++) {
-        const unitId = unitIds[i];
-        l.unit = units[unitId];
-        const set = ElementSet.groupAt(elements, i).elements;
-        const size = OrderedSet.size(set);
+    for (const unit of structure.units) {
+        l.unit = unit;
+        const elements = unit.elements;
+        const size = OrderedSet.size(elements);
 
         if (Unit.isAtomic(l.unit)) {
-            console.log(`Atomic unit ${unitId}: ${size} elements`);
+            console.log(`Atomic unit ${unit.id}: ${size} elements`);
         } else if (Unit.isCoarse(l.unit)) {
-            console.log(`Coarse unit ${unitId} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
+            console.log(`Coarse unit ${unit.id} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
             const props = Queries.props.coarse_grained;
             const seq = l.unit.model.sequence;
 
             for (let j = 0, _j = Math.min(size, 10); j < _j; j++) {
-                l.element = OrderedSet.getAt(set, j);
+                l.element = OrderedSet.getAt(elements, j);
 
                 const residues: string[] = [];
                 const start = props.seq_id_begin(l), end = props.seq_id_end(l);

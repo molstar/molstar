@@ -11,7 +11,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Element, Selection, Symmetry, Query } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, Element, Selection, StructureSymmetry, Query } from 'mol-model/structure'
 //import { Segmentation, OrderedSet } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -291,7 +291,7 @@ export namespace PropertyAccess {
 
     export async function testAssembly(id: string, s: Structure) {
         console.time('assembly')
-        const a = await Run(Symmetry.buildAssembly(s, '1'));
+        const a = await Run(StructureSymmetry.buildAssembly(s, '1'));
         console.timeEnd('assembly')
         fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, a, true));
         console.log('exported');
