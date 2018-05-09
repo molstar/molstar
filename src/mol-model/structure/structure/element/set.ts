@@ -9,7 +9,7 @@ import Element from '../element'
 import ElementGroup from './group'
 import * as Impl from './impl/set'
 import * as Builders from './impl/set-builder'
-import { ElementSetLookup3D } from '../util/lookup3d';
+import { StructureLookup3D } from '../util/lookup3d';
 import Structure from '../structure';
 
 /**
@@ -54,8 +54,6 @@ namespace ElementSet {
 
     export interface TemplateGenerator { add(unit: number, set: OrderedSet): void, getSet(): ElementSet }
     export const TemplateGenerator: (template: ElementSet) => TemplateGenerator = Impl.TemplateGenerator as any
-
-    export const getLookup3d: (s: Structure) => ElementSetLookup3D = Impl.getLookup3d;
 
     // TODO: distance, areWithIn?
     // TODO: check connected

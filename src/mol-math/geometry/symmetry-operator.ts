@@ -48,11 +48,11 @@ namespace SymmetryOperator {
 
     export interface Coordinates { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
 
-    export function createMapping(operator: SymmetryOperator, coords: Coordinates) {
+    export function createMapping(operator: SymmetryOperator, coords: Coordinates): ArrayMapping {
         const invariantPosition = SymmetryOperator.createCoordinateMapper(SymmetryOperator.Default, coords);
         const position = operator.isIdentity ? invariantPosition : SymmetryOperator.createCoordinateMapper(operator, coords);
         const { x, y, z } = createProjections(operator, coords);
-        return { invariantPosition, position, x, y, z };
+        return { operator, invariantPosition, position, x, y, z };
     }
 
     export function createCoordinateMapper(t: SymmetryOperator, coords: Coordinates): CoordinateMapper {

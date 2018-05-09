@@ -5,8 +5,6 @@
  */
 
 import Structure from './structure'
-import ElementSet from './element/set'
-import Unit from './unit'
 import { Selection } from '../query'
 import { ModelSymmetry } from '../model'
 import { Task } from 'mol-task';
@@ -29,15 +27,14 @@ function buildAssemblyImpl(structure: Structure, name: string) {
 
         for (const g of assembly.operatorGroups) {
             const selection = await ctx.runChild(g.selector(structure));
-            if (Selection.structureCount(selection) === 0) continue;
-            const { units, elements } = Selection.unionStructure(selection);
-
-            const unitIds = ElementSet.unitIndices(elements);
+            if (Selection.structureCount(selection) === 0) {
+                continue;
+            }
+            const { units } = Selection.unionStructure(selection);
 
             for (const oper of g.operators) {
-                for (let uI = 0, _uI = unitIds.length; uI < _uI; uI++) {
-                    const unit = units[unitIds[uI]];
-                    assembler.add(Unit.withOperator(unit, oper), ElementSet.groupAt(elements, uI));
+                for (const unit of units) {
+                    assembler.addWithOperator(unit, oper);
                 }
             }
         }

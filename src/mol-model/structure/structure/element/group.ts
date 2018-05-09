@@ -30,7 +30,7 @@ namespace ElementGroup {
     }
 
     export function create(unit: Unit, elements: OrderedSet): ElementGroup {
-        if (OrderedSet.areEqual(elements, unit.fullGroup.elements)) return unit.fullGroup;
+        //if (OrderedSet.areEqual(elements, unit.fullGroup.elements)) return unit.fullGroup;
         return createNew(elements);
     }
 

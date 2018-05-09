@@ -7,10 +7,10 @@
 import Query from './query'
 import Selection from './selection'
 import P from './properties'
-import { Structure, ElementSet, Element, Unit } from '../structure'
+import { Structure, Element, Unit } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
 
-export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s.elements);
+export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s);
 
 export interface AtomQueryParams {
     entityTest: Element.Predicate,
@@ -45,90 +45,86 @@ export function atoms(params?: Partial<AtomGroupsQueryParams>): Query.Provider {
 
 function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
     return async (structure, ctx) => {
-        const { elements, units } = structure;
-        const unitIds = ElementSet.unitIndices(elements);
+        const { units } = structure;
         const l = Element.Location();
-        const builder = ElementSet.LinearBuilder(elements);
+        const builder = structure.subsetBuilder(true);
 
-        for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unitId = unitIds[i];
-            l.unit = units[unitId];
-            const set = ElementSet.groupAt(elements, i).elements;
+        for (const unit of units) {
+            l.unit = unit;
+            const elements = unit.elements;
 
-            builder.beginUnit();
-            for (let j = 0, _j = OrderedSet.size(set); j < _j; j++) {
-                l.element = OrderedSet.getAt(set, j);
-                if (atomTest(l)) builder.addToUnit(l.element);
+            builder.beginUnit(unit.id);
+            for (let j = 0, _j = elements.length; j < _j; j++) {
+                l.element = elements[j];
+                if (atomTest(l)) builder.addElement(l.element);
             }
-            builder.commitUnit(unitId);
+            builder.commitUnit();
 
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: unitIds.length });
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: units.length });
         }
 
-        return Selection.Singletons(structure, builder.getSet());
+        return Selection.Singletons(structure, builder.getStructure());
     };
 }
 
 function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query.Provider {
     return async (structure, ctx) => {
-        const { elements, units } = structure;
-        const unitIds = ElementSet.unitIndices(elements);
+        const { units } = structure;
         const l = Element.Location();
-        const builder = ElementSet.LinearBuilder(elements);
+        const builder = structure.subsetBuilder(true);
 
-        for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unitId = unitIds[i];
-            const unit = units[unitId];
-
+        for (const unit of units) {
             if (unit.kind !== Unit.Kind.Atomic) continue;
 
             l.unit = unit;
-            const set = ElementSet.groupAt(elements, i).elements;
+            const elements = unit.elements;
 
-            builder.beginUnit();
-            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
-            const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
+            builder.beginUnit(unit.id);
+            const chainsIt = Segmentation.transientSegments(unit.model.hierarchy.chainSegments, elements);
+            const residuesIt = Segmentation.transientSegments(unit.model.hierarchy.residueSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
-                l.element = OrderedSet.getAt(set, chainSegment.start);
+                l.element = OrderedSet.getAt(elements, chainSegment.start);
                 // test entity and chain
                 if (!entityTest(l) || !chainTest(l)) continue;
 
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
                     const residueSegment = residuesIt.move();
-                    l.element = OrderedSet.getAt(set, residueSegment.start);
+                    l.element = OrderedSet.getAt(elements, residueSegment.start);
 
                     // test residue
                     if (!residueTest(l)) continue;
 
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                        l.element = OrderedSet.getAt(set, j);
-                        if (atomTest(l)) builder.addToUnit(l.element);
+                        l.element = OrderedSet.getAt(elements, j);
+                        if (atomTest(l)) {
+                            builder.addElement(l.element);
+                        }
                     }
                 }
             }
-            builder.commitUnit(unitId);
+            builder.commitUnit();
 
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: unitIds.length });
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: units.length });
         }
 
-        return Selection.Singletons(structure, builder.getSet());
+        return Selection.Singletons(structure, builder.getStructure());
     };
 }
 
 class LinearGroupingBuilder {
-    private builders: ElementSet.Builder[] = [];
-    private builderMap = new Map<string, ElementSet.Builder>();
+    private builders: Structure.SubsetBuilder[] = [];
+    private builderMap = new Map<string, Structure.SubsetBuilder>();
 
-    add(key: any, unit: number, atom: number) {
+    add(key: any, unit: number, element: number) {
         let b = this.builderMap.get(key);
         if (!b) {
-            b = ElementSet.LinearBuilder(this.structure.elements);
+            b = this.source.subsetBuilder(true);
             this.builders[this.builders.length] = b;
             this.builderMap.set(key, b);
         }
-        b.add(unit, atom);
+        b.addToUnit(unit, element);
     }
 
     private allSingletons() {
@@ -139,71 +135,68 @@ class LinearGroupingBuilder {
     }
 
     private singletonSelection(): Selection {
-        const atoms: Element[] = Element.createEmptyArray(this.builders.length);
+        const builder = this.source.subsetBuilder(true);
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            atoms[i] = this.builders[i].singleton();
+            const e = this.builders[i].singleton();
+            builder.addToUnit(Element.unit(e), Element.index(e));
         }
-        return Selection.Singletons(this.structure, ElementSet.ofAtoms(atoms, this.structure.elements));
+        return Selection.Singletons(this.source, builder.getStructure());
     }
 
     private fullSelection() {
-        const sets: ElementSet[] = new Array(this.builders.length);
+        const structures: Structure[] = new Array(this.builders.length);
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            sets[i] = this.builders[i].getSet();
+            structures[i] = this.builders[i].getStructure();
         }
-        return Selection.Sequence(this.structure, sets);
+        return Selection.Sequence(this.source, structures);
     }
 
     getSelection(): Selection {
         const len = this.builders.length;
-        if (len === 0) return Selection.Empty(this.structure);
+        if (len === 0) return Selection.Empty(this.source);
         if (this.allSingletons()) return this.singletonSelection();
         return this.fullSelection();
     }
 
-    constructor(private structure: Structure) { }
+    constructor(private source: Structure) { }
 }
 
 function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query.Provider {
     return async (structure, ctx) => {
-        const { elements, units } = structure;
-        const unitIds = ElementSet.unitIndices(elements);
+        const { units } = structure;
         const l = Element.Location();
         const builder = new LinearGroupingBuilder(structure);
 
-        for (let i = 0, _i = unitIds.length; i < _i; i++) {
-            const unitId = unitIds[i];
-            const unit = units[unitId];
-
+        for (const unit of units) {
             if (unit.kind !== Unit.Kind.Atomic) continue;
 
             l.unit = unit;
-            const set = ElementSet.groupAt(elements, i).elements;
+            const elements = unit.elements;
 
-            const chainsIt = Segmentation.transientSegments(unit.hierarchy.chainSegments, set);
-            const residuesIt = Segmentation.transientSegments(unit.hierarchy.residueSegments, set);
+            const chainsIt = Segmentation.transientSegments(unit.model.hierarchy.chainSegments, elements);
+            const residuesIt = Segmentation.transientSegments(unit.model.hierarchy.residueSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
-                l.element = OrderedSet.getAt(set, chainSegment.start);
+                l.element = OrderedSet.getAt(elements, chainSegment.start);
                 // test entity and chain
                 if (!entityTest(l) || !chainTest(l)) continue;
 
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
                     const residueSegment = residuesIt.move();
-                    l.element = OrderedSet.getAt(set, residueSegment.start);
+                    l.element = OrderedSet.getAt(elements, residueSegment.start);
 
                     // test residue
                     if (!residueTest(l)) continue;
 
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                        l.element = OrderedSet.getAt(set, j);
-                        if (atomTest(l)) builder.add(groupBy(l), unitId, l.element);
+                        l.element = OrderedSet.getAt(elements, j);
+                        if (atomTest(l)) builder.add(groupBy(l), unit.id, l.element);
                     }
                 }
             }
 
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: unitIds.length });
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: units.length });
         }
 
         return builder.getSelection();

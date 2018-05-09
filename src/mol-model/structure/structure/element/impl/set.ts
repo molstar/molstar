@@ -9,18 +9,13 @@ import { sortArray } from 'mol-data/util/sort'
 import { hash1 } from 'mol-data/util/hash-functions'
 import Element from '../../element'
 import ElementGroup from '../group'
-import { ElementSetLookup3D } from '../../util/lookup3d'
-import Structure from '../../structure';
-
 /** Long and painful implementation starts here */
 
 export type ElementSetImpl = {
     groups: IntMap<ElementGroup>,
     offsets: Int32Array,
     hashCode: number,
-    keys: SortedArray,
-
-    __lookup3d__?: ElementSetLookup3D
+    keys: SortedArray
 }
 
 export const Empty: ElementSetImpl = { groups: IntMap.Empty, offsets: new Int32Array(1), hashCode: 0, keys: SortedArray.Empty };
@@ -277,13 +272,6 @@ export class AtomSetGenerator {
 
 export function Generator() {
     return new AtomSetGenerator();
-}
-
-export function getLookup3d(s: Structure) {
-    const set = s.elements as any as ElementSetImpl;
-    if (set.__lookup3d__) return set.__lookup3d__;
-    set.__lookup3d__ = ElementSetLookup3D.create(s);
-    return set.__lookup3d__;
 }
 
 /** When adding groups, compare them to existing ones. If they all match, return the whole original set. */

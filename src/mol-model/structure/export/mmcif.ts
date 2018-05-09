@@ -9,7 +9,7 @@ import { Column } from 'mol-data/db'
 import Iterator from 'mol-data/iterator'
 import * as Encoder from 'mol-io/writer/cif'
 // import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
-import { Structure, Element, ElementSet } from '../structure'
+import { Structure, Element } from '../structure'
 import { Model } from '../model'
 import P from '../query/properties'
 
@@ -113,8 +113,8 @@ function atomSiteProvider({ structure }: Context): Encoder.CategoryInstance {
     return {
         data: void 0,
         definition: atom_site,
-        keys: () => Structure.elementLocationsTransient(structure),
-        rowCount: ElementSet.elementCount(structure.elements)
+        keys: () => structure.elementLocations(),
+        rowCount: structure.elementCount
     }
 }
 

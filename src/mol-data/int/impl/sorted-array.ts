@@ -15,6 +15,12 @@ export const Empty: Nums = []
 export function ofSingleton(v: number) { return [v]; }
 export function ofSortedArray(xs: Nums) { return xs; }
 export function ofUnsortedArray(xs: Nums) { sortArray(xs); return xs; }
+export function ofRange(min: number, max: number) {
+    if (max < min) return [];
+    const ret = new Int32Array(max - min + 1);
+    for (let i = min; i <= max; i++) ret[i - min] = i;
+    return ret;
+}
 export function is(xs: any): xs is Nums { return xs && (Array.isArray(xs) || !!xs.buffer); }
 
 export function start(xs: Nums) { return xs[0]; }

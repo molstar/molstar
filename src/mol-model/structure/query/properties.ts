@@ -26,41 +26,41 @@ const atom = {
     key: Element.property(l => l.element),
 
     // Conformation
-    x: Element.property(l => l.unit.x(l.element)),
-    y: Element.property(l => l.unit.y(l.element)),
-    z: Element.property(l => l.unit.z(l.element)),
-    id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.atomId.value(l.element)),
-    occupancy: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.conformation.occupancy.value(l.element)),
-    B_iso_or_equiv: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.conformation.B_iso_or_equiv.value(l.element)),
+    x: Element.property(l => l.unit.conformation.x(l.element)),
+    y: Element.property(l => l.unit.conformation.y(l.element)),
+    z: Element.property(l => l.unit.conformation.z(l.element)),
+    id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomSiteConformation.atomId.value(l.element)),
+    occupancy: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomSiteConformation.occupancy.value(l.element)),
+    B_iso_or_equiv: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomSiteConformation.B_iso_or_equiv.value(l.element)),
 
     // Hierarchy
-    type_symbol: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.type_symbol.value(l.element)),
-    label_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_atom_id.value(l.element)),
-    auth_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.auth_atom_id.value(l.element)),
-    label_alt_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_alt_id.value(l.element)),
-    pdbx_formal_charge: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element)),
+    type_symbol: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.atoms.type_symbol.value(l.element)),
+    label_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.atoms.label_atom_id.value(l.element)),
+    auth_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.atoms.auth_atom_id.value(l.element)),
+    label_alt_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.atoms.label_alt_id.value(l.element)),
+    pdbx_formal_charge: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.atoms.pdbx_formal_charge.value(l.element)),
 
     // Derived
-    vdw_radius: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
+    vdw_radius: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.hierarchy.atoms.type_symbol.value(l.element))),
 }
 
 const residue = {
-    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residueKey.value(l.unit.residueIndex[l.element])),
+    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.residueKey.value(l.unit.residueIndex[l.element])),
 
-    group_PDB: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
-    label_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])),
-    auth_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
-    label_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])),
-    auth_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
-    pdbx_PDB_ins_code: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element]))
+    group_PDB: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
+    label_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])),
+    auth_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
+    label_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])),
+    auth_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
+    pdbx_PDB_ins_code: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element]))
 }
 
 const chain = {
-    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chainKey.value(l.unit.chainIndex[l.element])),
+    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.chainKey.value(l.unit.chainIndex[l.element])),
 
-    label_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.element])),
-    auth_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.element])),
-    label_entity_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.element]))
+    label_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.element])),
+    auth_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.element])),
+    label_entity_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.element]))
 }
 
 const coarse_grained = {
@@ -83,7 +83,7 @@ const coarse_grained = {
     gaussian_covariance_matrix: Element.property(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.sites.covariance_matrix.value(l.element))
 }
 
-function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.entityKey.value(l.unit.chainIndex[l.element]); }
+function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.hierarchy.entityKey.value(l.unit.chainIndex[l.element]); }
 
 const entity = {
     key: eK,
@@ -101,7 +101,7 @@ const entity = {
 }
 
 const unit = {
-    operator_name: Element.property(l => l.unit.operator.name),
+    operator_name: Element.property(l => l.unit.conformation.operator.name),
     model_num: Element.property(l => l.unit.model.modelNum)
 }
 
