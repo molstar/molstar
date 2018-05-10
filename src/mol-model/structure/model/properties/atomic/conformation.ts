@@ -7,7 +7,7 @@
 import { Column } from 'mol-data/db'
 import UUID from 'mol-util/uuid'
 
-interface Conformation {
+export interface AtomicConformation {
     id: UUID,
 
     // ID is part of conformation because mmCIF is a leaky abstraction
@@ -24,5 +24,3 @@ interface Conformation {
     y: ArrayLike<number>,
     z: ArrayLike<number>
 }
-
-export default Conformation

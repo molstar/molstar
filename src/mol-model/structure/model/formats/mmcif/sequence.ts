@@ -7,11 +7,11 @@
 import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import Sequence from '../../properties/sequence'
 import { Column } from 'mol-data/db';
-import { Hierarchy } from '../../properties/hierarchy';
+import { AtomicHierarchy } from '../../properties/atomic/hierarchy';
 import { Entities } from '../../properties/common';
 
-export function getSequence(cif: mmCIF, entities: Entities, hierarchy: Hierarchy): Sequence {
-    if (!cif.entity_poly_seq._rowCount) return Sequence.fromHierarchy(hierarchy);
+export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHierarchy): Sequence {
+    if (!cif.entity_poly_seq._rowCount) return Sequence.fromAtomicHierarchy(hierarchy);
 
     const { entity_id, num, mon_id } = cif.entity_poly_seq;
 

@@ -5,7 +5,7 @@
  */
 
 import { Column } from 'mol-data/db'
-import { Data, Segments, Keys } from '../properties/hierarchy'
+import { AtomicData, AtomicSegments, AtomicKeys } from '../properties/atomic/hierarchy'
 import { Interval, Segmentation } from 'mol-data/int'
 import { Entities } from '../properties/common';
 
@@ -29,14 +29,14 @@ function getElementSubstructureKeyMap(map: Map<number, Map<string, number>>, key
 
 function createLookUp(entities: Entities, chain: Map<number, Map<string, number>>, residue: Map<number, Map<string, number>>) {
     const getEntKey = entities.getEntityIndex;
-    const findChainKey: Keys['findChainKey'] = (e, c) => {
+    const findChainKey: AtomicKeys['findChainKey'] = (e, c) => {
         let eKey = getEntKey(e);
         if (eKey < 0) return -1;
         const cm = chain.get(eKey)!;
         if (!cm.has(c)) return -1;
         return cm.get(c)!;
     }
-    const findResidueKey: Keys['findResidueKey'] = (e, c, name, seq, ins) => {
+    const findResidueKey: AtomicKeys['findResidueKey'] = (e, c, name, seq, ins) => {
         let eKey = getEntKey(e);
         if (eKey < 0) return -1;
         const cm = chain.get(eKey)!;
@@ -62,7 +62,7 @@ function missingEntity(k: string) {
     throw new Error(`Missing entity entry for entity id '${k}'.`);
 }
 
-function create(data: Data, entities: Entities, segments: Segments): Keys {
+function create(data: AtomicData, entities: Entities, segments: AtomicSegments): AtomicKeys {
     const { chains, residues } = data;
 
     const chainMaps = new Map<number, Map<string, number>>(), chainCounter = { index: 0 };

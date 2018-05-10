@@ -8,15 +8,15 @@ import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import { Tensor } from 'mol-math/linear-algebra';
 import { Column } from 'mol-data/db';
 
-interface CoarseGrained {
+interface CoarseGrainedHierarchy {
     isDefined: boolean,
     modelList: mmCIF['ihm_model_list'],
-    spheres: CoarseGrained.Spheres,
-    gaussians: CoarseGrained.Gaussians
+    spheres: CoarseGrainedHierarchy.Spheres,
+    gaussians: CoarseGrainedHierarchy.Gaussians
 }
 
-namespace CoarseGrained {
-    export const Empty: CoarseGrained = { isDefined: false } as any;
+namespace CoarseGrainedHierarchy {
+    export const Empty: CoarseGrainedHierarchy = { isDefined: false } as any;
 
     export const enum ElementType { Sphere, Gaussian }
 
@@ -50,4 +50,4 @@ namespace CoarseGrained {
     export type Gaussians = Common & { matrix_space: Tensor.Space } & { [P in keyof Gaussian]: Column<Gaussian[P]> }
 }
 
-export default CoarseGrained;
+export { CoarseGrainedHierarchy }

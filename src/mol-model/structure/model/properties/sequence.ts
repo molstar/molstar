@@ -5,7 +5,7 @@
  */
 
 import { Column } from 'mol-data/db'
-import { Hierarchy } from './hierarchy';
+import { AtomicHierarchy } from './atomic/hierarchy';
 
 interface Sequence {
     readonly byEntityKey: { [key: number]: Sequence.Entity }
@@ -19,7 +19,7 @@ namespace Sequence {
         readonly compId: Column<string>
     }
 
-    export function fromHierarchy(hierarchy: Hierarchy): Sequence {
+    export function fromAtomicHierarchy(hierarchy: AtomicHierarchy): Sequence {
         // const { label_comp_id } = hierarchy.residues;
 
         throw 'not implemented';

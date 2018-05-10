@@ -7,10 +7,10 @@
 import UUID from 'mol-util/uuid'
 import Format from './format'
 import Sequence from './properties/sequence'
-import Hierarchy from './properties/hierarchy'
-import AtomSiteConformation from './properties/atom-site-conformation'
+import { AtomicHierarchy } from './properties/atomic/hierarchy'
+import { AtomicConformation } from './properties/atomic/conformation'
 import Symmetry from './properties/symmetry'
-import CoarseGrained from './properties/coarse-grained'
+import { CoarseGrainedHierarchy } from './properties/coarse-grained/hierarchy'
 import { Entities } from './properties/common';
 
 import from_gro from './formats/gro'
@@ -28,13 +28,13 @@ interface Model extends Readonly<{
 
     sourceData: Format,
 
+    symmetry: Symmetry,
     entities: Entities,
     sequence: Sequence,
 
-    hierarchy: Hierarchy,
-    atomSiteConformation: AtomSiteConformation,
-    symmetry: Symmetry,
-    coarseGrained: CoarseGrained,
+    hierarchy: AtomicHierarchy,
+    atomSiteConformation: AtomicConformation,
+    coarseGrained: CoarseGrainedHierarchy,
 
     atomCount: number,
 }> {

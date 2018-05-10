@@ -5,12 +5,12 @@
  */
 
 import { mmCIF_Database as mmCIF, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
-import CoarseGrained from '../../properties/coarse-grained'
+import { CoarseGrainedHierarchy } from '../../properties/coarse-grained/hierarchy'
 import { Entities } from '../../properties/common';
 import { Column } from 'mol-data/db';
 
-function coarseGrainedFromIHM(data: mmCIF, entities: Entities): CoarseGrained {
-    if (data.ihm_model_list._rowCount === 0) return CoarseGrained.Empty;
+function coarseGrainedFromIHM(data: mmCIF, entities: Entities): CoarseGrainedHierarchy {
+    if (data.ihm_model_list._rowCount === 0) return CoarseGrainedHierarchy.Empty;
 
     const { ihm_model_list, ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
     const modelIndex = Column.createIndexer(ihm_model_list.model_id);
@@ -23,7 +23,7 @@ function coarseGrainedFromIHM(data: mmCIF, entities: Entities): CoarseGrained {
     };
 }
 
-function getSpheres(data: mmCIF['ihm_sphere_obj_site'], entities: Entities, modelIndex: (id: number) => number): CoarseGrained.Spheres {
+function getSpheres(data: mmCIF['ihm_sphere_obj_site'], entities: Entities, modelIndex: (id: number) => number): CoarseGrainedHierarchy.Spheres {
     const { Cartn_x, Cartn_y, Cartn_z, object_radius: radius, rmsf } = data;
     const x = Cartn_x.toArray({ array: Float32Array });
     const y = Cartn_y.toArray({ array: Float32Array });
@@ -31,7 +31,7 @@ function getSpheres(data: mmCIF['ihm_sphere_obj_site'], entities: Entities, mode
     return { count: x.length, ...getCommonColumns(data, entities, modelIndex), x, y, z, radius, rmsf };
 }
 
-function getGaussians(data: mmCIF['ihm_gaussian_obj_site'], entities: Entities, modelIndex: (id: number) => number): CoarseGrained.Gaussians {
+function getGaussians(data: mmCIF['ihm_gaussian_obj_site'], entities: Entities, modelIndex: (id: number) => number): CoarseGrainedHierarchy.Gaussians {
     const { mean_Cartn_x, mean_Cartn_y, mean_Cartn_z, weight, covariance_matrix  } = data;
     const x = mean_Cartn_x.toArray({ array: Float32Array });
     const y = mean_Cartn_y.toArray({ array: Float32Array });

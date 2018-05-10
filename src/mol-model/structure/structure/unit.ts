@@ -7,7 +7,7 @@
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
 import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
-import CoarseGrained from '../model/properties/coarse-grained';
+import { CoarseGrainedHierarchy } from '../model/properties/coarse-grained/hierarchy';
 import { SortedArray } from 'mol-data/int';
 import { idFactory } from 'mol-util/id-factory';
 import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
@@ -109,11 +109,11 @@ namespace Unit {
     }
 
     // Coarse grained representations.
-    export interface CoarseBase<S extends CoarseGrained.SitesBase> extends Base  {
+    export interface CoarseBase<S extends CoarseGrainedHierarchy.SitesBase> extends Base  {
         readonly sites: S
     }
 
-    class Coarse<S extends CoarseGrained.SitesBase> implements CoarseBase<S> {
+    class Coarse<S extends CoarseGrainedHierarchy.SitesBase> implements CoarseBase<S> {
         readonly kind: Kind;
 
         readonly id: number;
@@ -153,12 +153,12 @@ namespace Unit {
         }
     }
 
-    function createCoarse<S extends CoarseGrained.SitesBase>(id: number, invariantId: number, model: Model, kind: Kind, sites: S, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping): Unit {
+    function createCoarse<S extends CoarseGrainedHierarchy.SitesBase>(id: number, invariantId: number, model: Model, kind: Kind, sites: S, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping): Unit {
         return new Coarse(id, invariantId, model, kind, sites, elements, conformation) as any as Unit /** lets call this an ugly temporary hack */;
     }
 
-    export interface Spheres extends CoarseBase<CoarseGrained.Spheres> { kind: Kind.Spheres }
-    export interface Gaussians extends CoarseBase<CoarseGrained.Gaussians> { kind: Kind.Gaussians }
+    export interface Spheres extends CoarseBase<CoarseGrainedHierarchy.Spheres> { kind: Kind.Spheres }
+    export interface Gaussians extends CoarseBase<CoarseGrainedHierarchy.Gaussians> { kind: Kind.Gaussians }
 }
 
 export default Unit;

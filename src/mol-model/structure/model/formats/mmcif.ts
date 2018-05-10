@@ -9,8 +9,8 @@ import { Column, Table } from 'mol-data/db'
 import { Interval, Segmentation } from 'mol-data/int'
 import Format from '../format'
 import Model from '../model'
-import * as Hierarchy from '../properties/hierarchy'
-import AtomSiteConformation from '../properties/atom-site-conformation'
+import { AtomsSchema, ResiduesSchema, ChainsSchema, AtomicData, AtomicSegments } from '../properties/atomic/hierarchy'
+import { AtomicConformation } from '../properties/atomic/conformation'
 import Symmetry from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { ElementSymbol} from '../types'
@@ -51,25 +51,25 @@ function findHierarchyOffsets({ data }: mmCIF_Format, bounds: Interval) {
     return { residues, chains };
 }
 
-function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): Hierarchy.Data {
+function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {
     const { atom_site } = data;
     const start = Interval.start(bounds), end = Interval.end(bounds);
-    const atoms = Table.ofColumns(Hierarchy.AtomsSchema, {
+    const atoms = Table.ofColumns(AtomsSchema, {
         type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), ElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
         label_atom_id: Column.window(atom_site.label_atom_id, start, end),
         auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),
         label_alt_id: Column.window(atom_site.label_alt_id, start, end),
         pdbx_formal_charge: Column.window(atom_site.pdbx_formal_charge, start, end)
     });
-    const residues = Table.view(atom_site, Hierarchy.ResiduesSchema, offsets.residues);
+    const residues = Table.view(atom_site, ResiduesSchema, offsets.residues);
     // Optimize the numeric columns
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
-    const chains = Table.view(atom_site, Hierarchy.ChainsSchema, offsets.chains);
+    const chains = Table.view(atom_site, ChainsSchema, offsets.chains);
     return { atoms, residues, chains };
 }
 
-function getConformation({ data }: mmCIF_Format, bounds: Interval): AtomSiteConformation {
+function getConformation({ data }: mmCIF_Format, bounds: Interval): AtomicConformation {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const { atom_site } = data;
     return {
@@ -87,11 +87,11 @@ function getSymmetry(format: mmCIF_Format): Symmetry {
     return { assemblies: createAssemblies(format) };
 }
 
-function isHierarchyDataEqual(a: Hierarchy.Hierarchy, b: Hierarchy.Data) {
+function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
     // need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
-    return Table.areEqual(a.chains as Table<Hierarchy.ChainsSchema>, b.chains as Table<Hierarchy.ChainsSchema>)
-        && Table.areEqual(a.residues as Table<Hierarchy.ResiduesSchema>, b.residues as Table<Hierarchy.ResiduesSchema>)
-        && Table.areEqual(a.atoms as Table<Hierarchy.AtomsSchema>, b.atoms as Table<Hierarchy.AtomsSchema>)
+    return Table.areEqual(a.chains as Table<ChainsSchema>, b.chains as Table<ChainsSchema>)
+        && Table.areEqual(a.residues as Table<ResiduesSchema>, b.residues as Table<ResiduesSchema>)
+        && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
 function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): Model {
@@ -105,7 +105,7 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         };
     }
 
-    const hierarchySegments: Hierarchy.Segments = {
+    const hierarchySegments: AtomicSegments = {
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
