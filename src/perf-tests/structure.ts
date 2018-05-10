@@ -16,6 +16,7 @@ import { Structure, Model, Queries as Q, Element, Selection, StructureSymmetry, 
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
 import { Run } from 'mol-task';
+import { Vec3 } from 'mol-math/linear-algebra';
 //import { EquivalenceClasses } from 'mol-data/util';
 
 require('util.promisify').shim();
@@ -302,6 +303,19 @@ export namespace PropertyAccess {
         console.log('exported');
     }
 
+    export async function testSymmetry(id: string, s: Structure) {
+        console.time('symmetry')
+        const a = await Run(StructureSymmetry.buildSymmetryRange(s, Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1)));
+        //const auth_comp_id = Q.props.residue.auth_comp_id;
+        //const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
+        //const alas = await query(q1, a);
+
+        console.timeEnd('symmetry')
+        fs.writeFileSync(`${DATA_DIR}/${id}_symm.bcif`, to_mmCIF(id, a, true));
+        //fs.writeFileSync(`${DATA_DIR}/${id}_assembly.bcif`, to_mmCIF(id, Selection.unionStructure(alas), true));
+        console.log('exported');
+    }
+
     // export async function testGrouping(structure: Structure) {
     //     const { elements, units } = await Run(Symmetry.buildAssembly(structure, '1'));
     //     console.log('grouping', units.length);
@@ -329,7 +343,7 @@ export namespace PropertyAccess {
         //const { structures, models/*, mmcif*/ } = await getBcif('1cbs');
         // const { structures, models } = await getBcif('3j3q');
 
-        const { structures, models /*, mmcif*/ } = await readCIF('e:/test/quick/1hrv_updated.cif');
+        const { structures, models /*, mmcif*/ } = await readCIF('e:/test/quick/1cbs_updated.cif');
         //const { structures: s1, /*, mmcif*/ } = await readCIF('e:/test/quick/1tqn_updated.cif');
 
         // testGrouping(structures[0]);
@@ -340,7 +354,8 @@ export namespace PropertyAccess {
         //console.log(mmcif.pdbx_struct_oper_list.matrix.toArray());
         // console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
 
-        await testAssembly('1hrv', structures[0]);
+        //await testAssembly('1hrv', structures[0]);
+        await testSymmetry('1cbs', structures[0]);
         // throw '';
 
         // console.log(models[0].symmetry.assemblies);

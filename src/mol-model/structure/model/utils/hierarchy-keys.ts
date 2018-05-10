@@ -5,7 +5,7 @@
  */
 
 import { Column } from 'mol-data/db'
-import { AtomicData, AtomicSegments, AtomicKeys } from '../properties/atomic/hierarchy'
+import { AtomicData, AtomicSegments, AtomicKeys } from '../properties/atomic'
 import { Interval, Segmentation } from 'mol-data/int'
 import { Entities } from '../properties/common';
 

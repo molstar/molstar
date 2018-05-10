@@ -7,7 +7,7 @@
 import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import Sequence from '../../properties/sequence'
 import { Column } from 'mol-data/db';
-import { AtomicHierarchy } from '../../properties/atomic/hierarchy';
+import { AtomicHierarchy } from '../../properties/atomic';
 import { Entities } from '../../properties/common';
 
 export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHierarchy): Sequence {

@@ -5,7 +5,7 @@
  */
 
 import { Element, Unit } from '../structure'
-import { VdwRadius } from '../model/properties/atomic/measures';
+import { VdwRadius } from '../model/properties/atomic';
 
 const constant = {
     true: Element.property(l => true),

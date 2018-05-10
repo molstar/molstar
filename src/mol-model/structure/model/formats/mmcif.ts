@@ -9,9 +9,8 @@ import { Column, Table } from 'mol-data/db'
 import { Interval, Segmentation } from 'mol-data/int'
 import Format from '../format'
 import Model from '../model'
-import { AtomsSchema, ResiduesSchema, ChainsSchema, AtomicData, AtomicSegments } from '../properties/atomic/hierarchy'
-import { AtomicConformation } from '../properties/atomic/conformation'
-import Symmetry from '../properties/symmetry'
+import { AtomsSchema, ResiduesSchema, ChainsSchema, AtomicData, AtomicSegments, AtomicConformation } from '../properties/atomic'
+import { ModelSymmetry } from '../properties/symmetry'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { ElementSymbol} from '../types'
 import createAssemblies from './mmcif/assembly'
@@ -20,6 +19,8 @@ import mmCIF_Format = Format.mmCIF
 import { getSequence } from './mmcif/sequence';
 import { Entities } from '../properties/common';
 import { coarseGrainedFromIHM } from './mmcif/ihm';
+import { Spacegroup, SpacegroupCell } from 'mol-math/geometry';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -83,8 +84,29 @@ function getConformation({ data }: mmCIF_Format, bounds: Interval): AtomicConfor
     }
 }
 
-function getSymmetry(format: mmCIF_Format): Symmetry {
-    return { assemblies: createAssemblies(format) };
+function getSymmetry(format: mmCIF_Format): ModelSymmetry {
+    const assemblies = createAssemblies(format);
+    const spacegroup = getSpacegroup(format);
+    const isNonStandardCrytalFrame = checkNonStandardCrystalFrame(format, spacegroup);
+    return { assemblies, spacegroup, isNonStandardCrytalFrame };
+}
+
+function checkNonStandardCrystalFrame(format: mmCIF_Format, spacegroup: Spacegroup) {
+    const { atom_sites } = format.data;
+    if (atom_sites._rowCount === 0) return false;
+    // TODO: parse atom_sites transform and check if it corresponds to the toFractional matrix
+    return false;
+}
+
+function getSpacegroup(format: mmCIF_Format): Spacegroup {
+    const { symmetry, cell } = format.data;
+    if (symmetry._rowCount === 0 || cell._rowCount === 0) return Spacegroup.ZeroP1;
+    const groupName = symmetry['space_group_name_H-M'].value(0);
+    const spaceCell = SpacegroupCell.create(groupName,
+        Vec3.create(cell.length_a.value(0), cell.length_b.value(0), cell.length_c.value(0)),
+        Vec3.scale(Vec3.zero(), Vec3.create(cell.angle_alpha.value(0), cell.angle_beta.value(0), cell.angle_gamma.value(0)), Math.PI / 180));
+
+    return Spacegroup.create(spaceCell);
 }
 
 function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {

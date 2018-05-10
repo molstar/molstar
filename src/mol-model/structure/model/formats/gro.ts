@@ -10,8 +10,7 @@ import { Interval, Segmentation } from 'mol-data/int'
 import { Atoms } from 'mol-io/reader/gro/schema'
 import Format from '../format'
 import Model from '../model'
-import * as AtomicHierarchy from '../properties/atomic/hierarchy'
-import { AtomicConformation } from '../properties/atomic/conformation'
+import { AtomicConformation, AtomicData, AtomsSchema, ResiduesSchema, ChainsSchema, AtomicSegments } from '../properties/atomic'
 import { CoarseGrainedHierarchy } from '../properties/coarse-grained/hierarchy'
 import findHierarchyKeys from '../utils/hierarchy-keys'
 import { guessElement } from '../utils/guess-element'
@@ -21,6 +20,7 @@ import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import gro_Format = Format.gro
 import Sequence from '../properties/sequence';
 import { Entities } from '../properties/common';
+import { ModelSymmetry } from '../properties/symmetry';
 
 type HierarchyOffsets = { residues: ArrayLike<number>, chains: ArrayLike<number> }
 
@@ -44,9 +44,9 @@ function guessElementSymbol (value: string) {
     return ElementSymbol(guessElement(value));
 }
 
-function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): AtomicHierarchy.AtomicData {
+function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): AtomicData {
     console.log(atomsData.atomName)
-    const atoms = Table.ofColumns(AtomicHierarchy.AtomsSchema, {
+    const atoms = Table.ofColumns(AtomsSchema, {
         type_symbol: Column.ofArray({ array: Column.mapToArray(atomsData.atomName, guessElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
         label_atom_id: atomsData.atomName,
         auth_atom_id: atomsData.atomName,
@@ -54,14 +54,14 @@ function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Atomi
         pdbx_formal_charge: Column.Undefined(atomsData.count, Column.Schema.int)
     });
 
-    const residues = Table.view(Table.ofColumns(AtomicHierarchy.ResiduesSchema, {
+    const residues = Table.view(Table.ofColumns(ResiduesSchema, {
         group_PDB: Column.Undefined(atomsData.count, Column.Schema.Aliased<'ATOM' | 'HETATM'>(Column.Schema.str)),
         label_comp_id: atomsData.residueName,
         auth_comp_id: atomsData.residueName,
         label_seq_id: atomsData.residueNumber,
         auth_seq_id: atomsData.residueNumber,
         pdbx_PDB_ins_code: Column.Undefined(atomsData.count, Column.Schema.str),
-    }), AtomicHierarchy.ResiduesSchema, offsets.residues);
+    }), ResiduesSchema, offsets.residues);
     // Optimize the numeric columns
     Table.columnToArray(residues, 'label_seq_id', Int32Array);
     Table.columnToArray(residues, 'auth_seq_id', Int32Array);
@@ -72,7 +72,7 @@ function createHierarchyData(atomsData: Atoms, offsets: HierarchyOffsets): Atomi
     //     label_entity_id: Column.Undefined(atomsData.count, Column.Schema.str)
     // });
 
-    const chains = Table.ofUndefinedColumns(AtomicHierarchy.ChainsSchema, 0);
+    const chains = Table.ofUndefinedColumns(ChainsSchema, 0);
 
     return { atoms, residues, chains };
 }
@@ -89,10 +89,10 @@ function getConformation(atoms: Atoms): AtomicConformation {
     }
 }
 
-function isHierarchyDataEqual(a: AtomicHierarchy.AtomicData, b: AtomicHierarchy.AtomicData) {
+function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
     // need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
-    return Table.areEqual(a.residues as Table<AtomicHierarchy.ResiduesSchema>, b.residues as Table<AtomicHierarchy.ResiduesSchema>)
-        && Table.areEqual(a.atoms as Table<AtomicHierarchy.AtomsSchema>, b.atoms as Table<AtomicHierarchy.AtomsSchema>)
+    return Table.areEqual(a.residues as Table<ResiduesSchema>, b.residues as Table<ResiduesSchema>)
+        && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
 function createModel(format: gro_Format, modelNum: number, previous?: Model): Model {
@@ -109,7 +109,7 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
         };
     }
 
-    const hierarchySegments: AtomicHierarchy.AtomicSegments = {
+    const hierarchySegments: AtomicSegments = {
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
     }
@@ -135,7 +135,7 @@ function createModel(format: gro_Format, modelNum: number, previous?: Model): Mo
         sequence: Sequence.fromAtomicHierarchy(hierarchy),
         atomSiteConformation: getConformation(structure.atoms),
         coarseGrained: CoarseGrainedHierarchy.Empty,
-        symmetry: { assemblies: [] },
+        symmetry: ModelSymmetry.Default,
         atomCount: structure.atoms.count
     };
 }

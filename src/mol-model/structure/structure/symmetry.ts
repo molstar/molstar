@@ -11,15 +11,17 @@ import { Task } from 'mol-task';
 import { SortedArray } from 'mol-data/int';
 import Unit from './unit';
 import { EquivalenceClasses, hash2 } from 'mol-data/util';
+import { Vec3 } from 'mol-math/linear-algebra';
+import { SymmetryOperator, Spacegroup, SpacegroupCell } from 'mol-math/geometry';
 
 namespace StructureSymmetry {
-    export function buildAssembly(structure: Structure, name: string) {
-        return Task.create('Build Symmetry', async ctx => {
+    export function buildAssembly(structure: Structure, asmName: string) {
+        return Task.create('Build Assembly', async ctx => {
             const models = Structure.getModels(structure);
             if (models.length !== 1) throw new Error('Can only build assemblies from structures based on 1 model.');
 
-            const assembly = ModelSymmetry.findAssembly(models[0], name);
-            if (!assembly) throw new Error(`Assembly '${name}' is not defined.`);
+            const assembly = ModelSymmetry.findAssembly(models[0], asmName);
+            if (!assembly) throw new Error(`Assembly '${asmName}' is not defined.`);
 
             const assembler = Structure.Builder();
 
@@ -34,6 +36,38 @@ namespace StructureSymmetry {
                     for (const unit of units) {
                         assembler.addWithOperator(unit, oper);
                     }
+                }
+            }
+
+            return assembler.getStructure();
+        });
+    }
+
+    export function buildSymmetryRange(structure: Structure, ijkMin: Vec3, ijkMax: Vec3) {
+        return Task.create('Build Assembly', async ctx => {
+            const models = Structure.getModels(structure);
+            if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
+
+            const { spacegroup } = models[0].symmetry;
+            if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
+
+            const operators: SymmetryOperator[] = [];
+            for (let op = 0; op < spacegroup.operators.length; op++) {
+                for (let i = ijkMin[0]; i < ijkMax[0]; i++) {
+                    for (let j = ijkMin[1]; j < ijkMax[1]; j++) {
+                        for (let k = ijkMin[2]; k < ijkMax[2]; k++) {
+                            operators[operators.length] = Spacegroup.getSymmetryOperator(spacegroup, op, i, j, k);
+                        }
+                    }
+                }
+            }
+
+            const assembler = Structure.Builder();
+
+            const { units } = structure;
+            for (const oper of operators) {
+                for (const unit of units) {
+                    assembler.addWithOperator(unit, oper);
                 }
             }
 

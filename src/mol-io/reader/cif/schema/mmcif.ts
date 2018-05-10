@@ -21,6 +21,11 @@ const Vector = Schema.Vector;
 const List = Schema.List;
 
 export const mmCIF_Schema = {
+    atom_sites: {
+        entry_id: str,
+        fract_transf_matrix: Matrix(3, 3),
+        fract_transf_vector: Vector(3)
+    },
     atom_site: {
         auth_asym_id: str,
         auth_atom_id: str,
