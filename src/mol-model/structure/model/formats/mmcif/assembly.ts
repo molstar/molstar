@@ -12,7 +12,7 @@ import { Queries as Q, Query } from '../../../query'
 
 import mmCIF_Format = Format.mmCIF
 
-export default function create(format: mmCIF_Format): ReadonlyArray<Assembly> {
+export function createAssemblies(format: mmCIF_Format): ReadonlyArray<Assembly> {
     const { pdbx_struct_assembly } = format.data;
     if (!pdbx_struct_assembly._rowCount) return [];
 

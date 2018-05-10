@@ -13,6 +13,7 @@ import Element from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import StructureSymmetry from './symmetry';
+import { CoarseElements } from '../model/properties/coarse';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -90,7 +91,7 @@ namespace Structure {
     }
 
     export function ofModel(model: Model): Structure {
-        const chains = model.hierarchy.chainSegments;
+        const chains = model.atomicHierarchy.chainSegments;
         const builder = new StructureBuilder();
 
         for (let c = 0; c < chains.count; c++) {
@@ -98,19 +99,25 @@ namespace Structure {
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 
-        const cs = model.coarseGrained;
+        const cs = model.coarseHierarchy;
         if (cs.isDefined) {
             if (cs.spheres.count > 0) {
-                const elements = SortedArray.ofBounds(0, cs.spheres.count);
-                builder.addUnit(Unit.Kind.Spheres, model, SymmetryOperator.Default, elements);
+                addCoarseUnits(builder, model, model.coarseHierarchy.spheres, Unit.Kind.Spheres);
             }
             if (cs.gaussians.count > 0) {
-                const elements = SortedArray.ofBounds(0, cs.spheres.count);
-                builder.addUnit(Unit.Kind.Gaussians, model, SymmetryOperator.Default, elements);
+                addCoarseUnits(builder, model, model.coarseHierarchy.gaussians, Unit.Kind.Gaussians);
             }
         }
 
         return builder.getStructure();
+    }
+
+    function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
+        const { chainSegments } = elements;
+        for (let cI = 0; cI < chainSegments.count; cI++) {
+            const elements = SortedArray.ofBounds(chainSegments.segments[cI], chainSegments.segments[cI + 1]);
+            builder.addUnit(kind, model, SymmetryOperator.Default, elements);
+        }
     }
 
     export class StructureBuilder {

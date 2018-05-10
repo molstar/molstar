@@ -4,10 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Column } from 'mol-data/db'
-import { AtomicData, AtomicSegments, AtomicKeys } from '../properties/atomic'
+import { AtomicData, AtomicSegments, AtomicKeys } from '../atomic'
 import { Interval, Segmentation } from 'mol-data/int'
-import { Entities } from '../properties/common';
+import { Entities } from '../common'
 
 function getResidueId(comp_id: string, seq_id: number, ins_code: string) {
     return `${comp_id} ${seq_id} ${ins_code}`;
@@ -62,7 +61,7 @@ function missingEntity(k: string) {
     throw new Error(`Missing entity entry for entity id '${k}'.`);
 }
 
-function create(data: AtomicData, entities: Entities, segments: AtomicSegments): AtomicKeys {
+export function getAtomicKeys(data: AtomicData, entities: Entities, segments: AtomicSegments): AtomicKeys {
     const { chains, residues } = data;
 
     const chainMaps = new Map<number, Map<string, number>>(), chainCounter = { index: 0 };
@@ -110,12 +109,10 @@ function create(data: AtomicData, entities: Entities, segments: AtomicSegments):
 
     return {
         isMonotonous: isMonotonous && checkMonotonous(entityKey) && checkMonotonous(chainKey) && checkMonotonous(residueKey),
-        residueKey: Column.ofIntArray(residueKey),
-        chainKey: Column.ofIntArray(chainKey),
-        entityKey: Column.ofIntArray(entityKey),
+        residueKey: residueKey,
+        chainKey: chainKey,
+        entityKey: entityKey,
         findChainKey,
         findResidueKey
     };
 }
-
-export default create;

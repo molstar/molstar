@@ -371,7 +371,7 @@ export namespace PropertyAccess {
         // return;
 
         console.log('bs', baseline(models[0]));
-        console.log('sp', sumProperty(structures[0], l => l.unit.model.atomSiteConformation.atomId.value(l.element)));
+        console.log('sp', sumProperty(structures[0], l => l.unit.model.atomicConformation.atomId.value(l.element)));
         //console.log(sumPropertySegmented(structures[0], l => l.unit.model.atomSiteConformation.atomId.value(l.element)));
 
         //console.log(sumPropertySegmentedMutable(structures[0], l => l.unit.model.conformation.atomId.value(l.element));
@@ -418,7 +418,7 @@ export namespace PropertyAccess {
         console.log(Selection.structureCount(q2r));
         //console.log(q1(structures[0]));
 
-        const col = models[0].atomSiteConformation.atomId.value;
+        const col = models[0].atomicConformation.atomId.value;
         const suite = new B.Suite();
         suite
             //.add('test q', () => q1(structures[0]))

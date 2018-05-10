@@ -104,6 +104,10 @@ namespace Mat3 {
         return Mat3.copy(Mat3.zero(), a);
     }
 
+    export function setValue(a: Mat3, i: number, j: number, value: number) {
+        a[3 * j + i] = value;
+    }
+
     /**
      * Copy the values from one Mat3 to another
      */

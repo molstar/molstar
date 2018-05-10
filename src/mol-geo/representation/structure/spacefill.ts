@@ -39,7 +39,7 @@ function createSpacefillMesh(unit: Unit, detail: number) {
         if (Unit.isAtomic(unit)) {
             radius = Queries.props.atom.vdw_radius
         } else if (Unit.isSpheres(unit)) {
-            radius = Queries.props.coarse_grained.sphere_radius
+            radius = Queries.props.coarse.sphere_radius
         } else {
             console.warn('Unsupported unit type')
             return meshBuilder.getMesh()

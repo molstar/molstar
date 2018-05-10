@@ -9,10 +9,10 @@ import Format from './format'
 import Sequence from './properties/sequence'
 import { AtomicHierarchy, AtomicConformation } from './properties/atomic'
 import { ModelSymmetry } from './properties/symmetry'
-import { CoarseGrainedHierarchy } from './properties/coarse-grained/hierarchy'
+import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
 import { Entities } from './properties/common';
 
-import from_gro from './formats/gro'
+//import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
 
 /**
@@ -31,11 +31,11 @@ interface Model extends Readonly<{
     entities: Entities,
     sequence: Sequence,
 
-    hierarchy: AtomicHierarchy,
-    atomSiteConformation: AtomicConformation,
-    coarseGrained: CoarseGrainedHierarchy,
+    atomicHierarchy: AtomicHierarchy,
+    atomicConformation: AtomicConformation,
 
-    atomCount: number,
+    coarseHierarchy: CoarseHierarchy,
+    coarseConformation: CoarseConformation
 }> {
 
 } { }
@@ -43,22 +43,10 @@ interface Model extends Readonly<{
 namespace Model {
     export function create(format: Format) {
         switch (format.kind) {
-            case 'gro': return from_gro(format);
+            //case 'gro': return from_gro(format);
             case 'mmCIF': return from_mmCIF(format);
         }
     }
-    // export function spatialLookup(model: Model): GridLookup {
-    //     if (model['@spatialLookup']) return model['@spatialLookup']!;
-    //     const lookup = GridLookup(model.conformation);
-    //     model['@spatialLookup'] = lookup;
-    //     return lookup;
-    // }
-    // export function bonds(model: Model): Bonds {
-    //     if (model['@bonds']) return model['@bonds']!;
-    //     const bonds = computeBonds(model);
-    //     model['@bonds'] = bonds;
-    //     return bonds;
-    // }
 }
 
 export default Model

@@ -18,11 +18,11 @@ function createChainIdMap(unit: Unit) {
     let count: number
     let asym_id: Column<string>
     if (Unit.isAtomic(unit)) {
-        asym_id = unit.model.hierarchy.chains.label_asym_id
-        count = unit.model.hierarchy.chains._rowCount
+        asym_id = unit.model.atomicHierarchy.chains.label_asym_id
+        count = unit.model.atomicHierarchy.chains._rowCount
     } else if (Unit.isCoarse(unit)) {
-        asym_id = unit.sites.asym_id
-        count = unit.sites.count
+        asym_id = unit.coarseElements.asym_id
+        count = unit.coarseElements.count
     } else {
         console.warn('Unknown unit type')
         return { map, count: index }
@@ -51,7 +51,7 @@ export function chainIdColorData(props: StructureColorDataProps) {
     if (Unit.isAtomic(unit)) {
         asym_id = Queries.props.chain.label_asym_id
     } else if (Unit.isCoarse(unit)) {
-        asym_id = Queries.props.coarse_grained.asym_id
+        asym_id = Queries.props.coarse.asym_id
     }
 
     const l = Element.Location()

@@ -109,11 +109,11 @@ function computePerAtomBonds(atomA: number[], atomB: number[], _order: number[],
 function _computeBonds(unit: Unit.Atomic, params: BondComputationParameters): IntraUnitBonds {
     const MAX_RADIUS = 3;
 
-    const { x, y, z } = unit.model.atomSiteConformation;
+    const { x, y, z } = unit.model.atomicConformation;
     const atomCount = unit.elements.length;
     const { elements: atoms, residueIndex } = unit;
-    const { type_symbol, label_atom_id, label_alt_id } = unit.model.hierarchy.atoms;
-    const { label_comp_id } = unit.model.hierarchy.residues;
+    const { type_symbol, label_atom_id, label_alt_id } = unit.model.atomicHierarchy.atoms;
+    const { label_comp_id } = unit.model.atomicHierarchy.residues;
     const query3d = unit.lookup3d;
 
     const structConn = unit.model.sourceData.kind === 'mmCIF' ? StructConn.create(unit.model) : void 0

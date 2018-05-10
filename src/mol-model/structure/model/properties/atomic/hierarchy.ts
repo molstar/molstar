@@ -8,7 +8,6 @@ import { Column, Table } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import { ElementSymbol} from '../../types'
-import { Keys } from '../common';
 
 export const AtomsSchema = {
     type_symbol: Column.Schema.Aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
@@ -52,9 +51,21 @@ export interface AtomicSegments {
     chainSegments: Segmentation
 }
 
-export interface AtomicKeys extends Keys {
+export interface AtomicKeys {
+    // indicate whether the keys form an increasing sequence and within each chain, sequence numbers
+    // are in increasing order.
+    // monotonous sequences enable for example faster secondary structure assignment.
+    isMonotonous: boolean,
+
     // assign a key to each residue index.
-    residueKey: Column<number>,
+    residueKey: ArrayLike<number>,
+    // assign a key to each chain index
+    chainKey: ArrayLike<number>,
+    // assigne a key to each chain index
+    // also index to the Entities table.
+    entityKey: ArrayLike<number>,
+
+    findChainKey(entityId: string, label_asym_id: string): number
     findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }
 

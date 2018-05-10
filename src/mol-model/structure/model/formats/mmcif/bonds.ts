@@ -118,7 +118,7 @@ export namespace StructConn {
         const _p = (row: number, ps: typeof p1) => {
             if (ps.label_asym_id.valueKind(row) !== Column.ValueKind.Present) return void 0;
             const asymId = ps.label_asym_id.value(row)
-            const residueIndex = model.hierarchy.findResidueKey(
+            const residueIndex = model.atomicHierarchy.findResidueKey(
                 findEntityIdByAsymId(model, asymId),
                 ps.label_comp_id.value(row),
                 asymId,

@@ -7,10 +7,10 @@
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
 import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
-import { CoarseGrainedHierarchy } from '../model/properties/coarse-grained/hierarchy';
 import { SortedArray } from 'mol-data/int';
 import { idFactory } from 'mol-util/id-factory';
 import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
+import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -26,9 +26,9 @@ namespace Unit {
 
     export function create(id: number, kind: Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomSiteConformation));
-            case Kind.Spheres: return createCoarse(id, unitIdFactory(), model, Kind.Spheres, model.coarseGrained.spheres, elements, SymmetryOperator.createMapping(operator, model.atomSiteConformation));
-            case Kind.Gaussians: return createCoarse(id, unitIdFactory(), model, Kind.Gaussians, model.coarseGrained.gaussians, elements, SymmetryOperator.createMapping(operator, model.atomSiteConformation));
+            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation));
+            case Kind.Spheres: return createCoarse(id, unitIdFactory(), model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres));
+            case Kind.Gaussians: return createCoarse(id, unitIdFactory(), model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians));
         }
     }
 
@@ -78,13 +78,13 @@ namespace Unit {
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomSiteConformation));
+            return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation));
         }
 
         private _lookup3d?: Lookup3D = void 0;
         get lookup3d() {
             if (this._lookup3d) return this._lookup3d;
-            const { x, y, z } = this.model.atomSiteConformation;
+            const { x, y, z } = this.model.atomicConformation;
             this._lookup3d = GridLookup3D({ x, y, z, indices: this.elements });
             return this._lookup3d;
         }
@@ -103,62 +103,64 @@ namespace Unit {
             this.elements = elements;
             this.conformation = conformation;
 
-            this.residueIndex = model.hierarchy.residueSegments.segmentMap;
-            this.chainIndex = model.hierarchy.chainSegments.segmentMap;
+            this.residueIndex = model.atomicHierarchy.residueSegments.segmentMap;
+            this.chainIndex = model.atomicHierarchy.chainSegments.segmentMap;
         }
     }
 
-    // Coarse grained representations.
-    export interface CoarseBase<S extends CoarseGrainedHierarchy.SitesBase> extends Base  {
-        readonly sites: S
-    }
-
-    class Coarse<S extends CoarseGrainedHierarchy.SitesBase> implements CoarseBase<S> {
-        readonly kind: Kind;
+    class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {
+        readonly kind: K;
 
         readonly id: number;
         readonly invariantId: number;
         readonly elements: SortedArray;
         readonly model: Model;
         readonly conformation: SymmetryOperator.ArrayMapping;
-        readonly sites: S;
+
+        readonly coarseElements: CoarseElements;
+        readonly coarseConformation: C;
 
         getChild(elements: SortedArray): Unit {
             if (elements.length === this.elements.length) return this as any as Unit /** lets call this an ugly temporary hack */;
-            return createCoarse(this.id, this.invariantId, this.model, this.kind, this.sites, elements, this.conformation);
+            return createCoarse(this.id, this.invariantId, this.model, this.kind, elements, this.conformation);
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            return createCoarse(id, this.invariantId, this.model, this.kind, this.sites, this.elements, SymmetryOperator.createMapping(op, this.sites));
+            return createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements()));
         }
 
         private _lookup3d?: Lookup3D = void 0;
         get lookup3d() {
             if (this._lookup3d) return this._lookup3d;
-            const { x, y, z } = this.sites;
-            // TODO: support sphere radius
+            const { x, y, z } = this.getCoarseElements();
+            // TODO: support sphere radius?
             this._lookup3d = GridLookup3D({ x, y, z, indices: this.elements });
             return this._lookup3d;
         }
 
-        constructor(id: number, invariantId: number, model: Model, kind: Kind, sites: S, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping) {
+        private getCoarseElements() {
+            return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
+        }
+
+        constructor(id: number, invariantId: number, model: Model, kind: K, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping) {
             this.kind = kind;
             this.id = id;
             this.invariantId = invariantId;
             this.model = model;
             this.elements = elements;
             this.conformation = conformation;
-            this.sites = sites;
+            this.coarseElements = kind === Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
+            this.coarseConformation = (kind === Kind.Spheres ? model.coarseConformation.spheres : model.coarseConformation.gaussians) as C;
         }
     }
 
-    function createCoarse<S extends CoarseGrainedHierarchy.SitesBase>(id: number, invariantId: number, model: Model, kind: Kind, sites: S, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping): Unit {
-        return new Coarse(id, invariantId, model, kind, sites, elements, conformation) as any as Unit /** lets call this an ugly temporary hack */;
+    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, model: Model, kind: K, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping): Unit {
+        return new Coarse(id, invariantId, model, kind, elements, conformation) as any as Unit /** lets call this an ugly temporary hack */;
     }
 
-    export interface Spheres extends CoarseBase<CoarseGrainedHierarchy.Spheres> { kind: Kind.Spheres }
-    export interface Gaussians extends CoarseBase<CoarseGrainedHierarchy.Gaussians> { kind: Kind.Gaussians }
+    export class Spheres extends Coarse<Kind.Spheres, CoarseSphereConformation> { }
+    export class Gaussians extends Coarse<Kind.Gaussians, CoarseGaussianConformation> { }
 }
 
 export default Unit;

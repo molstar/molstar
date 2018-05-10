@@ -96,7 +96,7 @@ const atom_site: Encoder.CategoryDefinition<Element.Location> = {
         str('auth_asym_id', P.chain.auth_asym_id),
 
         int('pdbx_PDB_model_num', P.unit.model_num),
-        str('pdbx_operator_name', P.unit.operator_name)
+        str('operator_name', P.unit.operator_name)
     ]
 };
 

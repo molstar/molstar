@@ -80,8 +80,8 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             const elements = unit.elements;
 
             builder.beginUnit(unit.id);
-            const chainsIt = Segmentation.transientSegments(unit.model.hierarchy.chainSegments, elements);
-            const residuesIt = Segmentation.transientSegments(unit.model.hierarchy.residueSegments, elements);
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainSegments, elements);
+            const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
                 l.element = OrderedSet.getAt(elements, chainSegment.start);
@@ -174,8 +174,8 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
             l.unit = unit;
             const elements = unit.elements;
 
-            const chainsIt = Segmentation.transientSegments(unit.model.hierarchy.chainSegments, elements);
-            const residuesIt = Segmentation.transientSegments(unit.model.hierarchy.residueSegments, elements);
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainSegments, elements);
+            const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
                 l.element = OrderedSet.getAt(elements, chainSegment.start);

@@ -17,7 +17,7 @@ export function elementSizeData(props: StructureSizeDataProps) {
     if (Unit.isAtomic(unit)) {
         radius = Queries.props.atom.vdw_radius
     } else if (Unit.isSpheres(unit)) {
-        radius = Queries.props.coarse_grained.sphere_radius
+        radius = Queries.props.coarse.sphere_radius
     }
     const l = Element.Location()
     l.unit = unit

@@ -4,23 +4,23 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import UUID from 'mol-util/uuid'
-import { Column, Table } from 'mol-data/db'
-import { Interval, Segmentation } from 'mol-data/int'
-import Format from '../format'
-import Model from '../model'
-import { AtomsSchema, ResiduesSchema, ChainsSchema, AtomicData, AtomicSegments, AtomicConformation } from '../properties/atomic'
-import { ModelSymmetry } from '../properties/symmetry'
-import findHierarchyKeys from '../utils/hierarchy-keys'
-import { ElementSymbol} from '../types'
-import createAssemblies from './mmcif/assembly'
-
-import mmCIF_Format = Format.mmCIF
-import { getSequence } from './mmcif/sequence';
-import { Entities } from '../properties/common';
-import { coarseGrainedFromIHM } from './mmcif/ihm';
+import { Column, Table } from 'mol-data/db';
+import { Interval, Segmentation } from 'mol-data/int';
 import { Spacegroup, SpacegroupCell } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
+import UUID from 'mol-util/uuid';
+import Format from '../format';
+import Model from '../model';
+import { AtomicConformation, AtomicData, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../properties/atomic';
+import { Entities } from '../properties/common';
+import { ModelSymmetry } from '../properties/symmetry';
+import { getAtomicKeys } from '../properties/utils/atomic-keys';
+import { ElementSymbol } from '../types';
+import { createAssemblies } from './mmcif/assembly';
+import { getIHMCoarse } from './mmcif/ihm';
+import { getSequence } from './mmcif/sequence';
+
+import mmCIF_Format = Format.mmCIF
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -120,10 +120,10 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
     const hierarchyOffsets = findHierarchyOffsets(format, bounds);
     const hierarchyData = createHierarchyData(format, bounds, hierarchyOffsets);
 
-    if (previous && isHierarchyDataEqual(previous.hierarchy, hierarchyData)) {
+    if (previous && isHierarchyDataEqual(previous.atomicHierarchy, hierarchyData)) {
         return {
             ...previous,
-            atomSiteConformation: getConformation(format, bounds)
+            atomicConformation: getConformation(format, bounds)
         };
     }
 
@@ -134,21 +134,23 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
 
     const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
 
-    const hierarchyKeys = findHierarchyKeys(hierarchyData, entities, hierarchySegments);
+    const hierarchyKeys = getAtomicKeys(hierarchyData, entities, hierarchySegments);
 
-    const hierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
+    const atomicHierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
+
+    const coarse = getIHMCoarse(format.data, entities);
 
     return {
         id: UUID.create(),
         sourceData: format,
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         entities,
-        hierarchy,
-        sequence: getSequence(format.data, entities, hierarchy),
-        atomSiteConformation: getConformation(format, bounds),
-        coarseGrained: coarseGrainedFromIHM(format.data, entities),
-        symmetry: getSymmetry(format),
-        atomCount: Interval.size(bounds)
+        atomicHierarchy,
+        sequence: getSequence(format.data, entities, atomicHierarchy),
+        atomicConformation: getConformation(format, bounds),
+        coarseHierarchy: coarse.hierarchy,
+        coarseConformation: coarse.conformation,
+        symmetry: getSymmetry(format)
     };
 }
 

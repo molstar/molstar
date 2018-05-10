@@ -30,7 +30,7 @@ async function readPdbFile(path: string) {
 }
 
 export function atomLabel(model: Model, aI: number) {
-    const { atoms, residues, chains, residueSegments, chainSegments } = model.hierarchy
+    const { atoms, residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
     const { label_atom_id } = atoms
     const { label_comp_id, label_seq_id } = residues
     const { label_asym_id } = chains
@@ -92,10 +92,10 @@ export function printUnits(structure: Structure) {
         } else if (Unit.isCoarse(l.unit)) {
             console.log(`Coarse unit ${unit.id} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
-            const props = Queries.props.coarse_grained;
+            const props = Queries.props.coarse;
             const seq = l.unit.model.sequence;
 
-            for (let j = 0, _j = Math.min(size, 10); j < _j; j++) {
+            for (let j = 0, _j = Math.min(size, 3); j < _j; j++) {
                 l.element = OrderedSet.getAt(elements, j);
 
                 const residues: string[] = [];
@@ -104,16 +104,16 @@ export function printUnits(structure: Structure) {
                 for (let e = start; e <= end; e++) residues.push(compId(e));
                 console.log(`${props.asym_id(l)}:${start}-${end} (${residues.join('-')}) ${props.asym_id(l)} [${props.x(l).toFixed(2)}, ${props.y(l).toFixed(2)}, ${props.z(l).toFixed(2)}]`);
             }
-            if (size > 10) console.log(`...`);
+            if (size > 3) console.log(`...`);
         }
     }
 }
 
 
 export function printIHMModels(model: Model) {
-    if (!model.coarseGrained.isDefined) return false;
+    if (!model.coarseHierarchy.isDefined) return false;
     console.log('IHM Models\n=============');
-    console.log(Table.formatToString(model.coarseGrained.modelList));
+    console.log(Table.formatToString(model.coarseHierarchy.models));
 }
 
 async function run(mmcif: mmCIF_Database) {

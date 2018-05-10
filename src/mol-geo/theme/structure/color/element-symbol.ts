@@ -23,7 +23,7 @@ export function elementSymbolColor(element: ElementSymbol): Color {
 
 export function elementSymbolColorData(props: StructureColorDataProps) {
     const { group: { units, elements }, vertexMap } = props
-    const { type_symbol } = units[0].model.hierarchy.atoms
+    const { type_symbol } = units[0].model.atomicHierarchy.atoms
     return createAttributeOrElementColor(vertexMap, {
         colorFn: (elementIdx: number) => {
             const e = elements[elementIdx]
