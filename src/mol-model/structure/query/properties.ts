@@ -52,7 +52,11 @@ const residue = {
     auth_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
     label_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])),
     auth_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
-    pdbx_PDB_ins_code: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element]))
+    pdbx_PDB_ins_code: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),
+
+    // Properties
+    secondary_structure_type: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.type[l.unit.residueIndex[l.element]]),
+    secondary_structure_key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.key[l.unit.residueIndex[l.element]]),
 }
 
 const chain = {

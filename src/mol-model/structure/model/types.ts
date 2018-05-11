@@ -94,6 +94,7 @@ export namespace SecondaryStructureType {
     export const Turn = ['s', 't', 'l', '']
 
     export const is: (ss: SecondaryStructureType, f: Flag) => boolean = BitFlags.has
+    export const create: (fs: Flag) => SecondaryStructureType = BitFlags.create
 
     export const enum Flag {
         None = 0x0,

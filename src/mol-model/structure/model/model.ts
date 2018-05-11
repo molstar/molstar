@@ -11,6 +11,7 @@ import { AtomicHierarchy, AtomicConformation } from './properties/atomic'
 import { ModelSymmetry } from './properties/symmetry'
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
 import { Entities } from './properties/common';
+import { SecondaryStructure } from './properties/seconday-structure';
 
 //import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
@@ -33,6 +34,8 @@ interface Model extends Readonly<{
 
     atomicHierarchy: AtomicHierarchy,
     atomicConformation: AtomicConformation,
+
+    properties: { secondaryStructure: SecondaryStructure },
 
     coarseHierarchy: CoarseHierarchy,
     coarseConformation: CoarseConformation

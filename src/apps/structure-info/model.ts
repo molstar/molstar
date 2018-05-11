@@ -16,6 +16,8 @@ import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { openCif, downloadCif } from './helpers';
+import { BitFlags } from 'mol-util';
+import { SecondaryStructureType } from 'mol-model/structure/model/types';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -39,6 +41,35 @@ export function atomLabel(model: Model, aI: number) {
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`
 }
 
+export function residueLabel(model: Model, rI: number) {
+    const { residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
+    const { label_comp_id, label_seq_id } = residues
+    const { label_asym_id } = chains
+    const cI = chainSegments.segmentMap[residueSegments.segments[rI]]
+    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
+}
+
+export function printSecStructure(model: Model) {
+    console.log('Secondary Structure\n=============');
+    const { residues } = model.atomicHierarchy;
+    const { type, key } = model.properties.secondaryStructure;
+
+    const count = residues._rowCount;
+    let rI = 0;
+    while (rI < count) {
+        let start = rI;
+        while (rI < count && key[start] === key[rI]) rI++;
+        rI--;
+
+        if (BitFlags.has(type[start], SecondaryStructureType.Flag.Beta)) {
+            console.log(`Sheet: ${residueLabel(model, start)} - ${residueLabel(model, rI)} (key ${key[start]})`);
+        } else if (BitFlags.has(type[start], SecondaryStructureType.Flag.Helix)) {
+            console.log(`Helix: ${residueLabel(model, start)} - ${residueLabel(model, rI)} (key ${key[start]})`);
+        }
+
+        rI++;
+    }
+}
 
 export function printBonds(structure: Structure) {
     for (const unit of structure.units) {
@@ -122,7 +153,8 @@ async function run(mmcif: mmCIF_Database) {
     printSequence(models[0]);
     printIHMModels(models[0]);
     printUnits(structure);
-    printBonds(structure);
+    // printBonds(structure);
+    printSecStructure(models[0]);
 }
 
 async function runDL(pdb: string) {

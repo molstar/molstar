@@ -22,6 +22,7 @@ import { getSequence } from './mmcif/sequence';
 
 import mmCIF_Format = Format.mmCIF
 import { Task } from 'mol-task';
+import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -151,6 +152,9 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         atomicConformation: getConformation(format, bounds),
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
+        properties: {
+            secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy)
+        },
         symmetry: getSymmetry(format)
     };
 }

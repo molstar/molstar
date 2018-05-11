@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-interface BitFlags<Flags> { '@type': Flags }
+interface BitFlags<Flags> extends Number { '@type': Flags }
 
 namespace BitFlags {
     export function create<F>(flags: F): BitFlags<F> { return flags as any; }
