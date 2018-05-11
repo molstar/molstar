@@ -16,11 +16,10 @@ import Viewer from 'mol-view/viewer'
 import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spacefill'
 import Point, { PointProps } from 'mol-geo/representation/structure/point'
 
-import { Run } from 'mol-task'
 import { StructureSymmetry, Structure, Model } from 'mol-model/structure'
 
 // import mcubes from './utils/mcubes'
-import { getModelFromPdbId, getModelFromFile, log, Volume, getVolumeFromEmdId } from './utils'
+import { getModelFromPdbId, getModelFromFile, runTask, Volume, getVolumeFromEmdId } from './utils'
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { Color } from 'mol-util/color';
 import Surface, { SurfaceProps } from 'mol-geo/representation/volume/surface';
@@ -110,7 +109,7 @@ export default class State {
         let structure: Structure
         const assemblies = model.symmetry.assemblies
         if (assemblies.length) {
-            structure = await Run(StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly || '1'), log, 500)
+            structure = await runTask(StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly || '1'));
         } else {
             structure = Structure.ofModel(model)
         }
@@ -128,11 +127,11 @@ export default class State {
         if (!structure) return
 
         this.pointRepr = StructureRepresentation(Point)
-        await Run(this.pointRepr.create(structure, this.getPointProps()), log, 500)
+        await runTask(this.pointRepr.create(structure, this.getPointProps()))
         viewer.add(this.pointRepr)
 
         this.spacefillRepr = StructureRepresentation(Spacefill)
-        await Run(this.spacefillRepr.create(structure, this.getSpacefillProps()), log, 500)
+        await runTask(this.spacefillRepr.create(structure, this.getSpacefillProps()))
         viewer.add(this.spacefillRepr)
 
         this.updateVisibility()
@@ -160,13 +159,13 @@ export default class State {
         if (this.surfaceRepr) this.viewer.remove(this.surfaceRepr)
 
         this.surfaceRepr = VolumeRepresentation(Surface)
-        await Run(this.surfaceRepr.create(v.volume, {
+        await runTask(this.surfaceRepr.create(v.volume, {
             isoValue: VolumeIsoValue.relative(v.volume.dataStats, 3.0),
             alpha: 0.5,
             flatShaded: false,
             flipSided: true,
             doubleSided: true
-        }), log, 500)
+        }))
         viewer.add(this.surfaceRepr)
 
         viewer.requestDraw()
@@ -197,8 +196,8 @@ export default class State {
 
     async update () {
         if (!this.spacefillRepr) return
-        await Run(this.spacefillRepr.update(this.getSpacefillProps()), log, 500)
-        await Run(this.pointRepr.update(this.getPointProps()), log, 500)
+        await runTask(this.spacefillRepr.update(this.getSpacefillProps()))
+        await runTask(this.pointRepr.update(this.getPointProps()))
         this.viewer.add(this.spacefillRepr)
         this.viewer.add(this.pointRepr)
         this.viewer.update()

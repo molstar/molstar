@@ -29,8 +29,7 @@ export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentat
         create(volumeData: VolumeData, props: P = {} as P) {
             return Task.create('VolumeRepresentation.create', async ctx => {
                 const repr = reprCtor()
-                await ctx.update({ message: 'Building volume representation...', current: 0, max: 1 });
-                await ctx.runChild(repr.create(volumeData, props));
+                await repr.create(volumeData, props).runAsChild(ctx, { message: 'Building volume representation...', current: 0, max: 1 });
                 renderObjects.push(...repr.renderObjects)
             });
         },

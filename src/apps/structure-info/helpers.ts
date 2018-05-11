@@ -10,7 +10,7 @@ import fetch from 'node-fetch'
 require('util.promisify').shim();
 
 import CIF from 'mol-io/reader/cif'
-import { Run, Progress } from 'mol-task'
+import { Progress } from 'mol-task'
 
 const readFileAsync = util.promisify(fs.readFile);
 
@@ -27,7 +27,7 @@ async function readFile(path: string) {
 
 async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data);
-    const parsed = await Run(comp, p => console.log(Progress.format(p)), 250);
+    const parsed = await comp.run(p => console.log(Progress.format(p)), 250);
     if (parsed.isError) throw parsed;
     return parsed.result;
 }

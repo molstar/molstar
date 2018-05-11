@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Run } from 'mol-task'
 import { computeMarchingCubes } from 'mol-geo/util/marching-cubes/algorithm'
 import { Mesh } from 'mol-geo/shape/mesh'
 import { Tensor, Mat4, Vec3 } from 'mol-math/linear-algebra'
@@ -38,11 +37,11 @@ export default async function computeSurface(f: (x: number, y: number, z: number
     const min = Vec3.create(-1.1, -1.1, -1.1), max = Vec3.create(1.1, 1.1, 1.1);
 
     fillField(field, f, min, max);
-    const surface = await Run(computeMarchingCubes({
+    const surface = await computeMarchingCubes({
         scalarField: field,
         isoLevel: 0,
         oldSurface: data ? data.surface : void 0
-    }));
+    }).run();
 
     const translation = Mat4.fromTranslation(Mat4.zero(), min);
     const grid = Vec3.zero();

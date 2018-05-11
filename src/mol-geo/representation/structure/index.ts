@@ -42,7 +42,7 @@ export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P
                     const group = groups[i];
                     const repr = reprCtor()
                     groupReprs.push({ repr, group })
-                    await ctx.runChild(repr.create(group, props), { message: 'Building structure unit representations...', current: i, max: groups.length });
+                    await repr.create(group, props).runAsChild(ctx, { message: 'Building structure unit representations...', current: i, max: groups.length });
                     renderObjects.push(...repr.renderObjects)
                 }
             });
@@ -55,8 +55,8 @@ export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P
                     const groupRepr = groupReprs[i]
                     const { repr, group } = groupRepr
                     const state = { message: 'Updating structure unit representations...', current: i, max: il };
-                    if (!await ctx.runChild(repr.update(props), state)) {
-                        await ctx.runChild(repr.create(group, props), state)
+                    if (!await repr.update(props).runAsChild(ctx, state)) {
+                        await repr.create(group, props).runAsChild(ctx, state)
                     }
                     renderObjects.push(...repr.renderObjects)
                 }

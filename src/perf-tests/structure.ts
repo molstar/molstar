@@ -15,7 +15,6 @@ import { Structure, Model, Queries as Q, Element, Selection, StructureSymmetry, 
 //import { Segmentation, OrderedSet } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
-import { Run } from 'mol-task';
 import { Vec3 } from 'mol-math/linear-algebra';
 //import { EquivalenceClasses } from 'mol-data/util';
 
@@ -62,7 +61,7 @@ export async function readCIF(path: string) {
 
     console.time('parse');
     const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
-    const parsed = await Run(comp);
+    const parsed = await comp.run();
     console.timeEnd('parse');
     if (parsed.isError) {
         throw parsed;
@@ -74,7 +73,7 @@ export async function readCIF(path: string) {
 
     console.timeEnd('schema')
     console.time('buildModels')
-    const models = await Run(Model.create({ kind: 'mmCIF', data: mmcif }));
+    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
     console.timeEnd('buildModels')
     const structures = models.map(Structure.ofModel);
 
@@ -292,7 +291,7 @@ export namespace PropertyAccess {
 
     export async function testAssembly(id: string, s: Structure) {
         console.time('assembly')
-        const a = await Run(StructureSymmetry.buildAssembly(s, '1'));
+        const a = await StructureSymmetry.buildAssembly(s, '1').run();
         //const auth_comp_id = Q.props.residue.auth_comp_id;
         //const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
         //const alas = await query(q1, a);
@@ -305,7 +304,7 @@ export namespace PropertyAccess {
 
     export async function testSymmetry(id: string, s: Structure) {
         console.time('symmetry')
-        const a = await Run(StructureSymmetry.buildSymmetryRange(s, Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1)));
+        const a = await StructureSymmetry.buildSymmetryRange(s, Vec3.create(-1, -1, -1), Vec3.create(1, 1, 1)).run();
         //const auth_comp_id = Q.props.residue.auth_comp_id;
         //const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
         //const alas = await query(q1, a);
@@ -336,7 +335,7 @@ export namespace PropertyAccess {
     // }
 
     function query(q: Query, s: Structure) {
-        return Run((q(s)));
+        return q(s).run();
     }
 
     export async function run() {

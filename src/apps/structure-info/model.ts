@@ -16,7 +16,6 @@ import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { openCif, downloadCif } from './helpers';
-import { Run } from 'mol-task';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -118,7 +117,7 @@ export function printIHMModels(model: Model) {
 }
 
 async function run(mmcif: mmCIF_Database) {
-    const models = await Run(Model.create({ kind: 'mmCIF', data: mmcif }));
+    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
     const structure = Structure.ofModel(models[0]);
     printSequence(models[0]);
     printIHMModels(models[0]);

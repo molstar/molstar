@@ -26,7 +26,7 @@ namespace StructureSymmetry {
             const assembler = Structure.Builder();
 
             for (const g of assembly.operatorGroups) {
-                const selection = await ctx.runChild(g.selector(structure));
+                const selection = await g.selector(structure).runAsChild(ctx);
                 if (Selection.structureCount(selection) === 0) {
                     continue;
                 }

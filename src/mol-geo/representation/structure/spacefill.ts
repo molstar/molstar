@@ -83,8 +83,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                 const { detail, colorTheme, alpha, visible, doubleSided } = { ...DefaultSpacefillProps, ...props }
 
-                await ctx.update('Computing spacefill mesh');
-                const mesh = await ctx.runChild(createSpacefillMesh(group.units[0], detail))
+                const mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
 
                 const vertexMap = VertexMap.fromMesh(mesh)
