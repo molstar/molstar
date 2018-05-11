@@ -21,6 +21,7 @@ import { getIHMCoarse } from './mmcif/ihm';
 import { getSequence } from './mmcif/sequence';
 
 import mmCIF_Format = Format.mmCIF
+import { Task } from 'mol-task';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -154,25 +155,27 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
     };
 }
 
-function buildModels(format: mmCIF_Format): ReadonlyArray<Model> {
-    const atomCount = format.data.atom_site._rowCount;
-    const isIHM = format.data.ihm_model_list._rowCount > 0;
+function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
+    return Task.create('Create mmCIF Model', async ctx => {
+        const atomCount = format.data.atom_site._rowCount;
+        const isIHM = format.data.ihm_model_list._rowCount > 0;
 
-    if (atomCount === 0) {
-        return isIHM
-            ? [createModel(format, Interval.Empty, void 0)]
-            : [];
-    }
+        if (atomCount === 0) {
+            return isIHM
+                ? [createModel(format, Interval.Empty, void 0)]
+                : [];
+        }
 
-    const models: Model[] = [];
-    let modelStart = 0;
-    while (modelStart < atomCount) {
-        const bounds = findModelBounds(format, modelStart);
-        const model = createModel(format, bounds, models.length > 0 ? models[models.length - 1] : void 0);
-        models.push(model);
-        modelStart = Interval.end(bounds);
-    }
-    return models;
+        const models: Model[] = [];
+        let modelStart = 0;
+        while (modelStart < atomCount) {
+            const bounds = findModelBounds(format, modelStart);
+            const model = createModel(format, bounds, models.length > 0 ? models[models.length - 1] : void 0);
+            models.push(model);
+            modelStart = Interval.end(bounds);
+        }
+        return models;
+    });
 }
 
 export default buildModels;

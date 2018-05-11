@@ -74,7 +74,7 @@ export async function readCIF(path: string) {
 
     console.timeEnd('schema')
     console.time('buildModels')
-    const models = Model.create({ kind: 'mmCIF', data: mmcif });
+    const models = await Run(Model.create({ kind: 'mmCIF', data: mmcif }));
     console.timeEnd('buildModels')
     const structures = models.map(Structure.ofModel);
 

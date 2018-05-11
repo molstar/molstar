@@ -178,7 +178,8 @@ export default class State {
         if (this.spacefillRepr) this.viewer.remove(this.spacefillRepr)
         if (this.pdbId.length !== 4) return
         this.loading.next(true)
-        this.setModel((await getModelFromPdbId(this.pdbId))[0])
+        const models = await getModelFromPdbId(this.pdbId);
+        this.setModel(models[0])
     }
 
     setVolume(volume: Volume) {

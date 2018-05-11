@@ -7,7 +7,7 @@
 import { IntMap, SortedArray, Iterator } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
-import { Model, Format } from '../model'
+import { Model } from '../model'
 import { sortArray, sort, arraySwap, hash1 } from 'mol-data/util';
 import Element from './element'
 import Unit from './unit'
@@ -84,11 +84,6 @@ namespace Structure {
     export const Empty = new Structure([]);
 
     export function create(units: ReadonlyArray<Unit>): Structure { return new Structure(units); }
-
-    export function ofData(format: Format) {
-        const models = Model.create(format);
-        return models.map(ofModel);
-    }
 
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainSegments;

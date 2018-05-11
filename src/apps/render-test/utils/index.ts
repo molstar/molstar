@@ -29,7 +29,7 @@ export async function parseCif(data: string|Uint8Array) {
 
 export async function getModelFromPdbId(pdbid: string) {
     const cif = await downloadCif(`https://files.rcsb.org/download/${pdbid}.cif`, false)
-    return Model.create({ kind: 'mmCIF', data: CIF.schema.mmCIF(cif.blocks[0]) })
+    return Run(Model.create({ kind: 'mmCIF', data: CIF.schema.mmCIF(cif.blocks[0]) }))
 }
 
 const readFileAsText = (file: File) => {
@@ -46,7 +46,7 @@ const readFileAsText = (file: File) => {
 
 export async function getModelFromFile(file: File) {
     const cif = await parseCif(await readFileAsText(file))
-    return Model.create({ kind: 'mmCIF', data: CIF.schema.mmCIF(cif.blocks[0]) })
+    return Run(Model.create({ kind: 'mmCIF', data: CIF.schema.mmCIF(cif.blocks[0]) }))
 }
 
 export type Volume = { source: DensityServer_Data_Database, volume: VolumeData }

@@ -34,7 +34,7 @@ export async function readCIF(path: string) {
 
     const data = parsed.result.blocks[0];
     const mmcif = CIF.schema.mmCIF(data);
-    const models = Model.create({ kind: 'mmCIF', data: mmcif });
+    const models = await Run(Model.create({ kind: 'mmCIF', data: mmcif }));
     const structures = models.map(Structure.ofModel);
 
     return { mmcif, models, structures };
