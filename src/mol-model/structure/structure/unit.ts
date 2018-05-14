@@ -11,6 +11,7 @@ import { SortedArray } from 'mol-data/int';
 import { idFactory } from 'mol-util/id-factory';
 import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
+import { ValueRef } from 'mol-util';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -26,7 +27,7 @@ namespace Unit {
 
     export function create(id: number, kind: Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation));
+            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation), AtomicProperties());
             case Kind.Spheres: return createCoarse(id, unitIdFactory(), model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres));
             case Kind.Gaussians: return createCoarse(id, unitIdFactory(), model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians));
         }
@@ -71,32 +72,32 @@ namespace Unit {
         readonly residueIndex: ArrayLike<number>;
         readonly chainIndex: ArrayLike<number>;
 
+        private props: AtomicProperties;
+
         getChild(elements: SortedArray): Unit {
             if (elements.length === this.elements.length) return this;
-            return new Atomic(this.id, this.invariantId, this.model, elements, this.conformation);
+            return new Atomic(this.id, this.invariantId, this.model, elements, this.conformation, AtomicProperties());
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation));
+            return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation), this.props);
         }
 
-        private _lookup3d?: Lookup3D = void 0;
         get lookup3d() {
-            if (this._lookup3d) return this._lookup3d;
+            if (this.props.lookup3d.ref) return this.props.lookup3d.ref;
             const { x, y, z } = this.model.atomicConformation;
-            this._lookup3d = GridLookup3D({ x, y, z, indices: this.elements });
-            return this._lookup3d;
+            this.props.lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements });
+            return this.props.lookup3d.ref;
         }
 
-        private _bonds?: IntraUnitBonds = void 0;
         get bonds() {
-            if (this._bonds) return this._bonds;
-            this._bonds = computeIntraUnitBonds(this);
-            return this._bonds;
+            if (this.props.bonds.ref) return this.props.bonds.ref;
+            this.props.bonds.ref = computeIntraUnitBonds(this);
+            return this.props.bonds.ref;
         }
 
-        constructor(id: number, invariantId: number, model: Model, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping) {
+        constructor(id: number, invariantId: number, model: Model, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
             this.model = model;
@@ -105,7 +106,17 @@ namespace Unit {
 
             this.residueIndex = model.atomicHierarchy.residueSegments.segmentMap;
             this.chainIndex = model.atomicHierarchy.chainSegments.segmentMap;
+            this.props = props;
         }
+    }
+
+    interface AtomicProperties {
+        lookup3d: ValueRef<Lookup3D | undefined>,
+        bonds: ValueRef<IntraUnitBonds | undefined>,
+    }
+
+    function AtomicProperties() {
+        return { lookup3d: ValueRef.create(void 0), bonds: ValueRef.create(void 0) };
     }
 
     class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {
@@ -127,16 +138,18 @@ namespace Unit {
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            return createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements()));
+            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements()));
+            (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
+            return ret;
         }
 
-        private _lookup3d?: Lookup3D = void 0;
+        private _lookup3d: ValueRef<Lookup3D | undefined> = ValueRef.create(void 0);
         get lookup3d() {
-            if (this._lookup3d) return this._lookup3d;
-            const { x, y, z } = this.getCoarseElements();
+            if (this._lookup3d.ref) return this._lookup3d.ref;
             // TODO: support sphere radius?
-            this._lookup3d = GridLookup3D({ x, y, z, indices: this.elements });
-            return this._lookup3d;
+            const { x, y, z } = this.getCoarseElements();
+            this._lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements });
+            return this._lookup3d.ref;
         }
 
         private getCoarseElements() {

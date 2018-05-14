@@ -70,7 +70,6 @@ async function getIncludeSurroundings(ctx: RuntimeContext, source: Structure, st
     const r = params.radius;
 
     let progress = 0;
-
     for (const unit of structure.units) {
         const { x, y, z } = unit.conformation;
         const elements = unit.elements;
@@ -78,19 +77,19 @@ async function getIncludeSurroundings(ctx: RuntimeContext, source: Structure, st
             const e = elements[i];
             lookup.findIntoBuilder(x(e), y(e), z(e), r, builder);
         }
-
         progress++;
         if (progress % 2500 === 0 && ctx.shouldUpdate) await ctx.update({ message: 'Include Surroudnings', isIndeterminate: true });
     }
-    if (!!params.wholeResidues) return getWholeResidues(ctx, source, builder.getStructure())
-    return builder.getStructure();
+    return !!params.wholeResidues ? getWholeResidues(ctx, source, builder.getStructure()) : builder.getStructure();
 }
 
 export function includeSurroundings(query: Query.Provider, params: IncludeSurroundingsParams): Query.Provider {
     return async (structure, ctx) => {
         const inner = await query(structure, ctx);
         if (Selection.isSingleton(inner)) {
-            return Selection.Singletons(structure, await getIncludeSurroundings(ctx, structure, inner.structure, params));
+            const surr = await getIncludeSurroundings(ctx, structure, inner.structure, params);
+            const ret = Selection.Singletons(structure, surr);
+            return ret;
         } else {
             const builder = new UniqueStructuresBuilder(structure);
             for (const s of inner.structures) {

@@ -81,7 +81,13 @@ export class StructureLookup3D implements Lookup3D<Element> {
         return false;
     }
 
-    boundary: { box: Box3D; sphere: Sphere3D; };
+    _boundary: { box: Box3D; sphere: Sphere3D; } | undefined = void 0;
+
+    get boundary() {
+        if (this.boundary) return this._boundary!;
+        this._boundary = computeStructureBoundary(this.structure);
+        return this._boundary!;
+    }
 
     constructor(private structure: Structure) {
         const { units } = structure;
@@ -106,6 +112,5 @@ export class StructureLookup3D implements Lookup3D<Element> {
         }
 
         this.unitLookup = GridLookup3D({ x: xs, y: ys, z: zs, radius, indices: OrderedSet.ofBounds(0, unitCount) });
-        this.boundary = computeStructureBoundary(structure);
     }
 }
