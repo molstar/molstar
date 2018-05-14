@@ -7,8 +7,9 @@
 import Query from './query'
 import Selection from './selection'
 import P from './properties'
-import { Structure, Element, Unit } from '../structure'
+import { Element, Unit } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
+import { LinearGroupingBuilder } from './utils/builders';
 
 export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s);
 
@@ -111,55 +112,6 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
 
         return Selection.Singletons(structure, builder.getStructure());
     };
-}
-
-class LinearGroupingBuilder {
-    private builders: Structure.SubsetBuilder[] = [];
-    private builderMap = new Map<string, Structure.SubsetBuilder>();
-
-    add(key: any, unit: number, element: number) {
-        let b = this.builderMap.get(key);
-        if (!b) {
-            b = this.source.subsetBuilder(true);
-            this.builders[this.builders.length] = b;
-            this.builderMap.set(key, b);
-        }
-        b.addToUnit(unit, element);
-    }
-
-    private allSingletons() {
-        for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            if (this.builders[i].elementCount > 1) return false;
-        }
-        return true;
-    }
-
-    private singletonSelection(): Selection {
-        const builder = this.source.subsetBuilder(true);
-        const loc = Element.Location();
-        for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            this.builders[i].setSingletonLocation(loc);
-            builder.addToUnit(loc.unit.id, loc.element);
-        }
-        return Selection.Singletons(this.source, builder.getStructure());
-    }
-
-    private fullSelection() {
-        const structures: Structure[] = new Array(this.builders.length);
-        for (let i = 0, _i = this.builders.length; i < _i; i++) {
-            structures[i] = this.builders[i].getStructure();
-        }
-        return Selection.Sequence(this.source, structures);
-    }
-
-    getSelection(): Selection {
-        const len = this.builders.length;
-        if (len === 0) return Selection.Empty(this.source);
-        if (this.allSingletons()) return this.singletonSelection();
-        return this.fullSelection();
-    }
-
-    constructor(private source: Structure) { }
 }
 
 function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query.Provider {

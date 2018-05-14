@@ -6,7 +6,7 @@
 
 import { HashSet } from 'mol-data/generic'
 import { Structure } from '../structure'
-import { StructureUtils } from './utils';
+import { structureUnion } from './utils/structure';
 
 // A selection is a pair of a Structure and a sequence of unique AtomSets
 type Selection = Selection.Singletons | Selection.Sequence
@@ -31,7 +31,7 @@ namespace Selection {
     export function unionStructure(sel: Selection): Structure {
         if (isEmpty(sel)) return Structure.Empty;
         if (isSingleton(sel)) return sel.structure;
-        return StructureUtils.union(sel.source, sel.structures);
+        return structureUnion(sel.source, sel.structures);
     }
 
     export interface Builder {
@@ -42,7 +42,7 @@ namespace Selection {
     function getSelection(source: Structure, structures: Structure[], allSingletons: boolean) {
         const len = structures.length;
         if (len === 0) return Empty(source);
-        if (allSingletons) return Singletons(source, StructureUtils.union(source, structures));
+        if (allSingletons) return Singletons(source, structureUnion(source, structures));
         return Sequence(source, structures);
     }
 

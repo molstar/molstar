@@ -181,7 +181,7 @@ namespace Structure {
             this.elementCount += elements.length;
         }
 
-        getStructure(): Structure {
+        private _getStructure(deduplicateElements: boolean): Structure {
             if (this.isEmpty) return Structure.Empty;
 
             const newUnits: Unit[] = [];
@@ -193,7 +193,15 @@ namespace Structure {
                 const id = this.ids[i];
                 const parent = this.parent.unitMap.get(id);
 
-                const unit = this.unitMap.get(id);
+                let unit: ArrayLike<number> = this.unitMap.get(id);
+                let sorted = false;
+
+                if (deduplicateElements) {
+                    if (!this.isSorted) sortArray(unit);
+                    unit = SortedArray.deduplicate(SortedArray.ofSortedArray(this.currentUnit));
+                    sorted = true;
+                }
+
                 const l = unit.length;
 
                 // if the length is the same, just copy the old unit.
@@ -203,7 +211,7 @@ namespace Structure {
                     continue;
                 }
 
-                if (!this.isSorted && l > 1) sortArray(unit);
+                if (!this.isSorted && !sorted && l > 1) sortArray(unit);
 
                 let child = parent.getChild(SortedArray.ofSortedArray(unit));
                 const pivot = symmGroups.add(child.id, child);
@@ -212,6 +220,10 @@ namespace Structure {
             }
 
             return create(newUnits);
+        }
+
+        getStructure(deduplicateElements = false) {
+            return this._getStructure(deduplicateElements);
         }
 
         setSingletonLocation(location: Element.Location) {

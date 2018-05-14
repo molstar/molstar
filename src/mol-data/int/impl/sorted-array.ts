@@ -273,6 +273,22 @@ export function subtract(a: Nums, b: Nums) {
     return ofSortedArray(indices);
 }
 
+export function deduplicate(xs: Nums) {
+    if (xs.length < 2) return xs;
+    let count = 1;
+    for (let i = 0, _i = xs.length - 1; i < _i; i++) {
+        if (xs[i] !== xs[i + 1]) count++;
+    }
+    if (count === xs.length) return xs;
+    const ret = new Int32Array(count);
+    let o = 0;
+    for (let i = 0, _i = xs.length - 1; i < _i; i++) {
+        if (xs[i] !== xs[i + 1]) ret[o++] = xs[i];
+    }
+    ret[o] = xs[xs.length - 1];
+    return ret;
+}
+
 const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };
 // for small sets, just gets the whole range, for large sets does a bunch of binary searches
 function getSuitableIntersectionRange(a: Nums, b: Nums) {

@@ -40,6 +40,8 @@ namespace SortedArray {
     export const findPredecessorIndex: (array: SortedArray, x: number) => number = Impl.findPredecessorIndex as any;
     export const findPredecessorIndexInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
     export const findRange: (array: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
+
+    export const deduplicate: (arrat: SortedArray) => SortedArray = Impl.deduplicate as any;
 }
 
 interface SortedArray extends ArrayLike<number> { '@type': 'int-sorted-array' }

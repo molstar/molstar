@@ -16,6 +16,11 @@ describe('sortedArray', () => {
         it(name, () => expect(a).toEqual(b));
     }
 
+    function compareArrays(a: ArrayLike<number>, b: ArrayLike<number>) {
+        expect(a.length).toBe(b.length);
+        for (let i = 0; i < a.length; i++) expect(a[i]).toBe(b[i]);
+    }
+
     const a1234 = SortedArray.ofSortedArray([1, 2, 3, 4]);
     const a2468 = SortedArray.ofSortedArray([2, 4, 6, 8]);
 
@@ -47,6 +52,12 @@ describe('sortedArray', () => {
     test('predIndexInt', SortedArray.findPredecessorIndexInInterval(a1234, 0, Interval.ofRange(2, 3)), 2);
 
     testI('findRange', SortedArray.findRange(a2468, 2, 4), Interval.ofRange(0, 1));
+
+    it('deduplicate', () => {
+        compareArrays(SortedArray.deduplicate(SortedArray.ofSortedArray([1, 1, 1, 1])), [1]);
+        compareArrays(SortedArray.deduplicate(SortedArray.ofSortedArray([1, 1, 2, 2, 3, 4])), [1, 2, 3, 4]);
+        compareArrays(SortedArray.deduplicate(SortedArray.ofSortedArray([1, 2, 3])), [1, 2, 3]);
+    });
 
     // console.log(Interval.findPredecessorIndexInInterval(Interval.ofBounds(0, 3), 2, Interval.ofBounds(0, 3)))
     // console.log(SortedArray.findPredecessorIndexInInterval(SortedArray.ofSortedArray([0, 1, 2]), 2, Interval.ofBounds(0, 3)))
