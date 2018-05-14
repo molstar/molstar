@@ -21,6 +21,10 @@ export function ExecuteObservable<T>(task: Task<T>, observer: Progress.Observer,
     return execute(task as ExposedTask<T>, ctx);
 }
 
+export function ExecuteInContext<T>(ctx: RuntimeContext, task: Task<T>) {
+    return execute(task as ExposedTask<T>, ctx as ObservableRuntimeContext);
+}
+
 export function ExecuteObservableChild<T>(ctx: RuntimeContext, task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>) {
     return (ctx as ObservableRuntimeContext).runChild(task, progress);
 }

@@ -6,7 +6,7 @@
 
 import { RuntimeContext } from './execution/runtime-context'
 import { Progress } from './execution/progress'
-import { ExecuteObservable, ExecuteObservableChild } from './execution/observable';
+import { ExecuteObservable, ExecuteObservableChild, ExecuteInContext } from './execution/observable';
 import { SyncRuntimeContext } from 'mol-task/execution/synchronous';
 
 // A "named function wrapper" with built in "computation tree progress tracking".
@@ -20,6 +20,9 @@ interface Task<T> {
     // Run a child task that adds a new node to the progress tree.
     // Allow to pass the progress so that the progress tree can be kept in a "good state" without having to separately call update.
     runAsChild(ctx: RuntimeContext, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T>
+
+    // Run the task on the specified context.
+    runInContext(ctx: RuntimeContext): Promise<T>
 
     readonly id: number,
     readonly name: string
@@ -37,6 +40,11 @@ namespace Task {
         runAsChild(ctx: RuntimeContext, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T> {
             if (ctx.isSynchronous) return this.f(SyncRuntimeContext);
             return ExecuteObservableChild(ctx, this, progress as string | Partial<RuntimeContext.ProgressUpdate>);
+        }
+
+        runInContext(ctx: RuntimeContext): Promise<T> {
+            if (ctx.isSynchronous) return this.f(SyncRuntimeContext);
+            return ExecuteInContext(ctx, this);
         }
 
         constructor(public name: string, public f: (ctx: RuntimeContext) => Promise<T>, public onAbort?: () => void) {
