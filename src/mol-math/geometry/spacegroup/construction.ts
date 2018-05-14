@@ -87,8 +87,6 @@ namespace Spacegroup {
 
     export function getSymmetryOperator(spacegroup: Spacegroup, index: number, i: number, j: number, k: number): SymmetryOperator {
         const operator = updateOperatorMatrix(spacegroup, index, i, j, k, Mat4.zero());
-        console.log(Mat4.makeTable(operator));
-        console.log({ index, i, j, k });
         return SymmetryOperator.create(`${index + 1}_${5 + i}${5 + j}${5 + k}`, operator, Vec3.create(i, j, k));
     }
 

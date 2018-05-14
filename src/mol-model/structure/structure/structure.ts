@@ -8,12 +8,12 @@ import { IntMap, SortedArray, Iterator } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
-import { sortArray, sort, arraySwap, hash1 } from 'mol-data/util';
+import { sort, arraySwap, hash1 } from 'mol-data/util';
 import Element from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
-import StructureSymmetry from './symmetry';
 import { CoarseElements } from '../model/properties/coarse';
+import { StructureSubsetBuilder } from './util/subset-builder';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -23,7 +23,7 @@ class Structure {
     private _hashCode = 0;
 
     subsetBuilder(isSorted: boolean) {
-        return new Structure.SubsetBuilder(this, isSorted);
+        return new StructureSubsetBuilder(this, isSorted);
     }
 
     get hashCode() {
@@ -55,7 +55,7 @@ class Structure {
     private _lookup3d?: StructureLookup3D = void 0;
     get lookup3d() {
         if (this._lookup3d) return this._lookup3d;
-        this._lookup3d = StructureLookup3D.create(this);
+        this._lookup3d = new StructureLookup3D(this);
         return this._lookup3d;
     }
 
@@ -141,106 +141,6 @@ namespace Structure {
 
     export function Builder() { return new StructureBuilder(); }
 
-    export class SubsetBuilder {
-        private ids: number[] = [];
-        private unitMap = IntMap.Mutable<number[]>();
-        private parentId = -1;
-        private currentUnit: number[] = [];
-        elementCount = 0;
-
-        addToUnit(parentId: number, e: number) {
-            const unit = this.unitMap.get(parentId);
-            if (!!unit) { unit[unit.length] = e; }
-            else {
-                this.unitMap.set(parentId, [e]);
-                this.ids[this.ids.length] = parentId;
-            }
-            this.elementCount++;
-        }
-
-        beginUnit(parentId: number) {
-            this.parentId = parentId;
-            this.currentUnit = this.currentUnit.length > 0 ? [] : this.currentUnit;
-        }
-
-        addElement(e: number) {
-            this.currentUnit[this.currentUnit.length] = e;
-            this.elementCount++;
-        }
-
-        commitUnit() {
-            if (this.currentUnit.length === 0) return;
-            this.ids[this.ids.length] = this.parentId;
-            this.unitMap.set(this.parentId, this.currentUnit);
-            this.parentId = -1;
-        }
-
-        setUnit(parentId: number, elements: ArrayLike<number>) {
-            this.ids[this.ids.length] = parentId;
-            this.unitMap.set(parentId, elements as number[]);
-            this.elementCount += elements.length;
-        }
-
-        private _getStructure(deduplicateElements: boolean): Structure {
-            if (this.isEmpty) return Structure.Empty;
-
-            const newUnits: Unit[] = [];
-            sortArray(this.ids);
-
-            const symmGroups = StructureSymmetry.UnitEquivalenceBuilder();
-
-            for (let i = 0, _i = this.ids.length; i < _i; i++) {
-                const id = this.ids[i];
-                const parent = this.parent.unitMap.get(id);
-
-                let unit: ArrayLike<number> = this.unitMap.get(id);
-                let sorted = false;
-
-                if (deduplicateElements) {
-                    if (!this.isSorted) sortArray(unit);
-                    unit = SortedArray.deduplicate(SortedArray.ofSortedArray(this.currentUnit));
-                    sorted = true;
-                }
-
-                const l = unit.length;
-
-                // if the length is the same, just copy the old unit.
-                if (unit.length === parent.elements.length) {
-                    newUnits[newUnits.length] = parent;
-                    symmGroups.add(parent.id, parent);
-                    continue;
-                }
-
-                if (!this.isSorted && !sorted && l > 1) sortArray(unit);
-
-                let child = parent.getChild(SortedArray.ofSortedArray(unit));
-                const pivot = symmGroups.add(child.id, child);
-                if (child !== pivot) child = pivot.applyOperator(child.id, child.conformation.operator, true);
-                newUnits[newUnits.length] = child;
-            }
-
-            return create(newUnits);
-        }
-
-        getStructure(deduplicateElements = false) {
-            return this._getStructure(deduplicateElements);
-        }
-
-        setSingletonLocation(location: Element.Location) {
-            const id = this.ids[0];
-            location.unit = this.parent.unitMap.get(id);
-            location.element = this.unitMap.get(id)[0];
-        }
-
-        get isEmpty() {
-            return this.elementCount === 0;
-        }
-
-        constructor(private parent: Structure, private isSorted: boolean) {
-
-        }
-    }
-
     export function getModels(s: Structure) {
         const { units } = s;
         const arr = UniqueArray.create<Model['id'], Model>();
@@ -282,18 +182,18 @@ namespace Structure {
         private current = Element.Location();
         private unitIndex = 0;
         private elements: SortedArray;
-        private len = 0;
-        private idx = 0;
+        private maxIdx = 0;
+        private idx = -1;
 
         hasNext: boolean;
         move(): Element.Location {
-            this.current.element = this.elements[this.idx];
             this.advance();
+            this.current.element = this.elements[this.idx];
             return this.current;
         }
 
         private advance() {
-            if (this.idx < this.len - 1) {
+            if (this.idx < this.maxIdx) {
                 this.idx++;
                 return;
             }
@@ -307,14 +207,14 @@ namespace Structure {
 
             this.current.unit = this.structure.units[this.unitIndex];
             this.elements = this.current.unit.elements;
-            this.len = this.elements.length;
+            this.maxIdx = this.elements.length - 1;
         }
 
         constructor(private structure: Structure) {
             this.hasNext = structure.elementCount > 0;
             if (this.hasNext) {
                 this.elements = structure.units[0].elements;
-                this.len = this.elements.length;
+                this.maxIdx = this.elements.length - 1;
                 this.current.unit = structure.units[0];
             }
         }

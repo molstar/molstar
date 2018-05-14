@@ -6,6 +6,7 @@
 
 import { Structure, Unit } from '../../structure'
 import { SortedArray } from 'mol-data/int';
+import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 
 export function structureUnion(source: Structure, structures: Structure[]) {
     if (structures.length === 0) return Structure.Empty;
@@ -35,7 +36,7 @@ export function structureUnion(source: Structure, structures: Structure[]) {
     return builder.getStructure();
 }
 
-function buildUnion(this: Structure.SubsetBuilder, elements: SortedArray, id: number) {
+function buildUnion(this: StructureSubsetBuilder, elements: SortedArray, id: number) {
     this.setUnit(id, elements);
 }
 

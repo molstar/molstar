@@ -50,6 +50,7 @@ function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
         const l = Element.Location();
         const builder = structure.subsetBuilder(true);
 
+        let progress = 0;
         for (const unit of units) {
             l.unit = unit;
             const elements = unit.elements;
@@ -61,7 +62,8 @@ function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
             }
             builder.commitUnit();
 
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: units.length });
+            progress++;
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
 
         return Selection.Singletons(structure, builder.getStructure());
@@ -74,6 +76,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
         const l = Element.Location();
         const builder = structure.subsetBuilder(true);
 
+        let progress = 0;
         for (const unit of units) {
             if (unit.kind !== Unit.Kind.Atomic) continue;
 
@@ -107,7 +110,8 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             }
             builder.commitUnit();
 
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: units.length });
+            progress++;
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
 
         return Selection.Singletons(structure, builder.getStructure());
@@ -120,6 +124,7 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
         const l = Element.Location();
         const builder = new LinearGroupingBuilder(structure);
 
+        let progress = 0;
         for (const unit of units) {
             if (unit.kind !== Unit.Kind.Atomic) continue;
 
@@ -149,7 +154,8 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
                 }
             }
 
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: 0, max: units.length });
+            progress++;
+            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
 
         return builder.getSelection();

@@ -119,9 +119,9 @@ export function printUnits(structure: Structure) {
         const size = OrderedSet.size(elements);
 
         if (Unit.isAtomic(l.unit)) {
-            console.log(`Atomic unit ${unit.id}: ${size} elements`);
+            console.log(`Atomic unit ${unit.id} ${unit.conformation.operator.name}: ${size} elements`);
         } else if (Unit.isCoarse(l.unit)) {
-            console.log(`Coarse unit ${unit.id} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
+            console.log(`Coarse unit ${unit.id} ${unit.conformation.operator.name} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
             const props = Queries.props.coarse;
             const seq = l.unit.model.sequence;

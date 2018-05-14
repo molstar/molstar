@@ -16,6 +16,7 @@ import { Structure, Model, Queries as Q, Element, Selection, StructureSymmetry, 
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
 import { Vec3 } from 'mol-math/linear-algebra';
+//import { printUnits } from 'apps/structure-info/model';
 //import { EquivalenceClasses } from 'mol-data/util';
 
 require('util.promisify').shim();
@@ -315,6 +316,42 @@ export namespace PropertyAccess {
         console.log('exported');
     }
 
+    export async function testIncludeSurroundings(id: string, s: Structure) {
+        //const a = s; 
+        console.time('symmetry')
+        const a = await StructureSymmetry.buildSymmetryRange(s, Vec3.create(-2, -2, -2), Vec3.create(2, 2, 2)).run();
+        //console.log(printUnits(a));
+
+        const auth_comp_id = Q.props.residue.auth_comp_id, op = Q.props.unit.operator_name;
+        //const q1 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'REA' });
+        const q1 = Q.modifiers.includeSurroundings(Q.generators.atoms({
+            chainTest: l => op(l) === '1_555',
+            residueTest: l => auth_comp_id(l) === 'REA'
+        }), {
+            radius: 5,
+            wholeResidues: true
+        });
+        const surr = Selection.unionStructure(await query(Query(q1), a));
+        console.timeEnd('symmetry')
+
+        // for (const u of surr.units) {
+        //     const { atomId } = u.model.atomicConformation;
+        //     console.log(`${u.id}, ${u.conformation.operator.name}`);
+        //     for (let i = 0; i < u.elements.length; i++) {
+        //         console.log(`  ${atomId.value(u.elements[i])}`);
+        //     }
+        // }
+
+        // const it = surr.elementLocations();
+        // while (it.hasNext) {
+        //     const e = it.move();
+        //     console.log(`${Q.props.unit.operator_name(e)} ${Q.props.atom.id(e)}`);
+        // }
+    //fs.writeFileSync(`${DATA_DIR}/${id}_surr.bcif`, to_mmCIF(id, a, true));
+        fs.writeFileSync(`${DATA_DIR}/${id}_surr.cif`, to_mmCIF(id, surr, false));
+        console.log('exported');
+    }
+
     // export async function testGrouping(structure: Structure) {
     //     const { elements, units } = await Run(Symmetry.buildAssembly(structure, '1'));
     //     console.log('grouping', units.length);
@@ -354,7 +391,8 @@ export namespace PropertyAccess {
         // console.log(mmcif.pdbx_struct_oper_list.vector.toArray());
 
         //await testAssembly('1hrv', structures[0]);
-        await testSymmetry('1cbs', structures[0]);
+        //await testSymmetry('1cbs', structures[0]);
+        await testIncludeSurroundings('1cbs', structures[0]);
         // throw '';
 
         // console.log(models[0].symmetry.assemblies);

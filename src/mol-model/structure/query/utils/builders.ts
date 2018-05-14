@@ -8,6 +8,7 @@ import { Element, Structure } from '../../structure';
 import Selection from '../selection';
 import { HashSet } from 'mol-data/generic';
 import { structureUnion } from './structure';
+import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 
 export class UniqueStructuresBuilder {
     private set = HashSet(Structure.hashCode, Structure.areEqual);
@@ -32,8 +33,8 @@ export class UniqueStructuresBuilder {
 }
 
 export class LinearGroupingBuilder {
-    private builders: Structure.SubsetBuilder[] = [];
-    private builderMap = new Map<string, Structure.SubsetBuilder>();
+    private builders: StructureSubsetBuilder[] = [];
+    private builderMap = new Map<string, StructureSubsetBuilder>();
 
     add(key: any, unit: number, element: number) {
         let b = this.builderMap.get(key);
