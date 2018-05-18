@@ -5,8 +5,6 @@
  */
 
 import Structure from '../structure'
-import ElementSet from '../element/set'
-import { ElementGroup } from '../../structure'
 import { Box3D, Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 
@@ -14,19 +12,19 @@ function computeStructureBoundary(s: Structure): { box: Box3D, sphere: Sphere3D 
     const min = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
     const max = [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE];
 
-    const { units, elements } = s;
+    const { units } = s;
 
     let cx = 0, cy = 0, cz = 0;
     let radiusSq = 0;
     let size = 0;
 
-    for (let i = 0, _i = ElementSet.groupCount(elements); i < _i; i++) {
-        const group = ElementSet.groupAt(elements, i);
-        const { x, y, z } = units[ElementSet.groupUnitIndex(elements, i)];
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        const { x, y, z } = units[i].conformation;
 
-        size += ElementGroup.size(group);
-        for (let j = 0, _j = ElementGroup.size(group); j < _j; j++) {
-            const e = ElementGroup.getAt(group, j);
+        const elements = units[i].elements;
+        size += elements.length;
+        for (let j = 0, _j = elements.length; j < _j; j++) {
+            const e = elements[j];
             const xx = x(e), yy = y(e), zz = z(e);
 
             min[0] = Math.min(xx, min[0]);
@@ -48,13 +46,12 @@ function computeStructureBoundary(s: Structure): { box: Box3D, sphere: Sphere3D 
         cz /= size;
     }
 
-    for (let i = 0, _i = ElementSet.groupCount(elements); i < _i; i++) {
-        const group = ElementSet.groupAt(elements, i);
-        const { x, y, z } = units[ElementSet.groupUnitIndex(elements, i)];
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        const { x, y, z } = units[i].conformation;
 
-        size += ElementGroup.size(group);
-        for (let j = 0, _j = ElementGroup.size(group); j < _j; j++) {
-            const e = ElementGroup.getAt(group, j);
+        const elements = units[i].elements;
+        for (let j = 0, _j = elements.length; j < _j; j++) {
+            const e = elements[j];
             const dx = x(e) - cx, dy = y(e) - cy, dz = z(e) - cz;
             const d = dx * dx + dy * dy + dz * dz;
             if (d > radiusSq) radiusSq = d;

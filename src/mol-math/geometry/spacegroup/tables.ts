@@ -985,7 +985,7 @@ export const GroupData = [
     [0, 22, 57, 3, 159, 279, 654, 655, 158, 274, 656, 657, 29, 18, 25, 27, 284, 658, 262, 269, 280, 659, 257, 267],
 ];
 
-export const SpacegroupNumbers = {
+export const ZeroBasedSpacegroupNumbers = {
     'P 1': 0,
     'P -1': 1,
     'P 1 2 1': 2,
@@ -1333,12 +1333,19 @@ export const SpacegroupNumbers = {
     'I 2 3a': 265,
 };
 
-export type SpacegroupName = keyof typeof SpacegroupNumbers
+export type SpacegroupName = keyof typeof ZeroBasedSpacegroupNumbers
 
 export const SpacegroupNames: { [num: number]: SpacegroupName } = (function () {
     const names = Object.create(null);
-    for (const n of Object.keys(SpacegroupNumbers)) {
-        names[(SpacegroupNumbers as any)[n]] = n;
+    for (const n of Object.keys(ZeroBasedSpacegroupNumbers)) {
+        names[(ZeroBasedSpacegroupNumbers as any)[n]] = n;
     }
     return names;
 }());
+
+// return -1 if the spacegroup does not exist.
+export function getSpacegroupIndex(nameOrNumber: number | string | SpacegroupName): number {
+    const index = typeof nameOrNumber === 'number' ? nameOrNumber - 1 : ZeroBasedSpacegroupNumbers[nameOrNumber as SpacegroupName];
+    if (typeof index === 'undefined' || typeof SpacegroupNames[index] === 'undefined') return -1;
+    return index;
+}

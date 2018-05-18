@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Mat4, Vec3, Vec4 } from './3d'
+import { Mat4, Vec3, Vec4, Mat3 } from './3d'
 
 export interface Tensor { data: Tensor.Data, space: Tensor.Space }
 
@@ -61,6 +61,16 @@ export namespace Tensor {
         const d0 = Math.min(4, space.dimensions[0]), d1 = Math.min(4, space.dimensions[1]);
         for (let i = 0; i < d0; i++) {
             for (let j = 0; j < d1; j++) Mat4.setValue(mat, i, j, space.get(data, i, j));
+        }
+        return mat;
+    }
+
+    export function toMat3(space: Space, data: Tensor.Data): Mat3 {
+        if (space.rank !== 2) throw new Error('Invalid tensor rank');
+        const mat = Mat3.zero();
+        const d0 = Math.min(3, space.dimensions[0]), d1 = Math.min(3, space.dimensions[1]);
+        for (let i = 0; i < d0; i++) {
+            for (let j = 0; j < d1; j++) Mat3.setValue(mat, i, j, space.get(data, i, j));
         }
         return mat;
     }

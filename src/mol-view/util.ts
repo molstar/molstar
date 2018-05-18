@@ -5,7 +5,7 @@
  */
 
 import CIF from 'mol-io/reader/cif'
-import { Run, Progress } from 'mol-task'
+import { Progress } from 'mol-task'
 import { VolumeData, parseDensityServerData } from 'mol-model/volume'
 import { DensityServer_Data_Database } from 'mol-io/reader/cif/schema/density-server';
 
@@ -16,7 +16,7 @@ export async function downloadCif(url: string, isBinary: boolean) {
 
 export async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data)
-    const parsed = await Run(comp, Progress.format);
+    const parsed = await comp.run(Progress.format);
     if (parsed.isError) throw parsed;
     return parsed.result
 }
@@ -26,7 +26,7 @@ export type Volume = { source: DensityServer_Data_Database, volume: VolumeData }
 export async function getVolumeFromEmdId(emdid: string): Promise<Volume> {
     const cif = await downloadCif(`https://webchem.ncbr.muni.cz/DensityServer/em/emd-${emdid}/cell?detail=4`, true)
     const data = CIF.schema.densityServer(cif.blocks[1])
-    return { source: data, volume: await Run(parseDensityServerData(data)) }
+    return { source: data, volume: await parseDensityServerData(data).run() }
 }
 
 export function resizeCanvas (canvas: HTMLCanvasElement, container: Element) {

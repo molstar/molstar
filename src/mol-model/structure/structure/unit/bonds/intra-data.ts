@@ -5,9 +5,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BondType } from '../../../../model/types'
+import { BondType } from '../../../model/types'
 
-interface GroupBonds {
+interface IntraUnitBonds {
     /**
      * Where bonds for atom A start and end.
      * Start offset at idx, end at idx + 1
@@ -21,8 +21,8 @@ interface GroupBonds {
     count: number
 }
 
-namespace GroupBonds {
-    export function createEmpty(): GroupBonds {
+namespace IntraUnitBonds {
+    export function createEmpty(): IntraUnitBonds {
         return { offset: [], neighbor: [], order: [], flags: [], count: 0 }
     }
     export function isCovalent(flags: number) {
@@ -46,4 +46,4 @@ namespace GroupBonds {
     }
 }
 
-export { GroupBonds }
+export { IntraUnitBonds }

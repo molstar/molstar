@@ -9,9 +9,9 @@ import Model from '../../model'
 import { BondType } from '../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from './util'
 import { Column } from 'mol-data/db'
-import { GroupBonds } from '../../../structure/element/properties/bonds/group-data';
+import { IntraUnitBonds } from '../../../structure/unit/bonds';
 
-export class StructConn implements GroupBonds.StructConn {
+export class StructConn implements IntraUnitBonds.StructConn {
     private _residuePairIndex: Map<string, StructConn.Entry[]> | undefined = void 0;
     private _atomIndex: Map<number, StructConn.Entry[]> | undefined = void 0;
 
@@ -71,7 +71,7 @@ export class StructConn implements GroupBonds.StructConn {
 }
 
 export namespace StructConn {
-    export interface Entry extends GroupBonds.StructConnEntry {
+    export interface Entry extends IntraUnitBonds.StructConnEntry {
         distance: number,
         order: number,
         flags: number,
@@ -118,7 +118,7 @@ export namespace StructConn {
         const _p = (row: number, ps: typeof p1) => {
             if (ps.label_asym_id.valueKind(row) !== Column.ValueKind.Present) return void 0;
             const asymId = ps.label_asym_id.value(row)
-            const residueIndex = model.hierarchy.findResidueKey(
+            const residueIndex = model.atomicHierarchy.findResidueKey(
                 findEntityIdByAsymId(model, asymId),
                 ps.label_comp_id.value(row),
                 asymId,
@@ -181,7 +181,7 @@ export namespace StructConn {
     }
 }
 
-export class ComponentBondInfo implements GroupBonds.ComponentBondInfo {
+export class ComponentBondInfo implements IntraUnitBonds.ComponentBondInfo {
     entries: Map<string, ComponentBondInfo.Entry> = new Map();
 
     newEntry(id: string) {
@@ -192,7 +192,7 @@ export class ComponentBondInfo implements GroupBonds.ComponentBondInfo {
 }
 
 export namespace ComponentBondInfo {
-    export class Entry implements GroupBonds.ComponentBondInfoEntry {
+    export class Entry implements IntraUnitBonds.ComponentBondInfoEntry {
         map: Map<string, Map<string, { order: number, flags: number }>> = new Map();
 
         add(a: string, b: string, order: number, flags: number, swap = true) {

@@ -4,7 +4,6 @@ import CIF from 'mol-io/reader/cif'
 
 import { Structure, Model } from 'mol-model/structure'
 
-import { Run } from 'mol-task';
 import { GridLookup3D } from 'mol-math/geometry';
 // import { sortArray } from 'mol-data/util';
 import { OrderedSet } from 'mol-data/int';
@@ -27,14 +26,14 @@ async function readData(path: string) {
 export async function readCIF(path: string) {
     const input = await readData(path)
     const comp = typeof input === 'string' ? CIF.parseText(input) : CIF.parseBinary(input);
-    const parsed = await Run(comp);
+    const parsed = await comp.run();
     if (parsed.isError) {
         throw parsed;
     }
 
     const data = parsed.result.blocks[0];
     const mmcif = CIF.schema.mmCIF(data);
-    const models = Model.create({ kind: 'mmCIF', data: mmcif });
+    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
     const structures = models.map(Structure.ofModel);
 
     return { mmcif, models, structures };

@@ -9,7 +9,7 @@ import { Context } from '../context/context'
 import { JobEvents } from '../event/basic';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { formatProgress } from 'mol-util';
-import { Progress, Task, Run } from 'mol-task';
+import { Progress, Task } from 'mol-task';
 
 export class Job<T> {
     private info: Job.Info;
@@ -109,7 +109,7 @@ export namespace Job {
             JobEvents.Started.dispatch(this.context, this.info);
             this.context.performance.start('job' + this.info.id);
 
-            this.result = Run(this.task, (p: Progress) => this.progressUpdated(p), 250)
+            this.result = this.task.run((p: Progress) => this.progressUpdated(p), 250)
             this.result.then(() => this.resolved()).catch(e => this.rejected(e));
         }
 

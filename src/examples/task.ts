@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, Run, Progress, Scheduler, now, MultistepTask, chunkedSubtask } from 'mol-task'
+import { Task, Progress, Scheduler, now, MultistepTask, chunkedSubtask } from 'mol-task'
 
 export async function test1() {
     const t = Task.create('test', async () => 1);
-    const r = await Run(t);
+    const r = await t.run();
     console.log(r);
 }
 
@@ -53,9 +53,9 @@ export function testTree() {
         if (ctx.shouldUpdate) await ctx.update('hi! 3');
 
         // ctx.update('Running children...', true);
-        const c1 = ctx.runChild(createTask(250, 1));
-        const c2 = ctx.runChild(createTask(500, 2));
-        const c3 = ctx.runChild(createTask(750, 3));
+        const c1 = createTask(250, 1).runAsChild(ctx);
+        const c2 = createTask(500, 2).runAsChild(ctx);
+        const c3 = createTask(750, 3).runAsChild(ctx);
 
         //await ctx.runChild(abortAfter(350));
 
@@ -87,8 +87,8 @@ export const ms = MultistepTask('ms-task', ['step 1', 'step 2', 'step 3'], async
         const s = await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 125 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p))
         return s.i;
     });
-    
-    await ctx.runChild(child);
+
+    await child.runAsChild(ctx);
     await Scheduler.delay(250);
     await step(1);
     await chunkedSubtask(ctx, 25, { i: 0, current: 0, total: 80 }, processChunk, (ctx, s, p) => ctx.update('chunk test ' + p))
@@ -114,7 +114,7 @@ async function test() {
         //const r = await Run(testTree(), abortingObserver, 250);
         //console.log(r);
 
-        const m = await Run(ms({ i: 10 }), logP);
+        const m = await ms({ i: 10 }).run(logP);
         console.log(m);
     } catch (e) {
         console.error(e);

@@ -18,3 +18,7 @@
  */
 
 export const enum EPSILON { Value = 0.000001 }
+
+export function equalEps(a: number, b: number, eps: number) {
+    return Math.abs(a - b) <= eps;
+}

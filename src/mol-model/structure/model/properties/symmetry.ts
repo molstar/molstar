@@ -8,6 +8,7 @@ import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { arrayFind } from 'mol-data/util'
 import { Query } from '../../query'
 import { Model } from '../../model'
+import { Spacegroup } from 'mol-math/geometry';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
@@ -40,12 +41,14 @@ export namespace Assembly {
     }
 }
 
-interface Symmetry {
+interface ModelSymmetry {
     readonly assemblies: ReadonlyArray<Assembly>,
+    readonly spacegroup: Spacegroup,
+    readonly isNonStandardCrytalFrame: boolean
 }
 
-namespace Symmetry {
-    export const Empty: Symmetry = { assemblies: [] };
+namespace ModelSymmetry {
+    export const Default: ModelSymmetry = { assemblies: [], spacegroup: Spacegroup.ZeroP1, isNonStandardCrytalFrame: false };
 
     export function findAssembly(model: Model, id: string): Assembly | undefined {
         const _id = id.toLocaleLowerCase();
@@ -53,4 +56,4 @@ namespace Symmetry {
     }
 }
 
-export default Symmetry
+export { ModelSymmetry }

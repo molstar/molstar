@@ -17,6 +17,7 @@ class EquivalenceClassesImpl<K, V> {
         return { id, keys, value };
     }
 
+    // Return the group representative.
     add(key: K, a: V) {
         const hash = this.getHash(a);
         if (this.byHash.has(hash)) {
@@ -25,16 +26,16 @@ class EquivalenceClassesImpl<K, V> {
                 const group = groups[i];
                 if (this.areEqual(a, group.value)) {
                     group.keys[group.keys.length] = key;
-                    return group.id;
+                    return group.value;
                 }
             }
             const group = this.createGroup(key, a);
             groups[groups.length] = group;
-            return group.id;
+            return group.value;
         } else {
             const group = this.createGroup(key, a);
             this.byHash.set(hash, [group]);
-            return group.id;
+            return group.value;
         }
     }
 

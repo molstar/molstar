@@ -2,12 +2,12 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ValueCell } from 'mol-util/value-cell'
 import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/scene'
-import { OrderedSet } from 'mol-data/int'
-import { Unit, ElementGroup, Element } from 'mol-model/structure';
+import { Unit, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
@@ -16,6 +16,7 @@ import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes } from './utils';
 import { deepEqual } from 'mol-util';
+import { SortedArray } from 'mol-data/int';
 
 export const DefaultPointProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
@@ -25,16 +26,17 @@ export const DefaultPointProps = {
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
-export function createPointVertices(unit: Unit, elementGroup: ElementGroup) {
-    const elementCount = OrderedSet.size(elementGroup.elements)
+export function createPointVertices(unit: Unit) {
+    const elements = unit.elements
+    const elementCount = elements.length
     const vertices = new Float32Array(elementCount * 3)
 
-    const { x, y, z } = unit
+    const { x, y, z } = unit.conformation
     const l = Element.Location()
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
-        l.element = ElementGroup.getAt(elementGroup, i)
+        l.element = elements[i];
         const i3 = i * 3
         vertices[i3] = x(l.element)
         vertices[i3 + 1] = y(l.element)
@@ -49,21 +51,21 @@ export default function Point(): UnitsRepresentation<PointProps> {
     let curProps = DefaultPointProps
 
     let _units: ReadonlyArray<Unit>
-    let _elementGroup: ElementGroup
+    let _elements: SortedArray
 
     return {
         renderObjects,
-        create(units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: PointProps = {}) {
+        create(group: Unit.SymmetryGroup, props: PointProps = {}) {
             return Task.create('Point.create', async ctx => {
                 renderObjects.length = 0 // clear
                 curProps = { ...DefaultPointProps, ...props }
 
-                _units = units
-                _elementGroup = elementGroup
+                _units = group.units
+                _elements = group.elements;
 
                 const { colorTheme, sizeTheme, alpha, visible } = curProps
-                const elementCount = OrderedSet.size(elementGroup.elements)
-                const unitCount = units.length
+                const elementCount = _elements.length
+                const unitCount = _units.length
 
                 const vertexMap = VertexMap.create(
                     elementCount,
@@ -73,16 +75,16 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 )
 
                 await ctx.update('Computing point vertices');
-                const vertices = createPointVertices(units[0], elementGroup)
+                const vertices = createPointVertices(_units[0])
 
                 await ctx.update('Computing point transforms');
-                const transforms = createTransforms(units)
+                const transforms = createTransforms(group)
 
                 await ctx.update('Computing point colors');
-                const color = createColors(units, elementGroup, vertexMap, colorTheme)
+                const color = createColors(group, vertexMap, colorTheme)
 
                 await ctx.update('Computing point sizes');
-                const size = createSizes(units, elementGroup, vertexMap, sizeTheme)
+                const size = createSizes(group, vertexMap, sizeTheme)
 
                 points = createPointRenderObject({
                     objectId: 0,
@@ -106,7 +108,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
         },
         update(props: PointProps) {
             return Task.create('Point.update', async ctx => {
-                if (!points || !_units || !_elementGroup) return false
+                if (!points || !_units || !_elements) return false
 
                 const newProps = { ...curProps, ...props }
                 if (deepEqual(curProps, newProps)) {

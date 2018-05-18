@@ -2,6 +2,7 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ValueCell } from 'mol-util/value-cell'
@@ -9,15 +10,13 @@ import { ValueCell } from 'mol-util/value-cell'
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/scene'
 // import { createColorTexture } from 'mol-gl/util';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import { OrderedSet } from 'mol-data/int'
-import { Unit, ElementGroup, Element, Queries } from 'mol-model/structure';
+import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { createTransforms, createColors } from './utils';
 import { ColorTheme } from '../../theme';
 import VertexMap from '../../shape/vertex-map';
-import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 
 export const DefaultSpacefillProps = {
@@ -29,17 +28,18 @@ export const DefaultSpacefillProps = {
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
-function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: number) {
+function createSpacefillMesh(unit: Unit, detail: number) {
     return Task.create('Sphere mesh', async ctx => {
-        const elementCount = OrderedSet.size(elementGroup.elements)
+        const { elements } = unit;
+        const elementCount = elements.length;
         const vertexCount = elementCount * icosahedronVertexCount(detail)
         const meshBuilder = MeshBuilder.create(vertexCount)
 
         let radius: Element.Property<number>
         if (Unit.isAtomic(unit)) {
             radius = Queries.props.atom.vdw_radius
-        } else if (Unit.isCoarse(unit) && unit.elementType === CoarseGrained.ElementType.Sphere) {
-            radius = Queries.props.coarse_grained.sphere_radius
+        } else if (Unit.isSpheres(unit)) {
+            radius = Queries.props.coarse.sphere_radius
         } else {
             console.warn('Unsupported unit type')
             return meshBuilder.getMesh()
@@ -48,12 +48,12 @@ function createSpacefillMesh(unit: Unit, elementGroup: ElementGroup, detail: num
         const v = Vec3.zero()
         const m = Mat4.identity()
 
-        const { x, y, z } = unit
+        const { x, y, z } = unit.conformation
         const l = Element.Location()
         l.unit = unit
 
         for (let i = 0; i < elementCount; i++) {
-            l.element = ElementGroup.getAt(elementGroup, i)
+            l.element = elements[i]
             v[0] = x(l.element)
             v[1] = y(l.element)
             v[2] = z(l.element)
@@ -77,23 +77,22 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
     return {
         renderObjects,
-        create(units: ReadonlyArray<Unit>, elementGroup: ElementGroup, props: SpacefillProps = {}) {
+        create(group: Unit.SymmetryGroup, props: SpacefillProps = {}) {
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
 
                 const { detail, colorTheme, alpha, visible, doubleSided } = { ...DefaultSpacefillProps, ...props }
 
-                await ctx.update('Computing spacefill mesh');
-                const mesh = await ctx.runChild(createSpacefillMesh(units[0], elementGroup, detail))
+                const mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
 
                 const vertexMap = VertexMap.fromMesh(mesh)
 
                 await ctx.update('Computing spacefill transforms');
-                const transforms = createTransforms(units)
+                const transforms = createTransforms(group)
 
                 await ctx.update('Computing spacefill colors');
-                const color = createColors(units, elementGroup, vertexMap, colorTheme)
+                const color = createColors(group, vertexMap, colorTheme)
 
                 spheres = createMeshRenderObject({
                     objectId: 0,
@@ -108,9 +107,9 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     transform: ValueCell.create(transforms),
                     index: mesh.indexBuffer,
 
-                    instanceCount: units.length,
+                    instanceCount: group.units.length,
                     indexCount: mesh.triangleCount,
-                    elementCount: OrderedSet.size(elementGroup.elements),
+                    elementCount: group.elements.length,
                     positionCount: mesh.vertexCount
                 })
                 renderObjects.push(spheres)

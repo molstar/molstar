@@ -10,13 +10,26 @@ import { Progress } from './progress'
 import { now } from '../util/now'
 import { Scheduler } from '../util/scheduler'
 
-function ExecuteObservable<T>(task: Task<T>, observer: Progress.Observer, updateRateMs = 250) {
-    const info = ProgressInfo(task, observer, updateRateMs);
-    const ctx = new ObservableRuntimeContext(info, info.root);
-    return execute(task, ctx);
+interface ExposedTask<T> extends Task<T> {
+    f: (ctx: RuntimeContext) => Promise<T>,
+    onAbort?: () => void
 }
 
-namespace ExecuteObservable {
+export function ExecuteObservable<T>(task: Task<T>, observer: Progress.Observer, updateRateMs = 250) {
+    const info = ProgressInfo(task, observer, updateRateMs);
+    const ctx = new ObservableRuntimeContext(info, info.root);
+    return execute(task as ExposedTask<T>, ctx);
+}
+
+export function ExecuteInContext<T>(ctx: RuntimeContext, task: Task<T>) {
+    return execute(task as ExposedTask<T>, ctx as ObservableRuntimeContext);
+}
+
+export function ExecuteObservableChild<T>(ctx: RuntimeContext, task: Task<T>, progress?: string | Partial<RuntimeContext.ProgressUpdate>) {
+    return (ctx as ObservableRuntimeContext).runChild(task, progress);
+}
+
+export namespace ExecuteObservable {
     export let PRINT_ERRORS_TO_STD_ERR = false;
 }
 
@@ -77,10 +90,10 @@ function snapshotProgress(info: ProgressInfo): Progress {
     return { root: cloneTree(info.root), canAbort: canAbort(info.root), requestAbort: info.tryAbort };
 }
 
-async function execute<T>(task: Task<T>, ctx: ObservableRuntimeContext) {
+async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
     ctx.node.progress.startedTime = now();
     try {
-        const ret = await task.__f(ctx);
+        const ret = await task.f(ctx);
         if (ctx.info.abortToken.abortRequested) {
             abort(ctx.info, ctx.node);
         }
@@ -91,7 +104,7 @@ async function execute<T>(task: Task<T>, ctx: ObservableRuntimeContext) {
             if (ctx.node.children.length > 0) {
                 await new Promise(res => { ctx.onChildrenFinished = res; });
             }
-            if (task.__onAbort) task.__onAbort();
+            if (task.onAbort) task.onAbort();
         }
         if (ExecuteObservable.PRINT_ERRORS_TO_STD_ERR) console.error(e);
         throw e;
@@ -197,7 +210,7 @@ class ObservableRuntimeContext implements RuntimeContext {
         children.push(node);
         const ctx = new ObservableRuntimeContext(this.info, node);
         try {
-            return await execute(task, ctx);
+            return await execute(task as ExposedTask<T>, ctx);
         } catch (e) {
             if (Task.isAbort(e)) {
                 // need to catch the error here because otherwise
@@ -224,5 +237,3 @@ class ObservableRuntimeContext implements RuntimeContext {
         this.info = info;
     }
 }
-
-export { ExecuteObservable }

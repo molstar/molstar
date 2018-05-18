@@ -9,7 +9,7 @@ import { StructureColorDataProps } from '.';
 import { createInstanceColor } from '../../../util/color-data';
 
 export function instanceIndexColorData(props: StructureColorDataProps) {
-    const { units } = props
+    const { group: { units } } = props
     const instanceCount = units.length
 
     const domain = [ 0, instanceCount - 1 ]

@@ -10,13 +10,14 @@ require('util.promisify').shim();
 
 // import { Table } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
-import { Model, Structure, Element, ElementSet, Unit, ElementGroup, Queries } from 'mol-model/structure'
+import { Model, Structure, Element, Unit, Queries } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
 import { openCif, downloadCif } from './helpers';
+import { BitFlags } from 'mol-util';
+import { SecondaryStructureType } from 'mol-model/structure/model/types';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -31,7 +32,7 @@ async function readPdbFile(path: string) {
 }
 
 export function atomLabel(model: Model, aI: number) {
-    const { atoms, residues, chains, residueSegments, chainSegments } = model.hierarchy
+    const { atoms, residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
     const { label_atom_id } = atoms
     const { label_comp_id, label_seq_id } = residues
     const { label_asym_id } = chains
@@ -40,16 +41,42 @@ export function atomLabel(model: Model, aI: number) {
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`
 }
 
+export function residueLabel(model: Model, rI: number) {
+    const { residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
+    const { label_comp_id, label_seq_id } = residues
+    const { label_asym_id } = chains
+    const cI = chainSegments.segmentMap[residueSegments.segments[rI]]
+    return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
+}
+
+export function printSecStructure(model: Model) {
+    console.log('Secondary Structure\n=============');
+    const { residues } = model.atomicHierarchy;
+    const { type, key } = model.properties.secondaryStructure;
+
+    const count = residues._rowCount;
+    let rI = 0;
+    while (rI < count) {
+        let start = rI;
+        while (rI < count && key[start] === key[rI]) rI++;
+        rI--;
+
+        if (BitFlags.has(type[start], SecondaryStructureType.Flag.Beta)) {
+            console.log(`Sheet: ${residueLabel(model, start)} - ${residueLabel(model, rI)} (key ${key[start]})`);
+        } else if (BitFlags.has(type[start], SecondaryStructureType.Flag.Helix)) {
+            console.log(`Helix: ${residueLabel(model, start)} - ${residueLabel(model, rI)} (key ${key[start]})`);
+        }
+
+        rI++;
+    }
+}
 
 export function printBonds(structure: Structure) {
-    const { units, elements } = structure;
-    const unitIds = ElementSet.unitIndices(elements);
+    for (const unit of structure.units) {
+        if (!Unit.isAtomic(unit)) continue;
 
-    for (let i = 0, _i = OrderedSet.size(unitIds); i < _i; i++) {
-        const unit = units[OrderedSet.getAt(unitIds, i)];
-        const group = ElementSet.groupFromUnitIndex(elements, OrderedSet.getAt(unitIds, i));
-
-        const { count, offset, neighbor } = Unit.getGroupBonds(unit, group);
+        const elements = unit.elements;
+        const { count, offset, neighbor } = unit.bonds;
         const { model }  = unit;
 
         if (!count) continue;
@@ -60,9 +87,9 @@ export function printBonds(structure: Structure) {
 
             if (end <= start) continue;
 
-            const aI = ElementGroup.getAt(group, j);
+            const aI = elements[j];
             for (let _bI = start; _bI < end; _bI++) {
-                const bI = ElementGroup.getAt(group, neighbor[_bI])
+                const bI = elements[neighbor[_bI]];
                 console.log(`${atomLabel(model, aI)} -- ${atomLabel(model, bI)}`);
             }
         }
@@ -84,26 +111,23 @@ export function printSequence(model: Model) {
 
 export function printUnits(structure: Structure) {
     console.log('Units\n=============');
-    const { elements, units } = structure;
-    const unitIds = ElementSet.unitIndices(elements);
     const l = Element.Location();
 
-    for (let i = 0, _i = unitIds.length; i < _i; i++) {
-        const unitId = unitIds[i];
-        l.unit = units[unitId];
-        const set = ElementSet.groupAt(elements, i).elements;
-        const size = OrderedSet.size(set);
+    for (const unit of structure.units) {
+        l.unit = unit;
+        const elements = unit.elements;
+        const size = OrderedSet.size(elements);
 
         if (Unit.isAtomic(l.unit)) {
-            console.log(`Atomic unit ${unitId}: ${size} elements`);
+            console.log(`Atomic unit ${unit.id} ${unit.conformation.operator.name}: ${size} elements`);
         } else if (Unit.isCoarse(l.unit)) {
-            console.log(`Coarse unit ${unitId} (${l.unit.elementType === CoarseGrained.ElementType.Sphere ? 'spheres' : 'gaussians'}): ${size} elements.`);
+            console.log(`Coarse unit ${unit.id} ${unit.conformation.operator.name} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
-            const props = Queries.props.coarse_grained;
+            const props = Queries.props.coarse;
             const seq = l.unit.model.sequence;
 
-            for (let j = 0, _j = Math.min(size, 10); j < _j; j++) {
-                l.element = OrderedSet.getAt(set, j);
+            for (let j = 0, _j = Math.min(size, 3); j < _j; j++) {
+                l.element = OrderedSet.getAt(elements, j);
 
                 const residues: string[] = [];
                 const start = props.seq_id_begin(l), end = props.seq_id_end(l);
@@ -111,24 +135,26 @@ export function printUnits(structure: Structure) {
                 for (let e = start; e <= end; e++) residues.push(compId(e));
                 console.log(`${props.asym_id(l)}:${start}-${end} (${residues.join('-')}) ${props.asym_id(l)} [${props.x(l).toFixed(2)}, ${props.y(l).toFixed(2)}, ${props.z(l).toFixed(2)}]`);
             }
-            if (size > 10) console.log(`...`);
+            if (size > 3) console.log(`...`);
         }
     }
 }
 
 
 export function printIHMModels(model: Model) {
-    if (!model.coarseGrained.isDefined) return false;
+    if (!model.coarseHierarchy.isDefined) return false;
     console.log('IHM Models\n=============');
-    console.log(Table.formatToString(model.coarseGrained.modelList));
+    console.log(Table.formatToString(model.coarseHierarchy.models));
 }
 
 async function run(mmcif: mmCIF_Database) {
-    const models = Model.create({ kind: 'mmCIF', data: mmcif });
+    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
     const structure = Structure.ofModel(models[0]);
     printSequence(models[0]);
     printIHMModels(models[0]);
     printUnits(structure);
+    // printBonds(structure);
+    printSecStructure(models[0]);
 }
 
 async function runDL(pdb: string) {

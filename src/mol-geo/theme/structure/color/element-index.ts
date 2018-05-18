@@ -6,13 +6,12 @@
 
 import { ColorScale } from 'mol-util/color';
 import { StructureColorDataProps } from '.';
-import { OrderedSet } from 'mol-data/int';
 import { createElementInstanceColor } from '../../../util/color-data';
 
 export function elementIndexColorData(props: StructureColorDataProps) {
-    const { units, elementGroup, vertexMap } = props
+    const { group: { units, elements }, vertexMap } = props
     const instanceCount = units.length
-    const elementCount = OrderedSet.size(elementGroup.elements)
+    const elementCount = elements.length
 
     const domain = [ 0, instanceCount * elementCount - 1 ]
     const scale = ColorScale.create({ domain })

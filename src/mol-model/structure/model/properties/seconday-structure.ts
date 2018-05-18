@@ -4,11 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { SecondaryStructureType } from '../types';
+
 /** Secondary structure "indexed" by residues. */
-export interface SecondaryStructure {
-    type: number[],
-    index: number[],
-    flags: number[],
+interface SecondaryStructure {
+    // assign flags to each residue
+    readonly type: ArrayLike<SecondaryStructureType>,
     /** unique value for each "element". This is because single sheet is speficied by multiple records. */
-    key: number[]
+    readonly key: ArrayLike<number>
 }
+
+export { SecondaryStructure }

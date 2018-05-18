@@ -4,12 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementGroup, Unit } from 'mol-model/structure';
+import { Unit } from 'mol-model/structure';
 import VertexMap from '../../../shape/vertex-map';
 
 export interface StructureSizeDataProps {
-    units: ReadonlyArray<Unit>,
-    elementGroup: ElementGroup,
+    group: Unit.SymmetryGroup,
     vertexMap: VertexMap
 }
 

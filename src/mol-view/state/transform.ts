@@ -6,12 +6,12 @@
 
 import CIF from 'mol-io/reader/cif'
 import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity } from './entity';
-import { Run } from 'mol-task';
-import { Model, Structure, Symmetry } from 'mol-model/structure';
+import { Model, Structure } from 'mol-model/structure';
 
 import { StateContext } from './context';
 import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
+import StructureSymmetry from 'mol-model/structure/structure/symmetry';
 
 type transformer<I extends AnyEntity, O extends AnyEntity, P extends {}> = (ctx: StateContext, inputEntity: I, props?: P) => Promise<O>
 
@@ -46,7 +46,7 @@ export type DataToCif = StateTransform<DataEntity, CifEntity, {}>
 export const DataToCif: DataToCif = StateTransform.create('data', 'cif', 'data-to-cif',
     async function (ctx: StateContext, dataEntity: DataEntity) {
         const comp = CIF.parse(dataEntity.value.data)
-        const parsed = await Run(comp, ctx.log)
+        const parsed = await comp.run(ctx.log)
         if (parsed.isError) throw parsed
         return CifEntity.ofCifFile(ctx, parsed.result)
     })
@@ -60,7 +60,8 @@ export const CifToMmcif: CifToMmcif = StateTransform.create('cif', 'mmcif', 'cif
 export type MmcifToModel = StateTransform<MmcifEntity, ModelEntity, {}>
 export const MmcifToModel: MmcifToModel = StateTransform.create('mmcif', 'model', 'mmcif-to-model',
     async function (ctx: StateContext, mmcifEntity: MmcifEntity) {
-        return ModelEntity.ofModels(ctx, Model.create({ kind: 'mmCIF', data: mmcifEntity.value }))
+        const models = await Model.create({ kind: 'mmCIF', data: mmcifEntity.value }).run(ctx.log)
+        return ModelEntity.ofModels(ctx, models)
     })
 
 export interface StructureProps {
@@ -75,7 +76,7 @@ export const ModelToStructure: ModelToStructure = StateTransform.create('model',
         let structure: Structure
         const assemblies = model.symmetry.assemblies
         if (assemblies.length) {
-            structure = await Run(Symmetry.buildAssembly(Structure.ofModel(model), assembly || '1'), ctx.log)
+            structure = await StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly || '1').run(ctx.log)
         } else {
             structure = Structure.ofModel(model)
         }
@@ -86,7 +87,7 @@ export type StructureToSpacefill = StateTransform<StructureEntity, SpacefillEnti
 export const StructureToSpacefill: StructureToSpacefill = StateTransform.create('structure', 'spacefill', 'structure-to-spacefill',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: SpacefillProps = {}) {
         const spacefillRepr = StructureRepresentation(Spacefill)
-        await Run(spacefillRepr.create(structureEntity.value, props), ctx.log)
+        await spacefillRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.requestDraw()
         console.log(ctx.viewer.stats)
@@ -98,7 +99,7 @@ export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill
     async function (ctx: StateContext, spacefillEntity: SpacefillEntity, props: SpacefillProps = {}) {
         console.log('fopbar')
         const spacefillRepr = spacefillEntity.value
-        await Run(spacefillRepr.update(props), ctx.log)
+        await spacefillRepr.update(props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.update()
         ctx.viewer.requestDraw()

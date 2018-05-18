@@ -5,10 +5,8 @@
  */
 
 import Element from './structure/element'
-import ElementSet from './structure/element/set'
-import ElementGroup from './structure/element/group'
 import Structure from './structure/structure'
 import Unit from './structure/unit'
-import Symmetry from './structure/symmetry'
+import StructureSymmetry from './structure/symmetry'
 
-export { Element, ElementSet, ElementGroup, Structure, Unit, Symmetry }
+export { Element, Structure, Unit, StructureSymmetry }

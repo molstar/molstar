@@ -1,3 +1,7 @@
+atom_sites.entry_id
+atom_sites.fract_transf_matrix
+atom_sites.fract_transf_vector
+
 atom_site.group_PDB
 atom_site.id
 atom_site.type_symbol

@@ -4,26 +4,26 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementGroup, Element, Unit, Queries } from 'mol-model/structure';
-import CoarseGrained from 'mol-model/structure/model/properties/coarse-grained';
+import { Element, Unit, Queries } from 'mol-model/structure';
 import { StructureSizeDataProps } from '.';
 import { createAttributeSize } from '../../../util/size-data';
 
 /** Create attribute data with the size of an element, i.e. vdw for atoms and radius for coarse spheres */
 export function elementSizeData(props: StructureSizeDataProps) {
-    const { units, elementGroup, vertexMap } = props
-    const unit = units[0]
+    const { group, vertexMap } = props
+    const unit = group.units[0]
+    const elements = group.elements;
     let radius: Element.Property<number>
     if (Unit.isAtomic(unit)) {
         radius = Queries.props.atom.vdw_radius
-    } else if (Unit.isCoarse(unit) && unit.elementType === CoarseGrained.ElementType.Sphere) {
-        radius = Queries.props.coarse_grained.sphere_radius
+    } else if (Unit.isSpheres(unit)) {
+        radius = Queries.props.coarse.sphere_radius
     }
     const l = Element.Location()
     l.unit = unit
     return createAttributeSize({
         sizeFn: (elementIdx: number) => {
-            l.element = ElementGroup.getAt(elementGroup, elementIdx)
+            l.element = elements[elementIdx]
             return radius(l)
         },
         vertexMap

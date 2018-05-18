@@ -7,13 +7,13 @@
 import UUID from 'mol-util/uuid'
 import Format from './format'
 import Sequence from './properties/sequence'
-import Hierarchy from './properties/hierarchy'
-import AtomSiteConformation from './properties/atom-site-conformation'
-import Symmetry from './properties/symmetry'
-import CoarseGrained from './properties/coarse-grained'
+import { AtomicHierarchy, AtomicConformation } from './properties/atomic'
+import { ModelSymmetry } from './properties/symmetry'
+import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
 import { Entities } from './properties/common';
+import { SecondaryStructure } from './properties/seconday-structure';
 
-import from_gro from './formats/gro'
+//import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
 
 /**
@@ -28,15 +28,17 @@ interface Model extends Readonly<{
 
     sourceData: Format,
 
+    symmetry: ModelSymmetry,
     entities: Entities,
     sequence: Sequence,
 
-    hierarchy: Hierarchy,
-    atomSiteConformation: AtomSiteConformation,
-    symmetry: Symmetry,
-    coarseGrained: CoarseGrained,
+    atomicHierarchy: AtomicHierarchy,
+    atomicConformation: AtomicConformation,
 
-    atomCount: number,
+    properties: { secondaryStructure: SecondaryStructure },
+
+    coarseHierarchy: CoarseHierarchy,
+    coarseConformation: CoarseConformation
 }> {
 
 } { }
@@ -44,22 +46,10 @@ interface Model extends Readonly<{
 namespace Model {
     export function create(format: Format) {
         switch (format.kind) {
-            case 'gro': return from_gro(format);
+            //case 'gro': return from_gro(format);
             case 'mmCIF': return from_mmCIF(format);
         }
     }
-    // export function spatialLookup(model: Model): GridLookup {
-    //     if (model['@spatialLookup']) return model['@spatialLookup']!;
-    //     const lookup = GridLookup(model.conformation);
-    //     model['@spatialLookup'] = lookup;
-    //     return lookup;
-    // }
-    // export function bonds(model: Model): Bonds {
-    //     if (model['@bonds']) return model['@bonds']!;
-    //     const bonds = computeBonds(model);
-    //     model['@bonds'] = bonds;
-    //     return bonds;
-    // }
 }
 
 export default Model

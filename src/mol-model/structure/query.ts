@@ -7,11 +7,13 @@
 import Selection from './query/selection'
 import Query from './query/query'
 import * as generators from './query/generators'
+import * as modifiers from './query/modifiers'
 import props from './query/properties'
 import pred from './query/predicates'
 
 export const Queries = {
     generators,
+    modifiers,
     props,
     pred
 }

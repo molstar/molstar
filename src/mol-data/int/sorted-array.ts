@@ -12,6 +12,10 @@ namespace SortedArray {
     export const ofUnsortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofUnsortedArray as any;
     export const ofSingleton: (v: number) => SortedArray = Impl.ofSingleton as any;
     export const ofSortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofSortedArray as any;
+    // create sorted array [min, max] (it DOES contain the max value)
+    export const ofRange: (min: number, max: number) => SortedArray = Impl.ofRange as any;
+    // create sorted array [min, max) (it DOES not contain the max value)
+    export const ofBounds: (min: number, max: number) => SortedArray = (min, max) => Impl.ofRange(min, max - 1) as any;
     export const is: (v: any) => v is Interval = Impl.is as any;
 
     export const has: (array: SortedArray, x: number) => boolean = Impl.has as any;
@@ -36,6 +40,8 @@ namespace SortedArray {
     export const findPredecessorIndex: (array: SortedArray, x: number) => number = Impl.findPredecessorIndex as any;
     export const findPredecessorIndexInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
     export const findRange: (array: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
+
+    export const deduplicate: (arrat: SortedArray) => SortedArray = Impl.deduplicate as any;
 }
 
 interface SortedArray extends ArrayLike<number> { '@type': 'int-sorted-array' }

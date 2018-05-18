@@ -20,10 +20,10 @@ export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValu
     return Task.create<Mesh>('Volume Surface', async ctx => {
         ctx.update({ message: 'Marching cubes...' });
 
-        const mesh = await ctx.runChild(computeMarchingCubes({
+        const mesh = await computeMarchingCubes({
             isoLevel: VolumeIsoValue.toAbsolute(isoValue).absoluteValue,
             scalarField: volume.data
-        }));
+        }).runAsChild(ctx);
 
         const transform = VolumeData.getGridToCartesianTransform(volume);
         ctx.update({ message: 'Transforming mesh...' });
@@ -56,7 +56,7 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                 curProps = { ...DefaultSurfaceProps, ...props }
                 const { alpha, visible, flatShaded, flipSided, doubleSided } = curProps
 
-                const mesh = await ctx.runChild(computeVolumeSurface(volume, curProps.isoValue))
+                const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
                 if (!flatShaded) {
                     Mesh.computeNormalsImmediate(mesh)
                 }

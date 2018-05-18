@@ -7,7 +7,7 @@
 import { Column, Table } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
-import { ElementSymbol} from '../types'
+import { ElementSymbol} from '../../types'
 
 export const AtomsSchema = {
     type_symbol: Column.Schema.Aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
@@ -40,36 +40,34 @@ export const ChainsSchema = {
 export type ChainsSchema = typeof ChainsSchema
 export interface Chains extends Table<ChainsSchema> { }
 
-export interface Data {
+export interface AtomicData {
     atoms: Atoms,
     residues: Residues,
     chains: Chains
 }
 
-export interface Segments {
+export interface AtomicSegments {
     residueSegments: Segmentation,
     chainSegments: Segmentation
 }
 
-export interface Keys {
+export interface AtomicKeys {
     // indicate whether the keys form an increasing sequence and within each chain, sequence numbers
     // are in increasing order.
     // monotonous sequences enable for example faster secondary structure assignment.
     isMonotonous: boolean,
 
     // assign a key to each residue index.
-    residueKey: Column<number>,
+    residueKey: ArrayLike<number>,
     // assign a key to each chain index
-    chainKey: Column<number>,
+    chainKey: ArrayLike<number>,
     // assigne a key to each chain index
     // also index to the Entities table.
-    entityKey: Column<number>,
+    entityKey: ArrayLike<number>,
 
-    findChainKey(entityId: string, label_asym_id: string): number,
+    findChainKey(entityId: string, label_asym_id: string): number
     findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }
 
-type _Hierarchy = Data & Segments & Keys
-export interface Hierarchy extends _Hierarchy { }
-
-export default Hierarchy
+type _Hierarchy = AtomicData & AtomicSegments & AtomicKeys
+export interface AtomicHierarchy extends _Hierarchy { }

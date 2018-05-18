@@ -5,7 +5,6 @@
  */
 
 import { Element, Unit } from '../structure'
-import CoarseGrained from '../model/properties/coarse-grained';
 import { VdwRadius } from '../model/properties/atomic';
 
 const constant = {
@@ -27,67 +26,68 @@ const atom = {
     key: Element.property(l => l.element),
 
     // Conformation
-    x: Element.property(l => l.unit.x(l.element)),
-    y: Element.property(l => l.unit.y(l.element)),
-    z: Element.property(l => l.unit.z(l.element)),
-    id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.conformation.atomId.value(l.element)),
-    occupancy: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.conformation.occupancy.value(l.element)),
-    B_iso_or_equiv: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.conformation.B_iso_or_equiv.value(l.element)),
+    x: Element.property(l => l.unit.conformation.x(l.element)),
+    y: Element.property(l => l.unit.conformation.y(l.element)),
+    z: Element.property(l => l.unit.conformation.z(l.element)),
+    id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicConformation.atomId.value(l.element)),
+    occupancy: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.occupancy.value(l.element)),
+    B_iso_or_equiv: Element.property(l => !Unit.isAtomic(l.unit) ?  notAtomic() : l.unit.model.atomicConformation.B_iso_or_equiv.value(l.element)),
 
     // Hierarchy
-    type_symbol: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.type_symbol.value(l.element)),
-    label_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_atom_id.value(l.element)),
-    auth_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.auth_atom_id.value(l.element)),
-    label_alt_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.label_alt_id.value(l.element)),
-    pdbx_formal_charge: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.atoms.pdbx_formal_charge.value(l.element)),
+    type_symbol: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element)),
+    label_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.label_atom_id.value(l.element)),
+    auth_atom_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.auth_atom_id.value(l.element)),
+    label_alt_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.label_alt_id.value(l.element)),
+    pdbx_formal_charge: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.atoms.pdbx_formal_charge.value(l.element)),
 
     // Derived
-    vdw_radius: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.hierarchy.atoms.type_symbol.value(l.element))),
+    vdw_radius: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : VdwRadius(l.unit.model.atomicHierarchy.atoms.type_symbol.value(l.element))),
 }
 
 const residue = {
-    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residueKey.value(l.unit.residueIndex[l.element])),
+    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residueKey[l.unit.residueIndex[l.element]]),
 
-    group_PDB: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
-    label_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])),
-    auth_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
-    label_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])),
-    auth_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
-    pdbx_PDB_ins_code: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element]))
+    group_PDB: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
+    label_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])),
+    auth_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_comp_id.value(l.unit.residueIndex[l.element])),
+    label_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_seq_id.value(l.unit.residueIndex[l.element])),
+    auth_seq_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.element])),
+    pdbx_PDB_ins_code: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.pdbx_PDB_ins_code.value(l.unit.residueIndex[l.element])),
+
+    // Properties
+    secondary_structure_type: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.type[l.unit.residueIndex[l.element]]),
+    secondary_structure_key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.key[l.unit.residueIndex[l.element]]),
 }
 
 const chain = {
-    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chainKey.value(l.unit.chainIndex[l.element])),
+    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chainKey[l.unit.chainIndex[l.element]]),
 
-    label_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.element])),
-    auth_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.element])),
-    label_entity_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.element]))
+    label_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.element])),
+    auth_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.element])),
+    label_entity_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.label_entity_id.value(l.unit.chainIndex[l.element]))
 }
 
-const coarse_grained = {
-    modelKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.modelKey[l.element]),
-    entityKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.entityKey[l.element]),
+const coarse = {
+    key: atom.key,
+    modelKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.modelKey[l.element]),
+    entityKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.entityKey[l.element]),
 
     x: atom.x,
     y: atom.y,
     z: atom.z,
 
-    asym_id: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.asym_id.value(l.element)),
-    seq_id_begin: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.seq_id_begin.value(l.element)),
-    seq_id_end: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.siteBases.seq_id_end.value(l.element)),
+    asym_id: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.asym_id.value(l.element)),
+    seq_id_begin: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.seq_id_begin.value(l.element)),
+    seq_id_end: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.seq_id_end.value(l.element)),
 
-    sphere_radius: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Sphere
-        ? notCoarse('spheres') : l.unit.spheres.radius.value(l.element)),
-    sphere_rmsf: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Sphere
-        ? notCoarse('spheres') : l.unit.spheres.rmsf.value(l.element)),
+    sphere_radius: Element.property(l => !Unit.isSpheres(l.unit) ? notCoarse('spheres') : l.unit.coarseConformation.radius[l.element]),
+    sphere_rmsf: Element.property(l => !Unit.isSpheres(l.unit) ? notCoarse('spheres') : l.unit.coarseConformation.rmsf[l.element]),
 
-    gaussian_weight: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Gaussian
-        ? notCoarse('gaussians') : l.unit.gaussians.weight.value(l.element)),
-    gaussian_covariance_matrix: Element.property(l => !Unit.isCoarse(l.unit) || l.unit.elementType !== CoarseGrained.ElementType.Gaussian
-        ? notCoarse('gaussians') : l.unit.gaussians.covariance_matrix.value(l.element)),
+    gaussian_weight: Element.property(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.coarseConformation.weight[l.element]),
+    gaussian_covariance_matrix: Element.property(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.coarseConformation.covariance_matrix[l.element])
 }
 
-function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.hierarchy.entityKey.value(l.unit.chainIndex[l.element]); }
+function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.entityKey[l.unit.chainIndex[l.element]]; }
 
 const entity = {
     key: eK,
@@ -105,7 +105,7 @@ const entity = {
 }
 
 const unit = {
-    operator_name: Element.property(l => l.unit.operator.name),
+    operator_name: Element.property(l => l.unit.conformation.operator.name),
     model_num: Element.property(l => l.unit.model.modelNum)
 }
 
@@ -116,7 +116,7 @@ const Properties = {
     chain,
     entity,
     unit,
-    coarse_grained
+    coarse
 }
 
 type Properties = typeof Properties

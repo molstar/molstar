@@ -15,6 +15,12 @@ export const Empty: Nums = []
 export function ofSingleton(v: number) { return [v]; }
 export function ofSortedArray(xs: Nums) { return xs; }
 export function ofUnsortedArray(xs: Nums) { sortArray(xs); return xs; }
+export function ofRange(min: number, max: number) {
+    if (max < min) return [];
+    const ret = new Int32Array(max - min + 1);
+    for (let i = min; i <= max; i++) ret[i - min] = i;
+    return ret;
+}
 export function is(xs: any): xs is Nums { return xs && (Array.isArray(xs) || !!xs.buffer); }
 
 export function start(xs: Nums) { return xs[0]; }
@@ -265,6 +271,22 @@ export function subtract(a: Nums, b: Nums) {
     for (; i < lenA; i++) indices[offset++] = a[i];
 
     return ofSortedArray(indices);
+}
+
+export function deduplicate(xs: Nums) {
+    if (xs.length < 2) return xs;
+    let count = 1;
+    for (let i = 0, _i = xs.length - 1; i < _i; i++) {
+        if (xs[i] !== xs[i + 1]) count++;
+    }
+    if (count === xs.length) return xs;
+    const ret = new Int32Array(count);
+    let o = 0;
+    for (let i = 0, _i = xs.length - 1; i < _i; i++) {
+        if (xs[i] !== xs[i + 1]) ret[o++] = xs[i];
+    }
+    ret[o] = xs[xs.length - 1];
+    return ret;
 }
 
 const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };

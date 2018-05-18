@@ -5,11 +5,12 @@
  */
 
 import { Vec3, Mat4 } from '../../linear-algebra'
-import { SpacegroupName, TransformData, GroupData, SpacegroupNumbers, SpacegroupNames, OperatorData } from './tables'
+import { SpacegroupName, TransformData, GroupData, getSpacegroupIndex, OperatorData, SpacegroupNames } from './tables'
 import { SymmetryOperator } from '../../geometry';
 
 interface SpacegroupCell {
-    readonly number: number,
+    // zero based spacegroup number
+    readonly index: number,
     readonly size: Vec3,
     readonly anglesInRadians: Vec3,
     /** Transfrom cartesian -> fractional coordinates within the cell */
@@ -26,16 +27,18 @@ interface Spacegroup {
 
 namespace SpacegroupCell {
     // Create a 'P 1' with cellsize [1, 1, 1]
-    export function zero() {
-        return create(0, Vec3.create(1, 1, 1), Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2));
-    }
+    export const Zero: SpacegroupCell = create('P 1', Vec3.create(1, 1, 1), Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2));
 
     // True if 'P 1' with cellsize [1, 1, 1]
     export function isZero(cell: SpacegroupCell) {
-        return cell.size[0] === 1 && cell.size[1] === 1 && cell.size[1] === 1;
+        return cell.index === 0 && cell.size[0] === 1 && cell.size[1] === 1 && cell.size[1] === 1;
     }
 
-    export function create(nameOrNumber: number | SpacegroupName, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
+    // returns Zero cell if the spacegroup does not exist
+    export function create(nameOrNumber: number | string | SpacegroupName, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
+        const index = getSpacegroupIndex(nameOrNumber);
+        if (index < 0) return Zero;
+
         const alpha = anglesInRadians[0];
         const beta = anglesInRadians[1];
         const gamma = anglesInRadians[2];
@@ -58,23 +61,18 @@ namespace SpacegroupCell {
         ]);
         const toFractional = Mat4.invert(Mat4.zero(), fromFractional)!;
 
-        const num = typeof nameOrNumber === 'number' ? nameOrNumber : SpacegroupNumbers[nameOrNumber];
-        return { number: num, size, anglesInRadians, toFractional, fromFractional };
+        return { index, size, anglesInRadians, toFractional, fromFractional };
     }
 }
 
+
 namespace Spacegroup {
-    export function create(nameOrNumber: number | SpacegroupName, cell: SpacegroupCell): Spacegroup {
-        const num = typeof nameOrNumber === 'number' ? nameOrNumber : SpacegroupNumbers[nameOrNumber];
-        const name = typeof nameOrNumber === 'number' ? SpacegroupNames[nameOrNumber] : nameOrNumber;
+    // P1 with [1, 1, 1] cell.
+    export const ZeroP1 = create(SpacegroupCell.Zero);
 
-        if (typeof num === 'undefined' || typeof name === 'undefined') {
-            throw new Error(`Spacegroup '${nameOrNumber}' is not defined.`);
-        }
-
-        const operators = GroupData[num].map(i => getOperatorMatrix(OperatorData[i]));
-
-        return { name, cell, operators };
+    export function create(cell: SpacegroupCell): Spacegroup {
+        const operators = GroupData[cell.index].map(i => getOperatorMatrix(OperatorData[i]));
+        return { name: SpacegroupNames[cell.index], cell, operators };
     }
 
     const _tempVec = Vec3.zero(), _tempMat = Mat4.zero();

@@ -17,7 +17,7 @@
  * furnished to do so, subject to the following conditions:
  */
 
-import { EPSILON } from './common'
+import { EPSILON, equalEps } from './common'
 import Vec3 from './vec3';
 import Quat from './quat';
 
@@ -539,11 +539,11 @@ namespace Mat4 {
             a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
             /* a30 = a[12], a31 = a[13], a32 = a[14],*/ a33 = a[15];
 
-        if (a33 !== 1 || a03 !== 0 || a13 !== 0 || a23 !== 0) {
+        if (!equalEps(a33, 1, eps) || !equalEps(a03, 0, eps) || !equalEps(a13, 0, eps) || !equalEps(a23, 0, eps)) {
             return false;
         }
         const det3x3 = a00 * (a11 * a22 - a12 * a21) - a01 * (a10 * a22 - a12 * a20) + a02 * (a10 * a21 - a11 * a20);
-        if (det3x3 < 1 - eps || det3x3 > 1 + eps) {
+        if (!equalEps(det3x3, 1, eps)) {
             return false;
         }
         return true;

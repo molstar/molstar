@@ -13,7 +13,7 @@ require('util.promisify').shim();
 const readFile = util.promisify(fs.readFile);
 const writeFile = util.promisify(fs.writeFile);
 
-import { Run, Progress } from 'mol-task'
+import { Progress } from 'mol-task'
 import { Database, Table, DatabaseCollection } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
 // import { CCD_Schema } from 'mol-io/reader/cif/schema/ccd'
@@ -78,7 +78,7 @@ export async function getBIRD() {
 async function parseCif(data: string|Uint8Array) {
     const comp = CIF.parse(data);
     console.time('parse cif');
-    const parsed = await Run(comp, p => console.log(Progress.format(p)), 250);
+    const parsed = await comp.run(p => console.log(Progress.format(p)), 250);
     console.timeEnd('parse cif');
     if (parsed.isError) throw parsed;
     return parsed

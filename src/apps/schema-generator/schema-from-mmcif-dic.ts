@@ -14,15 +14,14 @@ import CIF, { CifFrame } from 'mol-io/reader/cif'
 import { generateSchema } from './util/cif-dic'
 import { generate } from './util/generate'
 import { Filter } from './util/json-schema'
-import { Run } from 'mol-task'
 
 async function runGenerateSchema(name: string, fieldNamesPath?: string, typescript = false, out?: string) {
     await ensureMmcifDicAvailable()
-    const mmcifDic = await Run(CIF.parseText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8')));
+    const mmcifDic = await CIF.parseText(fs.readFileSync(MMCIF_DIC_PATH, 'utf8')).run();
     if (mmcifDic.isError) throw mmcifDic
 
     await ensureIhmDicAvailable()
-    const ihmDic = await Run(CIF.parseText(fs.readFileSync(IHM_DIC_PATH, 'utf8')));
+    const ihmDic = await CIF.parseText(fs.readFileSync(IHM_DIC_PATH, 'utf8')).run();
     if (ihmDic.isError) throw ihmDic
 
     const mmcifDicVersion = CIF.schema.dic(mmcifDic.result.blocks[0]).dictionary.version.value(0)
@@ -44,7 +43,7 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, typescri
 
 async function getFieldNamesFilter(fieldNamesPath: string): Promise<Filter> {
     const fieldNamesStr = fs.readFileSync(fieldNamesPath, 'utf8')
-    const parsed = await Run(Csv(fieldNamesStr, { noColumnNames: true }));
+    const parsed = await Csv(fieldNamesStr, { noColumnNames: true }).run();
     if (parsed.isError) throw parser.error
     const csvFile = parsed.result;
 

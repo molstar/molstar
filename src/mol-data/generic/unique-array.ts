@@ -15,9 +15,10 @@ namespace UniqueArray {
     }
 
     export function add<K, T>({ keys, array }: UniqueArray<K, T>, key: K, value: T) {
-        if (keys.has(key)) return;
+        if (keys.has(key)) return false;
         keys.add(key);
         array[array.length] = value;
+        return true;
     }
 }
 

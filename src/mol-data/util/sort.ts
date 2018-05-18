@@ -13,10 +13,10 @@ export function arrayLess(arr: ArrayLike<number>, i: number, j: number) {
     return arr[i] - arr[j];
 }
 
-export function arraySwap(arr: any[], i: number, j: number) {
+export function arraySwap(arr: ArrayLike<any>, i: number, j: number) {
     const temp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = temp;
+    (arr as any[])[i] = arr[j];
+    (arr as any[])[j] = temp;
 }
 
 function medianPivotIndex(data: any, cmp: Comparer, l: number, r: number) {
