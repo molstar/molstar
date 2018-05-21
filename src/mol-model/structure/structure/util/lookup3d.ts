@@ -84,7 +84,7 @@ export class StructureLookup3D implements Lookup3D<Element> {
     _boundary: { box: Box3D; sphere: Sphere3D; } | undefined = void 0;
 
     get boundary() {
-        if (this.boundary) return this._boundary!;
+        if (this._boundary) return this._boundary!;
         this._boundary = computeStructureBoundary(this.structure);
         return this._boundary!;
     }
