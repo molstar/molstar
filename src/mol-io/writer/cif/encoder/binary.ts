@@ -77,16 +77,22 @@ export default class BinaryCIFWriter<Context> implements CIFEncoder<Uint8Array, 
     }
 }
 
-function encodeField(field: FieldDefinition, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, format: FieldFormat): EncodedColumn {
-    const isStr = field.type === FieldType.Str
-    let array: any[], encoder: ArrayEncoder;
+function createArray(field: FieldDefinition, count: number) {
+    if (field.type === FieldType.Str) return new Array(count) as any;
+    else if (field.typedArray) return new field.typedArray(count) as any;
+    else return (field.type === FieldType.Int ? new Int32Array(count) : new Float32Array(count)) as any;
+}
 
-    if (isStr) {
-        array = new Array(totalCount);
-        encoder = ArrayEncoder.by(E.stringArray); //format.stringEncoder;
+function encodeField(field: FieldDefinition, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, format: FieldFormat): EncodedColumn {
+    const isStr = field.type === FieldType.Str;
+    const array = createArray(field, totalCount);
+    let encoder: ArrayEncoder;
+
+    if (field.encoder) {
+        encoder = field.encoder;
+    } else if (isStr) {
+        encoder = ArrayEncoder.by(E.stringArray);
     } else {
-        //array = format.typedArray ? new format.typedArray(totalCount) as any : field.type === FieldType.Int ? new Int32Array(totalCount) : new Float32Array(totalCount);
-        array = (field.type === FieldType.Int ? new Int32Array(totalCount) : new Float32Array(totalCount)) as any;
         encoder = ArrayEncoder.by(E.byteArray);
     }
 

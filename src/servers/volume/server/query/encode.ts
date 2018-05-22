@@ -13,7 +13,7 @@ import VERSION from '../version'
 import * as DataFormat from '../../common/data-format'
 import { Column } from 'mol-data/db';
 import { Iterator } from 'mol-data';
-//import { ArrayEncoding, ArrayEncoder } from 'mol-io/common/binary-cif';
+import { ArrayEncoding, ArrayEncoder } from 'mol-io/common/binary-cif';
 
 export default function encode(query: Data.QueryContext, output: Data.QueryOutputStream) {
     let w = Encoder.create({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
@@ -45,8 +45,8 @@ function int32<T>(name: string, value: (data: T) => number): FieldDesc<T> {
     return { name, type: Encoder.FieldType.Int, value: (i, d) => value(d) };
 }
 
-function float64<T>(name: string, value: (data: T) => number, precisionMultiplier: number = 1000000): FieldDesc<T> {
-    return { name, type: Encoder.FieldType.Float, value: (i, d) => value(d) };
+function float64<T>(name: string, value: (data: T) => number, digitCount: number = 6): FieldDesc<T> {
+    return { name, type: Encoder.FieldType.Float, value: (i, d) => value(d), digitCount };
 }
 
 interface _vd3d_Ctx {
@@ -80,13 +80,13 @@ const _volume_data_3d_info_fields: FieldDesc<_vd3d_Ctx>[] = [
 
     int32<_vd3d_Ctx>('spacegroup_number', ctx => ctx.header.spacegroup.number),
 
-    float64<_vd3d_Ctx>('spacegroup_cell_size[0]', ctx => ctx.header.spacegroup.size[0], 1000),
-    float64<_vd3d_Ctx>('spacegroup_cell_size[1]', ctx => ctx.header.spacegroup.size[1], 1000),
-    float64<_vd3d_Ctx>('spacegroup_cell_size[2]', ctx => ctx.header.spacegroup.size[2], 1000),
+    float64<_vd3d_Ctx>('spacegroup_cell_size[0]', ctx => ctx.header.spacegroup.size[0], 3),
+    float64<_vd3d_Ctx>('spacegroup_cell_size[1]', ctx => ctx.header.spacegroup.size[1], 3),
+    float64<_vd3d_Ctx>('spacegroup_cell_size[2]', ctx => ctx.header.spacegroup.size[2], 3),
 
-    float64<_vd3d_Ctx>('spacegroup_cell_angles[0]', ctx => ctx.header.spacegroup.angles[0], 1000),
-    float64<_vd3d_Ctx>('spacegroup_cell_angles[1]', ctx => ctx.header.spacegroup.angles[1], 1000),
-    float64<_vd3d_Ctx>('spacegroup_cell_angles[2]', ctx => ctx.header.spacegroup.angles[2], 1000),
+    float64<_vd3d_Ctx>('spacegroup_cell_angles[0]', ctx => ctx.header.spacegroup.angles[0], 3),
+    float64<_vd3d_Ctx>('spacegroup_cell_angles[1]', ctx => ctx.header.spacegroup.angles[1], 3),
+    float64<_vd3d_Ctx>('spacegroup_cell_angles[2]', ctx => ctx.header.spacegroup.angles[2], 3),
 
     float64<_vd3d_Ctx>('mean_source', ctx => ctx.globalValuesInfo.mean),
     float64<_vd3d_Ctx>('mean_sampled', ctx => ctx.sampledValuesInfo.mean),
@@ -123,29 +123,27 @@ function _volume_data_3d_number(i: number, ctx: DataFormat.ValueArray): number {
 function _volume_data_3d(ctx: ResultContext) {
     const data = ctx.query.values[ctx.channelIndex];
 
-    // const E = ArrayEncoding;
-    // let encoder: ArrayEncoder;
-    // let typedArray: any;
-    // if (ctx.query.data.header.valueType === DataFormat.ValueType.Float32 || ctx.query.data.header.valueType === DataFormat.ValueType.Int16) {
-    //     let min: number, max: number;
-    //     min = data[0], max = data[0];
-    //     for (let i = 0, n = data.length; i < n; i++) {
-    //         let v = data[i];
-    //         if (v < min) min = v;
-    //         else if (v > max) max = v;
-    //     }
-    //     typedArray = Float32Array;
-    //     // encode into 255 steps and store each value in 1 byte.
-    //     encoder = E.by(E.intervalQuantizaiton(min, max, 255, Uint8Array)).and(E.byteArray);
-    // } else {
-    //     typedArray = Int8Array;
-    //     // just encode the bytes
-    //     encoder = E.by(E.byteArray)
-    // }
+    const E = ArrayEncoding;
+    let encoder: ArrayEncoder;
+    let typedArray: any;
+    if (ctx.query.data.header.valueType === DataFormat.ValueType.Float32 || ctx.query.data.header.valueType === DataFormat.ValueType.Int16) {
+        let min: number, max: number;
+        min = data[0], max = data[0];
+        for (let i = 0, n = data.length; i < n; i++) {
+            let v = data[i];
+            if (v < min) min = v;
+            else if (v > max) max = v;
+        }
+        typedArray = Float32Array;
+        // encode into 255 steps and store each value in 1 byte.
+        encoder = E.by(E.intervalQuantizaiton(min, max, 255, Uint8Array)).and(E.byteArray);
+    } else {
+        typedArray = Int8Array;
+        // just encode the bytes
+        encoder = E.by(E.byteArray)
+    }
 
-    let fields: FieldDesc<typeof data>[] = [{
-        name: 'values', type: Encoder.FieldType.Float, value: _volume_data_3d_number
-    }];
+    let fields: FieldDesc<typeof data>[] = [{ name: 'values', type: Encoder.FieldType.Float, value: _volume_data_3d_number, encoder, typedArray, digitCount: 6 }];
 
     return {
         data,

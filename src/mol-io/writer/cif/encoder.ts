@@ -9,6 +9,7 @@ import Iterator from 'mol-data/iterator'
 import { Column, Table } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
 import Encoder from '../encoder'
+import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
 
 // TODO: support for "coordinate fields", make "coordinate precision" a parameter of the encoder
 // TODO: automatically detect "precision" of floating point arrays.
@@ -28,21 +29,19 @@ export const enum FieldType {
 export interface FieldDefinitionBase<Key, Data> {
     name: string,
     valueKind?: (key: Key, data: Data) => Column.ValueKind,
-    // TODO:
-    // shouldInclude?: (data: Data) => boolean
+    encoder?: ArrayEncoder
 }
 
 export type FieldDefinition<Key = any, Data = any> =
     | FieldDefinitionBase<Key, Data> & { type: FieldType.Str, value(key: Key, data: Data): string }
-    | FieldDefinitionBase<Key, Data> & { type: FieldType.Int, value(key: Key, data: Data): number }
-    | FieldDefinitionBase<Key, Data> & { type: FieldType.Float, value(key: Key, data: Data): number }
+    | FieldDefinitionBase<Key, Data> & { type: FieldType.Int, value(key: Key, data: Data): number, typedArray?: ArrayEncoding.TypedArrayCtor }
+    | FieldDefinitionBase<Key, Data> & { type: FieldType.Float, value(key: Key, data: Data): number, digitCount?: number, typedArray?: ArrayEncoding.TypedArrayCtor }
 
 export interface FieldFormat {
     // TODO: do we actually need this?
-    // textDecimalPlaces: number,
-    // stringEncoder: ArrayEncoder,
-    // numericEncoder: ArrayEncoder,
-    // typedArray?: E.TypedArrayCtor
+    // digitCount?: number,
+    // encoder?: ArrayEncoder,
+    // typedArray?: ArrayEncoding.TypedArrayCtor
 }
 
 export namespace FieldFormat {
@@ -55,7 +54,8 @@ export namespace FieldFormat {
 
 export interface CategoryDefinition<Key = any, Data = any> {
     name: string,
-    fields: FieldDefinition<Key, Data>[]
+    fields: FieldDefinition<Key, Data>[],
+    format?: { [name: string]: FieldFormat }
 }
 
 export interface CategoryInstance<Key = any, Data = any> {
