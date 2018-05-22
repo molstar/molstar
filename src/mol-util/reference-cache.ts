@@ -28,6 +28,7 @@ export interface ReferenceCache<T, P, C> {
     get: (ctx: C, props: P) => ReferenceItem<T>
     clear: () => void
     count: number
+    // values: Reference<T>[]
     dispose: () => void
 }
 
@@ -52,14 +53,19 @@ export function createReferenceCache<T, P, C>(hashFn: (props: P) => string, ctor
                         console.warn('Reference usageCount below zero.')
                     }
                     deleteFn(ref.value)
+                    map.delete(id)
                 }
             })
         },
         get count () {
             return map.size
         },
+        // get values () {
+        //     return Array.from(map.values())
+        // },
         dispose: () => {
             map.forEach(ref => deleteFn(ref.value))
+            map.clear()
         },
     }
 }
