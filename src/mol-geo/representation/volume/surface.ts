@@ -39,7 +39,8 @@ export const DefaultSurfaceProps = {
     visible: true,
     flatShaded: true,
     flipSided: true,
-    doubleSided: true
+    doubleSided: true,
+    depthMask: true
 }
 export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
 
@@ -54,7 +55,7 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
             return Task.create('Point.create', async ctx => {
                 renderObjects.length = 0 // clear
                 curProps = { ...DefaultSurfaceProps, ...props }
-                const { alpha, visible, flatShaded, flipSided, doubleSided } = curProps
+                const { alpha, visible, flatShaded, flipSided, doubleSided, depthMask } = curProps
 
                 const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
                 if (!flatShaded) {
@@ -65,6 +66,7 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                     objectId: 0,
                     alpha,
                     visible,
+                    depthMask,
 
                     position: mesh.vertexBuffer,
                     normal: mesh.normalBuffer,

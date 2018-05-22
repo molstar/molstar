@@ -71,20 +71,6 @@ namespace Renderer {
         const drawObject = (r: Renderable<any>, o: RenderObject) => {
             if (o.props.visible) {
                 if (currentProgramId !== r.program.id) {
-                    if (o.props.doubleSided) {
-                        gl.disable(gl.CULL_FACE)
-                    } else {
-                        gl.enable(gl.CULL_FACE)
-                    }
-
-                    if (o.props.flipSided) {
-                        gl.frontFace(gl.CW)
-                        gl.cullFace(gl.FRONT)
-                    } else {
-                        gl.frontFace(gl.CCW)
-                        gl.cullFace(gl.BACK)
-                    }
-
                     r.program.use()
                     r.program.setUniforms({
                         model,
@@ -100,6 +86,22 @@ namespace Renderer {
                     })
                     currentProgramId = r.program.id
                 }
+                if (o.props.doubleSided) {
+                    gl.disable(gl.CULL_FACE)
+                } else {
+                    gl.enable(gl.CULL_FACE)
+                }
+
+                if (o.props.flipSided) {
+                    gl.frontFace(gl.CW)
+                    gl.cullFace(gl.FRONT)
+                } else {
+                    gl.frontFace(gl.CCW)
+                    gl.cullFace(gl.BACK)
+                }
+
+                gl.depthMask(o.props.depthMask)
+
                 r.draw()
             }
         }
@@ -116,7 +118,6 @@ namespace Renderer {
 
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
             gl.enable(gl.BLEND)
-            gl.depthMask(false)
             scene.eachTransparent(drawObject)
         }
 

@@ -12,6 +12,7 @@ export type BaseProps = {
     objectId: number
     alpha: number
     visible: boolean
+    depthMask: boolean
 
     flatShaded?: boolean
     doubleSided?: boolean

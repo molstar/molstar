@@ -32,7 +32,8 @@ export const DefaultStructureProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
     alpha: 1,
     visible: true,
-    doubleSided: false
+    doubleSided: false,
+    depthMask: true
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 

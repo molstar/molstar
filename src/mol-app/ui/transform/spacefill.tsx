@@ -17,7 +17,6 @@ import { SpacefillUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
 import { ColorTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
-import { Query, Queries as Q } from 'mol-model/structure';
 import { Slider } from '../controls/slider';
 
 export const ColorThemeInfo = {
@@ -36,6 +35,7 @@ interface SpacefillState {
     colorValue: Color
     visible: boolean
     alpha: number
+    depthMask: boolean
 }
 
 export class Spacefill extends View<Controller<any>, SpacefillState, { transform: SpacefillUpdate, entity: SpacefillEntity, ctx: StateContext }> {
@@ -45,7 +45,8 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
         colorTheme: { name: 'element-symbol' } as ColorTheme,
         colorValue: 0x000000,
         visible: true,
-        alpha: 1
+        alpha: 1,
+        depthMask: true
     }
 
     update(state?: Partial<SpacefillState>) {
@@ -151,7 +152,16 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                                 />
                             </div>
                         </div>
-                        {/* <div className='molstar-control-row molstar-options-group'>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Toggle
+                                    value={this.state.depthMask}
+                                    label='Depth write'
+                                    onChange={value => this.update({ depthMask: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
                             <div>
                                 <Slider
                                     value={this.state.alpha}
@@ -162,7 +172,7 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                                     onChange={value => this.update({ alpha: value })}
                                 />
                             </div>
-                        </div> */}
+                        </div>
                     </div>
                 </div>
             </div>

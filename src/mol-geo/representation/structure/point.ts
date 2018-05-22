@@ -22,7 +22,8 @@ export const DefaultPointProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
     sizeTheme: { name: 'vdw' } as SizeTheme,
     alpha: 1,
-    visible: true
+    visible: true,
+    depthMask: true
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
@@ -63,7 +64,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 _units = group.units
                 _elements = group.elements;
 
-                const { colorTheme, sizeTheme, alpha, visible } = curProps
+                const { colorTheme, sizeTheme, alpha, visible, depthMask } = curProps
                 const elementCount = _elements.length
                 const unitCount = _units.length
 
@@ -90,6 +91,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                     objectId: 0,
                     alpha,
                     visible,
+                    depthMask,
 
                     position: ValueCell.create(vertices),
                     id: ValueCell.create(fillSerial(new Float32Array(elementCount))),

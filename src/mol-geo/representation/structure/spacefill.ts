@@ -17,6 +17,7 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { createTransforms, createColors } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
+import { deepEqual } from 'mol-util';
 
 export const DefaultSpacefillProps = {
     ...DefaultStructureProps,
@@ -80,7 +81,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
 
-                const { detail, colorTheme, alpha, visible, doubleSided } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme, alpha, visible, doubleSided, depthMask } = { ...DefaultSpacefillProps, ...props }
 
                 const mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
@@ -98,6 +99,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     alpha,
                     visible,
                     doubleSided,
+                    depthMask,
 
                     position: mesh.vertexBuffer,
                     normal: mesh.normalBuffer as ValueCell<Float32Array>,
@@ -119,13 +121,13 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             return Task.create('Spacefill.update', async ctx => {
                 if (!spheres) return false
-                if (props.detail !== currentProps.detail) return false
-                if (props.colorTheme !== currentProps.colorTheme) return false
-                if (props.detail !== currentProps.detail) return false
+                if (newProps.detail !== currentProps.detail) return false
+                if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) return false
 
                 spheres.props.alpha = newProps.alpha
                 spheres.props.visible = newProps.visible
                 spheres.props.doubleSided = newProps.doubleSided
+                spheres.props.depthMask = newProps.depthMask
 
                 currentProps = newProps
                 return true
