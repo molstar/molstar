@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import createGl = require('gl');
+import { createGl } from './gl.shim';
 
 import { PerspectiveCamera } from 'mol-view/camera/perspective';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -17,16 +17,16 @@ import { createUniformColor } from 'mol-geo/util/color-data';
 import { createUniformSize } from 'mol-geo/util/size-data';
 import { createContext } from '../webgl/context';
 
-function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
-    const pixels = new Uint8Array(width * height * 4)
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
-    process.stdout.write(['P3\n# gl.ppm\n', width, ' ', height, '\n255\n'].join(''))
-    for (let i = 0; i<pixels.length; i+=4) {
-        for (let j = 0; j<3; ++j) {
-            process.stdout.write(pixels[i+j] + ' ')
-        }
-    }
-}
+// function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
+//     const pixels = new Uint8Array(width * height * 4)
+//     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels)
+//     process.stdout.write(['P3\n# gl.ppm\n', width, ' ', height, '\n255\n'].join(''))
+//     for (let i = 0; i<pixels.length; i+=4) {
+//         for (let j = 0; j<3; ++j) {
+//             process.stdout.write(pixels[i+j] + ' ')
+//         }
+//     }
+// }
 
 function createRenderer(gl: WebGLRenderingContext) {
     const ctx = createContext(gl)
@@ -35,7 +35,8 @@ function createRenderer(gl: WebGLRenderingContext) {
         far: 10000,
         position: Vec3.create(0, 0, 50)
     })
-    return Renderer.create(ctx, camera)
+    const renderer = Renderer.create(ctx, camera)
+    return { ctx, camera, renderer }
 }
 
 function createPoints() {
@@ -52,6 +53,7 @@ function createPoints() {
         objectId: 0,
         alpha: 1.0,
         visible: true,
+        depthMask: true,
 
         position,
         id,
@@ -65,18 +67,52 @@ function createPoints() {
     })
 }
 
-// TODO not working
-// - shaders not transformed via glslify
-describe.skip('renderer', () => {
+describe('renderer', () => {
     it('basic', () => {
         const [ width, height ] = [ 32, 32 ]
         const gl = createGl(width, height, { preserveDrawingBuffer: true })
-        const renderer = createRenderer(gl)
+        const { ctx, renderer } = createRenderer(gl)
+
+        expect(ctx.gl.canvas.width).toBe(32)
+        expect(ctx.gl.canvas.height).toBe(32)
+
+        expect(ctx.bufferCount).toBe(0);
+        expect(ctx.textureCount).toBe(0);
+        expect(ctx.vaoCount).toBe(0);
+        expect(ctx.programCache.count).toBe(0);
+        expect(ctx.shaderCache.count).toBe(0);
+
+        renderer.setViewport({ x: 0, y: 0, width: 64, height: 48 })
+        expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[2]).toBe(64)
+        expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[3]).toBe(48)
+    })
+
+    it('points', () => {
+        const [ width, height ] = [ 32, 32 ]
+        const gl = createGl(width, height, { preserveDrawingBuffer: true })
+        const { ctx, renderer } = createRenderer(gl)
+
         const points = createPoints()
 
         renderer.add(points)
-        renderer.draw()
+        expect(ctx.bufferCount).toBe(4);
+        expect(ctx.textureCount).toBe(0);
+        expect(ctx.vaoCount).toBe(1);
+        expect(ctx.programCache.count).toBe(1);
+        expect(ctx.shaderCache.count).toBe(2);
 
-        writeImage(gl, width, height)
+        renderer.remove(points)
+        expect(ctx.bufferCount).toBe(0);
+        expect(ctx.textureCount).toBe(0);
+        expect(ctx.vaoCount).toBe(0);
+        expect(ctx.programCache.count).toBe(1);
+        expect(ctx.shaderCache.count).toBe(2);
+
+        ctx.programCache.dispose()
+        expect(ctx.programCache.count).toBe(0);
+
+        ctx.shaderCache.clear()
+        expect(ctx.shaderCache.count).toBe(0);
+        // console.log('moin', ctx)
     })
 })

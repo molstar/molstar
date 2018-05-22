@@ -91,7 +91,6 @@
   "dependencies": {
     "argparse": "^1.0.10",
     "express": "^4.16.3",
-    "gl": "^4.0.4",
     "immutable": "^4.0.0-rc.9",
     "node-fetch": "^2.1.2",
     "react": "^16.3.2",
