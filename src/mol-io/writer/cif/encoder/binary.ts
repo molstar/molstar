@@ -59,8 +59,8 @@ export default class BinaryCIFWriter<Context> implements CIFEncoder<Uint8Array, 
         this.dataBlocks = <any>null;
     }
 
-    writeTo(writer: Writer<Uint8Array>) {
-        writer.write(this.encodedData);
+    writeTo(writer: Writer) {
+        writer.writeBinary(this.encodedData);
     }
 
     getData() {

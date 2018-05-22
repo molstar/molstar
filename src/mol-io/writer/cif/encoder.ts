@@ -70,7 +70,7 @@ export interface CategoryProvider {
     (ctx: any): CategoryInstance
 }
 
-export interface CIFEncoder<T = string | Uint8Array, Context = any> extends Encoder<T> {
+export interface CIFEncoder<T = string | Uint8Array, Context = any> extends Encoder {
     startDataBlock(header: string): void,
     writeCategory(category: CategoryProvider, contexts?: Context[]): void,
     getData(): T

@@ -13,14 +13,14 @@ import { CategoryDefinition } from './cif/encoder'
 
 export * from './cif/encoder'
 
-export function create(params?: { binary?: boolean, encoderName?: string }) {
+export type EncoderInstance = BinaryCIFEncoder<{}> | TextCIFEncoder<{}>
+
+export function create(params?: { binary?: boolean, encoderName?: string }): EncoderInstance {
     const { binary = false, encoderName = 'mol*' } = params || {};
     return binary ? new BinaryCIFEncoder(encoderName) : new TextCIFEncoder();
 }
 
-type CIFEncoder = BinaryCIFEncoder<{}> | TextCIFEncoder<{}>
-
-export function writeDatabase(encoder: CIFEncoder, name: string, database: Database<Database.Schema>) {
+export function writeDatabase(encoder: EncoderInstance, name: string, database: Database<Database.Schema>) {
     encoder.startDataBlock(name);
     for (const table of database._tableNames) {
         encoder.writeCategory(
@@ -29,7 +29,7 @@ export function writeDatabase(encoder: CIFEncoder, name: string, database: Datab
     }
 }
 
-export function writeDatabaseCollection(encoder: CIFEncoder, collection: DatabaseCollection<Database.Schema>) {
+export function writeDatabaseCollection(encoder: EncoderInstance, collection: DatabaseCollection<Database.Schema>) {
     for (const name of Object.keys(collection)) {
         writeDatabase(encoder, name, collection[name])
     }

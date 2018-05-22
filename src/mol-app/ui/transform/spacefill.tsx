@@ -17,8 +17,8 @@ import { SpacefillUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
 import { ColorTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
-import { Query, Queries as Q } from 'mol-model/structure';
-import { Slider } from '../controls/slider';
+// import { Query, Queries as Q } from 'mol-model/structure';
+// import { Slider } from '../controls/slider';
 
 export const ColorThemeInfo = {
     'atom-index': {},

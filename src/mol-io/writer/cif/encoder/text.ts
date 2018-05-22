@@ -48,10 +48,10 @@ export default class TextCIFEncoder<Context> implements Enc.CIFEncoder<string, C
         this.encoded = true;
     }
 
-    writeTo(stream: Writer<string>) {
+    writeTo(stream: Writer) {
         const chunks = StringBuilder.getChunks(this.builder);
         for (let i = 0, _i = chunks.length; i < _i; i++) {
-            stream.write(chunks[i]);
+            stream.writeString(chunks[i]);
         }
     }
 
