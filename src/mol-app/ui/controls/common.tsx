@@ -88,7 +88,7 @@ export function isEnter(e: React.KeyboardEvent<HTMLInputElement>) {
 export function TextBoxGroup(props: {
     value: string,
     onChange: (v: string) => void,
-    placeholder?:string,
+    placeholder?: string,
     label: string,
     onEnter?: (e: React.KeyboardEvent<HTMLInputElement>) => void
     title?: string

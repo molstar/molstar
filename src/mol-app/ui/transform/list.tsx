@@ -17,6 +17,7 @@ import { Spacefill } from './spacefill';
 import { AnyEntity } from 'mol-view/state/entity';
 import { FileLoader } from './file-loader';
 import { ModelToStructure } from './model';
+import { StructureCenter } from './structure';
 
 function getTransformComponent(controller: TransformListController, entity: AnyEntity, transform: AnyTransform) {
     switch (transform.kind) {
@@ -24,6 +25,8 @@ function getTransformComponent(controller: TransformListController, entity: AnyE
             return <FileLoader controller={controller} ctx={controller.context.stage.ctx}></FileLoader>
         case 'model-to-structure':
             return <ModelToStructure controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></ModelToStructure>
+        case 'structure-center':
+            return <StructureCenter controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></StructureCenter>
         case 'spacefill-update':
             return <Spacefill controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Spacefill>
     }

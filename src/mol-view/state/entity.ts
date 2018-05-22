@@ -31,7 +31,9 @@ export namespace StateEntity {
 }
 
 export type AnyEntity = StateEntity<any, any>
+export type NullEntity = StateEntity<null, 'null'>
 
+export const NullEntity: NullEntity = { id: -1, kind: 'null', value: null }
 export const RootEntity: StateEntity<null, 'root'> = { id: 0, kind: 'root', value: null }
 
 export interface UrlProps {

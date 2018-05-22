@@ -11,11 +11,14 @@ import * as React from 'react'
 
 import { View } from '../view';
 import { Controller } from '../../controller/controller';
+import { Toggle } from '../controls/common';
 import { SpacefillEntity } from 'mol-view/state/entity';
 import { SpacefillUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
 import { ColorTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
+import { Query, Queries as Q } from 'mol-model/structure';
+import { Slider } from '../controls/slider';
 
 export const ColorThemeInfo = {
     'atom-index': {},
@@ -31,6 +34,8 @@ interface SpacefillState {
     detail: number
     colorTheme: ColorTheme
     colorValue: Color
+    visible: boolean
+    alpha: number
 }
 
 export class Spacefill extends View<Controller<any>, SpacefillState, { transform: SpacefillUpdate, entity: SpacefillEntity, ctx: StateContext }> {
@@ -38,7 +43,9 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
         doubleSided: true,
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorTheme,
-        colorValue: 0x000000
+        colorValue: 0x000000,
+        visible: true,
+        alpha: 1
     }
 
     update(state?: Partial<SpacefillState>) {
@@ -135,6 +142,27 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                                 </select>
                             </div>
                         </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Toggle
+                                    value={this.state.visible}
+                                    label='Visibility'
+                                    onChange={value => this.update({ visible: value })}
+                                />
+                            </div>
+                        </div>
+                        {/* <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Slider
+                                    value={this.state.alpha}
+                                    label='Opacity'
+                                    min={0}
+                                    max={1}
+                                    step={0.01}
+                                    onChange={value => this.update({ alpha: value })}
+                                />
+                            </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

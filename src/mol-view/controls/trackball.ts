@@ -15,6 +15,7 @@ import InputObserver, { DragInput, WheelInput, ButtonsFlag, PinchInput } from 'm
 
 export const DefaultTrackballControlsProps = {
     noScroll: true,
+    target: [0, 0, 0] as Vec3,
 
     rotateSpeed: 3.0,
     zoomSpeed: 4.0,
@@ -36,6 +37,7 @@ interface Object {
 
 interface TrackballControls {
     viewport: Viewport
+    target: Vec3
 
     dynamicDampingFactor: number
     rotateSpeed: number
@@ -52,6 +54,7 @@ namespace TrackballControls {
         const p = { ...DefaultTrackballControlsProps, ...props }
 
         const viewport: Viewport = { x: 0, y: 0, width: 0, height: 0 }
+        const target: Vec3 = Vec3.clone(p.target)
 
         let { rotateSpeed, zoomSpeed, panSpeed } = p
         let { staticMoving, dynamicDampingFactor } = p
@@ -64,7 +67,6 @@ namespace TrackballControls {
         const pinchSub = input.pinch.subscribe(onPinch)
 
         // For internal use
-        const target = Vec3.zero()
         const lastPosition = Vec3.zero()
 
         const _eye = Vec3.zero()
@@ -297,6 +299,7 @@ namespace TrackballControls {
 
         return {
             viewport,
+            target,
 
             get dynamicDampingFactor() { return dynamicDampingFactor },
             set dynamicDampingFactor(value: number ) { dynamicDampingFactor = value },

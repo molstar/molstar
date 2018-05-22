@@ -5,7 +5,7 @@
  */
 
 import CIF from 'mol-io/reader/cif'
-import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity } from './entity';
+import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity } from './entity';
 import { Model, Structure } from 'mol-model/structure';
 
 import { StateContext } from './context';
@@ -80,8 +80,16 @@ export const ModelToStructure: ModelToStructure = StateTransform.create('model',
         } else {
             structure = Structure.ofModel(model)
         }
+        console.log('center', structure.boundary.sphere.center)
         return StructureEntity.ofStructure(ctx, structure)
     })
+
+export type StructureCenter = StateTransform<StructureEntity, NullEntity, {}>
+    export const StructureCenter: StructureCenter = StateTransform.create('structure', 'null', 'structure-center',
+        async function (ctx: StateContext, structureEntity: StructureEntity) {
+            ctx.viewer.center(structureEntity.value.boundary.sphere.center)
+            return NullEntity
+        })
 
 export type StructureToSpacefill = StateTransform<StructureEntity, SpacefillEntity, SpacefillProps>
 export const StructureToSpacefill: StructureToSpacefill = StateTransform.create('structure', 'spacefill', 'structure-to-spacefill',
@@ -90,21 +98,29 @@ export const StructureToSpacefill: StructureToSpacefill = StateTransform.create(
         await spacefillRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.requestDraw()
-        console.log(ctx.viewer.stats)
+        console.log(ctx.viewer.stats, props)
+        // ctx.viewer.input.drag.subscribe(async () => {
+        //     console.log('drag')
+        //     console.time('spacefill update')
+        //     await spacefillRepr.update(props).run(ctx.log)
+        //     console.timeEnd('spacefill update')
+        //     ctx.viewer.add(spacefillRepr)
+        //     ctx.viewer.update()
+        //     ctx.viewer.requestDraw()
+        // })
         return SpacefillEntity.ofRepr(ctx, spacefillRepr)
     })
 
-export type SpacefillUpdate = StateTransform<SpacefillEntity, SpacefillEntity, SpacefillProps>
-export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill', 'spacefill', 'spacefill-update',
+export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, SpacefillProps>
+export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill', 'null', 'spacefill-update',
     async function (ctx: StateContext, spacefillEntity: SpacefillEntity, props: SpacefillProps = {}) {
-        console.log('fopbar')
         const spacefillRepr = spacefillEntity.value
         await spacefillRepr.update(props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.update()
         ctx.viewer.requestDraw()
-        console.log(ctx.viewer.stats)
-        return spacefillEntity
+        console.log(ctx.viewer.stats, props)
+        return NullEntity
     })
 
 // composed

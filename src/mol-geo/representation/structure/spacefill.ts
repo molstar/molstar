@@ -11,20 +11,16 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/s
 // import { createColorTexture } from 'mol-gl/util';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Unit, Element, Queries } from 'mol-model/structure';
-import { UnitsRepresentation } from './index';
+import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { createTransforms, createColors } from './utils';
-import { ColorTheme } from '../../theme';
 import VertexMap from '../../shape/vertex-map';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 
 export const DefaultSpacefillProps = {
+    ...DefaultStructureProps,
     detail: 0,
-    colorTheme: { name: 'instance-index' } as ColorTheme,
-    alpha: 1,
-    visible: true,
-    doubleSided: false
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
@@ -74,10 +70,13 @@ function createSpacefillMesh(unit: Unit, detail: number) {
 export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
     let spheres: MeshRenderObject
+    let currentProps: typeof DefaultSpacefillProps
 
     return {
         renderObjects,
         create(group: Unit.SymmetryGroup, props: SpacefillProps = {}) {
+            currentProps = Object.assign({}, DefaultSpacefillProps, props)
+
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
 
@@ -116,10 +115,20 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             })
         },
         update(props: SpacefillProps) {
+            const newProps = Object.assign({}, currentProps, props)
+
             return Task.create('Spacefill.update', async ctx => {
                 if (!spheres) return false
+                if (props.detail !== currentProps.detail) return false
+                if (props.colorTheme !== currentProps.colorTheme) return false
+                if (props.detail !== currentProps.detail) return false
 
-                return false
+                spheres.props.alpha = newProps.alpha
+                spheres.props.visible = newProps.visible
+                spheres.props.doubleSided = newProps.doubleSided
+
+                currentProps = newProps
+                return true
             })
         }
     }

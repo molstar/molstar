@@ -20,6 +20,8 @@ import { createContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
 
 interface Viewer {
+    center: (p: Vec3) => void
+
     hide: (repr: Representation<any>) => void
     show: (repr: Representation<any>) => void
 
@@ -37,6 +39,7 @@ interface Viewer {
     resetCamera: () => void
     downloadScreenshot: () => void
 
+    input: InputObserver
     stats: RendererStats
     dispose: () => void
 }
@@ -110,6 +113,10 @@ namespace Viewer {
         handleResize()
 
         return {
+            center: (p: Vec3) => {
+                Vec3.set(controls.target, p[0], p[1], p[2])
+            },
+
             hide: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
                 if (renderObjectSet) renderObjectSet.forEach(o => o.props.visible = false)
@@ -159,6 +166,9 @@ namespace Viewer {
             },
             reprCount,
 
+            get input() {
+                return input
+            },
             get stats() {
                 return renderer.stats
             },

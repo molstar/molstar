@@ -9,8 +9,7 @@ import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/scene';
 import { Representation, RepresentationProps } from '..';
-// import { Mat4, EPSILON } from 'mol-math/linear-algebra';
-
+import { ColorTheme } from '../../theme';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
@@ -29,14 +28,29 @@ interface GroupRepresentation<T> {
     group: Unit.SymmetryGroup
 }
 
-export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P>): StructureRepresentation<P> {
+export const DefaultStructureProps = {
+    colorTheme: { name: 'instance-index' } as ColorTheme,
+    alpha: 1,
+    visible: true,
+    doubleSided: false
+}
+export type StructureProps = Partial<typeof DefaultStructureProps>
+
+export function StructureRepresentation<P extends StructureProps>(reprCtor: () => UnitsRepresentation<P>): StructureRepresentation<P> {
     const renderObjects: RenderObject[] = []
     const groupReprs: GroupRepresentation<P>[] = []
+    // let currentProps: typeof DefaultStructureProps
 
     return {
         renderObjects,
         create(structure: Structure, props: P = {} as P) {
+            // currentProps = Object.assign({}, DefaultStructureProps, props)
+
             return Task.create('StructureRepresentation.create', async ctx => {
+                // const { query } = currentProps
+                // const qs = await query(structure).runAsChild(ctx)
+                // const subStructure = Selection.unionStructure(qs)
+
                 const groups = StructureSymmetry.getTransformGroups(structure);
                 for (let i = 0; i < groups.length; i++) {
                     const group = groups[i];
@@ -49,8 +63,8 @@ export function StructureRepresentation<P>(reprCtor: () => UnitsRepresentation<P
         },
         update(props: P) {
             return Task.create('StructureRepresentation.update', async ctx => {
-                // TODO check model.id, conformation.id, unit.id, elementGroup(.hashCode/.areEqual)
                 renderObjects.length = 0 // clear
+
                 for (let i = 0, il = groupReprs.length; i < il; ++i) {
                     const groupRepr = groupReprs[i]
                     const { repr, group } = groupRepr
