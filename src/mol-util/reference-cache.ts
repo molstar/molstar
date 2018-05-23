@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export interface Reference<T> { value: T, usageCount: number }
+export interface Reference<T> { readonly value: T, usageCount: number }
 
 export function createReference<T>(value: T, usageCount = 0) {
     return { value, usageCount }
@@ -12,7 +12,7 @@ export function createReference<T>(value: T, usageCount = 0) {
 
 export interface ReferenceItem<T> {
     free: () => void
-    value: T
+    readonly value: T
 }
 
 export function createReferenceItem<T>(ref: Reference<T>) {
@@ -27,8 +27,7 @@ export function createReferenceItem<T>(ref: Reference<T>) {
 export interface ReferenceCache<T, P, C> {
     get: (ctx: C, props: P) => ReferenceItem<T>
     clear: () => void
-    count: number
-    // values: Reference<T>[]
+    readonly count: number
     dispose: () => void
 }
 
@@ -60,9 +59,6 @@ export function createReferenceCache<T, P, C>(hashFn: (props: P) => string, ctor
         get count () {
             return map.size
         },
-        // get values () {
-        //     return Array.from(map.values())
-        // },
         dispose: () => {
             map.forEach(ref => deleteFn(ref.value))
             map.clear()
