@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -10,19 +10,20 @@ import { ExecuteObservable, ExecuteObservableChild, ExecuteInContext } from './e
 import { SyncRuntimeContext } from 'mol-task/execution/synchronous';
 import { idFactory } from 'mol-util/id-factory';
 
-// A "named function wrapper" with built in "computation tree progress tracking".
-// Use Run(t, ?observer, ?updateRate) to execute
+/** A "named function wrapper" with built in "computation tree progress tracking". */
 interface Task<T> {
-    // run the task without observation
+    /** run the task without observation */
     run(): Promise<T>,
-    // run the task with the specified observer, default updateRate is 250ms
+    /** run the task with the specified observer, default updateRate is 250ms */
     run(observer: Progress.Observer, updateRateMs?: number): Promise<T>,
 
-    // Run a child task that adds a new node to the progress tree.
-    // Allow to pass the progress so that the progress tree can be kept in a "good state" without having to separately call update.
+    /**
+     * Run a child task that adds a new node to the progress tree. Allows to passing the progress so
+     * that the progress tree can be kept in a "good state" without having to separately call update.
+     */
     runAsChild(ctx: RuntimeContext, progress?: string | Partial<RuntimeContext.ProgressUpdate>): Promise<T>
 
-    // Run the task on the specified context.
+    /** Run the task on the specified context. */
     runInContext(ctx: RuntimeContext): Promise<T>
 
     readonly id: number,
