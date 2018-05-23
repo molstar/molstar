@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-interface Writer<T> {
-    write(data: T): boolean
+interface Writer {
+    writeString(data: string): boolean,
+    writeBinary(data: Uint8Array): boolean
 }
 
 namespace Writer {

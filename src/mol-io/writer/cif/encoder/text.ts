@@ -48,10 +48,10 @@ export default class TextCIFEncoder<Context> implements Enc.CIFEncoder<string, C
         this.encoded = true;
     }
 
-    writeTo(stream: Writer<string>) {
+    writeTo(stream: Writer) {
         const chunks = StringBuilder.getChunks(this.builder);
         for (let i = 0, _i = chunks.length; i < _i; i++) {
-            stream.write(chunks[i]);
+            stream.writeString(chunks[i]);
         }
     }
 
@@ -60,7 +60,7 @@ export default class TextCIFEncoder<Context> implements Enc.CIFEncoder<string, C
     }
 }
 
-function writeValue(builder: StringBuilder, data: any, key: any, f: Enc.FieldDefinition<any, any>): boolean {
+function writeValue(builder: StringBuilder, data: any, key: any, f: Enc.FieldDefinition<any, any>, floatPrecision: number): boolean {
     const kind = f.valueKind;
     const p = kind ? kind(key, data) : Column.ValueKind.Present;
     if (p !== Column.ValueKind.Present) {
@@ -79,10 +79,18 @@ function writeValue(builder: StringBuilder, data: any, key: any, f: Enc.FieldDef
         } else if (t === Enc.FieldType.Int) {
             writeInteger(builder, val as number);
         } else {
-            writeFloat(builder, val as number, 1000000);
+            writeFloat(builder, val as number, floatPrecision);
         }
     }
     return false;
+}
+
+function getFloatPrecisions(cat: Enc.CategoryInstance) {
+    const ret: number[] = [];
+    for (const f of cat.definition.fields) {
+        ret[ret.length] = f.type === Enc.FieldType.Float ? Math.pow(10, typeof f.digitCount === 'undefined' ? 6 : f.digitCount) : 0;
+    }
+    return ret;
 }
 
 function writeCifSingleRecord(category: Enc.CategoryInstance<any>, builder: StringBuilder) {
@@ -93,10 +101,12 @@ function writeCifSingleRecord(category: Enc.CategoryInstance<any>, builder: Stri
     const it = category.keys();
     const key = it.move();
 
+    const precisions = getFloatPrecisions(category);
+
     for (let _f = 0; _f < fields.length; _f++) {
         const f = fields[_f];
         StringBuilder.writePadRight(builder, `_${category.definition.name}.${f.name}`, width);
-        const multiline = writeValue(builder, data, key, f);
+        const multiline = writeValue(builder, data, key, f, precisions[_f]);
         if (!multiline) StringBuilder.newline(builder);
     }
     StringBuilder.write(builder, '#\n');
@@ -106,6 +116,7 @@ function writeCifLoop(categories: Enc.CategoryInstance[], builder: StringBuilder
     const first = categories[0];
     const fields = first.definition.fields;
     const fieldCount = fields.length;
+    const precisions = getFloatPrecisions(first);
 
     writeLine(builder, 'loop_');
     for (let i = 0; i < fieldCount; i++) {
@@ -124,7 +135,7 @@ function writeCifLoop(categories: Enc.CategoryInstance[], builder: StringBuilder
 
             let multiline = false;
             for (let _f = 0; _f < fieldCount; _f++) {
-                multiline = writeValue(builder, data, key, fields[_f]);
+                multiline = writeValue(builder, data, key, fields[_f], precisions[_f]);
             }
             if (!multiline) StringBuilder.newline(builder);
         }

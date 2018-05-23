@@ -6,9 +6,9 @@
 
 import Writer from './writer'
 
-interface Encoder<T> {
+interface Encoder {
     encode(): void,
-    writeTo(writer: Writer<T>): void
+    writeTo(writer: Writer): void
 }
 
 export default Encoder

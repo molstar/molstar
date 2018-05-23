@@ -5,7 +5,7 @@
  */
 
 import { Table } from 'mol-data/db'
-import { CIFEncoder, create as createEncoder } from 'mol-io/writer/cif'
+import { EncoderInstance, create as createEncoder } from 'mol-io/writer/cif'
 import * as S from './schemas'
 import { getCategoryInstanceProvider } from './utils'
 
@@ -36,7 +36,7 @@ interface DomainAnnotation {
 }
 type MappingRow = Table.Row<S.mapping>;
 
-function writeDomain(enc: CIFEncoder<any>, domain: DomainAnnotation | undefined) {
+function writeDomain(enc: EncoderInstance, domain: DomainAnnotation | undefined) {
     if (!domain) return;
     enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_annotation`, domain.domains));
     enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_mapping`, domain.mappings));
