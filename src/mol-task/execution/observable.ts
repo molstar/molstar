@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -9,6 +9,7 @@ import { RuntimeContext } from './runtime-context'
 import { Progress } from './progress'
 import { now } from '../util/now'
 import { Scheduler } from '../util/scheduler'
+import { UserTiming } from '../util/user-timing'
 
 interface ExposedTask<T> extends Task<T> {
     f: (ctx: RuntimeContext) => Promise<T>,
@@ -91,9 +92,12 @@ function snapshotProgress(info: ProgressInfo): Progress {
 }
 
 async function execute<T>(task: ExposedTask<T>, ctx: ObservableRuntimeContext) {
+    UserTiming.markStart(task)
     ctx.node.progress.startedTime = now();
     try {
         const ret = await task.f(ctx);
+        UserTiming.markEnd(task)
+        UserTiming.measure(task)
         if (ctx.info.abortToken.abortRequested) {
             abort(ctx.info, ctx.node);
         }
