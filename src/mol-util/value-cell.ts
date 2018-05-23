@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { idFactory } from './id-factory'
+
 /** A mutable value reference. */
 interface ValueRef<T> { ref: T }
 
@@ -12,17 +14,14 @@ namespace ValueRef {
     export function set<T>(ref: ValueRef<T>, value: T) { ref.ref = value; return ref; }
 }
 
-let _valueBoxId = 0;
-function getNextId() {
-    return _valueBoxId++ % 0x7FFFFFFF;
-}
+const getNextId = idFactory(0, 0x7FFFFFFF)
 
 /**
  * An immutable value box that also holds a version of the attribute.
  * Optionally includes automatically propadated "metadata".
  */
 type ValueBox<T, D = never> = {
-    // Unique identifier in the range 0 to 0x7FFFFFFF
+    /** Unique identifier in the range 0 to 0x7FFFFFFF */
     readonly id: number,
     readonly version: number,
     readonly metadata: D,

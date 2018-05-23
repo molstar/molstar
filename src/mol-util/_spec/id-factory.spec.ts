@@ -24,4 +24,12 @@ describe('id-factory', () => {
         expect(getNextId()).toBe(-1)
         expect(getNextId()).toBe(0)
     })
+
+    it('max-id', () => {
+        const getNextId = idFactory(0, 2)
+        expect(getNextId()).toBe(0)
+        expect(getNextId()).toBe(1)
+        expect(getNextId()).toBe(0)
+        expect(getNextId()).toBe(1)
+    })
 });

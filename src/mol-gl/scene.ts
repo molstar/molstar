@@ -8,11 +8,9 @@ import { PointRenderable, MeshRenderable, Renderable } from './renderable'
 
 import { ValueCell } from 'mol-util';
 import { Context } from './webgl/context';
+import { idFactory } from 'mol-util/id-factory';
 
-let _renderObjectId = 0;
-function getNextId() {
-    return _renderObjectId++ % 0x7FFFFFFF;
-}
+const getNextId = idFactory(0, 0x7FFFFFFF)
 
 export type RenderData = { [k: string]: ValueCell<Helpers.TypedArray> }
 

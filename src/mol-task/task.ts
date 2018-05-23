@@ -8,6 +8,7 @@ import { RuntimeContext } from './execution/runtime-context'
 import { Progress } from './execution/progress'
 import { ExecuteObservable, ExecuteObservableChild, ExecuteInContext } from './execution/observable';
 import { SyncRuntimeContext } from 'mol-task/execution/synchronous';
+import { idFactory } from 'mol-util/id-factory';
 
 // A "named function wrapper" with built in "computation tree progress tracking".
 // Use Run(t, ?observer, ?updateRate) to execute
@@ -48,7 +49,7 @@ namespace Task {
         }
 
         constructor(public name: string, public f: (ctx: RuntimeContext) => Promise<T>, public onAbort?: () => void) {
-            this.id = nextId();
+            this.id = getNextId();
         }
     }
 
@@ -74,12 +75,7 @@ namespace Task {
         max: number
     }
 
-    let _id = 0;
-    function nextId() {
-        const ret = _id;
-        _id = (_id + 1) % 0x3fffffff;
-        return ret;
-    }
+    const getNextId = idFactory(0, 0x3fffffff)
 }
 
 export { Task }
