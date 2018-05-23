@@ -169,6 +169,7 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                                     min={0}
                                     max={1}
                                     step={0.01}
+                                    callOnChangeWhileSliding={true}
                                     onChange={value => this.update({ alpha: value })}
                                 />
                             </div>

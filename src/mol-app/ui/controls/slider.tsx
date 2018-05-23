@@ -15,6 +15,7 @@ export class Slider extends React.Component<{
     value: number,
     step?: number,
     title?: string,
+    callOnChangeWhileSliding?: boolean,
     onChange: (v: number) => void
 }, { value: string }> {
 
@@ -57,7 +58,10 @@ export class Slider extends React.Component<{
                 <div>
                     <div>
                         <SliderBase min={this.props.min} max={this.props.max} step={step} value={+this.state.value}
-                            onChange={v => this.setState({ value: '' + v })}
+                            onChange={v => {
+                                this.setState({ value: '' + v });
+                                if (this.props.callOnChangeWhileSliding) this.fire();
+                            }}
                             onAfterChange={v => this.fire()} />
                     </div>
                 </div>
