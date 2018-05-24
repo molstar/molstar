@@ -82,6 +82,10 @@ export interface Buffer {
     readonly _dataType: number
     readonly _bpe: number
 
+    readonly itemSize: number
+    readonly itemCount: number
+    readonly length: number
+
     updateData: (array: ArrayType) => void
     updateSubData: (array: ArrayType, offset: number, count: number) => void
     destroy: () => void
@@ -98,6 +102,8 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
     const _bufferType = getBufferType(ctx, bufferType)
     const _dataType = dataTypeFromArray(ctx, array)
     const _bpe = array.BYTES_PER_ELEMENT
+    const _length = array.length
+    const _itemCount = Math.floor(_length / itemSize)
 
     function updateData(array: ArrayType) {
         gl.bindBuffer(_bufferType, _buffer)
@@ -114,6 +120,10 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
         _bufferType,
         _dataType,
         _bpe,
+
+        get itemSize () { return itemSize },
+        get itemCount () { return _itemCount },
+        get length () { return _length },
 
         updateData,
         updateSubData: (array: ArrayType, offset: number, count: number) => {

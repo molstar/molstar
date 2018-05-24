@@ -71,7 +71,7 @@ export function createTexture(ctx: Context): Texture {
 
 export function createTextures(ctx: Context, props: TextureDefs, state: TextureValues) {
     const textures: Textures = {}
-    Object.keys(props).forEach(k => {
+    Object.keys(props).forEach((k, i) => {
         const texture = createTexture(ctx)
         texture.load(state[k])
         textures[k] = texture

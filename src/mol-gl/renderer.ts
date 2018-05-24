@@ -13,6 +13,7 @@ import { Context } from './webgl/context';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
+import { ValueCell } from 'mol-util';
 
 export interface RendererStats {
     renderableCount: number
@@ -57,9 +58,9 @@ namespace Renderer {
         const viewport = Viewport.clone(_viewport)
         const pixelRatio = getPixelRatio()
 
-        // const light_position = Vec3.create(0, 0, -100)
-        const light_color = Vec3.create(1.0, 1.0, 1.0)
-        const light_ambient = Vec3.create(0.5, 0.5, 0.5)
+        // const lightPosition = Vec3.create(0, 0, -100)
+        const lightColor = Vec3.create(1.0, 1.0, 1.0)
+        const lightAmbient = Vec3.create(0.5, 0.5, 0.5)
 
         function setClearColor(color: Color) {
             const [ r, g, b ] = Color.toRgbNormalized(color)
@@ -67,23 +68,24 @@ namespace Renderer {
         }
         setClearColor(clearColor)
 
+        const baseUniforms = {
+            model: ValueCell.create(Mat4.clone(model)),
+            view: ValueCell.create(Mat4.clone(camera.view)),
+            projection: ValueCell.create(Mat4.clone(camera.projection)),
+
+            pixelRatio: ValueCell.create(pixelRatio),
+            viewportHeight: ValueCell.create(viewport.height),
+
+            lightColor: ValueCell.create(Vec3.clone(lightColor)),
+            lightAmbient: ValueCell.create(Vec3.clone(lightAmbient))
+        }
+
         let currentProgramId = -1
         const drawObject = (r: Renderable<any>, o: RenderObject) => {
             if (o.props.visible) {
                 if (currentProgramId !== r.program.id) {
                     r.program.use()
-                    r.program.setUniforms({
-                        model,
-                        view: camera.view,
-                        projection: camera.projection,
-
-                        pixelRatio,
-                        viewportHeight: viewport.height,
-
-                        // light_position,
-                        light_color,
-                        light_ambient,
-                    })
+                    r.program.setUniforms(baseUniforms)
                     currentProgramId = r.program.id
                 }
                 if (o.props.doubleSided) {
@@ -107,6 +109,9 @@ namespace Renderer {
         }
 
         const draw = () => {
+            ValueCell.update(baseUniforms.view, camera.view)
+            ValueCell.update(baseUniforms.projection, camera.projection)
+
             currentProgramId = -1
 
             gl.depthMask(true)
@@ -129,7 +134,7 @@ namespace Renderer {
                 scene.remove(o)
             },
             update: () => {
-                scene.forEach((r, o) => r.update(o))
+                scene.forEach((r, o) => r.update(o.props))
             },
             clear: () => {
                 scene.clear()
@@ -140,6 +145,7 @@ namespace Renderer {
             setViewport: (newViewport: Viewport) => {
                 Viewport.copy(viewport, newViewport)
                 gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
+                ValueCell.update(baseUniforms.viewportHeight, viewport.height)
             },
 
             get stats(): RendererStats {

@@ -51,7 +51,6 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
 
     update(state?: Partial<SpacefillState>) {
         const { transform, entity, ctx } = this.props
-        console.log('update spacefill', transform, entity)
         const newState = { ...this.state, ...state }
         this.setState(newState)
         transform.apply(ctx, entity, newState)

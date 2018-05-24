@@ -133,6 +133,7 @@ namespace Viewer {
                 if (oldRO) {
                     SetUtils.difference(newRO, oldRO).forEach(o => renderer.add(o))
                     SetUtils.difference(oldRO, newRO).forEach(o => renderer.remove(o))
+                    renderer.update()
                 } else {
                     repr.renderObjects.forEach(o => renderer.add(o))
                 }

@@ -10,6 +10,7 @@ import { TextureDefs, TextureValues, createTextures } from './texture';
 import { Context } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
+import { ValueCell } from 'mol-util';
 
 export type DrawMode = 'points' | 'lines' | 'line-strip' | 'line-loop' | 'triangles' | 'triangle-strip' | 'triangle-fan'
 
@@ -43,8 +44,8 @@ export type RenderItemState = {
     textureValues: TextureValues
 
     elements?: Uint32Array
-    drawCount: number
-    instanceCount: number
+    drawCount: ValueCell<number>
+    instanceCount: ValueCell<number>
 }
 
 export interface RenderItem {
@@ -52,8 +53,7 @@ export interface RenderItem {
     readonly programId: number
     readonly program: Program
 
-    update: (state: RenderItemState) => void
-
+    update: () => void
     draw: () => void
     destroy: () => void
 }
@@ -90,7 +90,9 @@ export function createRenderItem(ctx: Context, props: RenderItemProps, state: Re
         oesVertexArrayObject.bindVertexArrayOES(null!)
     }
 
-    let { drawCount, instanceCount } = state
+    let drawCount = state.drawCount.ref
+    let instanceCount = state.instanceCount.ref
+
     let destroyed = false
 
     return {
@@ -108,18 +110,32 @@ export function createRenderItem(ctx: Context, props: RenderItemProps, state: Re
             }
             program.bindTextures(textures)
             if (elementsBuffer) {
-                angleInstancedArrays.drawElementsInstancedANGLE(drawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
+                angleInstancedArrays.drawElementsInstancedANGLE(drawMode, drawCount.value, elementsBuffer._dataType, 0, instanceCount.value);
             } else {
-                angleInstancedArrays.drawArraysInstancedANGLE(drawMode, 0, drawCount, instanceCount)
+                angleInstancedArrays.drawArraysInstancedANGLE(drawMode, 0, drawCount.value, instanceCount.value)
             }
         },
-        update: (state: RenderItemState) => {
-            // TODO
-            const { attributeValues } = state
-            Object.keys(attributeValues).forEach(k => {
-                const value = attributeValues[k]
-                if (value !== undefined) attributeBuffers[k].updateData(value)
-            })
+        update: () => {
+            if (state.drawCount.ref.version !== drawCount.version) {
+                console.log('drawCount version changed')
+                drawCount = state.drawCount.ref
+            }
+            if (state.instanceCount.ref.version !== instanceCount.version) {
+                console.log('instanceCount version changed')
+                instanceCount = state.instanceCount.ref
+            }
+
+            // const { attributeValues } = state
+            // Object.keys(attributeValues).forEach(k => {
+            //     const value = attributeValues[k]
+            //     if (value === undefined) return
+            //     const buffer = attributeBuffers[k]
+            //     if (buffer.length >= value.length) {
+            //         attributeBuffers[k].updateData(value)
+            //     } else {
+
+            //     }
+            // })
         },
         destroy: () => {
             if (destroyed) return

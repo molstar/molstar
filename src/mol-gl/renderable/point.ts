@@ -32,7 +32,7 @@ namespace Point {
         usePointSizeAttenuation?: boolean
     } & BaseProps
 
-    export function create<T = Props>(ctx: Context, props: Props): Renderable<Props> {
+    function getDefs(props: Props) {
         const defines = getBaseDefines(props)
         if (props.usePointSizeAttenuation) defines.POINT_SIZE_ATTENUATION = ''
 
@@ -41,13 +41,28 @@ namespace Point {
             shaderCode: addShaderDefines(defines, PointShaderCode),
             drawMode: 'points'
         }
-        const values: RenderItemState = {
-            ...getBaseValues(props),
-            drawCount: props.positionCount,
-            instanceCount: props.instanceCount
-        }
+        return defs
+    }
 
-        let renderItem = createRenderItem(ctx, defs, values)
+    function getVals(props: Props) {
+        const vals: RenderItemState = {
+            ...getBaseValues(props),
+            drawCount: ValueCell.create(props.positionCount),
+            instanceCount: ValueCell.create(props.instanceCount)
+        }
+        return vals
+    }
+
+    function getRenderItem(ctx: Context, props: Props) {
+        const defs = getDefs(props)
+        const vals = getVals(props)
+        return createRenderItem(ctx, defs, vals)
+    }
+
+    export function create<T = Props>(ctx: Context, props: Props): Renderable<Props> {
+        // const defs = getDefs(props)
+
+        let renderItem = getRenderItem(ctx, props)
         // let curProps = props
 
         return {
@@ -58,6 +73,8 @@ namespace Point {
             get program () { return renderItem.program },
             update: (newProps: Props) => {
                 console.log('Updating point renderable')
+                renderItem.destroy()
+                renderItem = getRenderItem(ctx, { ...props, ...newProps })
             },
             dispose: () => {
                 renderItem.destroy()

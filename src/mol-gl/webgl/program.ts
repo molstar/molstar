@@ -6,7 +6,7 @@
 
 import { ShaderCode } from '../shader-code'
 import { Context } from './context';
-import { getUniformSetters, UniformDefs, UniformValues } from './uniform';
+import { getUniformUpdaters, UniformDefs, UniformValues } from './uniform';
 import {AttributeDefs, AttributeBuffers } from './buffer';
 import { TextureId, TextureDefs, TextureUniformDefs, Textures } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
@@ -70,10 +70,10 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
     fragShaderRef.value.attach(program)
     gl.linkProgram(program)
 
-    const uniformSetters = getUniformSetters(ctx, program, uniformDefs)
+    const uniformUpdaters = getUniformUpdaters(ctx, program, uniformDefs)
     const attributeLocations = getAttributeLocations(ctx, program, attributeDefs)
     const textureUniformDefs = getTextureUniformDefs(textureDefs)
-    const textureUniformSetters = getUniformSetters(ctx, program, textureUniformDefs)
+    const textureUniformUpdaters = getUniformUpdaters(ctx, program, textureUniformDefs)
 
     let destroyed = false
 
@@ -81,12 +81,14 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
         id: getNextProgramId(),
 
         use: () => {
+            Object.keys(uniformDefs).forEach(k => uniformUpdaters[k].clear())
+            Object.keys(textureUniformDefs).forEach(k => textureUniformUpdaters[k].clear())
             gl.useProgram(program)
         },
         setUniforms: (uniformValues: UniformValues) => {
             Object.keys(uniformValues).forEach(k => {
-                const value = uniformValues[k]
-                if (value !== undefined) uniformSetters[k](value)
+                const uv = uniformValues[k]
+                if (uv !== undefined) uniformUpdaters[k].set(uv.ref.value, uv.ref.version)
             })
         },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
@@ -98,7 +100,7 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
         bindTextures: (textures: Textures) => {
             Object.keys(textures).forEach((k, i) => {
                 textures[k].bind(i as TextureId)
-                textureUniformSetters[k](i)
+                textureUniformUpdaters[k].set(i, i)
             })
         },
 

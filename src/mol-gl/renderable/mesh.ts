@@ -8,10 +8,11 @@ import { ValueCell } from 'mol-util/value-cell'
 import { ColorData } from 'mol-geo/util/color-data';
 
 import { Renderable, BaseProps } from '../renderable'
-import { getBaseDefs, getBaseValues, getBaseDefines } from './util'
+import { getBaseDefs, getBaseValues, getBaseDefines, updateBaseValues } from './util'
 import { MeshShaderCode, addShaderDefines } from '../shader-code'
 import { Context } from '../webgl/context';
 import { createRenderItem, RenderItemProps, RenderItemState } from '../webgl/render-item';
+import { deepEqual } from 'mol-util';
 
 type Mesh = 'mesh'
 
@@ -31,7 +32,7 @@ namespace Mesh {
         positionCount: number
     } & BaseProps
 
-    export function create(ctx: Context, props: Props): Renderable<Props> {
+    function getDefs(props: Props) {
         const defines = getBaseDefines(props)
         if (props.flatShaded) defines.FLAT_SHADED = ''
         if (props.doubleSided) defines.DOUBLE_SIDED = ''
@@ -43,15 +44,34 @@ namespace Mesh {
             drawMode: 'triangles',
             elementsKind: 'uint32'
         }
-        const values: RenderItemState = {
+        return defs
+    }
+
+    function getVals(props: Props) {
+        const vals: RenderItemState = {
             ...getBaseValues(props),
-            drawCount: props.indexCount * 3,
-            instanceCount: props.instanceCount,
+            drawCount: ValueCell.create(props.indexCount * 3),
+            instanceCount: ValueCell.create(props.instanceCount),
             elements: props.index.ref.value
         }
+        return vals
+    }
 
-        let renderItem = createRenderItem(ctx, defs, values)
-        // let curProps = props
+    function updateVals(vals: RenderItemState, props: Props) {
+        updateBaseValues(vals, props)
+        if (props.instanceCount !== vals.instanceCount.ref.value) {
+            ValueCell.update(vals.instanceCount, props.instanceCount)
+        }
+        const drawCount = props.indexCount * 3
+        if (drawCount !== vals.drawCount.ref.value) {
+            ValueCell.update(vals.drawCount, drawCount)
+        }
+    }
+
+    export function create(ctx: Context, props: Props): Renderable<Props> {
+        let curDefs = getDefs(props)
+        let curVals = getVals(props)
+        let renderItem = createRenderItem(ctx, curDefs, curVals)
 
         return {
             draw: () => {
@@ -60,7 +80,17 @@ namespace Mesh {
             name: 'mesh',
             get program () { return renderItem.program },
             update: (newProps: Props) => {
-                console.log('Updating mesh renderable')
+                const newDefs = getDefs(props)
+                if (deepEqual(curDefs, newDefs)) {
+                    updateVals(curVals, props)
+                    renderItem.update()
+                } else {
+                    console.log('mesh defs changed, destroy and rebuild render-item')
+                    renderItem.destroy()
+                    curVals = getVals(props)
+                    curDefs = newDefs
+                    renderItem = createRenderItem(ctx, curDefs, curVals)
+                }
             },
             dispose: () => {
                 renderItem.destroy()

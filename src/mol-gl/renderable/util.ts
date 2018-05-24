@@ -85,9 +85,9 @@ export function getBaseUniformDefs(props: BaseProps) {
         pixelRatio: 'f',
         viewportHeight: 'f',
 
-        // light_position: 'v3',
-        light_color: 'v3',
-        light_ambient: 'v3',
+        // lightPosition: 'v3',
+        lightColor: 'v3',
+        lightAmbient: 'v3',
         alpha: 'f',
 
         objectId: 'i',
@@ -96,7 +96,6 @@ export function getBaseUniformDefs(props: BaseProps) {
     }
     const color = props.color
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
-        // uniformDefs.colorTex = 't2'
         uniformDefs.colorTexSize = 'v2'
     } else if (color.type === 'uniform') {
         uniformDefs.color = 'v3'
@@ -111,19 +110,21 @@ export function getBaseUniformDefs(props: BaseProps) {
 export function getBaseUniformValues(props: BaseProps) {
     const { objectId, instanceCount, elementCount, alpha } = props
     const uniformValues: UniformValues = {
-        objectId, instanceCount, elementCount, alpha
+        objectId: ValueCell.create(objectId),
+        instanceCount: ValueCell.create(instanceCount),
+        elementCount: ValueCell.create(elementCount),
+        alpha: ValueCell.create(alpha)
     }
     const color = props.color
     if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
         const { width, height } = color.data.ref.value
-        // uniformValues.colorTex = color.value.ref.value.array
-        uniformValues.colorTexSize = Vec2.create(width, height)
+        uniformValues.colorTexSize = ValueCell.create(Vec2.create(width, height))
     } else if (color.type === 'uniform') {
-        uniformValues.color = color.data as Vec3
+        uniformValues.color = ValueCell.create(color.data as Vec3)
     }
     const size = props.size
     if (size && size.type === 'uniform') {
-        uniformValues.size = size.value
+        uniformValues.size = ValueCell.create(size.value)
     }
     return uniformValues
 }
@@ -210,5 +211,33 @@ export function getBaseValues(props: BaseProps) {
         uniformValues: getBaseUniformValues(props),
         attributeValues: getBaseAttributeValues(props),
         textureValues: getBaseTextureValues(props),
+    }
+}
+
+export interface BaseValues {
+    uniformValues: UniformValues
+    attributeValues: AttributeValues
+    textureValues: TextureValues
+}
+
+export function updateBaseValues(vals: BaseValues, props: BaseProps) {
+    ValueCell.update(vals.uniformValues.objectId, props.objectId)
+    ValueCell.update(vals.uniformValues.instanceCount, props.instanceCount)
+    ValueCell.update(vals.uniformValues.elementCount, props.elementCount)
+    ValueCell.update(vals.uniformValues.alpha, props.alpha)
+
+    const color = props.color
+    if (color.type === 'instance' || color.type === 'element' || color.type === 'element-instance') {
+        const { width, height } = color.data.ref.value
+        ValueCell.update(
+            vals.uniformValues.colorTexSize,
+            Vec2.set(vals.uniformValues.colorTexSize.ref.value as Vec2, width, height)
+        )
+    } else if (color.type === 'uniform') {
+        ValueCell.update(vals.uniformValues.color, color.data as Vec3)
+    }
+    const size = props.size
+    if (size && size.type === 'uniform') {
+        ValueCell.update(vals.uniformValues.size, size.value)
     }
 }

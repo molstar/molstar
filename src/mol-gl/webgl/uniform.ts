@@ -7,6 +7,7 @@
 import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
 import { Context } from './context';
 import { TextureImage } from '../renderable/util';
+import { ValueCell } from 'mol-util';
 
 export type UniformKindValue = {
     'f': number
@@ -20,10 +21,14 @@ export type UniformKindValue = {
 }
 export type UniformKind = keyof UniformKindValue
 export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4 | TextureImage
+export interface UniformUpdater {
+    set: (value: UniformType, version: number) => void,
+    clear: () => void
+}
 
 export type UniformDefs = { [k: string]: UniformKind }
-export type UniformValues = { [k: string]: UniformType }
-export type UniformSetters = { [k: string]: (value: UniformType) => void }
+export type UniformValues = { [k: string]: ValueCell<UniformType> }
+export type UniformUpdaters = { [k: string]: UniformUpdater }
 
 export function createUniformSetter(ctx: Context, program: WebGLProgram, name: string, kind: UniformKind): (value: any) => void {
     const { gl } = ctx
@@ -42,10 +47,22 @@ export function createUniformSetter(ctx: Context, program: WebGLProgram, name: s
     }
 }
 
-export function getUniformSetters(ctx: Context, program: WebGLProgram, uniforms: UniformDefs) {
-    const setters: UniformSetters = {}
+export function getUniformUpdaters(ctx: Context, program: WebGLProgram, uniforms: UniformDefs) {
+    const updaters: UniformUpdaters = {}
     Object.keys(uniforms).forEach(k => {
-        setters[k] = createUniformSetter(ctx, program, k, uniforms[k])
+        const setter = createUniformSetter(ctx, program, k, uniforms[k])
+        let _version = -1
+        updaters[k] = {
+            set: (value, version) => {
+                if (_version !== version) {
+                    setter(value)
+                    _version = version
+                }
+            },
+            clear: () => {
+                _version = -1
+            }
+        }
     })
-    return setters
+    return updaters
 }
