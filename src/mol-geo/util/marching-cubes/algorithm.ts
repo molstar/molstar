@@ -84,7 +84,9 @@ class MarchingCubesComputation {
                     ? ValueCell.update(os.idBuffer, ChunkedArray.compact(this.state.idBuffer) as Float32Array)
                     : ValueCell.create(ChunkedArray.compact(this.state.idBuffer) as Float32Array)
                 : ValueCell.create(new Float32Array(0)),
-            normalsComputed: false
+            offsetBuffer: os ? os.offsetBuffer : ValueCell.create(new Uint32Array(0)),
+            normalsComputed: false,
+            offsetsComputed: false
         }
 
         return ret;

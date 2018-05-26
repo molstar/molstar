@@ -33,13 +33,13 @@ const tmpV = Vec3.zero()
 // TODO cache primitives based on props
 
 export namespace MeshBuilder {
-    export function create(initialCount = 2048, chunkSize = 1024): MeshBuilder {
-        const vertices = ChunkedArray.create(Float32Array, 3, chunkSize, initialCount);
-        const normals = ChunkedArray.create(Float32Array, 3, chunkSize, initialCount);
-        const indices = ChunkedArray.create(Uint32Array, 3, chunkSize * 3, initialCount * 3);
+    export function create(initialCount = 2048, chunkSize = 1024, mesh?: Mesh): MeshBuilder {
+        const vertices = ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.vertexBuffer.ref.value : initialCount);
+        const normals = ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.normalBuffer.ref.value : initialCount);
+        const indices = ChunkedArray.create(Uint32Array, 3, chunkSize * 3, mesh ? mesh.indexBuffer.ref.value : initialCount * 3);
 
-        const ids = ChunkedArray.create(Float32Array, 1, chunkSize, initialCount);
-        const offsets = ChunkedArray.create(Uint32Array, 1, chunkSize, initialCount);
+        const ids = ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.idBuffer.ref.value : initialCount);
+        const offsets = ChunkedArray.create(Uint32Array, 1, chunkSize, mesh ? mesh.offsetBuffer.ref.value : initialCount);
 
         let currentId = -1
 
@@ -102,6 +102,7 @@ export namespace MeshBuilder {
                     idBuffer: ValueCell.create(ChunkedArray.compact(ids, true) as Float32Array),
                     offsetBuffer: ValueCell.create(ChunkedArray.compact(offsets, true) as Uint32Array),
                     normalsComputed: true,
+                    offsetsComputed: true,
                 }
                 return mesh
             }

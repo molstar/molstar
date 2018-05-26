@@ -6,9 +6,9 @@
 
 import { ColorScale } from 'mol-util/color';
 import { StructureColorDataProps } from '.';
-import { createElementInstanceColor } from '../../../util/color-data';
+import { createElementInstanceColor, ColorData } from '../../../util/color-data';
 
-export function elementIndexColorData(props: StructureColorDataProps) {
+export function elementIndexColorData(props: StructureColorDataProps, colorData?: ColorData) {
     const { group: { units, elements }, vertexMap } = props
     const instanceCount = units.length
     const elementCount = elements.length
@@ -19,5 +19,5 @@ export function elementIndexColorData(props: StructureColorDataProps) {
         colorFn: (instanceIdx, elementIdx) => scale.color(instanceIdx * elementCount + elementIdx),
         instanceCount,
         vertexMap
-    })
+    }, colorData)
 }

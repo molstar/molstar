@@ -7,7 +7,7 @@
 import { Unit, Queries, Element } from 'mol-model/structure';
 
 import { StructureColorDataProps } from '.';
-import { createAttributeOrElementColor } from '../../../util/color-data';
+import { createAttributeOrElementColor, ColorData } from '../../../util/color-data';
 import { ColorScale } from 'mol-util/color';
 import { Column } from 'mol-data/db';
 
@@ -38,7 +38,7 @@ function createChainIdMap(unit: Unit) {
     return { map, count: index }
 }
 
-export function chainIdColorData(props: StructureColorDataProps) {
+export function chainIdColorData(props: StructureColorDataProps, colorData?: ColorData) {
     const { group: { units, elements }, vertexMap } = props
     const unit = units[0]
 
@@ -63,5 +63,5 @@ export function chainIdColorData(props: StructureColorDataProps) {
             return scale.color(map.get(asym_id(l)) || 0)
         },
         vertexMap
-    })
+    }, colorData)
 }

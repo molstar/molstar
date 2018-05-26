@@ -7,7 +7,7 @@
 import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Color } from 'mol-util/color';
 import { StructureColorDataProps } from '.';
-import { createAttributeOrElementColor } from '../../../util/color-data';
+import { createAttributeOrElementColor, ColorData } from '../../../util/color-data';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors: { [k: string]: Color } = {
@@ -21,7 +21,7 @@ export function elementSymbolColor(element: ElementSymbol): Color {
     return c === void 0 ? DefaultElementSymbolColor : c
 }
 
-export function elementSymbolColorData(props: StructureColorDataProps) {
+export function elementSymbolColorData(props: StructureColorDataProps, colorData?: ColorData) {
     const { group: { units, elements }, vertexMap } = props
     const { type_symbol } = units[0].model.atomicHierarchy.atoms
     return createAttributeOrElementColor(vertexMap, {
@@ -30,5 +30,5 @@ export function elementSymbolColorData(props: StructureColorDataProps) {
             return elementSymbolColor(type_symbol.value(e))
         },
         vertexMap
-    })
+    }, colorData)
 }

@@ -24,9 +24,13 @@ export interface Mesh {
     normalBuffer: ValueCell<Float32Array>,
     /** Id buffer as array of ids for each vertex wrapped in a value cell */
     idBuffer: ValueCell<Float32Array>,
+    /** Offset buffer as array of offsets for id ranges wrapped in a value cell */
+    offsetBuffer: ValueCell<Uint32Array>,
 
     /** Flag indicating if normals are computed for the current set of vertices */
     normalsComputed: boolean,
+    /** Flag indicating if offsets are computed for the current set of ids */
+    offsetsComputed: boolean,
 
     /** Bounding sphere of the mesh */
     boundingSphere?: Sphere3D

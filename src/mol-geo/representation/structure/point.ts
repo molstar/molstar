@@ -92,7 +92,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 const values: PointValues = {
                     aPosition: ValueCell.create(vertices),
                     aElementId: ValueCell.create(fillSerial(new Float32Array(elementCount))),
-                    aTransform: ValueCell.create(transforms),
+                    aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
                     ...size,

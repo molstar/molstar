@@ -22,8 +22,8 @@ import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 
 const spacefillProps: SpacefillProps = {
     doubleSided: true,
-    detail: 2,
-    colorTheme: { name: 'instance-index' }
+    detail: 0,
+    colorTheme: { name: 'atom-index' }
 }
 
 export class Stage {

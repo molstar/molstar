@@ -135,11 +135,10 @@ namespace ChunkedArray {
         return ret;
     }
 
-    export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number): ChunkedArray<T, C>
-    /** The size of the initial chunk is elementSize * initialCount */
-    export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number, initialCount: number): ChunkedArray<T, C>
-    /** Use the provided array as the initial chunk. The size of the array must be divisible by the elementSize */
-    export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number, initialChunk?: ArrayLike<T>): ChunkedArray<T, C>
+    /**
+     * The size of the initial chunk is elementSize * initialCount.
+     * Use the provided array as the initial chunk. The size of the array must be divisible by the elementSize.
+     */
     export function create<T, C extends Sizes = 1>(ctor: { new (size: number): ArrayLike<T> }, elementSize: C, chunkSize: number, initialChunkOrCount?: number | ArrayLike<T>): ChunkedArray<T, C> {
         const ret: ChunkedArray<T, C> = {
             ctor,

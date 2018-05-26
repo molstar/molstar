@@ -21,6 +21,7 @@ import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
+import { Mesh } from '../../shape/mesh';
 
 export const DefaultSpacefillProps = {
     ...DefaultStructureProps,
@@ -75,6 +76,8 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
     let spheres: MeshRenderObject
     let currentProps: typeof DefaultSpacefillProps
+    let mesh: Mesh
+    let currentGroup: Unit.SymmetryGroup
 
     return {
         renderObjects,
@@ -83,10 +86,11 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
+                currentGroup = group
 
                 const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
 
-                const mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
+                mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
 
                 const vertexMap = VertexMap.fromMesh(mesh)
@@ -101,7 +105,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                 const values: MeshValues = {
                     ...getMeshData(mesh),
-                    aTransform: ValueCell.create(transforms),
+                    aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
 
@@ -133,8 +137,19 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             return Task.create('Spacefill.update', async ctx => {
                 if (!spheres) return false
-                if (newProps.detail !== currentProps.detail) return false
+                // if (newProps.detail !== currentProps.detail) return false
                 if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) return false
+
+                if (newProps.detail !== currentProps.detail) {
+                    await createSpacefillMesh(currentGroup.units[0], newProps.detail).runAsChild(ctx, 'Computing spacefill mesh')
+                    const vertexMap = VertexMap.fromMesh(mesh)
+
+                    await ctx.update('Computing spacefill transforms');
+                    createTransforms(currentGroup)
+
+                    await ctx.update('Computing spacefill colors');
+                    createColors(currentGroup, vertexMap, newProps.colorTheme)
+                }
 
                 ValueCell.update(spheres.values.uAlpha, newProps.alpha)
                 ValueCell.update(spheres.values.dDoubleSided, newProps.doubleSided)

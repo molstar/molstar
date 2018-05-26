@@ -25,13 +25,19 @@ export interface UniformColorProps {
 }
 
 /** Creates color uniform */
-export function createUniformColor(props: UniformColorProps): ColorData {
-    return {
-        uColor: ValueCell.create(Color.toRgbNormalized(props.value) as Vec3),
-        aColor: ValueCell.create(new Float32Array(0)),
-        tColor: ValueCell.create(emptyTexture),
-        uColorTexSize: ValueCell.create(Vec2.zero()),
-        dColorType: ValueCell.create('uniform'),
+export function createUniformColor(props: UniformColorProps, colorData?: ColorData): ColorData {
+    if (colorData) {
+        ValueCell.update(colorData.uColor, Color.toRgbNormalized(props.value) as Vec3)
+        ValueCell.update(colorData.dColorType, 'uniform')
+        return colorData
+    } else {
+        return {
+            uColor: ValueCell.create(Color.toRgbNormalized(props.value) as Vec3),
+            aColor: ValueCell.create(new Float32Array(0)),
+            tColor: ValueCell.create(emptyTexture),
+            uColorTexSize: ValueCell.create(Vec2.zero()),
+            dColorType: ValueCell.create('uniform'),
+        }
     }
 }
 
@@ -41,7 +47,7 @@ export interface AttributeColorProps {
 }
 
 /** Creates color attribute with color for each element (i.e. shared across instances/units) */
-export function createAttributeColor(props: AttributeColorProps): ColorData {
+export function createAttributeColor(props: AttributeColorProps, colorData?: ColorData): ColorData {
     const { colorFn, vertexMap } = props
     const { idCount, offsetCount, offsets } = vertexMap
     const colors = new Float32Array(idCount * 3);
@@ -53,22 +59,35 @@ export function createAttributeColor(props: AttributeColorProps): ColorData {
             Color.toArrayNormalized(hexColor, colors, i * 3)
         }
     }
-    return {
-        uColor: ValueCell.create(Vec3.zero()),
-        aColor: ValueCell.create(colors),
-        tColor: ValueCell.create(emptyTexture),
-        uColorTexSize: ValueCell.create(Vec2.zero()),
-        dColorType: ValueCell.create('attribute'),
+    if (colorData) {
+        ValueCell.update(colorData.aColor, colors)
+        ValueCell.update(colorData.dColorType, 'attribute')
+        return colorData
+    } else {
+        return {
+            uColor: ValueCell.create(Vec3.zero()),
+            aColor: ValueCell.create(colors),
+            tColor: ValueCell.create(emptyTexture),
+            uColorTexSize: ValueCell.create(Vec2.zero()),
+            dColorType: ValueCell.create('attribute'),
+        }
     }
 }
 
-export function createTextureColor(colors: TextureImage, type: ColorType): ColorData {
-    return {
-        uColor: ValueCell.create(Vec3.zero()),
-        aColor: ValueCell.create(new Float32Array(0)),
-        tColor: ValueCell.create(colors),
-        uColorTexSize: ValueCell.create(Vec2.create(colors.width, colors.height)),
-        dColorType: ValueCell.create(type),
+export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
+    if (colorData) {
+        ValueCell.update(colorData.tColor, colors)
+        ValueCell.update(colorData.uColorTexSize, Vec2.create(colors.width, colors.height))
+        ValueCell.update(colorData.dColorType, type)
+        return colorData
+    } else {
+        return {
+            uColor: ValueCell.create(Vec3.zero()),
+            aColor: ValueCell.create(new Float32Array(0)),
+            tColor: ValueCell.create(colors),
+            uColorTexSize: ValueCell.create(Vec2.create(colors.width, colors.height)),
+            dColorType: ValueCell.create(type),
+        }
     }
 }
 
@@ -78,9 +97,9 @@ export interface InstanceColorProps {
 }
 
 /** Creates color texture with color for each instance/unit */
-export function createInstanceColor(props: InstanceColorProps): ColorData {
+export function createInstanceColor(props: InstanceColorProps, colorData?: ColorData): ColorData {
     const { colorFn, instanceCount} = props
-    const colors = createColorTexture(instanceCount)
+    const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createColorTexture(instanceCount)
     for (let i = 0; i < instanceCount; i++) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
@@ -93,10 +112,10 @@ export interface ElementColorProps {
 }
 
 /** Creates color texture with color for each element (i.e. shared across instances/units) */
-export function createElementColor(props: ElementColorProps): ColorData {
+export function createElementColor(props: ElementColorProps, colorData?: ColorData): ColorData {
     const { colorFn, vertexMap } = props
     const elementCount = vertexMap.offsetCount - 1
-    const colors = createColorTexture(elementCount)
+    const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createColorTexture(elementCount)
     for (let i = 0, il = elementCount; i < il; ++i) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
@@ -110,11 +129,11 @@ export interface ElementInstanceColorProps {
 }
 
 /** Creates color texture with color for each element instance (i.e. for each unit) */
-export function createElementInstanceColor(props: ElementInstanceColorProps): ColorData {
+export function createElementInstanceColor(props: ElementInstanceColorProps, colorData?: ColorData): ColorData {
     const { colorFn, instanceCount, vertexMap } = props
     const elementCount = vertexMap.offsetCount - 1
     const count = instanceCount * elementCount
-    const colors = createColorTexture(count)
+    const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createColorTexture(count)
     let colorOffset = 0
     for (let i = 0; i < instanceCount; i++) {
         for (let j = 0, jl = elementCount; j < jl; ++j) {
@@ -126,6 +145,6 @@ export function createElementInstanceColor(props: ElementInstanceColorProps): Co
 }
 
 /** Create color attribute or texture, depending on the vertexMap */
-export function createAttributeOrElementColor(vertexMap: VertexMap, props: AttributeColorProps) {
-    return vertexMap.idCount < 4 * vertexMap.offsetCount ? createAttributeColor(props) : createElementColor(props)
+export function createAttributeOrElementColor(vertexMap: VertexMap, props: AttributeColorProps, colorData?: ColorData) {
+    return vertexMap.idCount < 4 * vertexMap.offsetCount ? createAttributeColor(props, colorData) : createElementColor(props, colorData)
 }
