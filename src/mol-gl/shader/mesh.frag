@@ -4,19 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-#ifdef FLAT_SHADED
+#ifdef dFlatShaded
     #extension GL_OES_standard_derivatives : enable
 #endif
 
 precision highp float;
 
-// uniform vec3 lightPosition;
-uniform vec3 lightColor;
-uniform vec3 lightAmbient;
-uniform mat4 view;
-uniform float alpha;
+// uniform vec3 uLightPosition;
+uniform vec3 uLightColor;
+uniform vec3 uLightAmbient;
+uniform mat4 uView;
+uniform float uAlpha;
 
-#ifndef FLAT_SHADED
+#ifndef dFlatShaded
     varying vec3 vNormal;
 #endif
 varying vec3 vViewPosition;
@@ -45,21 +45,21 @@ void main() {
     vec3 V = normalize(vViewPosition); // eye direction
 
     // surface normal
-    #ifdef FLAT_SHADED
+    #ifdef dFlatShaded
         vec3 fdx = dFdx(vViewPosition);
         vec3 fdy = dFdy(vViewPosition);
         vec3 N = -normalize(cross(fdx, fdy));
     #else
         vec3 N = -normalize(vNormal);
-        #ifdef DOUBLE_SIDED
+        #ifdef dDoubleSided
             N = N * (float(gl_FrontFacing) * 2.0 - 1.0);
         #endif
     #endif
 
     // compute our diffuse & specular terms
     float specular = calculateSpecular(L, V, N, shininess) * specularScale;
-    vec3 diffuse = lightColor * calculateDiffuse(L, V, N, roughness, albedo);
-    vec3 ambient = lightAmbient;
+    vec3 diffuse = uLightColor * calculateDiffuse(L, V, N, roughness, albedo);
+    vec3 ambient = uLightAmbient;
 
     // add the lighting
     vec3 finalColor = material * (diffuse + ambient) + specular;
@@ -68,5 +68,5 @@ void main() {
     // gl_FragColor.a = 1.0;
     // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
     gl_FragColor.rgb = finalColor;
-    gl_FragColor.a = alpha;
+    gl_FragColor.a = uAlpha;
 }

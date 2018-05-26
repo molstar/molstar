@@ -6,21 +6,21 @@
 
 precision highp float;
 
-uniform mat4 projection, model, view;
+uniform mat4 uProjection, uModel, uView;
 
-uniform int objectId;
-uniform int instanceCount;
-uniform int elementCount;
+uniform int uObjectId;
+uniform int uInstanceCount;
+uniform int uElementCount;
 
 #pragma glslify: import('./chunks/color-vert-params.glsl')
 
-attribute vec3 position;
-attribute mat4 transform;
-attribute float instanceId;
-attribute float elementId;
+attribute vec3 aPosition;
+attribute mat4 aTransform;
+attribute float aInstanceId;
+attribute float aElementId;
 
-#ifndef FLAT_SHADED
-    attribute vec3 normal;
+#ifndef dFlatShaded
+    attribute vec3 aNormal;
     varying vec3 vNormal;
 #endif
 
@@ -32,15 +32,15 @@ varying vec3 vViewPosition;
 void main(){
     #pragma glslify: import('./chunks/color-assign-varying.glsl')
 
-    mat4 modelView = view * model * transform;
-    vec4 mvPosition = modelView * vec4(position, 1.0);
+    mat4 modelView = uView * uModel * aTransform;
+    vec4 mvPosition = modelView * vec4(aPosition, 1.0);
     vViewPosition = mvPosition.xyz;
-    gl_Position = projection * mvPosition;
+    gl_Position = uProjection * mvPosition;
 
-    #ifndef FLAT_SHADED
+    #ifndef dFlatShaded
         mat3 normalMatrix = transpose(inverse(mat3(modelView)));
-        vec3 transformedNormal = normalize(normalMatrix * normalize(normal));
-        #if defined(FLIP_SIDED) && !defined(DOUBLE_SIDED) // TODO checking DOUBLE_SIDED should not be required, ASR
+        vec3 transformedNormal = normalize(normalMatrix * normalize(aNormal));
+        #if defined(dFlipSided) && !defined(dDoubleSided) // TODO checking dDoubleSided should not be required, ASR
             transformedNormal = -transformedNormal;
         #endif
         vNormal = transformedNormal;

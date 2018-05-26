@@ -38,6 +38,7 @@ type Extensions = {
     oesVertexArrayObject: OES_vertex_array_object | null
 }
 
+/** A WebGL context object, including the rendering context, resource caches and counts */
 export interface Context {
     gl: WebGLRenderingContext
     extensions: Extensions

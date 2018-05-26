@@ -1,9 +1,9 @@
-#if defined(ATTRIBUTE_COLOR)
-    vColor = color;
-#elif defined(INSTANCE_COLOR)
-    vColor = read_vec3(colorTex, instanceId, colorTexSize);
-#elif defined(ELEMENT_COLOR)
-    vColor = read_vec3(colorTex, elementId, colorTexSize);
-#elif defined(ELEMENT_INSTANCE_COLOR)
-    vColor = read_vec3(colorTex, instanceId * float(elementCount) + elementId, colorTexSize);
+#if defined(dColorType_attribute)
+    vColor = aColor;
+#elif defined(dColorType_instance)
+    vColor = read_vec3(tColor, aInstanceId, uColorTexSize);
+#elif defined(dColorType_element)
+    vColor = read_vec3(tColor, aElementId, uColorTexSize);
+#elif defined(dColorType_elementInstance)
+    vColor = read_vec3(tColor, aInstanceId * float(uElementCount) + aElementId, uColorTexSize);
 #endif

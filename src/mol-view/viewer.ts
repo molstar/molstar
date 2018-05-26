@@ -10,7 +10,7 @@ import { Vec3, Mat4, EPSILON } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
 import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
-import { RenderObject } from 'mol-gl/scene'
+import { RenderObject } from 'mol-gl/render-object'
 
 import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
@@ -119,11 +119,11 @@ namespace Viewer {
 
             hide: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.props.visible = false)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.state.visible = false)
             },
             show: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) renderObjectSet.forEach(o => o.props.visible = true)
+                if (renderObjectSet) renderObjectSet.forEach(o => o.state.visible = true)
             },
 
             add: (repr: Representation<any>) => {

@@ -10,11 +10,13 @@ import { Task } from 'mol-task'
 import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../shape/mesh';
 import { VolumeElementRepresentation } from '.';
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/scene';
+import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { fillSerial } from 'mol-gl/renderable/util';
-import { ValueCell } from 'mol-util';
+import { ValueCell, defaults } from 'mol-util';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
+import { getMeshData } from '../../util/mesh-data';
+import { RenderableState, MeshValues } from 'mol-gl/renderable';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -54,36 +56,42 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
         create(volume: VolumeData, props: SurfaceProps = {}) {
             return Task.create('Point.create', async ctx => {
                 renderObjects.length = 0 // clear
-                curProps = { ...DefaultSurfaceProps, ...props }
-                const { alpha, visible, flatShaded, flipSided, doubleSided, depthMask } = curProps
+                props = { ...DefaultSurfaceProps, ...props }
 
                 const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
-                if (!flatShaded) {
+                if (!props.flatShaded) {
                     Mesh.computeNormalsImmediate(mesh)
                 }
 
-                surface = createMeshRenderObject({
-                    objectId: 0,
-                    alpha,
-                    visible,
-                    depthMask,
+                const instanceCount = 1
+                const color = createUniformColor({ value: 0x7ec0ee })
 
-                    position: mesh.vertexBuffer,
-                    normal: mesh.normalBuffer,
-                    id: ValueCell.create(fillSerial(new Float32Array(mesh.vertexCount / 3))),
-                    color: createUniformColor({ value: 0x7ec0ee }),
-                    transform: ValueCell.create(new Float32Array(Mat4.identity())),
-                    index: mesh.indexBuffer,
+                const values: MeshValues = {
+                    ...getMeshData(mesh),
+                    aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
+                    aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                    ...color,
 
-                    instanceCount: 1,
-                    indexCount: mesh.triangleCount,
-                    elementCount: mesh.triangleCount,
-                    positionCount: mesh.vertexCount / 3,
+                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                    uObjectId: ValueCell.create(0),
+                    uInstanceCount: ValueCell.create(instanceCount),
+                    uElementCount: ValueCell.create(mesh.triangleCount),
 
-                    flatShaded,
-                    doubleSided,
-                    flipSided
-                })
+                    elements: mesh.indexBuffer,
+
+                    drawCount: ValueCell.create(mesh.triangleCount * 3),
+                    instanceCount: ValueCell.create(instanceCount),
+
+                    dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
+                    dFlatShaded: ValueCell.create(defaults(props.flatShaded, true)),
+                    dFlipSided: ValueCell.create(false),
+                }
+                const state: RenderableState = {
+                    depthMask: defaults(props.depthMask, true),
+                    visible: defaults(props.visible, true)
+                }
+
+                surface = createMeshRenderObject(values, state)
                 renderObjects.push(surface)
             })
         },

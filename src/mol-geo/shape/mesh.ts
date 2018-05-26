@@ -21,9 +21,9 @@ export interface Mesh {
     /** Index buffer as array of vertex index triplets wrapped in a value cell */
     indexBuffer: ValueCell<Uint32Array>,
     /** Normal buffer as array of xyz values for each vertex wrapped in a value cell */
-    normalBuffer: ValueCell<Float32Array | undefined>,
+    normalBuffer: ValueCell<Float32Array>,
     /** Id buffer as array of ids for each vertex wrapped in a value cell */
-    idBuffer: ValueCell<Float32Array | undefined>,
+    idBuffer: ValueCell<Float32Array>,
 
     /** Flag indicating if normals are computed for the current set of vertices */
     normalsComputed: boolean,
@@ -36,7 +36,7 @@ export namespace Mesh {
     export function computeNormalsImmediate(surface: Mesh) {
         if (surface.normalsComputed) return;
 
-        const normals = surface.normalBuffer.ref.value && surface.normalBuffer.ref.value.length >= surface.vertexCount * 3
+        const normals = surface.normalBuffer.ref.value.length >= surface.vertexCount * 3
             ? surface.normalBuffer.ref.value : new Float32Array(surface.vertexBuffer.ref.value.length);
 
         const v = surface.vertexBuffer.ref.value, triangles = surface.indexBuffer.ref.value;

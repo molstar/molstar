@@ -7,16 +7,23 @@
 import { ValueCell } from 'mol-util';
 import VertexMap from '../shape/vertex-map';
 
-export type UniformSize = { type: 'uniform', value: number }
-export type AttributeSize = { type: 'attribute', value: ValueCell<Float32Array> }
-export type SizeData = UniformSize | AttributeSize
+export type SizeData = {
+    uSize: ValueCell<number>,
+    aSize: ValueCell<Float32Array>,
+    dSizeType: ValueCell<string>,
+}
+
 export interface UniformSizeProps {
     value: number
 }
 
 /** Creates size uniform */
-export function createUniformSize(props: UniformSizeProps): UniformSize {
-    return { type: 'uniform', value: props.value }
+export function createUniformSize(props: UniformSizeProps): SizeData {
+    return {
+        uSize: ValueCell.create(props.value),
+        aSize: ValueCell.create(new Float32Array(0)),
+        dSizeType: ValueCell.create('uniform'),
+    }
 }
 
 export interface AttributeSizeProps {
@@ -25,7 +32,7 @@ export interface AttributeSizeProps {
 }
 
 /** Creates size attribute with size for each element (i.e. shared across indtances/units) */
-export function createAttributeSize(props: AttributeSizeProps): AttributeSize {
+export function createAttributeSize(props: AttributeSizeProps): SizeData {
     const { sizeFn, vertexMap } = props
     const { idCount, offsetCount, offsets } = vertexMap
     const sizes = new Float32Array(idCount);
@@ -37,5 +44,9 @@ export function createAttributeSize(props: AttributeSizeProps): AttributeSize {
             sizes[i] = size
         }
     }
-    return { type: 'attribute', value: ValueCell.create(sizes) }
+    return {
+        uSize: ValueCell.create(0),
+        aSize: ValueCell.create(sizes),
+        dSizeType: ValueCell.create('attribute'),
+    }
 }

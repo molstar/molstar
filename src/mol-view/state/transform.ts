@@ -97,6 +97,7 @@ export const StructureToSpacefill: StructureToSpacefill = StateTransform.create(
         await spacefillRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
         // ctx.viewer.input.drag.subscribe(async () => {
         //     console.log('drag')
         //     console.time('spacefill update')
@@ -117,7 +118,7 @@ export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.update()
         ctx.viewer.requestDraw()
-        // console.log(ctx.viewer.stats, props)
+        console.log('stats', ctx.viewer.stats)
         return NullEntity
     })
 

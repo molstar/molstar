@@ -5,6 +5,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { ValueCell } from 'mol-util';
+
+export type DefineKind = 'boolean' | 'string'
+export type DefineType = boolean | string
+export type DefineValues = { [k: string]: ValueCell<DefineType> }
+
 export interface ShaderCode {
     vert: string
     frag: string
@@ -20,25 +26,22 @@ export const MeshShaderCode: ShaderCode = {
     frag: require('mol-gl/shader/mesh.frag')
 }
 
-type ShaderDefine = (
-    'UNIFORM_COLOR' | 'ATTRIBUTE_COLOR' | 'INSTANCE_COLOR' | 'ELEMENT_COLOR' | 'ELEMENT_INSTANCE_COLOR' |
-    'UNIFORM_SIZE' | 'ATTRIBUTE_SIZE' |
-    'POINT_SIZE_ATTENUATION' |
-    'FLAT_SHADED' | 'DOUBLE_SIDED' | 'FLIP_SIDED'
-)
 export type ShaderDefines = {
-    [k in ShaderDefine]?: number|string
+    [k: string]: ValueCell<DefineType>
 }
 
 function getDefinesCode (defines: ShaderDefines) {
     if (defines === undefined) return ''
     const lines = []
     for (const name in defines) {
-        const value = defines[ name as keyof ShaderDefines ]
-        if (value) {
-            lines.push(`#define ${name} ${value}`)
-        } else {
-            lines.push(`#define ${name}`)
+        const define = defines[name]
+        const v = define.ref.value
+        if (v) {
+            if (typeof v === 'string') {
+                lines.push(`#define ${name}_${v}`)
+            } else {
+                lines.push(`#define ${name}`)
+            }
         }
     }
     return lines.join('\n') + '\n'

@@ -5,7 +5,7 @@
  */
 
 import { Task } from 'mol-task'
-import { RenderObject } from 'mol-gl/scene';
+import { RenderObject } from 'mol-gl/render-object';
 
 export interface RepresentationProps {}
 

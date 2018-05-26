@@ -4,27 +4,23 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import PointRenderable from './renderable/point'
-import MeshRenderable from './renderable/mesh'
 import { Program } from './webgl/program';
+import { RenderableValues } from './renderable/schema';
 
-export type BaseProps = {
-    objectId: number
-    alpha: number
+export type RenderableState = {
     visible: boolean
     depthMask: boolean
-
-    flatShaded?: boolean
-    doubleSided?: boolean
-    flipSided?: boolean
 }
 
-export interface Renderable<T> {
+export interface Renderable<T extends RenderableValues> {
     draw: () => void
+    values: T
+    state: RenderableState
     name: string
     program: Program
-    update: (newProps: T) => void
+    update: () => void
     dispose: () => void
 }
 
-export { PointRenderable, MeshRenderable }
+export { PointRenderable, PointSchema, PointValues } from './renderable/point'
+export { MeshRenderable, MeshSchema, MeshValues } from './renderable/mesh'

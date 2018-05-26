@@ -5,6 +5,8 @@
  */
 
 import { Context } from './context'
+import { ValueCell } from 'mol-util';
+import { RenderableSchema } from '../renderable/schema';
 
 export type UsageHint = 'static' | 'dynamic' | 'stream'
 export type DataType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32'
@@ -146,7 +148,7 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
 export type AttributeDefs = {
     [k: string]: { kind: ArrayKind, itemSize: BufferItemSize, divisor: number }
 }
-export type AttributeValues = { [k: string]: ArrayType }
+export type AttributeValues = { [k: string]: ValueCell<ArrayType> }
 export type AttributeBuffers = { [k: string]: AttributeBuffer }
 
 export interface AttributeBuffer extends Buffer {
@@ -179,10 +181,13 @@ export function createAttributeBuffer<T extends ArrayType, S extends BufferItemS
     }
 }
 
-export function createAttributeBuffers<T extends AttributeDefs>(ctx: Context, props: T, state: AttributeValues) {
+export function createAttributeBuffers(ctx: Context, schema: RenderableSchema, values: AttributeValues) {
     const buffers: AttributeBuffers = {}
-    Object.keys(props).forEach(k => {
-        buffers[k] = createAttributeBuffer(ctx, state[k], props[k].itemSize, props[k].divisor)
+    Object.keys(schema).forEach(k => {
+        const spec = schema[k]
+        if (spec.type === 'attribute') {
+            buffers[k] = createAttributeBuffer(ctx, values[k].ref.value, spec.itemSize, spec.divisor)
+        }
     })
     return buffers as AttributeBuffers
 }

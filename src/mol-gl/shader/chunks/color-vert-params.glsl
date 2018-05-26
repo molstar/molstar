@@ -1,12 +1,12 @@
-#if defined(UNIFORM_COLOR)
-    uniform vec3 color;
-#elif defined(ATTRIBUTE_COLOR)
+#if defined(dColorType_uniform)
+    uniform vec3 uColor;
+#elif defined(dColorType_attribute)
     varying vec3 vColor;
-    attribute vec3 color;
-#elif defined(INSTANCE_COLOR) || defined(ELEMENT_COLOR) || defined(ELEMENT_INSTANCE_COLOR)
+    attribute vec3 aColor;
+#elif defined(dColorType_instance) || defined(dColorType_element) || defined(dColorType_elementInstance)
     varying vec3 vColor;
-    uniform vec2 colorTexSize;
-    uniform sampler2D colorTex;
+    uniform vec2 uColorTexSize;
+    uniform sampler2D tColor;
 #endif
 
 #pragma glslify: read_vec3 = require(../utils/read-from-texture.glsl)

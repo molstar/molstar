@@ -11,12 +11,11 @@ import { Mesh } from './mesh';
 interface VertexMap {
     idCount: number,
     offsetCount: number,
-    ids: Helpers.NumberArray | undefined
+    ids: Helpers.NumberArray
     offsets: Uint32Array,
 }
 
-function createOffsets(idCount: number, ids: Helpers.NumberArray | undefined) {
-    if (!ids) return new Uint32Array(0)
+function createOffsets(idCount: number, ids: Helpers.NumberArray) {
     const offsets = ChunkedArray.create(Uint32Array, 1, 1024, 2048);
     let prevId = ids[0]
     ChunkedArray.add(offsets, 0)
@@ -31,7 +30,7 @@ function createOffsets(idCount: number, ids: Helpers.NumberArray | undefined) {
 }
 
 namespace VertexMap {
-    export function create(idCount: number, offsetCount: number, ids: Helpers.NumberArray | undefined, offsets: Uint32Array): VertexMap {
+    export function create(idCount: number, offsetCount: number, ids: Helpers.NumberArray, offsets: Uint32Array): VertexMap {
         return {
             idCount,
             offsetCount,

@@ -6,8 +6,13 @@
 
 import { Context } from './context'
 import { TextureImage } from '../renderable/util';
+import { ValueCell } from 'mol-util';
+import { RenderableSchema } from '../renderable/schema';
+import { idFactory } from 'mol-util/id-factory';
 
+const getNextTextureId = idFactory()
 export interface Texture {
+    id: number
     load: (image: TextureImage) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
@@ -16,9 +21,7 @@ export interface Texture {
 
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 
-export type TextureDefs = { [k: string]: true }
-export type TextureUniformDefs = { [k: string]: 't2' }
-export type TextureValues = { [k: string]: TextureImage }
+export type TextureValues = { [k: string]: ValueCell<TextureImage> }
 export type Textures = { [k: string]: Texture }
 
 export function createTexture(ctx: Context): Texture {
@@ -38,6 +41,7 @@ export function createTexture(ctx: Context): Texture {
     ctx.textureCount += 1
 
     return {
+        id: getNextTextureId(),
         load: (image: TextureImage) => {
             const { array, width, height } = image
             gl.bindTexture(_textureType, texture)
@@ -69,12 +73,15 @@ export function createTexture(ctx: Context): Texture {
     }
 }
 
-export function createTextures(ctx: Context, props: TextureDefs, state: TextureValues) {
+export function createTextures(ctx: Context, schema: RenderableSchema, values: TextureValues) {
     const textures: Textures = {}
-    Object.keys(props).forEach((k, i) => {
-        const texture = createTexture(ctx)
-        texture.load(state[k])
-        textures[k] = texture
+    Object.keys(schema).forEach((k, i) => {
+        const spec = schema[k]
+        if (spec.type === 'texture') {
+            const texture = createTexture(ctx)
+            texture.load(values[k].ref.value)
+            textures[k] = texture
+        }
     })
     return textures
 }

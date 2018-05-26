@@ -7,7 +7,7 @@
 
 import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
-import { RenderObject } from 'mol-gl/scene';
+import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
 

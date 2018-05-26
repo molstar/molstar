@@ -6,11 +6,12 @@
 
 import { ShaderCode } from '../shader-code'
 import { Context } from './context';
-import { getUniformUpdaters, UniformDefs, UniformValues } from './uniform';
-import {AttributeDefs, AttributeBuffers } from './buffer';
-import { TextureId, TextureDefs, TextureUniformDefs, Textures } from './texture';
+import { getUniformUpdaters, getTextureUniformUpdaters, UniformValues } from './uniform';
+import { AttributeBuffers } from './buffer';
+import { TextureId, Textures } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
+import { RenderableSchema } from '../renderable/schema';
 
 const getNextProgramId = idFactory()
 
@@ -27,36 +28,31 @@ export interface Program {
 
 type AttributeLocations = { [k: string]: number }
 
-function getAttributeLocations(ctx: Context, program: WebGLProgram, attributeDefs: AttributeDefs) {
+function getAttributeLocations(ctx: Context, program: WebGLProgram, schema: RenderableSchema) {
     const { gl } = ctx
     const locations: AttributeLocations = {}
     gl.useProgram(program)
-    Object.keys(attributeDefs).forEach(k => {
-        const loc = gl.getAttribLocation(program, k)
-        if (loc === -1) {
-            console.info(`Could not get attribute location for '${k}'`)
+    Object.keys(schema).forEach(k => {
+        const spec = schema[k]
+        if (spec.type === 'attribute') {
+            const loc = gl.getAttribLocation(program, k)
+            if (loc === -1) {
+                console.info(`Could not get attribute location for '${k}'`)
+            }
+            locations[k] = loc
         }
-        locations[k] = loc
     })
     return locations
 }
 
-function getTextureUniformDefs(textureDefs: TextureDefs) {
-    const textureUniformDefs: TextureUniformDefs = {}
-    Object.keys(textureDefs).forEach(k => textureUniformDefs[k] = 't2')
-    return textureUniformDefs
-}
-
 export interface ProgramProps {
     shaderCode: ShaderCode,
-    uniformDefs: UniformDefs,
-    attributeDefs: AttributeDefs,
-    textureDefs: TextureDefs
+    schema: RenderableSchema
 }
 
 export function createProgram(ctx: Context, props: ProgramProps): Program {
     const { gl, shaderCache } = ctx
-    const { shaderCode, uniformDefs, attributeDefs, textureDefs } = props
+    const { shaderCode, schema } = props
 
     const program = gl.createProgram()
     if (program === null) {
@@ -70,10 +66,9 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
     fragShaderRef.value.attach(program)
     gl.linkProgram(program)
 
-    const uniformUpdaters = getUniformUpdaters(ctx, program, uniformDefs)
-    const attributeLocations = getAttributeLocations(ctx, program, attributeDefs)
-    const textureUniformDefs = getTextureUniformDefs(textureDefs)
-    const textureUniformUpdaters = getUniformUpdaters(ctx, program, textureUniformDefs)
+    const uniformUpdaters = getUniformUpdaters(ctx, program, schema)
+    const attributeLocations = getAttributeLocations(ctx, program, schema)
+    const textureUniformUpdaters = getTextureUniformUpdaters(ctx, program, schema)
 
     let destroyed = false
 
@@ -81,14 +76,14 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
         id: getNextProgramId(),
 
         use: () => {
-            Object.keys(uniformDefs).forEach(k => uniformUpdaters[k].clear())
-            Object.keys(textureUniformDefs).forEach(k => textureUniformUpdaters[k].clear())
+            Object.keys(uniformUpdaters).forEach(k => uniformUpdaters[k].clear())
+            Object.keys(textureUniformUpdaters).forEach(k => textureUniformUpdaters[k].clear())
             gl.useProgram(program)
         },
         setUniforms: (uniformValues: UniformValues) => {
             Object.keys(uniformValues).forEach(k => {
                 const uv = uniformValues[k]
-                if (uv !== undefined) uniformUpdaters[k].set(uv.ref.value, uv.ref.version)
+                if (uv !== undefined) uniformUpdaters[k].set(uv.ref.value)
             })
         },
         bindAttributes: (attribueBuffers: AttributeBuffers) => {
@@ -100,7 +95,7 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
         bindTextures: (textures: Textures) => {
             Object.keys(textures).forEach((k, i) => {
                 textures[k].bind(i as TextureId)
-                textureUniformUpdaters[k].set(i, i)
+                textureUniformUpdaters[k].set(i)
             })
         },
 

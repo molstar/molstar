@@ -6,7 +6,7 @@
  */
 
 import { ValueCell } from 'mol-util/value-cell'
-import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/scene'
+import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/render-object'
 import { Unit, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
@@ -15,8 +15,9 @@ import { UnitsRepresentation } from './index';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes } from './utils';
-import { deepEqual } from 'mol-util';
+import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
+import { RenderableState, PointValues } from 'mol-gl/renderable';
 
 export const DefaultPointProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
@@ -64,9 +65,8 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 _units = group.units
                 _elements = group.elements;
 
-                const { colorTheme, sizeTheme, alpha, visible, depthMask } = curProps
+                const { colorTheme, sizeTheme } = curProps
                 const elementCount = _elements.length
-                const unitCount = _units.length
 
                 const vertexMap = VertexMap.create(
                     elementCount,
@@ -87,24 +87,32 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 await ctx.update('Computing point sizes');
                 const size = createSizes(group, vertexMap, sizeTheme)
 
-                points = createPointRenderObject({
-                    objectId: 0,
-                    alpha,
-                    visible,
-                    depthMask,
+                const instanceCount = group.units.length
 
-                    position: ValueCell.create(vertices),
-                    id: ValueCell.create(fillSerial(new Float32Array(elementCount))),
-                    size: size,
-                    color: color,
-                    transform: ValueCell.create(transforms),
+                const values: PointValues = {
+                    aPosition: ValueCell.create(vertices),
+                    aElementId: ValueCell.create(fillSerial(new Float32Array(elementCount))),
+                    aTransform: ValueCell.create(transforms),
+                    aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                    ...color,
+                    ...size,
 
-                    instanceCount: unitCount,
-                    elementCount,
-                    positionCount: vertices.length / 3,
+                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                    uObjectId: ValueCell.create(0),
+                    uInstanceCount: ValueCell.create(instanceCount),
+                    uElementCount: ValueCell.create(group.elements.length),
 
-                    usePointSizeAttenuation: true
-                })
+                    drawCount: ValueCell.create(vertices.length / 3),
+                    instanceCount: ValueCell.create(instanceCount),
+
+                    dPointSizeAttenuation: ValueCell.create(true)
+                }
+                const state: RenderableState = {
+                    depthMask: defaults(props.depthMask, true),
+                    visible: defaults(props.visible, true)
+                }
+
+                points = createPointRenderObject(values, state)
                 renderObjects.push(points)
             })
         },

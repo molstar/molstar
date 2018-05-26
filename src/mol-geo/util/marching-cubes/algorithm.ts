@@ -78,12 +78,12 @@ class MarchingCubesComputation {
             triangleCount: this.state.triangleCount,
             vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),
             indexBuffer: os ? ValueCell.update(os.indexBuffer, ib) : ValueCell.create(ib),
-            normalBuffer: os ? os.normalBuffer : ValueCell.create(void 0),
+            normalBuffer: os ? os.normalBuffer : ValueCell.create(new Float32Array(0)),
             idBuffer: this.state.assignIds
                 ? os && os.idBuffer
                     ? ValueCell.update(os.idBuffer, ChunkedArray.compact(this.state.idBuffer) as Float32Array)
                     : ValueCell.create(ChunkedArray.compact(this.state.idBuffer) as Float32Array)
-                : ValueCell.create(void 0),
+                : ValueCell.create(new Float32Array(0)),
             normalsComputed: false
         }
 

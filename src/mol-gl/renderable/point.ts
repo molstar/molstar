@@ -4,83 +4,40 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
-import { Renderable, BaseProps } from '../renderable'
-import { getBaseValues, getBaseDefs, getBaseDefines } from './util'
-import { PointShaderCode, addShaderDefines } from '../shader-code'
-import { ColorData } from 'mol-geo/util/color-data';
-import { SizeData } from 'mol-geo/util/size-data';
+import { Renderable, RenderableState } from '../renderable'
 import { Context } from '../webgl/context';
-import { createRenderItem, RenderItemState, RenderItemProps } from '../webgl/render-item';
+import { createRenderItem } from '../webgl/render-item';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values } from '../renderable/schema';
+import { PointShaderCode } from '../shader-code';
 
-type Point = 'point'
+export const PointSchema = {
+    ...BaseSchema,
+    aSize: AttributeSpec('float32', 1, 0),
+    uSize: UniformSpec('f'),
+    dSizeType: DefineSpec('string', ['uniform', 'attribute']),
+    dPointSizeAttenuation: DefineSpec('boolean'),
+}
+export type PointSchema = typeof PointSchema
+export type PointValues = Values<PointSchema>
 
-namespace Point {
-    export type Props = {
-        position: ValueCell<Float32Array>
-        id: ValueCell<Float32Array>
+export function PointRenderable(ctx: Context, values: PointValues, state: RenderableState): Renderable<PointValues> {
+    const schema = { ...GlobalUniformSchema, ...PointSchema }
+    const schaderCode = PointShaderCode
+    const renderItem = createRenderItem(ctx, 'points', schaderCode, schema, values)
 
-        size: SizeData
-        color: ColorData
-        transform: ValueCell<Float32Array>
-
-        instanceCount: number
-        elementCount: number
-        positionCount: number,
-
-        usePointSizeAttenuation?: boolean
-    } & BaseProps
-
-    function getDefs(props: Props) {
-        const defines = getBaseDefines(props)
-        if (props.usePointSizeAttenuation) defines.POINT_SIZE_ATTENUATION = ''
-
-        const defs: RenderItemProps = {
-            ...getBaseDefs(props),
-            shaderCode: addShaderDefines(defines, PointShaderCode),
-            drawMode: 'points'
-        }
-        return defs
-    }
-
-    function getVals(props: Props) {
-        const vals: RenderItemState = {
-            ...getBaseValues(props),
-            drawCount: ValueCell.create(props.positionCount),
-            instanceCount: ValueCell.create(props.instanceCount)
-        }
-        return vals
-    }
-
-    function getRenderItem(ctx: Context, props: Props) {
-        const defs = getDefs(props)
-        const vals = getVals(props)
-        return createRenderItem(ctx, defs, vals)
-    }
-
-    export function create<T = Props>(ctx: Context, props: Props): Renderable<Props> {
-        // const defs = getDefs(props)
-
-        let renderItem = getRenderItem(ctx, props)
-        // let curProps = props
-
-        return {
-            draw: () => {
-                renderItem.draw()
-            },
-            name: 'point',
-            get program () { return renderItem.program },
-            update: (newProps: Props) => {
-                console.log('Updating point renderable')
-                renderItem.destroy()
-                renderItem = getRenderItem(ctx, { ...props, ...newProps })
-            },
-            dispose: () => {
-                renderItem.destroy()
-            }
+    return {
+        draw: () => {
+            renderItem.draw()
+        },
+        get values () { return values },
+        get state () { return state },
+        name: 'point',
+        get program () { return renderItem.program },
+        update: () => {
+            renderItem.update()
+        },
+        dispose: () => {
+            renderItem.destroy()
         }
     }
 }
-
-export default Point

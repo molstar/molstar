@@ -7,7 +7,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/scene'
+import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 // import { createColorTexture } from 'mol-gl/util';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Unit, Element, Queries } from 'mol-model/structure';
@@ -17,7 +17,10 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { createTransforms, createColors } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
-import { deepEqual } from 'mol-util';
+import { deepEqual, defaults } from 'mol-util';
+import { fillSerial } from 'mol-gl/renderable/util';
+import { RenderableState, MeshValues } from 'mol-gl/renderable';
+import { getMeshData } from '../../util/mesh-data';
 
 export const DefaultSpacefillProps = {
     ...DefaultStructureProps,
@@ -81,7 +84,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             return Task.create('Spacefill.create', async ctx => {
                 renderObjects.length = 0 // clear
 
-                const { detail, colorTheme, alpha, visible, doubleSided, depthMask } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
 
                 const mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
@@ -94,25 +97,34 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 await ctx.update('Computing spacefill colors');
                 const color = createColors(group, vertexMap, colorTheme)
 
-                spheres = createMeshRenderObject({
-                    objectId: 0,
-                    alpha,
-                    visible,
-                    doubleSided,
-                    depthMask,
+                const instanceCount = group.units.length
 
-                    position: mesh.vertexBuffer,
-                    normal: mesh.normalBuffer as ValueCell<Float32Array>,
-                    color: color,
-                    id: mesh.idBuffer as ValueCell<Float32Array>,
-                    transform: ValueCell.create(transforms),
-                    index: mesh.indexBuffer,
+                const values: MeshValues = {
+                    ...getMeshData(mesh),
+                    aTransform: ValueCell.create(transforms),
+                    aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                    ...color,
 
-                    instanceCount: group.units.length,
-                    indexCount: mesh.triangleCount,
-                    elementCount: group.elements.length,
-                    positionCount: mesh.vertexCount
-                })
+                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                    uObjectId: ValueCell.create(0),
+                    uInstanceCount: ValueCell.create(instanceCount),
+                    uElementCount: ValueCell.create(group.elements.length),
+
+                    elements: mesh.indexBuffer,
+
+                    drawCount: ValueCell.create(mesh.triangleCount * 3),
+                    instanceCount: ValueCell.create(instanceCount),
+
+                    dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
+                    dFlatShaded: ValueCell.create(false),
+                    dFlipSided: ValueCell.create(false),
+                }
+                const state: RenderableState = {
+                    depthMask: defaults(props.depthMask, true),
+                    visible: defaults(props.visible, true)
+                }
+
+                spheres = createMeshRenderObject(values, state)
                 renderObjects.push(spheres)
             })
         },
@@ -124,10 +136,10 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 if (newProps.detail !== currentProps.detail) return false
                 if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) return false
 
-                spheres.props.alpha = newProps.alpha
-                spheres.props.visible = newProps.visible
-                spheres.props.doubleSided = newProps.doubleSided
-                spheres.props.depthMask = newProps.depthMask
+                ValueCell.update(spheres.values.uAlpha, newProps.alpha)
+                ValueCell.update(spheres.values.dDoubleSided, newProps.doubleSided)
+                spheres.state.visible = newProps.visible
+                spheres.state.depthMask = newProps.depthMask
 
                 currentProps = newProps
                 return true
