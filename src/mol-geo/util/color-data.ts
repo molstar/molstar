@@ -28,7 +28,9 @@ export interface UniformColorProps {
 export function createUniformColor(props: UniformColorProps, colorData?: ColorData): ColorData {
     if (colorData) {
         ValueCell.update(colorData.uColor, Color.toRgbNormalized(props.value) as Vec3)
-        ValueCell.update(colorData.dColorType, 'uniform')
+        if (colorData.dColorType.ref.value !== 'uniform') {
+            ValueCell.update(colorData.dColorType, 'uniform')
+        }
         return colorData
     } else {
         return {
@@ -60,8 +62,11 @@ export function createAttributeColor(props: AttributeColorProps, colorData?: Col
         }
     }
     if (colorData) {
+        console.log('update colordata attribute')
         ValueCell.update(colorData.aColor, colors)
-        ValueCell.update(colorData.dColorType, 'attribute')
+        if (colorData.dColorType.ref.value !== 'attribute') {
+            ValueCell.update(colorData.dColorType, 'attribute')
+        }
         return colorData
     } else {
         return {
@@ -76,9 +81,12 @@ export function createAttributeColor(props: AttributeColorProps, colorData?: Col
 
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
+        console.log('update colordata texture')
         ValueCell.update(colorData.tColor, colors)
         ValueCell.update(colorData.uColorTexSize, Vec2.create(colors.width, colors.height))
-        ValueCell.update(colorData.dColorType, type)
+        if (colorData.dColorType.ref.value !== type) {
+            ValueCell.update(colorData.dColorType, type)
+        }
         return colorData
     } else {
         return {
@@ -103,7 +111,7 @@ export function createInstanceColor(props: InstanceColorProps, colorData?: Color
     for (let i = 0; i < instanceCount; i++) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
-    return createTextureColor(colors, 'instance')
+    return createTextureColor(colors, 'instance', colorData)
 }
 
 export interface ElementColorProps {
@@ -119,7 +127,7 @@ export function createElementColor(props: ElementColorProps, colorData?: ColorDa
     for (let i = 0, il = elementCount; i < il; ++i) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
-    return createTextureColor(colors, 'element')
+    return createTextureColor(colors, 'element', colorData)
 }
 
 export interface ElementInstanceColorProps {
@@ -141,7 +149,7 @@ export function createElementInstanceColor(props: ElementInstanceColorProps, col
             colorOffset += 3
         }
     }
-    return createTextureColor(colors, 'elementInstance')
+    return createTextureColor(colors, 'elementInstance', colorData)
 }
 
 /** Create color attribute or texture, depending on the vertexMap */

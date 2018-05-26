@@ -25,16 +25,18 @@ import { Mesh } from '../../shape/mesh';
 
 export const DefaultSpacefillProps = {
     ...DefaultStructureProps,
+    flipSided: false,
+    flatShaded: false,
     detail: 0,
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
-function createSpacefillMesh(unit: Unit, detail: number) {
+function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
     return Task.create('Sphere mesh', async ctx => {
         const { elements } = unit;
         const elementCount = elements.length;
         const vertexCount = elementCount * icosahedronVertexCount(detail)
-        const meshBuilder = MeshBuilder.create(vertexCount)
+        const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
 
         let radius: Element.Property<number>
         if (Unit.isAtomic(unit)) {
@@ -68,7 +70,9 @@ function createSpacefillMesh(unit: Unit, detail: number) {
             }
         }
 
-        return meshBuilder.getMesh()
+        const _mesh = meshBuilder.getMesh()
+        console.log(_mesh)
+        return _mesh
     })
 }
 
@@ -78,6 +82,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
     let currentProps: typeof DefaultSpacefillProps
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
+    let vertexMap: VertexMap
 
     return {
         renderObjects,
@@ -92,8 +97,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                 mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
-
-                const vertexMap = VertexMap.fromMesh(mesh)
+                vertexMap = VertexMap.fromMesh(mesh)
 
                 await ctx.update('Computing spacefill transforms');
                 const transforms = createTransforms(group)
@@ -120,8 +124,8 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     instanceCount: ValueCell.create(instanceCount),
 
                     dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                    dFlatShaded: ValueCell.create(false),
-                    dFlipSided: ValueCell.create(false),
+                    dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
+                    dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
                 }
                 const state: RenderableState = {
                     depthMask: defaults(props.depthMask, true),
@@ -137,22 +141,39 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
             return Task.create('Spacefill.update', async ctx => {
                 if (!spheres) return false
-                // if (newProps.detail !== currentProps.detail) return false
-                if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) return false
+
+                let updateColor = false
 
                 if (newProps.detail !== currentProps.detail) {
-                    await createSpacefillMesh(currentGroup.units[0], newProps.detail).runAsChild(ctx, 'Computing spacefill mesh')
-                    const vertexMap = VertexMap.fromMesh(mesh)
-
-                    await ctx.update('Computing spacefill transforms');
-                    createTransforms(currentGroup)
-
-                    await ctx.update('Computing spacefill colors');
-                    createColors(currentGroup, vertexMap, newProps.colorTheme)
+                    mesh = await createSpacefillMesh(currentGroup.units[0], newProps.detail, mesh).runAsChild(ctx, 'Computing spacefill mesh')
+                    ValueCell.update(spheres.values.drawCount, mesh.triangleCount * 3)
+                    // TODO update in-place
+                    vertexMap = VertexMap.fromMesh(mesh)
+                    updateColor = true
                 }
 
-                ValueCell.update(spheres.values.uAlpha, newProps.alpha)
-                ValueCell.update(spheres.values.dDoubleSided, newProps.doubleSided)
+                if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
+                    updateColor = true
+                }
+
+                if (updateColor) {
+                    await ctx.update('Computing spacefill colors');
+                    createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
+                }
+
+                // TODO handle in a generic way
+                if (spheres.values.uAlpha.ref.value !== newProps.alpha) {
+                    ValueCell.update(spheres.values.uAlpha, newProps.alpha)
+                }
+                if (spheres.values.dDoubleSided.ref.value !== newProps.doubleSided) {
+                    ValueCell.update(spheres.values.dDoubleSided, newProps.doubleSided)
+                }
+                if (spheres.values.dFlipSided.ref.value !== newProps.flipSided) {
+                    ValueCell.update(spheres.values.dFlipSided, newProps.flipSided)
+                }
+                if (spheres.values.dFlatShaded.ref.value !== newProps.flatShaded) {
+                    ValueCell.update(spheres.values.dFlatShaded, newProps.flatShaded)
+                }
                 spheres.state.visible = newProps.visible
                 spheres.state.depthMask = newProps.depthMask
 

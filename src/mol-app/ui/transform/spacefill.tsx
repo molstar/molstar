@@ -30,6 +30,8 @@ export type ColorThemeInfo = keyof typeof ColorThemeInfo
 
 interface SpacefillState {
     doubleSided: boolean
+    flipSided: boolean
+    flatShaded: boolean
     detail: number
     colorTheme: ColorTheme
     colorValue: Color
@@ -41,6 +43,8 @@ interface SpacefillState {
 export class Spacefill extends View<Controller<any>, SpacefillState, { transform: SpacefillUpdate, entity: SpacefillEntity, ctx: StateContext }> {
     state = {
         doubleSided: true,
+        flipSided: false,
+        flatShaded: false,
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorTheme,
         colorValue: 0x000000,
@@ -157,6 +161,33 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                                     value={this.state.depthMask}
                                     label='Depth write'
                                     onChange={value => this.update({ depthMask: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Toggle
+                                    value={this.state.doubleSided}
+                                    label='Double sided'
+                                    onChange={value => this.update({ doubleSided: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Toggle
+                                    value={this.state.flipSided}
+                                    label='Flip sided'
+                                    onChange={value => this.update({ flipSided: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Toggle
+                                    value={this.state.flatShaded}
+                                    label='Flat shaded'
+                                    onChange={value => this.update({ flatShaded: value })}
                                 />
                             </div>
                         </div>

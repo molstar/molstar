@@ -92,19 +92,23 @@ export namespace MeshBuilder {
             },
             getMesh: () => {
                 ChunkedArray.add(offsets, vertices.elementCount)
-                const mesh = {
+                const vb = ChunkedArray.compact(vertices, true) as Float32Array
+                const ib = ChunkedArray.compact(indices, true) as Uint32Array
+                const nb = ChunkedArray.compact(normals, true) as Float32Array
+                const idb = ChunkedArray.compact(ids, true) as Float32Array
+                const ob = ChunkedArray.compact(offsets, true) as Uint32Array
+                return {
                     vertexCount: vertices.elementCount,
                     triangleCount: indices.elementCount,
                     offsetCount: offsets.elementCount,
-                    vertexBuffer: ValueCell.create(ChunkedArray.compact(vertices, true) as Float32Array),
-                    indexBuffer: ValueCell.create(ChunkedArray.compact(indices, true) as Uint32Array),
-                    normalBuffer: ValueCell.create(ChunkedArray.compact(normals, true) as Float32Array),
-                    idBuffer: ValueCell.create(ChunkedArray.compact(ids, true) as Float32Array),
-                    offsetBuffer: ValueCell.create(ChunkedArray.compact(offsets, true) as Uint32Array),
+                    vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
+                    indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
+                    normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
+                    idBuffer: mesh ? ValueCell.update(mesh.idBuffer, idb) : ValueCell.create(idb),
+                    offsetBuffer: mesh ? ValueCell.update(mesh.offsetBuffer, ob) : ValueCell.create(ob),
                     normalsComputed: true,
                     offsetsComputed: true,
                 }
-                return mesh
             }
         }
     }

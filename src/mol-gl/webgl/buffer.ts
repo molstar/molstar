@@ -7,6 +7,9 @@
 import { Context } from './context'
 import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
+import { idFactory } from 'mol-util/id-factory';
+
+const getNextBufferId = idFactory()
 
 export type UsageHint = 'static' | 'dynamic' | 'stream'
 export type DataType = 'uint8' | 'int8' | 'uint16' | 'int16' | 'uint32' | 'int32' | 'float32'
@@ -78,6 +81,8 @@ export function getBufferType(ctx: Context, bufferType: BufferType) {
 }
 
 export interface Buffer {
+    readonly id: number
+
     readonly _buffer: WebGLBuffer
     readonly _usageHint: number
     readonly _bufferType: number
@@ -117,6 +122,8 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
     ctx.bufferCount += 1
 
     return {
+        id: getNextBufferId(),
+
         _buffer,
         _usageHint,
         _bufferType,

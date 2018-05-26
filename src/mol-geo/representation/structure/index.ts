@@ -71,6 +71,7 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
                     const { repr, group } = groupRepr
                     const state = { message: 'Updating structure unit representations...', current: i, max: il };
                     if (!await repr.update(props).runAsChild(ctx, state)) {
+                        console.log('update failed, need to rebuild')
                         await repr.create(group, props).runAsChild(ctx, state)
                     }
                     renderObjects.push(...repr.renderObjects)

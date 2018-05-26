@@ -116,7 +116,7 @@ export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill
         const spacefillRepr = spacefillEntity.value
         await spacefillRepr.update(props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
-        ctx.viewer.update()
+        // ctx.viewer.update()
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
         return NullEntity

@@ -12,7 +12,7 @@ import { idFactory } from 'mol-util/id-factory';
 
 const getNextTextureId = idFactory()
 export interface Texture {
-    id: number
+    readonly id: number
     load: (image: TextureImage) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
@@ -25,6 +25,7 @@ export type TextureValues = { [k: string]: ValueCell<TextureImage> }
 export type Textures = { [k: string]: Texture }
 
 export function createTexture(ctx: Context): Texture {
+    const id = getNextTextureId()
     const { gl } = ctx
     const texture = gl.createTexture()
     if (texture === null) {
@@ -41,7 +42,7 @@ export function createTexture(ctx: Context): Texture {
     ctx.textureCount += 1
 
     return {
-        id: getNextTextureId(),
+        id,
         load: (image: TextureImage) => {
             const { array, width, height } = image
             gl.bindTexture(_textureType, texture)

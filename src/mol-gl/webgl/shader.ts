@@ -6,6 +6,9 @@
 
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { Context } from './context';
+import { idFactory } from 'mol-util/id-factory';
+
+const getNextShaderId = idFactory()
 
 function addLineNumbers(source: string) {
     const lines = source.split('\n')
@@ -18,6 +21,7 @@ function addLineNumbers(source: string) {
 export type ShaderType = 'vert' | 'frag'
 export interface ShaderProps { type: ShaderType, source: string }
 export interface Shader {
+    readonly id: number
     attach: (program: WebGLProgram) => void
     destroy: () => void
 }
@@ -40,6 +44,7 @@ function createShader(ctx: Context, props: ShaderProps): Shader {
     }
 
     return {
+        id: getNextShaderId(),
         attach: (program: WebGLProgram) => {
             gl.attachShader(program, shader)
         },
