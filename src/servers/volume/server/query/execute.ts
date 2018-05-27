@@ -11,7 +11,7 @@ import * as File from '../../common/file'
 import * as Data from './data-model'
 import * as Coords from '../algebra/coordinate'
 import * as Box from '../algebra/box'
-import * as Logger from '../utils/logger'
+import { ConsoleLogger } from 'mol-util/console-logger'
 import { State } from '../state'
 import ServerConfig from '../../server-config'
 
@@ -28,7 +28,7 @@ export default async function execute(params: Data.QueryParams, outputProvider: 
 
     const guid = UUID.create() as any as string;
     params.detail = Math.min(Math.max(0, params.detail | 0), ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
-    Logger.log(guid, 'Info', `id=${params.sourceId},encoding=${params.asBinary ? 'binary' : 'text'},detail=${params.detail},${queryBoxToString(params.box)}`);
+    ConsoleLogger.logId(guid, 'Info', `id=${params.sourceId},encoding=${params.asBinary ? 'binary' : 'text'},detail=${params.detail},${queryBoxToString(params.box)}`);
 
     let sourceFile: number | undefined = void 0;
     try {
@@ -36,11 +36,11 @@ export default async function execute(params: Data.QueryParams, outputProvider: 
         await _execute(sourceFile, params, guid, outputProvider);
         return true;
     } catch (e) {
-        Logger.error(guid, e);
+        ConsoleLogger.errorId(guid, e);
         return false;
     } finally {
         File.close(sourceFile);
-        Logger.log(guid, 'Time', `${Math.round(getTime() - start)}ms`);
+        ConsoleLogger.logId(guid, 'Time', `${Math.round(getTime() - start)}ms`);
         State.pendingQueries--;
     }
 }

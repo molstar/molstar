@@ -9,7 +9,7 @@
 import * as File from '../common/file'
 import execute from './query/execute'
 import * as Data from './query/data-model'
-import * as Logger from './utils/logger'
+import { ConsoleLogger } from 'mol-util/console-logger'
 import * as DataFormat from '../common/data-format'
 import ServerConfig from '../server-config'
 
@@ -27,10 +27,10 @@ export function getOutputFilename(source: string, id: string, { asBinary, box, d
 
 /** Reads the header and includes information about available detail levels */
 export async function getHeaderJson(filename: string | undefined, sourceId: string) {
-    Logger.logPlain('Header', sourceId);
+    ConsoleLogger.log('Header', sourceId);
     try {
         if (!filename || !File.exists(filename)) {
-            Logger.errorPlain(`Header ${sourceId}`, 'File not found.');
+            ConsoleLogger.error(`Header ${sourceId}`, 'File not found.');
             return void 0;
         }
         const header = { ...await readHeader(filename, sourceId) } as DataFormat.Header;
@@ -47,7 +47,7 @@ export async function getHeaderJson(filename: string | undefined, sourceId: stri
         (header as any).isAvailable = true;
         return JSON.stringify(header, null, 2);
     } catch (e) {
-        Logger.errorPlain(`Header ${sourceId}`, e);
+        ConsoleLogger.error(`Header ${sourceId}`, e);
         return void 0;
     }
 }
@@ -64,7 +64,7 @@ async function readHeader(filename: string | undefined, sourceId: string) {
         const header = await DataFormat.readHeader(file);
         return header.header;
     } catch (e) {
-        Logger.errorPlain(`Info ${sourceId}`, e);
+        ConsoleLogger.error(`Info ${sourceId}`, e);
         return void 0;
     } finally {
         File.close(file);

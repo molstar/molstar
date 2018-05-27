@@ -14,7 +14,7 @@ import * as Data from './query/data-model'
 import * as Coords from './algebra/coordinate'
 import Docs from './documentation'
 import ServerConfig from '../server-config'
-import * as Logger from './utils/logger'
+import { ConsoleLogger } from 'mol-util/console-logger'
 import { State } from './state'
 
 export default function init(app: express.Express) {
@@ -89,7 +89,7 @@ function validateSourndAndId(req: express.Request, res: express.Response) {
     if (!req.params.source || req.params.source.length > 32 || !req.params.id || req.params.source.id > 32) {
         res.writeHead(404);
         res.end();
-        Logger.errorPlain(`Query Box`, 'Invalid source and/or id');
+        ConsoleLogger.error(`Query Box`, 'Invalid source and/or id');
         return true;
     }
     return false;
@@ -117,7 +117,7 @@ async function getHeader(req: express.Request, res: express.Response) {
         headerWritten = true;
         res.write(header);
     } catch (e) {
-        Logger.errorPlain(`Header ${req.params.source}/${req.params.id}`, e);
+        ConsoleLogger.error(`Header ${req.params.source}/${req.params.id}`, e);
         if (!headerWritten) {
             res.writeHead(404);
         }
@@ -171,7 +171,7 @@ async function queryBox(req: express.Request, res: express.Response, params: Dat
             return;
         }
     } catch (e) {
-        Logger.errorPlain(`Query Box ${JSON.stringify(req.params || {})} | ${JSON.stringify(req.query || {})}`, e);
+        ConsoleLogger.error(`Query Box ${JSON.stringify(req.params || {})} | ${JSON.stringify(req.query || {})}`, e);
         response.do404();
     } finally {
         response.end();

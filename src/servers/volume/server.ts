@@ -12,12 +12,12 @@ import * as compression from 'compression'
 import init from './server/web-api'
 import VERSION from './server/version'
 import ServerConfig from './server-config'
-import * as Logger from './server/utils/logger'
+import { ConsoleLogger } from 'mol-util/console-logger'
 import { State } from './server/state'
 
 function setupShutdown() {
     if (ServerConfig.shutdownParams.timeoutVarianceMinutes > ServerConfig.shutdownParams.timeoutMinutes) {
-        Logger.logPlain('Server', 'Shutdown timeout variance is greater than the timer itself, ignoring.');
+        ConsoleLogger.log('Server', 'Shutdown timeout variance is greater than the timer itself, ignoring.');
     } else {
         let tVar = 0;
         if (ServerConfig.shutdownParams.timeoutVarianceMinutes > 0) {
@@ -26,7 +26,7 @@ function setupShutdown() {
         let tMs = (ServerConfig.shutdownParams.timeoutMinutes + tVar) * 60 * 1000;
 
         console.log(`----------------------------------------------------------------------------`);
-        console.log(`  The server will shut down in ${Logger.formatTime(tMs)} to prevent slow performance.`);
+        console.log(`  The server will shut down in ${ConsoleLogger.formatTime(tMs)} to prevent slow performance.`);
         console.log(`  Please make sure a daemon is running that will automatically restart it.`);
         console.log(`----------------------------------------------------------------------------`);
         console.log();
@@ -35,7 +35,7 @@ function setupShutdown() {
             if (State.pendingQueries > 0) {
                 State.shutdownOnZeroPending = true;
             } else {
-                Logger.logPlain('Server', `Shut down due to timeout.`);
+                ConsoleLogger.log('Server', `Shut down due to timeout.`);
                 process.exit(0);
             }
         }, tMs);

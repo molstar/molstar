@@ -43,7 +43,10 @@ namespace StructureSymmetry {
         });
     }
 
-    // TODO: build symmetry mates within radius
+    export function builderSymmetryMates(structure: Structure, radius: number) {
+        // TODO: do it properly
+        return buildSymmetryRange(structure, Vec3.create(-3, -3, -3), Vec3.create(3, 3, 3));
+    }
 
     export function buildSymmetryRange(structure: Structure, ijkMin: Vec3, ijkMax: Vec3) {
         return Task.create('Build Assembly', async ctx => {
