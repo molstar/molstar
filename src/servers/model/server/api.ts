@@ -23,6 +23,7 @@ export interface QueryParamInfo {
 }
 
 export interface QueryDefinition {
+    name: string,
     niceName: string,
     exampleId: string, // default is 1cbs
     query: (params: any, structure: Structure) => Query,
@@ -92,24 +93,24 @@ function residueTest(params: any): Element.Predicate | undefined {
         values.push(params.auth_comp_id);
     }
 
+    if (typeof params.pdbx_PDB_ins_code !== 'undefined') {
+        props.push(Queries.props.residue.pdbx_PDB_ins_code);
+        values.push(params.pdbx_PDB_ins_code);
+    }
 
-    if (typeof params.label_seq_id !== 'undefined') {
-        const p = Queries.props.residue.label_seq_id, id = +params.label_seq_id;
-        if (typeof params.pdbx_PDB_ins_code !== 'undefined') {
-            const p1 = Queries.props.residue.label_seq_id, id1 = params.pdbx_PDB_ins_code;
-            return Element.property(l => p(l) === id && p1(l) === id1);
+    switch (props.length) {
+        case 0: return void 0;
+        case 1: return Element.property(l => props[0](l) === values[0]);
+        case 2: return Element.property(l => props[0](l) === values[0] && props[1](l) === values[1]);
+        case 3: return Element.property(l => props[0](l) === values[0] && props[1](l) === values[1] && props[2](l) === values[2]);
+        default: {
+            const len = props.length;
+            return Element.property(l => {
+                for (let i = 0; i < len; i++) if (!props[i](l) !== values[i]) return false;
+                return true;
+            });
         }
-        return Element.property(l => p(l) === id);
     }
-    if (typeof params.auth_seq_id !== 'undefined') {
-        const p = Queries.props.residue.auth_seq_id, id = +params.auth_seq_id;
-        if (typeof params.pdbx_PDB_ins_code !== 'undefined') {
-            const p1 = Queries.props.residue.label_seq_id, id1 = params.pdbx_PDB_ins_code;
-            return Element.property(l => p(l) === id && p1(l) === id1);
-        }
-        return Element.property(l => p(l) === id);
-    }
-    return void 0;
 }
 
 // function buildResiduesQuery(params: any): Query.Provider {
@@ -168,6 +169,7 @@ export const QueryList = (function () {
 (function () {
     for (let q of QueryList) {
         const m = q.definition;
+        m.name = q.name;
         m.params = m.params || [];
     }
 })();
@@ -177,12 +179,11 @@ function _normalizeQueryParams(params: { [p: string]: string }, paramList: Query
     for (const p of paramList) {
         const key = p.name;
         const value = params[key];
-
         if (typeof value === 'undefined' || (typeof value !== 'undefined' && value !== null && value['length'] === 0)) {
             if (p.required) {
                 throw `The parameter '${key}' is required.`;
             }
-            ret[key] = p.defaultValue;
+            if (typeof p.defaultValue !== 'undefined') ret[key] = p.defaultValue;
         } else {
             switch (p.type) {
                 case QueryParamType.String: ret[key] = value; break;

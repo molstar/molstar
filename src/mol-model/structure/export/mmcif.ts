@@ -27,7 +27,7 @@ function int<K, D = any>(name: string, value: (k: K, d: D) => number, valueKind?
 }
 
 function float<K, D = any>(name: string, value: (k: K, d: D) => number, valueKind?: (k: K) => Column.ValueKind): Encoder.FieldDefinition<K, D> {
-    return { name, type: Encoder.FieldType.Float, value, valueKind }
+    return { name, type: Encoder.FieldType.Float, value, valueKind, digitCount: 3 }
 }
 
 // function col<K, D>(name: string, c: (data: D) => Column<any>): Encoder.FieldDefinition<K, D> {
