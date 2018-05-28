@@ -118,17 +118,21 @@ function atomSiteProvider({ structure }: Context): Encoder.CategoryInstance {
     }
 }
 
-function to_mmCIF(name: string, structure: Structure, asBinary = false) {
+/** Doesn't start a data block */
+export function encode_mmCIF_categories(encoder: Encoder.EncoderInstance, structure: Structure) {
     const models = Structure.getModels(structure);
-    if (models.length !== 1) throw 'cant export stucture composed from multiple models.';
+    if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
 
     const ctx: Context = { structure, model };
-    const w = Encoder.create({ binary: asBinary });
+    encoder.writeCategory(entityProvider, [ctx]);
+    encoder.writeCategory(atomSiteProvider, [ctx]);
+}
 
+function to_mmCIF(name: string, structure: Structure, asBinary = false) {
+    const w = Encoder.create({ binary: asBinary });
     w.startDataBlock(name);
-    w.writeCategory(entityProvider, [ctx]);
-    w.writeCategory(atomSiteProvider, [ctx]);
+    encode_mmCIF_categories(w, structure);
     return w.getData();
 }
 

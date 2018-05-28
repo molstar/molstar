@@ -25,7 +25,7 @@ export interface QueryParamInfo {
 export interface QueryDefinition {
     niceName: string,
     exampleId: string, // default is 1cbs
-    query: (params: any, originalStructure: Structure, transformedStructure: Structure) => Query.Provider,
+    query: (params: any, structure: Structure) => Query,
     description: string,
     params: QueryParamInfo[],
     structureTransform?: (params: any, s: Structure) => Promise<Structure>
@@ -37,13 +37,11 @@ const AtomSiteParameters = {
     label_asym_id: <QueryParamInfo>{ name: 'label_asym_id', type: QueryParamType.String, description: 'Corresponds to the \'_atom_site.label_asym_id\' field.' },
     auth_asym_id: <QueryParamInfo>{ name: 'auth_asym_id', type: QueryParamType.String, exampleValue: 'A', description: 'Corresponds to the \'_atom_site.auth_asym_id\' field.' },
 
-    label_comp_id: <QueryParamInfo>{ name: 'label_comp_id', type: QueryParamType.String, description: 'Residue name. Corresponds to the \'_atom_site.label_comp_id\' field.' },
-    auth_comp_id: <QueryParamInfo>{ name: 'auth_comp_id', type: QueryParamType.String, exampleValue: 'REA', description: 'Author residue name. Corresponds to the \'_atom_site.auth_comp_id\' field.' },
-
-    pdbx_PDB_ins_code: <QueryParamInfo>{ name: 'pdbx_PDB_ins_code', type: QueryParamType.String, description: 'Corresponds to the \'_atom_site.pdbx_PDB_ins_code\' field.' },
-
     label_seq_id: <QueryParamInfo>{ name: 'label_seq_id', type: QueryParamType.Integer, description: 'Residue seq. number. Corresponds to the \'_atom_site.label_seq_id\' field.' },
     auth_seq_id: <QueryParamInfo>{ name: 'auth_seq_id', type: QueryParamType.Integer, exampleValue: '200', description: 'Author residue seq. number. Corresponds to the \'_atom_site.auth_seq_id\' field.' },
+    label_comp_id: <QueryParamInfo>{ name: 'label_comp_id', type: QueryParamType.String, description: 'Residue name. Corresponds to the \'_atom_site.label_comp_id\' field.' },
+    auth_comp_id: <QueryParamInfo>{ name: 'auth_comp_id', type: QueryParamType.String, exampleValue: 'REA', description: 'Author residue name. Corresponds to the \'_atom_site.auth_comp_id\' field.' },
+    pdbx_PDB_ins_code: <QueryParamInfo>{ name: 'pdbx_PDB_ins_code', type: QueryParamType.String, description: 'Corresponds to the \'_atom_site.pdbx_PDB_ins_code\' field.' },
 };
 
 // function entityTest(params: any): Element.Predicate | undefined {
@@ -72,6 +70,29 @@ function chainTest(params: any): Element.Predicate | undefined {
 }
 
 function residueTest(params: any): Element.Predicate | undefined {
+    const props: Element.Property<any>[] = [], values: any[] = [];
+
+    if (typeof params.label_seq_id !== 'undefined') {
+        props.push(Queries.props.residue.label_seq_id);
+        values.push(+params.label_seq_id);
+    }
+
+    if (typeof params.auth_seq_id !== 'undefined') {
+        props.push(Queries.props.residue.auth_seq_id);
+        values.push(+params.auth_seq_id);
+    }
+
+    if (typeof params.label_comp_id !== 'undefined') {
+        props.push(Queries.props.residue.label_comp_id);
+        values.push(params.label_comp_id);
+    }
+
+    if (typeof params.auth_comp_id !== 'undefined') {
+        props.push(Queries.props.residue.auth_comp_id);
+        values.push(params.auth_comp_id);
+    }
+
+
     if (typeof params.label_seq_id !== 'undefined') {
         const p = Queries.props.residue.label_seq_id, id = +params.label_seq_id;
         if (typeof params.pdbx_PDB_ins_code !== 'undefined') {
@@ -96,16 +117,16 @@ function residueTest(params: any): Element.Predicate | undefined {
 // }
 
 const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
-    'full': { niceName: 'Full Structure', query: () => Queries.generators.all, description: 'The full structure.' },
+    'full': { niceName: 'Full Structure', query: () => Query(Queries.generators.all), description: 'The full structure.' },
     'residueInteraction': {
         niceName: 'Residues Inside a Sphere',
         description: 'Identifies all residues within the given radius from the source residue.',
         query(p) {
             const center = Queries.generators.atoms({ entityTest: entityTest1_555(p), chainTest: chainTest(p), residueTest: residueTest(p) });
-            return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
+            return Query(Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true }));
         },
         structureTransform(p, s) {
-            return StructureSymmetry.builderSymmetryMates(p, p. radius).run();
+            return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
         },
         params: [
             AtomSiteParameters.entity_id,
@@ -130,10 +151,10 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
             },
         ]
     },
-}
+};
 
-export function getQueryByName(name: string) {
-    return QueryMap[name];
+export function getQueryByName(name: string): QueryDefinition {
+    return QueryMap[name] as QueryDefinition;
 }
 
 export const QueryList = (function () {
@@ -143,21 +164,30 @@ export const QueryList = (function () {
     return list;
 })();
 
+// normalize the queries
+(function () {
+    for (let q of QueryList) {
+        const m = q.definition;
+        m.params = m.params || [];
+    }
+})();
+
 function _normalizeQueryParams(params: { [p: string]: string }, paramList: QueryParamInfo[]): { [p: string]: string | number | boolean } {
     const ret: any = {};
     for (const p of paramList) {
         const key = p.name;
+        const value = params[key];
 
-        if (typeof params[key] === 'undefined' || (params[key] !== null && params[key]['length'] === 0)) {
+        if (typeof value === 'undefined' || (typeof value !== 'undefined' && value !== null && value['length'] === 0)) {
             if (p.required) {
                 throw `The parameter '${key}' is required.`;
             }
             ret[key] = p.defaultValue;
         } else {
             switch (p.type) {
-                case QueryParamType.String: ret[key] = params[key]; break;
-                case QueryParamType.Integer: ret[key] = parseInt(params[key]); break;
-                case QueryParamType.Float: ret[key] = parseFloat(params[key]); break;
+                case QueryParamType.String: ret[key] = value; break;
+                case QueryParamType.Integer: ret[key] = parseInt(value); break;
+                case QueryParamType.Float: ret[key] = parseFloat(value); break;
             }
 
             if (p.validation) p.validation(ret[key]);

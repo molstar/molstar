@@ -195,6 +195,8 @@ namespace Structure {
         private advance() {
             if (this.idx < this.maxIdx) {
                 this.idx++;
+
+                if (this.idx === this.maxIdx) this.hasNext = this.unitIndex + 1 < this.structure.units.length;
                 return;
             }
 

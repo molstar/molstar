@@ -76,6 +76,7 @@ namespace StructureSymmetry {
                 }
             }
 
+
             return assembler.getStructure();
         });
     }
