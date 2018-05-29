@@ -12,10 +12,10 @@ import encodeMsgPack from '../../../common/msgpack/encode'
 import {
     EncodedColumn, EncodedData, EncodedFile, EncodedDataBlock, EncodedCategory, ArrayEncoder, ArrayEncoding as E, VERSION
 } from '../../../common/binary-cif'
-import { CIFField, CIFCategory, CIFEncoder } from '../encoder'
+import { Field, Category, Encoder } from '../encoder'
 import Writer from '../../writer'
 
-export default class BinaryCIFWriter implements CIFEncoder<Uint8Array> {
+export default class BinaryCIFWriter implements Encoder<Uint8Array> {
     private data: EncodedFile;
     private dataBlocks: EncodedDataBlock[] = [];
     private encodedData: Uint8Array;
@@ -27,7 +27,7 @@ export default class BinaryCIFWriter implements CIFEncoder<Uint8Array> {
         });
     }
 
-    writeCategory<Ctx>(category: CIFCategory.Provider<Ctx>, contexts?: Ctx[]) {
+    writeCategory<Ctx>(category: Category.Provider<Ctx>, contexts?: Ctx[]) {
         if (!this.data) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -77,14 +77,14 @@ export default class BinaryCIFWriter implements CIFEncoder<Uint8Array> {
     }
 }
 
-function createArray(field: CIFField, count: number) {
-    if (field.type === CIFField.Type.Str) return new Array(count) as any;
+function createArray(field: Field, count: number) {
+    if (field.type === Field.Type.Str) return new Array(count) as any;
     else if (field.defaultFormat && field.defaultFormat.typedArray) return new field.defaultFormat.typedArray(count) as any;
-    else return (field.type === CIFField.Type.Int ? new Int32Array(count) : new Float32Array(count)) as any;
+    else return (field.type === Field.Type.Int ? new Int32Array(count) : new Float32Array(count)) as any;
 }
 
-function encodeField(field: CIFField, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, format?: CIFField.Format): EncodedColumn {
-    const isStr = field.type === CIFField.Type.Str;
+function encodeField(field: Field, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, format?: Field.Format): EncodedColumn {
+    const isStr = field.type === Field.Type.Str;
     const array = createArray(field, totalCount);
     let encoder: ArrayEncoder;
 

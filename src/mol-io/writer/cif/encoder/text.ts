@@ -9,10 +9,10 @@
 import { Iterator } from 'mol-data'
 import { Column } from 'mol-data/db'
 import StringBuilder from 'mol-util/string-builder'
-import { CIFCategory, CIFField, CIFEncoder } from '../encoder'
+import { Category, Field, Encoder } from '../encoder'
 import Writer from '../../writer'
 
-export default class TextCIFEncoder implements CIFEncoder<string> {
+export default class TextCIFEncoder implements Encoder<string> {
     private builder = StringBuilder.create();
     private encoded = false;
     private dataBlockCreated = false;
@@ -22,7 +22,7 @@ export default class TextCIFEncoder implements CIFEncoder<string> {
         StringBuilder.write(this.builder, `data_${(header || '').replace(/[ \n\t]/g, '').toUpperCase()}\n#\n`);
     }
 
-    writeCategory<Ctx>(category: CIFCategory.Provider<Ctx>, contexts?: Ctx[]) {
+    writeCategory<Ctx>(category: Category.Provider<Ctx>, contexts?: Ctx[]) {
         if (this.encoded) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -61,7 +61,7 @@ export default class TextCIFEncoder implements CIFEncoder<string> {
     }
 }
 
-function writeValue(builder: StringBuilder, data: any, key: any, f: CIFField<any, any>, floatPrecision: number): boolean {
+function writeValue(builder: StringBuilder, data: any, key: any, f: Field<any, any>, floatPrecision: number): boolean {
     const kind = f.valueKind;
     const p = kind ? kind(key, data) : Column.ValueKind.Present;
     if (p !== Column.ValueKind.Present) {
@@ -70,14 +70,14 @@ function writeValue(builder: StringBuilder, data: any, key: any, f: CIFField<any
     } else {
         const val = f.value(key, data);
         const t = f.type;
-        if (t === CIFField.Type.Str) {
+        if (t === Field.Type.Str) {
             if (isMultiline(val as string)) {
                 writeMultiline(builder, val as string);
                 return true;
             } else {
                 return writeChecked(builder, val as string);
             }
-        } else if (t === CIFField.Type.Int) {
+        } else if (t === Field.Type.Int) {
             writeInteger(builder, val as number);
         } else {
             writeFloat(builder, val as number, floatPrecision);
@@ -86,15 +86,15 @@ function writeValue(builder: StringBuilder, data: any, key: any, f: CIFField<any
     return false;
 }
 
-function getFloatPrecisions(cat: CIFCategory) {
+function getFloatPrecisions(cat: Category) {
     const ret: number[] = [];
     for (const f of cat.fields) {
-        ret[ret.length] = f.type === CIFField.Type.Float ? Math.pow(10, CIFField.getDigitCount(f)) : 0;
+        ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Field.getDigitCount(f)) : 0;
     }
     return ret;
 }
 
-function writeCifSingleRecord(category: CIFCategory<any>, builder: StringBuilder) {
+function writeCifSingleRecord(category: Category<any>, builder: StringBuilder) {
     const fields = category.fields;
     const data = category.data;
     const width = fields.reduce((w, s) => Math.max(w, s.name.length), 0) + category.name.length + 6;
@@ -113,7 +113,7 @@ function writeCifSingleRecord(category: CIFCategory<any>, builder: StringBuilder
     StringBuilder.write(builder, '#\n');
 }
 
-function writeCifLoop(categories: CIFCategory[], builder: StringBuilder) {
+function writeCifLoop(categories: Category[], builder: StringBuilder) {
     const first = categories[0];
     const fields = first.fields;
     const fieldCount = fields.length;

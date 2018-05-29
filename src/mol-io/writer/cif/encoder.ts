@@ -8,7 +8,7 @@
 import Iterator from 'mol-data/iterator'
 import { Column, Table, Database, DatabaseCollection } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
-import Encoder from '../encoder'
+import EncoderBase from '../encoder'
 import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
 
 // TODO: support for "coordinate fields", make "coordinate precision" a parameter of the encoder
@@ -18,15 +18,15 @@ import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
 // TODO: Add "higher level fields"? (i.e. generalization of repeat)
 // TODO: align "data blocks" to 8 byte offsets for fast typed array windows? (prolly needs some testing if this is actually the case too)
 
-export interface CIFField<Key = any, Data = any> {
+export interface Field<Key = any, Data = any> {
     name: string,
-    type: CIFField.Type,
+    type: Field.Type,
     valueKind?: (key: Key, data: Data) => Column.ValueKind,
-    defaultFormat?: CIFField.Format,
+    defaultFormat?: Field.Format,
     value(key: Key, data: Data): string | number
 }
 
-export namespace CIFField {
+export namespace Field {
     export const enum Type { Str, Int, Float }
 
     export interface Format {
@@ -35,16 +35,16 @@ export namespace CIFField {
         typedArray?: ArrayEncoding.TypedArrayCtor
     }
 
-    export function getDigitCount(field: CIFField) {
-        if (field.defaultFormat && typeof field.defaultFormat.digitCount !== 'undefined') return field.defaultFormat.digitCount;
+    export function getDigitCount(field: Field) {
+        if (field.defaultFormat && typeof field.defaultFormat.digitCount !== 'undefined') return Math.max(0, Math.min(field.defaultFormat.digitCount, 16));
         return 6;
     }
 
-    export function str<K, D = any>(name: string, value: (k: K, d: D) => string, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder }): CIFField<K, D> {
+    export function str<K, D = any>(name: string, value: (k: K, d: D) => string, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder }): Field<K, D> {
         return { name, type: Type.Str, value, valueKind: params && params.valueKind, defaultFormat: params && params.encoder ? { encoder: params.encoder } : void 0 };
     }
 
-    export function int<K, D = any>(name: string, value: (k: K, d: D) => number, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, typedArray?: ArrayEncoding.TypedArrayCtor }): CIFField<K, D> {
+    export function int<K, D = any>(name: string, value: (k: K, d: D) => number, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, typedArray?: ArrayEncoding.TypedArrayCtor }): Field<K, D> {
         return {
             name,
             type: Type.Int,
@@ -53,7 +53,7 @@ export namespace CIFField {
             defaultFormat: params ? { encoder: params.encoder, typedArray: params.typedArray } : void 0 };
     }
 
-    export function float<K, D = any>(name: string, value: (k: K, d: D) => number, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, typedArray?: ArrayEncoding.TypedArrayCtor, digitCount?: number }): CIFField<K, D> {
+    export function float<K, D = any>(name: string, value: (k: K, d: D) => number, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, typedArray?: ArrayEncoding.TypedArrayCtor, digitCount?: number }): Field<K, D> {
         return {
             name,
             type: Type.Float,
@@ -64,46 +64,50 @@ export namespace CIFField {
     }
 }
 
-export interface CIFCategory<Key = any, Data = any> {
+export interface Category<Key = any, Data = any> {
     name: string,
-    fields: CIFField<Key, Data>[],
+    fields: Field<Key, Data>[],
     data?: Data,
     rowCount: number,
     keys?: () => Iterator<Key>
 }
 
-export namespace CIFCategory {
+export namespace Category {
+    export const Empty: Category = { name: 'empty', rowCount: 0, fields: [] };
+
     export interface Provider<Ctx = any> {
-        (ctx: Ctx): CIFCategory
+        (ctx: Ctx): Category
     }
 
-    export function ofTable(name: string, table: Table<Table.Schema>): CIFCategory<number, Table<Table.Schema>> {
+    export function ofTable(name: string, table: Table<Table.Schema>, indices?: ArrayLike<number>): Category<number, Table<Table.Schema>> {
+        if (indices) {
+            return { name, fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: indices.length, keys: () => Iterator.Array(indices) };
+        }
         return { name, fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: table._rowCount };
     }
 }
 
-export interface CIFEncoder<T = string | Uint8Array> extends Encoder {
+export interface Encoder<T = string | Uint8Array> extends EncoderBase {
     // setFormatter(): void,
     startDataBlock(header: string): void,
-    writeCategory<Ctx>(category: CIFCategory.Provider<Ctx>, contexts?: Ctx[]): void,
+    writeCategory<Ctx>(category: Category.Provider<Ctx>, contexts?: Ctx[]): void,
     getData(): T
 }
 
-export namespace CIFEncoder {
-    export function writeDatabase(encoder: CIFEncoder, name: string, database: Database<Database.Schema>) {
+export namespace Encoder {
+    export function writeDatabase(encoder: Encoder, name: string, database: Database<Database.Schema>) {
         encoder.startDataBlock(name);
         for (const table of database._tableNames) {
-            encoder.writeCategory(() => CIFCategory.ofTable(table, database[table]));
+            encoder.writeCategory(() => Category.ofTable(table, database[table]));
         }
     }
 
-    export function writeDatabaseCollection(encoder: CIFEncoder, collection: DatabaseCollection<Database.Schema>) {
+    export function writeDatabaseCollection(encoder: Encoder, collection: DatabaseCollection<Database.Schema>) {
         for (const name of Object.keys(collection)) {
             writeDatabase(encoder, name, collection[name])
         }
     }
 }
-
 
 function columnValue(k: string) {
     return (i: number, d: any) => d[k].value(i);
@@ -122,8 +126,8 @@ function columnValueKind(k: string) {
 }
 
 function getTensorDefinitions(field: string, space: Tensor.Space) {
-    const fieldDefinitions: CIFField[] = []
-    const type = CIFField.Type.Float
+    const fieldDefinitions: Field[] = []
+    const type = Field.Type.Float
     const valueKind = columnValueKind(field)
     if (space.rank === 1) {
         const rows = space.dimensions[0]
@@ -156,17 +160,17 @@ function getTensorDefinitions(field: string, space: Tensor.Space) {
 }
 
 function cifFieldsFromTableSchema(schema: Table.Schema) {
-    const fields: CIFField[] = [];
+    const fields: Field[] = [];
     for (const k of Object.keys(schema)) {
         const t = schema[k];
         if (t.valueType === 'int') {
-            fields.push({ name: k, type: CIFField.Type.Int, value: columnValue(k), valueKind: columnValueKind(k) });
+            fields.push({ name: k, type: Field.Type.Int, value: columnValue(k), valueKind: columnValueKind(k) });
         } else if (t.valueType === 'float') {
-            fields.push({ name: k, type: CIFField.Type.Float, value: columnValue(k), valueKind: columnValueKind(k) });
+            fields.push({ name: k, type: Field.Type.Float, value: columnValue(k), valueKind: columnValueKind(k) });
         } else if (t.valueType === 'str') {
-            fields.push({ name: k, type: CIFField.Type.Str, value: columnValue(k), valueKind: columnValueKind(k) });
+            fields.push({ name: k, type: Field.Type.Str, value: columnValue(k), valueKind: columnValueKind(k) });
         } else if (t.valueType === 'list') {
-            fields.push({ name: k, type: CIFField.Type.Str, value: columnListValue(k), valueKind: columnValueKind(k) })
+            fields.push({ name: k, type: Field.Type.Str, value: columnListValue(k), valueKind: columnValueKind(k) })
         } else if (t.valueType === 'tensor') {
             fields.push(...getTensorDefinitions(k, t.space))
         } else {

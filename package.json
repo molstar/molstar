@@ -18,8 +18,8 @@
     "test": "jest",
     "build-viewer": "webpack build/node_modules/apps/viewer/index.js --mode development -o build/viewer/index.js",
     "watch-viewer": "webpack build/node_modules/apps/viewer/index.js -w --mode development -o build/viewer/index.js",
-    "run-model-server": "node build/node_modules/servers/model/server.js",
-    "run-model-server-watch": "nodemon --watch build/node_modules build/node_modules/servers/model/server.js"
+    "model-server": "node build/node_modules/servers/model/server.js",
+    "model-server-watch": "nodemon --watch build/node_modules build/node_modules/servers/model/server.js"
   },
   "nodemonConfig": {
     "ignoreRoot": ["./node_modules", ".git"],

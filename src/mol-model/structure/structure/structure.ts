@@ -4,16 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { IntMap, SortedArray, Iterator } from 'mol-data/int'
+import { IntMap, SortedArray, Iterator, Segmentation } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
-import { sort, arraySwap, hash1 } from 'mol-data/util';
+import { sort, arraySwap, hash1, sortArray } from 'mol-data/util';
 import Element from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
+import { Queries } from '../query';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -220,6 +221,30 @@ namespace Structure {
                 this.current.unit = structure.units[0];
             }
         }
+    }
+
+    export function getEntityKeys(structure: Structure) {
+        const { units } = structure;
+        const l = Element.Location();
+        const keys = UniqueArray.create<number, number>();
+
+        for (const unit of units) {
+            const prop = unit.kind === Unit.Kind.Atomic ? Queries.props.entity.key : Queries.props.coarse.entityKey;
+
+            l.unit = unit;
+            const elements = unit.elements;
+
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainSegments, elements);
+            while (chainsIt.hasNext) {
+                const chainSegment = chainsIt.move();
+                l.element = elements[chainSegment.start];
+                const key = prop(l);
+                UniqueArray.add(keys, key, key);
+            }
+        }
+
+        sortArray(keys.array);
+        return keys.array;
     }
 }
 
