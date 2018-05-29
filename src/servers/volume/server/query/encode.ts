@@ -6,7 +6,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CIFEncoder, CIFCategory, CIFField, createCIFEncoder } from 'mol-io/writer/cif'
+import { CifWriter } from 'mol-io/writer/cif'
 import * as Data from './data-model'
 import * as Coords from '../algebra/coordinate'
 import VERSION from '../version'
@@ -15,7 +15,7 @@ import { Column } from 'mol-data/db';
 import { ArrayEncoding, ArrayEncoder } from 'mol-io/common/binary-cif';
 
 export default function encode(query: Data.QueryContext, output: Data.QueryOutputStream) {
-    let w = createCIFEncoder({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
+    let w = CifWriter.createEncoder({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
     write(w, query);
     w.encode();
     w.writeTo(output);
@@ -26,21 +26,19 @@ interface ResultContext {
     channelIndex: number
 }
 
-type FieldDesc<T> = CIFField<number, T>
-
-function string<T>(name: string, str: (data: T) => string, isSpecified?: (data: T) => boolean): CIFField<number, T> {
+function string<T>(name: string, str: (data: T) => string, isSpecified?: (data: T) => boolean): CifWriter.Field<number, T> {
     if (isSpecified) {
-        return CIFField.str(name,  (i, d) => str(d), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
+        return CifWriter.Field.str(name,  (i, d) => str(d), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
     }
-    return CIFField.str(name,  (i, d) => str(d));
+    return CifWriter.Field.str(name,  (i, d) => str(d));
 }
 
-function int32<T>(name: string, value: (data: T) => number): CIFField<number, T> {
-    return CIFField.int(name, (i, d) => value(d));
+function int32<T>(name: string, value: (data: T) => number): CifWriter.Field<number, T> {
+    return CifWriter.Field.int(name, (i, d) => value(d));
 }
 
-function float64<T>(name: string, value: (data: T) => number, digitCount: number = 6): FieldDesc<T> {
-    return CIFField.float(name, (i, d) => value(d), { digitCount: digitCount, typedArray: Float64Array });
+function float64<T>(name: string, value: (data: T) => number, digitCount: number = 6): CifWriter.Field<number, T> {
+    return CifWriter.Field.float(name, (i, d) => value(d), { digitCount: digitCount, typedArray: Float64Array });
 }
 
 interface _vd3d_Ctx {
@@ -52,7 +50,7 @@ interface _vd3d_Ctx {
     sampledValuesInfo: DataFormat.ValuesInfo,
 }
 
-const _volume_data_3d_info_fields: FieldDesc<_vd3d_Ctx>[] = [
+const _volume_data_3d_info_fields = [
     string<_vd3d_Ctx>('name', ctx => ctx.header.channels[ctx.channelIndex]),
 
     int32<_vd3d_Ctx>('axis_order[0]', ctx => ctx.header.axisOrder[0]),
@@ -92,7 +90,7 @@ const _volume_data_3d_info_fields: FieldDesc<_vd3d_Ctx>[] = [
     float64<_vd3d_Ctx>('max_sampled', ctx => ctx.sampledValuesInfo.max)
 ];
 
-function _volume_data_3d_info(result: ResultContext): CIFCategory {
+function _volume_data_3d_info(result: ResultContext): CifWriter.Category {
     const ctx: _vd3d_Ctx = {
         header: result.query.data.header,
         channelIndex: result.channelIndex,
@@ -137,8 +135,7 @@ function _volume_data_3d(ctx: ResultContext) {
         encoder = E.by(E.byteArray)
     }
 
-    const fields: FieldDesc<typeof data>[] = [CIFField.float('values', _volume_data_3d_number, { encoder, typedArray, digitCount: 6 })]
-
+    const fields = [CifWriter.Field.float('values', _volume_data_3d_number, { encoder, typedArray, digitCount: 6 })];
     return { data, name: 'volume_data_3d', fields, rowCount: data.length };
 }
 
@@ -156,7 +153,7 @@ function queryBoxDimension(e: 'a' | 'b', d: number) {
     return string<Data.QueryContext>(`query_box_${e}[${d}]`, ctx => pickQueryBoxDimension(ctx, e, d), ctx => ctx.params.box.kind !== 'Cell');
 }
 
-const _density_server_result_fields: FieldDesc<Data.QueryContext>[] = [
+const _density_server_result_fields = [
     string<Data.QueryContext>('server_version', ctx => VERSION),
     string<Data.QueryContext>('datetime_utc', ctx => new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')),
     string<Data.QueryContext>('guid', ctx => ctx.guid),
@@ -174,7 +171,7 @@ const _density_server_result_fields: FieldDesc<Data.QueryContext>[] = [
     queryBoxDimension('b', 2)
 ]
 
-function _density_server_result(ctx: Data.QueryContext): CIFCategory {
+function _density_server_result(ctx: Data.QueryContext): CifWriter.Category {
     return {
         data: ctx,
         name: 'density_server_result',
@@ -183,7 +180,7 @@ function _density_server_result(ctx: Data.QueryContext): CIFCategory {
     };
 }
 
-function write(encoder: CIFEncoder, query: Data.QueryContext) {
+function write(encoder: CifWriter.Encoder, query: Data.QueryContext) {
     encoder.startDataBlock('SERVER');
     encoder.writeCategory(_density_server_result, [query]);
 

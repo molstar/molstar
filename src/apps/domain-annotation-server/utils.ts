@@ -5,7 +5,7 @@
  */
 
 import { Table } from 'mol-data/db'
-import { CIFField, CIFCategory } from 'mol-io/writer/cif'
+import { CifWriter } from 'mol-io/writer/cif'
 
 function columnValue(k: string) {
     return (i: number, d: any) => d[k].value(i);
@@ -16,16 +16,16 @@ function columnValueKind(k: string) {
 }
 
 function ofSchema(schema: Table.Schema) {
-    const fields: CIFField[] = [];
+    const fields: CifWriter.Field[] = [];
     for (const k of Object.keys(schema)) {
         const t = schema[k];
-        const type: any = t.valueType === 'str' ? CIFField.Type.Str : t.valueType === 'int' ? CIFField.Type.Int : CIFField.Type.Float;
+        const type: any = t.valueType === 'str' ? CifWriter.Field.Type.Str : t.valueType === 'int' ? CifWriter.Field.Type.Int : CifWriter.Field.Type.Float;
         fields.push({ name: k, type, value: columnValue(k), valueKind: columnValueKind(k) })
     }
     return fields;
 }
 
-export function getCategoryInstanceProvider(name: string, table: Table<any>): CIFCategory.Provider {
+export function getCategoryInstanceProvider(name: string, table: Table<any>): CifWriter.Category.Provider {
     return () => {
         return {
             data: table,

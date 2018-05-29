@@ -5,13 +5,13 @@
  */
 
 import { Table } from 'mol-data/db'
-import { CIFEncoder, createCIFEncoder as createEncoder } from 'mol-io/writer/cif'
+import { CifWriter } from 'mol-io/writer/cif'
 import * as S from './schemas'
 import { getCategoryInstanceProvider } from './utils'
 
 export default function create(allData: any) {
     const mols = Object.keys(allData);
-    const enc = createEncoder();
+    const enc = CifWriter.createEncoder();
     enc.startDataBlock(mols[0]);
 
     if (!mols.length) return enc.getData();
@@ -36,7 +36,7 @@ interface DomainAnnotation {
 }
 type MappingRow = Table.Row<S.mapping>;
 
-function writeDomain(enc: CIFEncoder, domain: DomainAnnotation | undefined) {
+function writeDomain(enc: CifWriter.Encoder, domain: DomainAnnotation | undefined) {
     if (!domain) return;
     enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_annotation`, domain.domains));
     enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_mapping`, domain.mappings));

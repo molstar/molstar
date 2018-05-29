@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { CIFEncoder, createCIFEncoder, CIFCategory, CIFField } from 'mol-io/writer/cif'
+import { CifWriter } from 'mol-io/writer/cif'
 // import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
 import { Structure, Element } from '../structure'
 import { Model } from '../model'
@@ -16,40 +16,43 @@ interface Context {
     model: Model
 }
 
-const atom_site_fields: CIFField<Element.Location>[] = [
-    CIFField.str('group_PDB', P.residue.group_PDB),
-    CIFField.int('id', P.atom.id),
-    CIFField.str('type_symbol', P.atom.type_symbol as any),
-    CIFField.str('label_atom_id', P.atom.label_atom_id),
-    CIFField.str('label_alt_id', P.atom.label_alt_id),
+import CifField = CifWriter.Field
+import CifCategory = CifWriter.Category
 
-    CIFField.str('label_comp_id', P.residue.label_comp_id),
-    CIFField.int('label_seq_id', P.residue.label_seq_id),
-    CIFField.str('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code),
+const atom_site_fields: CifField<Element.Location>[] = [
+    CifField.str('group_PDB', P.residue.group_PDB),
+    CifField.int('id', P.atom.id),
+    CifField.str('type_symbol', P.atom.type_symbol as any),
+    CifField.str('label_atom_id', P.atom.label_atom_id),
+    CifField.str('label_alt_id', P.atom.label_alt_id),
 
-    CIFField.str('label_asym_id', P.chain.label_asym_id),
-    CIFField.str('label_entity_id', P.chain.label_entity_id),
+    CifField.str('label_comp_id', P.residue.label_comp_id),
+    CifField.int('label_seq_id', P.residue.label_seq_id),
+    CifField.str('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code),
 
-    CIFField.float('Cartn_x', P.atom.x),
-    CIFField.float('Cartn_y', P.atom.y),
-    CIFField.float('Cartn_z', P.atom.z),
-    CIFField.float('occupancy', P.atom.occupancy),
-    CIFField.int('pdbx_formal_charge', P.atom.pdbx_formal_charge),
+    CifField.str('label_asym_id', P.chain.label_asym_id),
+    CifField.str('label_entity_id', P.chain.label_entity_id),
 
-    CIFField.str('auth_atom_id', P.atom.auth_atom_id),
-    CIFField.str('auth_comp_id', P.residue.auth_comp_id),
-    CIFField.int('auth_seq_id', P.residue.auth_seq_id),
-    CIFField.str('auth_asym_id', P.chain.auth_asym_id),
+    CifField.float('Cartn_x', P.atom.x),
+    CifField.float('Cartn_y', P.atom.y),
+    CifField.float('Cartn_z', P.atom.z),
+    CifField.float('occupancy', P.atom.occupancy),
+    CifField.int('pdbx_formal_charge', P.atom.pdbx_formal_charge),
 
-    CIFField.int('pdbx_PDB_model_num', P.unit.model_num),
-    CIFField.str('operator_name', P.unit.operator_name)
+    CifField.str('auth_atom_id', P.atom.auth_atom_id),
+    CifField.str('auth_comp_id', P.residue.auth_comp_id),
+    CifField.int('auth_seq_id', P.residue.auth_seq_id),
+    CifField.str('auth_asym_id', P.chain.auth_asym_id),
+
+    CifField.int('pdbx_PDB_model_num', P.unit.model_num),
+    CifField.str('operator_name', P.unit.operator_name)
 ];
 
-function entityProvider({ model }: Context): CIFCategory {
-    return CIFCategory.ofTable('entity', model.entities.data);
+function entityProvider({ model }: Context): CifCategory {
+    return CifCategory.ofTable('entity', model.entities.data);
 }
 
-function atomSiteProvider({ structure }: Context): CIFCategory {
+function atomSiteProvider({ structure }: Context): CifCategory {
     return {
         data: void 0,
         name: 'atom_site',
@@ -60,7 +63,7 @@ function atomSiteProvider({ structure }: Context): CIFCategory {
 }
 
 /** Doesn't start a data block */
-export function encode_mmCIF_categories(encoder: CIFEncoder, structure: Structure) {
+export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: Structure) {
     const models = Structure.getModels(structure);
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
@@ -71,10 +74,10 @@ export function encode_mmCIF_categories(encoder: CIFEncoder, structure: Structur
 }
 
 function to_mmCIF(name: string, structure: Structure, asBinary = false) {
-    const w = createCIFEncoder({ binary: asBinary });
-    w.startDataBlock(name);
-    encode_mmCIF_categories(w, structure);
-    return w.getData();
+    const enc = CifWriter.createEncoder({ binary: asBinary });
+    enc.startDataBlock(name);
+    encode_mmCIF_categories(enc, structure);
+    return enc.getData();
 }
 
 export default to_mmCIF

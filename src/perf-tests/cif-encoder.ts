@@ -4,21 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
- import { CIFCategory, CIFField, createCIFEncoder } from 'mol-io/writer/cif'
+import { CifWriter } from 'mol-io/writer/cif'
 
-const category1fields: CIFField[] = [
-    CIFField.str('f1', i => 'v' + i),
-    CIFField.int('f2', i => i * i),
-    CIFField.float('f3', i => Math.random()),
+const category1fields: CifWriter.Field[] = [
+    CifWriter.Field.str('f1', i => 'v' + i),
+    CifWriter.Field.int('f2', i => i * i),
+    CifWriter.Field.float('f3', i => Math.random()),
 ];
 
-const category2fields: CIFField[] = [
-    CIFField.str('e1', i => 'v\n' + i),
-    CIFField.int('e2', i => i * i),
-    CIFField.float('e3', i => Math.random()),
+const category2fields: CifWriter.Field[] = [
+    CifWriter.Field.str('e1', i => 'v\n' + i),
+    CifWriter.Field.int('e2', i => i * i),
+    CifWriter.Field.float('e3', i => Math.random()),
 ];
 
-function getInstance(ctx: { name: string, fields: CIFField[], rowCount: number }): CIFCategory {
+function getInstance(ctx: { name: string, fields: CifWriter.Field[], rowCount: number }): CifWriter.Category {
     return {
         data: void 0,
         name: ctx.name,
@@ -27,9 +27,9 @@ function getInstance(ctx: { name: string, fields: CIFField[], rowCount: number }
     }
 }
 
-const w = createCIFEncoder();
+const enc = CifWriter.createEncoder();
 
-w.startDataBlock('test');
-w.writeCategory(getInstance, [{ rowCount: 5, name: 'cat1', fields: category1fields }]);
-w.writeCategory(getInstance, [{ rowCount: 1, name: 'cat2', fields: category2fields  }]);
-console.log(w.getData());
+enc.startDataBlock('test');
+enc.writeCategory(getInstance, [{ rowCount: 5, name: 'cat1', fields: category1fields }]);
+enc.writeCategory(getInstance, [{ rowCount: 1, name: 'cat2', fields: category2fields  }]);
+console.log(enc.getData());

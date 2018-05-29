@@ -11,7 +11,7 @@ import Config from '../config';
 import { Progress, now } from 'mol-task';
 import { ConsoleLogger } from 'mol-util/console-logger';
 import Writer from 'mol-io/writer/writer';
-import { CIFCategory, CIFField, createCIFEncoder } from 'mol-io/writer/cif'
+import { CifWriter } from 'mol-io/writer/cif'
 import { encode_mmCIF_categories } from 'mol-model/structure/export/mmcif';
 import { Selection } from 'mol-model/structure';
 import Version from '../version'
@@ -74,7 +74,7 @@ export async function resolveRequest(req: Request, writer: Writer) {
 
     ConsoleLogger.logId(req.id, 'Query', 'Query finished.');
 
-    const encoder = createCIFEncoder({ binary: req.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
+    const encoder = CifWriter.createEncoder({ binary: req.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
 
     perf.start('encode');
     encoder.startDataBlock('result');
@@ -105,18 +105,20 @@ export function abortingObserver(p: Progress) {
     }
 }
 
-function string<T>(name: string, str: (data: T, i: number) => string, isSpecified?: (data: T) => boolean): CIFField<number, T> {
+import CifField = CifWriter.Field
+
+function string<T>(name: string, str: (data: T, i: number) => string, isSpecified?: (data: T) => boolean): CifField<number, T> {
     if (isSpecified) {
-        return CIFField.str(name,  (i, d) => str(d, i), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
+        return CifField.str(name,  (i, d) => str(d, i), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
     }
-    return CIFField.str(name,  (i, d) => str(d, i));
+    return CifField.str(name,  (i, d) => str(d, i));
 }
 
-function int32<T>(name: string, value: (data: T) => number): CIFField<number, T> {
-    return CIFField.int(name, (i, d) => value(d));
+function int32<T>(name: string, value: (data: T) => number): CifField<number, T> {
+    return CifField.int(name, (i, d) => value(d));
 }
 
-const _model_server_result_fields: CIFField<number, Request>[] = [
+const _model_server_result_fields: CifField<number, Request>[] = [
     string<Request>('request_id', ctx => '' + ctx.id),
     string<Request>('datetime_utc', ctx => ctx.datetime_utc),
     string<Request>('server_version', ctx => Version),
@@ -125,12 +127,12 @@ const _model_server_result_fields: CIFField<number, Request>[] = [
     string<Request>('entry_id', ctx => ctx.entryId),
 ];
 
-const _model_server_params_fields: CIFField<number, string[]>[] = [
+const _model_server_params_fields: CifField<number, string[]>[] = [
     string<string[]>('name', (ctx, i) => ctx[i][0]),
     string<string[]>('value', (ctx, i) => ctx[i][1])
 ];
 
-const _model_server_stats_fields: CIFField<number, Stats>[] = [
+const _model_server_stats_fields: CifField<number, Stats>[] = [
     int32<Stats>('io_time_ms', ctx => ctx.structure.info.readTime | 0),
     int32<Stats>('parse_time_ms', ctx => ctx.structure.info.parseTime | 0),
     int32<Stats>('create_model_time_ms', ctx => ctx.structure.info.createModelTime | 0),
@@ -139,7 +141,7 @@ const _model_server_stats_fields: CIFField<number, Stats>[] = [
 ];
 
 
-function _model_server_result(request: Request): CIFCategory {
+function _model_server_result(request: Request): CifWriter.Category {
     return {
         data: request,
         name: 'model_server_result',
@@ -148,7 +150,7 @@ function _model_server_result(request: Request): CIFCategory {
     };
 }
 
-function _model_server_params(request: Request): CIFCategory {
+function _model_server_params(request: Request): CifWriter.Category {
     const params: string[][] = [];
     for (const k of Object.keys(request.normalizedParams)) {
         params.push([k, '' + request.normalizedParams[k]]);
@@ -161,7 +163,7 @@ function _model_server_params(request: Request): CIFCategory {
     };
 }
 
-function _model_server_stats(stats: Stats): CIFCategory {
+function _model_server_stats(stats: Stats): CifWriter.Category {
     return {
         data: stats,
         name: 'model_server_stats',

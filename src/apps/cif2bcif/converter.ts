@@ -5,7 +5,7 @@
  */
 
 import CIF, { CifCategory } from 'mol-io/reader/cif'
-import { CIFCategory, createCIFEncoder } from 'mol-io/writer/cif'
+import { CifWriter } from 'mol-io/writer/cif'
 import * as fs from 'fs'
 import classify from './field-classifier'
 
@@ -18,7 +18,7 @@ async function getCIF(path: string) {
     return parsed.result;
 }
 
-function getCategoryInstanceProvider(cat: CifCategory): CIFCategory.Provider {
+function getCategoryInstanceProvider(cat: CifCategory): CifWriter.Category.Provider {
     return function (ctx: any) {
         return {
             data: cat,
@@ -32,7 +32,7 @@ function getCategoryInstanceProvider(cat: CifCategory): CIFCategory.Provider {
 export default async function convert(path: string, asText = false) {
     const cif = await getCIF(path);
 
-    const encoder = createCIFEncoder({ binary: !asText, encoderName: 'mol* cif2bcif' });
+    const encoder = CifWriter.createEncoder({ binary: !asText, encoderName: 'mol* cif2bcif' });
     for (const b of cif.blocks) {
         encoder.startDataBlock(b.header);
         for (const c of b.categoryNames) {
