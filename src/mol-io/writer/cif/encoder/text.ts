@@ -12,10 +12,20 @@ import StringBuilder from 'mol-util/string-builder'
 import { Category, Field, Encoder } from '../encoder'
 import Writer from '../../writer'
 
-export default class TextCIFEncoder implements Encoder<string> {
+export default class TextEncoder implements Encoder<string> {
     private builder = StringBuilder.create();
     private encoded = false;
     private dataBlockCreated = false;
+    private filter: Category.Filter = Category.DefaultFilter;
+    private formatter: Category.Formatter = Category.DefaultFormatter;
+
+    setFilter(filter?: Category.Filter) {
+        this.filter = filter || Category.DefaultFilter;
+    }
+
+    setFormatter(formatter?: Category.Formatter) {
+        this.formatter = formatter || Category.DefaultFormatter;
+    }
 
     startDataBlock(header: string) {
         this.dataBlockCreated = true;
@@ -33,15 +43,16 @@ export default class TextCIFEncoder implements Encoder<string> {
 
         const categories = !contexts || !contexts.length ? [category(<any>void 0)] : contexts.map(c => category(c));
         if (!categories.length) return;
+        if (!this.filter.includeCategory(categories[0].name)) return;
 
         const rowCount = categories.reduce((v, c) => v + c.rowCount, 0);
 
         if (rowCount === 0) return;
 
         if (rowCount === 1) {
-            writeCifSingleRecord(categories[0]!, this.builder);
+            writeCifSingleRecord(categories[0]!, this.builder, this.filter, this.formatter);
         } else {
-            writeCifLoop(categories, this.builder);
+            writeCifLoop(categories, this.builder, this.filter, this.formatter);
         }
     }
 
@@ -86,26 +97,34 @@ function writeValue(builder: StringBuilder, data: any, key: any, f: Field<any, a
     return false;
 }
 
-function getFloatPrecisions(cat: Category) {
+function getFloatPrecisions(categoryName: string, fields: Field[], formatter: Category.Formatter) {
     const ret: number[] = [];
-    for (const f of cat.fields) {
-        ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Field.getDigitCount(f)) : 0;
+    for (const f of fields) {
+        const format = formatter.getFormat(categoryName, f.name);
+        if (format && typeof format.digitCount !== 'undefined') ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Math.max(0, Math.min(format.digitCount, 15))) : 0;
+        else ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Field.getDigitCount(f)) : 0;
     }
     return ret;
 }
 
-function writeCifSingleRecord(category: Category<any>, builder: StringBuilder) {
+function writeCifSingleRecord(category: Category<any>, builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
     const fields = category.fields;
     const data = category.data;
-    const width = fields.reduce((w, s) => Math.max(w, s.name.length), 0) + category.name.length + 6;
+    let width = fields.reduce((w, f) => filter.includeField(category.name, f.name) ? Math.max(w, f.name.length) : 0, 0);
+
+    // this means no field from this category is included.
+    if (width === 0) return;
+    width += category.name.length + 6;
 
     const it = category.keys ? category.keys() : Iterator.Range(0, category.rowCount - 1);
     const key = it.move();
 
-    const precisions = getFloatPrecisions(category);
+    const precisions = getFloatPrecisions(category.name, category.fields, formatter);
 
     for (let _f = 0; _f < fields.length; _f++) {
         const f = fields[_f];
+        if (!filter.includeField(category.name, f.name)) continue;
+
         StringBuilder.writePadRight(builder, `_${category.name}.${f.name}`, width);
         const multiline = writeValue(builder, data, key, f, precisions[_f]);
         if (!multiline) StringBuilder.newline(builder);
@@ -113,11 +132,11 @@ function writeCifSingleRecord(category: Category<any>, builder: StringBuilder) {
     StringBuilder.write(builder, '#\n');
 }
 
-function writeCifLoop(categories: Category[], builder: StringBuilder) {
+function writeCifLoop(categories: Category[], builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
     const first = categories[0];
-    const fields = first.fields;
+    const fields = filter === Category.DefaultFilter ? first.fields : first.fields.filter(f => filter.includeField(first.name, f.name));
     const fieldCount = fields.length;
-    const precisions = getFloatPrecisions(first);
+    const precisions = getFloatPrecisions(first.name, fields, formatter);
 
     writeLine(builder, 'loop_');
     for (let i = 0; i < fieldCount; i++) {

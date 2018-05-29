@@ -79,6 +79,24 @@ export namespace Category {
         (ctx: Ctx): Category
     }
 
+    export interface Filter {
+        includeCategory(categoryName: string): boolean,
+        includeField(categoryName: string, fieldName: string): boolean,
+    }
+
+    export const DefaultFilter: Filter = {
+        includeCategory(cat) { return true; },
+        includeField(cat, field) { return true; }
+    }
+
+    export interface Formatter {
+        getFormat(categoryName: string, fieldName: string): Field.Format | undefined
+    }
+
+    export const DefaultFormatter: Formatter = {
+        getFormat(cat, field) { return void 0; }
+    }
+
     export function ofTable(name: string, table: Table<Table.Schema>, indices?: ArrayLike<number>): Category<number, Table<Table.Schema>> {
         if (indices) {
             return { name, fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: indices.length, keys: () => Iterator.Array(indices) };
@@ -88,7 +106,9 @@ export namespace Category {
 }
 
 export interface Encoder<T = string | Uint8Array> extends EncoderBase {
-    // setFormatter(): void,
+    setFilter(filter?: Category.Filter): void,
+    setFormatter(formatter?: Category.Formatter): void,
+
     startDataBlock(header: string): void,
     writeCategory<Ctx>(category: Category.Provider<Ctx>, contexts?: Ctx[]): void,
     getData(): T

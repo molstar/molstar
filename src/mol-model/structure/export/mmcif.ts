@@ -81,7 +81,20 @@ const Categories = [
     copy_mmCif_cat('symmetry'),
     _entity,
     _atom_site
-]
+];
+
+mmCIF_Schema
+
+namespace _Filters {
+    export const AtomSitePositionsFieldNames = new Set<string>(<(keyof typeof mmCIF_Schema.atom_site)[]>['id', 'Cartn_x', 'Cartn_y', 'Cartn_z']);
+}
+
+export const mmCIF_Export_Filters = {
+    onlyPositions: <CifWriter.Category.Filter>{
+        includeCategory(name) { return name === 'atom_site'; },
+        includeField(cat, field) { return _Filters.AtomSitePositionsFieldNames.has(field); }
+    }
+}
 
 /** Doesn't start a data block */
 export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: Structure) {

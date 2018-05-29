@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import TextCIFEncoder from './cif/encoder/text'
-import BinaryCIFEncoder from './cif/encoder/binary'
+import TextEncoder from './cif/encoder/text'
+import BinaryEncoder from './cif/encoder/binary'
 import * as _Encoder from './cif/encoder'
 import { ArrayEncoding } from '../common/binary-cif';
 
@@ -18,7 +18,7 @@ export namespace CifWriter {
 
     export function createEncoder(params?: { binary?: boolean, encoderName?: string }): Encoder {
         const { binary = false, encoderName = 'mol*' } = params || {};
-        return binary ? new BinaryCIFEncoder(encoderName) : new TextCIFEncoder();
+        return binary ? new BinaryEncoder(encoderName) : new TextEncoder();
     }
 
     import E = Encoding

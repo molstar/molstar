@@ -80,7 +80,10 @@ export async function resolveRequest(req: Request, writer: Writer) {
     encoder.startDataBlock('result');
     encoder.writeCategory(_model_server_result, [req]);
     encoder.writeCategory(_model_server_params, [req]);
+
+    // encoder.setFilter(mmCIF_Export_Filters.onlyPositions);
     encode_mmCIF_categories(encoder, result);
+    // encoder.setFilter();
     perf.end('encode');
 
     ConsoleLogger.logId(req.id, 'Query', 'Encoded.');

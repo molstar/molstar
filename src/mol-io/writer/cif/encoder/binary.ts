@@ -10,15 +10,25 @@ import { Iterator } from 'mol-data'
 import { Column } from 'mol-data/db'
 import encodeMsgPack from '../../../common/msgpack/encode'
 import {
-    EncodedColumn, EncodedData, EncodedFile, EncodedDataBlock, EncodedCategory, ArrayEncoder, ArrayEncoding as E, VERSION
+    EncodedColumn, EncodedData, EncodedFile, EncodedDataBlock, EncodedCategory, ArrayEncoder, ArrayEncoding as E, VERSION, ArrayEncoding
 } from '../../../common/binary-cif'
 import { Field, Category, Encoder } from '../encoder'
 import Writer from '../../writer'
 
-export default class BinaryCIFWriter implements Encoder<Uint8Array> {
+export default class BinaryEncoder implements Encoder<Uint8Array> {
     private data: EncodedFile;
     private dataBlocks: EncodedDataBlock[] = [];
     private encodedData: Uint8Array;
+    private filter: Category.Filter = Category.DefaultFilter;
+    private formatter: Category.Formatter = Category.DefaultFormatter;
+
+    setFilter(filter?: Category.Filter) {
+        this.filter = filter || Category.DefaultFilter;
+    }
+
+    setFormatter(formatter?: Category.Formatter) {
+        this.formatter = formatter || Category.DefaultFormatter;
+    }
 
     startDataBlock(header: string) {
         this.dataBlocks.push({
@@ -39,6 +49,7 @@ export default class BinaryCIFWriter implements Encoder<Uint8Array> {
         const src = !contexts || !contexts.length ? [category(<any>void 0)] : contexts.map(c => category(c));
         const categories = src.filter(c => c && c.rowCount > 0);
         if (!categories.length) return;
+        if (!this.filter.includeCategory(categories[0].name)) return;
 
         const count = categories.reduce((a, c) => a + c.rowCount, 0);
         if (!count) return;
@@ -47,7 +58,10 @@ export default class BinaryCIFWriter implements Encoder<Uint8Array> {
         const cat: EncodedCategory = { name: '_' + first.name, columns: [], rowCount: count };
         const data = categories.map(c => ({ data: c.data, keys: () => c.keys ? c.keys() : Iterator.Range(0, c.rowCount - 1) }));
         for (const f of first.fields) {
-            cat.columns.push(encodeField(f, data, count, f.defaultFormat));
+            if (!this.filter.includeField(first.name, f.name)) continue;
+
+            const format = this.formatter.getFormat(first.name, f.name);
+            cat.columns.push(encodeField(f, data, count, getArrayCtor(f, format), getEncoder(f, format)));
         }
         this.dataBlocks[this.dataBlocks.length - 1].categories.push(cat);
     }
@@ -77,25 +91,32 @@ export default class BinaryCIFWriter implements Encoder<Uint8Array> {
     }
 }
 
-function createArray(field: Field, count: number) {
-    if (field.type === Field.Type.Str) return new Array(count) as any;
-    else if (field.defaultFormat && field.defaultFormat.typedArray) return new field.defaultFormat.typedArray(count) as any;
-    else return (field.type === Field.Type.Int ? new Int32Array(count) : new Float32Array(count)) as any;
+function createArray(type: Field.Type, arrayCtor: ArrayEncoding.TypedArrayCtor | undefined,  count: number) {
+    if (type === Field.Type.Str) return new Array(count) as any;
+    else if (arrayCtor) return new arrayCtor(count) as any;
+    else return (type === Field.Type.Int ? new Int32Array(count) : new Float32Array(count)) as any;
 }
 
-function encodeField(field: Field, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, format?: Field.Format): EncodedColumn {
-    const isStr = field.type === Field.Type.Str;
-    const array = createArray(field, totalCount);
-    let encoder: ArrayEncoder;
+function getArrayCtor(field: Field, format: Field.Format | undefined) {
+    if (format && format.typedArray) return format.typedArray;
+    if (field.defaultFormat && field.defaultFormat.typedArray) return field.defaultFormat.typedArray;
+    return void 0;
+}
 
+function getEncoder(field: Field, format: Field.Format | undefined) {
+    if (format && format.encoder) return format.encoder;
     if (field.defaultFormat && field.defaultFormat.encoder) {
-        encoder = field.defaultFormat.encoder;
-    } else if (isStr) {
-        encoder = ArrayEncoder.by(E.stringArray);
+        return field.defaultFormat.encoder;
+    } else if (field.type === Field.Type.Str) {
+        return ArrayEncoder.by(E.stringArray);
     } else {
-        encoder = ArrayEncoder.by(E.byteArray);
+        return ArrayEncoder.by(E.byteArray);
     }
+}
 
+function encodeField(field: Field, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, arrayCtor: ArrayEncoding.TypedArrayCtor | undefined, encoder: ArrayEncoder): EncodedColumn {
+    const isStr = field.type === Field.Type.Str;
+    const array = createArray(field.type, arrayCtor, totalCount);
     const mask = new Uint8Array(totalCount);
     const valueKind = field.valueKind;
     const getter = field.value;

@@ -29,7 +29,13 @@ function getInstance(ctx: { name: string, fields: CifWriter.Field[], rowCount: n
 
 const enc = CifWriter.createEncoder();
 
+const filter: CifWriter.Category.Filter = {
+    includeCategory(cat) { return true; },
+    includeField(cat, field) { return !(cat === 'cat2' && field === 'e2') }
+}
+
 enc.startDataBlock('test');
+enc.setFilter(filter);
 enc.writeCategory(getInstance, [{ rowCount: 5, name: 'cat1', fields: category1fields }]);
 enc.writeCategory(getInstance, [{ rowCount: 1, name: 'cat2', fields: category2fields  }]);
 console.log(enc.getData());
