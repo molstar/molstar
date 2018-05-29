@@ -5,13 +5,14 @@
  */
 
 import { UniformValues } from './uniform';
-import { AttributeValues, createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, ArrayKind, AttributeBuffers } from './buffer';
+import { AttributeValues, createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, ArrayKind } from './buffer';
 import { TextureValues, createTextures } from './texture';
 import { Context } from './context';
 import { ShaderCode, addShaderDefines, DefineValues } from '../shader-code';
 import { Program } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
+import { deleteVertexArray, createVertexArray } from './vertex-array';
 
 const getNextRenderItemId = idFactory()
 
@@ -53,28 +54,6 @@ function getValueVersions<T extends RenderableValues>(values: T) {
     return versions as Versions<T>
 }
 
-function createVertexArray(ctx: Context, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
-    const { oesVertexArrayObject } = ctx.extensions
-    let vertexArray: WebGLVertexArrayObjectOES | undefined = undefined
-    if (oesVertexArrayObject) {
-        vertexArray = oesVertexArrayObject.createVertexArrayOES()
-        oesVertexArrayObject.bindVertexArrayOES(vertexArray)
-        program.bindAttributes(attributeBuffers)
-        if (elementsBuffer) elementsBuffer.bind()
-        ctx.vaoCount += 1
-        oesVertexArrayObject.bindVertexArrayOES(null!)
-    }
-    return vertexArray
-}
-
-function deleteVertexArray(ctx: Context, vertexArray?: WebGLVertexArrayObjectOES) {
-    const { oesVertexArrayObject } = ctx.extensions
-    if (oesVertexArrayObject && vertexArray) {
-        oesVertexArrayObject.deleteVertexArrayOES(vertexArray)
-        ctx.vaoCount -= 1
-    }
-}
-
 export interface RenderItem {
     readonly id: number
     readonly programId: number
@@ -111,8 +90,8 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
 
     let vertexArray: WebGLVertexArrayObjectOES | undefined = createVertexArray(ctx, program, attributeBuffers, elementsBuffer)
 
-    let drawCount = values.drawCount.ref
-    let instanceCount = values.instanceCount.ref
+    let drawCount = values.drawCount.ref.value
+    let instanceCount = values.instanceCount.ref.value
 
     let destroyed = false
 
@@ -131,18 +110,16 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             }
             program.bindTextures(textures)
             if (elementsBuffer) {
-                angleInstancedArrays.drawElementsInstancedANGLE(glDrawMode, drawCount.value, elementsBuffer._dataType, 0, instanceCount.value);
+                angleInstancedArrays.drawElementsInstancedANGLE(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
             } else {
-                angleInstancedArrays.drawArraysInstancedANGLE(glDrawMode, 0, drawCount.value, instanceCount.value)
+                angleInstancedArrays.drawArraysInstancedANGLE(glDrawMode, 0, drawCount, instanceCount)
             }
         },
         update: () => {
             let defineChange = false
             Object.keys(defineValues).forEach(k => {
                 const value = defineValues[k]
-                if (value.ref.version === versions[k]) {
-                    // console.log('define version unchanged', k)
-                } else {
+                if (value.ref.version !== versions[k]) {
                     console.log('define version changed', k)
                     defineChange = true
                     versions[k] = value.ref.version
@@ -152,8 +129,6 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             if (defineChange) {
                 console.log('some defines changed, need to rebuild program')
                 programRef.free()
-                // programCache.clear()
-                // console.log('programCache.count', programCache.count)
                 programRef = programCache.get(ctx, {
                     shaderCode: addShaderDefines(defineValues, shaderCode),
                     schema
@@ -161,36 +136,35 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                 program = programRef.value
             }
 
-            console.log('RenderItem.update', id, values)
-            if (values.drawCount.ref.version !== drawCount.version) {
+            if (values.drawCount.ref.version !== versions.drawCount) {
                 console.log('drawCount version changed')
-                drawCount = values.drawCount.ref
+                drawCount = values.drawCount.ref.value
+                versions.drawCount = values.drawCount.ref.version
             }
-            if (values.instanceCount.ref.version !== instanceCount.version) {
+            if (values.instanceCount.ref.version !== versions.instanceCount) {
                 console.log('instanceCount version changed')
-                instanceCount = values.instanceCount.ref
+                instanceCount = values.instanceCount.ref.value
+                versions.instanceCount = values.instanceCount.ref.version
             }
 
             let bufferChange = false
 
             Object.keys(attributeValues).forEach(k => {
                 const value = attributeValues[k]
-                if (value.ref.version === versions[k]) {
-                    // console.log('attribute version unchanged', k)
-                    return
+                if (value.ref.version !== versions[k]) {
+                    const buffer = attributeBuffers[k]
+                    if (buffer.length >= value.ref.value.length) {
+                        console.log('attribute array large enough to update', k)
+                        attributeBuffers[k].updateData(value.ref.value)
+                    } else {
+                        console.log('attribute array to small, need to create new attribute', k)
+                        attributeBuffers[k].destroy()
+                        const spec = schema[k] as AttributeSpec<ArrayKind>
+                        attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, spec.itemSize, spec.divisor)
+                        bufferChange = true
+                    }
+                    versions[k] = value.ref.version
                 }
-                const buffer = attributeBuffers[k]
-                if (buffer.length >= value.ref.value.length) {
-                    console.log('attribute array large enough to update', k)
-                    attributeBuffers[k].updateData(value.ref.value)
-                } else {
-                    console.log('attribute array to small, need to create new attribute', k)
-                    attributeBuffers[k].destroy()
-                    const spec = schema[k] as AttributeSpec<ArrayKind>
-                    attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, spec.itemSize, spec.divisor)
-                    bufferChange = true
-                }
-                versions[k] = value.ref.version
             })
 
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
@@ -214,22 +188,22 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
 
             Object.keys(textureValues).forEach(k => {
                 const value = textureValues[k]
-                if (value.ref.version === versions[k]) {
-                    // console.log('texture version unchanged', k)
-                    return
+                if (value.ref.version !== versions[k]) {
+                    console.log('texture version changed, uploading image', k)
+                    textures[k].load(value.ref.value)
+                    versions[k] = value.ref.version
                 }
-                console.log('texture version changed, uploading image', k)
-                textures[k].load(value.ref.value)
             })
         },
         destroy: () => {
-            if (destroyed) return
-            programRef.free()
-            Object.keys(textures).forEach(k => textures[k].destroy())
-            Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
-            if (elementsBuffer) elementsBuffer.destroy()
-            deleteVertexArray(ctx, vertexArray)
-            destroyed = true
+            if (!destroyed) {
+                programRef.free()
+                Object.keys(textures).forEach(k => textures[k].destroy())
+                Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
+                if (elementsBuffer) elementsBuffer.destroy()
+                deleteVertexArray(ctx, vertexArray)
+                destroyed = true
+            }
         }
     }
 }
