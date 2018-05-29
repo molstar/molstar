@@ -30,6 +30,8 @@ export function arrayEqual<T>(arr1: T[], arr2: T[]) {
     return true
 }
 
+const hasOwnProperty = Object.prototype.hasOwnProperty;
+
 export function deepEqual(a: any, b: any) {
     // from https://github.com/epoberezkin/fast-deep-equal MIT
     if (a === b) return true;
@@ -62,7 +64,7 @@ export function deepEqual(a: any, b: any) {
         if (regexpA !== regexpB) return false
 
         for (let i = 0; i < keys.length; i++) {
-            if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false
+            if (!hasOwnProperty.call(b, keys[i])) return false
         }
 
         for (let i = 0; i < keys.length; i++) {
@@ -74,8 +76,6 @@ export function deepEqual(a: any, b: any) {
 
     return false
 }
-
-const hasOwnProperty = Object.prototype.hasOwnProperty;
 
 export function shallowEqual<T>(a: T, b: T) {
     if (!a) {
@@ -170,7 +170,7 @@ function _shallowMerge<T>(source: T) {
     return ret;
 }
 
-export const merge: (<T>(source: T, ...rest: Partial<T>[]) => T)= _shallowMerge;
+export const merge: (<T>(source: T, ...rest: Partial<T>[]) => T) = _shallowMerge;
 
 function padTime(n: number) { return (n < 10 ? '0' : '') + n }
 export function formatTime(d: Date) {

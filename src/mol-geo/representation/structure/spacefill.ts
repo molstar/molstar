@@ -161,19 +161,11 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
                 }
 
-                // TODO handle in a generic way
-                if (spheres.values.uAlpha.ref.value !== newProps.alpha) {
-                    ValueCell.update(spheres.values.uAlpha, newProps.alpha)
-                }
-                if (spheres.values.dDoubleSided.ref.value !== newProps.doubleSided) {
-                    ValueCell.update(spheres.values.dDoubleSided, newProps.doubleSided)
-                }
-                if (spheres.values.dFlipSided.ref.value !== newProps.flipSided) {
-                    ValueCell.update(spheres.values.dFlipSided, newProps.flipSided)
-                }
-                if (spheres.values.dFlatShaded.ref.value !== newProps.flatShaded) {
-                    ValueCell.update(spheres.values.dFlatShaded, newProps.flatShaded)
-                }
+                ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
+                ValueCell.updateIfChanged(spheres.values.dDoubleSided, newProps.doubleSided)
+                ValueCell.updateIfChanged(spheres.values.dFlipSided, newProps.flipSided)
+                ValueCell.updateIfChanged(spheres.values.dFlatShaded, newProps.flatShaded)
+
                 spheres.state.visible = newProps.visible
                 spheres.state.depthMask = newProps.depthMask
 

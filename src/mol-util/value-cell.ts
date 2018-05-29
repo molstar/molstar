@@ -2,6 +2,7 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { idFactory } from './id-factory'
@@ -54,6 +55,11 @@ namespace ValueCell {
 
     export function set<T, D>(cell: ValueCell<T, D>, box: ValueBox<T, D>): ValueCell<T, D> {
         return ValueRef.set(cell, box);
+    }
+
+    /** Updates the cell if the value is has changed, comparing by reference */
+    export function updateIfChanged<T, D>(cell: ValueCell<T, D>, value: T): ValueCell<T, D> {
+        return cell.ref.value !== value ? update(cell, value) : cell
     }
 }
 
