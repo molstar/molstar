@@ -11,12 +11,11 @@ import Config from '../config';
 import { Progress, now } from 'mol-task';
 import { ConsoleLogger } from 'mol-util/console-logger';
 import Writer from 'mol-io/writer/writer';
-import * as Encoder from 'mol-io/writer/cif'
+import { CIFCategory, CIFField, createCIFEncoder } from 'mol-io/writer/cif'
 import { encode_mmCIF_categories } from 'mol-model/structure/export/mmcif';
 import { Selection } from 'mol-model/structure';
 import Version from '../version'
 import { Column } from 'mol-data/db';
-import { Iterator } from 'mol-data';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 
 export interface ResponseFormat {
@@ -75,7 +74,7 @@ export async function resolveRequest(req: Request, writer: Writer) {
 
     ConsoleLogger.logId(req.id, 'Query', 'Query finished.');
 
-    const encoder = Encoder.create({ binary: req.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
+    const encoder = createCIFEncoder({ binary: req.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
 
     perf.start('encode');
     encoder.startDataBlock('result');
@@ -106,21 +105,18 @@ export function abortingObserver(p: Progress) {
     }
 }
 
-type FieldDesc<T> = Encoder.FieldDefinition<number, T>
-type CategoryInstance = Encoder.CategoryInstance
-
-function string<T>(name: string, str: (data: T, i: number) => string, isSpecified?: (data: T) => boolean): FieldDesc<T> {
+function string<T>(name: string, str: (data: T, i: number) => string, isSpecified?: (data: T) => boolean): CIFField<number, T> {
     if (isSpecified) {
-        return { name, type: Encoder.FieldType.Str, value: (i, d) => str(d, i), valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent };
+        return CIFField.str(name,  (i, d) => str(d, i), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
     }
-    return { name, type: Encoder.FieldType.Str, value: (i, d) => str(d, i) };
+    return CIFField.str(name,  (i, d) => str(d, i));
 }
 
-function int32<T>(name: string, value: (data: T) => number): FieldDesc<T> {
-    return { name, type: Encoder.FieldType.Int, value: (i, d) => value(d) };
+function int32<T>(name: string, value: (data: T) => number): CIFField<number, T> {
+    return CIFField.int(name, (i, d) => value(d));
 }
 
-const _model_server_result_fields: FieldDesc<Request>[] = [
+const _model_server_result_fields: CIFField<number, Request>[] = [
     string<Request>('request_id', ctx => '' + ctx.id),
     string<Request>('datetime_utc', ctx => ctx.datetime_utc),
     string<Request>('server_version', ctx => Version),
@@ -129,12 +125,12 @@ const _model_server_result_fields: FieldDesc<Request>[] = [
     string<Request>('entry_id', ctx => ctx.entryId),
 ];
 
-const _model_server_params_fields: FieldDesc<string[]>[] = [
+const _model_server_params_fields: CIFField<number, string[]>[] = [
     string<string[]>('name', (ctx, i) => ctx[i][0]),
     string<string[]>('value', (ctx, i) => ctx[i][1])
 ];
 
-const _model_server_stats_fields: FieldDesc<Stats>[] = [
+const _model_server_stats_fields: CIFField<number, Stats>[] = [
     int32<Stats>('io_time_ms', ctx => ctx.structure.info.readTime | 0),
     int32<Stats>('parse_time_ms', ctx => ctx.structure.info.parseTime | 0),
     int32<Stats>('create_model_time_ms', ctx => ctx.structure.info.createModelTime | 0),
@@ -143,33 +139,33 @@ const _model_server_stats_fields: FieldDesc<Stats>[] = [
 ];
 
 
-function _model_server_result(request: Request): CategoryInstance {
+function _model_server_result(request: Request): CIFCategory {
     return {
         data: request,
-        definition: { name: 'model_server_result', fields: _model_server_result_fields },
-        keys: () => Iterator.Value(0),
+        name: 'model_server_result',
+        fields: _model_server_result_fields,
         rowCount: 1
     };
 }
 
-function _model_server_params(request: Request): CategoryInstance {
+function _model_server_params(request: Request): CIFCategory {
     const params: string[][] = [];
     for (const k of Object.keys(request.normalizedParams)) {
         params.push([k, '' + request.normalizedParams[k]]);
     }
     return {
         data: params,
-        definition: { name: 'model_server_params', fields: _model_server_params_fields },
-        keys: () => Iterator.Range(0, params.length - 1),
+        name: 'model_server_params',
+        fields: _model_server_params_fields,
         rowCount: params.length
     };
 }
 
-function _model_server_stats(stats: Stats): CategoryInstance {
+function _model_server_stats(stats: Stats): CIFCategory {
     return {
         data: stats,
-        definition: { name: 'model_server_stats', fields: _model_server_stats_fields },
-        keys: () => Iterator.Value(0),
+        name: 'model_server_stats',
+        fields: _model_server_stats_fields,
         rowCount: 1
     };
 }

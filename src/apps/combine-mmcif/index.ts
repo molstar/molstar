@@ -17,7 +17,7 @@ import { Progress } from 'mol-task'
 import { Database, Table, DatabaseCollection } from 'mol-data/db'
 import CIF from 'mol-io/reader/cif'
 // import { CCD_Schema } from 'mol-io/reader/cif/schema/ccd'
-import * as Encoder from 'mol-io/writer/cif'
+import { CIFEncoder, createCIFEncoder } from 'mol-io/writer/cif'
 import { mmCIF_Schema, mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { CCD_Schema } from 'mol-io/reader/cif/schema/ccd';
 import { BIRD_Schema } from 'mol-io/reader/cif/schema/bird';
@@ -85,8 +85,8 @@ async function parseCif(data: string|Uint8Array) {
 }
 
 export function getEncodedCif(name: string, database: Database<Database.Schema>, binary = false) {
-    const encoder = Encoder.create({ binary, encoderName: 'mol*' });
-    Encoder.writeDatabase(encoder, name, database)
+    const encoder = createCIFEncoder({ binary, encoderName: 'mol*' });
+    CIFEncoder.writeDatabase(encoder, name, database)
     return encoder.getData();
 }
 

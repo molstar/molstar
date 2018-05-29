@@ -5,8 +5,7 @@
  */
 
 import { Table } from 'mol-data/db'
-import Iterator from 'mol-data/iterator'
-import * as Encoder from 'mol-io/writer/cif'
+import { CIFField, CIFCategory } from 'mol-io/writer/cif'
 
 function columnValue(k: string) {
     return (i: number, d: any) => d[k].value(i);
@@ -17,25 +16,21 @@ function columnValueKind(k: string) {
 }
 
 function ofSchema(schema: Table.Schema) {
-    const fields: Encoder.FieldDefinition[] = [];
+    const fields: CIFField[] = [];
     for (const k of Object.keys(schema)) {
         const t = schema[k];
-        const type: any = t.valueType === 'str' ? Encoder.FieldType.Str : t.valueType === 'int' ? Encoder.FieldType.Int : Encoder.FieldType.Float;
+        const type: any = t.valueType === 'str' ? CIFField.Type.Str : t.valueType === 'int' ? CIFField.Type.Int : CIFField.Type.Float;
         fields.push({ name: k, type, value: columnValue(k), valueKind: columnValueKind(k) })
     }
     return fields;
 }
 
-function ofTable<S extends Table.Schema>(name: string, table: Table<S>): Encoder.CategoryDefinition<number> {
-    return { name, fields: ofSchema(table._schema) }
-}
-
-export function getCategoryInstanceProvider(name: string, table: Table<any>): Encoder.CategoryProvider {
+export function getCategoryInstanceProvider(name: string, table: Table<any>): CIFCategory.Provider {
     return () => {
         return {
             data: table,
-            definition: ofTable(name, table),
-            keys: () => Iterator.Range(0, table._rowCount - 1),
+            name,
+            fields: ofSchema(table._schema),
             rowCount: table._rowCount
         };
     }

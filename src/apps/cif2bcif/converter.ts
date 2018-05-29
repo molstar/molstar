@@ -4,9 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-data/iterator'
 import CIF, { CifCategory } from 'mol-io/reader/cif'
-import * as Encoder from 'mol-io/writer/cif'
+import { CIFCategory, createCIFEncoder } from 'mol-io/writer/cif'
 import * as fs from 'fs'
 import classify from './field-classifier'
 
@@ -19,19 +18,12 @@ async function getCIF(path: string) {
     return parsed.result;
 }
 
-function createDefinition(cat: CifCategory): Encoder.CategoryDefinition {
-    return {
-        name: cat.name,
-        fields: cat.fieldNames.map(n => classify(n, cat.getField(n)!))
-    }
-}
-
-function getCategoryInstanceProvider(cat: CifCategory): Encoder.CategoryProvider {
+function getCategoryInstanceProvider(cat: CifCategory): CIFCategory.Provider {
     return function (ctx: any) {
         return {
             data: cat,
-            definition: createDefinition(cat),
-            keys: () => Iterator.Range(0, cat.rowCount - 1),
+            name: cat.name,
+            fields: cat.fieldNames.map(n => classify(n, cat.getField(n)!)),
             rowCount: cat.rowCount
         };
     }
@@ -40,7 +32,7 @@ function getCategoryInstanceProvider(cat: CifCategory): Encoder.CategoryProvider
 export default async function convert(path: string, asText = false) {
     const cif = await getCIF(path);
 
-    const encoder = Encoder.create({ binary: !asText, encoderName: 'mol* cif2bcif' });
+    const encoder = createCIFEncoder({ binary: !asText, encoderName: 'mol* cif2bcif' });
     for (const b of cif.blocks) {
         encoder.startDataBlock(b.header);
         for (const c of b.categoryNames) {

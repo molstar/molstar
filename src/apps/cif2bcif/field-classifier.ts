@@ -6,14 +6,14 @@
 
 import { Column } from 'mol-data/db'
 import { CifField } from 'mol-io/reader/cif/data-model'
-import { FieldDefinition, FieldType } from 'mol-io/writer/cif/encoder'
+import { CIFField } from 'mol-io/writer/cif'
 
 const intRegex = /^-?\d+$/
 const floatRegex = /^-?(([0-9]+)[.]?|([0-9]*[.][0-9]+))([(][0-9]+[)])?([eE][+-]?[0-9]+)?/
 
 // Classify a cif field as str, int or float based the data it contains.
 // To classify a field as int or float all items are checked.
-function classify(name: string, field: CifField): FieldDefinition {
+function classify(name: string, field: CifField): CIFField {
     let floatCount = 0, hasString = false;
     for (let i = 0, _i = field.rowCount; i < _i; i++) {
         const k = field.valueKind(i);
@@ -24,9 +24,9 @@ function classify(name: string, field: CifField): FieldDefinition {
         else { hasString = true; break; }
     }
 
-    if (hasString) return { name, type: FieldType.Str, value: field.str, valueKind: field.valueKind };
-    if (floatCount > 0) return { name, type: FieldType.Float, value: field.float, valueKind: field.valueKind };
-    return { name, type: FieldType.Int, value: field.int, valueKind: field.valueKind };
+    if (hasString) return { name, type: CIFField.Type.Str, value: field.str, valueKind: field.valueKind };
+    if (floatCount > 0) return { name, type: CIFField.Type.Float, value: field.float, valueKind: field.valueKind };
+    return { name, type: CIFField.Type.Int, value: field.int, valueKind: field.valueKind };
 }
 
 export default classify;

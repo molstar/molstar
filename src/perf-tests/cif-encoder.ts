@@ -4,55 +4,32 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-data/iterator'
-import * as Enc from 'mol-io/writer/cif'
+ import { CIFCategory, CIFField, createCIFEncoder } from 'mol-io/writer/cif'
 
-const category1: Enc.CategoryDefinition<number> = {
-    name: 'test',
-    fields: [{
-        name: 'f1',
-        type: Enc.FieldType.Str,
-        value: i => 'v' + i
-    }, {
-        name: 'f2',
-        type: Enc.FieldType.Int,
-        value: i => i * i
-    }, {
-        name: 'f3',
-        type: Enc.FieldType.Float,
-        value: i => Math.random()
-    }]
-}
+const category1fields: CIFField[] = [
+    CIFField.str('f1', i => 'v' + i),
+    CIFField.int('f2', i => i * i),
+    CIFField.float('f3', i => Math.random()),
+];
 
-const category2: Enc.CategoryDefinition<number> = {
-    name: 'test2',
-    fields: [{
-        name: 'e1',
-        type: Enc.FieldType.Str,
-        value: i => 'v\n' + i
-    }, {
-        name: 'e2',
-        type: Enc.FieldType.Int,
-        value: i => i * i
-    }, {
-        name: 'e3',
-        type: Enc.FieldType.Float,
-        value: i => Math.random()
-    }]
-}
+const category2fields: CIFField[] = [
+    CIFField.str('e1', i => 'v\n' + i),
+    CIFField.int('e2', i => i * i),
+    CIFField.float('e3', i => Math.random()),
+];
 
-function getInstance(ctx: { cat: Enc.CategoryDefinition<number>, rowCount: number }): Enc.CategoryInstance {
+function getInstance(ctx: { name: string, fields: CIFField[], rowCount: number }): CIFCategory {
     return {
         data: void 0,
-        definition: ctx.cat,
-        keys: () => Iterator.Range(0, ctx.rowCount - 1),
+        name: ctx.name,
+        fields: ctx.fields,
         rowCount: ctx.rowCount
     }
 }
 
-const w = Enc.create();
+const w = createCIFEncoder();
 
 w.startDataBlock('test');
-w.writeCategory(getInstance, [{ rowCount: 5, cat: category1 }]);
-w.writeCategory(getInstance, [{ rowCount: 1, cat: category2 }]);
+w.writeCategory(getInstance, [{ rowCount: 5, name: 'cat1', fields: category1fields }]);
+w.writeCategory(getInstance, [{ rowCount: 1, name: 'cat2', fields: category2fields  }]);
 console.log(w.getData());

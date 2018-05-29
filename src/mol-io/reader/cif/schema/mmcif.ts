@@ -80,11 +80,11 @@ export const mmCIF_Schema = {
         pdbx_aromatic_flag: Aliased<'Y' | 'N'>(str),
     },
     entity: {
-        details: str,
-        formula_weight: float,
         id: str,
         src_method: Aliased<'nat' | 'man' | 'syn'>(str),
         type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
+        details: str,
+        formula_weight: float,
         pdbx_description: str,
         pdbx_number_of_molecules: float,
         pdbx_mutation: str,

@@ -6,16 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Iterator from 'mol-data/iterator'
+import { Iterator } from 'mol-data'
 import { Column } from 'mol-data/db'
 import encodeMsgPack from '../../../common/msgpack/encode'
 import {
     EncodedColumn, EncodedData, EncodedFile, EncodedDataBlock, EncodedCategory, ArrayEncoder, ArrayEncoding as E, VERSION
 } from '../../../common/binary-cif'
-import { FieldDefinition, FieldFormat, FieldType, CategoryProvider, CIFEncoder } from '../encoder'
+import { CIFField, CIFCategory, CIFEncoder } from '../encoder'
 import Writer from '../../writer'
 
-export default class BinaryCIFWriter<Context> implements CIFEncoder<Uint8Array, Context> {
+export default class BinaryCIFWriter implements CIFEncoder<Uint8Array> {
     private data: EncodedFile;
     private dataBlocks: EncodedDataBlock[] = [];
     private encodedData: Uint8Array;
@@ -27,7 +27,7 @@ export default class BinaryCIFWriter<Context> implements CIFEncoder<Uint8Array, 
         });
     }
 
-    writeCategory(category: CategoryProvider, contexts?: Context[]) {
+    writeCategory<Ctx>(category: CIFCategory.Provider<Ctx>, contexts?: Ctx[]) {
         if (!this.data) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -44,10 +44,10 @@ export default class BinaryCIFWriter<Context> implements CIFEncoder<Uint8Array, 
         if (!count) return;
 
         const first = categories[0]!;
-        const cat: EncodedCategory = { name: '_' + first.definition.name, columns: [], rowCount: count };
-        const data = categories.map(c => ({ data: c.data, keys: () => c.keys() }));
-        for (const f of first.definition.fields) {
-            cat.columns.push(encodeField(f, data, count, FieldFormat.Default));
+        const cat: EncodedCategory = { name: '_' + first.name, columns: [], rowCount: count };
+        const data = categories.map(c => ({ data: c.data, keys: () => c.keys ? c.keys() : Iterator.Range(0, c.rowCount - 1) }));
+        for (const f of first.fields) {
+            cat.columns.push(encodeField(f, data, count, f.defaultFormat));
         }
         this.dataBlocks[this.dataBlocks.length - 1].categories.push(cat);
     }
@@ -77,19 +77,19 @@ export default class BinaryCIFWriter<Context> implements CIFEncoder<Uint8Array, 
     }
 }
 
-function createArray(field: FieldDefinition, count: number) {
-    if (field.type === FieldType.Str) return new Array(count) as any;
-    else if (field.typedArray) return new field.typedArray(count) as any;
-    else return (field.type === FieldType.Int ? new Int32Array(count) : new Float32Array(count)) as any;
+function createArray(field: CIFField, count: number) {
+    if (field.type === CIFField.Type.Str) return new Array(count) as any;
+    else if (field.defaultFormat && field.defaultFormat.typedArray) return new field.defaultFormat.typedArray(count) as any;
+    else return (field.type === CIFField.Type.Int ? new Int32Array(count) : new Float32Array(count)) as any;
 }
 
-function encodeField(field: FieldDefinition, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, format: FieldFormat): EncodedColumn {
-    const isStr = field.type === FieldType.Str;
+function encodeField(field: CIFField, data: { data: any, keys: () => Iterator<any> }[], totalCount: number, format?: CIFField.Format): EncodedColumn {
+    const isStr = field.type === CIFField.Type.Str;
     const array = createArray(field, totalCount);
     let encoder: ArrayEncoder;
 
-    if (field.encoder) {
-        encoder = field.encoder;
+    if (field.defaultFormat && field.defaultFormat.encoder) {
+        encoder = field.defaultFormat.encoder;
     } else if (isStr) {
         encoder = ArrayEncoder.by(E.stringArray);
     } else {

@@ -6,17 +6,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Encoder from 'mol-io/writer/cif'
+import { CIFEncoder, CIFCategory, CIFField, createCIFEncoder } from 'mol-io/writer/cif'
 import * as Data from './data-model'
 import * as Coords from '../algebra/coordinate'
 import VERSION from '../version'
 import * as DataFormat from '../../common/data-format'
 import { Column } from 'mol-data/db';
-import { Iterator } from 'mol-data';
 import { ArrayEncoding, ArrayEncoder } from 'mol-io/common/binary-cif';
 
 export default function encode(query: Data.QueryContext, output: Data.QueryOutputStream) {
-    let w = Encoder.create({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
+    let w = createCIFEncoder({ binary: query.params.asBinary, encoderName: `VolumeServer ${VERSION}` });
     write(w, query);
     w.encode();
     w.writeTo(output);
@@ -27,26 +26,21 @@ interface ResultContext {
     channelIndex: number
 }
 
-//type Writer = CIF.Writer<ResultContext | Data.QueryContext>
+type FieldDesc<T> = CIFField<number, T>
 
-type FieldDesc<T> = Encoder.FieldDefinition<number, T>
-type CategoryInstance = Encoder.CategoryInstance
-
-//import E = CIF.Binary.Encoder
-
-function string<T>(name: string, str: (data: T) => string, isSpecified?: (data: T) => boolean): FieldDesc<T> {
+function string<T>(name: string, str: (data: T) => string, isSpecified?: (data: T) => boolean): CIFField<number, T> {
     if (isSpecified) {
-        return { name, type: Encoder.FieldType.Str, value: (i, d) => str(d), valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent };
+        return CIFField.str(name,  (i, d) => str(d), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
     }
-    return { name, type: Encoder.FieldType.Str, value: (i, d) => str(d) };
+    return CIFField.str(name,  (i, d) => str(d));
 }
 
-function int32<T>(name: string, value: (data: T) => number): FieldDesc<T> {
-    return { name, type: Encoder.FieldType.Int, value: (i, d) => value(d) };
+function int32<T>(name: string, value: (data: T) => number): CIFField<number, T> {
+    return CIFField.int(name, (i, d) => value(d));
 }
 
 function float64<T>(name: string, value: (data: T) => number, digitCount: number = 6): FieldDesc<T> {
-    return { name, type: Encoder.FieldType.Float, value: (i, d) => value(d), digitCount };
+    return CIFField.float(name, (i, d) => value(d), { digitCount: digitCount, typedArray: Float64Array });
 }
 
 interface _vd3d_Ctx {
@@ -98,7 +92,7 @@ const _volume_data_3d_info_fields: FieldDesc<_vd3d_Ctx>[] = [
     float64<_vd3d_Ctx>('max_sampled', ctx => ctx.sampledValuesInfo.max)
 ];
 
-function _volume_data_3d_info(result: ResultContext): CategoryInstance {
+function _volume_data_3d_info(result: ResultContext): CIFCategory {
     const ctx: _vd3d_Ctx = {
         header: result.query.data.header,
         channelIndex: result.channelIndex,
@@ -110,8 +104,8 @@ function _volume_data_3d_info(result: ResultContext): CategoryInstance {
 
     return {
         data: ctx,
-        definition: { name: 'volume_data_3d_info', fields: _volume_data_3d_info_fields },
-        keys: () => Iterator.Value(0),
+        name: 'volume_data_3d_info',
+        fields: _volume_data_3d_info_fields,
         rowCount: 1
     };
 }
@@ -143,14 +137,9 @@ function _volume_data_3d(ctx: ResultContext) {
         encoder = E.by(E.byteArray)
     }
 
-    let fields: FieldDesc<typeof data>[] = [{ name: 'values', type: Encoder.FieldType.Float, value: _volume_data_3d_number, encoder, typedArray, digitCount: 6 }];
+    const fields: FieldDesc<typeof data>[] = [CIFField.float('values', _volume_data_3d_number, { encoder, typedArray, digitCount: 6 })]
 
-    return {
-        data,
-        definition: { name: 'volume_data_3d', fields },
-        keys: () => Iterator.Range(0, data.length - 1),
-        rowCount: data.length
-    };
+    return { data, name: 'volume_data_3d', fields, rowCount: data.length };
 }
 
 function pickQueryBoxDimension(ctx: Data.QueryContext, e: 'a' | 'b', d: number) {
@@ -185,16 +174,16 @@ const _density_server_result_fields: FieldDesc<Data.QueryContext>[] = [
     queryBoxDimension('b', 2)
 ]
 
-function _density_server_result(ctx: Data.QueryContext) {
+function _density_server_result(ctx: Data.QueryContext): CIFCategory {
     return {
         data: ctx,
-        definition: { name: 'density_server_result', fields: _density_server_result_fields },
-        keys: () => Iterator.Value(0),
+        name: 'density_server_result',
+        fields: _density_server_result_fields,
         rowCount: 1
     };
 }
 
-function write(encoder: Encoder.EncoderInstance, query: Data.QueryContext) {
+function write(encoder: CIFEncoder, query: Data.QueryContext) {
     encoder.startDataBlock('SERVER');
     encoder.writeCategory(_density_server_result, [query]);
 
