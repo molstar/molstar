@@ -61,11 +61,16 @@ type Extensions = {
 export interface Context {
     gl: WebGLRenderingContext
     extensions: Extensions
+
     shaderCache: ShaderCache
     programCache: ProgramCache
+
     bufferCount: number
+    framebufferCount: number
+    renderbufferCount: number
     textureCount: number
     vaoCount: number
+
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     unbindFramebuffer: () => void
     destroy: () => void
@@ -95,11 +100,16 @@ export function createContext(gl: WebGLRenderingContext): Context {
     return {
         gl,
         extensions: { angleInstancedArrays, standardDerivatives, oesElementIndexUint, oesVertexArrayObject },
+
         shaderCache,
         programCache,
+
         bufferCount: 0,
+        framebufferCount: 0,
+        renderbufferCount: 0,
         textureCount: 0,
         vaoCount: 0,
+
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
             if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
                 gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
