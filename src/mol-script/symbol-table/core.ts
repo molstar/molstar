@@ -1,12 +1,12 @@
-/*
+/**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Type from './type'
-import Symbol, { Arguments, Argument } from './symbol'
-import { symbol, normalizeTable, symbolList } from './helpers'
+import Type from '../type'
+import Symbol, { Arguments, Argument } from '../symbol'
+import { symbol, normalizeTable, symbolList } from '../helpers'
 
 export namespace Types {
     export type List<T = any> = ArrayLike<T>
