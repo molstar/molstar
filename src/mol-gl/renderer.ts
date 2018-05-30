@@ -9,13 +9,14 @@ import { Viewport } from 'mol-view/camera/util';
 import { Camera } from 'mol-view/camera/base';
 
 import Scene from './scene';
-import { Context } from './webgl/context';
+import { Context, createImageData } from './webgl/context';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
 import { RenderableValues, GlobalUniformValues } from './renderable/schema';
 import { RenderObject } from './render-object';
+import { BehaviorSubject } from 'rxjs';
 
 export interface RendererStats {
     renderableCount: number
@@ -35,6 +36,9 @@ interface Renderer {
 
     setViewport: (viewport: Viewport) => void
     setClearColor: (color: Color) => void
+    getImageData: () => ImageData
+
+    didDraw: BehaviorSubject<number>
 
     stats: RendererStats
     dispose: () => void
@@ -55,6 +59,9 @@ namespace Renderer {
         const { gl } = ctx
         let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
         const scene = Scene.create(ctx)
+
+        const startTime = performance.now()
+        const didDraw = new BehaviorSubject(0)
 
         const model = Mat4.identity()
         const viewport = Viewport.clone(_viewport)
@@ -126,6 +133,8 @@ namespace Renderer {
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
             gl.enable(gl.BLEND)
             scene.eachTransparent(drawObject)
+
+            didDraw.next(performance.now() - startTime)
         }
 
         return {
@@ -149,6 +158,15 @@ namespace Renderer {
                 gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
                 ValueCell.update(globalUniforms.uViewportHeight, viewport.height)
             },
+            getImageData: () => {
+                const { width, height } = viewport
+                const buffer = new Uint8Array(width * height * 4)
+                ctx.unbindFramebuffer()
+                ctx.readPixels(0, 0, width, height, buffer)
+                return createImageData(buffer, width, height)
+            },
+
+            didDraw,
 
             get stats(): RendererStats {
                 return {

@@ -28,7 +28,26 @@ function unbindResources (gl: WebGLRenderingContext) {
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
     gl.bindRenderbuffer(gl.RENDERBUFFER, null)
+    unbindFramebuffer(gl)
+}
+
+function unbindFramebuffer(gl: WebGLRenderingContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+}
+
+export function createImageData(buffer: Uint8Array, width: number, height: number) {
+    const w = width * 4
+    const h = height
+    const data = new Uint8ClampedArray(width * height * 4)
+    for (let i = 0, maxI = h / 2; i < maxI; ++i) {
+        for (let j = 0, maxJ = w; j < maxJ; ++j) {
+            const index1 = i * w + j;
+            const index2 = (h-i-1) * w + j;
+            data[index1] = buffer[index2];
+            data[index2] = buffer[index1];
+        }
+    }
+    return new ImageData(data, width, height);
 }
 
 type Extensions = {
@@ -47,6 +66,8 @@ export interface Context {
     bufferCount: number
     textureCount: number
     vaoCount: number
+    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
+    unbindFramebuffer: () => void
     destroy: () => void
 }
 
@@ -79,6 +100,14 @@ export function createContext(gl: WebGLRenderingContext): Context {
         bufferCount: 0,
         textureCount: 0,
         vaoCount: 0,
+        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
+            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
+                gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+            } else {
+                console.error('Reading pixels failed. Framebuffer not complete.')
+            }
+        },
+        unbindFramebuffer: () => unbindFramebuffer(gl),
         destroy: () => {
             unbindResources(gl)
             programCache.dispose()

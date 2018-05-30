@@ -13,6 +13,7 @@ import { ViewportController } from '../../controller/visualization/viewport'
 import { View } from '../view';
 import { HelpBox, Toggle, Button } from '../controls/common'
 import { Slider } from '../controls/slider'
+import { ImageCanvas } from './image-canvas';
 
 export class ViewportControls extends View<ViewportController, { showSceneOptions?: boolean, showHelp?: boolean }, {}> {
     state = { showSceneOptions: false, showHelp: false };
@@ -93,22 +94,32 @@ export const Logo = () =>
     </div>
 
 
-export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, showLogo?: boolean }> {
+export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, showLogo?: boolean, imageData?: ImageData, aspectRatio: number }> {
     private container: HTMLDivElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
     private defaultBg = { r: 1, g: 1, b: 1 }
-    state = { noWebGl: false, showLogo: true };
+    state = { noWebGl: false, showLogo: true, imageData: undefined, aspectRatio: 1 };
 
     componentDidMount() {
         if (!this.canvas || !this.container || !this.controller.context.initStage(this.canvas, this.container)) {
             this.setState({ noWebGl: true });
         }
-        this.controller.context.stage.viewer.reprCount.subscribe(count => {
+
+        const viewer = this.controller.context.stage.viewer
+
+        viewer.reprCount.subscribe(count => {
             this.setState({
                 showLogo: false
                 // showLogo: count === 0
             })
         })
+
+        viewer.didDraw.subscribe(() => this.setState({ imageData: viewer.getImageData() }))
+        viewer.didDraw.subscribe(() => this.setState({ imageData: viewer.getImageData() }))
+
+        if (this.container) {
+            this.setState({ aspectRatio: this.container.clientWidth / this.container.clientHeight })
+        }
     }
 
     componentWillUnmount() {
@@ -129,6 +140,14 @@ export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, 
     render() {
         if (this.state.noWebGl) return this.renderMissing();
 
+        // const imageData = new ImageData(256, 128)
+
+        let image: JSX.Element | undefined
+        const imageData = this.state.imageData
+        if (imageData) {
+            image = <ImageCanvas imageData={imageData} aspectRatio={this.state.aspectRatio} maxWidth={256} maxHeight={256} />
+        }
+
         const color = this.controller.latestState.clearColor! || this.defaultBg;
         return <div className='molstar-viewport' style={{ backgroundColor: `rgb(${255 * color.r}, ${255 * color.g}, ${255 * color.b})` }}>
             <div ref={elm => this.container = elm} className='molstar-viewport-container'>
@@ -136,6 +155,7 @@ export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, 
             </div>
             {this.state.showLogo ? <Logo /> : void 0}
             <ViewportControls controller={this.controller} />
+            {image}
         </div>;
     }
 }

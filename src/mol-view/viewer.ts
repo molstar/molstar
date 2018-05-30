@@ -18,6 +18,7 @@ import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
 import { createContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
+import { render } from 'react-dom';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -34,10 +35,12 @@ interface Viewer {
     requestDraw: () => void
     animate: () => void
     reprCount: BehaviorSubject<number>
+    didDraw: BehaviorSubject<number>
 
     handleResize: () => void
     resetCamera: () => void
     downloadScreenshot: () => void
+    getImageData: () => ImageData
 
     input: InputObserver
     stats: RendererStats
@@ -165,7 +168,11 @@ namespace Viewer {
             downloadScreenshot: () => {
                 // TODO
             },
+            getImageData: () => {
+                return renderer.getImageData()
+            },
             reprCount,
+            didDraw: renderer.didDraw,
 
             get input() {
                 return input
