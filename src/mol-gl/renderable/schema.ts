@@ -10,6 +10,7 @@ import { UniformKind } from '../webgl/uniform';
 import { DefineKind } from '../shader-code';
 import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
 import { TextureImage } from './util';
+import { TextureValues, TextureType, TextureFormat } from '../webgl/texture';
 
 export type ValueKindType = {
     'number': number
@@ -60,9 +61,9 @@ export function UniformSpec<K extends UniformKind>(kind: K): UniformSpec<K> {
     return { type: 'uniform', kind }
 }
 
-export type TextureSpec = { type: 'texture', kind: 'image' }
-export function TextureSpec(): TextureSpec {
-    return { type: 'texture', kind: 'image' }
+export type TextureSpec = { type: 'texture', kind: 'image', format: TextureFormat, dataType: TextureType }
+export function TextureSpec(format: TextureFormat, dataType: TextureType): TextureSpec {
+    return { type: 'texture', kind: 'image', format, dataType }
 }
 
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements', kind: K }
@@ -120,7 +121,7 @@ export const BaseSchema = {
     uColorTexSize: UniformSpec('v2'),
     uColor: UniformSpec('v3'),
 
-    tColor: TextureSpec(),
+    tColor: TextureSpec('rgb', 'ubyte'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
