@@ -18,7 +18,6 @@ import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
 import { createContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
-import { render } from 'react-dom';
 
 interface Viewer {
     center: (p: Vec3) => void
