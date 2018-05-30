@@ -4,13 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { UniformValues } from './uniform';
-import { AttributeValues, createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, ArrayKind } from './buffer';
-import { TextureValues, createTextures } from './texture';
+import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, ArrayKind } from './buffer';
+import { createTextures } from './texture';
 import { Context } from './context';
-import { ShaderCode, addShaderDefines, DefineValues } from '../shader-code';
+import { ShaderCode, addShaderDefines } from '../shader-code';
 import { Program } from './program';
-import { RenderableSchema, RenderableValues, AttributeSpec } from '../renderable/schema';
+import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
 
@@ -29,29 +28,6 @@ export function getDrawMode(ctx: Context, drawMode: DrawMode) {
         case 'triangle-strip': return gl.TRIANGLE_STRIP
         case 'triangle-fan': return gl.TRIANGLE_FAN
     }
-}
-
-function splitValues(schema: RenderableSchema, values: RenderableValues) {
-    const attributeValues: AttributeValues = {}
-    const defineValues: DefineValues = {}
-    const textureValues: TextureValues = {}
-    const uniformValues: UniformValues = {}
-    Object.keys(values).forEach(k => {
-        if (schema[k].type === 'attribute') attributeValues[k] = values[k]
-        if (schema[k].type === 'define') defineValues[k] = values[k]
-        if (schema[k].type === 'texture') textureValues[k] = values[k]
-        if (schema[k].type === 'uniform') uniformValues[k] = values[k]
-    })
-    return { attributeValues, defineValues, textureValues, uniformValues }
-}
-
-type Versions<T extends RenderableValues> = { [k in keyof T]: number }
-function getValueVersions<T extends RenderableValues>(values: T) {
-    const versions: Versions<any> = {}
-    Object.keys(values).forEach(k => {
-        versions[k] = values[k].ref.version
-    })
-    return versions as Versions<T>
 }
 
 export interface RenderItem {
@@ -73,11 +49,10 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
     const versions = getValueVersions(values)
 
     const glDrawMode = getDrawMode(ctx, drawMode)
-    let programRef = programCache.get(ctx, {
+    let drawProgram = programCache.get(ctx, {
         shaderCode: addShaderDefines(defineValues, shaderCode),
         schema
     })
-    let program = programRef.value
 
     const textures = createTextures(ctx, schema, textureValues)
     const attributeBuffers = createAttributeBuffers(ctx, schema, attributeValues)
@@ -88,32 +63,36 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         elementsBuffer = createElementsBuffer(ctx, elements.ref.value)
     }
 
-    let vertexArray: WebGLVertexArrayObjectOES | undefined = createVertexArray(ctx, program, attributeBuffers, elementsBuffer)
+    let vertexArray: WebGLVertexArrayObjectOES | undefined = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
 
     let drawCount = values.drawCount.ref.value
     let instanceCount = values.instanceCount.ref.value
 
     let destroyed = false
 
+    function render(program: Program) {
+        program.setUniforms(uniformValues)
+        if (oesVertexArrayObject && vertexArray) {
+            oesVertexArrayObject.bindVertexArrayOES(vertexArray)
+        } else {
+            program.bindAttributes(attributeBuffers)
+            if (elementsBuffer) elementsBuffer.bind()
+        }
+        program.bindTextures(textures)
+        if (elementsBuffer) {
+            angleInstancedArrays.drawElementsInstancedANGLE(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
+        } else {
+            angleInstancedArrays.drawArraysInstancedANGLE(glDrawMode, 0, drawCount, instanceCount)
+        }
+    }
+
     return {
         id,
-        get programId () { return program.id },
-        get program () { return program },
+        get programId () { return drawProgram.value.id },
+        get program () { return drawProgram.value },
 
         draw: () => {
-            program.setUniforms(uniformValues)
-            if (oesVertexArrayObject && vertexArray) {
-                oesVertexArrayObject.bindVertexArrayOES(vertexArray)
-            } else {
-                program.bindAttributes(attributeBuffers)
-                if (elementsBuffer) elementsBuffer.bind()
-            }
-            program.bindTextures(textures)
-            if (elementsBuffer) {
-                angleInstancedArrays.drawElementsInstancedANGLE(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
-            } else {
-                angleInstancedArrays.drawArraysInstancedANGLE(glDrawMode, 0, drawCount, instanceCount)
-            }
+            render(drawProgram.value)
         },
         update: () => {
             let defineChange = false
@@ -128,12 +107,11 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
 
             if (defineChange) {
                 console.log('some defines changed, need to rebuild program')
-                programRef.free()
-                programRef = programCache.get(ctx, {
+                drawProgram.free()
+                drawProgram = programCache.get(ctx, {
                     shaderCode: addShaderDefines(defineValues, shaderCode),
                     schema
                 })
-                program = programRef.value
             }
 
             if (values.drawCount.ref.version !== versions.drawCount) {
@@ -183,7 +161,7 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             if (defineChange || bufferChange) {
                 console.log('program/defines or buffers changed, rebuild vao')
                 deleteVertexArray(ctx, vertexArray)
-                vertexArray = createVertexArray(ctx, program, attributeBuffers, elementsBuffer)
+                vertexArray = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
             }
 
             Object.keys(textureValues).forEach(k => {
@@ -197,7 +175,7 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         },
         destroy: () => {
             if (!destroyed) {
-                programRef.free()
+                drawProgram.free()
                 Object.keys(textures).forEach(k => textures[k].destroy())
                 Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
                 if (elementsBuffer) elementsBuffer.destroy()

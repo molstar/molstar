@@ -5,9 +5,9 @@
  */
 
 import { ValueCell } from 'mol-util';
-import { ArrayKind, BufferItemSize, ElementsKind } from '../webgl/buffer';
-import { UniformKind } from '../webgl/uniform';
-import { DefineKind } from '../shader-code';
+import { ArrayKind, BufferItemSize, ElementsKind, AttributeValues } from '../webgl/buffer';
+import { UniformKind, UniformValues } from '../webgl/uniform';
+import { DefineKind, DefineValues } from '../shader-code';
 import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
 import { TextureImage } from './util';
 import { TextureValues, TextureType, TextureFormat } from '../webgl/texture';
@@ -48,6 +48,29 @@ export type KindValue = {
 }
 
 export type Values<S extends RenderableSchema> = { [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> }
+
+export function splitValues(schema: RenderableSchema, values: RenderableValues) {
+    const attributeValues: AttributeValues = {}
+    const defineValues: DefineValues = {}
+    const textureValues: TextureValues = {}
+    const uniformValues: UniformValues = {}
+    Object.keys(values).forEach(k => {
+        if (schema[k].type === 'attribute') attributeValues[k] = values[k]
+        if (schema[k].type === 'define') defineValues[k] = values[k]
+        if (schema[k].type === 'texture') textureValues[k] = values[k]
+        if (schema[k].type === 'uniform') uniformValues[k] = values[k]
+    })
+    return { attributeValues, defineValues, textureValues, uniformValues }
+}
+
+export type Versions<T extends RenderableValues> = { [k in keyof T]: number }
+export function getValueVersions<T extends RenderableValues>(values: T) {
+    const versions: Versions<any> = {}
+    Object.keys(values).forEach(k => {
+        versions[k] = values[k].ref.version
+    })
+    return versions as Versions<T>
+}
 
 //
 
