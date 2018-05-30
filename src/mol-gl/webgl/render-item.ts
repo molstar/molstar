@@ -12,6 +12,7 @@ import { Program } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
+import { ValueCell } from 'mol-util';
 
 const getNextRenderItemId = idFactory()
 
@@ -32,11 +33,12 @@ export function getDrawMode(ctx: Context, drawMode: DrawMode) {
 
 export interface RenderItem {
     readonly id: number
-    readonly programId: number
-    readonly program: Program
+    readonly drawProgram: Program
+    readonly pickProgram: Program
 
     update: () => void
     draw: () => void
+    pick: () => void
     destroy: () => void
 }
 
@@ -53,6 +55,10 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         shaderCode: addShaderDefines(defineValues, shaderCode),
         schema
     })
+    let pickProgram = programCache.get(ctx, {
+        shaderCode: addShaderDefines({ ...defineValues, dColorType: ValueCell.create('elementPicking') }, shaderCode),
+        schema
+    })
 
     const textures = createTextures(ctx, schema, textureValues)
     const attributeBuffers = createAttributeBuffers(ctx, schema, attributeValues)
@@ -63,14 +69,15 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         elementsBuffer = createElementsBuffer(ctx, elements.ref.value)
     }
 
-    let vertexArray: WebGLVertexArrayObjectOES | undefined = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
+    let drawVertexArray: WebGLVertexArrayObjectOES | undefined = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
+    let pickVertexArray: WebGLVertexArrayObjectOES | undefined = createVertexArray(ctx, pickProgram.value, attributeBuffers, elementsBuffer)
 
     let drawCount = values.drawCount.ref.value
     let instanceCount = values.instanceCount.ref.value
 
     let destroyed = false
 
-    function render(program: Program) {
+    function render(program: Program, vertexArray: WebGLVertexArrayObjectOES | undefined) {
         program.setUniforms(uniformValues)
         if (oesVertexArrayObject && vertexArray) {
             oesVertexArrayObject.bindVertexArrayOES(vertexArray)
@@ -88,11 +95,14 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
 
     return {
         id,
-        get programId () { return drawProgram.value.id },
-        get program () { return drawProgram.value },
+        get drawProgram () { return drawProgram.value },
+        get pickProgram () { return pickProgram.value },
 
         draw: () => {
-            render(drawProgram.value)
+            render(drawProgram.value, drawVertexArray)
+        },
+        pick: () => {
+            render(pickProgram.value, pickVertexArray)
         },
         update: () => {
             let defineChange = false
@@ -110,6 +120,12 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                 drawProgram.free()
                 drawProgram = programCache.get(ctx, {
                     shaderCode: addShaderDefines(defineValues, shaderCode),
+                    schema
+                })
+
+                pickProgram.free()
+                pickProgram = programCache.get(ctx, {
+                    shaderCode: addShaderDefines({ ...defineValues, dColorType: ValueCell.create('elementPicking') }, shaderCode),
                     schema
                 })
             }
@@ -160,8 +176,10 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
 
             if (defineChange || bufferChange) {
                 console.log('program/defines or buffers changed, rebuild vao')
-                deleteVertexArray(ctx, vertexArray)
-                vertexArray = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
+                deleteVertexArray(ctx, drawVertexArray)
+                drawVertexArray = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
+                deleteVertexArray(ctx, pickVertexArray)
+                pickVertexArray = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
             }
 
             Object.keys(textureValues).forEach(k => {
@@ -176,10 +194,12 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         destroy: () => {
             if (!destroyed) {
                 drawProgram.free()
+                pickProgram.free()
                 Object.keys(textures).forEach(k => textures[k].destroy())
                 Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
                 if (elementsBuffer) elementsBuffer.destroy()
-                deleteVertexArray(ctx, vertexArray)
+                deleteVertexArray(ctx, drawVertexArray)
+                deleteVertexArray(ctx, pickVertexArray)
                 destroyed = true
             }
         }

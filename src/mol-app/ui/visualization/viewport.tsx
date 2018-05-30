@@ -114,8 +114,11 @@ export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, 
             })
         })
 
-        viewer.didDraw.subscribe(() => this.setState({ imageData: viewer.getImageData() }))
-        viewer.didDraw.subscribe(() => this.setState({ imageData: viewer.getImageData() }))
+        viewer.didDraw.subscribe(() => {
+            // this.setState({ imageData: viewer.getImageData() })
+            viewer.pick()
+            this.setState({ imageData: viewer.getPickImageData() })
+        })
 
         if (this.container) {
             this.setState({ aspectRatio: this.container.clientWidth / this.container.clientHeight })

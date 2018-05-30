@@ -43,7 +43,6 @@ export interface Texture {
     load: (image: TextureImage) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
-    setSize: (width: number, height: number) => void
     destroy: () => void
 }
 
@@ -102,11 +101,6 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
         unbind: (id: TextureId) => {
             gl.activeTexture(gl.TEXTURE0 + id)
             gl.bindTexture(gl.TEXTURE_2D, null)
-        },
-        setSize: (width: number, height: number) => {
-            gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, type, null)
-            _width = width
-            _height = height
         },
         destroy: () => {
             if (destroyed) return

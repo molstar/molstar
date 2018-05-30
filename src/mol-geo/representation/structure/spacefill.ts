@@ -114,7 +114,6 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     ...color,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uObjectId: ValueCell.create(0),
                     uInstanceCount: ValueCell.create(instanceCount),
                     uElementCount: ValueCell.create(group.elements.length),
 

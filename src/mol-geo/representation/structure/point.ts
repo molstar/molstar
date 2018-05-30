@@ -98,7 +98,6 @@ export default function Point(): UnitsRepresentation<PointProps> {
                     ...size,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uObjectId: ValueCell.create(0),
                     uInstanceCount: ValueCell.create(instanceCount),
                     uElementCount: ValueCell.create(group.elements.length),
 

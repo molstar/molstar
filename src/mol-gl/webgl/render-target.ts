@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context'
+import { Context, createImageData } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { createTexture } from './texture';
 import { createFramebuffer } from './framebuffer';
@@ -17,15 +17,21 @@ export interface RenderTarget {
 
     bind: () => void
     setSize: (width: number, height: number) => void
-    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
+    getImageData: () => ImageData
     destroy: () => void
 }
 
 export function createRenderTarget (ctx: Context, _width: number, _height: number): RenderTarget {
     const { gl } = ctx
 
+    const image = {
+        array: new Uint8Array(_width * _height * 4),
+        width: _width,
+        height: _height
+    }
+
     const targetTexture = createTexture(ctx, 'rgba', 'ubyte')
-    targetTexture.setSize(_width, _height)
+    targetTexture.load(image)
 
     const framebuffer = createFramebuffer(ctx)
     framebuffer.bind()
@@ -51,12 +57,15 @@ export function createRenderTarget (ctx: Context, _width: number, _height: numbe
         setSize: (width: number, height: number) => {
             _width = width
             _height = height
-            targetTexture.setSize(_width, _height)
+            image.array = new Uint8Array(_width * _height * 4)
+            image.width = _width
+            image.height = _height
+            targetTexture.load(image)
         },
-        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
+        getImageData: () => {
             framebuffer.bind()
-            ctx.readPixels(x, y, width, height, buffer)
-            ctx.unbindFramebuffer()
+            ctx.readPixels(0, 0, _width, _height, image.array)
+            return createImageData(image.array, _width, _height)
         },
         destroy: () => {
             if (destroyed) return

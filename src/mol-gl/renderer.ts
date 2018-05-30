@@ -15,11 +15,8 @@ import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
 import { RenderableValues, GlobalUniformValues } from './renderable/schema';
-import { RenderObject } from './render-object';
-import { BehaviorSubject } from 'rxjs';
 
 export interface RendererStats {
-    renderableCount: number
     programCount: number
     shaderCount: number
     bufferCount: number
@@ -28,17 +25,11 @@ export interface RendererStats {
 }
 
 interface Renderer {
-    add: (o: RenderObject) => void
-    remove: (o: RenderObject) => void
-    update: () => void
-    clear: () => void
-    draw: () => void
+    render: (scene: Scene, pick: boolean) => void
 
     setViewport: (viewport: Viewport) => void
     setClearColor: (color: Color) => void
     getImageData: () => ImageData
-
-    didDraw: BehaviorSubject<number>
 
     stats: RendererStats
     dispose: () => void
@@ -58,10 +49,6 @@ namespace Renderer {
     export function create(ctx: Context, camera: Camera, props: RendererProps = {}): Renderer {
         const { gl } = ctx
         let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
-        const scene = Scene.create(ctx)
-
-        const startTime = performance.now()
-        const didDraw = new BehaviorSubject(0)
 
         const model = Mat4.identity()
         const viewport = Viewport.clone(_viewport)
@@ -90,12 +77,13 @@ namespace Renderer {
         }
 
         let currentProgramId = -1
-        const drawObject = (r: Renderable<RenderableValues>) => {
+        const renderObject = (r: Renderable<RenderableValues>, pick: boolean) => {
+            const program = pick ? r.pickProgram : r.drawProgram
             if (r.state.visible) {
-                if (currentProgramId !== r.program.id) {
-                    r.program.use()
-                    r.program.setUniforms(globalUniforms)
-                    currentProgramId = r.program.id
+                if (currentProgramId !== program.id) {
+                    program.use()
+                    program.setUniforms(globalUniforms)
+                    currentProgramId = program.id
                 }
                 if (r.values.dDoubleSided.ref.value) {
                     gl.disable(gl.CULL_FACE)
@@ -113,11 +101,15 @@ namespace Renderer {
 
                 gl.depthMask(r.state.depthMask)
 
-                r.draw()
+                if (pick) {
+                    r.pick()
+                } else {
+                    r.draw()
+                }
             }
         }
 
-        const draw = () => {
+        const render = (scene: Scene, pick: boolean) => {
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uProjection, camera.projection)
 
@@ -128,29 +120,17 @@ namespace Renderer {
 
             gl.disable(gl.BLEND)
             gl.enable(gl.DEPTH_TEST)
-            scene.eachOpaque(drawObject)
+            scene.eachOpaque((r) => renderObject(r, pick))
 
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
             gl.enable(gl.BLEND)
-            scene.eachTransparent(drawObject)
+            scene.eachTransparent((r) => renderObject(r, pick))
 
-            didDraw.next(performance.now() - startTime)
+            gl.finish()
         }
 
         return {
-            add: (o: RenderObject) => {
-                scene.add(o)
-            },
-            remove: (o: RenderObject) => {
-                scene.remove(o)
-            },
-            update: () => {
-                scene.forEach((r, o) => r.update())
-            },
-            clear: () => {
-                scene.clear()
-            },
-            draw,
+            render,
 
             setClearColor,
             setViewport: (newViewport: Viewport) => {
@@ -166,11 +146,8 @@ namespace Renderer {
                 return createImageData(buffer, width, height)
             },
 
-            didDraw,
-
             get stats(): RendererStats {
                 return {
-                    renderableCount: scene.count,
                     programCount: ctx.programCache.count,
                     shaderCount: ctx.shaderCache.count,
                     bufferCount: ctx.bufferCount,
@@ -179,7 +156,7 @@ namespace Renderer {
                 }
             },
             dispose: () => {
-                scene.clear()
+                // TODO
             }
         }
     }

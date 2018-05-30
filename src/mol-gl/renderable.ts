@@ -14,10 +14,12 @@ export type RenderableState = {
 
 export interface Renderable<T extends RenderableValues> {
     draw: () => void
+    pick: () => void
     values: T
     state: RenderableState
     name: string
-    program: Program
+    drawProgram: Program
+    pickProgram: Program
     update: () => void
     dispose: () => void
 }

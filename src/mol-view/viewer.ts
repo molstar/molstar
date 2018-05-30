@@ -18,6 +18,8 @@ import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
 import { createContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
+import { createRenderTarget } from 'mol-gl/webgl/render-target';
+import Scene from 'mol-gl/scene';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -33,6 +35,8 @@ interface Viewer {
     draw: (force?: boolean) => void
     requestDraw: () => void
     animate: () => void
+    pick: () => void
+
     reprCount: BehaviorSubject<number>
     didDraw: BehaviorSubject<number>
 
@@ -40,6 +44,7 @@ interface Viewer {
     resetCamera: () => void
     downloadScreenshot: () => void
     getImageData: () => ImageData
+    getPickImageData: () => ImageData
 
     input: InputObserver
     stats: RendererStats
@@ -61,6 +66,9 @@ namespace Viewer {
     export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
         const reprMap = new Map<Representation<any>, Set<RenderObject>>()
         const reprCount = new BehaviorSubject(0)
+
+        const startTime = performance.now()
+        const didDraw = new BehaviorSubject(0)
 
         const input = InputObserver.create(canvas)
         input.resize.subscribe(handleResize)
@@ -86,17 +94,33 @@ namespace Viewer {
         }
         const ctx = createContext(gl)
 
+        const scene = Scene.create(ctx)
         const renderer = Renderer.create(ctx, camera)
+
+        const rtScale = 1 / 4
+        const renderTarget = createRenderTarget(ctx, Math.round(canvas.width * rtScale), Math.round(canvas.height * rtScale))
 
         let drawPending = false
         const prevProjectionView = Mat4.zero()
 
-        function draw (force?: boolean) {
+        function render(pick: boolean, force?: boolean) {
+            let didRender = false
             controls.update()
             camera.update()
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value)) {
                 Mat4.copy(prevProjectionView, camera.projectionView)
-                renderer.draw()
+                renderer.render(scene, pick)
+                didRender = true
+            }
+            return didRender
+        }
+
+        function draw(force?: boolean) {
+            ctx.unbindFramebuffer()
+            const viewport = { x: 0, y: 0, width: canvas.width, height: canvas.height }
+            renderer.setViewport(viewport)
+            if (render(false, force)) {
+                didDraw.next(performance.now() - startTime)
             }
             drawPending = false
         }
@@ -108,7 +132,7 @@ namespace Viewer {
         }
 
         function animate () {
-            draw()
+            draw(false)
             window.requestAnimationFrame(() => animate())
         }
 
@@ -133,11 +157,11 @@ namespace Viewer {
                 const newRO = new Set<RenderObject>()
                 repr.renderObjects.forEach(o => newRO.add(o))
                 if (oldRO) {
-                    SetUtils.difference(newRO, oldRO).forEach(o => renderer.add(o))
-                    SetUtils.difference(oldRO, newRO).forEach(o => renderer.remove(o))
-                    renderer.update()
+                    SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
+                    SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
+                    scene.update()
                 } else {
-                    repr.renderObjects.forEach(o => renderer.add(o))
+                    repr.renderObjects.forEach(o => scene.add(o))
                 }
                 reprMap.set(repr, newRO)
                 reprCount.next(reprMap.size)
@@ -145,20 +169,24 @@ namespace Viewer {
             remove: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
                 if (renderObjectSet) {
-                    renderObjectSet.forEach(o => renderer.remove(o))
+                    renderObjectSet.forEach(o => scene.remove(o))
                     reprMap.delete(repr)
                     reprCount.next(reprMap.size)
                 }
             },
-            update: () => renderer.update(),
+            update: () => scene.update(),
             clear: () => {
                 reprMap.clear()
-                renderer.clear()
+                scene.clear()
             },
 
             draw,
             requestDraw,
             animate,
+            pick: () => {
+                renderTarget.bind()
+                render(true, true)
+            },
 
             handleResize,
             resetCamera: () => {
@@ -170,8 +198,11 @@ namespace Viewer {
             getImageData: () => {
                 return renderer.getImageData()
             },
+            getPickImageData: () => {
+                return renderTarget.getImageData()
+            },
             reprCount,
-            didDraw: renderer.didDraw,
+            didDraw,
 
             get input() {
                 return input
@@ -180,6 +211,7 @@ namespace Viewer {
                 return renderer.stats
             },
             dispose: () => {
+                scene.clear()
                 input.dispose()
                 controls.dispose()
                 renderer.dispose()
@@ -192,6 +224,7 @@ namespace Viewer {
             renderer.setViewport(viewport)
             Viewport.copy(camera.viewport, viewport)
             Viewport.copy(controls.viewport, viewport)
+            renderTarget.setSize(Math.round(canvas.width * rtScale), Math.round(canvas.height * rtScale))
         }
     }
 }

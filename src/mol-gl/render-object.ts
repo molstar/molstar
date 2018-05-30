@@ -27,7 +27,7 @@ export function createPointRenderObject(values: PointValues, state: RenderableSt
 
 export function createRenderable(ctx: Context, o: RenderObject) {
     switch (o.type) {
-        case 'mesh': return MeshRenderable(ctx, o.values, o.state)
-        case 'point': return PointRenderable(ctx, o.values, o.state)
+        case 'mesh': return MeshRenderable(ctx, o.id, o.values, o.state)
+        case 'point': return PointRenderable(ctx, o.id, o.values, o.state)
     }
 }

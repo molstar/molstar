@@ -73,7 +73,6 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                     ...color,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uObjectId: ValueCell.create(0),
                     uInstanceCount: ValueCell.create(instanceCount),
                     uElementCount: ValueCell.create(mesh.triangleCount),
 

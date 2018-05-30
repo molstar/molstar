@@ -13,6 +13,7 @@ import { RenderObject, createRenderable } from './render-object';
 interface Scene {
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
+    update: () => void
     clear: () => void
     forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
     eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
@@ -38,6 +39,9 @@ namespace Scene {
                     renderable.dispose()
                     renderableMap.delete(o)
                 }
+            },
+            update: () => {
+                renderableMap.forEach((r, o) => r.update())
             },
             clear: () => {
                 renderableMap.forEach(renderable => renderable.dispose())

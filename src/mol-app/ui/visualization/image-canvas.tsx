@@ -22,39 +22,41 @@ export class ImageCanvas extends React.Component<{ imageData: ImageData, aspectR
     private canvas: HTMLCanvasElement | null = null;
     private ctx: CanvasRenderingContext2D | null = null;
 
-    componentWillMount() {
+    updateStateFromProps() {
         this.setState({
             imageData: this.props.imageData,
             ...getExtend(this.props.aspectRatio, this.props.maxWidth, this.props.maxHeight)
         })
+    }
+
+    updateImage() {
+        if (this.canvas) {
+            this.canvas.width = this.state.imageData.width
+            this.canvas.height = this.state.imageData.height
+        }
+        if (this.ctx) {
+            this.ctx.putImageData(this.state.imageData, 0, 0)
+        }
+    }
+
+    componentWillMount() {
+        this.updateStateFromProps()
     }
 
     componentDidMount() {
-        if (this.canvas) {
-            this.canvas.width = this.state.imageData.width
-            this.canvas.height = this.state.imageData.height
+        if (this.canvas && !this.ctx) {
             this.ctx = this.canvas.getContext('2d')
+            if (this.ctx) this.ctx.imageSmoothingEnabled = false
         }
-        if (this.ctx) {
-            this.ctx.putImageData(this.state.imageData, 0, 0)
-        }
+        this.updateImage()
     }
 
     componentWillReceiveProps() {
-        this.setState({
-            imageData: this.props.imageData,
-            ...getExtend(this.props.aspectRatio, this.props.maxWidth, this.props.maxHeight)
-        })
+        this.updateStateFromProps()
     }
 
     componentDidUpdate() {
-        if (this.canvas) {
-            this.canvas.width = this.state.imageData.width
-            this.canvas.height = this.state.imageData.height
-        }
-        if (this.ctx) {
-            this.ctx.putImageData(this.state.imageData, 0, 0)
-        }
+        this.updateImage()
     }
 
     render() {
@@ -74,6 +76,7 @@ export class ImageCanvas extends React.Component<{ imageData: ImageData, aspectR
                 style={{
                     width: this.state.width,
                     height: this.state.height,
+                    imageRendering: 'pixelated'
                 }}
             />
         </div>;

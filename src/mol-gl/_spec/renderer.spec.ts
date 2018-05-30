@@ -18,6 +18,7 @@ import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
 import { createPointRenderObject } from '../render-object';
 import { PointValues } from '../renderable/point';
+import Scene from '../scene';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -61,7 +62,6 @@ function createPoints() {
         ...size,
 
         uAlpha: ValueCell.create(1.0),
-        uObjectId: ValueCell.create(0),
         uInstanceCount: ValueCell.create(1),
         uElementCount: ValueCell.create(3),
 
@@ -101,18 +101,19 @@ describe('renderer', () => {
     it('points', () => {
         const [ width, height ] = [ 32, 32 ]
         const gl = createGl(width, height, { preserveDrawingBuffer: true })
-        const { ctx, renderer } = createRenderer(gl)
+        const { ctx } = createRenderer(gl)
+        const scene = Scene.create(ctx)
 
         const points = createPoints()
 
-        renderer.add(points)
+        scene.add(points)
         expect(ctx.bufferCount).toBe(6);
         expect(ctx.textureCount).toBe(1);
         expect(ctx.vaoCount).toBe(1);
         expect(ctx.programCache.count).toBe(1);
         expect(ctx.shaderCache.count).toBe(2);
 
-        renderer.remove(points)
+        scene.remove(points)
         expect(ctx.bufferCount).toBe(0);
         expect(ctx.textureCount).toBe(0);
         expect(ctx.vaoCount).toBe(0);

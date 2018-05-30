@@ -7,8 +7,9 @@
 import { Renderable, RenderableState } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values } from '../renderable/schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema } from '../renderable/schema';
 import { PointShaderCode } from '../shader-code';
+import { ValueCell } from 'mol-util';
 
 export const PointSchema = {
     ...BaseSchema,
@@ -20,19 +21,26 @@ export const PointSchema = {
 export type PointSchema = typeof PointSchema
 export type PointValues = Values<PointSchema>
 
-export function PointRenderable(ctx: Context, values: PointValues, state: RenderableState): Renderable<PointValues> {
-    const schema = { ...GlobalUniformSchema, ...PointSchema }
+export function PointRenderable(ctx: Context, id: number, values: PointValues, state: RenderableState): Renderable<PointValues> {
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointSchema }
+    const internalValues = {
+        uObjectId: ValueCell.create(id)
+    }
     const schaderCode = PointShaderCode
-    const renderItem = createRenderItem(ctx, 'points', schaderCode, schema, values)
+    const renderItem = createRenderItem(ctx, 'points', schaderCode, schema, { ...values, ...internalValues })
 
     return {
         draw: () => {
             renderItem.draw()
         },
+        pick: () => {
+            renderItem.pick()
+        },
         get values () { return values },
         get state () { return state },
         name: 'point',
-        get program () { return renderItem.program },
+        get drawProgram () { return renderItem.drawProgram },
+        get pickProgram () { return renderItem.pickProgram },
         update: () => {
             renderItem.update()
         },
