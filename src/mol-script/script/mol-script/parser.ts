@@ -5,34 +5,36 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+// TODO: add "lisp AST" which is then compiled to mol-script
+
 import { MonadicParser as P } from 'mol-util/monadic-parser'
 
 import Parser from '../parser'
 import Expression from '../../expression'
-import { SymbolMap, MolScriptSymbol } from './symbols'
+// import { MolScriptSymbol } from './symbols'
 import B from '../../builder'
 
 const ws = P.regexp(/[\n\r\s]*/)
 
-function getSymbolExpression(s: MolScriptSymbol, args?: any) {
-    switch (s.kind) {
-        case 'alias': return args ? Expression.Apply(s.symbol.id, args) : Expression.Apply(s.symbol.id);
-        case 'macro': return s.translate(args);
-    }
-}
+// function getSymbolExpression(s: MolScriptSymbol, args?: any) {
+//     switch (s.kind) {
+//         case 'alias': return args ? Expression.Apply(s.symbol.id, args) : Expression.Apply(s.symbol.id);
+//         case 'macro': return s.translate(args);
+//     }
+// }
 
 namespace Language {
-    const Expr = P.lazy(() => P.seq(Symb, ArgList, NamedArgList));
+    const Expr = P.lazy(() => P.seq(Identifier, ArgList, NamedArgList));
 
     const Arg: P<Expression> = P.lazy(() => P.seq(
-        P.lookahead(P.regexp(/[^:]/)),
+        P.lookahead(P.test(ch => ch !== ':')),
         P.alt(
             // order matters
             AtomName,
             ElementSymbol,
             Bool,
             Num,
-            Str,
+            Identifier,
             QuotedStr,
             ListSymbol,
             SetSymbol,
@@ -51,25 +53,11 @@ namespace Language {
         return namedArgs
     });
 
-    const Symb = P.regexp(/[^\s'`,@()\[\]{}';:]+/)  // /[a-zA-Z_-][a-zA-Z0-9_.-]+/)
-        .map(x => {
-            const s = SymbolMap[x];
-            if (!s) {
-                throw new Error(`'${x}': unknown symbol.`);
-            }
-            return s;
-        })
-        .desc('symbol');
+    const Identifier = P.regexp(/[^\s'`,@()\[\]{}';:]+/)
+        //.map(id => Expression.Apply(B.core.type.identifier.id, void 0))
+        .desc('identifier')
 
-    const Str = P.regexp(/[a-zA-Z_-]+[a-zA-Z0-9_.-]*/).map(x => {
-        const s = SymbolMap[x];
-        if (s) return getSymbolExpression(s);
-        return x;
-    }).desc('string');
-
-    const QuotedStr = P.string('`')
-        .then(P.regexp(/[^`]*/))
-        .skip(P.string('`'))
+    const QuotedStr = P.regexp(/[^`]*/).trim(P.string('`'))
         .desc('quoted-string');
 
     const Num = P.regexp(/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/)
@@ -101,26 +89,28 @@ namespace Language {
 
     // '.e' => struct.type.atomName(e)
     const AtomName = P.string('.')
-        .then(P.alt(Str, QuotedStr, Num))
+        .then(P.alt(Identifier, QuotedStr, Num))
         .map(v => B.atomName('' + v))
         .desc('identifier');
 
     const List = Expr
         .wrap(P.string('('), P.string(')'))
         .map(x => {
-            const array: any[] = x[1];
-            const named: any = x[2];
+            // const array: any[] = x[1];
+            // const named: any = x[2];
 
-            if (named && Object.keys(named).length) {
-                if (array) {
-                    for (let i = 0; i < array.length; i++) named[i] = array[i];
-                }
-                return getSymbolExpression(x[0], named);
-            } else if (array && array.length) {
-                return getSymbolExpression(x[0], x[1]);
-            } else {
-                return getSymbolExpression(x[0])
-            }
+            return 0 as any;
+
+            // if (named && Object.keys(named).length) {
+            //     if (array) {
+            //         for (let i = 0; i < array.length; i++) named[i] = array[i];
+            //     }
+            //     return getSymbolExpression(x[0], named);
+            // } else if (array && array.length) {
+            //     return getSymbolExpression(x[0], x[1]);
+            // } else {
+            //     return getSymbolExpression(x[0])
+            // }
         })
         .desc('list');
 

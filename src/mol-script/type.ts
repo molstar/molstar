@@ -13,7 +13,6 @@ namespace Type {
     export interface Variable<T> { kind: 'variable', name: string, type: Type, isConstraint: boolean, '@type': any }
     export interface AnyValue { kind: 'any-value', '@type': any }
     export interface Value<T> { kind: 'value', namespace: string, name: string, parent?: Value<any>, '@type': T }
-    export interface Identifier { kind: 'identifier', '@type': string }
     export interface Container<T> { kind: 'container', namespace: string, name: string, alias?: string, child: Type, '@type': T }
     export interface Union<T> { kind: 'union', types: Type[], '@type': T }
     export interface OneOf<T> { kind: 'oneof', type: Value<T>, namespace: string, name: string, values: { [v: string]: boolean | undefined }, '@type': T }

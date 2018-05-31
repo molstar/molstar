@@ -299,14 +299,15 @@ export namespace MonadicParser {
 
     export function string(str: string) {
         const expected = `'${str}'`;
+        if (str.length === 1) {
+            const code = str.charCodeAt(0);
+            return new MonadicParser((input, i) => input.charCodeAt(i) === code ? makeSuccess(i + 1, str) : makeFailure(i, expected));
+        }
+
         return new MonadicParser((input, i) => {
             const j = i + str.length;
-            const head = input.slice(i, j);
-            if (head === str) {
-                return makeSuccess(j, head);
-            } else {
-                return makeFailure(i, expected);
-            }
+            if (input.slice(i, j) === str) return makeSuccess(j, str);
+            else return makeFailure(i, expected);
         });
     }
 
@@ -472,7 +473,6 @@ function seqPick(idx: number, ...parsers: MonadicParser<any>[]): MonadicParser<a
     });
 }
 
-
 function makeSuccess<T>(index: number, value: T): MonadicParser.Success<T> {
     return { status: true, index, value };
 }
@@ -515,20 +515,11 @@ function formatGot(input: string, error: MonadicParser.ParseFailure) {
     }
     const prefix = i > 0 ? '\'...' : '\'';
     const suffix = input.length - i > 12 ? '...\'' : '\'';
-    return (
-        ' at line ' +
-        index.line +
-        ' column ' +
-        index.column +
-        ', got ' +
-        prefix +
-        input.slice(i, i + 12) +
-        suffix
-    );
+    return ` at line ${index.line} column ${index.column}, got ${prefix}${input.slice(i, i + 12)}${suffix}`;
 }
 
 function formatError(input: string, error: MonadicParser.ParseFailure) {
-    return 'expected ' + formatExpected(error.expected) + formatGot(input, error);
+    return `expected ${formatExpected(error.expected)}${formatGot(input, error)}`;
 }
 
 function unsafeUnion(xs: string[], ys: string[]) {
