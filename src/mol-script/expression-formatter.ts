@@ -6,7 +6,7 @@
 
 import Expression from './expression'
 
-const { isLiteral, isArgumentsArray } = Expression;
+const { isLiteral, isSymbol, isArgumentsArray } = Expression;
 
 export default function format(e: Expression) {
     const writer = new Writer();
@@ -74,6 +74,10 @@ function _format(e: Expression, writer: Writer) {
     if (isLiteral(e)) {
         if (typeof e === 'string' && (/\s/.test(e) || !e.length)) writer.append(`\`${e}\``);
         else writer.append(`${e}`);
+        return;
+    }
+    if (isSymbol(e)) {
+        writer.append(`${e.name}`);
         return;
     }
 

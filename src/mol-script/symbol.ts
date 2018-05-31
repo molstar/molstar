@@ -64,7 +64,7 @@ interface Symbol<A extends Arguments = Arguments, T extends Type = Type> {
 
 function Symbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
     const symbol: Symbol<A, T> = function(args: ExpressionArguments<A['@type']>) {
-        return Expression.Apply(symbol.id, args as any);
+        return Expression.Apply(Expression.Symbol(symbol.id), args as any);
     } as any;
     symbol.info = { namespace: '', name, description };
     symbol.id = '';

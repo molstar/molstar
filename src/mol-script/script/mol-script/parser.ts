@@ -1,122 +1,178 @@
 /**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * @author Alexander Rose <alexanderose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// TODO: add "lisp AST" which is then compiled to mol-script
-
 import { MonadicParser as P } from 'mol-util/monadic-parser'
-
-import Parser from '../parser'
 import Expression from '../../expression'
-// import { MolScriptSymbol } from './symbols'
 import B from '../../builder'
 
-const ws = P.regexp(/[\n\r\s]*/)
-
-// function getSymbolExpression(s: MolScriptSymbol, args?: any) {
-//     switch (s.kind) {
-//         case 'alias': return args ? Expression.Apply(s.symbol.id, args) : Expression.Apply(s.symbol.id);
-//         case 'macro': return s.translate(args);
-//     }
-// }
-
-namespace Language {
-    const Expr = P.lazy(() => P.seq(Identifier, ArgList, NamedArgList));
-
-    const Arg: P<Expression> = P.lazy(() => P.seq(
-        P.lookahead(P.test(ch => ch !== ':')),
-        P.alt(
-            // order matters
-            AtomName,
-            ElementSymbol,
-            Bool,
-            Num,
-            Identifier,
-            QuotedStr,
-            ListSymbol,
-            SetSymbol,
-            List
-        )
-    ).map((x: any) => x[1]).trim(ws));
-
-    const ArgList = Arg.many();
-    const ArgName = P.regexp(/:([a-zA-Z0-9_.-]+)/, 1).trim(ws).desc('arg-name');
-
-    const NamedArg = P.seq(ArgName, Arg).trim(ws);
-
-    const NamedArgList = NamedArg.many().map(xs => {
-        const namedArgs: { [key: string]: any } = {}
-        xs.forEach((a: any) => { namedArgs[a[0]] = a[1] })
-        return namedArgs
-    });
-
-    const Identifier = P.regexp(/[^\s'`,@()\[\]{}';:]+/)
-        //.map(id => Expression.Apply(B.core.type.identifier.id, void 0))
-        .desc('identifier')
-
-    const QuotedStr = P.regexp(/[^`]*/).trim(P.string('`'))
-        .desc('quoted-string');
-
-    const Num = P.regexp(/-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/)
-        .map(v => +v)
-        .desc('number');
-
-    const Bool = P.alt(
-        P.regexp(/true/i).result(true),
-        P.regexp(/false/i).result(false)
-    ).desc('boolean');
-
-    // '[a, b, c]' => core.list([a, b, c])
-    const ListSymbol = ArgList
-        .wrap(P.string('['), P.string(']'))
-        .map(B.core.type.list)
-        .desc('list-symbol');
-
-    // '{a, b, c}' => core.set([a, b, c])
-    const SetSymbol = ArgList
-        .wrap(P.string('{'), P.string('}'))
-        .map(B.core.type.set)
-        .desc('set-symbol');
-
-    // _XYZ -> type.elementSymbol XYZ
-    const ElementSymbol = P.string('_')
-        .then(P.regexp(/[0-9a-zA-Z]+/))
-        .map(x => B.struct.type.elementSymbol([x]))
-        .desc('element-symbol');
-
-    // '.e' => struct.type.atomName(e)
-    const AtomName = P.string('.')
-        .then(P.alt(Identifier, QuotedStr, Num))
-        .map(v => B.atomName('' + v))
-        .desc('identifier');
-
-    const List = Expr
-        .wrap(P.string('('), P.string(')'))
-        .map(x => {
-            // const array: any[] = x[1];
-            // const named: any = x[2];
-
-            return 0 as any;
-
-            // if (named && Object.keys(named).length) {
-            //     if (array) {
-            //         for (let i = 0; i < array.length; i++) named[i] = array[i];
-            //     }
-            //     return getSymbolExpression(x[0], named);
-            // } else if (array && array.length) {
-            //     return getSymbolExpression(x[0], x[1]);
-            // } else {
-            //     return getSymbolExpression(x[0])
-            // }
-        })
-        .desc('list');
-
-    export const Query = List.trim(ws)
+export function parseMolScript(input: string) {
+    return Language.parse(input);
 }
 
-const reComment = /;[^\n\r]*[\n\r]/g
-const transpiler: Parser = str => Language.Query.tryParse(str.replace(reComment, '\n'))
-export default transpiler
+namespace Language {
+    type AST = ASTNode.Expression[]
+
+    namespace ASTNode {
+        export type Expression = Str | Symb | List | Comment
+
+        export interface Str {
+            kind: 'string',
+            value: string
+        }
+
+        export interface Symb {
+            kind: 'symbol',
+            value: string
+        }
+
+        export interface List {
+            kind: 'list',
+            bracket: '(' | '[' | '{',
+            nodes: Expression[]
+        }
+
+        export interface Comment {
+            kind: 'comment',
+            value: string
+        }
+
+        export function str(value: string): Str { return { kind: 'string', value }; }
+        export function symb(value: string): Symb { return { kind: 'symbol', value }; }
+        export function list(bracket: '(' | '[' | '{', nodes: Expression[]): List { return { kind: 'list', bracket, nodes }; }
+        export function comment(value: string): Comment { return { kind: 'comment', value } }
+    }
+
+    const ws = P.regexp(/[\n\r\s]*/);
+    const Expr: P<ASTNode.Expression> = P.lazy(() => (P.alt(Str, List, Symb, Comment).trim(ws)));
+    const Str = P.takeWhile(c => c !== '`').trim('`').map(ASTNode.str);
+    const Symb = P.regexp(/[^()\[\]{};`,\n\r\s]+/).map(ASTNode.symb);
+    const Comment = P.regexp(/\s*;+([^\n\r]*)\n/, 1).map(ASTNode.comment);
+    const Args = Expr.many();
+    const List1 = Args.wrap('(', ')').map(args => ASTNode.list('(', args));
+    const List2 = Args.wrap('[', ']').map(args => ASTNode.list('[', args));
+    const List3 = Args.wrap('{', '}').map(args => ASTNode.list('{', args));
+    const List = P.alt(List1, List2, List3);
+
+    const Expressions: P<AST> = Expr.many();
+
+    function getAST(input: string) { return Expressions.tryParse(input); }
+
+    function visitExpr(expr: ASTNode.Expression): Expression {
+        switch (expr.kind) {
+            case 'string': return expr.value;
+            case 'symbol': {
+                const value = expr.value;
+                if (value.length > 1) {
+                    const fst = value.charAt(0);
+                    switch (fst) {
+                        case '.': return B.atomName(value.substr(1));
+                        case '_': return B.struct.type.elementSymbol([value.substr(1)]);
+                    }
+                }
+                if (value === 'true') return true;
+                if (value === 'false') return false;
+                if (isNumber(value)) return +value;
+                return Expression.Symbol(value);
+            }
+            case 'list': {
+                switch (expr.bracket) {
+                    case '[': return B.core.type.list(withoutComments(expr.nodes).map(visitExpr));
+                    case '{': return B.core.type.set(withoutComments(expr.nodes).map(visitExpr));
+                    case '(': {
+                        const head = visitExpr(expr.nodes[0]);
+                        return Expression.Apply(head, getArgs(expr.nodes));
+                    }
+                }
+                return 0 as any;
+            }
+            default: {
+                throw new Error('should not happen');
+            }
+        }
+    }
+
+    function getArgs(nodes: ASTNode.Expression[]): Expression.Arguments | undefined {
+        if (nodes.length <= 1) return void 0;
+        if (!hasNamedArgs(nodes)) {
+            const args: Expression[] = [];
+            for (let i = 1, _i = nodes.length; i < _i; i++) {
+                const n = nodes[i];
+                if (n.kind === 'comment') continue;
+                args[args.length] = visitExpr(n);
+            }
+            return args;
+        }
+        const args: { [name: string]: Expression } = {};
+        let allNumeric = true;
+        let pos = 0;
+        for (let i = 1, _i = nodes.length; i < _i; i++) {
+            const n = nodes[i];
+            if (n.kind === 'comment') continue;
+            if (n.kind === 'symbol' && n.value.length > 1 && n.value.charAt(0) === ':') {
+                const name = n.value.substr(1);
+                ++i;
+                while (i < _i && nodes[i].kind === 'comment') { i++; }
+                if (i >= _i) throw new Error(`There must be a value foolowed a named arg ':${name}'.`);
+                args[name] = visitExpr(nodes[i]);
+                if (isNaN(+name)) allNumeric = false;
+            } else {
+                args[pos++] = visitExpr(n);
+            }
+        }
+        if (allNumeric) {
+            const keys = Object.keys(args).map(a => +a).sort((a, b) => a - b);
+            let isArray = true;
+            for (let i = 0, _i = keys.length; i < _i; i++) {
+                if (keys[i] !== i) {
+                    isArray = false;
+                    break;
+                }
+            }
+            if (isArray) {
+                const arrayArgs: Expression[] = [];
+                for (let i = 0, _i = keys.length; i < _i; i++) {
+                    arrayArgs[i] = args[i];
+                }
+                return arrayArgs;
+            }
+        }
+        return args;
+    }
+
+    function hasNamedArgs(nodes: ASTNode.Expression[]) {
+        for (let i = 1, _i = nodes.length; i < _i; i++) {
+            const n = nodes[i];
+            if (n.kind === 'symbol' && n.value.length > 1 && n.value.charAt(0) === ':') return true;
+        }
+        return false;
+    }
+
+    function withoutComments(nodes: ASTNode.Expression[]) {
+        let hasComment = false;
+        for (let i = 0, _i = nodes.length; i < _i; i++) {
+            if (nodes[i].kind === 'comment') {
+                hasComment = true;
+                break;
+            }
+        }
+        if (!hasComment) return nodes;
+        return nodes.filter(n => n.kind !== 'comment');
+    }
+
+    function isNumber(value: string) {
+        return /-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?/.test(value);
+    }
+
+    export function parse(input: string): Expression[] {
+        const ast = getAST(input);
+        const ret: Expression[] = [];
+        for (const expr of ast) {
+            if (expr.kind === 'comment') continue;
+            ret[ret.length] = visitExpr(expr);
+        }
+        return ret;
+    }
+}

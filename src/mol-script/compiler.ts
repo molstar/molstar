@@ -61,6 +61,11 @@ function compile(env: Environment, expression: Expression): CompileResult {
         return CompileResult.Const(expression);
     }
 
+    if (Expression.isSymbol(expression)) {
+        // TOTO: this needs to look up in the symbol table.
+        return 0 as any;
+    }
+
     const head = compile(env, expression.head);
     if (!expression.args) {
         return apply(env, head, [], true);

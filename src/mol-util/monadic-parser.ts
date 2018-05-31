@@ -35,12 +35,15 @@ export class MonadicParser<A> {
         return MonadicParser.alt(this, alternative);
     }
 
-    trim<B>(parser: MonadicParser<B>): MonadicParser<A> {
+    trim<B>(parser: MonadicParser<B> | string): MonadicParser<A> {
         return this.wrap(parser, parser);
     }
 
-    wrap<L, R>(leftParser: MonadicParser<L>, rightParser: MonadicParser<R>): MonadicParser<A> {
-        return seqPick(1, leftParser, this, rightParser);
+    wrap<L, R>(leftParser: MonadicParser<L> | string, rightParser: MonadicParser<R> | string): MonadicParser<A> {
+        return seqPick(1,
+            typeof leftParser === 'string' ? MonadicParser.string(leftParser) : leftParser,
+            this,
+            typeof rightParser === 'string' ? MonadicParser.string(rightParser) : rightParser);
     }
 
     thru<B>(wrapper: (p: MonadicParser<A>) => MonadicParser<B>) {
