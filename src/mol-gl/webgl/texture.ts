@@ -9,11 +9,13 @@ import { TextureImage } from '../renderable/util';
 import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
+import { Framebuffer } from './framebuffer';
 
 const getNextTextureId = idFactory()
 
 export type TextureFormat = 'rgb' | 'rgba'
 export type TextureType = 'ubyte' | 'uint'
+export type TextureAttachment = 'depth' | 'stencil' | 'color0'
 
 export function getFormat(ctx: Context, format: TextureFormat) {
     const { gl } = ctx
@@ -31,9 +33,17 @@ export function getType(ctx: Context, type: TextureType) {
     }
 }
 
+export function getAttachment(ctx: Context, attachment: TextureAttachment) {
+    const { gl } = ctx
+    switch (attachment) {
+        case 'depth': return gl.DEPTH_ATTACHMENT
+        case 'stencil': return gl.STENCIL_ATTACHMENT
+        case 'color0': return gl.COLOR_ATTACHMENT0
+    }
+}
+
 export interface Texture {
     readonly id: number
-    readonly texture: WebGLTexture
     readonly format: number
     readonly type: number
 
@@ -43,6 +53,7 @@ export interface Texture {
     load: (image: TextureImage) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
+    attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => void
     destroy: () => void
 }
 
@@ -72,7 +83,6 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
 
     return {
         id,
-        texture,
         format,
         type,
 
@@ -101,6 +111,10 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
         unbind: (id: TextureId) => {
             gl.activeTexture(gl.TEXTURE0 + id)
             gl.bindTexture(gl.TEXTURE_2D, null)
+        },
+        attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => {
+            framebuffer.bind()
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(ctx, attachment), gl.TEXTURE_2D, texture, 0)
         },
         destroy: () => {
             if (destroyed) return

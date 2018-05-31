@@ -65,10 +65,9 @@ export class ImageCanvas extends React.Component<{ imageData: ImageData, aspectR
             style={{
                 width: this.state.width + 6,
                 height: this.state.height + 6,
-                position: 'absolute',
+                margin: 10,
+                display: 'inline-block',
                 border: '3px white solid',
-                bottom: 10,
-                left: 10,
             }}
         >
             <canvas

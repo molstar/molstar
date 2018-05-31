@@ -15,17 +15,21 @@ import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
 import { RenderableValues, GlobalUniformValues } from './renderable/schema';
+import { RenderVariant } from './webgl/render-item';
 
 export interface RendererStats {
     programCount: number
     shaderCount: number
+
     bufferCount: number
+    framebufferCount: number
+    renderbufferCount: number
     textureCount: number
     vaoCount: number
 }
 
 interface Renderer {
-    render: (scene: Scene, pick: boolean) => void
+    render: (scene: Scene, variant: RenderVariant) => void
 
     setViewport: (viewport: Viewport) => void
     setClearColor: (color: Color) => void
@@ -77,8 +81,8 @@ namespace Renderer {
         }
 
         let currentProgramId = -1
-        const renderObject = (r: Renderable<RenderableValues>, pick: boolean) => {
-            const program = pick ? r.pickProgram : r.drawProgram
+        const renderObject = (r: Renderable<RenderableValues>, variant: RenderVariant) => {
+            const program = r.getProgram(variant)
             if (r.state.visible) {
                 if (currentProgramId !== program.id) {
                     program.use()
@@ -101,15 +105,11 @@ namespace Renderer {
 
                 gl.depthMask(r.state.depthMask)
 
-                if (pick) {
-                    r.pick()
-                } else {
-                    r.draw()
-                }
+                r.render(variant)
             }
         }
 
-        const render = (scene: Scene, pick: boolean) => {
+        const render = (scene: Scene, variant: RenderVariant) => {
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uProjection, camera.projection)
 
@@ -120,11 +120,11 @@ namespace Renderer {
 
             gl.disable(gl.BLEND)
             gl.enable(gl.DEPTH_TEST)
-            scene.eachOpaque((r) => renderObject(r, pick))
+            scene.eachOpaque((r) => renderObject(r, variant))
 
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
             gl.enable(gl.BLEND)
-            scene.eachTransparent((r) => renderObject(r, pick))
+            scene.eachTransparent((r) => renderObject(r, variant))
 
             gl.finish()
         }
@@ -147,10 +147,14 @@ namespace Renderer {
             },
 
             get stats(): RendererStats {
+                console.log(ctx)
                 return {
                     programCount: ctx.programCache.count,
                     shaderCount: ctx.shaderCache.count,
+
                     bufferCount: ctx.bufferCount,
+                    framebufferCount: ctx.framebufferCount,
+                    renderbufferCount: ctx.renderbufferCount,
                     textureCount: ctx.textureCount,
                     vaoCount: ctx.vaoCount,
                 }

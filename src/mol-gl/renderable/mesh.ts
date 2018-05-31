@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Renderable, RenderableState } from '../renderable'
+import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema } from '../renderable/schema';
@@ -30,23 +30,5 @@ export function MeshRenderable(ctx: Context, id: number, values: MeshValues, sta
     const schaderCode = MeshShaderCode
     const renderItem = createRenderItem(ctx, 'triangles', schaderCode, schema, { ...values, ...internalValues })
 
-    return {
-        draw: () => {
-            renderItem.draw()
-        },
-        pick: () => {
-            renderItem.pick()
-        },
-        get values () { return values },
-        get state () { return state },
-        name: 'mesh',
-        get drawProgram () { return renderItem.drawProgram },
-        get pickProgram () { return renderItem.pickProgram },
-        update: () => {
-            renderItem.update()
-        },
-        dispose: () => {
-            renderItem.destroy()
-        }
-    }
+    return createRenderable(renderItem, values, state)
 }

@@ -71,8 +71,8 @@ export interface Context {
     textureCount: number
     vaoCount: number
 
-    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     unbindFramebuffer: () => void
+    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     destroy: () => void
 }
 
@@ -110,6 +110,7 @@ export function createContext(gl: WebGLRenderingContext): Context {
         textureCount: 0,
         vaoCount: 0,
 
+        unbindFramebuffer: () => unbindFramebuffer(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
             if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
                 gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
@@ -117,7 +118,7 @@ export function createContext(gl: WebGLRenderingContext): Context {
                 console.error('Reading pixels failed. Framebuffer not complete.')
             }
         },
-        unbindFramebuffer: () => unbindFramebuffer(gl),
+
         destroy: () => {
             unbindResources(gl)
             programCache.dispose()

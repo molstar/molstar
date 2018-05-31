@@ -5,7 +5,8 @@
  */
 
 import { Program } from './webgl/program';
-import { RenderableValues } from './renderable/schema';
+import { RenderableValues, Values, RenderableSchema } from './renderable/schema';
+import { RenderVariant, RenderItem } from './webgl/render-item';
 
 export type RenderableState = {
     visible: boolean
@@ -13,15 +14,25 @@ export type RenderableState = {
 }
 
 export interface Renderable<T extends RenderableValues> {
-    draw: () => void
-    pick: () => void
-    values: T
-    state: RenderableState
-    name: string
-    drawProgram: Program
-    pickProgram: Program
+    readonly values: T
+    readonly state: RenderableState
+
+    render: (variant: RenderVariant) => void
+    getProgram: (variant: RenderVariant) => Program
     update: () => void
     dispose: () => void
+}
+
+export function createRenderable<T extends Values<RenderableSchema>>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
+    return {
+        get values () { return values },
+        get state () { return state },
+
+        render: (variant: RenderVariant) => renderItem.render(variant),
+        getProgram: (variant: RenderVariant) => renderItem.getProgram(variant),
+        update: () => renderItem.update(),
+        dispose: () => renderItem.destroy()
+    }
 }
 
 export { PointRenderable, PointSchema, PointValues } from './renderable/point'

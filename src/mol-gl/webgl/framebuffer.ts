@@ -29,10 +29,7 @@ export function createFramebuffer (ctx: Context): Framebuffer {
     return {
         id: getNextFramebufferId(),
 
-        bind: () => {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer)
-        },
-
+        bind: () => gl.bindFramebuffer(gl.FRAMEBUFFER, _framebuffer),
         destroy: () => {
             if (destroyed) return
             gl.deleteFramebuffer(_framebuffer)

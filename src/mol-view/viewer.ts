@@ -6,7 +6,7 @@
 
 import { BehaviorSubject } from 'rxjs';
 
-import { Vec3, Mat4, EPSILON } from 'mol-math/linear-algebra'
+import { Vec3, Mat4, EPSILON, Vec4 } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
 import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
@@ -20,6 +20,7 @@ import { createContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
+import { RenderVariant } from 'mol-gl/webgl/render-item';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -36,6 +37,7 @@ interface Viewer {
     requestDraw: () => void
     animate: () => void
     pick: () => void
+    identify: (x: number, y: number) => void
 
     reprCount: BehaviorSubject<number>
     didDraw: BehaviorSubject<number>
@@ -43,8 +45,7 @@ interface Viewer {
     handleResize: () => void
     resetCamera: () => void
     downloadScreenshot: () => void
-    getImageData: () => ImageData
-    getPickImageData: () => ImageData
+    getImageData: (variant: RenderVariant) => ImageData
 
     input: InputObserver
     stats: RendererStats
@@ -72,6 +73,7 @@ namespace Viewer {
 
         const input = InputObserver.create(canvas)
         input.resize.subscribe(handleResize)
+        input.move.subscribe(({x, y}) => identify(x, y))
 
         const camera = PerspectiveCamera.create({
             near: 0.1,
@@ -97,19 +99,23 @@ namespace Viewer {
         const scene = Scene.create(ctx)
         const renderer = Renderer.create(ctx, camera)
 
-        const rtScale = 1 / 4
-        const renderTarget = createRenderTarget(ctx, Math.round(canvas.width * rtScale), Math.round(canvas.height * rtScale))
+        const pickScale = 1 // 1 / 4
+        const pickWidth = Math.round(canvas.width * pickScale)
+        const pickHeight = Math.round(canvas.height * pickScale)
+        const objectPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
+        const instancePickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
+        const elementPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
 
         let drawPending = false
         const prevProjectionView = Mat4.zero()
 
-        function render(pick: boolean, force?: boolean) {
+        function render(variant: RenderVariant, force?: boolean) {
             let didRender = false
             controls.update()
             camera.update()
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value)) {
                 Mat4.copy(prevProjectionView, camera.projectionView)
-                renderer.render(scene, pick)
+                renderer.render(scene, variant)
                 didRender = true
             }
             return didRender
@@ -119,7 +125,7 @@ namespace Viewer {
             ctx.unbindFramebuffer()
             const viewport = { x: 0, y: 0, width: canvas.width, height: canvas.height }
             renderer.setViewport(viewport)
-            if (render(false, force)) {
+            if (render('draw', force)) {
                 didDraw.next(performance.now() - startTime)
             }
             drawPending = false
@@ -134,6 +140,31 @@ namespace Viewer {
         function animate () {
             draw(false)
             window.requestAnimationFrame(() => animate())
+        }
+
+        const decodeFactors = Vec4.create(1, 1/255, 1/65025, 1/16581375)
+        function decodeFloatRGBA(rgba: Vec4) {
+            return Vec4.dot(rgba, decodeFactors);
+        }
+
+        function identify (x: number, y: number) {
+            y = canvas.height - y // flip y
+            const xp = Math.round(x * pickScale)
+            const yp = Math.round(y * pickScale)
+            console.log('position', x, y, xp, yp)
+
+            const buffer = new Uint8Array(4)
+            elementPickTarget.bind()
+            ctx.readPixels(xp, yp, 1, 1, buffer)
+            console.log('identify', buffer[0], buffer[1], buffer[2], buffer[3])
+            const v = Vec4.create(buffer[0], buffer[1], buffer[2], buffer[3])
+            const d = decodeFloatRGBA(v)
+            console.log(d)
+            console.log(d * 16777216)
+
+            ctx.unbindFramebuffer()
+            ctx.readPixels(x, y, 1, 1, buffer)
+            console.log('color', buffer[0], buffer[1], buffer[2], buffer[3])
         }
 
         handleResize()
@@ -184,9 +215,16 @@ namespace Viewer {
             requestDraw,
             animate,
             pick: () => {
-                renderTarget.bind()
-                render(true, true)
+                objectPickTarget.bind()
+                render('pickObject', true)
+
+                instancePickTarget.bind()
+                render('pickInstance', true)
+
+                elementPickTarget.bind()
+                render('pickElement', true)
             },
+            identify,
 
             handleResize,
             resetCamera: () => {
@@ -195,11 +233,13 @@ namespace Viewer {
             downloadScreenshot: () => {
                 // TODO
             },
-            getImageData: () => {
-                return renderer.getImageData()
-            },
-            getPickImageData: () => {
-                return renderTarget.getImageData()
+            getImageData: (variant: RenderVariant) => {
+                switch (variant) {
+                    case 'draw': return renderer.getImageData()
+                    case 'pickObject': return objectPickTarget.getImageData()
+                    case 'pickInstance': return instancePickTarget.getImageData()
+                    case 'pickElement': return elementPickTarget.getImageData()
+                }
             },
             reprCount,
             didDraw,
@@ -224,7 +264,12 @@ namespace Viewer {
             renderer.setViewport(viewport)
             Viewport.copy(camera.viewport, viewport)
             Viewport.copy(controls.viewport, viewport)
-            renderTarget.setSize(Math.round(canvas.width * rtScale), Math.round(canvas.height * rtScale))
+
+            const pickWidth = Math.round(canvas.width * pickScale)
+            const pickHeight = Math.round(canvas.height * pickScale)
+            objectPickTarget.setSize(pickWidth, pickHeight)
+            instancePickTarget.setSize(pickWidth, pickHeight)
+            elementPickTarget.setSize(pickWidth, pickHeight)
         }
     }
 }

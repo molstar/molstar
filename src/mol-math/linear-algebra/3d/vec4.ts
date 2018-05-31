@@ -140,6 +140,10 @@ namespace Vec4 {
         out[3] = m[3] * x + m[7] * y + m[11] * z + m[15] * w;
         return out;
     }
+
+    export function dot(a: Vec4, b: Vec4) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    }
 }
 
 export default Vec4
