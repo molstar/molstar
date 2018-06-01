@@ -109,16 +109,16 @@ describe('renderer', () => {
         scene.add(points)
         expect(ctx.bufferCount).toBe(6);
         expect(ctx.textureCount).toBe(1);
-        expect(ctx.vaoCount).toBe(1);
-        expect(ctx.programCache.count).toBe(1);
-        expect(ctx.shaderCache.count).toBe(2);
+        expect(ctx.vaoCount).toBe(4);
+        expect(ctx.programCache.count).toBe(4);
+        expect(ctx.shaderCache.count).toBe(8);
 
         scene.remove(points)
         expect(ctx.bufferCount).toBe(0);
         expect(ctx.textureCount).toBe(0);
         expect(ctx.vaoCount).toBe(0);
-        expect(ctx.programCache.count).toBe(1);
-        expect(ctx.shaderCache.count).toBe(2);
+        expect(ctx.programCache.count).toBe(4);
+        expect(ctx.shaderCache.count).toBe(8);
 
         ctx.programCache.dispose()
         expect(ctx.programCache.count).toBe(0);
