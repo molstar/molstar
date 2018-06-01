@@ -6,6 +6,7 @@
 
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
+import { PickingId, PickingInfo } from '../util/picking';
 
 export interface RepresentationProps {}
 
@@ -13,4 +14,5 @@ export interface Representation<D, P extends RepresentationProps = {}> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (data: D, props?: P) => Task<void>
     update: (props: P) => Task<void>
+    getLabel: (pickingId: PickingId) => PickingInfo | null
 }

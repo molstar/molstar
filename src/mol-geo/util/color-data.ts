@@ -62,7 +62,6 @@ export function createAttributeColor(props: AttributeColorProps, colorData?: Col
         }
     }
     if (colorData) {
-        console.log('update colordata attribute')
         ValueCell.update(colorData.aColor, colors)
         if (colorData.dColorType.ref.value !== 'attribute') {
             ValueCell.update(colorData.dColorType, 'attribute')
@@ -81,7 +80,6 @@ export function createAttributeColor(props: AttributeColorProps, colorData?: Col
 
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
-        console.log('update colordata texture')
         ValueCell.update(colorData.tColor, colors)
         ValueCell.update(colorData.uColorTexSize, Vec2.create(colors.width, colors.height))
         if (colorData.dColorType.ref.value !== type) {

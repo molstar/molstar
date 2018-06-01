@@ -17,6 +17,7 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
 import { getMeshData } from '../../util/mesh-data';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
+import { PickingId } from '../../util/picking';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -99,6 +100,9 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                 // TODO
                 return false
             })
+        },
+        getLabel(pickingId: PickingId) {
+            return null
         }
     }
 }

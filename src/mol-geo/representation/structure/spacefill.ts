@@ -22,6 +22,7 @@ import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
+import { PickingId } from '../../util/picking';
 
 export const DefaultSpacefillProps = {
     ...DefaultStructureProps,
@@ -70,9 +71,7 @@ function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
             }
         }
 
-        const _mesh = meshBuilder.getMesh()
-        console.log(_mesh)
-        return _mesh
+        return meshBuilder.getMesh()
     })
 }
 
@@ -171,6 +170,16 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 currentProps = newProps
                 return true
             })
+        },
+        getLocation(pickingId: PickingId) {
+            const { objectId, instanceId, elementId } = pickingId
+            if (spheres.id === objectId) {
+                const l = Element.Location()
+                l.unit = currentGroup.units[instanceId]
+                l.element = currentGroup.elements[elementId]
+                return l
+            }
+            return null
         }
     }
 }

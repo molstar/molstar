@@ -21,23 +21,7 @@ import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
-
-function decodeFloatRGBA(r: number, g: number, b: number) {
-    r = Math.floor(r)
-    g = Math.floor(g)
-    b = Math.floor(b)
-    return r * 256 * 256 + g * 256 + b
-}
-
-function decodeIdRGBA(r: number, g: number, b: number) {
-    return decodeFloatRGBA(r, g, b) - 1
-}
-
-interface PickingId {
-    objectId: number
-    instanceId: number
-    elementId: number
-}
+import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -94,7 +78,12 @@ namespace Viewer {
         input.resize.subscribe(handleResize)
         input.move.subscribe(({x, y}) => {
             const p = identify(x, y)
-            identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}`)
+            let label = ''
+            reprMap.forEach((roSet, repr) => {
+                const info = repr.getLabel(p)
+                if (info) label = info.label
+            })
+            identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`)
         })
 
         const camera = PerspectiveCamera.create({
