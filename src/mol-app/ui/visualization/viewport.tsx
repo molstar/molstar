@@ -99,13 +99,14 @@ type ViewportState = {
     showLogo: boolean,
     aspectRatio: number,
     images: { [k: string]: ImageData }
+    info: string
 }
 
-export class Viewport extends View<ViewportController, ViewportState, { noWebGl?: boolean, showLogo?: boolean, aspectRatio: number }> {
+export class Viewport extends View<ViewportController, ViewportState, { noWebGl?: boolean, showLogo?: boolean, aspectRatio: number, info: string }> {
     private container: HTMLDivElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
     private defaultBg = { r: 1, g: 1, b: 1 }
-    state: ViewportState = { noWebGl: false, showLogo: true, images: {}, aspectRatio: 1 };
+    state: ViewportState = { noWebGl: false, showLogo: true, images: {}, aspectRatio: 1, info: '' };
 
     componentDidMount() {
         if (!this.canvas || !this.container || !this.controller.context.initStage(this.canvas, this.container)) {
@@ -119,6 +120,10 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
                 showLogo: false
                 // showLogo: count === 0
             })
+        })
+
+        viewer.identified.subscribe(info => {
+            this.setState({ info })
         })
 
         viewer.didDraw.subscribe(() => {
@@ -163,6 +168,18 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
             </div>
             {this.state.showLogo ? <Logo /> : void 0}
             <ViewportControls controller={this.controller} />
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 10,
+                    left: 10,
+                    padding: 10,
+                    color: 'lightgrey',
+                    background: 'rgba(0, 0, 0, 0.2)'
+                }}
+            >
+                {this.state.info}
+            </div>
             <div
                 style={{
                     position: 'absolute',

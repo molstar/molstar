@@ -6,7 +6,7 @@
 
 import { BehaviorSubject } from 'rxjs';
 
-import { Vec3, Mat4, EPSILON, Vec4 } from 'mol-math/linear-algebra'
+import { Vec3, Mat4, EPSILON } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
 import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
@@ -21,6 +21,23 @@ import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
+
+function decodeFloatRGBA(r: number, g: number, b: number) {
+    r = Math.floor(r)
+    g = Math.floor(g)
+    b = Math.floor(b)
+    return r * 256 * 256 + g * 256 + b
+}
+
+function decodeIdRGBA(r: number, g: number, b: number) {
+    return decodeFloatRGBA(r, g, b) - 1
+}
+
+interface PickingId {
+    objectId: number
+    instanceId: number
+    elementId: number
+}
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -40,6 +57,7 @@ interface Viewer {
     identify: (x: number, y: number) => void
 
     reprCount: BehaviorSubject<number>
+    identified: BehaviorSubject<string>
     didDraw: BehaviorSubject<number>
 
     handleResize: () => void
@@ -67,13 +85,17 @@ namespace Viewer {
     export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
         const reprMap = new Map<Representation<any>, Set<RenderObject>>()
         const reprCount = new BehaviorSubject(0)
+        const identified = new BehaviorSubject('')
 
         const startTime = performance.now()
         const didDraw = new BehaviorSubject(0)
 
         const input = InputObserver.create(canvas)
         input.resize.subscribe(handleResize)
-        input.move.subscribe(({x, y}) => identify(x, y))
+        input.move.subscribe(({x, y}) => {
+            const p = identify(x, y)
+            identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}`)
+        })
 
         const camera = PerspectiveCamera.create({
             near: 0.1,
@@ -99,7 +121,7 @@ namespace Viewer {
         const scene = Scene.create(ctx)
         const renderer = Renderer.create(ctx, camera)
 
-        const pickScale = 1 // 1 / 4
+        const pickScale = 1 / 4
         const pickWidth = Math.round(canvas.width * pickScale)
         const pickHeight = Math.round(canvas.height * pickScale)
         const objectPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
@@ -142,29 +164,26 @@ namespace Viewer {
             window.requestAnimationFrame(() => animate())
         }
 
-        const decodeFactors = Vec4.create(1, 1/255, 1/65025, 1/16581375)
-        function decodeFloatRGBA(rgba: Vec4) {
-            return Vec4.dot(rgba, decodeFactors);
-        }
-
-        function identify (x: number, y: number) {
+        function identify (x: number, y: number): PickingId {
+            const buffer = new Uint8Array(4)
             y = canvas.height - y // flip y
+
             const xp = Math.round(x * pickScale)
             const yp = Math.round(y * pickScale)
-            console.log('position', x, y, xp, yp)
 
-            const buffer = new Uint8Array(4)
+            objectPickTarget.bind()
+            ctx.readPixels(xp, yp, 1, 1, buffer)
+            const objectId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+
+            instancePickTarget.bind()
+            ctx.readPixels(xp, yp, 1, 1, buffer)
+            const instanceId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+
             elementPickTarget.bind()
             ctx.readPixels(xp, yp, 1, 1, buffer)
-            console.log('identify', buffer[0], buffer[1], buffer[2], buffer[3])
-            const v = Vec4.create(buffer[0], buffer[1], buffer[2], buffer[3])
-            const d = decodeFloatRGBA(v)
-            console.log(d)
-            console.log(d * 16777216)
+            const elementId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
 
-            ctx.unbindFramebuffer()
-            ctx.readPixels(x, y, 1, 1, buffer)
-            console.log('color', buffer[0], buffer[1], buffer[2], buffer[3])
+            return { objectId, instanceId, elementId }
         }
 
         handleResize()
@@ -242,6 +261,7 @@ namespace Viewer {
                 }
             },
             reprCount,
+            identified,
             didDraw,
 
             get input() {
