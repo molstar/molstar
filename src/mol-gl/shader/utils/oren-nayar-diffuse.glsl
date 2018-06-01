@@ -3,7 +3,7 @@
 
 #define PI 3.14159265
 
-float orenNayarDiffuse(vec3 lightDirection, vec3 viewDirection, vec3 surfaceNormal, float roughness, float albedo) {
+float orenNayarDiffuse(const in vec3 lightDirection, const in vec3 viewDirection, const in vec3 surfaceNormal, const in float roughness, const in float albedo) {
     float LdotV = dot(lightDirection, viewDirection);
     float NdotL = dot(lightDirection, surfaceNormal);
     float NdotV = dot(surfaceNormal, viewDirection);
