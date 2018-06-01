@@ -23,6 +23,7 @@ import from_mmCIF from './formats/mmcif'
  */
 interface Model extends Readonly<{
     id: UUID,
+    label: string,
 
     modelNum: number,
 
