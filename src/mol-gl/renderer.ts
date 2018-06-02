@@ -39,10 +39,6 @@ interface Renderer {
     dispose: () => void
 }
 
-function getPixelRatio() {
-    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
-}
-
 export const DefaultRendererProps = {
     clearColor: 0x000000 as Color,
     viewport: Viewport.create(0, 0, 0, 0)
@@ -56,7 +52,6 @@ namespace Renderer {
 
         const model = Mat4.identity()
         const viewport = Viewport.clone(_viewport)
-        const pixelRatio = getPixelRatio()
 
         // const lightPosition = Vec3.create(0, 0, -100)
         const lightColor = Vec3.create(1.0, 1.0, 1.0)
@@ -73,7 +68,7 @@ namespace Renderer {
             uView: ValueCell.create(Mat4.clone(camera.view)),
             uProjection: ValueCell.create(Mat4.clone(camera.projection)),
 
-            uPixelRatio: ValueCell.create(pixelRatio),
+            uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
 
             uLightColor: ValueCell.create(Vec3.clone(lightColor)),

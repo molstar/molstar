@@ -179,9 +179,11 @@ namespace Viewer {
         }
 
         function identify (x: number, y: number): PickingId {
-            const buffer = new Uint8Array(4)
+            x *= ctx.pixelRatio
+            y *= ctx.pixelRatio
             y = canvas.height - y // flip y
 
+            const buffer = new Uint8Array(4)
             const xp = Math.round(x * pickScale)
             const yp = Math.round(y * pickScale)
 

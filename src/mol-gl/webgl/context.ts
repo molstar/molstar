@@ -7,6 +7,10 @@
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
 
+function getPixelRatio() {
+    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
+}
+
 function unbindResources (gl: WebGLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)
@@ -61,6 +65,7 @@ type Extensions = {
 export interface Context {
     gl: WebGLRenderingContext
     extensions: Extensions
+    pixelRatio: number
 
     shaderCache: ShaderCache
     programCache: ProgramCache
@@ -100,6 +105,7 @@ export function createContext(gl: WebGLRenderingContext): Context {
     return {
         gl,
         extensions: { angleInstancedArrays, standardDerivatives, oesElementIndexUint, oesVertexArrayObject },
+        pixelRatio: getPixelRatio(),
 
         shaderCache,
         programCache,
