@@ -144,10 +144,12 @@ export const BaseSchema = {
     uAlpha: UniformSpec('f'),
     uInstanceCount: UniformSpec('i'),
     uElementCount: UniformSpec('i'),
-    uColorTexSize: UniformSpec('v2'),
     uColor: UniformSpec('v3'),
+    uColorTexSize: UniformSpec('v2'),
+    uFlagTexSize: UniformSpec('v2'),
 
     tColor: TextureSpec('rgb', 'ubyte'),
+    tFlag: TextureSpec('alpha', 'ubyte'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),

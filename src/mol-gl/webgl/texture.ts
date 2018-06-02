@@ -13,13 +13,14 @@ import { Framebuffer } from './framebuffer';
 
 const getNextTextureId = idFactory()
 
-export type TextureFormat = 'rgb' | 'rgba'
+export type TextureFormat = 'alpha' | 'rgb' | 'rgba'
 export type TextureType = 'ubyte' | 'uint'
 export type TextureAttachment = 'depth' | 'stencil' | 'color0'
 
 export function getFormat(ctx: Context, format: TextureFormat) {
     const { gl } = ctx
     switch (format) {
+        case 'alpha': return gl.ALPHA
         case 'rgb': return gl.RGB
         case 'rgba': return gl.RGBA
     }

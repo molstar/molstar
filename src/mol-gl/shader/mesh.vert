@@ -27,6 +27,7 @@ varying vec3 vViewPosition;
 
 void main(){
     #pragma glslify: import('./chunks/color-assign-varying.glsl')
+    vFlag = readFromTexture(tFlag, aInstanceId * float(uElementCount) + aElementId, uFlagTexSize).a;
 
     mat4 modelView = uView * uModel * aTransform;
     vec4 mvPosition = modelView * vec4(aPosition, 1.0);

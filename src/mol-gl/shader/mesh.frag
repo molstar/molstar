@@ -75,5 +75,9 @@ void main() {
         // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
         gl_FragColor.rgb = finalColor;
         gl_FragColor.a = uAlpha;
+
+        if (vFlag == 1.0) {
+            gl_FragColor.rgb = mix(vec3(1.0, 0.4, 0.6), gl_FragColor.rgb, 0.3);
+        }
     #endif
 }

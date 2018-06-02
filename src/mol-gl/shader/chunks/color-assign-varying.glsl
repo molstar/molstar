@@ -1,11 +1,11 @@
 #if defined(dColorType_attribute)
-    vColor.xyz = aColor;
+    vColor.rgb = aColor;
 #elif defined(dColorType_instance)
-    vColor.xyz = read_vec3(tColor, aInstanceId, uColorTexSize);
+    vColor.rgb = readFromTexture(tColor, aInstanceId, uColorTexSize).rgb;
 #elif defined(dColorType_element)
-    vColor.xyz = read_vec3(tColor, aElementId, uColorTexSize);
+    vColor.rgb = readFromTexture(tColor, aElementId, uColorTexSize).rgb;
 #elif defined(dColorType_elementInstance)
-    vColor.xyz = read_vec3(tColor, aInstanceId * float(uElementCount) + aElementId, uColorTexSize);
+    vColor.rgb = readFromTexture(tColor, aInstanceId * float(uElementCount) + aElementId, uColorTexSize).rgb;
 #elif defined(dColorType_objectPicking)
     vColor = encodeIdRGBA(float(uObjectId));
 #elif defined(dColorType_instancePicking)

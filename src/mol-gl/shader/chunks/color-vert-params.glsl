@@ -11,5 +11,3 @@
     varying vec4 vColor;
     #pragma glslify: encodeIdRGBA = require(../utils/encode-id-rgba.glsl)
 #endif
-
-#pragma glslify: read_vec3 = require(../utils/read-from-texture.glsl)

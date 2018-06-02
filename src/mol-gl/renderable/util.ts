@@ -18,12 +18,10 @@ export interface TextureImage {
     height: number
 }
 
-export function createColorTexture (n: number): TextureImage {
-    const { length, width, height } = calculateTextureInfo(n, 3)
+export function createTextureImage (n: number, itemSize: number): TextureImage {
+    const { length, width, height } = calculateTextureInfo(n, itemSize)
     return { array: new Uint8Array(length), width, height }
 }
-
-export const emptyTexture = { array: new Uint8Array(0), width: 0, height: 0 }
 
 export function fillSerial<T extends Helpers.NumberArray> (array: T) {
     const n = array.length

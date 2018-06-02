@@ -128,7 +128,6 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
 
         viewer.didDraw.subscribe(() => {
             // this.setState({ imageData: viewer.getImageData() })
-            viewer.pick()
             this.setState({
                 images: {
                     'object': viewer.getImageData('pickObject'),

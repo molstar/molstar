@@ -14,7 +14,7 @@ import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
-import { createTransforms, createColors } from './utils';
+import { createTransforms, createColors, createFlags } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 import { deepEqual, defaults } from 'mol-util';
@@ -92,7 +92,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 renderObjects.length = 0 // clear
                 currentGroup = group
 
-                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme, hoverSelection } = { ...DefaultSpacefillProps, ...props }
 
                 mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
@@ -104,6 +104,9 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 await ctx.update('Computing spacefill colors');
                 const color = createColors(group, vertexMap, colorTheme)
 
+                await ctx.update('Computing spacefill flags');
+                const flag = createFlags(group, hoverSelection.instanceId, hoverSelection.elementId)
+
                 const instanceCount = group.units.length
 
                 const values: MeshValues = {
@@ -111,6 +114,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
+                    ...flag,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                     uInstanceCount: ValueCell.create(instanceCount),
@@ -157,6 +161,11 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 if (updateColor) {
                     await ctx.update('Computing spacefill colors');
                     createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
+                }
+
+                if (newProps.hoverSelection !== currentProps.hoverSelection) {
+                    await ctx.update('Computing spacefill flags');
+                    createFlags(currentGroup, newProps.hoverSelection.instanceId, newProps.hoverSelection.elementId, spheres.values)
                 }
 
                 ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)

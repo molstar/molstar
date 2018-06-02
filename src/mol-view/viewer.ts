@@ -81,7 +81,14 @@ namespace Viewer {
             let label = ''
             reprMap.forEach((roSet, repr) => {
                 const info = repr.getLabel(p)
-                if (info) label = info.label
+                if (info) {
+                    label = info.label
+                    // TODO do better, take objectId fully into account
+                    repr.update({ hoverSelection: p }).run().then(() => {
+                        scene.update()
+                        requestDraw()
+                    })
+                }
             })
             identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`)
         })
@@ -117,6 +124,7 @@ namespace Viewer {
         const instancePickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
         const elementPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
 
+        let pickDirty = true
         let drawPending = false
         const prevProjectionView = Mat4.zero()
 
@@ -127,6 +135,10 @@ namespace Viewer {
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value)) {
                 Mat4.copy(prevProjectionView, camera.projectionView)
                 renderer.render(scene, variant)
+                if (variant === 'draw') {
+                    pickDirty = true
+                    pick()
+                }
                 didRender = true
             }
             return didRender
@@ -151,6 +163,19 @@ namespace Viewer {
         function animate () {
             draw(false)
             window.requestAnimationFrame(() => animate())
+        }
+
+        function pick() {
+            objectPickTarget.bind()
+            render('pickObject', pickDirty)
+
+            instancePickTarget.bind()
+            render('pickInstance', pickDirty)
+
+            elementPickTarget.bind()
+            render('pickElement', pickDirty)
+
+            pickDirty = false
         }
 
         function identify (x: number, y: number): PickingId {
@@ -222,16 +247,7 @@ namespace Viewer {
             draw,
             requestDraw,
             animate,
-            pick: () => {
-                objectPickTarget.bind()
-                render('pickObject', true)
-
-                instancePickTarget.bind()
-                render('pickInstance', true)
-
-                elementPickTarget.bind()
-                render('pickElement', true)
-            },
+            pick,
             identify,
 
             handleResize,

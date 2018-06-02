@@ -112,11 +112,13 @@ export function createContext(gl: WebGLRenderingContext): Context {
 
         unbindFramebuffer: () => unbindFramebuffer(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
-            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
-                gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
-            } else {
-                console.error('Reading pixels failed. Framebuffer not complete.')
-            }
+            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+            // TODO check is very expensive
+            // if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
+            //     gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+            // } else {
+            //     console.error('Reading pixels failed. Framebuffer not complete.')
+            // }
         },
 
         destroy: () => {

@@ -18,6 +18,7 @@ import { createUniformColor } from '../../util/color-data';
 import { getMeshData } from '../../util/mesh-data';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
+import { createEmptyFlags } from '../structure/utils';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -66,12 +67,14 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
 
                 const instanceCount = 1
                 const color = createUniformColor({ value: 0x7ec0ee })
+                const flag = createEmptyFlags()
 
                 const values: MeshValues = {
                     ...getMeshData(mesh),
                     aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
+                    ...flag,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                     uInstanceCount: ValueCell.create(instanceCount),

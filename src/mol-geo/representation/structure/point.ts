@@ -11,21 +11,18 @@ import { Unit, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
-import { UnitsRepresentation } from './index';
+import { UnitsRepresentation, DefaultStructureProps } from './index';
 import VertexMap from '../../shape/vertex-map';
-import { ColorTheme, SizeTheme } from '../../theme';
-import { createTransforms, createColors, createSizes } from './utils';
+import { SizeTheme } from '../../theme';
+import { createTransforms, createColors, createSizes, createFlags } from './utils';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
 
 export const DefaultPointProps = {
-    colorTheme: { name: 'instance-index' } as ColorTheme,
-    sizeTheme: { name: 'vdw' } as SizeTheme,
-    alpha: 1,
-    visible: true,
-    depthMask: true
+    ...DefaultStructureProps,
+    sizeTheme: { name: 'vdw' } as SizeTheme
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
@@ -69,7 +66,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 _units = group.units
                 _elements = group.elements;
 
-                const { colorTheme, sizeTheme } = currentProps
+                const { colorTheme, sizeTheme, hoverSelection } = currentProps
                 const elementCount = _elements.length
 
                 const vertexMap = VertexMap.create(
@@ -91,6 +88,9 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 await ctx.update('Computing point sizes');
                 const size = createSizes(group, vertexMap, sizeTheme)
 
+                await ctx.update('Computing spacefill flags');
+                const flag = createFlags(group, hoverSelection.instanceId, hoverSelection.elementId)
+
                 const instanceCount = group.units.length
 
                 const values: PointValues = {
@@ -99,6 +99,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                     aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
+                    ...flag,
                     ...size,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),

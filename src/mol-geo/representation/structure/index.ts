@@ -67,7 +67,8 @@ export const DefaultStructureProps = {
     alpha: 1,
     visible: true,
     doubleSided: false,
-    depthMask: true
+    depthMask: true,
+    hoverSelection: { objectId: -1, instanceId: -1, elementId: -1 } as PickingId
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 
