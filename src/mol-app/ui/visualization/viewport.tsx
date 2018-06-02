@@ -98,6 +98,8 @@ type ViewportState = {
     noWebGl: boolean,
     showLogo: boolean,
     aspectRatio: number,
+    width: number
+    height: number
     images: { [k: string]: ImageData }
     info: string
 }
@@ -106,7 +108,25 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
     private container: HTMLDivElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
     private defaultBg = { r: 1, g: 1, b: 1 }
-    state: ViewportState = { noWebGl: false, showLogo: true, images: {}, aspectRatio: 1, info: '' };
+    state: ViewportState = {
+        noWebGl: false,
+        showLogo: true,
+        images: {},
+        aspectRatio: 1,
+        width: 0,
+        height: 0,
+        info: ''
+    };
+
+    handleResize() {
+        if (this.container) {
+            this.setState({
+                aspectRatio: this.container.clientWidth / this.container.clientHeight,
+                width: this.container.clientWidth,
+                height: this.container.clientHeight
+            })
+        }
+    }
 
     componentDidMount() {
         if (!this.canvas || !this.container || !this.controller.context.initStage(this.canvas, this.container)) {
@@ -137,9 +157,8 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
             })
         })
 
-        if (this.container) {
-            this.setState({ aspectRatio: this.container.clientWidth / this.container.clientHeight })
-        }
+        viewer.input.resize.subscribe(() => this.handleResize())
+        this.handleResize()
     }
 
     componentWillUnmount() {
@@ -188,7 +207,13 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
             >
                 {Object.keys(this.state.images).map(k => {
                     const imageData = this.state.images[k]
-                    return <ImageCanvas key={k} imageData={imageData} aspectRatio={this.state.aspectRatio} maxWidth={256} maxHeight={256} />
+                    return <ImageCanvas
+                        key={k}
+                        imageData={imageData}
+                        aspectRatio={this.state.aspectRatio}
+                        maxWidth={this.state.width / 4}
+                        maxHeight={this.state.height / 4}
+                    />
                 })}
             </div>
         </div>;
