@@ -83,12 +83,12 @@ namespace Viewer {
                 const info = repr.getLabel(p)
                 if (info) {
                     label = info.label
-                    // TODO do better, take objectId fully into account
-                    repr.update({ hoverSelection: p }).run().then(() => {
-                        scene.update()
-                        requestDraw()
-                    })
                 }
+                // TODO do better, take objectId fully into account
+                repr.update({ hoverSelection: p }).run().then(() => {
+                    scene.update()
+                    requestDraw()
+                })
             })
             identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`)
         })

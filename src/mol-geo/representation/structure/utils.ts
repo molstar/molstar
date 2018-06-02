@@ -82,9 +82,15 @@ export function createFlags(group: Unit.SymmetryGroup, instanceId: number, eleme
 }
 
 const emptyFlagTexture = { array: new Uint8Array(1), width: 1, height: 1 }
-export function createEmptyFlags() {
-    return {
-        tFlag: ValueCell.create(emptyFlagTexture),
-        uFlagTexSize: ValueCell.create(Vec2.create(1, 1)),
+export function createEmptyFlags(flagData?: FlagData) {
+    if (flagData) {
+        ValueCell.update(flagData.tFlag, emptyFlagTexture)
+        ValueCell.update(flagData.uFlagTexSize, Vec2.create(1, 1))
+        return flagData
+    } else {
+        return {
+            tFlag: ValueCell.create(emptyFlagTexture),
+            uFlagTexSize: ValueCell.create(Vec2.create(1, 1)),
+        }
     }
 }

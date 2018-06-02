@@ -14,7 +14,7 @@ import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
 import { MeshBuilder } from '../../shape/mesh-builder';
-import { createTransforms, createColors, createFlags } from './utils';
+import { createTransforms, createColors, createFlags, createEmptyFlags } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 import { deepEqual, defaults } from 'mol-util';
@@ -165,7 +165,11 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                 if (newProps.hoverSelection !== currentProps.hoverSelection) {
                     await ctx.update('Computing spacefill flags');
-                    createFlags(currentGroup, newProps.hoverSelection.instanceId, newProps.hoverSelection.elementId, spheres.values)
+                    if (newProps.hoverSelection.objectId === spheres.id) {
+                        createFlags(currentGroup, newProps.hoverSelection.instanceId, newProps.hoverSelection.elementId, spheres.values)
+                    } else {
+                        createEmptyFlags(spheres.values)
+                    }
                 }
 
                 ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
