@@ -81,10 +81,7 @@ namespace Viewer {
             let label = ''
             reprMap.forEach((roSet, repr) => {
                 const info = repr.getLabel(p)
-                if (info) {
-                    label = info.label
-                }
-                // TODO do better, take objectId fully into account
+                if (info) label = info.label
                 repr.update({ hoverSelection: p }).run().then(() => {
                     scene.update()
                     requestDraw()
