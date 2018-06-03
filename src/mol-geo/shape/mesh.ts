@@ -15,6 +15,8 @@ export interface Mesh {
     vertexCount: number,
     /** Number of triangles in the mesh */
     triangleCount: number,
+    /** Number of offsets in the mesh */
+    offsetCount: number,
 
     /** Vertex buffer as array of xyz values wrapped in a value cell */
     vertexBuffer: ValueCell<Float32Array>,
@@ -37,6 +39,26 @@ export interface Mesh {
 }
 
 export namespace Mesh {
+    export function createEmpty(mesh?: Mesh): Mesh {
+        const vb = mesh ? mesh.vertexBuffer.ref.value : new Float32Array(0)
+        const ib = mesh ? mesh.indexBuffer.ref.value : new Uint32Array(0)
+        const nb = mesh ? mesh.normalBuffer.ref.value : new Float32Array(0)
+        const idb = mesh ? mesh.idBuffer.ref.value : new Float32Array(0)
+        const ob = mesh ? mesh.offsetBuffer.ref.value : new Uint32Array(0)
+        return {
+            vertexCount: 0,
+            triangleCount: 0,
+            offsetCount: 0,
+            vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
+            indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
+            normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
+            idBuffer: mesh ? ValueCell.update(mesh.idBuffer, idb) : ValueCell.create(idb),
+            offsetBuffer: mesh ? ValueCell.update(mesh.offsetBuffer, ob) : ValueCell.create(ob),
+            normalsComputed: true,
+            offsetsComputed: true,
+        }
+    }
+
     export function computeNormalsImmediate(surface: Mesh) {
         if (surface.normalsComputed) return;
 

@@ -8,21 +8,30 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-// import { createColorTexture } from 'mol-gl/util';
-import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
-import { MeshBuilder } from '../../shape/mesh-builder';
-import { createTransforms, createColors, createFlags, createEmptyFlags } from './utils';
+import { createTransforms, createColors, createFlags, createEmptyFlags, createSphereMesh } from './utils';
 import VertexMap from '../../shape/vertex-map';
-import { icosahedronVertexCount } from '../../primitive/icosahedron';
 import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
 import { PickingId } from '../../util/picking';
+
+function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
+    let radius: Element.Property<number>
+    if (Unit.isAtomic(unit)) {
+        radius = Queries.props.atom.vdw_radius
+    } else if (Unit.isSpheres(unit)) {
+        radius = Queries.props.coarse.sphere_radius
+    } else {
+        console.warn('Unsupported unit type')
+        return Task.constant('Empty mesh', Mesh.createEmpty(mesh))
+    }
+    return createSphereMesh(unit, radius, detail, mesh)
+}
 
 export const DefaultSpacefillProps = {
     ...DefaultStructureProps,
@@ -31,49 +40,6 @@ export const DefaultSpacefillProps = {
     detail: 0,
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
-
-function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
-    return Task.create('Sphere mesh', async ctx => {
-        const { elements } = unit;
-        const elementCount = elements.length;
-        const vertexCount = elementCount * icosahedronVertexCount(detail)
-        const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
-
-        let radius: Element.Property<number>
-        if (Unit.isAtomic(unit)) {
-            radius = Queries.props.atom.vdw_radius
-        } else if (Unit.isSpheres(unit)) {
-            radius = Queries.props.coarse.sphere_radius
-        } else {
-            console.warn('Unsupported unit type')
-            return meshBuilder.getMesh()
-        }
-
-        const v = Vec3.zero()
-        const m = Mat4.identity()
-
-        const { x, y, z } = unit.conformation
-        const l = Element.Location()
-        l.unit = unit
-
-        for (let i = 0; i < elementCount; i++) {
-            l.element = elements[i]
-            v[0] = x(l.element)
-            v[1] = y(l.element)
-            v[2] = z(l.element)
-            Mat4.setTranslation(m, v)
-
-            meshBuilder.setId(i)
-            meshBuilder.addIcosahedron(m, { radius: radius(l), detail })
-
-            if (i % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
-            }
-        }
-
-        return meshBuilder.getMesh()
-    })
-}
 
 export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
