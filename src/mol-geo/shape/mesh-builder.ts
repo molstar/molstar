@@ -5,13 +5,14 @@
  */
 
 import { ValueCell } from 'mol-util/value-cell'
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
 
 import Box, { BoxProps } from '../primitive/box';
 import Cylinder, { CylinderProps } from '../primitive/cylinder';
 import Icosahedron, { IcosahedronProps } from '../primitive/icosahedron';
 import { Mesh } from './mesh';
+import { getNormalMatrix } from '../util';
 
 type Primitive = {
     vertices: Float32Array
@@ -29,6 +30,7 @@ export interface MeshBuilder {
 }
 
 const tmpV = Vec3.zero()
+const tmpMat3 = Mat3.zero()
 
 // TODO cache primitives based on props
 
@@ -47,6 +49,7 @@ export namespace MeshBuilder {
 
         const add = (t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices: Uint32Array) => {
             const { elementCount, elementSize } = vertices
+            const n = getNormalMatrix(tmpMat3, t)
             for (let i = 0, il = _vertices.length; i < il; i += 3) {
                 // position
                 Vec3.fromArray(tmpV, _vertices, i)
@@ -54,7 +57,7 @@ export namespace MeshBuilder {
                 ChunkedArray.add3(vertices, tmpV[0], tmpV[1], tmpV[2]);
                 // normal
                 Vec3.fromArray(tmpV, _normals, i)
-                // Vec3.transformDirection(tmpV, tmpV, n)  // TODO
+                Vec3.transformMat3(tmpV, tmpV, n)
                 ChunkedArray.add3(normals, tmpV[0], tmpV[1], tmpV[2]);
 
                 ChunkedArray.add(ids, currentId);
