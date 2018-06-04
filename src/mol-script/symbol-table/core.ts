@@ -5,7 +5,7 @@
  */
 
 import Type from '../type'
-import Symbol, { Arguments, Argument } from '../symbol'
+import { Symbol, Arguments, Argument } from '../symbol'
 import { symbol, normalizeTable, symbolList } from '../helpers'
 
 export namespace Types {

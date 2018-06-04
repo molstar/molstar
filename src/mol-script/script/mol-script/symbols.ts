@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Symbol, { Arguments, Argument } from '../../symbol'
+import { Symbol, Arguments, Argument } from '../../symbol'
 import B from '../../builder'
 import * as M from './macro'
 import MolScript from '../../symbol-table'

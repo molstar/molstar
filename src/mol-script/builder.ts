@@ -5,7 +5,7 @@
  */
 
 import Expression from './expression'
-import Symbol from './symbol'
+import { Symbol } from './symbol'
 import SymbolTable from './symbol-table'
 
 namespace Builder {

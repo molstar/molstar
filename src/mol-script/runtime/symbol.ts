@@ -6,27 +6,27 @@
 
 import Environment from './environment'
 import RuntimeExpression from './expression'
+import Expression from '../expression';
 
-export type RuntimeArguments = ArrayLike<RuntimeExpression> | { [name: string]: RuntimeExpression | undefined }
-
-type SymbolRuntime = (env: Environment, args: RuntimeArguments) => any
+type SymbolRuntime = SymbolRuntime.Dynamic | SymbolRuntime.Static
 
 namespace SymbolRuntime {
-    export interface Info {
-        readonly runtime: SymbolRuntime,
+    export interface Static {
+        kind: 'static',
+        readonly runtime: (env: Environment, args: Arguments) => any,
         readonly attributes: Attributes
     }
 
+    export interface Dynamic {
+        kind: 'dynamic',
+        readonly compile: (env: Environment, args: Expression.Arguments) => RuntimeExpression
+    }
+
     export interface Attributes { isStatic: boolean }
+
+    export type Table = Map<string, SymbolRuntime>
+
+    export type Arguments = ArrayLike<RuntimeExpression> | { [name: string]: RuntimeExpression | undefined }
 }
 
-function SymbolRuntime(attributes: Partial<SymbolRuntime.Attributes> = {}) {
-    const { isStatic = false } = attributes;
-    return (runtime: SymbolRuntime): SymbolRuntime.Info => {
-        return ({ runtime, attributes: { isStatic } });
-    };
-}
-
-export type SymbolRuntimeTable = { readonly [id: string]: SymbolRuntime.Info }
-
-export default SymbolRuntime
+export { SymbolRuntime }

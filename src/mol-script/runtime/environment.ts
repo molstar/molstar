@@ -4,13 +4,34 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SymbolRuntimeTable } from './symbol'
+import { Symbol } from '../symbol'
+import { SymbolRuntime } from './symbol'
 import { Macro } from './macro';
+import Expression from '../expression';
 
-interface Environment<T = any> {
-    readonly symbolTable: SymbolRuntimeTable,
-    readonly context: T,
-    readonly macros: Macro.Table
+class Environment {
+    readonly runtimeTable: SymbolRuntime.Table;
+    readonly macroTable: Macro.Table = new Map<string, Macro>();
+
+    addMacro(name: string, expression: Expression, argNames: ReadonlyArray<string>): Macro {
+        const argIndex: Macro['argIndex'] = {};
+        for (let i = 0; i < argNames.length; i++) argIndex[argNames[i]] = i;
+        const macro: Macro = { expression, argIndex, argNames };
+        this.macroTable.set(name, macro);
+        return macro;
+    }
+
+    removeMacro(name: string) {
+        this.macroTable.delete(name);
+    }
+
+    addSymbolRuntime(symbol: Symbol, runtime: SymbolRuntime) {
+        this.runtimeTable.set(symbol.id, runtime);
+    }
+
+    removeSymbolRuntime(symbol: Symbol) {
+        this.runtimeTable.delete(symbol.id);
+    }
 }
 
 export default Environment

@@ -50,7 +50,7 @@ export namespace Arguments {
 
 export type ExpressionArguments<T> = { [P in keyof T]?: Expression } | { [index: number]: Expression }
 
-interface Symbol<A extends Arguments = Arguments, T extends Type = Type> {
+export interface Symbol<A extends Arguments = Arguments, T extends Type = Type> {
     (args?: ExpressionArguments<A['@type']>): Expression,
     info: {
         namespace: string,
@@ -62,7 +62,7 @@ interface Symbol<A extends Arguments = Arguments, T extends Type = Type> {
     id: string,
 }
 
-function Symbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
+export function Symbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
     const symbol: Symbol<A, T> = function(args: ExpressionArguments<A['@type']>) {
         return Expression.Apply(Expression.Symbol(symbol.id), args as any);
     } as any;
@@ -79,6 +79,4 @@ export function isSymbol(x: any): x is Symbol {
 }
 
 export type SymbolMap = { [id: string]: Symbol | undefined }
-
-export default Symbol
 

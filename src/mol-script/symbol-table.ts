@@ -7,7 +7,7 @@
 import core from './symbol-table/core'
 import structureQuery from './symbol-table/structure-query'
 import { normalizeTable, symbolList } from './helpers'
-import Symbol from './symbol'
+import { Symbol } from './symbol'
 
 const table = { core, structureQuery };
 

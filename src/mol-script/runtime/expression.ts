@@ -6,18 +6,18 @@
 
 import Environment from './environment'
 
-type RuntimeExpression<C = any, T = any> = (env: Environment<C>) => T
+type RuntimeExpression<T = any> = (env: Environment) => T
 
 export interface ExpressionInfo {
     isConst?: boolean
 }
 
 namespace RuntimeExpression {
-    export function constant<C, T>(c: T): RuntimeExpression<C, T> {
+    export function constant<T>(c: T): RuntimeExpression<T> {
         return env => c;
     }
 
-    export function func<C, T>(f: (env: Environment<C>) => T): RuntimeExpression<C, T> {
+    export function func<T>(f: (env: Environment) => T): RuntimeExpression<T> {
         return env => f(env);
     }
 }
