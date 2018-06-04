@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -20,7 +20,7 @@ namespace SymbolRuntime {
     export interface Attributes { isStatic: boolean }
 }
 
-function SymbolRuntime(symbol: Symbol, attributes: Partial<SymbolRuntime.Attributes> = {}) {
+function SymbolRuntime(attributes: Partial<SymbolRuntime.Attributes> = {}) {
     const { isStatic = false } = attributes;
     return (runtime: SymbolRuntime): SymbolRuntime.Info => {
         return ({ runtime, attributes: { isStatic } });
