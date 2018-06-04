@@ -16,8 +16,17 @@ The core of Mol* currently consists of these modules:
 - `mol-math` Math related (loosely) algorithms and data structures.
 - `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it. Support for common coordinate, experimental/map, and annotation data formats.
 - `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
-- `mol-ql` Mapping of `mol-model` to the [MolQL query language](https://molql.github.io) spec.
+- `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
+- `mol-geo` Creating molecular geometries.
+- `mol-gl` A wrapper around WebGL. Uses `mol-geo` to generate geometries.
+- `mol-app` Components for builduing UIs.
+- `mol-view` A reference viewer implementation.
 - `mol-util` Useful things that do not fit elsewhere.
+
+Moreover, the project contains the imlementation of `servers`, including
+
+- `servers/model` A tool for accessing coordinate and annotation data of molecular structures.
+- `servers/volume` A tool for accessing volumetric experimental data related to molecular structures.
 
 The project also contains performance tests (`perf-tests`), `examples`, and basic proof of concept `apps` (CIF to BinaryCIF converter and JSON domain annotation to CIF converter).
 
@@ -34,14 +43,24 @@ This project builds on experience from previous solutions:
 ## Building & Running
 
 ### Build:
-   npm install
-   npm run build
+    npm install
+    npm run build
 
 ### Build automatically on file save:
-   npm run watch
+    npm run watch
+    npm run watch-extra
 
-### Run test script from src/script.ts
-   npm run script
+### Build/watch mol-viewer
+Build:
+
+    npm run build
+    npm run build-viewer
+
+Watch:
+
+    npm run watch
+    npm run watch-extra
+    npm run watch-viewer
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

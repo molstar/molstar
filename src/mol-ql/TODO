@@ -1,2 +1,0 @@
-- Have the ability to define schemas for output. 
-  Define properties for each pattern/whatever that could be exported as CIF/CSV/JSON.
