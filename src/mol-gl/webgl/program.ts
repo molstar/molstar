@@ -36,9 +36,9 @@ function getAttributeLocations(ctx: Context, program: WebGLProgram, schema: Rend
         const spec = schema[k]
         if (spec.type === 'attribute') {
             const loc = gl.getAttribLocation(program, k)
-            if (loc === -1) {
-                console.info(`Could not get attribute location for '${k}'`)
-            }
+            // if (loc === -1) {
+            //     console.info(`Could not get attribute location for '${k}'`)
+            // }
             locations[k] = loc
         }
     })

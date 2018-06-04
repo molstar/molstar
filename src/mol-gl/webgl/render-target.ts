@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context'
+import { Context, createImageData } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { createTexture } from './texture';
 import { createFramebuffer } from './framebuffer';
-// import { createRenderbuffer } from './renderbuffer';
+import { createRenderbuffer } from './renderbuffer';
 
 const getNextRenderTargetId = idFactory()
 
@@ -17,27 +17,29 @@ export interface RenderTarget {
 
     bind: () => void
     setSize: (width: number, height: number) => void
-    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
+    getImageData: () => ImageData
     destroy: () => void
 }
 
 export function createRenderTarget (ctx: Context, _width: number, _height: number): RenderTarget {
     const { gl } = ctx
 
+    const image = {
+        array: new Uint8Array(_width * _height * 4),
+        width: _width,
+        height: _height
+    }
+
     const targetTexture = createTexture(ctx, 'rgba', 'ubyte')
-    targetTexture.setSize(_width, _height)
+    targetTexture.load(image)
 
     const framebuffer = createFramebuffer(ctx)
-    framebuffer.bind()
 
     // attach the texture as the first color attachment
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, targetTexture.texture, 0);
+    targetTexture.attachFramebuffer(framebuffer, 'color0')
 
-    // const depthRenderbuffer = createRenderbuffer(ctx)
-    // depthRenderbuffer.bind()
-    // // make a depth buffer and the same size as the targetTexture
-    // gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, targetTexture.width, targetTexture.height);
-    // gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRenderbuffer);
+    // make a depth renderbuffer of the same size as the targetTexture
+    const depthRenderbuffer = createRenderbuffer(ctx, 'depth16', 'depth', _width, _height)
 
     let destroyed = false
 
@@ -51,18 +53,23 @@ export function createRenderTarget (ctx: Context, _width: number, _height: numbe
         setSize: (width: number, height: number) => {
             _width = width
             _height = height
-            targetTexture.setSize(_width, _height)
+            image.array = new Uint8Array(_width * _height * 4)
+            image.width = _width
+            image.height = _height
+            targetTexture.load(image)
+
+            depthRenderbuffer.setSize(_width, _height)
         },
-        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
+        getImageData: () => {
             framebuffer.bind()
-            ctx.readPixels(x, y, width, height, buffer)
-            ctx.unbindFramebuffer()
+            ctx.readPixels(0, 0, _width, _height, image.array)
+            return createImageData(image.array, _width, _height)
         },
         destroy: () => {
             if (destroyed) return
             targetTexture.destroy()
             framebuffer.destroy()
-            // depthRenderbuffer.destroy()
+            depthRenderbuffer.destroy()
             destroyed = true
         }
     }

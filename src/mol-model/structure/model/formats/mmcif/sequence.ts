@@ -10,8 +10,18 @@ import { Column } from 'mol-data/db';
 import { AtomicHierarchy } from '../../properties/atomic';
 import { Entities } from '../../properties/common';
 
+// TODO how to handle microheterogeneity
+//    see http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly_seq.html
+//
+// Data items in the ENTITY_POLY_SEQ category specify the sequence
+// of monomers in a polymer. Allowance is made for the possibility
+// of microheterogeneity in a sample by allowing a given sequence
+// number to be correlated with more than one monomer ID. The
+// corresponding ATOM_SITE entries should reflect this
+// heterogeneity.
+
 export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHierarchy): Sequence {
-    if (!cif.entity_poly_seq._rowCount) return Sequence.fromAtomicHierarchy(hierarchy);
+    if (!cif.entity_poly_seq._rowCount) return Sequence.fromAtomicHierarchy(entities, hierarchy);
 
     const { entity_id, num, mon_id } = cif.entity_poly_seq;
 

@@ -8,20 +8,30 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-// import { createColorTexture } from 'mol-gl/util';
-import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
-import { MeshBuilder } from '../../shape/mesh-builder';
-import { createTransforms, createColors } from './utils';
+import { createTransforms, createColors, createFlags, createEmptyFlags, createSphereMesh } from './utils';
 import VertexMap from '../../shape/vertex-map';
-import { icosahedronVertexCount } from '../../primitive/icosahedron';
 import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
+import { PickingId } from '../../util/picking';
+
+function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
+    let radius: Element.Property<number>
+    if (Unit.isAtomic(unit)) {
+        radius = Queries.props.atom.vdw_radius
+    } else if (Unit.isSpheres(unit)) {
+        radius = Queries.props.coarse.sphere_radius
+    } else {
+        console.warn('Unsupported unit type')
+        return Task.constant('Empty mesh', Mesh.createEmpty(mesh))
+    }
+    return createSphereMesh(unit, radius, detail, mesh)
+}
 
 export const DefaultSpacefillProps = {
     ...DefaultStructureProps,
@@ -30,51 +40,6 @@ export const DefaultSpacefillProps = {
     detail: 0,
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
-
-function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
-    return Task.create('Sphere mesh', async ctx => {
-        const { elements } = unit;
-        const elementCount = elements.length;
-        const vertexCount = elementCount * icosahedronVertexCount(detail)
-        const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
-
-        let radius: Element.Property<number>
-        if (Unit.isAtomic(unit)) {
-            radius = Queries.props.atom.vdw_radius
-        } else if (Unit.isSpheres(unit)) {
-            radius = Queries.props.coarse.sphere_radius
-        } else {
-            console.warn('Unsupported unit type')
-            return meshBuilder.getMesh()
-        }
-
-        const v = Vec3.zero()
-        const m = Mat4.identity()
-
-        const { x, y, z } = unit.conformation
-        const l = Element.Location()
-        l.unit = unit
-
-        for (let i = 0; i < elementCount; i++) {
-            l.element = elements[i]
-            v[0] = x(l.element)
-            v[1] = y(l.element)
-            v[2] = z(l.element)
-            Mat4.setTranslation(m, v)
-
-            meshBuilder.setId(i)
-            meshBuilder.addIcosahedron(m, { radius: radius(l), detail })
-
-            if (i % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
-            }
-        }
-
-        const _mesh = meshBuilder.getMesh()
-        console.log(_mesh)
-        return _mesh
-    })
-}
 
 export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
@@ -93,7 +58,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 renderObjects.length = 0 // clear
                 currentGroup = group
 
-                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme, hoverSelection } = { ...DefaultSpacefillProps, ...props }
 
                 mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
@@ -105,6 +70,9 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 await ctx.update('Computing spacefill colors');
                 const color = createColors(group, vertexMap, colorTheme)
 
+                await ctx.update('Computing spacefill flags');
+                const flag = createFlags(group, hoverSelection.instanceId, hoverSelection.elementId)
+
                 const instanceCount = group.units.length
 
                 const values: MeshValues = {
@@ -112,9 +80,9 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
+                    ...flag,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uObjectId: ValueCell.create(0),
                     uInstanceCount: ValueCell.create(instanceCount),
                     uElementCount: ValueCell.create(group.elements.length),
 
@@ -161,6 +129,15 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
                 }
 
+                if (newProps.hoverSelection !== currentProps.hoverSelection) {
+                    await ctx.update('Computing spacefill flags');
+                    if (newProps.hoverSelection.objectId === spheres.id) {
+                        createFlags(currentGroup, newProps.hoverSelection.instanceId, newProps.hoverSelection.elementId, spheres.values)
+                    } else {
+                        createEmptyFlags(spheres.values)
+                    }
+                }
+
                 ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
                 ValueCell.updateIfChanged(spheres.values.dDoubleSided, newProps.doubleSided)
                 ValueCell.updateIfChanged(spheres.values.dFlipSided, newProps.flipSided)
@@ -172,6 +149,16 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 currentProps = newProps
                 return true
             })
+        },
+        getLocation(pickingId: PickingId) {
+            const { objectId, instanceId, elementId } = pickingId
+            if (spheres.id === objectId) {
+                const l = Element.Location()
+                l.unit = currentGroup.units[instanceId]
+                l.element = currentGroup.elements[elementId]
+                return l
+            }
+            return null
         }
     }
 }

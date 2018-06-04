@@ -144,6 +144,7 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
 
     return {
         id: UUID.create(),
+        label: format.data.entry.id.value(0),
         sourceData: format,
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         entities,

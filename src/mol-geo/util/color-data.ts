@@ -5,7 +5,7 @@
  */
 
 import { ValueCell } from 'mol-util';
-import { TextureImage, createColorTexture, emptyTexture } from 'mol-gl/renderable/util';
+import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import VertexMap from '../shape/vertex-map';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
@@ -18,6 +18,14 @@ export type ColorData = {
     tColor: ValueCell<TextureImage>,
     uColorTexSize: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
+}
+
+const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }
+function createEmptyColorTexture() {
+    return {
+        tColor: ValueCell.create(emptyColorTexture),
+        uColorTexSize: ValueCell.create(Vec2.create(1, 1))
+    }
 }
 
 export interface UniformColorProps {
@@ -36,8 +44,7 @@ export function createUniformColor(props: UniformColorProps, colorData?: ColorDa
         return {
             uColor: ValueCell.create(Color.toRgbNormalized(props.value) as Vec3),
             aColor: ValueCell.create(new Float32Array(0)),
-            tColor: ValueCell.create(emptyTexture),
-            uColorTexSize: ValueCell.create(Vec2.zero()),
+            ...createEmptyColorTexture(),
             dColorType: ValueCell.create('uniform'),
         }
     }
@@ -62,7 +69,6 @@ export function createAttributeColor(props: AttributeColorProps, colorData?: Col
         }
     }
     if (colorData) {
-        console.log('update colordata attribute')
         ValueCell.update(colorData.aColor, colors)
         if (colorData.dColorType.ref.value !== 'attribute') {
             ValueCell.update(colorData.dColorType, 'attribute')
@@ -72,8 +78,7 @@ export function createAttributeColor(props: AttributeColorProps, colorData?: Col
         return {
             uColor: ValueCell.create(Vec3.zero()),
             aColor: ValueCell.create(colors),
-            tColor: ValueCell.create(emptyTexture),
-            uColorTexSize: ValueCell.create(Vec2.zero()),
+            ...createEmptyColorTexture(),
             dColorType: ValueCell.create('attribute'),
         }
     }
@@ -81,7 +86,6 @@ export function createAttributeColor(props: AttributeColorProps, colorData?: Col
 
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
-        console.log('update colordata texture')
         ValueCell.update(colorData.tColor, colors)
         ValueCell.update(colorData.uColorTexSize, Vec2.create(colors.width, colors.height))
         if (colorData.dColorType.ref.value !== type) {
@@ -107,7 +111,7 @@ export interface InstanceColorProps {
 /** Creates color texture with color for each instance/unit */
 export function createInstanceColor(props: InstanceColorProps, colorData?: ColorData): ColorData {
     const { colorFn, instanceCount} = props
-    const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createColorTexture(instanceCount)
+    const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
     for (let i = 0; i < instanceCount; i++) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
@@ -123,7 +127,7 @@ export interface ElementColorProps {
 export function createElementColor(props: ElementColorProps, colorData?: ColorData): ColorData {
     const { colorFn, vertexMap } = props
     const elementCount = vertexMap.offsetCount - 1
-    const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createColorTexture(elementCount)
+    const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createTextureImage(elementCount, 3)
     for (let i = 0, il = elementCount; i < il; ++i) {
         Color.toArray(colorFn(i), colors.array, i * 3)
     }
@@ -141,7 +145,7 @@ export function createElementInstanceColor(props: ElementInstanceColorProps, col
     const { colorFn, instanceCount, vertexMap } = props
     const elementCount = vertexMap.offsetCount - 1
     const count = instanceCount * elementCount
-    const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createColorTexture(count)
+    const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
     let colorOffset = 0
     for (let i = 0; i < instanceCount; i++) {
         for (let j = 0, jl = elementCount; j < jl; ++j) {

@@ -1,22 +1,22 @@
 // (c) 2014 Mikola Lysenko. MIT License
 // https://github.com/glslify/glsl-transpose
 
-float transpose(float m) {
+float transpose(const in float m) {
   return m;
 }
 
-mat2 transpose(mat2 m) {
+mat2 transpose(const in mat2 m) {
   return mat2(m[0][0], m[1][0],
               m[0][1], m[1][1]);
 }
 
-mat3 transpose(mat3 m) {
+mat3 transpose(const in mat3 m) {
   return mat3(m[0][0], m[1][0], m[2][0],
               m[0][1], m[1][1], m[2][1],
               m[0][2], m[1][2], m[2][2]);
 }
 
-mat4 transpose(mat4 m) {
+mat4 transpose(const in mat4 m) {
   return mat4(m[0][0], m[1][0], m[2][0], m[3][0],
               m[0][1], m[1][1], m[2][1], m[3][1],
               m[0][2], m[1][2], m[2][2], m[3][2],

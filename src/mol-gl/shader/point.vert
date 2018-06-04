@@ -5,17 +5,13 @@
  */
 
 precision highp float;
+precision highp int;
 
-uniform mat4 uProjection, uModel, uView;
-
-uniform int uObjectId;
-uniform int uInstanceCount;
-uniform int uElementCount;
+#pragma glslify: import('./chunks/common-vert-params.glsl')
+#pragma glslify: import('./chunks/color-vert-params.glsl')
 
 uniform float uPixelRatio;
 uniform float uViewportHeight;
-
-#pragma glslify: import('./chunks/color-vert-params.glsl')
 
 #if defined(dSizeType_uniform)
     uniform float uSize;

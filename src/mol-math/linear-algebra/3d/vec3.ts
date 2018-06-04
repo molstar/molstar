@@ -130,6 +130,36 @@ namespace Vec3 {
         return out;
     }
 
+    /**
+     * Math.round the components of a Vec3
+     */
+    export function round(out: Vec3, a: Vec3) {
+        out[0] = Math.round(a[0]);
+        out[1] = Math.round(a[1]);
+        out[2] = Math.round(a[2]);
+        return out;
+    }
+
+    /**
+     * Math.ceil the components of a Vec3
+     */
+    export function ceil(out: Vec3, a: Vec3) {
+        out[0] = Math.ceil(a[0]);
+        out[1] = Math.ceil(a[1]);
+        out[2] = Math.ceil(a[2]);
+        return out;
+    }
+
+    /**
+     * Math.floor the components of a Vec3
+     */
+    export function floor(out: Vec3, a: Vec3) {
+        out[0] = Math.floor(a[0]);
+        out[1] = Math.floor(a[1]);
+        out[2] = Math.floor(a[2]);
+        return out;
+    }
+
     export function distance(a: Vec3, b: Vec3) {
         const x = b[0] - a[0],
             y = b[1] - a[1],
@@ -160,6 +190,16 @@ namespace Vec3 {
 
     export function setMagnitude(out: Vec3, a: Vec3, l: number) {
         return Vec3.scale(out, Vec3.normalize(out, a), l)
+    }
+
+    /**
+     * Returns the inverse of the components of a Vec3
+     */
+    export function inverse(out: Vec3, a: Vec3) {
+        out[0] = 1.0 / a[0];
+        out[1] = 1.0 / a[1];
+        out[2] = 1.0 / a[2];
+        return out;
     }
 
     export function normalize(out: Vec3, a: Vec3) {

@@ -108,6 +108,47 @@ namespace Vec4 {
         return Math.sqrt(x * x + y * y + z * z + w * w);
     }
 
+    export function scale(out: Vec4, a: Vec4, b: number) {
+        out[0] = a[0] * b;
+        out[1] = a[1] * b;
+        out[2] = a[2] * b;
+        out[4] = a[4] * b;
+        return out;
+    }
+
+    /**
+     * Math.round the components of a Vec4
+     */
+    export function round(out: Vec4, a: Vec4) {
+        out[0] = Math.round(a[0]);
+        out[1] = Math.round(a[1]);
+        out[2] = Math.round(a[2]);
+        out[3] = Math.round(a[3]);
+        return out;
+    }
+
+    /**
+     * Math.ceil the components of a Vec4
+     */
+    export function ceil(out: Vec4, a: Vec4) {
+        out[0] = Math.ceil(a[0]);
+        out[1] = Math.ceil(a[1]);
+        out[2] = Math.ceil(a[2]);
+        out[3] = Math.ceil(a[3]);
+        return out;
+    }
+
+    /**
+     * Math.floor the components of a Vec3
+     */
+    export function floor(out: Vec4, a: Vec4) {
+        out[0] = Math.floor(a[0]);
+        out[1] = Math.floor(a[1]);
+        out[2] = Math.floor(a[2]);
+        out[3] = Math.floor(a[3]);
+        return out;
+    }
+
     export function squaredDistance(a: Vec4, b: Vec4) {
         const x = b[0] - a[0],
             y = b[1] - a[1],
@@ -138,6 +179,21 @@ namespace Vec4 {
         out[1] = m[1] * x + m[5] * y + m[9] * z + m[13] * w;
         out[2] = m[2] * x + m[6] * y + m[10] * z + m[14] * w;
         out[3] = m[3] * x + m[7] * y + m[11] * z + m[15] * w;
+        return out;
+    }
+
+    export function dot(a: Vec4, b: Vec4) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+    }
+
+    /**
+     * Returns the inverse of the components of a Vec4
+     */
+    export function inverse(out: Vec4, a: Vec4) {
+        out[0] = 1.0 / a[0];
+        out[1] = 1.0 / a[1];
+        out[2] = 1.0 / a[2];
+        out[3] = 1.0 / a[3];
         return out;
     }
 }

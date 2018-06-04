@@ -18,6 +18,8 @@ import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
 import { createPointRenderObject } from '../render-object';
 import { PointValues } from '../renderable/point';
+import Scene from '../scene';
+import { createEmptyFlags } from 'mol-geo/representation/structure/utils';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -47,6 +49,7 @@ function createPoints() {
     const aInstanceId = ValueCell.create(fillSerial(new Float32Array(1)))
     const color = createUniformColor({ value: 0xFF0000 })
     const size = createUniformSize({ value: 1 })
+    const flag = createEmptyFlags()
 
     const aTransform = ValueCell.create(new Float32Array(16))
     const m4 = Mat4.identity()
@@ -58,10 +61,10 @@ function createPoints() {
         aTransform,
         aInstanceId,
         ...color,
+        ...flag,
         ...size,
 
         uAlpha: ValueCell.create(1.0),
-        uObjectId: ValueCell.create(0),
         uInstanceCount: ValueCell.create(1),
         uElementCount: ValueCell.create(3),
 
@@ -101,23 +104,24 @@ describe('renderer', () => {
     it('points', () => {
         const [ width, height ] = [ 32, 32 ]
         const gl = createGl(width, height, { preserveDrawingBuffer: true })
-        const { ctx, renderer } = createRenderer(gl)
+        const { ctx } = createRenderer(gl)
+        const scene = Scene.create(ctx)
 
         const points = createPoints()
 
-        renderer.add(points)
+        scene.add(points)
         expect(ctx.bufferCount).toBe(6);
-        expect(ctx.textureCount).toBe(1);
-        expect(ctx.vaoCount).toBe(1);
-        expect(ctx.programCache.count).toBe(1);
-        expect(ctx.shaderCache.count).toBe(2);
+        expect(ctx.textureCount).toBe(2);
+        expect(ctx.vaoCount).toBe(4);
+        expect(ctx.programCache.count).toBe(4);
+        expect(ctx.shaderCache.count).toBe(8);
 
-        renderer.remove(points)
+        scene.remove(points)
         expect(ctx.bufferCount).toBe(0);
         expect(ctx.textureCount).toBe(0);
         expect(ctx.vaoCount).toBe(0);
-        expect(ctx.programCache.count).toBe(1);
-        expect(ctx.shaderCache.count).toBe(2);
+        expect(ctx.programCache.count).toBe(4);
+        expect(ctx.shaderCache.count).toBe(8);
 
         ctx.programCache.dispose()
         expect(ctx.programCache.count).toBe(0);

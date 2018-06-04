@@ -25,11 +25,11 @@ namespace Unit {
     export function isSpheres(u: Unit): u is Spheres { return u.kind === Kind.Spheres; }
     export function isGaussians(u: Unit): u is Gaussians { return u.kind === Kind.Gaussians; }
 
-    export function create(id: number, kind: Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
+    export function create(id: number, label: string, kind: Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation), AtomicProperties());
-            case Kind.Spheres: return createCoarse(id, unitIdFactory(), model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres));
-            case Kind.Gaussians: return createCoarse(id, unitIdFactory(), model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians));
+            case Kind.Atomic: return new Atomic(id, unitIdFactory(), label, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation), AtomicProperties());
+            case Kind.Spheres: return createCoarse(id, unitIdFactory(), label, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres));
+            case Kind.Gaussians: return createCoarse(id, unitIdFactory(), label, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians));
         }
     }
 
@@ -40,6 +40,7 @@ namespace Unit {
         readonly id: number,
         // invariant ID stays the same even if the Operator/conformation changes.
         readonly invariantId: number,
+        readonly label: string,
         readonly elements: SortedArray,
         readonly model: Model,
         readonly conformation: SymmetryOperator.ArrayMapping,
@@ -64,6 +65,7 @@ namespace Unit {
 
         readonly id: number;
         readonly invariantId: number;
+        readonly label: string;
         readonly elements: SortedArray;
         readonly model: Model;
         readonly conformation: SymmetryOperator.ArrayMapping;
@@ -76,12 +78,13 @@ namespace Unit {
 
         getChild(elements: SortedArray): Unit {
             if (elements.length === this.elements.length) return this;
-            return new Atomic(this.id, this.invariantId, this.model, elements, this.conformation, AtomicProperties());
+            return new Atomic(this.id, this.invariantId, this.label, this.model, elements, this.conformation, AtomicProperties());
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation), this.props);
+            const label = operator.name
+            return new Atomic(id, this.invariantId, label, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation), this.props);
         }
 
         get lookup3d() {
@@ -97,9 +100,10 @@ namespace Unit {
             return this.props.bonds.ref;
         }
 
-        constructor(id: number, invariantId: number, model: Model, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
+        constructor(id: number, invariantId: number, label: string, model: Model, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
+            this.label = label;
             this.model = model;
             this.elements = elements;
             this.conformation = conformation;
@@ -124,6 +128,7 @@ namespace Unit {
 
         readonly id: number;
         readonly invariantId: number;
+        readonly label: string;
         readonly elements: SortedArray;
         readonly model: Model;
         readonly conformation: SymmetryOperator.ArrayMapping;
@@ -133,12 +138,13 @@ namespace Unit {
 
         getChild(elements: SortedArray): Unit {
             if (elements.length === this.elements.length) return this as any as Unit /** lets call this an ugly temporary hack */;
-            return createCoarse(this.id, this.invariantId, this.model, this.kind, elements, this.conformation);
+            return createCoarse(this.id, this.invariantId, this.label, this.model, this.kind, elements, this.conformation);
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements()));
+            const label = operator.name
+            const ret = createCoarse(id, this.invariantId, label, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements()));
             (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
             return ret;
         }
@@ -156,10 +162,11 @@ namespace Unit {
             return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
         }
 
-        constructor(id: number, invariantId: number, model: Model, kind: K, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping) {
+        constructor(id: number, invariantId: number, label: string, model: Model, kind: K, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping) {
             this.kind = kind;
             this.id = id;
             this.invariantId = invariantId;
+            this.label = label;
             this.model = model;
             this.elements = elements;
             this.conformation = conformation;
@@ -168,8 +175,8 @@ namespace Unit {
         }
     }
 
-    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, model: Model, kind: K, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping): Unit {
-        return new Coarse(id, invariantId, model, kind, elements, conformation) as any as Unit /** lets call this an ugly temporary hack */;
+    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, label: string, model: Model, kind: K, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping): Unit {
+        return new Coarse(id, invariantId, label, model, kind, elements, conformation) as any as Unit /** lets call this an ugly temporary hack */;
     }
 
     export class Spheres extends Coarse<Kind.Spheres, CoarseSphereConformation> { }

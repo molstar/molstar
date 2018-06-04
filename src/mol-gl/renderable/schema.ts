@@ -130,6 +130,10 @@ export const GlobalUniformSchema = {
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
+export const InternalSchema = {
+    uObjectId: UniformSpec('i'),
+}
+
 export const BaseSchema = {
     aInstanceId: AttributeSpec('float32', 1, 1),
     aPosition: AttributeSpec('float32', 3, 0),
@@ -138,13 +142,14 @@ export const BaseSchema = {
     aColor: AttributeSpec('float32', 3, 0),
 
     uAlpha: UniformSpec('f'),
-    uObjectId: UniformSpec('i'),
     uInstanceCount: UniformSpec('i'),
     uElementCount: UniformSpec('i'),
-    uColorTexSize: UniformSpec('v2'),
     uColor: UniformSpec('v3'),
+    uColorTexSize: UniformSpec('v2'),
+    uFlagTexSize: UniformSpec('v2'),
 
     tColor: TextureSpec('rgb', 'ubyte'),
+    tFlag: TextureSpec('alpha', 'ubyte'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),

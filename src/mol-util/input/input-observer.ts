@@ -93,6 +93,13 @@ export type ClickInput = {
     pageY: number,
 } & BaseInput
 
+export type MoveInput = {
+    x: number,
+    y: number,
+    pageX: number,
+    pageY: number,
+} & BaseInput
+
 export type PinchInput = {
     delta: number,
     distance: number,
@@ -124,6 +131,7 @@ interface InputObserver {
     wheel: Subject<WheelInput>,
     pinch: Subject<PinchInput>,
     click: Subject<ClickInput>,
+    move: Subject<MoveInput>,
     resize: Subject<ResizeInput>,
 
     dispose: () => void
@@ -153,6 +161,7 @@ namespace InputObserver {
 
         const drag = new Subject<DragInput>()
         const click = new Subject<ClickInput>()
+        const move = new Subject<MoveInput>()
         const wheel = new Subject<WheelInput>()
         const pinch = new Subject<PinchInput>()
         const resize = new Subject<ResizeInput>()
@@ -169,6 +178,7 @@ namespace InputObserver {
             wheel,
             pinch,
             click,
+            move,
             resize,
 
             dispose
@@ -343,13 +353,15 @@ namespace InputObserver {
 
         function onPointerMove (ev: PointerEvent) {
             eventOffset(pointerEnd, ev)
+            const { pageX, pageY } = ev
+            const [ x, y ] = pointerEnd
+            move.next({ x, y, pageX, pageY, buttons, modifiers })
+
             if (dragging === DraggingState.Stopped) return
 
             Vec2.div(pointerDelta, Vec2.sub(pointerDelta, pointerEnd, pointerStart), getClientSize(rectSize))
 
             const isStart = dragging === DraggingState.Started
-            const { pageX, pageY } = ev
-            const [ x, y ] = pointerEnd
             const [ dx, dy ] = pointerDelta
             drag.next({ x, y, dx, dy, pageX, pageY, buttons, modifiers, isStart })
 

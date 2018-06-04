@@ -15,37 +15,28 @@ import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
 import { RenderableValues, GlobalUniformValues } from './renderable/schema';
-import { RenderObject } from './render-object';
-import { BehaviorSubject } from 'rxjs';
+import { RenderVariant } from './webgl/render-item';
 
 export interface RendererStats {
-    renderableCount: number
     programCount: number
     shaderCount: number
+
     bufferCount: number
+    framebufferCount: number
+    renderbufferCount: number
     textureCount: number
     vaoCount: number
 }
 
 interface Renderer {
-    add: (o: RenderObject) => void
-    remove: (o: RenderObject) => void
-    update: () => void
-    clear: () => void
-    draw: () => void
+    render: (scene: Scene, variant: RenderVariant) => void
 
     setViewport: (viewport: Viewport) => void
     setClearColor: (color: Color) => void
     getImageData: () => ImageData
 
-    didDraw: BehaviorSubject<number>
-
     stats: RendererStats
     dispose: () => void
-}
-
-function getPixelRatio() {
-    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
 }
 
 export const DefaultRendererProps = {
@@ -58,14 +49,9 @@ namespace Renderer {
     export function create(ctx: Context, camera: Camera, props: RendererProps = {}): Renderer {
         const { gl } = ctx
         let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
-        const scene = Scene.create(ctx)
-
-        const startTime = performance.now()
-        const didDraw = new BehaviorSubject(0)
 
         const model = Mat4.identity()
         const viewport = Viewport.clone(_viewport)
-        const pixelRatio = getPixelRatio()
 
         // const lightPosition = Vec3.create(0, 0, -100)
         const lightColor = Vec3.create(1.0, 1.0, 1.0)
@@ -82,7 +68,7 @@ namespace Renderer {
             uView: ValueCell.create(Mat4.clone(camera.view)),
             uProjection: ValueCell.create(Mat4.clone(camera.projection)),
 
-            uPixelRatio: ValueCell.create(pixelRatio),
+            uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
 
             uLightColor: ValueCell.create(Vec3.clone(lightColor)),
@@ -90,12 +76,13 @@ namespace Renderer {
         }
 
         let currentProgramId = -1
-        const drawObject = (r: Renderable<RenderableValues>) => {
+        const renderObject = (r: Renderable<RenderableValues>, variant: RenderVariant) => {
+            const program = r.getProgram(variant)
             if (r.state.visible) {
-                if (currentProgramId !== r.program.id) {
-                    r.program.use()
-                    r.program.setUniforms(globalUniforms)
-                    currentProgramId = r.program.id
+                if (currentProgramId !== program.id) {
+                    program.use()
+                    program.setUniforms(globalUniforms)
+                    currentProgramId = program.id
                 }
                 if (r.values.dDoubleSided.ref.value) {
                     gl.disable(gl.CULL_FACE)
@@ -113,11 +100,11 @@ namespace Renderer {
 
                 gl.depthMask(r.state.depthMask)
 
-                r.draw()
+                r.render(variant)
             }
         }
 
-        const draw = () => {
+        const render = (scene: Scene, variant: RenderVariant) => {
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uProjection, camera.projection)
 
@@ -128,29 +115,17 @@ namespace Renderer {
 
             gl.disable(gl.BLEND)
             gl.enable(gl.DEPTH_TEST)
-            scene.eachOpaque(drawObject)
+            scene.eachOpaque((r) => renderObject(r, variant))
 
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
             gl.enable(gl.BLEND)
-            scene.eachTransparent(drawObject)
+            scene.eachTransparent((r) => renderObject(r, variant))
 
-            didDraw.next(performance.now() - startTime)
+            gl.finish()
         }
 
         return {
-            add: (o: RenderObject) => {
-                scene.add(o)
-            },
-            remove: (o: RenderObject) => {
-                scene.remove(o)
-            },
-            update: () => {
-                scene.forEach((r, o) => r.update())
-            },
-            clear: () => {
-                scene.clear()
-            },
-            draw,
+            render,
 
             setClearColor,
             setViewport: (newViewport: Viewport) => {
@@ -166,20 +141,21 @@ namespace Renderer {
                 return createImageData(buffer, width, height)
             },
 
-            didDraw,
-
             get stats(): RendererStats {
+                console.log(ctx)
                 return {
-                    renderableCount: scene.count,
                     programCount: ctx.programCache.count,
                     shaderCount: ctx.shaderCache.count,
+
                     bufferCount: ctx.bufferCount,
+                    framebufferCount: ctx.framebufferCount,
+                    renderbufferCount: ctx.renderbufferCount,
                     textureCount: ctx.textureCount,
                     vaoCount: ctx.vaoCount,
                 }
             },
             dispose: () => {
-                scene.clear()
+                // TODO
             }
         }
     }

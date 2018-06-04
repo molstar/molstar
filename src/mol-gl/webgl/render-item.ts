@@ -9,9 +9,11 @@ import { createTextures } from './texture';
 import { Context } from './context';
 import { ShaderCode, addShaderDefines } from '../shader-code';
 import { Program } from './program';
-import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues } from '../renderable/schema';
+import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
+import { ValueCell } from 'mol-util';
+import { ReferenceItem } from 'mol-util/reference-cache';
 
 const getNextRenderItemId = idFactory()
 
@@ -32,13 +34,23 @@ export function getDrawMode(ctx: Context, drawMode: DrawMode) {
 
 export interface RenderItem {
     readonly id: number
-    readonly programId: number
-    readonly program: Program
+    getProgram: (variant: RenderVariant) => Program
 
+    render: (variant: RenderVariant) => void
     update: () => void
-    draw: () => void
     destroy: () => void
 }
+
+const RenderVariantDefines = {
+    'draw': {},
+    'pickObject': { dColorType: ValueCell.create('objectPicking') },
+    'pickInstance': { dColorType: ValueCell.create('instancePicking') },
+    'pickElement': { dColorType: ValueCell.create('elementPicking') }
+}
+export type RenderVariant = keyof typeof RenderVariantDefines
+
+type ProgramVariants = { [k: string]: ReferenceItem<Program> }
+type VertexArrayVariants = { [k: string]: WebGLVertexArrayObjectOES | undefined }
 
 export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues): RenderItem {
     const id = getNextRenderItemId()
@@ -49,9 +61,14 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
     const versions = getValueVersions(values)
 
     const glDrawMode = getDrawMode(ctx, drawMode)
-    let drawProgram = programCache.get(ctx, {
-        shaderCode: addShaderDefines(defineValues, shaderCode),
-        schema
+
+    const programs: ProgramVariants = {}
+    Object.keys(RenderVariantDefines).forEach(k => {
+        const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
+        programs[k] = programCache.get(ctx, {
+            shaderCode: addShaderDefines({ ...defineValues, ...variantDefineValues }, shaderCode),
+            schema
+        })
     })
 
     const textures = createTextures(ctx, schema, textureValues)
@@ -63,64 +80,67 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         elementsBuffer = createElementsBuffer(ctx, elements.ref.value)
     }
 
-    let vertexArray: WebGLVertexArrayObjectOES | undefined = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
+    const vertexArrays: VertexArrayVariants = {}
+    Object.keys(RenderVariantDefines).forEach(k => {
+        vertexArrays[k] = createVertexArray(ctx, programs[k].value, attributeBuffers, elementsBuffer)
+    })
 
     let drawCount = values.drawCount.ref.value
     let instanceCount = values.instanceCount.ref.value
 
     let destroyed = false
 
-    function render(program: Program) {
-        program.setUniforms(uniformValues)
-        if (oesVertexArrayObject && vertexArray) {
-            oesVertexArrayObject.bindVertexArrayOES(vertexArray)
-        } else {
-            program.bindAttributes(attributeBuffers)
-            if (elementsBuffer) elementsBuffer.bind()
-        }
-        program.bindTextures(textures)
-        if (elementsBuffer) {
-            angleInstancedArrays.drawElementsInstancedANGLE(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
-        } else {
-            angleInstancedArrays.drawArraysInstancedANGLE(glDrawMode, 0, drawCount, instanceCount)
-        }
-    }
-
     return {
         id,
-        get programId () { return drawProgram.value.id },
-        get program () { return drawProgram.value },
+        getProgram: (variant: RenderVariant) => programs[variant].value,
 
-        draw: () => {
-            render(drawProgram.value)
+        render: (variant: RenderVariant) => {
+            const program = programs[variant].value
+            const vertexArray = vertexArrays[variant]
+            program.setUniforms(uniformValues)
+            if (oesVertexArrayObject && vertexArray) {
+                oesVertexArrayObject.bindVertexArrayOES(vertexArray)
+            } else {
+                program.bindAttributes(attributeBuffers)
+                if (elementsBuffer) elementsBuffer.bind()
+            }
+            program.bindTextures(textures)
+            if (elementsBuffer) {
+                angleInstancedArrays.drawElementsInstancedANGLE(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
+            } else {
+                angleInstancedArrays.drawArraysInstancedANGLE(glDrawMode, 0, drawCount, instanceCount)
+            }
         },
         update: () => {
             let defineChange = false
             Object.keys(defineValues).forEach(k => {
                 const value = defineValues[k]
                 if (value.ref.version !== versions[k]) {
-                    console.log('define version changed', k)
+                    // console.log('define version changed', k)
                     defineChange = true
                     versions[k] = value.ref.version
                 }
             })
 
             if (defineChange) {
-                console.log('some defines changed, need to rebuild program')
-                drawProgram.free()
-                drawProgram = programCache.get(ctx, {
-                    shaderCode: addShaderDefines(defineValues, shaderCode),
-                    schema
+                // console.log('some defines changed, need to rebuild programs')
+                Object.keys(RenderVariantDefines).forEach(k => {
+                    const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
+                    programs[k].free()
+                    programs[k] = programCache.get(ctx, {
+                        shaderCode: addShaderDefines({ ...defineValues, ...variantDefineValues }, shaderCode),
+                        schema
+                    })
                 })
             }
 
             if (values.drawCount.ref.version !== versions.drawCount) {
-                console.log('drawCount version changed')
+                // console.log('drawCount version changed')
                 drawCount = values.drawCount.ref.value
                 versions.drawCount = values.drawCount.ref.version
             }
             if (values.instanceCount.ref.version !== versions.instanceCount) {
-                console.log('instanceCount version changed')
+                // console.log('instanceCount version changed')
                 instanceCount = values.instanceCount.ref.value
                 versions.instanceCount = values.instanceCount.ref.version
             }
@@ -132,10 +152,10 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                 if (value.ref.version !== versions[k]) {
                     const buffer = attributeBuffers[k]
                     if (buffer.length >= value.ref.value.length) {
-                        console.log('attribute array large enough to update', k)
+                        // console.log('attribute array large enough to update', k)
                         attributeBuffers[k].updateData(value.ref.value)
                     } else {
-                        console.log('attribute array to small, need to create new attribute', k)
+                        // console.log('attribute array to small, need to create new attribute', k)
                         attributeBuffers[k].destroy()
                         const spec = schema[k] as AttributeSpec<ArrayKind>
                         attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, spec.itemSize, spec.divisor)
@@ -147,10 +167,10 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
 
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
                 if (elementsBuffer.length >= values.elements.ref.value.length) {
-                    console.log('elements array large enough to update')
+                    // console.log('elements array large enough to update')
                     elementsBuffer.updateData(values.elements.ref.value)
                 } else {
-                    console.log('elements array to small, need to create new elements')
+                    // console.log('elements array to small, need to create new elements')
                     elementsBuffer.destroy()
                     elementsBuffer = createElementsBuffer(ctx, values.elements.ref.value)
                     bufferChange = true
@@ -159,15 +179,17 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             }
 
             if (defineChange || bufferChange) {
-                console.log('program/defines or buffers changed, rebuild vao')
-                deleteVertexArray(ctx, vertexArray)
-                vertexArray = createVertexArray(ctx, drawProgram.value, attributeBuffers, elementsBuffer)
+                // console.log('program/defines or buffers changed, rebuild vaos')
+                Object.keys(RenderVariantDefines).forEach(k => {
+                    deleteVertexArray(ctx, vertexArrays[k])
+                    vertexArrays[k] = createVertexArray(ctx, programs[k].value, attributeBuffers, elementsBuffer)
+                })
             }
 
             Object.keys(textureValues).forEach(k => {
                 const value = textureValues[k]
                 if (value.ref.version !== versions[k]) {
-                    console.log('texture version changed, uploading image', k)
+                    // console.log('texture version changed, uploading image', k)
                     textures[k].load(value.ref.value)
                     versions[k] = value.ref.version
                 }
@@ -175,11 +197,13 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         },
         destroy: () => {
             if (!destroyed) {
-                drawProgram.free()
+                Object.keys(RenderVariantDefines).forEach(k => {
+                    programs[k].free()
+                    deleteVertexArray(ctx, vertexArrays[k])
+                })
                 Object.keys(textures).forEach(k => textures[k].destroy())
                 Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
                 if (elementsBuffer) elementsBuffer.destroy()
-                deleteVertexArray(ctx, vertexArray)
                 destroyed = true
             }
         }

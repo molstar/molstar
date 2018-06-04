@@ -5,13 +5,9 @@
  */
 
 precision highp float;
+precision highp int;
 
-uniform mat4 uProjection, uModel, uView;
-
-uniform int uObjectId;
-uniform int uInstanceCount;
-uniform int uElementCount;
-
+#pragma glslify: import('./chunks/common-vert-params.glsl')
 #pragma glslify: import('./chunks/color-vert-params.glsl')
 
 attribute vec3 aPosition;
@@ -31,6 +27,7 @@ varying vec3 vViewPosition;
 
 void main(){
     #pragma glslify: import('./chunks/color-assign-varying.glsl')
+    vFlag = readFromTexture(tFlag, aInstanceId * float(uElementCount) + aElementId, uFlagTexSize).a;
 
     mat4 modelView = uView * uModel * aTransform;
     vec4 mvPosition = modelView * vec4(aPosition, 1.0);

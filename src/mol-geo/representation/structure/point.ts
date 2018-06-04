@@ -11,20 +11,18 @@ import { Unit, Element } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
-import { UnitsRepresentation } from './index';
+import { UnitsRepresentation, DefaultStructureProps } from './index';
 import VertexMap from '../../shape/vertex-map';
-import { ColorTheme, SizeTheme } from '../../theme';
-import { createTransforms, createColors, createSizes } from './utils';
+import { SizeTheme } from '../../theme';
+import { createTransforms, createColors, createSizes, createFlags } from './utils';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
+import { PickingId } from '../../util/picking';
 
 export const DefaultPointProps = {
-    colorTheme: { name: 'instance-index' } as ColorTheme,
-    sizeTheme: { name: 'vdw' } as SizeTheme,
-    alpha: 1,
-    visible: true,
-    depthMask: true
+    ...DefaultStructureProps,
+    sizeTheme: { name: 'vdw' } as SizeTheme
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
@@ -50,7 +48,8 @@ export function createPointVertices(unit: Unit) {
 export default function Point(): UnitsRepresentation<PointProps> {
     const renderObjects: RenderObject[] = []
     let points: PointRenderObject
-    let curProps = DefaultPointProps
+    let currentProps = DefaultPointProps
+    let currentGroup: Unit.SymmetryGroup
 
     let _units: ReadonlyArray<Unit>
     let _elements: SortedArray
@@ -58,14 +57,16 @@ export default function Point(): UnitsRepresentation<PointProps> {
     return {
         renderObjects,
         create(group: Unit.SymmetryGroup, props: PointProps = {}) {
+            currentProps = Object.assign({}, DefaultPointProps, props)
+
             return Task.create('Point.create', async ctx => {
                 renderObjects.length = 0 // clear
-                curProps = { ...DefaultPointProps, ...props }
+                currentGroup = group
 
                 _units = group.units
                 _elements = group.elements;
 
-                const { colorTheme, sizeTheme } = curProps
+                const { colorTheme, sizeTheme, hoverSelection } = currentProps
                 const elementCount = _elements.length
 
                 const vertexMap = VertexMap.create(
@@ -87,6 +88,9 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 await ctx.update('Computing point sizes');
                 const size = createSizes(group, vertexMap, sizeTheme)
 
+                await ctx.update('Computing spacefill flags');
+                const flag = createFlags(group, hoverSelection.instanceId, hoverSelection.elementId)
+
                 const instanceCount = group.units.length
 
                 const values: PointValues = {
@@ -95,10 +99,10 @@ export default function Point(): UnitsRepresentation<PointProps> {
                     aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
+                    ...flag,
                     ...size,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uObjectId: ValueCell.create(0),
                     uInstanceCount: ValueCell.create(instanceCount),
                     uElementCount: ValueCell.create(group.elements.length),
 
@@ -120,8 +124,8 @@ export default function Point(): UnitsRepresentation<PointProps> {
             return Task.create('Point.update', async ctx => {
                 if (!points || !_units || !_elements) return false
 
-                const newProps = { ...curProps, ...props }
-                if (deepEqual(curProps, newProps)) {
+                const newProps = { ...currentProps, ...props }
+                if (deepEqual(currentProps, newProps)) {
                     console.log('props identical, nothing to change')
                     return true
                 }
@@ -136,20 +140,30 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 //     fillSerial(new Uint32Array(elementCount + 1))
                 // )
 
-                if (!deepEqual(curProps.colorTheme, newProps.colorTheme)) {
-                    console.log('colorTheme changed', curProps.colorTheme, newProps.colorTheme)
+                if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
+                    console.log('colorTheme changed', currentProps.colorTheme, newProps.colorTheme)
                     // await ctx.update('Computing point colors');
                     // const color = createColors(_units, _elementGroup, vertexMap, newProps.colorTheme)
                     // ValueCell.update(points.props.color, color)
                 }
 
-                if (!deepEqual(curProps.sizeTheme, newProps.sizeTheme)) {
-                    console.log('sizeTheme changed', curProps.sizeTheme, newProps.sizeTheme)
+                if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {
+                    console.log('sizeTheme changed', currentProps.sizeTheme, newProps.sizeTheme)
                 }
 
-                curProps = newProps
+                currentProps = newProps
                 return false
             })
+        },
+        getLocation(pickingId: PickingId) {
+            const { objectId, instanceId, elementId } = pickingId
+            if (points.id === objectId) {
+                const l = Element.Location()
+                l.unit = currentGroup.units[instanceId]
+                l.element = currentGroup.elements[elementId]
+                return l
+            }
+            return null
         }
     }
 }

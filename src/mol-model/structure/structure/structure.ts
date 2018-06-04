@@ -92,7 +92,8 @@ namespace Structure {
 
         for (let c = 0; c < chains.count; c++) {
             const elements = SortedArray.ofBounds(chains.segments[c], chains.segments[c + 1]);
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
+            const label = SymmetryOperator.Default.name
+            builder.addUnit(label, Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 
         const cs = model.coarseHierarchy;
@@ -112,15 +113,16 @@ namespace Structure {
         const { chainSegments } = elements;
         for (let cI = 0; cI < chainSegments.count; cI++) {
             const elements = SortedArray.ofBounds(chainSegments.segments[cI], chainSegments.segments[cI + 1]);
-            builder.addUnit(kind, model, SymmetryOperator.Default, elements);
+            const label = SymmetryOperator.Default.name
+            builder.addUnit(label, kind, model, SymmetryOperator.Default, elements);
         }
     }
 
     export class StructureBuilder {
         private units: Unit[] = [];
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
-            const unit = Unit.create(this.units.length, kind, model, operator, elements);
+        addUnit(label: string, kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
+            const unit = Unit.create(this.units.length, label, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
         }

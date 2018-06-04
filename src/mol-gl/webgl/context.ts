@@ -7,6 +7,10 @@
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
 
+function getPixelRatio() {
+    return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
+}
+
 function unbindResources (gl: WebGLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)
@@ -61,6 +65,7 @@ type Extensions = {
 export interface Context {
     gl: WebGLRenderingContext
     extensions: Extensions
+    pixelRatio: number
 
     shaderCache: ShaderCache
     programCache: ProgramCache
@@ -71,8 +76,8 @@ export interface Context {
     textureCount: number
     vaoCount: number
 
-    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     unbindFramebuffer: () => void
+    readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     destroy: () => void
 }
 
@@ -100,6 +105,7 @@ export function createContext(gl: WebGLRenderingContext): Context {
     return {
         gl,
         extensions: { angleInstancedArrays, standardDerivatives, oesElementIndexUint, oesVertexArrayObject },
+        pixelRatio: getPixelRatio(),
 
         shaderCache,
         programCache,
@@ -110,14 +116,17 @@ export function createContext(gl: WebGLRenderingContext): Context {
         textureCount: 0,
         vaoCount: 0,
 
-        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
-            if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
-                gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
-            } else {
-                console.error('Reading pixels failed. Framebuffer not complete.')
-            }
-        },
         unbindFramebuffer: () => unbindFramebuffer(gl),
+        readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
+            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+            // TODO check is very expensive
+            // if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE) {
+            //     gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+            // } else {
+            //     console.error('Reading pixels failed. Framebuffer not complete.')
+            // }
+        },
+
         destroy: () => {
             unbindResources(gl)
             programCache.dispose()

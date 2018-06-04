@@ -34,7 +34,7 @@ function createUniformSetter(ctx: Context, program: WebGLProgram, name: string, 
     const { gl } = ctx
     const location = gl.getUniformLocation(program, name)
     if (location === null) {
-        console.info(`Could not get WebGL uniform location for '${name}'`)
+        // console.info(`Could not get WebGL uniform location for '${name}'`)
     }
     switch (kind) {
         case 'f': return (value: number) => gl.uniform1f(location, value)

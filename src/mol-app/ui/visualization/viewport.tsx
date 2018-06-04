@@ -94,11 +94,39 @@ export const Logo = () =>
     </div>
 
 
-export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, showLogo?: boolean, imageData?: ImageData, aspectRatio: number }> {
+type ViewportState = {
+    noWebGl: boolean,
+    showLogo: boolean,
+    aspectRatio: number,
+    width: number
+    height: number
+    images: { [k: string]: ImageData }
+    info: string
+}
+
+export class Viewport extends View<ViewportController, ViewportState, { noWebGl?: boolean, showLogo?: boolean, aspectRatio: number, info: string }> {
     private container: HTMLDivElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
     private defaultBg = { r: 1, g: 1, b: 1 }
-    state = { noWebGl: false, showLogo: true, imageData: undefined, aspectRatio: 1 };
+    state: ViewportState = {
+        noWebGl: false,
+        showLogo: true,
+        images: {},
+        aspectRatio: 1,
+        width: 0,
+        height: 0,
+        info: ''
+    };
+
+    handleResize() {
+        if (this.container) {
+            this.setState({
+                aspectRatio: this.container.clientWidth / this.container.clientHeight,
+                width: this.container.clientWidth,
+                height: this.container.clientHeight
+            })
+        }
+    }
 
     componentDidMount() {
         if (!this.canvas || !this.container || !this.controller.context.initStage(this.canvas, this.container)) {
@@ -114,12 +142,23 @@ export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, 
             })
         })
 
-        viewer.didDraw.subscribe(() => this.setState({ imageData: viewer.getImageData() }))
-        viewer.didDraw.subscribe(() => this.setState({ imageData: viewer.getImageData() }))
+        viewer.identified.subscribe(info => {
+            this.setState({ info })
+        })
 
-        if (this.container) {
-            this.setState({ aspectRatio: this.container.clientWidth / this.container.clientHeight })
-        }
+        viewer.didDraw.subscribe(() => {
+            // this.setState({ imageData: viewer.getImageData() })
+            this.setState({
+                images: {
+                    'object': viewer.getImageData('pickObject'),
+                    'instance': viewer.getImageData('pickInstance'),
+                    'element': viewer.getImageData('pickElement')
+                }
+            })
+        })
+
+        viewer.input.resize.subscribe(() => this.handleResize())
+        this.handleResize()
     }
 
     componentWillUnmount() {
@@ -140,14 +179,6 @@ export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, 
     render() {
         if (this.state.noWebGl) return this.renderMissing();
 
-        // const imageData = new ImageData(256, 128)
-
-        let image: JSX.Element | undefined
-        const imageData = this.state.imageData
-        if (imageData) {
-            image = <ImageCanvas imageData={imageData} aspectRatio={this.state.aspectRatio} maxWidth={256} maxHeight={256} />
-        }
-
         const color = this.controller.latestState.clearColor! || this.defaultBg;
         return <div className='molstar-viewport' style={{ backgroundColor: `rgb(${255 * color.r}, ${255 * color.g}, ${255 * color.b})` }}>
             <div ref={elm => this.container = elm} className='molstar-viewport-container'>
@@ -155,7 +186,36 @@ export class Viewport extends View<ViewportController, {}, { noWebGl?: boolean, 
             </div>
             {this.state.showLogo ? <Logo /> : void 0}
             <ViewportControls controller={this.controller} />
-            {image}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 10,
+                    left: 10,
+                    padding: 10,
+                    color: 'lightgrey',
+                    background: 'rgba(0, 0, 0, 0.2)'
+                }}
+            >
+                {this.state.info}
+            </div>
+            <div
+                style={{
+                    position: 'absolute',
+                    bottom: 10,
+                    left: 10,
+                }}
+            >
+                {Object.keys(this.state.images).map(k => {
+                    const imageData = this.state.images[k]
+                    return <ImageCanvas
+                        key={k}
+                        imageData={imageData}
+                        aspectRatio={this.state.aspectRatio}
+                        maxWidth={this.state.width / 4}
+                        maxHeight={this.state.height / 4}
+                    />
+                })}
+            </div>
         </div>;
     }
 }

@@ -5,10 +5,12 @@
  */
 
 precision highp float;
+precision highp int;
+
+#pragma glslify: import('./chunks/common-frag-params.glsl')
+#pragma glslify: import('./chunks/color-frag-params.glsl')
 
 uniform float uAlpha;
-
-#pragma glslify: import('./chunks/color-frag-params.glsl')
 
 void main(){
     #pragma glslify: import('./chunks/color-assign-material.glsl')

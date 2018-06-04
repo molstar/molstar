@@ -6,6 +6,7 @@
 
 import { Column } from 'mol-data/db'
 import { AtomicHierarchy } from './atomic/hierarchy';
+import { Entities } from './common';
 
 interface Sequence {
     readonly byEntityKey: { [key: number]: Sequence.Entity }
@@ -19,10 +20,36 @@ namespace Sequence {
         readonly compId: Column<string>
     }
 
-    export function fromAtomicHierarchy(hierarchy: AtomicHierarchy): Sequence {
-        // const { label_comp_id } = hierarchy.residues;
+    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy): Sequence {
+        const { label_entity_id } = hierarchy.chains
+        const { label_comp_id, label_seq_id } = hierarchy.residues
+        const { chainSegments, residueSegments } = hierarchy
 
-        throw 'not implemented';
+        const byEntityKey: Sequence['byEntityKey'] = {};
+
+        const chainCount = hierarchy.chains._rowCount
+        for (let i = 0; i < chainCount; ++i) {
+            const entityId = label_entity_id.value(i)
+            const entityIndex = entities.getEntityIndex(entityId)
+            // TODO only for polymers, mirroring _entity_poly_seq, ok???
+            if (entities.data.type.value(i) !== 'polymer') continue
+
+            const entityKey = hierarchy.entityKey[entityIndex]
+            if (byEntityKey[entityKey] !== undefined) continue
+
+            const start = residueSegments.segmentMap[chainSegments.segments[i]]
+            let end = residueSegments.segmentMap[chainSegments.segments[i + 1]]
+            // TODO better way to handle end???
+            if (end === undefined) end = hierarchy.residues._rowCount
+
+            byEntityKey[entityKey] = {
+                entityId,
+                compId: Column.window(label_comp_id, start, end),
+                num: Column.window(label_seq_id, start, end)
+            }
+        }
+
+        return { byEntityKey }
     }
 }
 

@@ -93,6 +93,33 @@ namespace Vec2 {
         return out;
     }
 
+    /**
+     * Math.round the components of a Vec2
+     */
+    export function round(out: Vec2, a: Vec2) {
+        out[0] = Math.round(a[0]);
+        out[1] = Math.round(a[1]);
+        return out;
+    }
+
+    /**
+     * Math.ceil the components of a Vec2
+     */
+    export function ceil(out: Vec2, a: Vec2) {
+        out[0] = Math.ceil(a[0]);
+        out[1] = Math.ceil(a[1]);
+        return out;
+    }
+
+    /**
+     * Math.floor the components of a Vec2
+     */
+    export function floor(out: Vec2, a: Vec2) {
+        out[0] = Math.floor(a[0]);
+        out[1] = Math.floor(a[1]);
+        return out;
+    }
+
     export function distance(a: Vec2, b: Vec2) {
         const x = b[0] - a[0],
             y = b[1] - a[1];
@@ -115,6 +142,15 @@ namespace Vec2 {
         const x = a[0],
             y = a[1];
         return x * x + y * y;
+    }
+
+    /**
+     * Returns the inverse of the components of a Vec2
+     */
+    export function inverse(out: Vec2, a: Vec2) {
+        out[0] = 1.0 / a[0];
+        out[1] = 1.0 / a[1];
+        return out;
     }
 }
 

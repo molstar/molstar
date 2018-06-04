@@ -4,11 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Renderable, RenderableState } from '../renderable'
+import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values } from '../renderable/schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema } from '../renderable/schema';
 import { PointShaderCode } from '../shader-code';
+import { ValueCell } from 'mol-util';
 
 export const PointSchema = {
     ...BaseSchema,
@@ -20,24 +21,13 @@ export const PointSchema = {
 export type PointSchema = typeof PointSchema
 export type PointValues = Values<PointSchema>
 
-export function PointRenderable(ctx: Context, values: PointValues, state: RenderableState): Renderable<PointValues> {
-    const schema = { ...GlobalUniformSchema, ...PointSchema }
-    const schaderCode = PointShaderCode
-    const renderItem = createRenderItem(ctx, 'points', schaderCode, schema, values)
-
-    return {
-        draw: () => {
-            renderItem.draw()
-        },
-        get values () { return values },
-        get state () { return state },
-        name: 'point',
-        get program () { return renderItem.program },
-        update: () => {
-            renderItem.update()
-        },
-        dispose: () => {
-            renderItem.destroy()
-        }
+export function PointRenderable(ctx: Context, id: number, values: PointValues, state: RenderableState): Renderable<PointValues> {
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointSchema }
+    const internalValues = {
+        uObjectId: ValueCell.create(id)
     }
+    const schaderCode = PointShaderCode
+    const renderItem = createRenderItem(ctx, 'points', schaderCode, schema, { ...values, ...internalValues })
+
+    return createRenderable(renderItem, values, state)
 }
