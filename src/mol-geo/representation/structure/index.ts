@@ -34,7 +34,7 @@ interface GroupRepresentation<T> {
 
 function label(loc: Element.Location) {
     const model = loc.unit.model.label
-    const instance = loc.unit.label
+    const instance = loc.unit.conformation.operator.name
     let element = ''
 
     if (Unit.isAtomic(loc.unit)) {
