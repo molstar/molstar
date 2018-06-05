@@ -12,6 +12,10 @@ interface Sequence {
     readonly byEntityKey: { [key: number]: Sequence.Entity }
 }
 
+// TODO lift to model/sequence/ folder
+// TODO add one letter code sequence string
+// TODO add mapping support to other sequence spaces, e.g. uniprot
+
 namespace Sequence {
     export interface Entity {
         readonly entityId: string,
@@ -26,6 +30,9 @@ namespace Sequence {
         const { chainSegments, residueSegments } = hierarchy
 
         const byEntityKey: Sequence['byEntityKey'] = {};
+
+        // TODO get min/max of label_seq_id to handle missing residues at start and in between
+        //   note that this assumes label_seq_id is monotonically increasing
 
         const chainCount = hierarchy.chains._rowCount
         for (let i = 0; i < chainCount; ++i) {
