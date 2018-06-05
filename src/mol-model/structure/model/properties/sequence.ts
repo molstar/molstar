@@ -15,6 +15,8 @@ interface Sequence {
 // TODO lift to model/sequence/ folder
 // TODO add one letter code sequence string
 // TODO add mapping support to other sequence spaces, e.g. uniprot
+// TODO add sequence kind, e.g. protein, dna, rna (alphabets?)
+// TODO sequence alignment (take NGL code as starting point)
 
 namespace Sequence {
     export interface Entity {
