@@ -30,7 +30,7 @@ function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
         console.warn('Unsupported unit type')
         return Task.constant('Empty mesh', Mesh.createEmpty(mesh))
     }
-    return createSphereMesh(unit, radius, detail, mesh)
+    return createSphereMesh(unit, (l) => radius(l) * 0.3, detail, mesh)
 }
 
 export const DefaultSpacefillProps = {
