@@ -6,7 +6,7 @@
 
 import UUID from 'mol-util/uuid'
 import Format from './format'
-import Sequence from './properties/sequence'
+import StructureSequence from './properties/sequence'
 import { AtomicHierarchy, AtomicConformation } from './properties/atomic'
 import { ModelSymmetry } from './properties/symmetry'
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
@@ -31,7 +31,7 @@ interface Model extends Readonly<{
 
     symmetry: ModelSymmetry,
     entities: Entities,
-    sequence: Sequence,
+    sequence: StructureSequence,
 
     atomicHierarchy: AtomicHierarchy,
     atomicConformation: AtomicConformation,

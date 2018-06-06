@@ -50,7 +50,7 @@ export function residueLabel(model: Model, rI: number) {
 }
 
 export function printSecStructure(model: Model) {
-    console.log('Secondary Structure\n=============');
+    console.log('\nSecondary Structure\n=============');
     const { residues } = model.atomicHierarchy;
     const { type, key } = model.properties.secondaryStructure;
 
@@ -90,20 +90,18 @@ export function printBonds(structure: Structure) {
 }
 
 export function printSequence(model: Model) {
-    console.log('Sequence\n=============');
+    console.log('\nSequence\n=============');
     const { byEntityKey } = model.sequence;
     for (const key of Object.keys(byEntityKey)) {
         const seq = byEntityKey[+key];
-        console.log(`${seq.entityId} (${seq.num.value(0)}, ${seq.num.value(seq.num.rowCount - 1)}) (${seq.compId.value(0)}, ${seq.compId.value(seq.compId.rowCount - 1)})`);
-        // for (let i = 0; i < seq.compId.rowCount; i++) {
-        //     console.log(`${seq.entityId} ${seq.num.value(i)} ${seq.compId.value(i)}`);
-        // }
+        console.log(`${seq.entityId} (${seq.sequence.kind} ${seq.num.value(0)} (offset ${seq.sequence.offset}), ${seq.num.value(seq.num.rowCount - 1)}) (${seq.compId.value(0)}, ${seq.compId.value(seq.compId.rowCount - 1)})`);
+        console.log(`${seq.sequence.sequence}`);
     }
     console.log();
 }
 
 export function printUnits(structure: Structure) {
-    console.log('Units\n=============');
+    console.log('\nUnits\n=============');
     const l = Element.Location();
 
     for (const unit of structure.units) {
@@ -133,10 +131,9 @@ export function printUnits(structure: Structure) {
     }
 }
 
-
 export function printIHMModels(model: Model) {
     if (!model.coarseHierarchy.isDefined) return false;
-    console.log('IHM Models\n=============');
+    console.log('\nIHM Models\n=============');
     console.log(Table.formatToString(model.coarseHierarchy.models));
 }
 
@@ -144,10 +141,10 @@ async function run(mmcif: mmCIF_Database) {
     const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
     const structure = Structure.ofModel(models[0]);
     printSequence(models[0]);
-    printIHMModels(models[0]);
+    //printIHMModels(models[0]);
     printUnits(structure);
-    printBonds(structure);
-    printSecStructure(models[0]);
+    //printBonds(structure);
+    //printSecStructure(models[0]);
 }
 
 async function runDL(pdb: string) {
