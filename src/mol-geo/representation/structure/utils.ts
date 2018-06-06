@@ -6,7 +6,7 @@
  */
 
 import { Unit, Element } from 'mol-model/structure';
-import { Mat4, Vec2, Vec3 } from 'mol-math/linear-algebra'
+import { Mat4, Vec3 } from 'mol-math/linear-algebra'
 
 import { createUniformColor, ColorData } from '../../util/color-data';
 import { createUniformSize } from '../../util/size-data';
@@ -15,11 +15,13 @@ import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
 import { ValueCell } from 'mol-util';
-import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Mesh } from '../../shape/mesh';
 import { Task } from 'mol-task';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 import { MeshBuilder } from '../../shape/mesh-builder';
+import { TextureImage } from 'mol-gl/renderable/util';
+import { applyFlagAction, FlagAction } from '../../util/flag-data';
+import { Loci, isEveryLoci } from 'mol-model/loci';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
     const unitCount = units.length
@@ -55,50 +57,6 @@ export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, pro
     }
 }
 
-export type FlagData = {
-    tFlag: ValueCell<TextureImage>
-    uFlagTexSize: ValueCell<Vec2>
-}
-
-export function createFlags(group: Unit.SymmetryGroup, instanceId: number, elementId: number, flagData?: FlagData): FlagData {
-    const instanceCount = group.units.length
-    const elementCount = group.elements.length
-    const count = instanceCount * elementCount
-    const flags = flagData && flagData.tFlag.ref.value.array.length >= count ? flagData.tFlag.ref.value : createTextureImage(count, 1)
-    let flagOffset = 0
-    for (let i = 0; i < instanceCount; i++) {
-        for (let j = 0, jl = elementCount; j < jl; ++j) {
-            flags.array[flagOffset] = (i === instanceId && j === elementId) ? 255 : 0
-            flagOffset += 1
-        }
-    }
-    // console.log(flags, instanceCount, elementCount)
-    if (flagData) {
-        ValueCell.update(flagData.tFlag, flags)
-        ValueCell.update(flagData.uFlagTexSize, Vec2.create(flags.width, flags.height))
-        return flagData
-    } else {
-        return {
-            tFlag: ValueCell.create(flags),
-            uFlagTexSize: ValueCell.create(Vec2.create(flags.width, flags.height)),
-        }
-    }
-}
-
-const emptyFlagTexture = { array: new Uint8Array(1), width: 1, height: 1 }
-export function createEmptyFlags(flagData?: FlagData) {
-    if (flagData) {
-        ValueCell.update(flagData.tFlag, emptyFlagTexture)
-        ValueCell.update(flagData.uFlagTexSize, Vec2.create(1, 1))
-        return flagData
-    } else {
-        return {
-            tFlag: ValueCell.create(emptyFlagTexture),
-            uFlagTexSize: ValueCell.create(Vec2.create(1, 1)),
-        }
-    }
-}
-
 export function createSphereMesh(unit: Unit, radius: Element.Property<number>, detail: number, mesh?: Mesh) {
     return Task.create('Sphere mesh', async ctx => {
         const { elements } = unit;
@@ -130,4 +88,33 @@ export function createSphereMesh(unit: Unit, radius: Element.Property<number>, d
 
         return meshBuilder.getMesh()
     })
+}
+
+
+export function applyElementFlags(tFlag: ValueCell<TextureImage>, group: Unit.SymmetryGroup, loci: Loci, action: FlagAction) {
+    let changed = false
+    const elementCount = group.elements.length
+    const instanceCount = group.units.length
+    const array = tFlag.ref.value.array
+    if (isEveryLoci(loci)) {
+        applyFlagAction(array, 0, elementCount * instanceCount, action)
+        changed = true
+    } else if (Element.isLoci(loci)) {
+        for (const e of loci.elements) {
+            const unitIdx = Unit.findUnitById(e.unit.id, group.units)
+            if (unitIdx !== -1) {
+                for (let i = 0, il = e.indices.length; i < il; ++i) {
+                    const idx = unitIdx * elementCount + e.indices[i]
+                    if (applyFlagAction(array, idx, idx + 1, action) && !changed) {
+                        changed = true
+                    }
+                }
+            }
+        }
+    } else {
+        return
+    }
+    if (changed) {
+        ValueCell.update(tFlag, tFlag.ref.value)
+    }
 }

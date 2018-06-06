@@ -8,22 +8,19 @@ import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
 import { RepresentationProps, Representation } from '..';
 import { VolumeData } from 'mol-model/volume';
-import { PickingId, PickingInfo } from '../../util/picking';
+import { PickingId } from '../../util/picking';
 import { Loci } from 'mol-model/loci';
+import { FlagAction } from '../../util/flag-data';
 
 export interface VolumeElementRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (volumeData: VolumeData, props: P) => Task<void>
     update: (props: P) => Task<boolean>
-    getLabel: (pickingId: PickingId) => PickingInfo | null
+    getLoci: (pickingId: PickingId) => Loci | null
+    applyFlags: (loci: Loci, action: FlagAction) => void
 }
 
-export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> {
-    renderObjects: ReadonlyArray<RenderObject>
-    create: (volumeData: VolumeData, props?: P) => Task<void>
-    update: (props: P) => Task<void>
-    getLoci: (pickingId: PickingId) => Loci | null
-}
+export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
 
 export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentation<P>): VolumeRepresentation<P> {
     const renderObjects: RenderObject[] = []
@@ -43,6 +40,9 @@ export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentat
         getLoci(pickingId: PickingId) {
             // TODO
             return null
+        },
+        applyFlags(loci: Loci, action: FlagAction) {
+            // TODO
         }
     }
 }

@@ -163,7 +163,7 @@ export type ModelToSpacefill = StateTransform<ModelEntity, SpacefillEntity, Spac
 export const ModelToSpacefill: ModelToSpacefill = StateTransform.create('model', 'spacefill', 'model-to-spacefill',
     async function (ctx: StateContext, modelEntity: ModelEntity, props: SpacefillProps = {}) {
         const structureEntity = await ModelToStructure.apply(ctx, modelEntity)
-        StructureToBond.apply(ctx, structureEntity, props)
+        // StructureToBond.apply(ctx, structureEntity, props)
         return StructureToSpacefill.apply(ctx, structureEntity, props)
     })
 

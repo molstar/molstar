@@ -12,8 +12,8 @@ import { Loci } from 'mol-model/loci';
 export function labelFirst(loci: Loci) {
     if(Element.isLoci(loci)) {
         const e = loci.elements[0]
-        if (e && e.elements[0] !== undefined) {
-            return elementLabel(Element.Location(e.unit, e.elements[0]))
+        if (e && e.indices[0] !== undefined) {
+            return elementLabel(Element.Location(e.unit, e.indices[0]))
         }
     } else if (Bond.isLoci(loci)) {
         const bond = loci.bonds[0]

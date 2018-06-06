@@ -11,7 +11,7 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/r
 import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
-import { createTransforms, createColors, createFlags, createEmptyFlags, createSphereMesh } from './utils';
+import { createTransforms, createColors, createSphereMesh, applyElementFlags } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
@@ -20,6 +20,8 @@ import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
 import { PickingId } from '../../util/picking';
 import { SortedArray } from 'mol-data/int';
+import { createFlags, FlagAction } from '../../util/flag-data';
+import { Loci } from 'mol-model/loci';
 
 function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
     let radius: Element.Property<number>
@@ -31,7 +33,7 @@ function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
         console.warn('Unsupported unit type')
         return Task.constant('Empty mesh', Mesh.createEmpty(mesh))
     }
-    return createSphereMesh(unit, (l) => radius(l) * 0.3, detail, mesh)
+    return createSphereMesh(unit, (l) => radius(l) * 1.0, detail, mesh)
 }
 
 export const DefaultSpacefillProps = {
@@ -59,7 +61,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 renderObjects.length = 0 // clear
                 currentGroup = group
 
-                const { detail, colorTheme, hoverSelection } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
 
                 mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
@@ -72,7 +74,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 const color = createColors(group, vertexMap, colorTheme)
 
                 await ctx.update('Computing spacefill flags');
-                const flag = createFlags(group, hoverSelection.instanceId, hoverSelection.elementId)
+                const flag = createFlags(group)
 
                 const instanceCount = group.units.length
 
@@ -130,15 +132,6 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
                 }
 
-                if (newProps.hoverSelection !== currentProps.hoverSelection) {
-                    await ctx.update('Computing spacefill flags');
-                    if (newProps.hoverSelection.objectId === spheres.id) {
-                        createFlags(currentGroup, newProps.hoverSelection.instanceId, newProps.hoverSelection.elementId, spheres.values)
-                    } else {
-                        createEmptyFlags(spheres.values)
-                    }
-                }
-
                 ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
                 ValueCell.updateIfChanged(spheres.values.dDoubleSided, newProps.doubleSided)
                 ValueCell.updateIfChanged(spheres.values.dFlipSided, newProps.flipSided)
@@ -155,10 +148,13 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
             const { objectId, instanceId, elementId } = pickingId
             if (spheres.id === objectId) {
                 const unit = currentGroup.units[instanceId]
-                const elements = SortedArray.ofSingleton(currentGroup.elements[elementId])
-                return Element.Loci([{ unit, elements }])
+                const indices = SortedArray.ofSingleton(elementId);
+                return Element.Loci([{ unit, indices }])
             }
             return null
+        },
+        applyFlags(loci: Loci, action: FlagAction) {
+            applyElementFlags(spheres.values.tFlag, currentGroup, loci, action)
         }
     }
 }

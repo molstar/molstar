@@ -11,7 +11,7 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/r
 import { Unit, Element } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
-import { createTransforms, createEmptyFlags } from './utils';
+import { createTransforms } from './utils';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
@@ -21,7 +21,8 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
 import { defaults } from 'mol-util';
-import { SortedArray } from 'mol-data/int';
+import { Loci } from 'mol-model/loci';
+import { FlagAction, createEmptyFlags } from '../../util/flag-data';
 
 function createBondMesh(unit: Unit, mesh?: Mesh) {
     return Task.create('Cylinder mesh', async ctx => {
@@ -174,6 +175,10 @@ export default function Bond(): UnitsRepresentation<BondProps> {
             //     return Element.Loci([{ unit, elements }])
             // }
             return null
+        },
+        applyFlags(loci: Loci, action: FlagAction) {
+            currentGroup
+            // TODO
         }
     }
 }

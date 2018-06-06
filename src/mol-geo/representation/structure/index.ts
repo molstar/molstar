@@ -12,20 +12,17 @@ import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
 import { Loci } from 'mol-model/loci';
+import { FlagAction } from '../../util/flag-data';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (group: Unit.SymmetryGroup, props: P) => Task<void>
     update: (props: P) => Task<boolean>
     getLoci: (pickingId: PickingId) => Loci | null
+    applyFlags: (loci: Loci, action: FlagAction) => void
 }
 
-export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> {
-    renderObjects: ReadonlyArray<RenderObject>
-    create: (structure: Structure, props?: P) => Task<void>
-    update: (props: P) => Task<void>
-    getLoci: (pickingId: PickingId) => Loci | null
-}
+export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
 interface GroupRepresentation<T> {
     repr: UnitsRepresentation<T>
@@ -37,8 +34,7 @@ export const DefaultStructureProps = {
     alpha: 1,
     visible: true,
     doubleSided: false,
-    depthMask: true,
-    hoverSelection: { objectId: -1, instanceId: -1, elementId: -1 } as PickingId
+    depthMask: true
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 
@@ -91,6 +87,11 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
                 }
             })
         },
-        getLoci
+        getLoci,
+        applyFlags(loci: Loci, action: FlagAction) {
+            for (let i = 0, il = groupReprs.length; i < il; ++i) {
+                groupReprs[i].repr.applyFlags(loci, action)
+            }
+        }
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -33,8 +33,16 @@ namespace Unit {
         }
     }
 
-    // A group of units that differ only by symmetry operators.
+    /** A group of units that differ only by symmetry operators. */
     export type SymmetryGroup = { readonly elements: SortedArray, readonly units: ReadonlyArray<Unit> }
+
+    /** Find index of unit with given id, returns -1 if not found */
+    export function findUnitById(id: number, units: ReadonlyArray<Unit>) {
+        for (let i = 0, il = units.length; i < il; ++i) {
+            if (units[i].id === id) return i
+        }
+        return -1
+    }
 
     export interface Base {
         readonly id: number,

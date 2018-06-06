@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -36,13 +36,18 @@ namespace Element {
 
     export function property<T>(p: Property<T>) { return p; }
 
-    /** Represents multiple element locations */
+    /** Represents multiple element index locations */
     export interface Loci {
         readonly kind: 'element-loci',
-        readonly elements: ReadonlyArray<{ unit: Unit, elements: SortedArray }>
+        /** Access i-th element as unit.elements[indices[i]] */
+        readonly elements: ReadonlyArray<{
+            unit: Unit,
+            /** Indices into the unit.elements array */
+            indices: SortedArray
+        }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, elements: SortedArray }>): Loci {
+    export function Loci(elements: ArrayLike<{ unit: Unit, indices: SortedArray }>): Loci {
         return { kind: 'element-loci', elements: elements as Loci['elements'] };
     }
 
