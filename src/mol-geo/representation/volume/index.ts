@@ -9,6 +9,7 @@ import { RenderObject } from 'mol-gl/render-object';
 import { RepresentationProps, Representation } from '..';
 import { VolumeData } from 'mol-model/volume';
 import { PickingId, PickingInfo } from '../../util/picking';
+import { Loci } from 'mol-model/loci';
 
 export interface VolumeElementRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
@@ -21,7 +22,7 @@ export interface VolumeRepresentation<P extends RepresentationProps = {}> extend
     renderObjects: ReadonlyArray<RenderObject>
     create: (volumeData: VolumeData, props?: P) => Task<void>
     update: (props: P) => Task<void>
-    getLabel: (pickingId: PickingId) => PickingInfo | null
+    getLoci: (pickingId: PickingId) => Loci | null
 }
 
 export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentation<P>): VolumeRepresentation<P> {
@@ -39,7 +40,8 @@ export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentat
         update(props: P) {
             return Task.create('VolumeRepresentation.update', async ctx => {})
         },
-        getLabel(pickingId: PickingId) {
+        getLoci(pickingId: PickingId) {
+            // TODO
             return null
         }
     }

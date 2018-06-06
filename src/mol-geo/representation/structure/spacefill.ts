@@ -19,6 +19,7 @@ import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
 import { PickingId } from '../../util/picking';
+import { SortedArray } from 'mol-data/int';
 
 function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
     let radius: Element.Property<number>
@@ -150,13 +151,12 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 return true
             })
         },
-        getLocation(pickingId: PickingId) {
+        getLoci(pickingId: PickingId) {
             const { objectId, instanceId, elementId } = pickingId
             if (spheres.id === objectId) {
-                const l = Element.Location()
-                l.unit = currentGroup.units[instanceId]
-                l.element = currentGroup.elements[elementId]
-                return l
+                const unit = currentGroup.units[instanceId]
+                const elements = SortedArray.ofSingleton(currentGroup.elements[elementId])
+                return Element.Loci([{ unit, elements }])
             }
             return null
         }

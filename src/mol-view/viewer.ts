@@ -22,6 +22,7 @@ import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
+import { labelFirst } from './label';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -80,8 +81,8 @@ namespace Viewer {
             const p = identify(x, y)
             let label = ''
             reprMap.forEach((roSet, repr) => {
-                const info = repr.getLabel(p)
-                if (info) label = info.label
+                const loci = repr.getLoci(p)
+                if (loci) label = labelFirst(loci)
                 repr.update({ hoverSelection: p }).run().then(() => {
                     scene.update()
                     requestDraw()

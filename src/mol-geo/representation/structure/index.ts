@@ -5,61 +5,31 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureSymmetry, Unit, Element, Queries } from 'mol-model/structure';
+import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
-import { PickingId, PickingInfo } from '../../util/picking';
+import { PickingId } from '../../util/picking';
+import { Loci } from 'mol-model/loci';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (group: Unit.SymmetryGroup, props: P) => Task<void>
     update: (props: P) => Task<boolean>
-    getLocation: (pickingId: PickingId) => Element.Location | null
+    getLoci: (pickingId: PickingId) => Loci | null
 }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (structure: Structure, props?: P) => Task<void>
     update: (props: P) => Task<void>
-    getLocation: (pickingId: PickingId) => Element.Location | null
-    getLabel: (pickingId: PickingId) => PickingInfo | null
+    getLoci: (pickingId: PickingId) => Loci | null
 }
 
 interface GroupRepresentation<T> {
     repr: UnitsRepresentation<T>
     group: Unit.SymmetryGroup
-}
-
-function label(loc: Element.Location) {
-    const model = loc.unit.model.label
-    const instance = loc.unit.conformation.operator.name
-    let element = ''
-
-    if (Unit.isAtomic(loc.unit)) {
-        const asym_id = Queries.props.chain.auth_asym_id(loc)
-        const seq_id = Queries.props.residue.auth_seq_id(loc)
-        const comp_id = Queries.props.residue.auth_comp_id(loc)
-        const atom_id = Queries.props.atom.auth_atom_id(loc)
-        element = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}`
-    } else if (Unit.isCoarse(loc.unit)) {
-        const asym_id = Queries.props.coarse.asym_id(loc)
-        const seq_id_begin = Queries.props.coarse.seq_id_begin(loc)
-        const seq_id_end = Queries.props.coarse.seq_id_end(loc)
-        if (seq_id_begin === seq_id_end) {
-            const entityKey = Queries.props.coarse.entityKey(loc)
-            const seq = loc.unit.model.sequence.byEntityKey[entityKey]
-            const comp_id = seq.compId.value(seq_id_begin)
-            element = `[${comp_id}]${seq_id_begin}:${asym_id}`
-        } else {
-            element = `${seq_id_begin}-${seq_id_end}:${asym_id}`
-        }
-    } else {
-        element = 'unknown'
-    }
-
-    return { label: `${model} ${instance} ${element}` }
 }
 
 export const DefaultStructureProps = {
@@ -77,9 +47,9 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
     const groupReprs: GroupRepresentation<P>[] = []
     // let currentProps: typeof DefaultStructureProps
 
-    function getLocation(pickingId: PickingId) {
+    function getLoci(pickingId: PickingId) {
         for (let i = 0, il = groupReprs.length; i < il; ++i) {
-            const loc = groupReprs[i].repr.getLocation(pickingId)
+            const loc = groupReprs[i].repr.getLoci(pickingId)
             if (loc) return loc
         }
         return null
@@ -121,10 +91,6 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
                 }
             })
         },
-        getLocation,
-        getLabel(pickingId: PickingId) {
-            const loc = getLocation(pickingId)
-            return loc ? label(loc) : null
-        }
+        getLoci
     }
 }

@@ -155,13 +155,12 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 return false
             })
         },
-        getLocation(pickingId: PickingId) {
+        getLoci(pickingId: PickingId) {
             const { objectId, instanceId, elementId } = pickingId
             if (points.id === objectId) {
-                const l = Element.Location()
-                l.unit = currentGroup.units[instanceId]
-                l.element = currentGroup.elements[elementId]
-                return l
+                const unit = currentGroup.units[instanceId]
+                const elements = SortedArray.ofSingleton(currentGroup.elements[elementId])
+                return Element.Loci([{ unit, elements }])
             }
             return null
         }

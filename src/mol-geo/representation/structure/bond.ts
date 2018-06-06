@@ -21,6 +21,7 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
 import { defaults } from 'mol-util';
+import { SortedArray } from 'mol-data/int';
 
 function createBondMesh(unit: Unit, mesh?: Mesh) {
     return Task.create('Cylinder mesh', async ctx => {
@@ -31,7 +32,7 @@ function createBondMesh(unit: Unit, mesh?: Mesh) {
     
         if (!count) return Mesh.createEmpty(mesh)
 
-        // TODO calculate properly
+        // TODO calculate vertextCount properly
         const vertexCount = 32 * count
         const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
 
@@ -91,7 +92,7 @@ export default function Bond(): UnitsRepresentation<BondProps> {
     let cylinders: MeshRenderObject
     let currentProps: typeof DefaultBondProps
     let mesh: Mesh
-    // let currentGroup: Unit.SymmetryGroup
+    let currentGroup: Unit.SymmetryGroup
     // let vertexMap: VertexMap
 
     return {
@@ -101,7 +102,7 @@ export default function Bond(): UnitsRepresentation<BondProps> {
 
             return Task.create('Bond.create', async ctx => {
                 renderObjects.length = 0 // clear
-                // currentGroup = group
+                currentGroup = group
 
                 mesh = await createBondMesh(group.units[0]).runAsChild(ctx, 'Computing bond mesh')
                 // console.log(mesh)
@@ -165,13 +166,12 @@ export default function Bond(): UnitsRepresentation<BondProps> {
                 return true
             })
         },
-        getLocation(pickingId: PickingId) {
+        getLoci(pickingId: PickingId) {
             // const { objectId, instanceId, elementId } = pickingId
             // if (cylinders.id === objectId) {
-            //     const l = Element.Location()
-            //     l.unit = currentGroup.units[instanceId]
-            //     l.element = currentGroup.elements[elementId]
-            //     return l
+            //     const unit = currentGroup.units[instanceId]
+            //     const elements = SortedArray.ofSingleton(currentGroup.elements[elementId])
+            //     return Element.Loci([{ unit, elements }])
             // }
             return null
         }
