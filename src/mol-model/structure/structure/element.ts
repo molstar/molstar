@@ -24,7 +24,7 @@ namespace Element {
 
     /** All the information required to access element properties */
     export interface Location { unit: Unit, element: number }
-    export function Location(): Location { return { unit: {} as any, element: 0 }; }
+    export function Location(unit?: Unit, element?: number): Location { return { unit: unit as any, element: element || 0 }; }
     export interface Property<T> { (location: Location): T }
     export interface Predicate extends Property<boolean> { }
 
@@ -37,7 +37,18 @@ namespace Element {
     export function property<T>(p: Property<T>) { return p; }
 
     /** Represents multiple element locations */
-    export type Loci = ReadonlyArray<{ unit: Unit, elements: SortedArray }>
+    export interface Loci {
+        readonly kind: 'element-loci',
+        readonly elements: ReadonlyArray<{ unit: Unit, elements: SortedArray }>
+    }
+
+    export function Loci(elements: ArrayLike<{ unit: Unit, elements: SortedArray }>): Loci {
+        return { kind: 'element-loci', elements: elements as Loci['elements'] };
+    }
+
+    export function isLoci(x: any): x is Loci {
+        return !!x && x.kind === 'element-loci';
+    }
 }
 
 export default Element
