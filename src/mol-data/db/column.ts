@@ -103,6 +103,15 @@ namespace Column {
         return lambdaColumn(spec);
     }
 
+    /** values [min, max] (i.e. include both values) */
+    export function range(min: number, max: number): Column<number> {
+        return ofLambda({
+            value: i => i + min,
+            rowCount: Math.max(max - min + 1, 0),
+            schema: Schema.int
+        });
+    }
+
     export function ofArray<T extends Column.Schema>(spec: Column.ArraySpec<T>): Column<T['T']> {
         return arrayColumn(spec);
     }

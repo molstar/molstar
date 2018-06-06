@@ -6,24 +6,13 @@
  */
 
 import { BondType } from '../../../model/types'
+import { IntGraph } from 'mol-math/graph';
 
-interface IntraUnitBonds {
-    /**
-     * Where bonds for atom A start and end.
-     * Start offset at idx, end at idx + 1
-     */
-    offset: ArrayLike<number>,
-    neighbor: ArrayLike<number>,
-
-    order: ArrayLike<number>,
-    flags: ArrayLike<BondType.Flag>,
-
-    count: number
-}
+type IntraUnitBonds = IntGraph<{ readonly order: ArrayLike<number>, readonly flags: ArrayLike<BondType.Flag> }>
 
 namespace IntraUnitBonds {
     export function createEmpty(): IntraUnitBonds {
-        return { offset: [], neighbor: [], order: [], flags: [], count: 0 }
+        return IntGraph.create([], [], [], 0, { flags: [], order: [] });
     }
     export function isCovalent(flags: number) {
         return (flags & BondType.Flag.Covalent) !== 0;
