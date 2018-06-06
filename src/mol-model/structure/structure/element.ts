@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Tuple } from 'mol-data/int'
+import { Tuple, SortedArray } from 'mol-data/int'
 import Unit from './unit'
 import Structure from './structure'
 
@@ -35,6 +35,9 @@ namespace Element {
     }
 
     export function property<T>(p: Property<T>) { return p; }
+
+    /** Represents multiple element locations */
+    export type Loci = ReadonlyArray<{ unit: Unit, elements: SortedArray }>
 }
 
 export default Element
