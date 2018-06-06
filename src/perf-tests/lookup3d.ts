@@ -52,11 +52,11 @@ export async function test() {
     const result = lookup.find(-30.07, 8.178, -13.897, 10);
     console.log(result.count)//, sortArray(result.indices));
 
-    const sl = Structure.getLookup3d(structures[0]);
+    const sl = structures[0].lookup3d;
     const result1 = sl.find(-30.07, 8.178, -13.897, 10);
     console.log(result1.count);//, result1.indices);
 
-    console.log(Structure.getBoundary(structures[0]));
+    console.log(structures[0].boundary);
     console.log(lookup.boundary);
 }
 

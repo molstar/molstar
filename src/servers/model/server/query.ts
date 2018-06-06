@@ -77,7 +77,7 @@ export async function resolveRequest(req: Request, writer: Writer) {
     const encoder = CifWriter.createEncoder({ binary: req.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
 
     perf.start('encode');
-    encoder.startDataBlock('result');
+    encoder.startDataBlock(structure.units[0].model.label.toUpperCase());
     encoder.writeCategory(_model_server_result, [req]);
     encoder.writeCategory(_model_server_params, [req]);
 

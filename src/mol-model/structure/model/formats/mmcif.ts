@@ -142,9 +142,13 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
 
     const coarse = getIHMCoarse(format.data, entities);
 
+    const label = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
+        ? format.data.entry.id.value(0)
+        : format.data._name;
+
     return {
         id: UUID.create(),
-        label: format.data.entry.id.value(0),
+        label,
         sourceData: format,
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         entities,

@@ -52,10 +52,9 @@ const AtomSiteParameters = {
 // }
 
 function entityTest1_555(params: any): Element.Predicate | undefined {
-    const oper = Queries.props.unit.operator_name;
-    if (typeof params.entity_id === 'undefined') return Element.property(l => oper(l) === '1_555');
+    if (typeof params.entity_id === 'undefined') return Element.property(l => l.unit.conformation.operator.isIdentity);
     const p = Queries.props.entity.id, id = '' + params.entityId;
-    return Element.property(l => p(l) === id && oper(l) === '1_555');
+    return Element.property(l => l.unit.conformation.operator.isIdentity && p(l) === id);
 }
 
 function chainTest(params: any): Element.Predicate | undefined {
