@@ -8,6 +8,7 @@ import { BondType, ElementSymbol } from '../../../model/types'
 import { IntraUnitBonds } from './intra-data'
 import { StructConn, ComponentBondInfo } from '../../../model/formats/mmcif/bonds'
 import Unit from '../../unit'
+import { IntGraph } from 'mol-math/graph';
 
 export interface BondComputationParameters {
     maxHbondLength: number,
@@ -62,48 +63,17 @@ function isHydrogen(i: number) {
     return i === H_ID;
 }
 
-function computePerAtomBonds(atomA: number[], atomB: number[], _order: number[], _flags: number[], atomCount: number) {
-    const bucketSizes = new Int32Array(atomCount);
-    const bucketOffsets = new Int32Array(atomCount + 1) as any as number[];
-    const bucketFill = new Int32Array(atomCount);
-
-    for (const i of atomA) bucketSizes[i]++;
-    for (const i of atomB) bucketSizes[i]++;
-
-    let offset = 0;
-    for (let i = 0; i < atomCount; i++) {
-        bucketOffsets[i] = offset;
-        offset += bucketSizes[i];
-    }
-    bucketOffsets[atomCount] = offset;
-
-    const neighbor = new Int32Array(offset) as any as number[];
-    const flags = new Uint16Array(offset) as any as number[];
-    const order = new Int8Array(offset) as any as number[];
-
-    for (let i = 0, _i = atomA.length; i < _i; i++) {
-        const a = atomA[i], b = atomB[i], f = _flags[i], o = _order[i];
-
-        const oa = bucketOffsets[a] + bucketFill[a];
-        const ob = bucketOffsets[b] + bucketFill[b];
-
-        neighbor[oa] = b;
-        flags[oa] = f;
-        order[oa] = o;
-        bucketFill[a]++;
-
-        neighbor[ob] = a;
-        flags[ob] = f;
-        order[ob] = o;
-        bucketFill[b]++;
+function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: number[], atomCount: number): IntraUnitBonds {
+    const builder = new IntGraph.EdgeBuilder(atomCount, atomA, atomB);
+    const flags = new Uint16Array(builder.slotCount);
+    const order = new Int8Array(builder.slotCount);
+    for (let i = 0, _i = builder.edgeCount; i < _i; i++) {
+        builder.addNextEdge();
+        builder.assignProperty(flags, _flags[i]);
+        builder.assignProperty(order, _order[i]);
     }
 
-    return {
-        offsets: bucketOffsets,
-        neighbor,
-        flags,
-        order
-    };
+    return builder.createGraph({ flags, order });
 }
 
 function _computeBonds(unit: Unit.Atomic, params: BondComputationParameters): IntraUnitBonds {
@@ -231,15 +201,7 @@ function _computeBonds(unit: Unit.Atomic, params: BondComputationParameters): In
         }
     }
 
-    const bonds = computePerAtomBonds(atomA, atomB, order, flags, atomCount);
-
-    return {
-        offset: bonds.offsets,
-        neighbor: bonds.neighbor,
-        flags: bonds.flags,
-        order: bonds.order,
-        count: atomA.length
-    };
+    return getGraph(atomA, atomB, order, flags, atomCount);
 }
 
 function computeIntraUnitBonds(unit: Unit.Atomic, params?: Partial<BondComputationParameters>) {

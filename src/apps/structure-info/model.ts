@@ -76,22 +76,15 @@ export function printBonds(structure: Structure) {
         if (!Unit.isAtomic(unit)) continue;
 
         const elements = unit.elements;
-        const { count, offset, neighbor } = unit.bonds;
+        const { a, b } = unit.bonds;
         const { model }  = unit;
 
-        if (!count) continue;
+        if (!a.length) continue;
 
-        for (let j = 0; j < offset.length - 1; ++j) {
-            const start = offset[j];
-            const end = offset[j + 1];
-
-            if (end <= start) continue;
-
-            const aI = elements[j];
-            for (let _bI = start; _bI < end; _bI++) {
-                const bI = elements[neighbor[_bI]];
-                console.log(`${atomLabel(model, aI)} -- ${atomLabel(model, bI)}`);
-            }
+        for (let bI = 0, _bI = a.length; bI < _bI; bI++) {
+            const x = a[bI], y = b[bI];
+            if (x >= y) continue;
+            console.log(`${atomLabel(model, elements[x])} -- ${atomLabel(model, elements[y])}`);
         }
     }
 }
@@ -153,7 +146,7 @@ async function run(mmcif: mmCIF_Database) {
     printSequence(models[0]);
     printIHMModels(models[0]);
     printUnits(structure);
-    // printBonds(structure);
+    printBonds(structure);
     printSecStructure(models[0]);
 }
 
