@@ -110,7 +110,8 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
                     drawCount: ValueCell.create(vertices.length / 3),
                     instanceCount: ValueCell.create(instanceCount),
 
-                    dPointSizeAttenuation: ValueCell.create(true)
+                    dPointSizeAttenuation: ValueCell.create(true),
+                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
                 }
                 const state: RenderableState = {
                     depthMask: defaults(props.depthMask, true),

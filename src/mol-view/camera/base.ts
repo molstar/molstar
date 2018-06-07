@@ -18,6 +18,9 @@ export interface Camera {
     direction: Vec3,
     up: Vec3,
 
+    near: number,
+    far: number,
+
     translate: (v: Vec3) => void,
     reset: () => void,
     lookAt: (target: Vec3) => void,
@@ -30,7 +33,9 @@ export const DefaultCameraProps = {
     position: Vec3.zero(),
     direction: Vec3.create(0, 0, -1),
     up: Vec3.create(0, 1, 0),
-    viewport: Viewport.create(-1, -1, 1, 1)
+    viewport: Viewport.create(-1, -1, 1, 1),
+    near: 0.1,
+    far: 10000,
 }
 export type CameraProps = Partial<typeof DefaultCameraProps>
 
@@ -88,6 +93,12 @@ export namespace Camera {
             position,
             direction,
             up,
+
+            get far() { return p.far },
+            set far(value: number) { p.far = value },
+
+            get near() { return p.near },
+            set near(value: number) { p.near = value },
 
             translate,
             reset,

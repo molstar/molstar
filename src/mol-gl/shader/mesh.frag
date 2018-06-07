@@ -77,5 +77,6 @@ void main() {
         gl_FragColor.a = uAlpha;
 
         #pragma glslify: import('./chunks/apply-marker-color.glsl')
+        #pragma glslify: import('./chunks/apply-fog.glsl')
     #endif
 }

@@ -34,7 +34,8 @@ export const DefaultStructureProps = {
     alpha: 1,
     visible: true,
     doubleSided: false,
-    depthMask: true
+    depthMask: true,
+    useFog: true,
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 

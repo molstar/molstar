@@ -97,6 +97,7 @@ export default function SpacefillUnitsRepresentation(): UnitsRepresentation<Spac
                     dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
                     dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
                     dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
+                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
                 }
                 const state: RenderableState = {
                     depthMask: defaults(props.depthMask, true),

@@ -15,8 +15,6 @@ export interface PerspectiveCamera extends Camera {
 
 export const DefaultPerspectiveCameraProps = {
     fov: Math.PI / 4,
-    near: 0.1,
-    far: 10000,
     ...DefaultCameraProps
 }
 export type PerspectiveCameraProps = Partial<typeof DefaultPerspectiveCameraProps>
@@ -47,12 +45,6 @@ export namespace PerspectiveCamera {
         return {
             ...camera,
             update,
-
-            get far() { return far },
-            set far(value: number) { far = value },
-
-            get near() { return near },
-            set near(value: number) { near = value },
 
             get fov() { return fov },
             set fov(value: number) { fov = value },

@@ -71,7 +71,8 @@ function createPoints() {
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
 
-        dPointSizeAttenuation: ValueCell.create(true)
+        dPointSizeAttenuation: ValueCell.create(true),
+        dUseFog: ValueCell.create(true),
     }
     const state: RenderableState = {
         visible: true,

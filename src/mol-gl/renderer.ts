@@ -58,6 +58,7 @@ namespace Renderer {
         const lightAmbient = Vec3.create(0.5, 0.5, 0.5)
         const highlightColor = Vec3.create(1.0, 0.4, 0.6)
         const selectColor = Vec3.create(0.2, 1.0, 0.1)
+        const fogColor = Vec3.create(0.0, 0.0, 0.0)
 
         function setClearColor(color: Color) {
             const [ r, g, b ] = Color.toRgbNormalized(color)
@@ -77,7 +78,11 @@ namespace Renderer {
             uLightAmbient: ValueCell.create(Vec3.clone(lightAmbient)),
 
             uHighlightColor: ValueCell.create(Vec3.clone(highlightColor)),
-            uSelectColor: ValueCell.create(Vec3.clone(selectColor))
+            uSelectColor: ValueCell.create(Vec3.clone(selectColor)),
+
+            uFogNear: ValueCell.create(camera.near),
+            uFogFar: ValueCell.create(camera.far / 50),
+            uFogColor: ValueCell.create(Vec3.clone(fogColor)),
         }
 
         let currentProgramId = -1

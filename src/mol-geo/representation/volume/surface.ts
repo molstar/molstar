@@ -45,7 +45,8 @@ export const DefaultSurfaceProps = {
     flatShaded: true,
     flipSided: true,
     doubleSided: true,
-    depthMask: true
+    depthMask: true,
+    useFog: true
 }
 export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
 
@@ -89,6 +90,7 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                     dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
                     dFlatShaded: ValueCell.create(defaults(props.flatShaded, true)),
                     dFlipSided: ValueCell.create(false),
+                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
                 }
                 const state: RenderableState = {
                     depthMask: defaults(props.depthMask, true),
