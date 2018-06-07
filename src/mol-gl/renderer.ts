@@ -56,6 +56,8 @@ namespace Renderer {
         // const lightPosition = Vec3.create(0, 0, -100)
         const lightColor = Vec3.create(1.0, 1.0, 1.0)
         const lightAmbient = Vec3.create(0.5, 0.5, 0.5)
+        const highlightColor = Vec3.create(1.0, 0.4, 0.6)
+        const selectColor = Vec3.create(0.2, 1.0, 0.1)
 
         function setClearColor(color: Color) {
             const [ r, g, b ] = Color.toRgbNormalized(color)
@@ -72,7 +74,10 @@ namespace Renderer {
             uViewportHeight: ValueCell.create(viewport.height),
 
             uLightColor: ValueCell.create(Vec3.clone(lightColor)),
-            uLightAmbient: ValueCell.create(Vec3.clone(lightAmbient))
+            uLightAmbient: ValueCell.create(Vec3.clone(lightAmbient)),
+
+            uHighlightColor: ValueCell.create(Vec3.clone(highlightColor)),
+            uSelectColor: ValueCell.create(Vec3.clone(selectColor))
         }
 
         let currentProgramId = -1

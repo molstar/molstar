@@ -126,6 +126,9 @@ export const GlobalUniformSchema = {
 
     uPixelRatio: UniformSpec('f'),
     uViewportHeight: UniformSpec('f'),
+
+    uHighlightColor: UniformSpec('v3'),
+    uSelectColor: UniformSpec('v3'),
 }
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<any> }
@@ -146,10 +149,10 @@ export const BaseSchema = {
     uElementCount: UniformSpec('i'),
     uColor: UniformSpec('v3'),
     uColorTexSize: UniformSpec('v2'),
-    uFlagTexSize: UniformSpec('v2'),
+    uMarkerTexSize: UniformSpec('v2'),
 
     tColor: TextureSpec('rgb', 'ubyte'),
-    tFlag: TextureSpec('alpha', 'ubyte'),
+    tMarker: TextureSpec('alpha', 'ubyte'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),

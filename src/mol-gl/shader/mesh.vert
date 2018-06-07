@@ -26,8 +26,8 @@ varying vec3 vViewPosition;
 #pragma glslify: transpose = require(./utils/transpose.glsl)
 
 void main(){
-    #pragma glslify: import('./chunks/color-assign-varying.glsl')
-    vFlag = readFromTexture(tFlag, aInstanceId * float(uElementCount) + aElementId, uFlagTexSize).a;
+    #pragma glslify: import('./chunks/assign-color-varying.glsl')
+    #pragma glslify: import('./chunks/assign-marker-varying.glsl')
 
     mat4 modelView = uView * uModel * aTransform;
     vec4 mvPosition = modelView * vec4(aPosition, 1.0);

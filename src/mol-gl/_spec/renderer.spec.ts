@@ -19,7 +19,7 @@ import { RenderableState } from '../renderable';
 import { createPointRenderObject } from '../render-object';
 import { PointValues } from '../renderable/point';
 import Scene from '../scene';
-import { createEmptyFlags } from 'mol-geo/util/flag-data';
+import { createEmptyMarkers } from 'mol-geo/util/marker-data';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -49,7 +49,7 @@ function createPoints() {
     const aInstanceId = ValueCell.create(fillSerial(new Float32Array(1)))
     const color = createUniformColor({ value: 0xFF0000 })
     const size = createUniformSize({ value: 1 })
-    const flag = createEmptyFlags()
+    const marker = createEmptyMarkers()
 
     const aTransform = ValueCell.create(new Float32Array(16))
     const m4 = Mat4.identity()
@@ -61,7 +61,7 @@ function createPoints() {
         aTransform,
         aInstanceId,
         ...color,
-        ...flag,
+        ...marker,
         ...size,
 
         uAlpha: ValueCell.create(1.0),

@@ -14,13 +14,13 @@ import { fillSerial } from 'mol-gl/renderable/util';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import VertexMap from '../../shape/vertex-map';
 import { SizeTheme } from '../../theme';
-import { createTransforms, createColors, createSizes, applyElementFlags } from './utils';
+import { createTransforms, createColors, createSizes, markElement } from './utils';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
 import { Loci } from 'mol-model/loci';
-import { FlagAction, createFlags } from '../../util/flag-data';
+import { MarkerAction, createMarkers } from '../../util/marker-data';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
@@ -91,8 +91,8 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
                 await ctx.update('Computing point sizes');
                 const size = createSizes(group, vertexMap, sizeTheme)
 
-                await ctx.update('Computing spacefill flags');
-                const flag = createFlags(instanceCount * elementCount)
+                await ctx.update('Computing spacefill marks');
+                const marker = createMarkers(instanceCount * elementCount)
 
                 const values: PointValues = {
                     aPosition: ValueCell.create(vertices),
@@ -100,7 +100,7 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
                     aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
-                    ...flag,
+                    ...marker,
                     ...size,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
@@ -165,8 +165,8 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
             }
             return null
         },
-        applyFlags(loci: Loci, action: FlagAction) {
-            applyElementFlags(points.values.tFlag, currentGroup, loci, action)
+        mark(loci: Loci, action: MarkerAction) {
+            markElement(points.values.tMarker, currentGroup, loci, action)
         }
     }
 }

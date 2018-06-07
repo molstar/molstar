@@ -25,7 +25,7 @@ attribute float aInstanceId;
 attribute float aElementId;
 
 void main(){
-    #pragma glslify: import('./chunks/color-assign-varying.glsl')
+    #pragma glslify: import('./chunks/assign-color-varying.glsl')
 
     mat4 modelView = uView * uModel * aTransform;
     vec4 mvPosition = modelView * vec4(aPosition, 1.0);

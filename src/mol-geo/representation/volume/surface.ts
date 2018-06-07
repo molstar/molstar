@@ -18,7 +18,7 @@ import { createUniformColor } from '../../util/color-data';
 import { getMeshData } from '../../util/mesh-data';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
-import { createEmptyFlags, FlagAction } from '../../util/flag-data';
+import { createEmptyMarkers, MarkerAction } from '../../util/marker-data';
 import { Loci } from 'mol-model/loci';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
@@ -68,14 +68,14 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
 
                 const instanceCount = 1
                 const color = createUniformColor({ value: 0x7ec0ee })
-                const flag = createEmptyFlags()
+                const marker = createEmptyMarkers()
 
                 const values: MeshValues = {
                     ...getMeshData(mesh),
                     aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
-                    ...flag,
+                    ...marker,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                     uInstanceCount: ValueCell.create(instanceCount),
@@ -109,7 +109,7 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
             // TODO
             return null
         },
-        applyFlags(loci: Loci, action: FlagAction) {
+        mark(loci: Loci, action: MarkerAction) {
             // TODO
         }
     }

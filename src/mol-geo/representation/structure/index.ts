@@ -12,14 +12,14 @@ import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
 import { Loci } from 'mol-model/loci';
-import { FlagAction } from '../../util/flag-data';
+import { MarkerAction } from '../../util/marker-data';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (group: Unit.SymmetryGroup, props: P) => Task<void>
     update: (props: P) => Task<boolean>
     getLoci: (pickingId: PickingId) => Loci | null
-    applyFlags: (loci: Loci, action: FlagAction) => void
+    mark: (loci: Loci, action: MarkerAction) => void
 }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
@@ -88,9 +88,9 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
             })
         },
         getLoci,
-        applyFlags(loci: Loci, action: FlagAction) {
+        mark(loci: Loci, action: MarkerAction) {
             for (let i = 0, il = groupReprs.length; i < il; ++i) {
-                groupReprs[i].repr.applyFlags(loci, action)
+                groupReprs[i].repr.mark(loci, action)
             }
         }
     }

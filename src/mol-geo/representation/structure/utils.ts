@@ -20,7 +20,7 @@ import { Task } from 'mol-task';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { TextureImage } from 'mol-gl/renderable/util';
-import { applyFlagAction, FlagAction } from '../../util/flag-data';
+import { applyMarkerAction, MarkerAction } from '../../util/marker-data';
 import { Loci, isEveryLoci } from 'mol-model/loci';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
@@ -89,13 +89,13 @@ export function createSphereMesh(unit: Unit, radius: Element.Property<number>, d
 }
 
 
-export function applyElementFlags(tFlag: ValueCell<TextureImage>, group: Unit.SymmetryGroup, loci: Loci, action: FlagAction) {
+export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.SymmetryGroup, loci: Loci, action: MarkerAction) {
     let changed = false
     const elementCount = group.elements.length
     const instanceCount = group.units.length
-    const array = tFlag.ref.value.array
+    const array = tMarker.ref.value.array
     if (isEveryLoci(loci)) {
-        applyFlagAction(array, 0, elementCount * instanceCount, action)
+        applyMarkerAction(array, 0, elementCount * instanceCount, action)
         changed = true
     } else if (Element.isLoci(loci)) {
         for (const e of loci.elements) {
@@ -103,7 +103,7 @@ export function applyElementFlags(tFlag: ValueCell<TextureImage>, group: Unit.Sy
             if (unitIdx !== -1) {
                 for (let i = 0, il = e.indices.length; i < il; ++i) {
                     const idx = unitIdx * elementCount + e.indices[i]
-                    if (applyFlagAction(array, idx, idx + 1, action) && !changed) {
+                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
                         changed = true
                     }
                 }
@@ -113,6 +113,6 @@ export function applyElementFlags(tFlag: ValueCell<TextureImage>, group: Unit.Sy
         return
     }
     if (changed) {
-        ValueCell.update(tFlag, tFlag.ref.value)
+        ValueCell.update(tMarker, tMarker.ref.value)
     }
 }

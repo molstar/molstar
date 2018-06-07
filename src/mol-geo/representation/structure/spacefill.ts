@@ -11,7 +11,7 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/r
 import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
-import { createTransforms, createColors, createSphereMesh, applyElementFlags } from './utils';
+import { createTransforms, createColors, createSphereMesh, markElement } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
@@ -20,7 +20,7 @@ import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
 import { PickingId } from '../../util/picking';
 import { SortedArray } from 'mol-data/int';
-import { createFlags, FlagAction } from '../../util/flag-data';
+import { createMarkers, MarkerAction } from '../../util/marker-data';
 import { Loci } from 'mol-model/loci';
 
 function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
@@ -75,15 +75,15 @@ export default function SpacefillUnitsRepresentation(): UnitsRepresentation<Spac
                 await ctx.update('Computing spacefill colors');
                 const color = createColors(group, vertexMap, colorTheme)
 
-                await ctx.update('Computing spacefill flags');
-                const flag = createFlags(instanceCount * elementCount)
+                await ctx.update('Computing spacefill marks');
+                const marker = createMarkers(instanceCount * elementCount)
 
                 const values: MeshValues = {
                     ...getMeshData(mesh),
                     aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
-                    ...flag,
+                    ...marker,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                     uInstanceCount: ValueCell.create(instanceCount),
@@ -153,8 +153,8 @@ export default function SpacefillUnitsRepresentation(): UnitsRepresentation<Spac
             }
             return null
         },
-        applyFlags(loci: Loci, action: FlagAction) {
-            applyElementFlags(spheres.values.tFlag, currentGroup, loci, action)
+        mark(loci: Loci, action: MarkerAction) {
+            markElement(spheres.values.tMarker, currentGroup, loci, action)
         }
     }
 }

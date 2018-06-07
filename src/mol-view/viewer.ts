@@ -23,7 +23,7 @@ import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
 import { labelFirst } from './label';
-import { FlagAction } from 'mol-geo/util/flag-data';
+import { MarkerAction } from 'mol-geo/util/marker-data';
 import { EveryLoci } from 'mol-model/loci';
 
 interface Viewer {
@@ -83,11 +83,11 @@ namespace Viewer {
             const p = identify(x, y)
             let label = ''
             reprMap.forEach((roSet, repr) => {
-                repr.applyFlags(EveryLoci, FlagAction.RemoveHighlight)
+                repr.mark(EveryLoci, MarkerAction.RemoveHighlight)
                 const loci = repr.getLoci(p)
                 if (loci) {
                     label = labelFirst(loci)
-                    repr.applyFlags(loci, FlagAction.Highlight)
+                    repr.mark(loci, MarkerAction.Highlight)
                 }
                 scene.update()
                 requestDraw()
@@ -99,7 +99,7 @@ namespace Viewer {
             reprMap.forEach((roSet, repr) => {
                 const loci = repr.getLoci(p)
                 if (loci) {
-                    repr.applyFlags(loci, FlagAction.ToggleSelect)
+                    repr.mark(loci, MarkerAction.ToggleSelect)
                     scene.update()
                     requestDraw()
                 }
