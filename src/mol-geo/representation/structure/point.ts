@@ -14,11 +14,13 @@ import { fillSerial } from 'mol-gl/renderable/util';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import VertexMap from '../../shape/vertex-map';
 import { SizeTheme } from '../../theme';
-import { createTransforms, createColors, createSizes, createFlags } from './utils';
+import { createTransforms, createColors, createSizes, applyElementFlags } from './utils';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
+import { Loci } from 'mol-model/loci';
+import { FlagAction, createFlags } from '../../util/flag-data';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
@@ -66,7 +68,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 _units = group.units
                 _elements = group.elements;
 
-                const { colorTheme, sizeTheme, hoverSelection } = currentProps
+                const { colorTheme, sizeTheme } = currentProps
                 const elementCount = _elements.length
 
                 const vertexMap = VertexMap.create(
@@ -89,7 +91,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 const size = createSizes(group, vertexMap, sizeTheme)
 
                 await ctx.update('Computing spacefill flags');
-                const flag = createFlags(group, hoverSelection.instanceId, hoverSelection.elementId)
+                const flag = createFlags(group)
 
                 const instanceCount = group.units.length
 
@@ -155,15 +157,17 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 return false
             })
         },
-        getLocation(pickingId: PickingId) {
+        getLoci(pickingId: PickingId) {
             const { objectId, instanceId, elementId } = pickingId
             if (points.id === objectId) {
-                const l = Element.Location()
-                l.unit = currentGroup.units[instanceId]
-                l.element = currentGroup.elements[elementId]
-                return l
+                const unit = currentGroup.units[instanceId]
+                const indices = SortedArray.ofSingleton(elementId)
+                return Element.Loci([{ unit, indices }])
             }
             return null
+        },
+        applyFlags(loci: Loci, action: FlagAction) {
+            applyElementFlags(points.values.tFlag, currentGroup, loci, action)
         }
     }
 }

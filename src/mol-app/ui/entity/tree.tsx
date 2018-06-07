@@ -13,7 +13,7 @@ import { View } from '../view';
 import { EntityTreeController } from '../../controller/entity/tree';
 import { Controller } from '../../controller/controller';
 import { AnyEntity, RootEntity } from 'mol-view/state/entity';
-import { AnyTransform, SpacefillUpdate, UrlToData, DataToCif, FileToData, CifToMmcif, MmcifToModel, ModelToStructure, StructureToSpacefill, MmcifFileToSpacefill, StructureCenter } from 'mol-view/state/transform';
+import { AnyTransform, SpacefillUpdate, UrlToData, DataToCif, FileToData, CifToMmcif, MmcifToModel, ModelToStructure, StructureToSpacefill, MmcifFileToSpacefill, StructureCenter, StructureToBond, BondUpdate } from 'mol-view/state/transform';
 
 function getTransforms(entity: AnyEntity): AnyTransform[] {
     const transforms: AnyTransform[] = []
@@ -40,10 +40,13 @@ function getTransforms(entity: AnyEntity): AnyTransform[] {
             transforms.push(ModelToStructure)
             break;
         case 'structure':
-            transforms.push(StructureToSpacefill, StructureCenter)
+            transforms.push(StructureToSpacefill, StructureToBond, StructureCenter)
             break;
         case 'spacefill':
             transforms.push(SpacefillUpdate)
+            break;
+        case 'bond':
+            transforms.push(BondUpdate)
             break;
     }
     return transforms

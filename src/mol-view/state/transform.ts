@@ -5,13 +5,14 @@
  */
 
 import CIF from 'mol-io/reader/cif'
-import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity } from './entity';
+import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BondEntity } from './entity';
 import { Model, Structure } from 'mol-model/structure';
 
 import { StateContext } from './context';
 import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import StructureSymmetry from 'mol-model/structure/structure/symmetry';
+import Bond, { BondProps } from 'mol-geo/representation/structure/bond';
 
 type transformer<I extends AnyEntity, O extends AnyEntity, P extends {}> = (ctx: StateContext, inputEntity: I, props?: P) => Promise<O>
 
@@ -98,17 +99,19 @@ export const StructureToSpacefill: StructureToSpacefill = StateTransform.create(
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
-        // ctx.viewer.input.drag.subscribe(async () => {
-        //     console.log('drag')
-        //     console.time('spacefill update')
-        //     await spacefillRepr.update(props).run(ctx.log)
-        //     console.timeEnd('spacefill update')
-        //     ctx.viewer.add(spacefillRepr)
-        //     ctx.viewer.update()
-        //     ctx.viewer.requestDraw()
-        // })
         return SpacefillEntity.ofRepr(ctx, spacefillRepr)
     })
+
+export type StructureToBond = StateTransform<StructureEntity, BondEntity, BondProps>
+    export const StructureToBond: StructureToBond = StateTransform.create('structure', 'bond', 'structure-to-bond',
+        async function (ctx: StateContext, structureEntity: StructureEntity, props: BondProps = {}) {
+            const bondRepr = StructureRepresentation(Bond)
+            await bondRepr.create(structureEntity.value, props).run(ctx.log)
+            ctx.viewer.add(bondRepr)
+            ctx.viewer.requestDraw()
+            console.log('stats', ctx.viewer.stats)
+            return BondEntity.ofRepr(ctx, bondRepr)
+        })
 
 export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, SpacefillProps>
 export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill', 'null', 'spacefill-update',
@@ -116,11 +119,21 @@ export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill
         const spacefillRepr = spacefillEntity.value
         await spacefillRepr.update(props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
-        // ctx.viewer.update()
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
         return NullEntity
     })
+
+export type BondUpdate = StateTransform<BondEntity, NullEntity, BondProps>
+    export const BondUpdate: BondUpdate = StateTransform.create('bond', 'null', 'bond-update',
+        async function (ctx: StateContext, bondEntity: BondEntity, props: BondProps = {}) {
+            const bondRepr = bondEntity.value
+            await bondRepr.update(props).run(ctx.log)
+            ctx.viewer.add(bondRepr)
+            ctx.viewer.requestDraw()
+            console.log('stats', ctx.viewer.stats)
+            return NullEntity
+        })
 
 // composed
 
@@ -150,6 +163,7 @@ export type ModelToSpacefill = StateTransform<ModelEntity, SpacefillEntity, Spac
 export const ModelToSpacefill: ModelToSpacefill = StateTransform.create('model', 'spacefill', 'model-to-spacefill',
     async function (ctx: StateContext, modelEntity: ModelEntity, props: SpacefillProps = {}) {
         const structureEntity = await ModelToStructure.apply(ctx, modelEntity)
+        // StructureToBond.apply(ctx, structureEntity, props)
         return StructureToSpacefill.apply(ctx, structureEntity, props)
     })
 

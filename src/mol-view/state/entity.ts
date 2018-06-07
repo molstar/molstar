@@ -13,6 +13,7 @@ import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { Model, Structure } from 'mol-model/structure';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
+import { BondProps } from 'mol-geo/representation/structure/bond';
 
 const getNextId = idFactory(1)
 
@@ -118,5 +119,12 @@ export type SpacefillEntity = StateEntity<StructureRepresentation<SpacefillProps
 export namespace SpacefillEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<SpacefillProps>): SpacefillEntity {
         return StateEntity.create(ctx, 'spacefill', repr )
+    }
+}
+
+export type BondEntity = StateEntity<StructureRepresentation<BondProps>, 'bond'>
+export namespace BondEntity {
+    export function ofRepr(ctx: StateContext, repr: StructureRepresentation<BondProps>): BondEntity {
+        return StateEntity.create(ctx, 'bond', repr )
     }
 }

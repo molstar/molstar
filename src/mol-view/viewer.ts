@@ -22,6 +22,9 @@ import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
+import { labelFirst } from './label';
+import { FlagAction } from 'mol-geo/util/flag-data';
+import { EveryLoci } from 'mol-model/loci';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -80,14 +83,27 @@ namespace Viewer {
             const p = identify(x, y)
             let label = ''
             reprMap.forEach((roSet, repr) => {
-                const info = repr.getLabel(p)
-                if (info) label = info.label
-                repr.update({ hoverSelection: p }).run().then(() => {
-                    scene.update()
-                    requestDraw()
-                })
+                repr.applyFlags(EveryLoci, FlagAction.RemoveHighlight)
+                const loci = repr.getLoci(p)
+                if (loci) {
+                    label = labelFirst(loci)
+                    repr.applyFlags(loci, FlagAction.Highlight)
+                }
+                scene.update()
+                requestDraw()
             })
             identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`)
+        })
+        input.click.subscribe(({x, y}) => {
+            const p = identify(x, y)
+            reprMap.forEach((roSet, repr) => {
+                const loci = repr.getLoci(p)
+                if (loci) {
+                    repr.applyFlags(loci, FlagAction.ToggleSelect)
+                    scene.update()
+                    requestDraw()
+                }
+            })
         })
 
         const camera = PerspectiveCamera.create({
