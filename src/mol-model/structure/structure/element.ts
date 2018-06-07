@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
@@ -23,7 +23,11 @@ namespace Element {
     export function createEmptyArray(n: number): Element[] { return new Float64Array(n) as any; }
 
     /** All the information required to access element properties */
-    export interface Location { unit: Unit, element: number }
+    export interface Location {
+        unit: Unit,
+        /** Index into element (atomic/coarse) properties of unit.model */
+        element: number
+    }
     export function Location(unit?: Unit, element?: number): Location { return { unit: unit as any, element: element || 0 }; }
     export interface Property<T> { (location: Location): T }
     export interface Predicate extends Property<boolean> { }
@@ -36,13 +40,18 @@ namespace Element {
 
     export function property<T>(p: Property<T>) { return p; }
 
-    /** Represents multiple element locations */
+    /** Represents multiple element index locations */
     export interface Loci {
         readonly kind: 'element-loci',
-        readonly elements: ReadonlyArray<{ unit: Unit, elements: SortedArray }>
+        /** Access i-th element as unit.elements[indices[i]] */
+        readonly elements: ReadonlyArray<{
+            unit: Unit,
+            /** Indices into the unit.elements array */
+            indices: SortedArray
+        }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, elements: SortedArray }>): Loci {
+    export function Loci(elements: ArrayLike<{ unit: Unit, indices: SortedArray }>): Loci {
         return { kind: 'element-loci', elements: elements as Loci['elements'] };
     }
 

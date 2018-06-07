@@ -11,7 +11,7 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/r
 import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
-import { createTransforms, createColors, createFlags, createEmptyFlags, createSphereMesh } from './utils';
+import { createTransforms, createColors, createSphereMesh, applyElementFlags } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
@@ -19,6 +19,9 @@ import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
 import { PickingId } from '../../util/picking';
+import { SortedArray } from 'mol-data/int';
+import { createFlags, FlagAction } from '../../util/flag-data';
+import { Loci } from 'mol-model/loci';
 
 function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
     let radius: Element.Property<number>
@@ -30,7 +33,7 @@ function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
         console.warn('Unsupported unit type')
         return Task.constant('Empty mesh', Mesh.createEmpty(mesh))
     }
-    return createSphereMesh(unit, radius, detail, mesh)
+    return createSphereMesh(unit, (l) => radius(l) * 0.3, detail, mesh)
 }
 
 export const DefaultSpacefillProps = {
@@ -41,7 +44,7 @@ export const DefaultSpacefillProps = {
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
-export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
+export default function SpacefillUnitsRepresentation(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
     let spheres: MeshRenderObject
     let currentProps: typeof DefaultSpacefillProps
@@ -58,7 +61,9 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 renderObjects.length = 0 // clear
                 currentGroup = group
 
-                const { detail, colorTheme, hoverSelection } = { ...DefaultSpacefillProps, ...props }
+                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+                const instanceCount = group.units.length
+                const elementCount = group.elements.length
 
                 mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
@@ -71,9 +76,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 const color = createColors(group, vertexMap, colorTheme)
 
                 await ctx.update('Computing spacefill flags');
-                const flag = createFlags(group, hoverSelection.instanceId, hoverSelection.elementId)
-
-                const instanceCount = group.units.length
+                const flag = createFlags(instanceCount * elementCount)
 
                 const values: MeshValues = {
                     ...getMeshData(mesh),
@@ -84,7 +87,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                     uInstanceCount: ValueCell.create(instanceCount),
-                    uElementCount: ValueCell.create(group.elements.length),
+                    uElementCount: ValueCell.create(elementCount),
 
                     elements: mesh.indexBuffer,
 
@@ -129,15 +132,6 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                     createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
                 }
 
-                if (newProps.hoverSelection !== currentProps.hoverSelection) {
-                    await ctx.update('Computing spacefill flags');
-                    if (newProps.hoverSelection.objectId === spheres.id) {
-                        createFlags(currentGroup, newProps.hoverSelection.instanceId, newProps.hoverSelection.elementId, spheres.values)
-                    } else {
-                        createEmptyFlags(spheres.values)
-                    }
-                }
-
                 ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
                 ValueCell.updateIfChanged(spheres.values.dDoubleSided, newProps.doubleSided)
                 ValueCell.updateIfChanged(spheres.values.dFlipSided, newProps.flipSided)
@@ -150,15 +144,17 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 return true
             })
         },
-        getLocation(pickingId: PickingId) {
+        getLoci(pickingId: PickingId) {
             const { objectId, instanceId, elementId } = pickingId
             if (spheres.id === objectId) {
-                const l = Element.Location()
-                l.unit = currentGroup.units[instanceId]
-                l.element = currentGroup.elements[elementId]
-                return l
+                const unit = currentGroup.units[instanceId]
+                const indices = SortedArray.ofSingleton(elementId);
+                return Element.Loci([{ unit, indices }])
             }
             return null
+        },
+        applyFlags(loci: Loci, action: FlagAction) {
+            applyElementFlags(spheres.values.tFlag, currentGroup, loci, action)
         }
     }
 }

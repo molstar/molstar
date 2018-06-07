@@ -19,7 +19,7 @@ import { RenderableState } from '../renderable';
 import { createPointRenderObject } from '../render-object';
 import { PointValues } from '../renderable/point';
 import Scene from '../scene';
-import { createEmptyFlags } from 'mol-geo/representation/structure/utils';
+import { createEmptyFlags } from 'mol-geo/util/flag-data';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)

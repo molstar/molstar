@@ -5,8 +5,10 @@
  */
 
 import { Task } from 'mol-task'
-import { RenderObject } from 'mol-gl/render-object';
-import { PickingId, PickingInfo } from '../util/picking';
+import { RenderObject } from 'mol-gl/render-object'
+import { PickingId } from '../util/picking';
+import { Loci } from 'mol-model/loci';
+import { FlagAction } from '../util/flag-data';
 
 export interface RepresentationProps {}
 
@@ -14,5 +16,6 @@ export interface Representation<D, P extends RepresentationProps = {}> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (data: D, props?: P) => Task<void>
     update: (props: P) => Task<void>
-    getLabel: (pickingId: PickingId) => PickingInfo | null
+    getLoci: (pickingId: PickingId) => Loci | null
+    applyFlags: (loci: Loci, action: FlagAction) => void
 }

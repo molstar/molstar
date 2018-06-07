@@ -18,7 +18,8 @@ import { createUniformColor } from '../../util/color-data';
 import { getMeshData } from '../../util/mesh-data';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
-import { createEmptyFlags } from '../structure/utils';
+import { createEmptyFlags, FlagAction } from '../../util/flag-data';
+import { Loci } from 'mol-model/loci';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -104,8 +105,12 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
                 return false
             })
         },
-        getLabel(pickingId: PickingId) {
+        getLoci(pickingId: PickingId) {
+            // TODO
             return null
+        },
+        applyFlags(loci: Loci, action: FlagAction) {
+            // TODO
         }
     }
 }

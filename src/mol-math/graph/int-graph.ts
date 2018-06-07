@@ -88,7 +88,7 @@ namespace IntGraph {
          *     builder.addNextEdge();
          *     builder.assignProperty(property, srcProp[i]);
          *   }
-         * return builder.createGraph({ property });
+         *   return builder.createGraph({ property });
          */
         addNextEdge() {
             const a = this.xs[this.current], b = this.ys[this.current];
