@@ -1,10 +1,10 @@
-import { arrayPickIndices } from 'mol-data/util';
-
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
+
+import { arrayPickIndices } from 'mol-data/util';
 
 /**
  * Represent a graph using vertex adjacency list.
@@ -14,7 +14,7 @@ import { arrayPickIndices } from 'mol-data/util';
  *
  * Edge properties are indexed same as in the arrays a and b.
  */
-interface IntGraph<EdgeProps extends IntGraph.EdgePropsBase = {}> {
+interface IntAdjacencyGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}> {
     readonly offset: ArrayLike<number>,
     readonly a: ArrayLike<number>,
     readonly b: ArrayLike<number>,
@@ -33,10 +33,10 @@ interface IntGraph<EdgeProps extends IntGraph.EdgePropsBase = {}> {
     getVertexEdgeCount(i: number): number
 }
 
-namespace IntGraph {
+namespace IntAdjacencyGraph {
     export type EdgePropsBase = { [name: string]: ArrayLike<any> }
 
-    class IntGraphImpl implements IntGraph<any> {
+    class IntGraphImpl implements IntAdjacencyGraph<any> {
         readonly vertexCount: number;
         readonly edgeProps: object;
 
@@ -60,8 +60,8 @@ namespace IntGraph {
         }
     }
 
-    export function create<EdgeProps extends IntGraph.EdgePropsBase = {}>(offset: ArrayLike<number>, a: ArrayLike<number>, b: ArrayLike<number>, edgeCount: number, edgeProps?: EdgeProps): IntGraph<EdgeProps> {
-        return new IntGraphImpl(offset, a, b, edgeCount, edgeProps) as IntGraph<EdgeProps>;
+    export function create<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}>(offset: ArrayLike<number>, a: ArrayLike<number>, b: ArrayLike<number>, edgeCount: number, edgeProps?: EdgeProps): IntAdjacencyGraph<EdgeProps> {
+        return new IntGraphImpl(offset, a, b, edgeCount, edgeProps) as IntAdjacencyGraph<EdgeProps>;
     }
 
     export class EdgeBuilder {
@@ -77,7 +77,7 @@ namespace IntGraph {
         a: Int32Array;
         b: Int32Array;
 
-        createGraph<EdgeProps extends IntGraph.EdgePropsBase = {}>(edgeProps?: EdgeProps) {
+        createGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}>(edgeProps?: EdgeProps) {
             return create(this.offsets, this.a, this.b, this.edgeCount, edgeProps);
         }
 
@@ -135,7 +135,7 @@ namespace IntGraph {
         }
     }
 
-    export function induceByVertices<P extends IntGraph.EdgePropsBase>(graph: IntGraph<P>, vertexIndices: ArrayLike<number>): IntGraph<P> {
+    export function induceByVertices<P extends IntAdjacencyGraph.EdgePropsBase>(graph: IntAdjacencyGraph<P>, vertexIndices: ArrayLike<number>): IntAdjacencyGraph<P> {
         const { b, offset, vertexCount, edgeProps } = graph;
         const vertexMap = new Int32Array(vertexCount);
         for (let i = 0, _i = vertexIndices.length; i < _i; i++) vertexMap[vertexIndices[i]] = i + 1;
@@ -177,4 +177,4 @@ namespace IntGraph {
     }
 }
 
-export { IntGraph }
+export { IntAdjacencyGraph }

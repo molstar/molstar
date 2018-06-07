@@ -6,72 +6,82 @@
  */
 
 import Model from '../../model'
-import { BondType } from '../../types'
+import { LinkType } from '../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from './util'
 import { Column } from 'mol-data/db'
-import { IntraUnitBonds } from '../../../structure/unit/bonds';
 
-export class StructConn implements IntraUnitBonds.StructConn {
-    private _residuePairIndex: Map<string, StructConn.Entry[]> | undefined = void 0;
-    private _atomIndex: Map<number, StructConn.Entry[]> | undefined = void 0;
+export interface StructConn {
+    getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>
+    getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>
+}
 
-    private static _resKey(rA: number, rB: number) {
-        if (rA < rB) return `${rA}-${rB}`;
-        return `${rB}-${rA}`;
-    }
-
-    private getResiduePairIndex() {
-        if (this._residuePairIndex) return this._residuePairIndex;
-        this._residuePairIndex = new Map();
-        for (const e of this.entries) {
-            const ps = e.partners;
-            const l = ps.length;
-            for (let i = 0; i < l - 1; i++) {
-                for (let j = i + i; j < l; j++) {
-                    const key = StructConn._resKey(ps[i].residueIndex, ps[j].residueIndex);
-                    if (this._residuePairIndex.has(key)) {
-                        this._residuePairIndex.get(key)!.push(e);
-                    } else {
-                        this._residuePairIndex.set(key, [e]);
-                    }
-                }
-            }
-        }
-        return this._residuePairIndex;
-    }
-
-    private getAtomIndex() {
-        if (this._atomIndex) return this._atomIndex;
-        this._atomIndex = new Map();
-        for (const e of this.entries) {
-            for (const p of e.partners) {
-                const key = p.atomIndex;
-                if (this._atomIndex.has(key)) {
-                    this._atomIndex.get(key)!.push(e);
-                } else {
-                    this._atomIndex.set(key, [e]);
-                }
-            }
-        }
-        return this._atomIndex;
-    }
-
-    private static _emptyEntry = [];
-
-    getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry> {
-        return this.getResiduePairIndex().get(StructConn._resKey(residueAIndex, residueBIndex)) || StructConn._emptyEntry;
-    }
-
-    getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry> {
-        return this.getAtomIndex().get(atomIndex) || StructConn._emptyEntry;
-    }
-
-    constructor(public entries: StructConn.Entry[]) {
-    }
+export interface ComponentBondInfo {
+    entries: Map<string, ComponentBondInfo.Entry>
 }
 
 export namespace StructConn {
-    export interface Entry extends IntraUnitBonds.StructConnEntry {
+    function _resKey(rA: number, rB: number) {
+        if (rA < rB) return `${rA}-${rB}`;
+        return `${rB}-${rA}`;
+    }
+    const _emptyEntry: Entry[] = [];
+
+    class StructConnImpl implements StructConn {
+        private _residuePairIndex: Map<string, StructConn.Entry[]> | undefined = void 0;
+        private _atomIndex: Map<number, StructConn.Entry[]> | undefined = void 0;
+
+        private getResiduePairIndex() {
+            if (this._residuePairIndex) return this._residuePairIndex;
+            this._residuePairIndex = new Map();
+            for (const e of this.entries) {
+                const ps = e.partners;
+                const l = ps.length;
+                for (let i = 0; i < l - 1; i++) {
+                    for (let j = i + i; j < l; j++) {
+                        const key = _resKey(ps[i].residueIndex, ps[j].residueIndex);
+                        if (this._residuePairIndex.has(key)) {
+                            this._residuePairIndex.get(key)!.push(e);
+                        } else {
+                            this._residuePairIndex.set(key, [e]);
+                        }
+                    }
+                }
+            }
+            return this._residuePairIndex;
+        }
+
+        private getAtomIndex() {
+            if (this._atomIndex) return this._atomIndex;
+            this._atomIndex = new Map();
+            for (const e of this.entries) {
+                for (const p of e.partners) {
+                    const key = p.atomIndex;
+                    if (this._atomIndex.has(key)) {
+                        this._atomIndex.get(key)!.push(e);
+                    } else {
+                        this._atomIndex.set(key, [e]);
+                    }
+                }
+            }
+            return this._atomIndex;
+        }
+
+
+        getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry> {
+            return this.getResiduePairIndex().get(_resKey(residueAIndex, residueBIndex)) || _emptyEntry;
+        }
+
+        getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry> {
+            return this.getAtomIndex().get(atomIndex) || _emptyEntry;
+        }
+
+        constructor(public entries: StructConn.Entry[]) {
+        }
+    }
+
+
+
+    export interface Entry {
         distance: number,
         order: number,
         flags: number,
@@ -91,7 +101,7 @@ export namespace StructConn {
         | 'saltbr'
 
     export function create(model: Model): StructConn | undefined {
-        if (model.sourceData.kind !== 'mmCIF') return
+        if (model.sourceData.kind !== 'mmCIF') return;
         const { struct_conn } = model.sourceData.data;
         if (!struct_conn._rowCount) return void 0;
 
@@ -150,7 +160,7 @@ export namespace StructConn {
 
             const type = conn_type_id.value(i)! as StructConnType;
             const orderType = (pdbx_value_order.value(i) || '').toLowerCase();
-            let flags = BondType.Flag.None;
+            let flags = LinkType.Flag.None;
             let order = 1;
 
             switch (orderType) {
@@ -166,22 +176,22 @@ export namespace StructConn {
                 case 'covale_phosphate':
                 case 'covale_sugar':
                 case 'modres':
-                    flags = BondType.Flag.Covalent;
+                    flags = LinkType.Flag.Covalent;
                     break;
-                case 'disulf': flags = BondType.Flag.Covalent | BondType.Flag.Sulfide; break;
-                case 'hydrog': flags = BondType.Flag.Hydrogen; break;
-                case 'metalc': flags = BondType.Flag.MetallicCoordination; break;
-                case 'saltbr': flags = BondType.Flag.Ion; break;
+                case 'disulf': flags = LinkType.Flag.Covalent | LinkType.Flag.Sulfide; break;
+                case 'hydrog': flags = LinkType.Flag.Hydrogen; break;
+                case 'metalc': flags = LinkType.Flag.MetallicCoordination; break;
+                case 'saltbr': flags = LinkType.Flag.Ion; break;
             }
 
             entries.push({ flags, order, distance: pdbx_dist_value.value(i), partners });
         }
 
-        return new StructConn(entries);
+        return new StructConnImpl(entries);
     }
 }
 
-export class ComponentBondInfo implements IntraUnitBonds.ComponentBondInfo {
+export class ComponentBondInfo implements ComponentBondInfo {
     entries: Map<string, ComponentBondInfo.Entry> = new Map();
 
     newEntry(id: string) {
@@ -192,7 +202,7 @@ export class ComponentBondInfo implements IntraUnitBonds.ComponentBondInfo {
 }
 
 export namespace ComponentBondInfo {
-    export class Entry implements IntraUnitBonds.ComponentBondInfoEntry {
+    export class Entry implements Entry {
         map: Map<string, Map<string, { order: number, flags: number }>> = new Map();
 
         add(a: string, b: string, order: number, flags: number, swap = true) {
@@ -238,9 +248,9 @@ export namespace ComponentBondInfo {
                 entry = info.newEntry(id);
             }
 
-            let flags: number = BondType.Flag.Covalent;
+            let flags: number = LinkType.Flag.Covalent;
             let ord = 1;
-            if (aromatic) flags |= BondType.Flag.Aromatic;
+            if (aromatic) flags |= LinkType.Flag.Aromatic;
             switch (order.toLowerCase()) {
                 case 'doub':
                 case 'delo':

@@ -15,6 +15,7 @@ import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { Queries } from '../query';
+import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -58,6 +59,13 @@ class Structure {
         if (this._lookup3d) return this._lookup3d;
         this._lookup3d = new StructureLookup3D(this);
         return this._lookup3d;
+    }
+
+    private _links?: InterUnitBonds = void 0;
+    get links() {
+        if (this._links) return this._links;
+        this._links = computeInterUnitBonds(this);
+        return this._links;
     }
 
     constructor(units: ArrayLike<Unit>) {

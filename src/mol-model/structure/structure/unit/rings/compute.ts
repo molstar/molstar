@@ -5,8 +5,9 @@
  */
 
 import Unit from '../../unit';
-import { IntraUnitBonds } from '../bonds/intra-data';
+import { IntraUnitLinks } from '../links/data';
 import { Segmentation } from 'mol-data/int';
+import { LinkType } from '../../../model/types';
 
 export default function computeRings(unit: Unit.Atomic) {
     const size = largestResidue(unit);
@@ -40,7 +41,7 @@ interface State {
     currentColor: number,
 
     rings: number[][],
-    bonds: IntraUnitBonds,
+    bonds: IntraUnitLinks,
     unit: Unit.Atomic
 }
 
@@ -58,7 +59,7 @@ function State(unit: Unit.Atomic, capacity: number): State {
         currentColor: 0,
         rings: [],
         unit,
-        bonds: unit.bonds
+        bonds: unit.links
     };
 }
 
@@ -160,7 +161,7 @@ function findRings(state: State, from: number) {
 
         for (let i = start; i < end; i++) {
             const b = neighbor[i];
-            if (b < startVertex || b >= endVertex || !IntraUnitBonds.isCovalent(bondFlags[i])) continue;
+            if (b < startVertex || b >= endVertex || !LinkType.isCovalent(bondFlags[i])) continue;
 
             const other = b - startVertex;
 

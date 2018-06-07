@@ -8,7 +8,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Unit, Element, Bond } from 'mol-model/structure';
+import { Unit, Element, Link } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
 import { Task } from 'mol-task'
 import { createTransforms } from './utils';
@@ -29,7 +29,7 @@ function createBondMesh(unit: Unit, mesh?: Mesh) {
         if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
         const elements = unit.elements;
-        const bonds = unit.bonds
+        const bonds = unit.links
         const { edgeCount, a, b } = bonds
 
         if (!edgeCount) return Mesh.createEmpty(mesh)
@@ -96,7 +96,7 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
                 currentGroup = group
 
                 const unit = group.units[0]
-                const elementCount = Unit.isAtomic(unit) ? unit.bonds.edgeCount * 2 : 0
+                const elementCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
                 const instanceCount = group.units.length
 
                 mesh = await createBondMesh(unit).runAsChild(ctx, 'Computing bond mesh')
@@ -164,11 +164,11 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
             const { objectId, instanceId, elementId } = pickingId
             const unit = currentGroup.units[instanceId]
             if (cylinders.id === objectId && Unit.isAtomic(unit)) {
-                return Bond.Loci([{
+                return Link.Loci([{
                     aUnit: unit,
-                    aIndex: unit.bonds.a[elementId],
+                    aIndex: unit.links.a[elementId],
                     bUnit: unit,
-                    bIndex: unit.bonds.b[elementId]
+                    bIndex: unit.links.b[elementId]
                 }])
             }
             return null
@@ -179,7 +179,7 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
             const unit = group.units[0]
             if (!Unit.isAtomic(unit)) return
 
-            const elementCount = unit.bonds.edgeCount * 2
+            const elementCount = unit.links.edgeCount * 2
             const instanceCount = group.units.length
 
             let changed = false
@@ -187,11 +187,11 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
             if (isEveryLoci(loci)) {
                 applyFlagAction(array, 0, elementCount * instanceCount, action)
                 changed = true
-            } else if (Bond.isLoci(loci)) {
-                for (const b of loci.bonds) {
+            } else if (Link.isLoci(loci)) {
+                for (const b of loci.links) {
                     const unitIdx = Unit.findUnitById(b.aUnit.id, group.units)
                     if (unitIdx !== -1) {
-                        const _idx = unit.bonds.getEdgeIndex(b.aIndex, b.bIndex)
+                        const _idx = unit.links.getEdgeIndex(b.aIndex, b.bIndex)
                         if (_idx !== -1) {
                             const idx = _idx
                             if (applyFlagAction(array, idx, idx + 1, action) && !changed) {

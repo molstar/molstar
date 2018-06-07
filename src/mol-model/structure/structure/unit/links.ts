@@ -6,10 +6,11 @@
 
 import { Unit } from '../../structure'
 
-export * from './bonds/intra-data'
-export * from './bonds/intra-compute'
+export * from './links/data'
+export * from './links/intra-compute'
+export * from './links/inter-compute'
 
-namespace Bond {
+namespace Link {
     export interface Location {
         readonly aUnit: Unit,
         /** Index into aUnit.elements */
@@ -20,17 +21,17 @@ namespace Bond {
     }
 
     export interface Loci {
-        readonly kind: 'bond-loci',
-        readonly bonds: ReadonlyArray<Location>
+        readonly kind: 'link-loci',
+        readonly links: ReadonlyArray<Location>
     }
 
-    export function Loci(bonds: ArrayLike<Location>): Loci {
-        return { kind: 'bond-loci', bonds: bonds as Loci['bonds'] };
+    export function Loci(links: ArrayLike<Location>): Loci {
+        return { kind: 'link-loci', links: links as Loci['links'] };
     }
 
     export function isLoci(x: any): x is Loci {
-        return !!x && x.kind === 'bond-loci';
+        return !!x && x.kind === 'link-loci';
     }
 }
 
-export { Bond }
+export { Link }

@@ -17,6 +17,10 @@ export class StructureLookup3D implements Lookup3D<Element> {
     private result = Result.create<Element>();
     private pivot = Vec3.zero();
 
+    findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
+        return this.unitLookup.find(x, y, z, radius);
+    }
+
     find(x: number, y: number, z: number, radius: number): Result<Element> {
         Result.reset(this.result);
         const { units } = this.structure;
