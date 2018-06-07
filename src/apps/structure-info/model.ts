@@ -18,6 +18,7 @@ import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { openCif, downloadCif } from './helpers';
 import { BitFlags } from 'mol-util';
 import { SecondaryStructureType } from 'mol-model/structure/model/types';
+import { UnitRings } from 'mol-model/structure/structure/unit/rings';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -100,6 +101,21 @@ export function printSequence(model: Model) {
     console.log();
 }
 
+export function printRings(structure: Structure) {
+    console.log('\nRings\n=============');
+    for (const unit of structure.units) {
+        if (!Unit.isAtomic(unit)) continue;
+        const { all, byFingerprint } = unit.rings;
+        const fps: string[] = [];
+        for (let i = 0, _i = Math.min(5, all.length); i < _i; i++) {
+            fps[fps.length] = UnitRings.getRingFingerprint(unit, all[i]);
+        }
+        if (all.length > 5) fps.push('...')
+        console.log(`Unit ${unit.id}, ${all.length} ring(s), ${byFingerprint.size} different fingerprint(s).\n  ${fps.join(', ')}`);
+    }
+    console.log();
+}
+
 export function printUnits(structure: Structure) {
     console.log('\nUnits\n=============');
     const l = Element.Location();
@@ -143,6 +159,7 @@ async function run(mmcif: mmCIF_Database) {
     printSequence(models[0]);
     //printIHMModels(models[0]);
     printUnits(structure);
+    printRings(structure);
     //printBonds(structure);
     //printSecStructure(models[0]);
 }
