@@ -21,9 +21,10 @@ import { ArrayEncoder, ArrayEncoding } from '../../common/binary-cif';
 export interface Field<Key = any, Data = any> {
     name: string,
     type: Field.Type,
+    value(key: Key, data: Data): string | number
     valueKind?: (key: Key, data: Data) => Column.ValueKind,
     defaultFormat?: Field.Format,
-    value(key: Key, data: Data): string | number
+    shouldInclude?: (data: Data) => boolean
 }
 
 export namespace Field {
@@ -35,31 +36,31 @@ export namespace Field {
         typedArray?: ArrayEncoding.TypedArrayCtor
     }
 
-    export function getDigitCount(field: Field) {
-        if (field.defaultFormat && typeof field.defaultFormat.digitCount !== 'undefined') return Math.max(0, Math.min(field.defaultFormat.digitCount, 16));
-        return 6;
+    export type ParamsBase<K, D> = { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, shouldInclude?: (data: D) => boolean }
+
+    export function str<K, D = any>(name: string, value: (k: K, d: D) => string, params?: ParamsBase<K, D>): Field<K, D> {
+        return { name, type: Type.Str, value, valueKind: params && params.valueKind, defaultFormat: params && params.encoder ? { encoder: params.encoder } : void 0, shouldInclude: params && params.shouldInclude };
     }
 
-    export function str<K, D = any>(name: string, value: (k: K, d: D) => string, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder }): Field<K, D> {
-        return { name, type: Type.Str, value, valueKind: params && params.valueKind, defaultFormat: params && params.encoder ? { encoder: params.encoder } : void 0 };
-    }
-
-    export function int<K, D = any>(name: string, value: (k: K, d: D) => number, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, typedArray?: ArrayEncoding.TypedArrayCtor }): Field<K, D> {
+    export function int<K, D = any>(name: string, value: (k: K, d: D) => number, params?:  ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }): Field<K, D> {
         return {
             name,
             type: Type.Int,
             value,
             valueKind: params && params.valueKind,
-            defaultFormat: params ? { encoder: params.encoder, typedArray: params.typedArray } : void 0 };
+            defaultFormat: params ? { encoder: params.encoder, typedArray: params.typedArray } : void 0,
+            shouldInclude: params && params.shouldInclude
+        };
     }
 
-    export function float<K, D = any>(name: string, value: (k: K, d: D) => number, params?: { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, typedArray?: ArrayEncoding.TypedArrayCtor, digitCount?: number }): Field<K, D> {
+    export function float<K, D = any>(name: string, value: (k: K, d: D) => number, params?: ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor, digitCount?: number }): Field<K, D> {
         return {
             name,
             type: Type.Float,
             value,
             valueKind: params && params.valueKind,
-            defaultFormat: params ? { encoder: params.encoder, typedArray: params.typedArray, digitCount: typeof params.digitCount !== 'undefined' ? params.digitCount : void 0 } : void 0
+            defaultFormat: params ? { encoder: params.encoder, typedArray: params.typedArray, digitCount: typeof params.digitCount !== 'undefined' ? params.digitCount : void 0 } : void 0,
+            shouldInclude: params && params.shouldInclude
         };
     }
 }

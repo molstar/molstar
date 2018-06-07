@@ -47,7 +47,9 @@ const atom_site_fields: CifField<Element.Location>[] = [
     CifField.str('auth_asym_id', P.chain.auth_asym_id),
 
     CifField.int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE }),
-    CifField.str('operator_name', P.unit.operator_name)
+    CifField.str<Element.Location, Structure>('operator_name', P.unit.operator_name, {
+        shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
+    })
 ];
 
 function copy_mmCif_cat(name: keyof mmCIF_Schema) {
@@ -66,7 +68,7 @@ function _entity({ model, structure }: Context): CifCategory {
 
 function _atom_site({ structure }: Context): CifCategory {
     return {
-        data: void 0,
+        data: structure,
         name: 'atom_site',
         fields: atom_site_fields,
         rowCount: structure.elementCount,

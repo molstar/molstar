@@ -18,7 +18,7 @@ interface SymmetryOperator {
 }
 
 namespace SymmetryOperator {
-    export const DefaultName = 'identity'
+    export const DefaultName = '1_555'
     export const Default: SymmetryOperator = create(DefaultName, Mat4.identity());
 
     const RotationEpsilon = 0.0001;
