@@ -11,6 +11,7 @@ import { Column } from 'mol-data/db'
 import StringBuilder from 'mol-util/string-builder'
 import { Category, Field, Encoder } from '../encoder'
 import Writer from '../../writer'
+import { getFieldDigitCount, getIncludedFields } from './util';
 
 export default class TextEncoder implements Encoder<string> {
     private builder = StringBuilder.create();
@@ -102,13 +103,13 @@ function getFloatPrecisions(categoryName: string, fields: Field[], formatter: Ca
     for (const f of fields) {
         const format = formatter.getFormat(categoryName, f.name);
         if (format && typeof format.digitCount !== 'undefined') ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Math.max(0, Math.min(format.digitCount, 15))) : 0;
-        else ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Field.getDigitCount(f)) : 0;
+        else ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, getFieldDigitCount(f)) : 0;
     }
     return ret;
 }
 
 function writeCifSingleRecord(category: Category<any>, builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
-    const fields = category.fields;
+    const fields = getIncludedFields(category);
     const data = category.data;
     let width = fields.reduce((w, f) => filter.includeField(category.name, f.name) ? Math.max(w, f.name.length) : 0, 0);
 
@@ -134,8 +135,11 @@ function writeCifSingleRecord(category: Category<any>, builder: StringBuilder, f
 
 function writeCifLoop(categories: Category[], builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
     const first = categories[0];
-    const fields = filter === Category.DefaultFilter ? first.fields : first.fields.filter(f => filter.includeField(first.name, f.name));
+    const fieldSource = getIncludedFields(first);
+    const fields = filter === Category.DefaultFilter ? fieldSource : fieldSource.filter(f => filter.includeField(first.name, f.name));
     const fieldCount = fields.length;
+    if (fieldCount === 0) return;
+
     const precisions = getFloatPrecisions(first.name, fields, formatter);
 
     writeLine(builder, 'loop_');

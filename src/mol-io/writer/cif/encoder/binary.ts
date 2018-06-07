@@ -14,6 +14,7 @@ import {
 } from '../../../common/binary-cif'
 import { Field, Category, Encoder } from '../encoder'
 import Writer from '../../writer'
+import { getIncludedFields } from './util';
 
 export default class BinaryEncoder implements Encoder<Uint8Array> {
     private data: EncodedFile;
@@ -57,12 +58,17 @@ export default class BinaryEncoder implements Encoder<Uint8Array> {
         const first = categories[0]!;
         const cat: EncodedCategory = { name: '_' + first.name, columns: [], rowCount: count };
         const data = categories.map(c => ({ data: c.data, keys: () => c.keys ? c.keys() : Iterator.Range(0, c.rowCount - 1) }));
-        for (const f of first.fields) {
+        const fields = getIncludedFields(first);
+
+        for (const f of fields) {
             if (!this.filter.includeField(first.name, f.name)) continue;
 
             const format = this.formatter.getFormat(first.name, f.name);
             cat.columns.push(encodeField(f, data, count, getArrayCtor(f, format), getEncoder(f, format)));
         }
+        // no columns included.
+        if (!cat.columns.length) return;
+
         this.dataBlocks[this.dataBlocks.length - 1].categories.push(cat);
     }
 

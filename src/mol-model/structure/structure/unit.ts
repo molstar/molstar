@@ -12,6 +12,7 @@ import { idFactory } from 'mol-util/id-factory';
 import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { ValueRef } from 'mol-util';
+import { UnitRings } from './unit/rings';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -105,6 +106,12 @@ namespace Unit {
             return this.props.bonds.ref;
         }
 
+        get rings() {
+            if (this.props.rings.ref) return this.props.rings.ref;
+            this.props.rings.ref = UnitRings.create(this);
+            return this.props.rings.ref;
+        }
+
         constructor(id: number, invariantId: number, model: Model, elements: SortedArray, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
@@ -121,10 +128,11 @@ namespace Unit {
     interface AtomicProperties {
         lookup3d: ValueRef<Lookup3D | undefined>,
         bonds: ValueRef<IntraUnitBonds | undefined>,
+        rings: ValueRef<UnitRings | undefined>
     }
 
     function AtomicProperties() {
-        return { lookup3d: ValueRef.create(void 0), bonds: ValueRef.create(void 0) };
+        return { lookup3d: ValueRef.create(void 0), bonds: ValueRef.create(void 0), rings: ValueRef.create(void 0) };
     }
 
     class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {
