@@ -7,7 +7,7 @@
 import Viewer from 'mol-view/viewer'
 import { StateContext } from './state/context';
 import { Progress } from 'mol-task';
-import { MmcifUrlToSpacefill } from './state/transform';
+import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBond } from './state/transform';
 import { UrlEntity } from './state/entity';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 
@@ -42,9 +42,12 @@ export class Stage {
         this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
     }
 
-    loadMmcifUrl (url: string) {
+    async loadMmcifUrl (url: string) {
         const urlEntity = UrlEntity.ofUrl(this.ctx, url)
-        MmcifUrlToSpacefill.apply(this.ctx, urlEntity, spacefillProps)
+        const modelEntity = await MmcifUrlToModel.apply(this.ctx, urlEntity)
+        const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
+        StructureToSpacefill.apply(this.ctx, structureEntity, spacefillProps)
+        StructureToBond.apply(this.ctx, structureEntity, spacefillProps) // TODO props
     }
 
     loadPdbid (pdbid: string) {

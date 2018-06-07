@@ -47,7 +47,7 @@ export function createPointVertices(unit: Unit) {
     return vertices
 }
 
-export default function Point(): UnitsRepresentation<PointProps> {
+export default function PointUnitsRepresentation(): UnitsRepresentation<PointProps> {
     const renderObjects: RenderObject[] = []
     let points: PointRenderObject
     let currentProps = DefaultPointProps
@@ -70,6 +70,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
 
                 const { colorTheme, sizeTheme } = currentProps
                 const elementCount = _elements.length
+                const instanceCount = group.units.length
 
                 const vertexMap = VertexMap.create(
                     elementCount,
@@ -91,9 +92,7 @@ export default function Point(): UnitsRepresentation<PointProps> {
                 const size = createSizes(group, vertexMap, sizeTheme)
 
                 await ctx.update('Computing spacefill flags');
-                const flag = createFlags(group)
-
-                const instanceCount = group.units.length
+                const flag = createFlags(instanceCount * elementCount)
 
                 const values: PointValues = {
                     aPosition: ValueCell.create(vertices),

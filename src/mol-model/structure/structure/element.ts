@@ -23,7 +23,11 @@ namespace Element {
     export function createEmptyArray(n: number): Element[] { return new Float64Array(n) as any; }
 
     /** All the information required to access element properties */
-    export interface Location { unit: Unit, element: number }
+    export interface Location {
+        unit: Unit,
+        /** Index into element (atomic/coarse) properties of unit.model */
+        element: number
+    }
     export function Location(unit?: Unit, element?: number): Location { return { unit: unit as any, element: element || 0 }; }
     export interface Property<T> { (location: Location): T }
     export interface Predicate extends Property<boolean> { }

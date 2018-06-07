@@ -73,9 +73,7 @@ export function createSphereMesh(unit: Unit, radius: Element.Property<number>, d
 
         for (let i = 0; i < elementCount; i++) {
             l.element = elements[i]
-            v[0] = x(l.element)
-            v[1] = y(l.element)
-            v[2] = z(l.element)
+            v[0] = x(l.element); v[1] = y(l.element); v[2] = z(l.element)
             Mat4.setTranslation(m, v)
 
             meshBuilder.setId(i)

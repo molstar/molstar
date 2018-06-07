@@ -33,7 +33,7 @@ function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
         console.warn('Unsupported unit type')
         return Task.constant('Empty mesh', Mesh.createEmpty(mesh))
     }
-    return createSphereMesh(unit, (l) => radius(l) * 1.0, detail, mesh)
+    return createSphereMesh(unit, (l) => radius(l) * 0.3, detail, mesh)
 }
 
 export const DefaultSpacefillProps = {
@@ -44,7 +44,7 @@ export const DefaultSpacefillProps = {
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
-export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
+export default function SpacefillUnitsRepresentation(): UnitsRepresentation<SpacefillProps> {
     const renderObjects: RenderObject[] = []
     let spheres: MeshRenderObject
     let currentProps: typeof DefaultSpacefillProps
@@ -62,6 +62,8 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 currentGroup = group
 
                 const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+                const instanceCount = group.units.length
+                const elementCount = group.elements.length
 
                 mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
                 // console.log(mesh)
@@ -74,9 +76,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
                 const color = createColors(group, vertexMap, colorTheme)
 
                 await ctx.update('Computing spacefill flags');
-                const flag = createFlags(group)
-
-                const instanceCount = group.units.length
+                const flag = createFlags(instanceCount * elementCount)
 
                 const values: MeshValues = {
                     ...getMeshData(mesh),
@@ -87,7 +87,7 @@ export default function Spacefill(): UnitsRepresentation<SpacefillProps> {
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                     uInstanceCount: ValueCell.create(instanceCount),
-                    uElementCount: ValueCell.create(group.elements.length),
+                    uElementCount: ValueCell.create(elementCount),
 
                     elements: mesh.indexBuffer,
 

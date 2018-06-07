@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure'
 import { ValueCell } from 'mol-util/value-cell'
 import { Vec2 } from 'mol-math/linear-algebra'
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
@@ -72,10 +71,7 @@ export function applyFlagAction(array: Uint8Array, start: number, end: number, a
     return changed
 }
 
-export function createFlags(group: Unit.SymmetryGroup, flagData?: FlagData): FlagData {
-    const instanceCount = group.units.length
-    const elementCount = group.elements.length
-    const count = instanceCount * elementCount
+export function createFlags(count: number, flagData?: FlagData): FlagData {
     const flags = flagData && flagData.tFlag.ref.value.array.length >= count
         ? flagData.tFlag.ref.value
         : createTextureImage(count, 1)
