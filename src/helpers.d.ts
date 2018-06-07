@@ -13,4 +13,5 @@ declare module Helpers {
     export type NumberArray = TypedArray | number[]
     export type UintArray = Uint8Array | Uint16Array | Uint32Array | number[]
     export type ValueOf<T> = T[keyof T]
+    export type ArrayCtor<T> = { new(size: number): { [i: number]: T, length: number } }
 }

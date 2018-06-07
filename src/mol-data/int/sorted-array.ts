@@ -41,7 +41,9 @@ namespace SortedArray {
     export const findPredecessorIndexInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
     export const findRange: (array: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
 
-    export const deduplicate: (arrat: SortedArray) => SortedArray = Impl.deduplicate as any;
+    export const deduplicate: (array: SortedArray) => SortedArray = Impl.deduplicate as any;
+    /** Returns indices of xs in the array. E.g. indicesOf([10, 11, 12], [10, 12]) ==> [0, 2] */
+    export const indicesOf: (array: SortedArray, xs: SortedArray) => SortedArray = Impl.indicesOf as any;
 }
 
 interface SortedArray extends ArrayLike<number> { '@type': 'int-sorted-array' }

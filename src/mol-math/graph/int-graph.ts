@@ -1,3 +1,5 @@
+import { arrayPickIndices } from 'mol-data/util';
+
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -12,12 +14,13 @@
  *
  * Edge properties are indexed same as in the arrays a and b.
  */
-type IntGraph<EdgeProperties extends object = { }> = {
+interface IntGraph<EdgeProps extends IntGraph.EdgePropsBase = {}> {
     readonly offset: ArrayLike<number>,
     readonly a: ArrayLike<number>,
     readonly b: ArrayLike<number>,
     readonly vertexCount: number,
     readonly edgeCount: number,
+    readonly edgeProps: Readonly<EdgeProps>
 
     /**
      * Get the edge index between i-th and j-th vertex.
@@ -28,11 +31,14 @@ type IntGraph<EdgeProperties extends object = { }> = {
      */
     getEdgeIndex(i: number, j: number): number,
     getVertexEdgeCount(i: number): number
-} & EdgeProperties
+}
 
 namespace IntGraph {
-    class Impl implements IntGraph<any> {
+    export type EdgePropsBase = { [name: string]: ArrayLike<any> }
+
+    class IntGraphImpl implements IntGraph<any> {
         readonly vertexCount: number;
+        readonly edgeProps: object;
 
         getEdgeIndex(i: number, j: number): number {
             let a, b;
@@ -48,18 +54,14 @@ namespace IntGraph {
             return this.offset[i + 1] - this.offset[i];
         }
 
-        constructor(public offset: ArrayLike<number>, public a: ArrayLike<number>, public b: ArrayLike<number>, public edgeCount: number, props?: any) {
+        constructor(public offset: ArrayLike<number>, public a: ArrayLike<number>, public b: ArrayLike<number>, public edgeCount: number, edgeProps?: any) {
             this.vertexCount = offset.length - 1;
-            if (props) {
-                for (const p of Object.keys(props)) {
-                    (this as any)[p] = props[p];
-                }
-            }
+            this.edgeProps = edgeProps || {};
         }
     }
 
-    export function create<EdgeProps extends object = { }>(offset: ArrayLike<number>, a: ArrayLike<number>, b: ArrayLike<number>, edgeCount: number, edgeProps?: EdgeProps): IntGraph<EdgeProps> {
-        return new Impl(offset, a, b, edgeCount, edgeProps) as IntGraph<EdgeProps>;
+    export function create<EdgeProps extends IntGraph.EdgePropsBase = {}>(offset: ArrayLike<number>, a: ArrayLike<number>, b: ArrayLike<number>, edgeCount: number, edgeProps?: EdgeProps): IntGraph<EdgeProps> {
+        return new IntGraphImpl(offset, a, b, edgeCount, edgeProps) as IntGraph<EdgeProps>;
     }
 
     export class EdgeBuilder {
@@ -75,7 +77,7 @@ namespace IntGraph {
         a: Int32Array;
         b: Int32Array;
 
-        createGraph<EdgeProps extends object = { }>(edgeProps?: EdgeProps) {
+        createGraph<EdgeProps extends IntGraph.EdgePropsBase = {}>(edgeProps?: EdgeProps) {
             return create(this.offsets, this.a, this.b, this.edgeCount, edgeProps);
         }
 
@@ -131,6 +133,47 @@ namespace IntGraph {
             this.a = new Int32Array(offset);
             this.b = new Int32Array(offset);
         }
+    }
+
+    export function induceByVertices<P extends IntGraph.EdgePropsBase>(graph: IntGraph<P>, vertexIndices: ArrayLike<number>): IntGraph<P> {
+        const { b, offset, vertexCount, edgeProps } = graph;
+        const vertexMap = new Int32Array(vertexCount);
+        for (let i = 0, _i = vertexIndices.length; i < _i; i++) vertexMap[vertexIndices[i]] = i + 1;
+
+        let newEdgeCount = 0;
+        for (let i = 0; i < vertexCount; i++) {
+            if (vertexMap[i] === 0) continue;
+            for (let j = offset[i], _j = offset[i + 1]; j < _j; j++) {
+                if (b[j] > i && vertexMap[b[j]] !== 0) newEdgeCount++;
+            }
+        }
+
+        const newOffsets = new Int32Array(vertexIndices.length + 1);
+        const edgeIndices = new Int32Array(2 * newEdgeCount);
+        const newA = new Int32Array(2 * newEdgeCount);
+        const newB = new Int32Array(2 * newEdgeCount);
+        let eo = 0, vo = 0;
+        for (let i = 0; i < vertexCount; i++) {
+            if (vertexMap[i] === 0) continue;
+            const aa = vertexMap[i] - 1;
+            for (let j = offset[i], _j = offset[i + 1]; j < _j; j++) {
+                const bb = vertexMap[b[j]];
+                if (bb === 0) continue;
+
+                newA[eo] = aa;
+                newB[eo] = bb - 1;
+                edgeIndices[eo] = j;
+                eo++;
+            }
+            newOffsets[++vo] = eo;
+        }
+
+        const newEdgeProps: P = {} as any;
+        for (const key of Object.keys(edgeProps)) {
+            newEdgeProps[key] = arrayPickIndices(edgeProps[key], edgeIndices);
+        }
+
+        return create(newOffsets, newA, newB, newEdgeCount, newEdgeProps);
     }
 }
 

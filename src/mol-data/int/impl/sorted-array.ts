@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { sortArray, hash3, hash4 } from '../../util'
+import { sortArray, hash3, hash4, createRangeArray } from '../../util'
 import Interval from '../interval'
 
 type Nums = ArrayLike<number>
@@ -287,6 +287,39 @@ export function deduplicate(xs: Nums) {
     }
     ret[o] = xs[xs.length - 1];
     return ret;
+}
+
+export function indicesOf(a: Nums, b: Nums): Nums {
+    if (a === b) return ofSortedArray(createRangeArray(0, a.length - 1));
+
+    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    let i = sI, j = sJ;
+    let commonCount = 0;
+    while (i < endI && j < endJ) {
+        const x = a[i], y = b[j];
+        if (x < y) { i++; }
+        else if (x > y) { j++; }
+        else { i++; j++; commonCount++; }
+    }
+
+    const lenA = a.length;
+    // no common elements
+    if (!commonCount) return Empty;
+    // A is subset of B ==> A
+    if (commonCount === lenA) return ofSortedArray(createRangeArray(0, a.length - 1));
+
+    const indices = new Int32Array(commonCount);
+    let offset = 0;
+    i = sI;
+    j = sJ;
+    while (i < endI && j < endJ) {
+        const x = a[i], y = b[j];
+        if (x < y) { i++; }
+        else if (x > y) { j++; }
+        else { indices[offset++] = i; i++; j++; }
+    }
+
+    return ofSortedArray(indices);
 }
 
 const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };

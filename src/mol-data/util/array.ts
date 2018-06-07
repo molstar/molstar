@@ -23,3 +23,27 @@ export function iterableToArray<T>(it: IterableIterator<T>): T[] {
     }
     return ret;
 }
+
+/** Fills the array so that array[0] = start and array[array.length - 1] = end */
+export function createRangeArray(start: number, end: number, ctor?: Helpers.ArrayCtor<number>) {
+    const len = end - start + 1;
+    const array = ctor ? new ctor(len) : new Int32Array(len);
+    for (let i = 0; i < len; i++) {
+        array[i] = i + start;
+    }
+    return array;
+}
+
+export function arrayPickIndices<T>(array: ArrayLike<T>, indices: ArrayLike<number>) {
+    const ret = new (arrayGetCtor(array))(indices.length);
+    for (let i = 0, _i = indices.length; i < _i; i++) {
+        ret[i] = array[indices[i]];
+    }
+    return ret;
+}
+
+export function arrayGetCtor<T>(data: ArrayLike<T>): Helpers.ArrayCtor<T> {
+    const ret = (data as any).constructor;
+    if (!ret) throw new Error('data does not define a constructor and it should');
+    return ret;
+}

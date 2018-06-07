@@ -148,7 +148,7 @@ function addRing(state: State, a: number, b: number) {
 
 function findRings(state: State, from: number) {
     const { bonds, startVertex, endVertex, visited, queue, pred } = state;
-    const { b: neighbor, flags: bondFlags, offset } = bonds;
+    const { b: neighbor, edgeProps: { flags: bondFlags }, offset } = bonds;
     visited[from] = 1;
     queue[0] = from;
     let head = 0, size = 1;

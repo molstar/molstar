@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { IntGraph } from '../int/graph';
+import { IntGraph } from '../int-graph';
 
 describe('IntGraph', () => {
     const vc = 3;
@@ -28,9 +28,16 @@ describe('IntGraph', () => {
     });
 
     it('triangle-propAndEdgeIndex', () => {
-        const prop = graph.prop;
+        const prop = graph.edgeProps.prop;
         expect(prop[graph.getEdgeIndex(0, 1)]).toBe(10);
         expect(prop[graph.getEdgeIndex(1, 2)]).toBe(11);
         expect(prop[graph.getEdgeIndex(2, 0)]).toBe(12);
     });
+
+    it('induce', () => {
+        const induced = IntGraph.induceByVertices(graph, [1, 2]);
+        expect(induced.vertexCount).toBe(2);
+        expect(induced.edgeCount).toBe(1);
+        expect(induced.edgeProps.prop[induced.getEdgeIndex(0, 1)]).toBe(11);
+    })
 });

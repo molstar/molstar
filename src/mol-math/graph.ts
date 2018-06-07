@@ -4,4 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export * from './graph/int/graph'
+export * from './graph/int-graph'
