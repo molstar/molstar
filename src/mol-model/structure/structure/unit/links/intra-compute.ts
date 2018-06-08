@@ -6,7 +6,7 @@
 
 import { LinkType } from '../../../model/types'
 import { IntraUnitLinks } from './data'
-import { StructConn, ComponentBondInfo } from '../../../model/formats/mmcif/bonds'
+import { StructConn, ComponentBond } from '../../../model/formats/mmcif/bonds'
 import Unit from '../../unit'
 import { IntAdjacencyGraph } from 'mol-math/graph';
 import { LinkComputationParameters, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold } from './common';
@@ -34,8 +34,8 @@ function _computeBonds(unit: Unit.Atomic, params: LinkComputationParameters): In
     const { label_comp_id } = unit.model.atomicHierarchy.residues;
     const query3d = unit.lookup3d;
 
-    const structConn = unit.model.sourceData.kind === 'mmCIF' ? StructConn.create(unit.model) : void 0;
-    const component = unit.model.sourceData.kind === 'mmCIF' ? ComponentBondInfo.create(unit.model) : void 0;
+    const structConn = unit.model.sourceData.kind === 'mmCIF' ? StructConn.fromModel(unit.model) : void 0;
+    const component = unit.model.sourceData.kind === 'mmCIF' ? ComponentBond.fromModel(unit.model) : void 0;
 
     const atomA: number[] = [];
     const atomB: number[] = [];

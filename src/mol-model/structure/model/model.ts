@@ -36,7 +36,8 @@ interface Model extends Readonly<{
     atomicHierarchy: AtomicHierarchy,
     atomicConformation: AtomicConformation,
 
-    properties: { secondaryStructure: SecondaryStructure },
+    /** Various parts of the code can "cache" custom properties here */
+    properties: { readonly secondaryStructure: SecondaryStructure } & { [customName: string]: any },
 
     coarseHierarchy: CoarseHierarchy,
     coarseConformation: CoarseConformation

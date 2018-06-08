@@ -15,8 +15,8 @@ export interface StructConn {
     getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>
 }
 
-export interface ComponentBondInfo {
-    entries: Map<string, ComponentBondInfo.Entry>
+export interface ComponentBond {
+    entries: Map<string, ComponentBond.Entry>
 }
 
 export namespace StructConn {
@@ -79,8 +79,6 @@ export namespace StructConn {
         }
     }
 
-
-
     export interface Entry {
         distance: number,
         order: number,
@@ -100,7 +98,10 @@ export namespace StructConn {
         | 'modres'
         | 'saltbr'
 
-    export function create(model: Model): StructConn | undefined {
+    export const PropName = '__StructConn__';
+    export function fromModel(model: Model): StructConn | undefined {
+        if (model.properties[PropName]) return model.properties[PropName];
+
         if (model.sourceData.kind !== 'mmCIF') return;
         const { struct_conn } = model.sourceData.data;
         if (!struct_conn._rowCount) return void 0;
@@ -187,21 +188,23 @@ export namespace StructConn {
             entries.push({ flags, order, distance: pdbx_dist_value.value(i), partners });
         }
 
-        return new StructConnImpl(entries);
+        const ret = new StructConnImpl(entries);
+        model.properties[PropName] = ret;
+        return ret;
     }
 }
 
-export class ComponentBondInfo implements ComponentBondInfo {
-    entries: Map<string, ComponentBondInfo.Entry> = new Map();
+export namespace ComponentBond {
+    export class ComponentBondImpl implements ComponentBond {
+        entries: Map<string, ComponentBond.Entry> = new Map();
 
-    newEntry(id: string) {
-        let e = new ComponentBondInfo.Entry(id);
-        this.entries.set(id, e);
-        return e;
+        addEntry(id: string) {
+            let e = new Entry(id);
+            this.entries.set(id, e);
+            return e;
+        }
     }
-}
 
-export namespace ComponentBondInfo {
     export class Entry implements Entry {
         map: Map<string, Map<string, { order: number, flags: number }>> = new Map();
 
@@ -225,16 +228,19 @@ export namespace ComponentBondInfo {
         }
     }
 
-    export function create(model: Model): ComponentBondInfo | undefined {
+    export const PropName = '__ComponentBond__';
+    export function fromModel(model: Model): ComponentBond | undefined {
+        if (model.properties[PropName]) return model.properties[PropName];
+
         if (model.sourceData.kind !== 'mmCIF') return
         const { chem_comp_bond } = model.sourceData.data;
         if (!chem_comp_bond._rowCount) return void 0;
 
-        let info = new ComponentBondInfo();
+        let compBond = new ComponentBondImpl();
 
         const { comp_id, atom_id_1, atom_id_2, value_order, pdbx_aromatic_flag, _rowCount: rowCount } = chem_comp_bond;
 
-        let entry = info.newEntry(comp_id.value(0)!);
+        let entry = compBond.addEntry(comp_id.value(0)!);
 
         for (let i = 0; i < rowCount; i++) {
 
@@ -245,7 +251,7 @@ export namespace ComponentBondInfo {
             const aromatic = pdbx_aromatic_flag.value(i) === 'Y';
 
             if (entry.id !== id) {
-                entry = info.newEntry(id);
+                entry = compBond.addEntry(id);
             }
 
             let flags: number = LinkType.Flag.Covalent;
@@ -263,6 +269,7 @@ export namespace ComponentBondInfo {
             entry.add(nameA, nameB, ord, flags);
         }
 
-        return info;
+        model.properties[PropName] = compBond;
+        return compBond;
     }
 }
