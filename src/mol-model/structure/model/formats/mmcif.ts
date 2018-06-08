@@ -39,11 +39,12 @@ function findHierarchyOffsets({ data }: mmCIF_Format, bounds: Interval) {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const residues = [start], chains = [start];
 
-    const { label_entity_id, auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = data.atom_site;
+    const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = data.atom_site;
 
     for (let i = start + 1; i < end; i++) {
-        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !auth_asym_id.areValuesEqual(i - 1, i);
+        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !label_asym_id.areValuesEqual(i - 1, i);
         const newResidue = newChain
+            || !label_seq_id.areValuesEqual(i - 1, i)
             || !auth_seq_id.areValuesEqual(i - 1, i)
             || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i)
             || !label_comp_id.areValuesEqual(i - 1, i);

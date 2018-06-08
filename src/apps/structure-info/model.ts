@@ -99,10 +99,9 @@ export function printLinks(structure: Structure, showIntra: boolean, showInter: 
             if (!Unit.isAtomic(unit)) continue;
 
             for (const pairLinks of links.getLinkedUnits(unit)) {
-                if (!pairLinks.areUnitsOrdered) continue;
+                if (!pairLinks.areUnitsOrdered || pairLinks.bondCount === 0) continue;
 
                 const { unitA, unitB } = pairLinks;
-
                 console.log(`${pairLinks.unitA.id} - ${pairLinks.unitB.id}: ${pairLinks.bondCount} bond(s)`);
 
                 for (const aI of pairLinks.linkedElementIndices) {
@@ -193,12 +192,12 @@ export function printIHMModels(model: Model) {
 async function run(mmcif: mmCIF_Database) {
     const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
     const structure = Structure.ofModel(models[0]);
-    printSequence(models[0]);
+    //printSequence(models[0]);
     //printIHMModels(models[0]);
     printUnits(structure);
-    printRings(structure);
-    printLinks(structure, false, true);
-    printModRes(models[0]);
+    //printRings(structure);
+    printLinks(structure, true, true);
+    //printModRes(models[0]);
     //printSecStructure(models[0]);
 }
 

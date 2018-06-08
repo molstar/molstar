@@ -39,7 +39,7 @@ export class Stage {
         this.viewer = Viewer.create(canvas, container)
         this.viewer.animate()
         this.ctx.viewer = this.viewer
-        // this.loadPdbid('1crn')
+        //this.loadPdbid('1jj2')
         this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
     }
 
