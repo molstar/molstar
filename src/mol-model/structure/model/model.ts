@@ -15,8 +15,6 @@ import { SecondaryStructure } from './properties/seconday-structure';
 
 //import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
-import { ModifiedResidues } from './formats/mmcif/modified-residues';
-
 /**
  * Interface to the "source data" of the molecule.
  *
@@ -40,7 +38,8 @@ interface Model extends Readonly<{
     /** Various parts of the code can "cache" custom properties here */
     properties: {
         readonly secondaryStructure: SecondaryStructure,
-        readonly modifiedResidues: ModifiedResidues,
+        // maps modified residue name to its parent
+        readonly modifiedResidueNameMap: Map<string, string>,
         [customName: string]: any
     },
 
