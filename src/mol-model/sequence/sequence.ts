@@ -29,7 +29,7 @@ namespace Sequence {
     export interface Protein extends Base<Kind.Protein, AminoAlphabet> { }
     export interface RNA extends Base<Kind.RNA, NuclecicAlphabet> { }
     export interface DNA extends Base<Kind.DNA, NuclecicAlphabet> { }
-    export interface Generic extends Base<Kind.Generic, 'X'> { }
+    export interface Generic extends Base<Kind.Generic, 'X' | '-'> { }
 
     export function create(kind: Kind, sequence: string, offset: number = 0): Sequence {
         return { kind: kind as any, sequence: sequence as any, offset };
@@ -49,11 +49,21 @@ namespace Sequence {
         return { kind: Kind.Generic, code: (v: string) => 'X' };
     }
 
-    export function ofResidueNames(residueName: Column<string>, seqId: Column<number>): Sequence {
+    function modCode(code: (name: string) => string, map: Map<string, string>): (name: string) => string {
+        return n => {
+            const ret = code(n);
+            if (ret !== 'X' || !map.has(n)) return ret;
+            return code(map.get(n)!);
+        }
+    }
+
+    export function ofResidueNames(residueName: Column<string>, seqId: Column<number>, modifiedMap?: Map<string, string>): Sequence {
         if (seqId.rowCount === 0) throw new Error('cannot be empty');
 
         const { kind, code } = determineKind(residueName);
-        return new Impl(kind, residueName, seqId, code) as Sequence;
+
+        if (!modifiedMap || modifiedMap.size === 0) return new Impl(kind, residueName, seqId, code) as Sequence;
+        return new Impl(kind, residueName, seqId, modCode(code, modifiedMap)) as Sequence;
     }
 
     class Impl implements Base<any, any> {
@@ -83,7 +93,7 @@ namespace Sequence {
             const count = maxSeqId - minSeqId + 1;
             const sequenceArray = new Array(maxSeqId + 1);
             for (let i = 0; i < count; i++) {
-                sequenceArray[i] = 'X';
+                sequenceArray[i] = '-';
             }
 
             for (let i = 0, _i = this.seqId.rowCount; i < _i; i++) {

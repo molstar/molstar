@@ -23,7 +23,7 @@ namespace StructureSequence {
         readonly sequence: Sequence
     }
 
-    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy): StructureSequence {
+    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: Map<string, string>): StructureSequence {
         const { label_comp_id, label_seq_id } = hierarchy.residues
         const { chainSegments, residueSegments } = hierarchy
 
@@ -52,7 +52,7 @@ namespace StructureSequence {
                 entityId: entities.data.id.value(entityKey),
                 compId,
                 num,
-                sequence: Sequence.ofResidueNames(compId, num)
+                sequence: Sequence.ofResidueNames(compId, num, modResMap)
             };
 
             sequences.push(byEntityKey[entityKey]);

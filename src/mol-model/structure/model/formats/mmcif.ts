@@ -159,6 +159,8 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         ? format.data.entry.id.value(0)
         : format.data._name;
 
+    const modifiedResidueNameMap = modResMap(format);
+
     return {
         id: UUID.create(),
         label,
@@ -166,13 +168,13 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         entities,
         atomicHierarchy,
-        sequence: getSequence(format.data, entities, atomicHierarchy),
+        sequence: getSequence(format.data, entities, atomicHierarchy, modifiedResidueNameMap),
         atomicConformation: getConformation(format, bounds),
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy),
-            modifiedResidueNameMap: modResMap(format)
+            modifiedResidueNameMap
         },
         symmetry: getSymmetry(format)
     };

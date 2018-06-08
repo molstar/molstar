@@ -7,10 +7,12 @@
 export type AminoAlphabet =
     | 'H' | 'R' | 'K' | 'I' | 'F' | 'L' | 'W' | 'A' | 'M' | 'P' | 'C' | 'N' | 'V' | 'G' | 'S' | 'Q' | 'Y' | 'D' | 'E' | 'T' | 'U' | 'O'
     | 'X' /** = Unknown */
+    | '-' /** = Gap */
 
 export type NuclecicAlphabet =
     | 'A' | 'C' | 'G' | 'T' | 'U'
     | 'X' /** = Unknown */
+    | '-' /** = Gap */
 
 // from NGL
 const ProteinOneLetterCodes: { [name: string]: AminoAlphabet }  = {

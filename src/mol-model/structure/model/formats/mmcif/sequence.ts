@@ -21,8 +21,8 @@ import { Sequence } from '../../../../sequence';
 // corresponding ATOM_SITE entries should reflect this
 // heterogeneity.
 
-export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHierarchy): StructureSequence {
-    if (!cif.entity_poly_seq._rowCount) return StructureSequence.fromAtomicHierarchy(entities, hierarchy);
+export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHierarchy, modResMap: Map<string, string>): StructureSequence {
+    if (!cif.entity_poly_seq._rowCount) return StructureSequence.fromAtomicHierarchy(entities, hierarchy, modResMap);
 
     const { entity_id, num, mon_id } = cif.entity_poly_seq;
 
@@ -45,7 +45,7 @@ export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHie
             entityId: id,
             compId: _compId,
             num: _num,
-            sequence: Sequence.ofResidueNames(_compId, _num)
+            sequence: Sequence.ofResidueNames(_compId, _num, modResMap)
         };
 
         sequences.push(byEntityKey[entityKey]);
