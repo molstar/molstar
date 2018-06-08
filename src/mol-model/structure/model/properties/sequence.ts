@@ -10,6 +10,7 @@ import { Entities } from './common';
 import { Sequence } from '../../../sequence';
 
 interface StructureSequence {
+    readonly sequences: ReadonlyArray<StructureSequence.Entity>,
     readonly byEntityKey: { [key: number]: StructureSequence.Entity }
 }
 
@@ -27,6 +28,7 @@ namespace StructureSequence {
         const { chainSegments, residueSegments } = hierarchy
 
         const byEntityKey: StructureSequence['byEntityKey'] = { };
+        const sequences: StructureSequence.Entity[] = [];
 
         for (let cI = 0, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
             const entityKey = hierarchy.entityKey[cI];
@@ -52,9 +54,11 @@ namespace StructureSequence {
                 num,
                 sequence: Sequence.ofResidueNames(compId, num)
             };
+
+            sequences.push(byEntityKey[entityKey]);
         }
 
-        return { byEntityKey }
+        return { byEntityKey, sequences };
     }
 }
 

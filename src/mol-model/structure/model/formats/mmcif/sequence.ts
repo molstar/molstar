@@ -27,6 +27,7 @@ export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHie
     const { entity_id, num, mon_id } = cif.entity_poly_seq;
 
     const byEntityKey: StructureSequence['byEntityKey'] = {};
+    const sequences: StructureSequence.Entity[] = [];
     const count = entity_id.rowCount;
 
     let i = 0;
@@ -38,14 +39,17 @@ export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHie
         const id = entity_id.value(start);
         const _compId = Column.window(mon_id, start, i);
         const _num = Column.window(num, start, i);
+        const entityKey = entities.getEntityIndex(id);
 
-        byEntityKey[entities.getEntityIndex(id)] = {
+        byEntityKey[entityKey] = {
             entityId: id,
             compId: _compId,
             num: _num,
             sequence: Sequence.ofResidueNames(_compId, _num)
         };
+
+        sequences.push(byEntityKey[entityKey]);
     }
 
-    return { byEntityKey };
+    return { byEntityKey, sequences };
 }
