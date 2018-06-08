@@ -9,7 +9,7 @@ import { Model } from '../model'
 import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
 import { SortedArray } from 'mol-data/int';
 import { idFactory } from 'mol-util/id-factory';
-import { IntraUnitBonds, computeIntraUnitBonds } from './unit/bonds'
+import { IntraUnitLinks, computeIntraUnitBonds } from './unit/links'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { ValueRef } from 'mol-util';
 import { UnitRings } from './unit/rings';
@@ -100,10 +100,10 @@ namespace Unit {
             return this.props.lookup3d.ref;
         }
 
-        get bonds() {
-            if (this.props.bonds.ref) return this.props.bonds.ref;
-            this.props.bonds.ref = computeIntraUnitBonds(this);
-            return this.props.bonds.ref;
+        get links() {
+            if (this.props.links.ref) return this.props.links.ref;
+            this.props.links.ref = computeIntraUnitBonds(this);
+            return this.props.links.ref;
         }
 
         get rings() {
@@ -127,12 +127,12 @@ namespace Unit {
 
     interface AtomicProperties {
         lookup3d: ValueRef<Lookup3D | undefined>,
-        bonds: ValueRef<IntraUnitBonds | undefined>,
+        links: ValueRef<IntraUnitLinks | undefined>,
         rings: ValueRef<UnitRings | undefined>
     }
 
-    function AtomicProperties() {
-        return { lookup3d: ValueRef.create(void 0), bonds: ValueRef.create(void 0), rings: ValueRef.create(void 0) };
+    function AtomicProperties(): AtomicProperties {
+        return { lookup3d: ValueRef.create(void 0), links: ValueRef.create(void 0), rings: ValueRef.create(void 0) };
     }
 
     class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {

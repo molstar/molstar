@@ -10,6 +10,7 @@ import { Progress } from 'mol-task';
 import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBond } from './state/transform';
 import { UrlEntity } from './state/entity';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
+import { Context } from 'mol-app/context/context';
 
 // export const ColorTheme = {
 //     'atom-index': {},
@@ -30,7 +31,7 @@ export class Stage {
     viewer: Viewer
     ctx = new StateContext(Progress.format)
 
-    constructor() {
+    constructor(public globalContext: Context) {
 
     }
 
@@ -38,7 +39,7 @@ export class Stage {
         this.viewer = Viewer.create(canvas, container)
         this.viewer.animate()
         this.ctx.viewer = this.viewer
-        // this.loadPdbid('1crn')
+        //this.loadPdbid('1jj2')
         this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
     }
 
@@ -48,6 +49,8 @@ export class Stage {
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
         StructureToSpacefill.apply(this.ctx, structureEntity, spacefillProps)
         StructureToBond.apply(this.ctx, structureEntity, spacefillProps) // TODO props
+
+        this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
     }
 
     loadPdbid (pdbid: string) {

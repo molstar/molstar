@@ -6,7 +6,7 @@
  */
 
 import { Unit, Element, Queries } from 'mol-model/structure';
-import { Bond } from 'mol-model/structure/structure/unit/bonds';
+import { Link } from 'mol-model/structure/structure/unit/links';
 import { Loci } from 'mol-model/loci';
 
 const elementLocA = Element.Location()
@@ -23,8 +23,8 @@ export function labelFirst(loci: Loci) {
         if (e && e.indices[0] !== undefined) {
             return elementLabel(Element.Location(e.unit, e.indices[0]))
         }
-    } else if (Bond.isLoci(loci)) {
-        const bond = loci.bonds[0]
+    } else if (Link.isLoci(loci)) {
+        const bond = loci.links[0]
         if (bond) {
             setElementLocation(elementLocA, bond.aUnit, bond.aIndex)
             setElementLocation(elementLocB, bond.bUnit, bond.bIndex)

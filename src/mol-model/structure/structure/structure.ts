@@ -15,6 +15,7 @@ import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { Queries } from '../query';
+import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -60,6 +61,13 @@ class Structure {
         return this._lookup3d;
     }
 
+    private _links?: InterUnitBonds = void 0;
+    get links() {
+        if (this._links) return this._links;
+        this._links = computeInterUnitBonds(this);
+        return this._links;
+    }
+
     constructor(units: ArrayLike<Unit>) {
         const map = IntMap.Mutable<Unit>();
         let elementCount = 0;
@@ -90,8 +98,21 @@ namespace Structure {
         const chains = model.atomicHierarchy.chainSegments;
         const builder = new StructureBuilder();
 
+        const { residueSegments: { segmentMap: residueIndex } } = model.atomicHierarchy;
+
         for (let c = 0; c < chains.count; c++) {
-            const elements = SortedArray.ofBounds(chains.segments[c], chains.segments[c + 1]);
+            const start = chains.segments[c];
+            let end = chains.segments[c + 1];
+
+            let rStart = residueIndex[start], rEnd = residueIndex[end - 1];
+            while (rEnd - rStart <= 1 && c + 1 < chains.count) {
+                c++;
+                end = chains.segments[c + 1];
+                rStart = rEnd;
+                rEnd = residueIndex[end - 1];
+            }
+
+            const elements = SortedArray.ofBounds(start, end);
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 

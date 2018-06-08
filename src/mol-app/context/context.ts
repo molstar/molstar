@@ -15,6 +15,7 @@ import { Stage } from 'mol-view/stage';
 import { AnyTransform } from 'mol-view/state/transform';
 import { BehaviorSubject } from 'rxjs';
 import { AnyEntity } from 'mol-view/state/entity';
+import { SequenceViewController } from '../controller/visualization/sequence-view';
 
 export class Settings {
     private settings = new Map<string, any>();
@@ -35,10 +36,15 @@ export class Context {
     logger = new Logger(this);
     performance = new PerformanceMonitor();
 
-    stage = new Stage();
+    stage = new Stage(this);
     viewport = new ViewportController(this);
     layout: LayoutController;
     settings = new Settings();
+
+    // TODO: this is a temporary solution
+    components = {
+        sequenceView: new SequenceViewController(this)
+    };
 
     currentEntity = new BehaviorSubject(undefined) as BehaviorSubject<AnyEntity | undefined>
     currentTransforms = new BehaviorSubject([] as AnyTransform[])

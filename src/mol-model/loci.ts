@@ -5,7 +5,7 @@
  */
 
 import { Element } from './structure'
-import { Bond } from './structure/structure/unit/bonds'
+import { Link } from './structure/structure/unit/links'
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -14,4 +14,4 @@ export function isEveryLoci(x: any): x is EveryLoci {
     return !!x && x.kind === 'every-loci';
 }
 
-export type Loci =  Element.Loci | Bond.Loci | EveryLoci
+export type Loci =  Element.Loci | Link.Loci | EveryLoci

@@ -340,9 +340,9 @@ export const VdwRadii = {
 }
 export const DefaultVdwRadius = 2.0
 
-export interface BondType extends BitFlags<BondType.Flag> { }
-export namespace BondType {
-    export const is: (b: BondType, f: Flag) => boolean = BitFlags.has
+export interface LinkType extends BitFlags<LinkType.Flag> { }
+export namespace LinkType {
+    export const is: (b: LinkType, f: Flag) => boolean = BitFlags.has
     export const enum Flag {
         None                 = 0x0,
         Covalent             = 0x1,
@@ -353,5 +353,9 @@ export namespace BondType {
         Aromatic             = 0x20,
         Computed             = 0x40
         // currently at most 16 flags are supported!!
+    }
+
+    export function isCovalent(flags: LinkType.Flag) {
+        return (flags & LinkType.Flag.Covalent) !== 0;
     }
 }

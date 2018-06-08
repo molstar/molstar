@@ -72,20 +72,44 @@ export function printSecStructure(model: Model) {
     }
 }
 
-export function printBonds(structure: Structure) {
-    for (const unit of structure.units) {
-        if (!Unit.isAtomic(unit)) continue;
+export function printLinks(structure: Structure, showIntra: boolean, showInter: boolean) {
+    if (showIntra) {
+        console.log('\nIntra Unit Links\n=============');
+        for (const unit of structure.units) {
+            if (!Unit.isAtomic(unit)) continue;
 
-        const elements = unit.elements;
-        const { a, b } = unit.bonds;
-        const { model }  = unit;
+            const elements = unit.elements;
+            const { a, b } = unit.links;
+            const { model } = unit;
 
-        if (!a.length) continue;
+            if (!a.length) continue;
 
-        for (let bI = 0, _bI = a.length; bI < _bI; bI++) {
-            const x = a[bI], y = b[bI];
-            if (x >= y) continue;
-            console.log(`${atomLabel(model, elements[x])} -- ${atomLabel(model, elements[y])}`);
+            for (let bI = 0, _bI = a.length; bI < _bI; bI++) {
+                const x = a[bI], y = b[bI];
+                if (x >= y) continue;
+                console.log(`${atomLabel(model, elements[x])} -- ${atomLabel(model, elements[y])}`);
+            }
+        }
+    }
+
+    if (showInter) {
+        console.log('\nInter Unit Links\n=============');
+        const links = structure.links;
+        for (const unit of structure.units) {
+            if (!Unit.isAtomic(unit)) continue;
+
+            for (const pairLinks of links.getLinkedUnits(unit)) {
+                if (!pairLinks.areUnitsOrdered || pairLinks.bondCount === 0) continue;
+
+                const { unitA, unitB } = pairLinks;
+                console.log(`${pairLinks.unitA.id} - ${pairLinks.unitB.id}: ${pairLinks.bondCount} bond(s)`);
+
+                for (const aI of pairLinks.linkedElementIndices) {
+                    for (const link of pairLinks.getBonds(aI)) {
+                        console.log(`${atomLabel(unitA.model, unitA.elements[aI])} -- ${atomLabel(unitB.model, unitB.elements[link.indexB])}`);
+                    }
+                }
+            }
         }
     }
 }
@@ -97,6 +121,18 @@ export function printSequence(model: Model) {
         const seq = byEntityKey[+key];
         console.log(`${seq.entityId} (${seq.sequence.kind} ${seq.num.value(0)} (offset ${seq.sequence.offset}), ${seq.num.value(seq.num.rowCount - 1)}) (${seq.compId.value(0)}, ${seq.compId.value(seq.compId.rowCount - 1)})`);
         console.log(`${seq.sequence.sequence}`);
+    }
+    console.log();
+}
+
+export function printModRes(model: Model) {
+    console.log('\nModified Residues\n=============');
+    const map = model.properties.modifiedResidueNameMap;
+    const { label_comp_id, _rowCount } = model.atomicHierarchy.residues;
+    for (let i = 0; i < _rowCount; i++) {
+        const comp_id = label_comp_id.value(i);
+        if (!map.has(comp_id)) continue;
+        console.log(`[${i}] ${map.get(comp_id)} -> ${comp_id}`);
     }
     console.log();
 }
@@ -156,11 +192,12 @@ export function printIHMModels(model: Model) {
 async function run(mmcif: mmCIF_Database) {
     const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
     const structure = Structure.ofModel(models[0]);
-    printSequence(models[0]);
+    //printSequence(models[0]);
     //printIHMModels(models[0]);
     printUnits(structure);
-    printRings(structure);
-    //printBonds(structure);
+    //printRings(structure);
+    printLinks(structure, true, true);
+    //printModRes(models[0]);
     //printSecStructure(models[0]);
 }
 
@@ -175,13 +212,13 @@ async function runFile(filename: string) {
 }
 
 const parser = new argparse.ArgumentParser({
-  addHelp: true,
-  description: 'Print info about a structure, mainly to test and showcase the mol-model module'
+    addHelp: true,
+    description: 'Print info about a structure, mainly to test and showcase the mol-model module'
 });
-parser.addArgument([ '--download', '-d' ], {
+parser.addArgument(['--download', '-d'], {
     help: 'Pdb entry id'
 });
-parser.addArgument([ '--file', '-f' ], {
+parser.addArgument(['--file', '-f'], {
     help: 'filename'
 });
 interface Args {

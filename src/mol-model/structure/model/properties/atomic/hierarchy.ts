@@ -65,7 +65,9 @@ export interface AtomicKeys {
     // also index to the Entities table.
     entityKey: ArrayLike<number>,
 
-    findChainKey(entityId: string, label_asym_id: string): number
+    findChainKey(entityId: string, label_asym_id: string): number,
+
+    /** Unique number for each of the residue. Also the index of the 1st occurence of this residue. */
     findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }
 

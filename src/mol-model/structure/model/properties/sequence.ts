@@ -10,6 +10,7 @@ import { Entities } from './common';
 import { Sequence } from '../../../sequence';
 
 interface StructureSequence {
+    readonly sequences: ReadonlyArray<StructureSequence.Entity>,
     readonly byEntityKey: { [key: number]: StructureSequence.Entity }
 }
 
@@ -22,11 +23,12 @@ namespace StructureSequence {
         readonly sequence: Sequence
     }
 
-    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy): StructureSequence {
+    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: Map<string, string>): StructureSequence {
         const { label_comp_id, label_seq_id } = hierarchy.residues
         const { chainSegments, residueSegments } = hierarchy
 
         const byEntityKey: StructureSequence['byEntityKey'] = { };
+        const sequences: StructureSequence.Entity[] = [];
 
         for (let cI = 0, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
             const entityKey = hierarchy.entityKey[cI];
@@ -50,11 +52,13 @@ namespace StructureSequence {
                 entityId: entities.data.id.value(entityKey),
                 compId,
                 num,
-                sequence: Sequence.ofResidueNames(compId, num)
+                sequence: Sequence.ofResidueNames(compId, num, modResMap)
             };
+
+            sequences.push(byEntityKey[entityKey]);
         }
 
-        return { byEntityKey }
+        return { byEntityKey, sequences };
     }
 }
 

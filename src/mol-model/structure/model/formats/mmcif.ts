@@ -39,11 +39,12 @@ function findHierarchyOffsets({ data }: mmCIF_Format, bounds: Interval) {
     const start = Interval.start(bounds), end = Interval.end(bounds);
     const residues = [start], chains = [start];
 
-    const { label_entity_id, auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = data.atom_site;
+    const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = data.atom_site;
 
     for (let i = start + 1; i < end; i++) {
-        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !auth_asym_id.areValuesEqual(i - 1, i);
+        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !label_asym_id.areValuesEqual(i - 1, i);
         const newResidue = newChain
+            || !label_seq_id.areValuesEqual(i - 1, i)
             || !auth_seq_id.areValuesEqual(i - 1, i)
             || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i)
             || !label_comp_id.areValuesEqual(i - 1, i);
@@ -118,6 +119,19 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
+function modResMap(format: mmCIF_Format) {
+    const data = format.data.pdbx_struct_mod_residue;
+    const map = new Map<string, string>();
+    const comp_id = data.label_comp_id.isDefined ? data.label_comp_id : data.auth_comp_id;
+    const parent_id = data.parent_comp_id;
+
+    for (let i = 0; i < data._rowCount; i++) {
+        map.set(comp_id.value(i), parent_id.value(i));
+    }
+
+    return map;
+}
+
 function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): Model {
     const hierarchyOffsets = findHierarchyOffsets(format, bounds);
     const hierarchyData = createHierarchyData(format, bounds, hierarchyOffsets);
@@ -146,6 +160,8 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         ? format.data.entry.id.value(0)
         : format.data._name;
 
+    const modifiedResidueNameMap = modResMap(format);
+
     return {
         id: UUID.create(),
         label,
@@ -153,12 +169,13 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
         entities,
         atomicHierarchy,
-        sequence: getSequence(format.data, entities, atomicHierarchy),
+        sequence: getSequence(format.data, entities, atomicHierarchy, modifiedResidueNameMap),
         atomicConformation: getConformation(format, bounds),
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy)
+            secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy),
+            modifiedResidueNameMap
         },
         symmetry: getSymmetry(format)
     };

@@ -51,16 +51,33 @@ This project builds on experience from previous solutions:
     npm run watch-extra
 
 ### Build/watch mol-viewer
-Build:
+**Build**
 
     npm run build
     npm run build-viewer
 
-Watch:
+**Watch**
 
     npm run watch
     npm run watch-extra
     npm run watch-viewer
+
+**Run**
+
+If not installed previously:
+
+    npm install -g http-server
+
+...or a similar solution.
+
+From the root of the project:
+
+    http-server -p PORT-NUMBER
+
+and navigate to `build/viewer`
+
+
+
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

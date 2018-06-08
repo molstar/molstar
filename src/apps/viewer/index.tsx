@@ -22,6 +22,7 @@ import { EntityTree } from 'mol-app/ui/entity/tree';
 import { EntityTreeController } from 'mol-app/controller/entity/tree';
 import { TransformListController } from 'mol-app/controller/transform/list';
 import { TransformList } from 'mol-app/ui/transform/list';
+import { SequenceView } from 'mol-app/ui/visualization/sequence-view';
 
 const elm = document.getElementById('app')
 if (!elm) throw new Error('Can not find element with id "app".')
@@ -42,6 +43,14 @@ targets[LayoutRegion.Bottom].components.push({
     controller: new LogController(ctx),
     region: LayoutRegion.Bottom,
     view: Log,
+    isStatic: true
+});
+
+targets[LayoutRegion.Top].components.push({
+    key: 'molstar-sequence-view',
+    controller: ctx.components.sequenceView,
+    region: LayoutRegion.Top,
+    view: SequenceView,
     isStatic: true
 });
 

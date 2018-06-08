@@ -8,6 +8,6 @@ import Element from './structure/element'
 import Structure from './structure/structure'
 import Unit from './structure/unit'
 import StructureSymmetry from './structure/symmetry'
-import { Bond } from './structure/unit/bonds'
+import { Link } from './structure/unit/links'
 
-export { Element, Bond, Structure, Unit, StructureSymmetry }
+export { Element, Link, Structure, Unit, StructureSymmetry }
