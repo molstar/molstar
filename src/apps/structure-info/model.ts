@@ -126,6 +126,17 @@ export function printSequence(model: Model) {
     console.log();
 }
 
+export function printModRes(model: Model) {
+    console.log('\nModified Residues\n=============');
+    const { residueIndices, keys, data } = model.properties.modifiedResidues;
+    const { label_comp_id } = model.atomicHierarchy.residues;
+    for (let i = 0; i < residueIndices.length; i++) {
+        const rI = residueIndices[i], k = keys[i];
+        console.log(`Idx: ${rI} ${data.parent_comp_id.value(k)} -> ${label_comp_id.value(rI)}`);
+    }
+    console.log();
+}
+
 export function printRings(structure: Structure) {
     console.log('\nRings\n=============');
     for (const unit of structure.units) {
@@ -186,6 +197,7 @@ async function run(mmcif: mmCIF_Database) {
     printUnits(structure);
     printRings(structure);
     printLinks(structure, false, true);
+    printModRes(models[0]);
     //printSecStructure(models[0]);
 }
 

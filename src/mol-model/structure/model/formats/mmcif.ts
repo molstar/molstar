@@ -11,7 +11,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import UUID from 'mol-util/uuid';
 import Format from '../format';
 import Model from '../model';
-import { AtomicConformation, AtomicData, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../properties/atomic';
+import { AtomicConformation, AtomicData, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema, AtomicHierarchy } from '../properties/atomic';
 import { Entities } from '../properties/common';
 import { ModelSymmetry } from '../properties/symmetry';
 import { getAtomicKeys } from '../properties/utils/atomic-keys';
@@ -23,6 +23,7 @@ import { getSequence } from './mmcif/sequence';
 import mmCIF_Format = Format.mmCIF
 import { Task } from 'mol-task';
 import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
+import { ModifiedResidues } from './mmcif/modified-residues';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -118,6 +119,15 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
+function modResProvider(format: mmCIF_Format, hierarchy: AtomicHierarchy, entities: Entities) {
+    let modres: ModifiedResidues | undefined = void 0;
+    return () => {
+        if (modres) return modres;
+        modres = new ModifiedResidues(format.data.pdbx_struct_mod_residue, hierarchy, entities);
+        return modres;
+    }
+}
+
 function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): Model {
     const hierarchyOffsets = findHierarchyOffsets(format, bounds);
     const hierarchyData = createHierarchyData(format, bounds, hierarchyOffsets);
@@ -146,6 +156,8 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         ? format.data.entry.id.value(0)
         : format.data._name;
 
+    const modRes = modResProvider(format, atomicHierarchy, entities);
+
     return {
         id: UUID.create(),
         label,
@@ -158,7 +170,8 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy)
+            secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy),
+            get modifiedResidues() { return modRes() }
         },
         symmetry: getSymmetry(format)
     };
