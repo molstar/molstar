@@ -6,25 +6,22 @@
 
 import { Mat4, Vec3, Vec4 } from 'mol-math/linear-algebra'
 import { cameraProject, cameraUnproject, cameraLookAt, Viewport } from './util';
+import { Object3D, createObject3D } from 'mol-gl/object3d';
 
-export interface Camera {
-    view: Mat4,
-    projection: Mat4,
-    projectionView: Mat4,
-    inverseProjectionView: Mat4,
-
-    viewport: Viewport,
-    position: Vec3,
-    direction: Vec3,
-    up: Vec3,
+export interface Camera extends Object3D {
+    readonly projection: Mat4,
+    readonly projectionView: Mat4,
+    readonly inverseProjectionView: Mat4,
+    readonly viewport: Viewport,
 
     near: number,
     far: number,
+    fogNear: number,
+    fogFar: number,
 
     translate: (v: Vec3) => void,
     reset: () => void,
     lookAt: (target: Vec3) => void,
-    update: () => void,
     project: (out: Vec4, point: Vec3) => Vec4,
     unproject: (out: Vec3, point: Vec3) => Vec3
 }
@@ -36,6 +33,8 @@ export const DefaultCameraProps = {
     viewport: Viewport.create(-1, -1, 1, 1),
     near: 0.1,
     far: 10000,
+    fogNear: 0.1,
+    fogFar: 10000,
 }
 export type CameraProps = Partial<typeof DefaultCameraProps>
 
@@ -43,11 +42,12 @@ export namespace Camera {
     export function create(props?: CameraProps): Camera {
         const p = { ...DefaultCameraProps, ...props };
 
+        const { view, position, direction, up } = createObject3D()
+        Vec3.copy(position, p.position)
+        Vec3.copy(direction, p.direction)
+        Vec3.copy(up, p.up)
+
         const projection = Mat4.identity()
-        const view = Mat4.identity()
-        const position = Vec3.clone(p.position)
-        const direction = Vec3.clone(p.direction)
-        const up = Vec3.clone(p.up)
         const viewport = Viewport.clone(p.viewport)
         const projectionView = Mat4.identity()
         const inverseProjectionView = Mat4.identity()
@@ -94,11 +94,14 @@ export namespace Camera {
             direction,
             up,
 
-            get far() { return p.far },
-            set far(value: number) { p.far = value },
-
             get near() { return p.near },
             set near(value: number) { p.near = value },
+            get far() { return p.far },
+            set far(value: number) { p.far = value },
+            get fogNear() { return p.fogNear },
+            set fogNear(value: number) { p.fogNear = value },
+            get fogFar() { return p.fogFar },
+            set fogFar(value: number) { p.fogFar = value },
 
             translate,
             reset,

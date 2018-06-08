@@ -97,7 +97,7 @@ describe('renderer', () => {
         expect(ctx.programCache.count).toBe(0);
         expect(ctx.shaderCache.count).toBe(0);
 
-        renderer.setViewport({ x: 0, y: 0, width: 64, height: 48 })
+        renderer.setViewport(0, 0, 64, 48)
         expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[2]).toBe(64)
         expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[3]).toBe(48)
     })
