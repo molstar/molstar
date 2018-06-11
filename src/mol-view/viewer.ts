@@ -269,7 +269,7 @@ namespace Viewer {
                 if (oldRO) {
                     SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
                     SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
-                    // scene.update()
+                    scene.update()
                 } else {
                     repr.renderObjects.forEach(o => scene.add(o))
                 }
@@ -284,10 +284,7 @@ namespace Viewer {
                     reprCount.next(reprMap.size)
                 }
             },
-            update: () => {
-                scene.forEach((r, o) => r.update())
-                scene.unsetBoundingSphere()
-            },
+            update: () => scene.update(),
             clear: () => {
                 reprMap.clear()
                 scene.clear()

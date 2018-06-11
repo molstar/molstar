@@ -45,7 +45,6 @@ interface Scene extends Object3D {
     forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
     eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
     eachTransparent: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => void
-    unsetBoundingSphere: () => void
 }
 
 namespace Scene {
@@ -57,7 +56,13 @@ namespace Scene {
 
         return {
             // ...createObject3D(), // TODO does not work in conjunction with getter
-            view, position, up, direction, update,
+            view, position, up, direction,
+
+            update: () => {
+                update()
+                renderableMap.forEach((o, r) => o.update())
+                boundingSphere = undefined
+            },
             
             add: (o: RenderObject) => {
                 if (!renderableMap.has(o)) {
@@ -93,7 +98,6 @@ namespace Scene {
                     if (o.values.uAlpha.ref.value < 1) callbackFn(r, o)
                 })
             },
-            unsetBoundingSphere: () => boundingSphere = undefined,
             get count() {
                 return renderableMap.size
             },

@@ -121,8 +121,6 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uFogNear, camera.fogNear)
 
             currentProgramId = -1
-            // scene.unsetBoundingSphere()
-            // console.log('scene.boundingSphere', scene.boundingSphere)
 
             gl.depthMask(true)
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
