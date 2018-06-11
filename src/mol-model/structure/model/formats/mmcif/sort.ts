@@ -6,8 +6,15 @@
 
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { createRangeArray, makeBuckets } from 'mol-data/util';
-import { Column } from 'mol-data/db';
+import { Column, Table } from 'mol-data/db';
 import { RuntimeContext } from 'mol-task';
+
+function isIdentity(xs: ArrayLike<number>) {
+    for (let i = 0, _i = xs.length; i < _i; i++) {
+        if (xs[i] !== i) return false;
+    }
+    return true;
+}
 
 export async function sortAtomSite(ctx: RuntimeContext, atom_site: mmCIF_Database['atom_site'], start: number, end: number) {
     const indices = createRangeArray(start, end - 1);
@@ -28,5 +35,9 @@ export async function sortAtomSite(ctx: RuntimeContext, atom_site: mmCIF_Databas
         if (ctx.shouldUpdate) await ctx.update();
     }
 
-    return indices;
+    if (isIdentity(indices) && indices.length === atom_site._rowCount) {
+        return atom_site;
+    }
+
+    return Table.view(atom_site, atom_site._schema, indices) as mmCIF_Database['atom_site'];
 }
