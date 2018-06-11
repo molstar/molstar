@@ -134,6 +134,7 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
         if (!this.canvas || !this.container || !this.controller.context.initStage(this.canvas, this.container)) {
             this.setState({ noWebGl: true });
         }
+        this.handleResize()
 
         const viewer = this.controller.context.stage.viewer
 
