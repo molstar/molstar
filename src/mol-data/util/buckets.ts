@@ -5,11 +5,12 @@
  */
 
 type Bucket = {
+    key: any,
     count: number,
     offset: number
 }
 
-function _makeBuckets(indices: Helpers.ArrayLike<number>, getKey: (i: number) => any, start: number, end: number) {
+function _makeBuckets(indices: Helpers.ArrayLike<number>, getKey: (i: number) => any, sort: boolean, start: number, end: number) {
     const buckets = new Map<any, Bucket>();
     const bucketList: Bucket[] = [];
 
@@ -21,7 +22,7 @@ function _makeBuckets(indices: Helpers.ArrayLike<number>, getKey: (i: number) =>
             buckets.get(key)!.count++;
             if (prevKey !== key) isBucketed = false;
         } else {
-            const bucket: Bucket = { count: 1, offset: i };
+            const bucket: Bucket = { key, count: 1, offset: i };
             buckets.set(key, bucket);
             bucketList[bucketList.length] = bucket;
         }
@@ -31,9 +32,23 @@ function _makeBuckets(indices: Helpers.ArrayLike<number>, getKey: (i: number) =>
     const bucketOffsets = new Int32Array(bucketList.length + 1);
     bucketOffsets[bucketList.length] = end;
 
-    if (isBucketed) {
+    let sorted = true;
+    if (sort) {
+        for (let i = 1, _i = bucketList.length; i < _i; i++) {
+            if (bucketList[i - 1].key > bucketList[i].key) {
+                sorted = false;
+                break;
+            }
+        }
+    }
+
+    if (isBucketed && sorted) {
         for (let i = 0; i < bucketList.length; i++) bucketOffsets[i] = bucketList[i].offset;
         return bucketOffsets;
+    }
+
+    if (sort && !sorted) {
+        bucketList.sort((x, y) => x.key <= y.key ? -1 : 1);
     }
 
     let offset = 0;
@@ -64,11 +79,11 @@ function _makeBuckets(indices: Helpers.ArrayLike<number>, getKey: (i: number) =>
  * Reorders indices so that the same keys are next to each other, [start, end)
  * Returns the offsets of buckets. So that [offsets[i], offsets[i + 1]) determines the range.
  */
-export function makeBuckets<T>(indices: Helpers.ArrayLike<number>, getKey: (i: number) => string | number, start?: number, end?: number): ArrayLike<number> {
+export function makeBuckets<T>(indices: Helpers.ArrayLike<number>, getKey: (i: number) => string | number, sort: boolean, start?: number, end?: number): ArrayLike<number> {
     const s = start || 0;
     const e = typeof end === 'undefined' ? indices.length : end;
 
     if (e - s <= 0) throw new Error('Can only bucket non-empty collections.');
 
-    return _makeBuckets(indices, getKey, s, e);
+    return _makeBuckets(indices, getKey, sort, s, e);
 }

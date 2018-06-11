@@ -23,6 +23,7 @@ import { getSequence } from './mmcif/sequence';
 import mmCIF_Format = Format.mmCIF
 import { Task } from 'mol-task';
 import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
+import { sortAtomSite } from './mmcif/sort';
 
 function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
@@ -196,6 +197,8 @@ function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
         let modelStart = 0;
         while (modelStart < atomCount) {
             const bounds = findModelBounds(format, modelStart);
+
+            // const indices = await sortAtomSite(ctx, format.data.atom_site, 0, Interval.end(bounds));
             const model = createModel(format, bounds, models.length > 0 ? models[models.length - 1] : void 0);
             models.push(model);
             modelStart = Interval.end(bounds);
