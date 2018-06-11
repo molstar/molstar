@@ -94,25 +94,27 @@ namespace Structure {
 
     export function create(units: ReadonlyArray<Unit>): Structure { return new Structure(units); }
 
+    /**
+     * Construct a Structure from a model.
+     *
+     * Generally, a single unit corresponds to a single chain, with the exception
+     * of consecutive "single atom chains".
+     */
     export function ofModel(model: Model): Structure {
         const chains = model.atomicHierarchy.chainSegments;
         const builder = new StructureBuilder();
 
-        const { residueSegments: { segmentMap: residueIndex } } = model.atomicHierarchy;
-
         for (let c = 0; c < chains.count; c++) {
             const start = chains.segments[c];
-            let end = chains.segments[c + 1];
 
-            let rStart = residueIndex[start], rEnd = residueIndex[end - 1];
-            while (rEnd - rStart <= 1 && c + 1 < chains.count) {
+            // merge all consecutive "single atom chains"
+            while (c + 1 < chains.count
+                && chains.segments[c + 1] - chains.segments[c] === 1
+                && chains.segments[c + 2] - chains.segments[c + 1] === 1) {
                 c++;
-                end = chains.segments[c + 1];
-                rStart = rEnd;
-                rEnd = residueIndex[end - 1];
             }
 
-            const elements = SortedArray.ofBounds(start, end);
+            const elements = SortedArray.ofBounds(start, chains.segments[c + 1]);
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 

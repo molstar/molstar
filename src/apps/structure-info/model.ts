@@ -196,7 +196,7 @@ async function run(mmcif: mmCIF_Database) {
     //printIHMModels(models[0]);
     printUnits(structure);
     //printRings(structure);
-    printLinks(structure, true, true);
+    //printLinks(structure, true, true);
     //printModRes(models[0]);
     //printSecStructure(models[0]);
 }
