@@ -19,7 +19,7 @@ import { getMeshData } from '../../util/mesh-data';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
 import { createEmptyMarkers, MarkerAction } from '../../util/marker-data';
-import { Loci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -109,7 +109,7 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
         },
         getLoci(pickingId: PickingId) {
             // TODO
-            return null
+            return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             // TODO

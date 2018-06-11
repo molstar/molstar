@@ -9,14 +9,14 @@ import { RenderObject } from 'mol-gl/render-object';
 import { RepresentationProps, Representation } from '..';
 import { VolumeData } from 'mol-model/volume';
 import { PickingId } from '../../util/picking';
-import { Loci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 
 export interface VolumeElementRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (volumeData: VolumeData, props: P) => Task<void>
     update: (props: P) => Task<boolean>
-    getLoci: (pickingId: PickingId) => Loci | null
+    getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => void
 }
 
@@ -39,7 +39,7 @@ export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentat
         },
         getLoci(pickingId: PickingId) {
             // TODO
-            return null
+            return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             // TODO

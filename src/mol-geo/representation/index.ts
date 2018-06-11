@@ -16,6 +16,6 @@ export interface Representation<D, P extends RepresentationProps = {}> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (data: D, props?: P) => Task<void>
     update: (props: P) => Task<void>
-    getLoci: (pickingId: PickingId) => Loci | null
+    getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => void
 }

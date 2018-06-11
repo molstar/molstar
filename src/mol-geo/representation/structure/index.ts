@@ -11,14 +11,14 @@ import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
-import { Loci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (group: Unit.SymmetryGroup, props: P) => Task<void>
     update: (props: P) => Task<boolean>
-    getLoci: (pickingId: PickingId) => Loci | null
+    getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => void
 }
 
@@ -49,7 +49,7 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
             const loc = groupReprs[i].repr.getLoci(pickingId)
             if (loc) return loc
         }
-        return null
+        return EmptyLoci
     }
 
     return {

@@ -21,7 +21,7 @@ import { Mesh } from '../../shape/mesh';
 import { PickingId } from '../../util/picking';
 import { SortedArray } from 'mol-data/int';
 import { createMarkers, MarkerAction } from '../../util/marker-data';
-import { Loci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 
 function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
     let radius: Element.Property<number>
@@ -152,7 +152,7 @@ export default function SpacefillUnitsRepresentation(): UnitsRepresentation<Spac
                 const indices = SortedArray.ofSingleton(elementId);
                 return Element.Loci([{ unit, indices }])
             }
-            return null
+            return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             markElement(spheres.values.tMarker, currentGroup, loci, action)

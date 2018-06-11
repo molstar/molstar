@@ -23,7 +23,7 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
 import { defaults } from 'mol-util';
-import { Loci, isEveryLoci } from 'mol-model/loci';
+import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, createMarkers } from '../../util/marker-data';
 
 function createBondMesh(unit: Unit, mesh?: Mesh) {
@@ -174,7 +174,7 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
                     bIndex: unit.links.b[elementId]
                 }])
             }
-            return null
+            return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             const group = currentGroup

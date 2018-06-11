@@ -19,7 +19,7 @@ import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
-import { Loci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../util/marker-data';
 
 export const DefaultPointProps = {
@@ -164,7 +164,7 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
                 const indices = SortedArray.ofSingleton(elementId)
                 return Element.Loci([{ unit, indices }])
             }
-            return null
+            return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             markElement(points.values.tMarker, currentGroup, loci, action)

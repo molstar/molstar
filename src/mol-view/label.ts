@@ -6,7 +6,6 @@
  */
 
 import { Unit, Element, Queries } from 'mol-model/structure';
-import { Link } from 'mol-model/structure/structure/unit/links';
 import { Loci } from 'mol-model/loci';
 
 const elementLocA = Element.Location()
@@ -17,21 +16,29 @@ function setElementLocation(loc: Element.Location, unit: Unit, index: number) {
     loc.element = unit.elements[index]
 }
 
-export function labelFirst(loci: Loci) {
-    if(Element.isLoci(loci)) {
-        const e = loci.elements[0]
-        if (e && e.indices[0] !== undefined) {
-            return elementLabel(Element.Location(e.unit, e.indices[0]))
-        }
-    } else if (Link.isLoci(loci)) {
-        const bond = loci.links[0]
-        if (bond) {
-            setElementLocation(elementLocA, bond.aUnit, bond.aIndex)
-            setElementLocation(elementLocB, bond.bUnit, bond.bIndex)
-            return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
-        }
+export function labelFirst(loci: Loci): string {
+    switch (loci.kind) {
+        case 'element-loci':
+            const e = loci.elements[0]
+            if (e && e.indices[0] !== undefined) {
+                return elementLabel(Element.Location(e.unit, e.indices[0]))
+            } else {
+                return 'Nothing'
+            }
+        case 'link-loci':
+            const bond = loci.links[0]
+            if (bond) {
+                setElementLocation(elementLocA, bond.aUnit, bond.aIndex)
+                setElementLocation(elementLocB, bond.bUnit, bond.bIndex)
+                return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
+            } else {
+                return 'Nothing'
+            }
+        case 'every-loci':
+            return 'Evertything'
+        case 'empty-loci':
+            return 'Nothing'
     }
-    return ''
 }
 
 export function elementLabel(loc: Element.Location) {
