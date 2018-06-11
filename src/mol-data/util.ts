@@ -5,6 +5,7 @@
  */
 
 export * from './util/chunked-array'
+export * from './util/buckets'
 export * from './util/equivalence-classes'
 export * from './util/hash-functions'
 export * from './util/sort'
