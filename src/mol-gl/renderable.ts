@@ -8,7 +8,7 @@ import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
 import { RenderVariant, RenderItem } from './webgl/render-item';
 import { Sphere3D } from 'mol-math/geometry';
-import { calculateBoundingSphere } from './renderable/util';
+import { calculateBoundingSphereFromValues } from './renderable/util';
 
 export type RenderableState = {
     visible: boolean
@@ -27,11 +27,6 @@ export interface Renderable<T extends RenderableValues & BaseValues> {
 }
 
 export function createRenderable<T extends Values<RenderableSchema> & BaseValues>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
-    const position = values.aPosition.ref.value
-    const transform = values.aTransform.ref.value
-    const positionCount = values.drawCount.ref.value / 3 / 3
-    const transformCount = values.instanceCount.ref.value
-
     let boundingSphere: Sphere3D | undefined
     
     return {
@@ -39,7 +34,7 @@ export function createRenderable<T extends Values<RenderableSchema> & BaseValues
         get state () { return state },
         get boundingSphere () {
             if (boundingSphere) return boundingSphere
-            boundingSphere = calculateBoundingSphere({ position, positionCount, transform, transformCount })
+            boundingSphere = calculateBoundingSphereFromValues(values)
             return boundingSphere
         },
 

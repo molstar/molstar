@@ -6,6 +6,7 @@
 
 import { Sphere3D } from 'mol-math/geometry'
 import { Mat4, Vec3 } from 'mol-math/linear-algebra'
+import { ValueCell } from 'mol-util';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
     const sqN = Math.sqrt(n * itemSize)
@@ -32,15 +33,28 @@ export function fillSerial<T extends Helpers.NumberArray> (array: T) {
     return array
 }
 
-export interface PositionData {
-    position: Float32Array
-    positionCount: number,
-    transform: Float32Array,
-    transformCount: number,
+export interface PositionValues {
+    aPosition: ValueCell<Float32Array>
+    drawCount: ValueCell<number>,
+    aTransform: ValueCell<Float32Array>,
+    instanceCount: ValueCell<number>,
 }
 
-export function calculateBoundingSphere(data: PositionData): Sphere3D {
-    const { position, positionCount, transform, transformCount } = data
+function getPositionDataFromValues(values: PositionValues) {
+    return {
+        position: values.aPosition.ref.value,
+        positionCount: values.drawCount.ref.value / 3 / 3,
+        transform: values.aTransform.ref.value,
+        transformCount: values.instanceCount.ref.value
+    }
+}
+
+export function calculateBoundingSphereFromValues(values: PositionValues){
+    const { position, positionCount, transform, transformCount } = getPositionDataFromValues(values)
+    return calculateBoundingSphere(position, positionCount, transform, transformCount)
+}
+
+export function calculateBoundingSphere(position: Float32Array, positionCount: number, transform: Float32Array, transformCount: number): Sphere3D {
 
     const m = Mat4.zero()
 
