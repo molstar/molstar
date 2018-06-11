@@ -98,6 +98,7 @@ export type MoveInput = {
     y: number,
     pageX: number,
     pageY: number,
+    inside: boolean,
 } & BaseInput
 
 export type PinchInput = {
@@ -355,7 +356,8 @@ namespace InputObserver {
             eventOffset(pointerEnd, ev)
             const { pageX, pageY } = ev
             const [ x, y ] = pointerEnd
-            move.next({ x, y, pageX, pageY, buttons, modifiers })
+            const inside = insideBounds(pointerEnd)
+            move.next({ x, y, pageX, pageY, buttons, modifiers, inside })
 
             if (dragging === DraggingState.Stopped) return
 

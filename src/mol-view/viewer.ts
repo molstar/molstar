@@ -22,9 +22,8 @@ import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
-import { labelFirst } from './label';
 import { MarkerAction } from 'mol-geo/util/marker-data';
-import { EveryLoci } from 'mol-model/loci';
+import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -41,7 +40,9 @@ interface Viewer {
     requestDraw: () => void
     animate: () => void
     pick: () => void
-    identify: (x: number, y: number) => void
+    identify: (x: number, y: number) => PickingId
+    mark: (loci: Loci, action: MarkerAction) => void
+    getLoci: (pickingId: PickingId) => Loci
 
     reprCount: BehaviorSubject<number>
     identified: BehaviorSubject<string>
@@ -76,35 +77,7 @@ namespace Viewer {
 
         const startTime = performance.now()
         const didDraw = new BehaviorSubject(0)
-
         const input = InputObserver.create(canvas)
-        input.resize.subscribe(handleResize)
-        input.move.subscribe(({x, y}) => {
-            const p = identify(x, y)
-            let label = ''
-            reprMap.forEach((roSet, repr) => {
-                repr.mark(EveryLoci, MarkerAction.RemoveHighlight)
-                const loci = repr.getLoci(p)
-                if (loci) {
-                    label = labelFirst(loci)
-                    repr.mark(loci, MarkerAction.Highlight)
-                }
-                scene.update()
-                requestDraw()
-            })
-            identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`)
-        })
-        input.click.subscribe(({x, y}) => {
-            const p = identify(x, y)
-            reprMap.forEach((roSet, repr) => {
-                const loci = repr.getLoci(p)
-                if (loci) {
-                    repr.mark(loci, MarkerAction.ToggleSelect)
-                    scene.update()
-                    requestDraw()
-                }
-            })
-        })
 
         const camera = PerspectiveCamera.create({
             near: 0.1,
@@ -140,6 +113,24 @@ namespace Viewer {
         let drawPending = false
         const prevProjectionView = Mat4.zero()
         const prevSceneView = Mat4.zero()
+
+        function getLoci(pickingId: PickingId) {
+            let loci: Loci = EmptyLoci
+            reprMap.forEach((_, repr) => {
+                const _loci = repr.getLoci(pickingId)
+                if (!isEmptyLoci(_loci)) {
+                    if (!isEmptyLoci(loci)) console.warn('found another loci')
+                    loci = _loci
+                }
+            })
+            return loci
+        }
+
+        function mark(loci: Loci, action: MarkerAction) {
+            reprMap.forEach((roSet, repr) => repr.mark(loci, action))
+            scene.update()
+            requestDraw()
+        }
 
         let nearPlaneDelta = 0
         function computeNearDistance() {
@@ -295,6 +286,8 @@ namespace Viewer {
             animate,
             pick,
             identify,
+            mark,
+            getLoci,
 
             handleResize,
             resetCamera: () => {
