@@ -9,11 +9,6 @@ import { Column } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int';
 
 export interface CoarsedElementKeys {
-    // indicate whether the keys form an increasing sequence and within each chain, sequence numbers
-    // are in increasing order.
-    // monotonous sequences enable for example faster secondary structure assignment.
-    isMonotonous: boolean,
-
     // assign a key to each element
     chainKey: ArrayLike<number>,
     // assign a key to each element, index to the Model.entities.data table

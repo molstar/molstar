@@ -27,13 +27,13 @@ import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import mmCIF_Format = Format.mmCIF
 type AtomSite = mmCIF_Database['atom_site']
 
-function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
+function findModelEnd({ data }: mmCIF_Format, startIndex: number) {
     const num = data.atom_site.pdbx_PDB_model_num;
     const atomCount = num.rowCount;
-    if (!num.isDefined) return Interval.ofBounds(startIndex, atomCount);
+    if (!num.isDefined) return atomCount;
     let endIndex = startIndex + 1;
     while (endIndex < atomCount && num.areValuesEqual(startIndex, endIndex)) endIndex++;
-    return Interval.ofBounds(startIndex, endIndex);
+    return endIndex;
 }
 
 function findHierarchyOffsets(atom_site: AtomSite) {
@@ -194,12 +194,11 @@ function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
         const models: Model[] = [];
         let modelStart = 0;
         while (modelStart < atomCount) {
-            const bounds = findModelBounds(format, modelStart);
-
-            const atom_site = await sortAtomSite(ctx, format.data.atom_site, 0, Interval.end(bounds));
+            const modelEnd = findModelEnd(format, modelStart);
+            const atom_site = await sortAtomSite(ctx, format.data.atom_site, modelStart, modelEnd);
             const model = createModel(format, atom_site, models.length > 0 ? models[models.length - 1] : void 0);
             models.push(model);
-            modelStart = Interval.end(bounds);
+            modelStart = modelEnd;
         }
         return models;
     });

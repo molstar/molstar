@@ -33,15 +33,6 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
     return { findChainKey };
 }
 
-function checkMonotonous(xs: ArrayLike<number>) {
-    for (let i = 1, _i = xs.length; i < _i; i++) {
-        if (xs[i] < xs[i - 1]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 function missingEntity(k: string) {
     throw new Error(`Missing entity entry for entity id '${k}'.`);
 }
@@ -75,7 +66,6 @@ export function getCoarseKeys(data: CoarseElementData, modelIndex: (id: number) 
     const { findChainKey } = createLookUp(entities, chainMaps);
 
     return {
-        isMonotonous: checkMonotonous(entityKey) && checkMonotonous(chainKey),
         chainKey: chainKey,
         entityKey: entityKey,
         modelKey: modelKey,

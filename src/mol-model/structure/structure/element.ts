@@ -23,8 +23,8 @@ namespace Element {
     export function createEmptyArray(n: number): Element[] { return new Float64Array(n) as any; }
 
     /** All the information required to access element properties */
-    export interface Location {
-        unit: Unit,
+    export interface Location<U = Unit> {
+        unit: U,
         /** Index into element (atomic/coarse) properties of unit.model */
         element: number
     }
@@ -39,6 +39,15 @@ namespace Element {
     }
 
     export function property<T>(p: Property<T>) { return p; }
+
+    function _wrongUnitKind(kind: string) { throw new Error(`Property only available for ${kind} models.`); }
+    export function atomicProperty<T>(p: (location: Location<Unit.Atomic>) => T) {
+        return property(l => Unit.isAtomic(l.unit) ? p(l as Location<Unit.Atomic>) : _wrongUnitKind('atomic') );
+    }
+
+    export function coarseProperty<T>(p: (location: Location<Unit.Spheres | Unit.Gaussians>) => T) {
+        return property(l => Unit.isCoarse(l.unit) ? p(l as Location<Unit.Spheres | Unit.Gaussians>) : _wrongUnitKind('coarse') );
+    }
 
     /** Represents multiple element index locations */
     export interface Loci {

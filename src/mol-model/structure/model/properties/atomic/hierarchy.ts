@@ -49,13 +49,12 @@ export interface AtomicData {
 export interface AtomicSegments {
     residueSegments: Segmentation,
     chainSegments: Segmentation
+    // TODO: include entity segments?
 }
 
 export interface AtomicKeys {
-    // indicate whether the keys form an increasing sequence and within each chain, sequence numbers
-    // are in increasing order.
-    // monotonous sequences enable for example faster secondary structure assignment.
-    isMonotonous: boolean,
+    // TODO: since Atoms must be sorted now, get rid of keys
+    // TODO: include (lazily computed) "entity/chain/residue" indices?
 
     // assign a key to each residue index.
     residueKey: ArrayLike<number>,

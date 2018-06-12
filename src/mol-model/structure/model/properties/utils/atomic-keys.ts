@@ -48,15 +48,6 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
     return { findChainKey, findResidueKey };
 }
 
-function checkMonotonous(xs: ArrayLike<number>) {
-    for (let i = 1, _i = xs.length; i < _i; i++) {
-        if (xs[i] < xs[i - 1]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 function missingEntity(k: string) {
     throw new Error(`Missing entity entry for entity id '${k}'.`);
 }
@@ -76,8 +67,6 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
 
     const atomSet = Interval.ofBounds(0, data.atoms._rowCount);
 
-    let isMonotonous = true;
-
     const chainsIt = Segmentation.transientSegments(segments.chainSegments, atomSet);
     while (chainsIt.hasNext) {
         const chainSegment = chainsIt.move();
@@ -93,13 +82,9 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
 
         const residueMap = getElementSubstructureKeyMap(residueMaps, cKey);
         const residuesIt = Segmentation.transientSegments(segments.residueSegments, atomSet, chainSegment);
-        let last_seq_id = Number.NEGATIVE_INFINITY;
         while (residuesIt.hasNext) {
             const residueSegment = residuesIt.move();
             const rI = residueSegment.index;
-            const seq_id = auth_seq_id.value(rI);
-            if (seq_id < last_seq_id) isMonotonous = false;
-            last_seq_id = seq_id;
             const residueId = getResidueId(label_comp_id.value(rI), auth_seq_id.value(rI), pdbx_PDB_ins_code.value(rI));
             residueKey[rI] = getElementKey(residueMap, residueId, residueCounter);
         }
@@ -108,7 +93,6 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
     const { findChainKey, findResidueKey } = createLookUp(entities, chainMaps, residueMaps);
 
     return {
-        isMonotonous: isMonotonous && checkMonotonous(entityKey) && checkMonotonous(chainKey) && checkMonotonous(residueKey),
         residueKey: residueKey,
         chainKey: chainKey,
         entityKey: entityKey,

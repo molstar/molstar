@@ -20,16 +20,16 @@ export async function sortAtomSite(ctx: RuntimeContext, atom_site: mmCIF_Databas
     const indices = createRangeArray(start, end - 1);
 
     const { label_entity_id, label_asym_id, label_seq_id } = atom_site;
-    const entityBuckets = makeBuckets(indices, label_entity_id.value, false);
+    const entityBuckets = makeBuckets(indices, label_entity_id.value);
     if (ctx.shouldUpdate) await ctx.update();
     for (let ei = 0, _eI = entityBuckets.length - 1; ei < _eI; ei++) {
-        const chainBuckets = makeBuckets(indices, label_asym_id.value, false, entityBuckets[ei], entityBuckets[ei + 1]);
+        const chainBuckets = makeBuckets(indices, label_asym_id.value, { start: entityBuckets[ei], end: entityBuckets[ei + 1] });
         for (let cI = 0, _cI = chainBuckets.length - 1; cI < _cI; cI++) {
             const aI = chainBuckets[cI];
             // are we in HETATM territory?
             if (label_seq_id.valueKind(aI) !== Column.ValueKind.Present) continue;
 
-            makeBuckets(indices, label_seq_id.value, true, aI, chainBuckets[cI + 1]);
+            makeBuckets(indices, label_seq_id.value, { sort: true, start: aI, end: chainBuckets[cI + 1] });
             if (ctx.shouldUpdate) await ctx.update();
         }
         if (ctx.shouldUpdate) await ctx.update();

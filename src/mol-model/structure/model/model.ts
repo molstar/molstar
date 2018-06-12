@@ -43,6 +43,8 @@ interface Model extends Readonly<{
         [customName: string]: any
     },
 
+    // TODO: separate properties to "static" (propagated with trajectory) and "dynamic" (computed for each frame separately)
+
     coarseHierarchy: CoarseHierarchy,
     coarseConformation: CoarseConformation
 }> {
@@ -56,6 +58,18 @@ namespace Model {
             case 'mmCIF': return from_mmCIF(format);
         }
     }
+
+    // TODO: figure the place to include this?
+    // export interface Property<T, K> { (model: Model, index: number): T, _kind: K }
+    // export interface AtomicProperty<T> extends Property<T, 'atomic'> { }
+    // export interface CoarseProperty<T> extends Property<T, 'coarse'> { }
+    // export interface SphereProperty<T> extends Property<T, 'sphere'> { }
+    // export interface GaussianProperty<T> extends Property<T, 'gaussian'> { }
+
+    // export function atomProp<T>(p: (model: Model, i: number) => T): AtomicProperty<T> { return p as any; }
+    // export function residueProp<T>(p: (model: Model, residueIndex: number) => T): AtomicProperty<T> {
+    //     return p as any;
+    // }
 }
 
 export default Model

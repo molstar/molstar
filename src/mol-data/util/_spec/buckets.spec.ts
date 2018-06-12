@@ -18,7 +18,7 @@ describe('buckets', () => {
     it('full range', () => {
         const xs = [1, 1, 2, 2, 3, 1];
         const range = createRangeArray(0, xs.length - 1);
-        const bs = makeBuckets(range, i => xs[i], false);
+        const bs = makeBuckets(range, i => xs[i]);
 
         expect(reorder(range, xs)).toEqual([1, 1, 1, 2, 2, 3]);
         expect(Array.from(bs)).toEqual([0, 3, 5, 6]);
@@ -27,7 +27,7 @@ describe('buckets', () => {
     it('sort', () => {
         const xs = [3, 1, 2, 1, 2, 3];
         const range = createRangeArray(0, xs.length - 1);
-        makeBuckets(range, i => xs[i], true);
+        makeBuckets(range, i => xs[i], { sort: true });
 
         expect(reorder(range, xs)).toEqual([1, 1, 2, 2, 3, 3]);
     });
@@ -35,7 +35,7 @@ describe('buckets', () => {
     it('subrange', () => {
         const xs = [2, 1, 2, 1, 2, 3, 1];
         const range = createRangeArray(0, xs.length - 1);
-        const bs = makeBuckets(range, i => xs[i], false, 1, 5);
+        const bs = makeBuckets(range, i => xs[i], { sort: false, start: 1, end: 5 });
 
         expect(reorder(range, xs)).toEqual([2, 1, 1, 2, 2, 3, 1]);
         expect(Array.from(bs)).toEqual([1, 3, 5]);
