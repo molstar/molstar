@@ -146,6 +146,9 @@ namespace FloatClassifier {
     }
 
     export function classify(data: number[], name: string) {
+        // if a vector/matrix, do not reduce precision
+        if (name.indexOf('[') > 0) return { encoder: E.by(E.byteArray), typedArray: Float64Array };
+
         let dc = 10;
         for (let i = 0, n = data.length; i < n; i++) dc = Math.max(dc, digitCount(data[i]));
 
