@@ -5,6 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+// TODO multiple cylinders for higher bond orders
+
 import { ValueCell } from 'mol-util/value-cell'
 
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
@@ -21,8 +23,8 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
 import { defaults } from 'mol-util';
-import { Loci, isEveryLoci } from 'mol-model/loci';
-import { FlagAction, applyFlagAction, createFlags } from '../../util/flag-data';
+import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
+import { MarkerAction, applyMarkerAction, createMarkers } from '../../util/marker-data';
 
 function createBondMesh(unit: Unit, mesh?: Mesh) {
     return Task.create('Cylinder mesh', async ctx => {
@@ -110,15 +112,15 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
                 await ctx.update('Computing bond colors');
                 const color = createUniformColor({ value: 0xFF0000 })
 
-                await ctx.update('Computing bond flags');
-                const flag = createFlags(instanceCount * elementCount)
+                await ctx.update('Computing bond marks');
+                const marker = createMarkers(instanceCount * elementCount)
 
                 const values: MeshValues = {
                     ...getMeshData(mesh),
                     aTransform: transforms,
                     aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...color,
-                    ...flag,
+                    ...marker,
 
                     uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                     uInstanceCount: ValueCell.create(instanceCount),
@@ -132,6 +134,7 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
                     dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
                     dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
                     dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
+                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
                 }
                 const state: RenderableState = {
                     depthMask: defaults(props.depthMask, true),
@@ -171,11 +174,11 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
                     bIndex: unit.links.b[elementId]
                 }])
             }
-            return null
+            return EmptyLoci
         },
-        applyFlags(loci: Loci, action: FlagAction) {
+        mark(loci: Loci, action: MarkerAction) {
             const group = currentGroup
-            const tFlag = cylinders.values.tFlag
+            const tMarker = cylinders.values.tMarker
             const unit = group.units[0]
             if (!Unit.isAtomic(unit)) return
 
@@ -183,9 +186,9 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
             const instanceCount = group.units.length
 
             let changed = false
-            const array = tFlag.ref.value.array
+            const array = tMarker.ref.value.array
             if (isEveryLoci(loci)) {
-                applyFlagAction(array, 0, elementCount * instanceCount, action)
+                applyMarkerAction(array, 0, elementCount * instanceCount, action)
                 changed = true
             } else if (Link.isLoci(loci)) {
                 for (const b of loci.links) {
@@ -194,7 +197,7 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
                         const _idx = unit.links.getEdgeIndex(b.aIndex, b.bIndex)
                         if (_idx !== -1) {
                             const idx = _idx
-                            if (applyFlagAction(array, idx, idx + 1, action) && !changed) {
+                            if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
                                 changed = true
                             }
                         }
@@ -204,7 +207,7 @@ export default function BondUnitsRepresentation(): UnitsRepresentation<BondProps
                 return
             }
             if (changed) {
-                ValueCell.update(tFlag, tFlag.ref.value)
+                ValueCell.update(tMarker, tMarker.ref.value)
             }
         }
     }

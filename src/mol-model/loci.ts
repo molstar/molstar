@@ -14,4 +14,11 @@ export function isEveryLoci(x: any): x is EveryLoci {
     return !!x && x.kind === 'every-loci';
 }
 
-export type Loci =  Element.Loci | Link.Loci | EveryLoci
+/** A Loci that that is empty */
+export const EmptyLoci = { kind: 'empty-loci' as 'empty-loci' }
+export type EmptyLoci = typeof EmptyLoci
+export function isEmptyLoci(x: any): x is EmptyLoci {
+    return !!x && x.kind === 'empty-loci';
+}
+
+export type Loci =  Element.Loci | Link.Loci | EveryLoci | EmptyLoci

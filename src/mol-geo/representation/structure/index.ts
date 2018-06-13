@@ -11,15 +11,15 @@ import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
-import { Loci } from 'mol-model/loci';
-import { FlagAction } from '../../util/flag-data';
+import { Loci, EmptyLoci } from 'mol-model/loci';
+import { MarkerAction } from '../../util/marker-data';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
     create: (group: Unit.SymmetryGroup, props: P) => Task<void>
     update: (props: P) => Task<boolean>
-    getLoci: (pickingId: PickingId) => Loci | null
-    applyFlags: (loci: Loci, action: FlagAction) => void
+    getLoci: (pickingId: PickingId) => Loci
+    mark: (loci: Loci, action: MarkerAction) => void
 }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
@@ -34,7 +34,8 @@ export const DefaultStructureProps = {
     alpha: 1,
     visible: true,
     doubleSided: false,
-    depthMask: true
+    depthMask: true,
+    useFog: true,
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 
@@ -48,7 +49,7 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
             const loc = groupReprs[i].repr.getLoci(pickingId)
             if (loc) return loc
         }
-        return null
+        return EmptyLoci
     }
 
     return {
@@ -88,9 +89,9 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
             })
         },
         getLoci,
-        applyFlags(loci: Loci, action: FlagAction) {
+        mark(loci: Loci, action: MarkerAction) {
             for (let i = 0, il = groupReprs.length; i < il; ++i) {
-                groupReprs[i].repr.applyFlags(loci, action)
+                groupReprs[i].repr.mark(loci, action)
             }
         }
     }

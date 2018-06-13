@@ -12,6 +12,7 @@
 import { Quat, Vec2, Vec3, EPSILON } from 'mol-math/linear-algebra';
 import { cameraLookAt, Viewport } from '../camera/util';
 import InputObserver, { DragInput, WheelInput, ButtonsFlag, PinchInput } from 'mol-util/input/input-observer';
+import { Object3D } from 'mol-gl/object3d';
 
 export const DefaultTrackballControlsProps = {
     noScroll: true,
@@ -29,12 +30,6 @@ export const DefaultTrackballControlsProps = {
 }
 export type TrackballControlsProps = Partial<typeof DefaultTrackballControlsProps>
 
-interface Object {
-    position: Vec3,
-    direction: Vec3,
-    up: Vec3,
-}
-
 interface TrackballControls {
     viewport: Viewport
     target: Vec3
@@ -50,7 +45,7 @@ interface TrackballControls {
 }
 
 namespace TrackballControls {
-    export function create (input: InputObserver, object: Object, props: TrackballControlsProps = {}): TrackballControls {
+    export function create (input: InputObserver, object: Object3D, props: TrackballControlsProps = {}): TrackballControls {
         const p = { ...DefaultTrackballControlsProps, ...props }
 
         const viewport: Viewport = { x: 0, y: 0, width: 0, height: 0 }

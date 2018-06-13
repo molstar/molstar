@@ -14,6 +14,8 @@ import { View } from '../view';
 import { HelpBox, Toggle, Button } from '../controls/common'
 import { Slider } from '../controls/slider'
 import { ImageCanvas } from './image-canvas';
+import { InteractivityEvents } from '../../event/basic';
+import { labelFirst } from 'mol-view/label';
 
 export class ViewportControls extends View<ViewportController, { showSceneOptions?: boolean, showHelp?: boolean }, {}> {
     state = { showSceneOptions: false, showHelp: false };
@@ -132,6 +134,7 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
         if (!this.canvas || !this.container || !this.controller.context.initStage(this.canvas, this.container)) {
             this.setState({ noWebGl: true });
         }
+        this.handleResize()
 
         const viewer = this.controller.context.stage.viewer
 
@@ -140,10 +143,6 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
                 showLogo: false
                 // showLogo: count === 0
             })
-        })
-
-        viewer.identified.subscribe(info => {
-            this.setState({ info })
         })
 
         viewer.didDraw.subscribe(() => {
@@ -158,7 +157,23 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
         })
 
         viewer.input.resize.subscribe(() => this.handleResize())
-        this.handleResize()
+
+        viewer.input.move.subscribe(({x, y, inside}) => {
+            if (!inside) return
+            const p = viewer.identify(x, y)
+            const loci = viewer.getLoci(p)
+            InteractivityEvents.HighlightLoci.dispatch(this.controller.context, loci);
+            
+            // TODO use LabelLoci event and make configurable
+            const label = labelFirst(loci)
+            const info = `Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`
+            this.setState({ info })
+        })
+
+        viewer.input.click.subscribe(({x, y}) => {
+            const loci = viewer.getLoci(viewer.identify(x, y))
+            InteractivityEvents.SelectLoci.dispatch(this.controller.context, loci);
+        })
     }
 
     componentWillUnmount() {

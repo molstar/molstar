@@ -4,7 +4,7 @@ uniform int uObjectId;
 uniform int uInstanceCount;
 uniform int uElementCount;
 
-uniform vec2 uFlagTexSize;
-uniform sampler2D tFlag;
-varying float vFlag;
+uniform vec2 uMarkerTexSize;
+uniform sampler2D tMarker;
+varying float vMarker;
 #pragma glslify: readFromTexture = require(../utils/read-from-texture.glsl)

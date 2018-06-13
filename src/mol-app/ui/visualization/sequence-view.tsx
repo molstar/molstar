@@ -11,6 +11,7 @@ import { Structure, StructureSequence, Queries, Selection } from 'mol-model/stru
 import { Context } from '../../context/context';
 import { InteractivityEvents } from '../../event/basic';
 import { SyncRuntimeContext } from 'mol-task/execution/synchronous';
+import { EmptyLoci } from 'mol-model/loci';
 
 export class SequenceView extends View<SequenceViewController, {}, {}> {
     render() {
@@ -36,14 +37,14 @@ class EntitySequence extends React.Component<{ ctx: Context, seq: StructureSeque
 
     async raiseInteractityEvent(seqId?: number) {
         if (typeof seqId === 'undefined') {
-            InteractivityEvents.HighlightElementLoci.dispatch(this.props.ctx, void 0);
+            InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, EmptyLoci);
             return;
         }
 
         const query = createQuery(this.props.seq.entityId, seqId);
         const loci = Selection.toLoci(await query(this.props.structure, SyncRuntimeContext));
-        if (loci.elements.length === 0) InteractivityEvents.HighlightElementLoci.dispatch(this.props.ctx, void 0);
-        else InteractivityEvents.HighlightElementLoci.dispatch(this.props.ctx, loci);
+        if (loci.elements.length === 0) InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, EmptyLoci);
+        else InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, loci);
     }
 
 
