@@ -9,12 +9,11 @@ import * as argparse from 'argparse'
 require('util.promisify').shim();
 
 // import { Table } from 'mol-data/db'
-import CIF from 'mol-io/reader/cif'
-import { Model, Structure, Element, Unit, Queries } from 'mol-model/structure'
+import { CifFrame } from 'mol-io/reader/cif'
+import { Model, Structure, Element, Unit, Queries, Format } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
-import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { openCif, downloadCif } from './helpers';
 import { BitFlags } from 'mol-util';
 import { SecondaryStructureType } from 'mol-model/structure/model/types';
@@ -24,12 +23,12 @@ import { UnitRings } from 'mol-model/structure/structure/unit/rings';
 async function downloadFromPdb(pdb: string) {
     // `https://files.rcsb.org/download/${pdb}.cif`
     const parsed = await downloadCif(`http://www.ebi.ac.uk/pdbe/static/entry/${pdb}_updated.cif`, false);
-    return CIF.schema.mmCIF(parsed.blocks[0]);
+    return parsed.blocks[0];
 }
 
 async function readPdbFile(path: string) {
     const parsed = await openCif(path);
-    return CIF.schema.mmCIF(parsed.blocks[0]);
+    return parsed.blocks[0];
 }
 
 export function atomLabel(model: Model, aI: number) {
@@ -189,8 +188,8 @@ export function printIHMModels(model: Model) {
     console.log(Table.formatToString(model.coarseHierarchy.models));
 }
 
-async function run(mmcif: mmCIF_Database) {
-    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
+async function run(frame: CifFrame) {
+    const models = await Model.create(Format.mmCIF(frame)).run();
     const structure = Structure.ofModel(models[0]);
     //printSequence(models[0]);
     //printIHMModels(models[0]);

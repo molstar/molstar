@@ -54,7 +54,7 @@ function _makeBuckets(indices: Helpers.ArrayLike<number>,
     }
 
     if (sortBuckets && !sorted) {
-        sort(bucketList, start, end, sortAsc, arraySwap);
+        sort(bucketList, 0, bucketList.length, sortAsc, arraySwap);
     }
 
     let offset = 0;

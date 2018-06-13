@@ -8,7 +8,7 @@ import { readFileAs, readUrlAs } from 'mol-util/read'
 import { idFactory } from 'mol-util/id-factory'
 import { StateContext } from './context';
 import { getFileInfo } from 'mol-util/file-info';
-import { CifFile } from 'mol-io/reader/cif';
+import { CifFile, CifFrame } from 'mol-io/reader/cif';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { Model, Structure } from 'mol-model/structure';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
@@ -94,10 +94,10 @@ export namespace CifEntity {
     }
 }
 
-export type MmcifEntity = StateEntity<mmCIF_Database, 'mmcif'>
+export type MmcifEntity = StateEntity<{ db: mmCIF_Database, frame: CifFrame }, 'mmcif'>
 export namespace MmcifEntity {
-    export function ofMmcifDb(ctx: StateContext, db: mmCIF_Database): MmcifEntity {
-        return StateEntity.create(ctx, 'mmcif', db)
+    export function ofMmcifDb(ctx: StateContext, mmCif: { db: mmCIF_Database, frame: CifFrame }): MmcifEntity {
+        return StateEntity.create(ctx, 'mmcif', mmCif)
     }
 }
 

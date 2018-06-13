@@ -6,7 +6,7 @@
 
 import CIF from 'mol-io/reader/cif'
 import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BondEntity } from './entity';
-import { Model, Structure } from 'mol-model/structure';
+import { Model, Structure, Format } from 'mol-model/structure';
 
 import { StateContext } from './context';
 import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
@@ -55,13 +55,14 @@ export const DataToCif: DataToCif = StateTransform.create('data', 'cif', 'data-t
 export type CifToMmcif = StateTransform<CifEntity, MmcifEntity, {}>
 export const CifToMmcif: CifToMmcif = StateTransform.create('cif', 'mmcif', 'cif-to-mmcif',
     async function (ctx: StateContext, cifEntity: CifEntity) {
-        return MmcifEntity.ofMmcifDb(ctx, CIF.schema.mmCIF(cifEntity.value.blocks[0]))
+        const frame = cifEntity.value.blocks[0];
+        return MmcifEntity.ofMmcifDb(ctx, { frame, db: CIF.schema.mmCIF(frame) })
     })
 
 export type MmcifToModel = StateTransform<MmcifEntity, ModelEntity, {}>
 export const MmcifToModel: MmcifToModel = StateTransform.create('mmcif', 'model', 'mmcif-to-model',
     async function (ctx: StateContext, mmcifEntity: MmcifEntity) {
-        const models = await Model.create({ kind: 'mmCIF', data: mmcifEntity.value }).run(ctx.log)
+        const models = await Model.create(Format.mmCIF(mmcifEntity.value.frame, mmcifEntity.value.db)).run(ctx.log)
         return ModelEntity.ofModels(ctx, models)
     })
 

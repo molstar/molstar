@@ -11,7 +11,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Element, Selection, StructureSymmetry, Query } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, Element, Selection, StructureSymmetry, Query, Format } from 'mol-model/structure'
 //import { Segmentation, OrderedSet } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -70,11 +70,11 @@ export async function readCIF(path: string) {
 
     const data = parsed.result.blocks[0];
     console.time('schema')
-    const mmcif = CIF.schema.mmCIF(data);
+    const mmcif = Format.mmCIF(data);
 
     console.timeEnd('schema')
     console.time('buildModels')
-    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
+    const models = await Model.create(mmcif).run();
     console.timeEnd('buildModels')
     const structures = models.map(Structure.ofModel);
 

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, Model } from 'mol-model/structure';
+import { Structure, Model, Format } from 'mol-model/structure';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { Cache } from './cache';
 import Config from '../config';
@@ -89,10 +89,10 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
     const data = await readFile(filename);
     perf.end('read');
     perf.start('parse');
-    const mmcif = CIF.schema.mmCIF((await parseCif(data)).blocks[0]);
+    const frame = (await parseCif(data)).blocks[0];
     perf.end('parse');
     perf.start('createModel');
-    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
+    const models = await Model.create(Format.mmCIF(frame)).run();
     perf.end('createModel');
 
     const structure = Structure.ofModel(models[0]);
