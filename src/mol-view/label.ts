@@ -23,7 +23,7 @@ export function labelFirst(loci: Loci): string {
             if (e && e.indices[0] !== undefined) {
                 return elementLabel(Element.Location(e.unit, e.indices[0]))
             } else {
-                return 'Nothing'
+                return 'Unknown'
             }
         case 'link-loci':
             const bond = loci.links[0]
@@ -32,10 +32,10 @@ export function labelFirst(loci: Loci): string {
                 setElementLocation(elementLocB, bond.bUnit, bond.bIndex)
                 return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
             } else {
-                return 'Nothing'
+                return 'Unknown'
             }
         case 'every-loci':
-            return 'Evertything'
+            return 'Everything'
         case 'empty-loci':
             return 'Nothing'
     }

@@ -11,7 +11,7 @@ import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 
 export interface UnitsRepresentation<P> {
@@ -47,7 +47,7 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
     function getLoci(pickingId: PickingId) {
         for (let i = 0, il = groupReprs.length; i < il; ++i) {
             const loc = groupReprs[i].repr.getLoci(pickingId)
-            if (loc) return loc
+            if (!isEmptyLoci(loc)) return loc
         }
         return EmptyLoci
     }
