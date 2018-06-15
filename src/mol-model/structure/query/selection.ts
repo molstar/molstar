@@ -36,7 +36,7 @@ namespace Selection {
     }
 
     export function toLoci(sel: Selection): Element.Loci {
-        const loci: { unit: Unit, indices: Element.Indices }[] = [];
+        const loci: { unit: Unit, indices: OrderedSet<Element.Index> }[] = [];
         const { unitMap } = sel.source;
 
         for (const unit of unionStructure(sel).units) {

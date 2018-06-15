@@ -8,6 +8,7 @@ import * as Base from './impl/ordered-set'
 import Interval from './interval'
 import SortedArray from './sorted-array';
 
+/** test */
 namespace OrderedSet {
     export const Empty: OrderedSet = Base.Empty as any;
     export const ofSingleton: <T extends number = number>(value: T) => OrderedSet<T> = Base.ofSingleton as any;
@@ -50,7 +51,8 @@ namespace OrderedSet {
     }
 }
 
-type OrderedSet<T extends number = number> = Interval<T> | SortedArray<T>
-//{ '@type': 'int-interval' | 'int-sorted-array' }
+/** Represents bla */
+type OrderedSet<T extends number = number> = SortedArray<T> | Interval<T>
+
 
 export default OrderedSet

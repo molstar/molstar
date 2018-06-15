@@ -15,7 +15,6 @@ namespace Element {
 
     /** Index into Unit.elements */
     export type Index = { readonly '@type': 'element-index' } & number
-    export type Indices = OrderedSet<Index>
 
     /** All the information required to access element properties */
     export interface Location<U = Unit> {
@@ -48,11 +47,11 @@ namespace Element {
              * Indices into the unit.elements array.
              * Can use OrderedSet.forEach to iterate (or OrderedSet.size + OrderedSet.getAt)
              */
-            indices: Indices
+            indices: OrderedSet<Index>
         }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, indices: Indices }>): Loci {
+    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet<Index> }>): Loci {
         return { kind: 'element-loci', elements: elements as Loci['elements'] };
     }
 
