@@ -11,7 +11,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Link } from 'mol-model/structure';
-import { UnitsRepresentation, DefaultStructureProps } from './index';
+import { UnitsVisual, DefaultStructureProps } from './index';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms } from './utils';
 import { fillSerial } from 'mol-gl/renderable/util';
@@ -78,7 +78,7 @@ export const DefaultBondProps = {
 }
 export type BondProps = Partial<typeof DefaultBondProps>
 
-export default function IntraUnitBonds(): UnitsRepresentation<BondProps> {
+export default function IntraUnitBonds(): UnitsVisual<BondProps> {
     const renderObjects: RenderObject[] = []
     let cylinders: MeshRenderObject
     let currentProps: typeof DefaultBondProps

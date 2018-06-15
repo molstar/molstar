@@ -9,7 +9,7 @@ import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
 import { Task, RuntimeContext } from 'mol-task'
 import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../shape/mesh';
-import { VolumeElementRepresentation } from '.';
+import { VolumeVisual } from '.';
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { ValueCell, defaults } from 'mol-util';
@@ -50,7 +50,7 @@ export const DefaultSurfaceProps = {
 }
 export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
 
-export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
+export default function Surface(): VolumeVisual<SurfaceProps> {
     const renderObjects: RenderObject[] = []
     let surface: MeshRenderObject
     let curProps = DefaultSurfaceProps

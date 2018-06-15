@@ -11,7 +11,7 @@ import { Unit, Element } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
-import { UnitsRepresentation, DefaultStructureProps } from './index';
+import { UnitsVisual, DefaultStructureProps } from './index';
 import VertexMap from '../../shape/vertex-map';
 import { SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes, markElement } from './utils';
@@ -47,7 +47,7 @@ export function createPointVertices(unit: Unit) {
     return vertices
 }
 
-export default function PointUnitsRepresentation(): UnitsRepresentation<PointProps> {
+export default function PointUnitsRepresentation(): UnitsVisual<PointProps> {
     const renderObjects: RenderObject[] = []
     let points: PointRenderObject
     let currentProps = DefaultPointProps

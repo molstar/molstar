@@ -14,8 +14,8 @@ import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 
-export interface UnitsRepresentation<P> {
-    renderObjects: ReadonlyArray<RenderObject>
+export interface UnitsVisual<P> {
+    readonly renderObjects: ReadonlyArray<RenderObject>
     create: (ctx: RuntimeContext, group: Unit.SymmetryGroup, props: P) => Promise<void>
     update: (ctx: RuntimeContext, props: P) => Promise<boolean>
     getLoci: (pickingId: PickingId) => Loci
@@ -24,9 +24,9 @@ export interface UnitsRepresentation<P> {
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
-interface GroupRepresentation<T> {
-    repr: UnitsRepresentation<T>
-    group: Unit.SymmetryGroup
+interface GroupVisual<T> {
+    readonly visual: UnitsVisual<T>
+    readonly group: Unit.SymmetryGroup
 }
 
 export const DefaultStructureProps = {
@@ -39,18 +39,10 @@ export const DefaultStructureProps = {
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 
-export function StructureRepresentation<P extends StructureProps>(reprCtor: () => UnitsRepresentation<P>): StructureRepresentation<P> {
+export function StructureRepresentation<P extends StructureProps>(visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     const renderObjects: RenderObject[] = []
-    const groupReprs: GroupRepresentation<P>[] = []
+    const groupVisuals: GroupVisual<P>[] = []
     // let currentProps: typeof DefaultStructureProps
-
-    function getLoci(pickingId: PickingId) {
-        for (let i = 0, il = groupReprs.length; i < il; ++i) {
-            const loc = groupReprs[i].repr.getLoci(pickingId)
-            if (!isEmptyLoci(loc)) return loc
-        }
-        return EmptyLoci
-    }
 
     return {
         renderObjects,
@@ -65,15 +57,15 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
                 const groups = StructureSymmetry.getTransformGroups(structure);
                 for (let i = 0; i < groups.length; i++) {
                     if(ctx.shouldUpdate) await ctx.update({
-                        message: 'Building structure unit representations...',
+                        message: 'Building structure unit visuals...',
                         current: i,
                         max: groups.length
                     })
                     const group = groups[i];
-                    const repr = reprCtor()
-                    groupReprs.push({ repr, group })
-                    await repr.create(ctx, group, props)
-                    renderObjects.push(...repr.renderObjects)
+                    const visual = visualCtor()
+                    groupVisuals.push({ visual, group })
+                    await visual.create(ctx, group, props)
+                    renderObjects.push(...visual.renderObjects)
                 }
             });
         },
@@ -81,27 +73,33 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
             return Task.create('StructureRepresentation.update', async ctx => {
                 renderObjects.length = 0 // clear
 
-                for (let i = 0, il = groupReprs.length; i < il; ++i) {
+                for (let i = 0, il = groupVisuals.length; i < il; ++i) {
                     if(ctx.shouldUpdate) await ctx.update({
-                        message: 'Updating structure unit representations...',
+                        message: 'Updating structure unit visuals...',
                         current: i,
                         max: il
                     })
-                    const groupRepr = groupReprs[i]
-                    const { repr, group } = groupRepr
+                    const groupVisual = groupVisuals[i]
+                    const { visual, group } = groupVisual
 
-                    if (!await repr.update(ctx, props)) {
+                    if (!await visual.update(ctx, props)) {
                         console.log('update failed, need to rebuild')
-                        repr.create(ctx, group, props)
+                        visual.create(ctx, group, props)
                     }
-                    renderObjects.push(...repr.renderObjects)
+                    renderObjects.push(...visual.renderObjects)
                 }
             })
         },
-        getLoci,
+        getLoci(pickingId: PickingId) {
+            for (let i = 0, il = groupVisuals.length; i < il; ++i) {
+                const loc = groupVisuals[i].visual.getLoci(pickingId)
+                if (!isEmptyLoci(loc)) return loc
+            }
+            return EmptyLoci
+        },
         mark(loci: Loci, action: MarkerAction) {
-            for (let i = 0, il = groupReprs.length; i < il; ++i) {
-                groupReprs[i].repr.mark(loci, action)
+            for (let i = 0, il = groupVisuals.length; i < il; ++i) {
+                groupVisuals[i].visual.mark(loci, action)
             }
         }
     }

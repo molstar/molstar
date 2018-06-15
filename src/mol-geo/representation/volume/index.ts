@@ -12,8 +12,8 @@ import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 
-export interface VolumeElementRepresentation<P> {
-    renderObjects: ReadonlyArray<RenderObject>
+export interface VolumeVisual<P> {
+    readonly renderObjects: ReadonlyArray<RenderObject>
     create: (ctx: RuntimeContext, volumeData: VolumeData, props: P) => Promise<void>
     update: (ctx: RuntimeContext, props: P) => Promise<boolean>
     getLoci: (pickingId: PickingId) => Loci
@@ -22,16 +22,16 @@ export interface VolumeElementRepresentation<P> {
 
 export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
 
-export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentation<P>): VolumeRepresentation<P> {
+export function VolumeRepresentation<P>(visualCtor: () => VolumeVisual<P>): VolumeRepresentation<P> {
     const renderObjects: RenderObject[] = []
 
     return {
         renderObjects,
         create(volumeData: VolumeData, props: P = {} as P) {
             return Task.create('VolumeRepresentation.create', async ctx => {
-                const repr = reprCtor()
-                await repr.create(ctx, volumeData, props)
-                renderObjects.push(...repr.renderObjects)
+                const visual = visualCtor()
+                await visual.create(ctx, volumeData, props)
+                renderObjects.push(...visual.renderObjects)
             });
         },
         update(props: P) {
