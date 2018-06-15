@@ -114,7 +114,7 @@ namespace Structure {
                 c++;
             }
 
-            const elements = SortedArray.ofBounds(start, chains.segments[c + 1]);
+            const elements = SortedArray.ofBounds(start as Element, chains.segments[c + 1] as Element);
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 
@@ -134,7 +134,7 @@ namespace Structure {
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
         const { chainSegments } = elements;
         for (let cI = 0; cI < chainSegments.count; cI++) {
-            const elements = SortedArray.ofBounds(chainSegments.segments[cI], chainSegments.segments[cI + 1]);
+            const elements = SortedArray.ofBounds(chainSegments.segments[cI] as Element, chainSegments.segments[cI + 1] as Element);
             builder.addUnit(kind, model, SymmetryOperator.Default, elements);
         }
     }
@@ -142,7 +142,7 @@ namespace Structure {
     export class StructureBuilder {
         private units: Unit[] = [];
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
+        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: Element.Set): Unit {
             const unit = Unit.create(this.units.length, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
@@ -197,7 +197,7 @@ namespace Structure {
     export class ElementLocationIterator implements Iterator<Element.Location> {
         private current = Element.Location();
         private unitIndex = 0;
-        private elements: SortedArray;
+        private elements: Element.Set;
         private maxIdx = 0;
         private idx = -1;
 

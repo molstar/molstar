@@ -13,12 +13,12 @@ import Structure from '../structure';
 
 export class StructureSubsetBuilder {
     private ids: number[] = [];
-    private unitMap = IntMap.Mutable<number[]>();
+    private unitMap = IntMap.Mutable<Element[]>();
     private parentId = -1;
-    private currentUnit: number[] = [];
+    private currentUnit: Element[] = [];
     elementCount = 0;
 
-    addToUnit(parentId: number, e: number) {
+    addToUnit(parentId: number, e: Element) {
         const unit = this.unitMap.get(parentId);
         if (!!unit) { unit[unit.length] = e; }
         else {
@@ -33,7 +33,7 @@ export class StructureSubsetBuilder {
         this.currentUnit = this.currentUnit.length > 0 ? [] : this.currentUnit;
     }
 
-    addElement(e: number) {
+    addElement(e: Element) {
         this.currentUnit[this.currentUnit.length] = e;
         this.elementCount++;
     }
@@ -45,9 +45,9 @@ export class StructureSubsetBuilder {
         this.parentId = -1;
     }
 
-    setUnit(parentId: number, elements: ArrayLike<number>) {
+    setUnit(parentId: number, elements: ArrayLike<Element>) {
         this.ids[this.ids.length] = parentId;
-        this.unitMap.set(parentId, elements as number[]);
+        this.unitMap.set(parentId, elements as Element[]);
         this.elementCount += elements.length;
     }
 

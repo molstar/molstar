@@ -36,7 +36,7 @@ export class LinearGroupingBuilder {
     private builders: StructureSubsetBuilder[] = [];
     private builderMap = new Map<string, StructureSubsetBuilder>();
 
-    add(key: any, unit: number, element: number) {
+    add(key: any, unit: number, element: Element) {
         let b = this.builderMap.get(key);
         if (!b) {
             b = this.source.subsetBuilder(true);

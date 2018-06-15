@@ -161,7 +161,7 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
             const { objectId, instanceId, elementId } = pickingId
             if (points.id === objectId) {
                 const unit = currentGroup.units[instanceId]
-                const indices = OrderedSet.ofSingleton(elementId)
+                const indices = OrderedSet.ofSingleton(elementId as Element.Index)
                 return Element.Loci([{ unit, indices }])
             }
             return EmptyLoci

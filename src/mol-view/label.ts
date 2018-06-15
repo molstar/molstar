@@ -22,7 +22,8 @@ export function labelFirst(loci: Loci): string {
         case 'element-loci':
             const e = loci.elements[0]
             if (e) {
-                return elementLabel(Element.Location(e.unit, OrderedSet.getAt(e.indices, 0)))
+                const el = e.unit.elements[OrderedSet.getAt(e.indices, 0)];
+                return elementLabel(Element.Location(e.unit, el))
             } else {
                 return 'Unknown'
             }

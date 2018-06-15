@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, Unit } from '../../structure'
+import { Structure, Unit, Element } from '../../structure'
 import { SortedArray } from 'mol-data/int';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 
@@ -12,7 +12,7 @@ export function structureUnion(source: Structure, structures: Structure[]) {
     if (structures.length === 0) return Structure.Empty;
     if (structures.length === 1) return structures[0];
 
-    const unitMap = new Map<number, SortedArray>();
+    const unitMap = new Map<number, Element.Set>();
     const fullUnits = new Set<number>();
 
     for (const { units } of structures) {
@@ -36,7 +36,7 @@ export function structureUnion(source: Structure, structures: Structure[]) {
     return builder.getStructure();
 }
 
-function buildUnion(this: StructureSubsetBuilder, elements: SortedArray, id: number) {
+function buildUnion(this: StructureSubsetBuilder, elements: Element.Set, id: number) {
     this.setUnit(id, elements);
 }
 

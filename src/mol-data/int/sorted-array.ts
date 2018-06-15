@@ -9,43 +9,45 @@ import Interval from './interval'
 
 namespace SortedArray {
     export const Empty: SortedArray = Impl.Empty as any;
-    export const ofUnsortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofUnsortedArray as any;
-    export const ofSingleton: (v: number) => SortedArray = Impl.ofSingleton as any;
-    export const ofSortedArray: (xs: ArrayLike<number>) => SortedArray = Impl.ofSortedArray as any;
+    export const ofUnsortedArray: <T extends number = number>(xs: ArrayLike<number>) => SortedArray<T> = Impl.ofUnsortedArray as any;
+    export const ofSingleton: <T extends number = number>(v: number) => SortedArray<T> = Impl.ofSingleton as any;
+    export const ofSortedArray: <T extends number = number>(xs: ArrayLike<number>) => SortedArray<T> = Impl.ofSortedArray as any;
     // create sorted array [min, max] (it DOES contain the max value)
-    export const ofRange: (min: number, max: number) => SortedArray = Impl.ofRange as any;
+    export const ofRange: <T extends number = number>(min: T, max: T) => SortedArray<T> = Impl.ofRange as any;
     // create sorted array [min, max) (it DOES not contain the max value)
-    export const ofBounds: (min: number, max: number) => SortedArray = (min, max) => Impl.ofRange(min, max - 1) as any;
-    export const is: (v: any) => v is Interval = Impl.is as any;
+    export const ofBounds: <T extends number = number>(min: T, max: T) => SortedArray<T> = (min, max) => Impl.ofRange(min, max - 1) as any;
+    export const is: <T extends number = number>(v: any) => v is SortedArray<T> = Impl.is as any;
 
-    export const has: (array: SortedArray, x: number) => boolean = Impl.has as any;
-    export const indexOf: (array: SortedArray, x: number) => number = Impl.indexOf as any;
-    export const indexOfInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.indexOfInInterval as any;
+    export const has: <T extends number = number>(array: SortedArray<T>, x: T) => boolean = Impl.has as any;
+    export const indexOf: <T extends number = number>(array: SortedArray<T>, x: T) => number = Impl.indexOf as any;
+    export const indexOfInInterval: <T extends number = number>(array: SortedArray<T>, x: number, bounds: Interval) => number = Impl.indexOfInInterval as any;
 
-    export const start: (array: SortedArray) => number = Impl.start as any;
-    export const end: (array: SortedArray) => number = Impl.end as any;
-    export const min: (array: SortedArray) => number = Impl.min as any;
-    export const max: (array: SortedArray) => number = Impl.max as any;
-    export const size: (array: SortedArray) => number = Impl.size as any;
-    export const hashCode: (array: SortedArray) => number = Impl.hashCode as any;
+    // array[0]
+    export const start: <T extends number = number>(array: SortedArray<T>) => T = Impl.start as any;
+    // array[array.length - 1] + 1
+    export const end: <T extends number = number>(array: SortedArray<T>) => T = Impl.end as any;
+    export const min: <T extends number = number>(array: SortedArray<T>) => T = Impl.min as any;
+    export const max: <T extends number = number>(array: SortedArray<T>) => T = Impl.max as any;
+    export const size: <T extends number = number>(array: SortedArray<T>) => number = Impl.size as any;
+    export const hashCode: <T extends number = number>(array: SortedArray<T>) => number = Impl.hashCode as any;
 
-    export const areEqual: (a: SortedArray, b: SortedArray) => boolean = Impl.areEqual as any;
-    export const areIntersecting: (a: SortedArray, b: SortedArray) => boolean = Impl.areIntersecting as any;
-    export const isSubset: (a: SortedArray, b: SortedArray) => boolean = Impl.isSubset as any;
+    export const areEqual: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => boolean = Impl.areEqual as any;
+    export const areIntersecting: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => boolean = Impl.areIntersecting as any;
+    export const isSubset: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => boolean = Impl.isSubset as any;
 
-    export const union: (a: SortedArray, b: SortedArray) => SortedArray = Impl.union as any;
-    export const intersect: (a: SortedArray, b: SortedArray) => SortedArray = Impl.intersect as any;
-    export const subtract: (a: SortedArray, b: SortedArray) => SortedArray = Impl.subtract as any;
+    export const union: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => SortedArray<T> = Impl.union as any;
+    export const intersect: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => SortedArray<T> = Impl.intersect as any;
+    export const subtract: <T extends number = number>(a: SortedArray<T>, b: SortedArray<T>) => SortedArray<T> = Impl.subtract as any;
 
-    export const findPredecessorIndex: (array: SortedArray, x: number) => number = Impl.findPredecessorIndex as any;
-    export const findPredecessorIndexInInterval: (array: SortedArray, x: number, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
-    export const findRange: (array: SortedArray, min: number, max: number) => Interval = Impl.findRange as any;
+    export const findPredecessorIndex: <T extends number = number>(array: SortedArray<T>, x: T) => number = Impl.findPredecessorIndex as any;
+    export const findPredecessorIndexInInterval: <T extends number = number>(array: SortedArray<T>, x: T, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
+    export const findRange: <T extends number = number>(array: SortedArray<T>, min: T, max: T) => Interval = Impl.findRange as any;
 
-    export const deduplicate: (array: SortedArray) => SortedArray = Impl.deduplicate as any;
+    export const deduplicate: <T extends number = number>(array: SortedArray<T>) => SortedArray<T> = Impl.deduplicate as any;
     /** Returns indices of xs in the array. E.g. indicesOf([10, 11, 12], [10, 12]) ==> [0, 2] */
-    export const indicesOf: (array: SortedArray, xs: SortedArray) => SortedArray = Impl.indicesOf as any;
+    export const indicesOf: <T extends number = number, I extends number = number>(array: SortedArray<T>, xs: SortedArray<T>) => SortedArray<I> = Impl.indicesOf as any;
 }
 
-interface SortedArray extends ArrayLike<number> { '@type': 'int-sorted-array' }
+interface SortedArray<T extends number = number> extends ArrayLike<T> { '@type': 'int-sorted-array' }
 
 export default SortedArray

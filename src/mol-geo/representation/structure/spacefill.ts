@@ -149,7 +149,7 @@ export default function SpacefillUnitsRepresentation(): UnitsRepresentation<Spac
             const { objectId, instanceId, elementId } = pickingId
             if (spheres.id === objectId) {
                 const unit = currentGroup.units[instanceId]
-                const indices = OrderedSet.ofSingleton(elementId);
+                const indices = OrderedSet.ofSingleton(elementId as Element.Index);
                 return Element.Loci([{ unit, indices }])
             }
             return EmptyLoci

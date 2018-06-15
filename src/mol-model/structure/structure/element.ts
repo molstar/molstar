@@ -4,39 +4,40 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Tuple, OrderedSet } from 'mol-data/int'
+import { OrderedSet, SortedArray } from 'mol-data/int'
 import Unit from './unit'
-import Structure from './structure'
 
-/** Atom pointer */
-interface Element { '@type': Tuple['@type'] }
+/** Element index in Model */
+type Element = { readonly '@type': 'element' } & number
 
 namespace Element {
-    export const Zero: Element = Tuple.Zero;
-    export const create: (unit: number, index: number) => Element = Tuple.create;
-    export const is: (x: any) => x is Element = Tuple.is;
-    export const unitId: (e: Element) => number = Tuple.fst;
-    export const elementIndex: (e: Element) => number = Tuple.snd;
-    export const areEqual: (e: Element, b: Element) => boolean = Tuple.areEqual;
-    export const hashCode: (e: Element) => number = Tuple.hashCode;
+    export type Set = SortedArray<Element>
 
-    export function createEmptyArray(n: number): Element[] { return new Float64Array(n) as any; }
+    /** Index into Unit.elements */
+    export type Index = { readonly '@type': 'element-index' } & number
+    export type Indices = OrderedSet<Index>
+
+    // export interface Packed { '@type': Tuple['@type'] }
+    // export namespace Packed {
+    //     export const Zero: Packed = Tuple.Zero;
+    //     export const create: (unit: number, index: number) => Packed = Tuple.create;
+    //     export const is: (x: any) => x is Packed = Tuple.is;
+    //     export const unitId: (e: Packed) => number = Tuple.fst;
+    //     export const elementIndex: (e: Packed) => number = Tuple.snd;
+    //     export const areEqual: (e: Packed, b: Packed) => boolean = Tuple.areEqual;
+    //     export const hashCode: (e: Packed) => number = Tuple.hashCode;
+    //     export function createEmptyArray(n: number): Packed[] { return new Float64Array(n) as any; }
+    // }
 
     /** All the information required to access element properties */
     export interface Location<U = Unit> {
         unit: U,
         /** Index into element (atomic/coarse) properties of unit.model */
-        element: number
+        element: Element
     }
-    export function Location(unit?: Unit, element?: number): Location { return { unit: unit as any, element: element || 0 }; }
+    export function Location(unit?: Unit, element?: Element): Location { return { unit: unit as any, element: element || (0 as Element) }; }
     export interface Property<T> { (location: Location): T }
     export interface Predicate extends Property<boolean> { }
-
-    export function updateLocation(structure: Structure, l: Location, element: Element) {
-        l.unit = structure.units[unitId(element)];
-        l.element = elementIndex(element);
-        return l;
-    }
 
     export function property<T>(p: Property<T>) { return p; }
 
@@ -59,11 +60,11 @@ namespace Element {
              * Indices into the unit.elements array.
              * Can use OrderedSet.forEach to iterate (or OrderedSet.size + OrderedSet.getAt)
              */
-            indices: OrderedSet
+            indices: Indices
         }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet }>): Loci {
+    export function Loci(elements: ArrayLike<{ unit: Unit, indices: Indices }>): Loci {
         return { kind: 'element-loci', elements: elements as Loci['elements'] };
     }
 

@@ -36,12 +36,12 @@ namespace Selection {
     }
 
     export function toLoci(sel: Selection): Element.Loci {
-        const loci: { unit: Unit, indices: OrderedSet }[] = [];
+        const loci: { unit: Unit, indices: Element.Indices }[] = [];
         const { unitMap } = sel.source;
 
         for (const unit of unionStructure(sel).units) {
             if (unit === unitMap.get(unit.id)) {
-                loci[loci.length] = { unit, indices: OrderedSet.ofBounds(0, unit.elements.length) };
+                loci[loci.length] = { unit, indices: OrderedSet.ofBounds(0 as Element.Index, unit.elements.length as Element.Index) };
             } else {
                 loci[loci.length] = {
                     unit,

@@ -10,39 +10,39 @@ import SortedArray from './sorted-array';
 
 namespace OrderedSet {
     export const Empty: OrderedSet = Base.Empty as any;
-    export const ofSingleton: (value: number) => OrderedSet = Base.ofSingleton as any;
-    export const ofRange: (min: number, max: number) => OrderedSet = Base.ofRange as any;
-    export const ofBounds: (min: number, max: number) => OrderedSet = Base.ofBounds as any;
+    export const ofSingleton: <T extends number = number>(value: T) => OrderedSet<T> = Base.ofSingleton as any;
+    export const ofRange: <T extends number = number>(min: T, max: T) => OrderedSet<T> = Base.ofRange as any;
+    export const ofBounds: <T extends number = number>(min: T, max: T) => OrderedSet<T> = Base.ofBounds as any;
     /** It is the responsibility of the caller to ensure the array is sorted and contains unique values. */
-    export const ofSortedArray: (xs: ArrayLike<number>) => OrderedSet = Base.ofSortedArray as any;
+    export const ofSortedArray: <T extends number = number>(xs: ArrayLike<T>) => OrderedSet<T> = Base.ofSortedArray as any;
 
-    export const has: (set: OrderedSet, x: number) => boolean = Base.has as any;
-    export const indexOf: (set: OrderedSet, x: number) => number = Base.indexOf as any;
-    export const getAt: (set: OrderedSet, i: number) => number = Base.getAt as any;
+    export const has: <T extends number = number>(set: OrderedSet<T>, x: T) => boolean = Base.has as any;
+    export const indexOf: <T extends number = number>(set: OrderedSet<T>, x: T) => number = Base.indexOf as any;
+    export const getAt: <T extends number = number>(set: OrderedSet<T>, i: number) => T = Base.getAt as any;
 
-    export const min: (set: OrderedSet) => number = Base.min as any;
-    export const max: (set: OrderedSet) => number = Base.max as any;
-    export const size: (set: OrderedSet) => number = Base.size as any;
-    export const hashCode: (set: OrderedSet) => number = Base.hashCode as any;
+    export const min: <T extends number = number>(set: OrderedSet<T>) => T = Base.min as any;
+    export const max: <T extends number = number>(set: OrderedSet<T>) => T = Base.max as any;
+    export const size: <T extends number = number>(set: OrderedSet<T>) => number = Base.size as any;
+    export const hashCode: <T extends number = number>(set: OrderedSet<T>) => number = Base.hashCode as any;
 
-    export const areEqual: (a: OrderedSet, b: OrderedSet) => boolean = Base.areEqual as any;
-    export const areIntersecting: (a: OrderedSet, b: OrderedSet) => boolean = Base.areIntersecting as any;
-    export const isSubset: (a: OrderedSet, b: OrderedSet) => boolean = Base.isSubset as any;
+    export const areEqual: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => boolean = Base.areEqual as any;
+    export const areIntersecting: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => boolean = Base.areIntersecting as any;
+    export const isSubset: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => boolean = Base.isSubset as any;
 
-    export const union: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.union as any;
-    export const intersect: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.intersect as any;
-    export const subtract: (a: OrderedSet, b: OrderedSet) => OrderedSet = Base.subtract as any;
+    export const union: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.union as any;
+    export const intersect: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.intersect as any;
+    export const subtract: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.subtract as any;
 
-    export const findPredecessorIndex: (set: OrderedSet, x: number) => number = Base.findPredecessorIndex as any;
-    export const findPredecessorIndexInInterval: (set: OrderedSet, x: number, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
-    export const findRange: (set: OrderedSet, min: number, max: number) => Interval = Base.findRange as any;
+    export const findPredecessorIndex: <T extends number = number>(set: OrderedSet<T>, x: number) => number = Base.findPredecessorIndex as any;
+    export const findPredecessorIndexInInterval: <T extends number = number>(set: OrderedSet<T>, x: T, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
+    export const findRange: <T extends number = number>(set: OrderedSet<T>, min: T, max: T) => Interval = Base.findRange as any;
 
-    export function forEach<Ctx>(set: OrderedSet, f: (v: number, i: number, ctx: Ctx) => void, ctx?: Ctx): Ctx {
-        return Base.forEach(set as any, f, ctx);
+    export function forEach<T extends number, Ctx>(set: OrderedSet<T>, f: (v: T, i: number, ctx: Ctx) => void, ctx?: Ctx): Ctx {
+        return Base.forEach(set as any, f as any, ctx);
     }
 }
 
-type OrderedSet = Interval | SortedArray
+type OrderedSet<T extends number = number> = Interval | SortedArray<T>
 //{ '@type': 'int-interval' | 'int-sorted-array' }
 
 export default OrderedSet
