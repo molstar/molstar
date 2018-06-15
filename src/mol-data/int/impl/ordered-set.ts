@@ -254,3 +254,17 @@ function subtractIS(a: I, b: S) {
     for (let i = last + 1; i <= max; i++) ret[offset++] = i;
     return ofSortedArray(ret);
 }
+
+export function forEach(set: OrderedSetImpl, f: (value: number, i: number, ctx: any) => void, ctx: any) {
+    if (I.is(set)) {
+        const start = I.min(set);
+        for (let i = start, _i = I.max(set); i <= _i; i++) {
+            f(i, i - start, ctx);
+        }
+    } else {
+        for (let i = 0, _i = set.length; i < _i; i++) {
+            f(set[i], i, ctx);
+        }
+    }
+    return ctx;
+}

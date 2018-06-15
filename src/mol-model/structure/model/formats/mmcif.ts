@@ -7,7 +7,7 @@
 import { Column, Table } from 'mol-data/db';
 import { Interval, Segmentation } from 'mol-data/int';
 import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
-import { Vec3, Tensor, Mat4 } from 'mol-math/linear-algebra';
+import { Vec3, Tensor } from 'mol-math/linear-algebra';
 import { Task } from 'mol-task';
 import UUID from 'mol-util/uuid';
 import Format from '../format';

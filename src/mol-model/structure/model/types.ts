@@ -25,7 +25,7 @@ const _esCache = (function () {
     }
     return cache;
 }());
-export interface ElementSymbol extends String { '@type': 'element-symbol' }
+export type ElementSymbol = string & { '@type': 'element-symbol' }
 export function ElementSymbol(s: string): ElementSymbol {
     return _esCache[s] || s.toUpperCase();
 }

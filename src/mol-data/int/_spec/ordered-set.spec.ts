@@ -157,4 +157,10 @@ describe('ordered set', () => {
     testEq('subtract AA', OrderedSet.subtract(arr136, arr136), []);
     testEq('subtract AA1', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([2, 3, 4, 6, 7])), [1]);
     testEq('subtract AA2', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([0, 1, 6])), [3]);
+
+    it('foreach', () => {
+        const int = OrderedSet.ofBounds(1, 3), set = OrderedSet.ofSortedArray([2, 3, 4]);
+        expect(OrderedSet.forEach(int, (v, i, ctx) => ctx[i] = v, [] as number[])).toEqual([1, 2]);
+        expect(OrderedSet.forEach(set, (v, i, ctx) => ctx[i] = v, [] as number[])).toEqual([2, 3, 4]);
+    })
 });

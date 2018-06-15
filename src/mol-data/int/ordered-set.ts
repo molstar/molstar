@@ -35,6 +35,10 @@ namespace OrderedSet {
     export const findPredecessorIndex: (set: OrderedSet, x: number) => number = Base.findPredecessorIndex as any;
     export const findPredecessorIndexInInterval: (set: OrderedSet, x: number, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
     export const findRange: (set: OrderedSet, min: number, max: number) => Interval = Base.findRange as any;
+
+    export function forEach<Ctx>(set: OrderedSet, f: (v: number, i: number, ctx: Ctx) => void, ctx?: Ctx): Ctx {
+        return Base.forEach(set as any, f, ctx);
+    }
 }
 
 interface OrderedSet { '@type': 'int-interval' | 'int-sorted-array' }
