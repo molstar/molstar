@@ -108,6 +108,10 @@ namespace Mat3 {
         a[3 * j + i] = value;
     }
 
+    export function getValue(a: Mat3, i: number, j: number) {
+        return a[3 * j + i];
+    }
+
     /**
      * Copy the values from one Mat3 to another
      */

@@ -18,6 +18,7 @@ import { openCif, downloadCif } from './helpers';
 import { BitFlags } from 'mol-util';
 import { SecondaryStructureType } from 'mol-model/structure/model/types';
 import { UnitRings } from 'mol-model/structure/structure/unit/rings';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 
 async function downloadFromPdb(pdb: string) {
@@ -182,6 +183,16 @@ export function printUnits(structure: Structure) {
     }
 }
 
+export function printSymmetryInfo(model: Model) {
+    console.log('\nSymmetry Info\n=============');
+    const { symmetry } = model;
+    const { size, anglesInRadians } = symmetry.spacegroup.cell;
+    console.log(`Spacegroup: ${symmetry.spacegroup.name} size: ${Vec3.toString(size)} angles: ${Vec3.toString(anglesInRadians)}`);
+    console.log(`Assembly names: ${symmetry.assemblies.map(a => a.id).join(', ')}`);
+    // NCS example: 1auy
+    console.log(`NCS operators: ${symmetry.ncsOperators && symmetry.ncsOperators.map(a => a.name).join(', ')}`);
+}
+
 export function printIHMModels(model: Model) {
     if (!model.coarseHierarchy.isDefined) return false;
     console.log('\nIHM Models\n=============');
@@ -194,6 +205,7 @@ async function run(frame: CifFrame) {
     //printSequence(models[0]);
     //printIHMModels(models[0]);
     printUnits(structure);
+    printSymmetryInfo(models[0]);
     //printRings(structure);
     //printLinks(structure, true, true);
     //printModRes(models[0]);

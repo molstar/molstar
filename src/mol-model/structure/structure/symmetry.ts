@@ -51,6 +51,11 @@ namespace StructureSymmetry {
         return Task.create('Build Symmetry', ctx => findSymmetryRange(ctx, structure, ijkMin, ijkMax));
     }
 
+    /** Builds NCS structure, returns the original if NCS operators are not present. */
+    export function buildNcs(structure: Structure) {
+        return Task.create('Build NCS', ctx => _buildNCS(ctx, structure));
+    }
+
     function hashUnit(u: Unit) {
         return hash2(u.invariantId, SortedArray.hashCode(u.elements));
     }
@@ -98,6 +103,26 @@ function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {
     return operators;
 }
 
+function assembleOperators(structure: Structure, operators: ReadonlyArray<SymmetryOperator>) {
+    const assembler = Structure.Builder();
+    const { units } = structure;
+    for (const oper of operators) {
+        for (const unit of units) {
+            assembler.addWithOperator(unit, oper);
+        }
+    }
+    return assembler.getStructure();
+}
+
+async function _buildNCS(ctx: RuntimeContext, structure: Structure) {
+    const models = Structure.getModels(structure);
+    if (models.length !== 1) throw new Error('Can only build NCS from structures based on 1 model.');
+
+    const operators = models[0].symmetry.ncsOperators;
+    if (!operators || !operators.length) return structure;
+    return assembleOperators(structure, operators);
+}
+
 async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkMin: Vec3, ijkMax: Vec3) {
     const models = Structure.getModels(structure);
     if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
@@ -106,17 +131,7 @@ async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkM
     if (SpacegroupCell.isZero(spacegroup.cell)) return structure;
 
     const operators = getOperators(models[0].symmetry, ijkMin, ijkMax);
-    const assembler = Structure.Builder();
-
-    const { units } = structure;
-    for (const oper of operators) {
-        for (const unit of units) {
-            assembler.addWithOperator(unit, oper);
-        }
-        if (ctx.shouldUpdate) await ctx.update('Building symmetry...');
-    }
-
-    return assembler.getStructure();
+    return assembleOperators(structure, operators);
 }
 
 async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius: number) {

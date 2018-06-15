@@ -144,6 +144,12 @@ struct_keywords.entry_id
 struct_keywords.pdbx_keywords
 struct_keywords.text
 
+struct_ncs_oper.id
+struct_ncs_oper.code
+struct_ncs_oper.matrix
+struct_ncs_oper.vector
+struct_ncs_oper.details
+
 struct_sheet_range.sheet_id
 struct_sheet_range.id
 struct_sheet_range.beg_label_comp_id

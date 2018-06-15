@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Vec3, Mat4 } from '../linear-algebra/3d'
+import { Vec3, Mat4, Mat3 } from '../linear-algebra/3d'
 
 interface SymmetryOperator {
     readonly name: string,
@@ -28,6 +28,17 @@ namespace SymmetryOperator {
         if (Mat4.isIdentity(matrix)) return { name, matrix, inverse: Mat4.identity(), isIdentity: true, hkl: _hkl };
         if (!Mat4.isRotationAndTranslation(matrix, RotationEpsilon)) throw new Error(`Symmetry operator (${name}) must be a composition of rotation and translation.`);
         return { name, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl };
+    }
+
+    export function ofRotationAndOffset(name: string, rot: Mat3, offset: Vec3) {
+        const t = Mat4.identity();
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                Mat4.setValue(t, i, j, Mat3.getValue(rot, i, j));
+            }
+        }
+        Mat4.setTranslation(t, offset);
+        return create(name, t);
     }
 
     // Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix)

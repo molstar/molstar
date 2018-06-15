@@ -367,6 +367,10 @@ namespace Vec3 {
     export function isZero(v: Vec3) {
         return v[0] === 0 && v[1] === 0 && v[2] === 0
     }
+
+    export function toString(a: Vec3) {
+        return `[${a[0]} ${a[1]} ${a[2]}]`;
+    }
 }
 
 export default Vec3
