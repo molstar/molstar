@@ -19,7 +19,7 @@ import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../util/mesh-data';
 import { Mesh } from '../../shape/mesh';
 import { PickingId } from '../../util/picking';
-import { SortedArray } from 'mol-data/int';
+import { OrderedSet } from 'mol-data/int';
 import { createMarkers, MarkerAction } from '../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 
@@ -149,7 +149,7 @@ export default function SpacefillUnitsRepresentation(): UnitsRepresentation<Spac
             const { objectId, instanceId, elementId } = pickingId
             if (spheres.id === objectId) {
                 const unit = currentGroup.units[instanceId]
-                const indices = SortedArray.ofSingleton(elementId);
+                const indices = OrderedSet.ofSingleton(elementId);
                 return Element.Loci([{ unit, indices }])
             }
             return EmptyLoci

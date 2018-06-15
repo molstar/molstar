@@ -6,6 +6,7 @@
 
 import * as Base from './impl/ordered-set'
 import Interval from './interval'
+import SortedArray from './sorted-array';
 
 namespace OrderedSet {
     export const Empty: OrderedSet = Base.Empty as any;
@@ -41,6 +42,7 @@ namespace OrderedSet {
     }
 }
 
-interface OrderedSet { '@type': 'int-interval' | 'int-sorted-array' }
+type OrderedSet = Interval | SortedArray
+//{ '@type': 'int-interval' | 'int-sorted-array' }
 
 export default OrderedSet

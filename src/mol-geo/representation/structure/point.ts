@@ -16,7 +16,7 @@ import VertexMap from '../../shape/vertex-map';
 import { SizeTheme } from '../../theme';
 import { createTransforms, createColors, createSizes, markElement } from './utils';
 import { deepEqual, defaults } from 'mol-util';
-import { SortedArray } from 'mol-data/int';
+import { SortedArray, OrderedSet } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
@@ -161,7 +161,7 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
             const { objectId, instanceId, elementId } = pickingId
             if (points.id === objectId) {
                 const unit = currentGroup.units[instanceId]
-                const indices = SortedArray.ofSingleton(elementId)
+                const indices = OrderedSet.ofSingleton(elementId)
                 return Element.Loci([{ unit, indices }])
             }
             return EmptyLoci

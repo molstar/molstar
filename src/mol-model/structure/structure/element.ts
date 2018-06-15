@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Tuple, SortedArray } from 'mol-data/int'
+import { Tuple, OrderedSet } from 'mol-data/int'
 import Unit from './unit'
 import Structure from './structure'
 
@@ -55,12 +55,15 @@ namespace Element {
         /** Access i-th element as unit.elements[indices[i]] */
         readonly elements: ReadonlyArray<{
             unit: Unit,
-            /** Indices into the unit.elements array */
-            indices: SortedArray
+            /**
+             * Indices into the unit.elements array.
+             * Can use OrderedSet.forEach to iterate (or OrderedSet.size + OrderedSet.getAt)
+             */
+            indices: OrderedSet
         }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, indices: SortedArray }>): Loci {
+    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet }>): Loci {
         return { kind: 'element-loci', elements: elements as Loci['elements'] };
     }
 

@@ -7,6 +7,7 @@
 
 import { Unit, Element, Queries } from 'mol-model/structure';
 import { Loci } from 'mol-model/loci';
+import { OrderedSet } from 'mol-data/int';
 
 const elementLocA = Element.Location()
 const elementLocB = Element.Location()
@@ -20,8 +21,8 @@ export function labelFirst(loci: Loci): string {
     switch (loci.kind) {
         case 'element-loci':
             const e = loci.elements[0]
-            if (e && e.indices[0] !== undefined) {
-                return elementLabel(Element.Location(e.unit, e.indices[0]))
+            if (e) {
+                return elementLabel(Element.Location(e.unit, OrderedSet.getAt(e.indices, 0)))
             } else {
                 return 'Unknown'
             }

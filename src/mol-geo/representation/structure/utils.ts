@@ -22,6 +22,7 @@ import { MeshBuilder } from '../../shape/mesh-builder';
 import { TextureImage } from 'mol-gl/renderable/util';
 import { applyMarkerAction, MarkerAction } from '../../util/marker-data';
 import { Loci, isEveryLoci } from 'mol-model/loci';
+import { Interval } from 'mol-data/int';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
     const unitCount = units.length
@@ -101,10 +102,18 @@ export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.Symmet
         for (const e of loci.elements) {
             const unitIdx = Unit.findUnitById(e.unit.id, group.units)
             if (unitIdx !== -1) {
-                for (let i = 0, il = e.indices.length; i < il; ++i) {
-                    const idx = unitIdx * elementCount + e.indices[i]
-                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
+                if (Interval.is(e.indices)) {
+                    const idxStart = unitIdx * elementCount + Interval.start(e.indices);
+                    const idxEnd = unitIdx * elementCount + Interval.end(e.indices);
+                    if (applyMarkerAction(array, idxStart, idxEnd, action) && !changed) {
                         changed = true
+                    }
+                } else {
+                    for (let i = 0, _i = e.indices.length; i < _i; i++) {
+                        const idx = unitIdx * elementCount + e.indices[i];
+                        if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
+                            changed = true
+                        }
                     }
                 }
             }

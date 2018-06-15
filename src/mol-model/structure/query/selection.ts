@@ -7,7 +7,7 @@
 import { HashSet } from 'mol-data/generic'
 import { Structure, Element, Unit } from '../structure'
 import { structureUnion } from './utils/structure';
-import { SortedArray } from 'mol-data/int';
+import { OrderedSet, SortedArray } from 'mol-data/int';
 
 // A selection is a pair of a Structure and a sequence of unique AtomSets
 type Selection = Selection.Singletons | Selection.Sequence
@@ -36,10 +36,18 @@ namespace Selection {
     }
 
     export function toLoci(sel: Selection): Element.Loci {
-        const loci: { unit: Unit, indices: SortedArray }[] = [];
+        const loci: { unit: Unit, indices: OrderedSet }[] = [];
+        const { unitMap } = sel.source;
 
         for (const unit of unionStructure(sel).units) {
-            loci[loci.length] = { unit, indices: SortedArray.indicesOf(sel.source.unitMap.get(unit.id).elements, unit.elements) }
+            if (unit === unitMap.get(unit.id)) {
+                loci[loci.length] = { unit, indices: OrderedSet.ofBounds(0, unit.elements.length) };
+            } else {
+                loci[loci.length] = {
+                    unit,
+                    indices: OrderedSet.ofSortedArray(SortedArray.indicesOf(sel.source.unitMap.get(unit.id).elements, unit.elements))
+                };
+            }
         }
 
         return Element.Loci(loci);
