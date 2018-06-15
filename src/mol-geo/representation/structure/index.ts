@@ -6,7 +6,7 @@
  */
 
 import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
-import { Task } from 'mol-task'
+import { Task, RuntimeContext } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps } from '..';
 import { ColorTheme } from '../../theme';
@@ -16,8 +16,8 @@ import { MarkerAction } from '../../util/marker-data';
 
 export interface UnitsRepresentation<P> {
     renderObjects: ReadonlyArray<RenderObject>
-    create: (group: Unit.SymmetryGroup, props: P) => Task<void>
-    update: (props: P) => Task<boolean>
+    create: (ctx: RuntimeContext, group: Unit.SymmetryGroup, props: P) => Promise<void>
+    update: (ctx: RuntimeContext, props: P) => Promise<boolean>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => void
 }
@@ -64,10 +64,15 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
 
                 const groups = StructureSymmetry.getTransformGroups(structure);
                 for (let i = 0; i < groups.length; i++) {
+                    if(ctx.shouldUpdate) await ctx.update({
+                        message: 'Building structure unit representations...',
+                        current: i,
+                        max: groups.length
+                    })
                     const group = groups[i];
                     const repr = reprCtor()
                     groupReprs.push({ repr, group })
-                    await repr.create(group, props).runAsChild(ctx, { message: 'Building structure unit representations...', current: i, max: groups.length });
+                    await repr.create(ctx, group, props)
                     renderObjects.push(...repr.renderObjects)
                 }
             });
@@ -77,12 +82,17 @@ export function StructureRepresentation<P extends StructureProps>(reprCtor: () =
                 renderObjects.length = 0 // clear
 
                 for (let i = 0, il = groupReprs.length; i < il; ++i) {
+                    if(ctx.shouldUpdate) await ctx.update({
+                        message: 'Updating structure unit representations...',
+                        current: i,
+                        max: il
+                    })
                     const groupRepr = groupReprs[i]
                     const { repr, group } = groupRepr
-                    const state = { message: 'Updating structure unit representations...', current: i, max: il };
-                    if (!await repr.update(props).runAsChild(ctx, state)) {
+
+                    if (!await repr.update(ctx, props)) {
                         console.log('update failed, need to rebuild')
-                        await repr.create(group, props).runAsChild(ctx, state)
+                        repr.create(ctx, group, props)
                     }
                     renderObjects.push(...repr.renderObjects)
                 }

@@ -16,7 +16,7 @@ import { ColorTheme, SizeTheme } from '../../theme';
 import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
 import { ValueCell } from 'mol-util';
 import { Mesh } from '../../shape/mesh';
-import { Task } from 'mol-task';
+import { RuntimeContext } from 'mol-task';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
 import { MeshBuilder } from '../../shape/mesh-builder';
 import { TextureImage } from 'mol-gl/renderable/util';
@@ -58,35 +58,33 @@ export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, pro
     }
 }
 
-export function createSphereMesh(unit: Unit, radius: Element.Property<number>, detail: number, mesh?: Mesh) {
-    return Task.create('Sphere mesh', async ctx => {
-        const { elements } = unit;
-        const elementCount = elements.length;
-        const vertexCount = elementCount * icosahedronVertexCount(detail)
-        const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
+export async function createSphereMesh(ctx: RuntimeContext, unit: Unit, radius: Element.Property<number>, detail: number, mesh?: Mesh) {
+    const { elements } = unit;
+    const elementCount = elements.length;
+    const vertexCount = elementCount * icosahedronVertexCount(detail)
+    const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
 
-        const v = Vec3.zero()
-        const m = Mat4.identity()
+    const v = Vec3.zero()
+    const m = Mat4.identity()
 
-        const { x, y, z } = unit.conformation
-        const l = Element.Location()
-        l.unit = unit
+    const { x, y, z } = unit.model.atomicConformation
+    const l = Element.Location()
+    l.unit = unit
 
-        for (let i = 0; i < elementCount; i++) {
-            l.element = elements[i]
-            v[0] = x(l.element); v[1] = y(l.element); v[2] = z(l.element)
-            Mat4.setTranslation(m, v)
+    for (let i = 0; i < elementCount; i++) {
+        l.element = elements[i]
+        v[0] = x[l.element]; v[1] = y[l.element]; v[2] = z[l.element]
+        Mat4.setTranslation(m, v)
 
-            meshBuilder.setId(i)
-            meshBuilder.addIcosahedron(m, { radius: radius(l), detail })
+        meshBuilder.setId(i)
+        meshBuilder.addIcosahedron(m, { radius: radius(l), detail })
 
-            if (i % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
-            }
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
         }
+    }
 
-        return meshBuilder.getMesh()
-    })
+    return meshBuilder.getMesh()
 }
 
 

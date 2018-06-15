@@ -8,7 +8,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/render-object'
 import { Unit, Element } from 'mol-model/structure';
-import { Task } from 'mol-task'
+import { RuntimeContext } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
 import { UnitsRepresentation, DefaultStructureProps } from './index';
@@ -21,6 +21,7 @@ import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../util/marker-data';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
@@ -33,16 +34,15 @@ export function createPointVertices(unit: Unit) {
     const elementCount = elements.length
     const vertices = new Float32Array(elementCount * 3)
 
-    const { x, y, z } = unit.conformation
-    const l = Element.Location()
-    l.unit = unit
+    const pos = unit.conformation.invariantPosition
 
+    const p = Vec3.zero()
     for (let i = 0; i < elementCount; i++) {
-        l.element = elements[i];
         const i3 = i * 3
-        vertices[i3] = x(l.element)
-        vertices[i3 + 1] = y(l.element)
-        vertices[i3 + 2] = z(l.element)
+        pos(elements[i], p)
+        vertices[i3] = p[0]
+        vertices[i3 + 1] = p[1]
+        vertices[i3 + 2] = p[2]
     }
     return vertices
 }
@@ -58,104 +58,100 @@ export default function PointUnitsRepresentation(): UnitsRepresentation<PointPro
 
     return {
         renderObjects,
-        create(group: Unit.SymmetryGroup, props: PointProps = {}) {
+        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: PointProps = {}) {
             currentProps = Object.assign({}, DefaultPointProps, props)
 
-            return Task.create('Point.create', async ctx => {
-                renderObjects.length = 0 // clear
-                currentGroup = group
+            renderObjects.length = 0 // clear
+            currentGroup = group
 
-                _units = group.units
-                _elements = group.elements;
+            _units = group.units
+            _elements = group.elements;
 
-                const { colorTheme, sizeTheme } = currentProps
-                const elementCount = _elements.length
-                const instanceCount = group.units.length
+            const { colorTheme, sizeTheme } = currentProps
+            const elementCount = _elements.length
+            const instanceCount = group.units.length
 
-                const vertexMap = VertexMap.create(
-                    elementCount,
-                    elementCount + 1,
-                    fillSerial(new Uint32Array(elementCount)),
-                    fillSerial(new Uint32Array(elementCount + 1))
-                )
+            const vertexMap = VertexMap.create(
+                elementCount,
+                elementCount + 1,
+                fillSerial(new Uint32Array(elementCount)),
+                fillSerial(new Uint32Array(elementCount + 1))
+            )
 
-                await ctx.update('Computing point vertices');
-                const vertices = createPointVertices(_units[0])
+            if (ctx.shouldUpdate) await ctx.update('Computing point vertices');
+            const vertices = createPointVertices(_units[0])
 
-                await ctx.update('Computing point transforms');
-                const transforms = createTransforms(group)
+            if (ctx.shouldUpdate) await ctx.update('Computing point transforms');
+            const transforms = createTransforms(group)
 
-                await ctx.update('Computing point colors');
-                const color = createColors(group, vertexMap, colorTheme)
+            if (ctx.shouldUpdate) await ctx.update('Computing point colors');
+            const color = createColors(group, vertexMap, colorTheme)
 
-                await ctx.update('Computing point sizes');
-                const size = createSizes(group, vertexMap, sizeTheme)
+            if (ctx.shouldUpdate) await ctx.update('Computing point sizes');
+            const size = createSizes(group, vertexMap, sizeTheme)
 
-                await ctx.update('Computing spacefill marks');
-                const marker = createMarkers(instanceCount * elementCount)
+            if (ctx.shouldUpdate) await ctx.update('Computing spacefill marks');
+            const marker = createMarkers(instanceCount * elementCount)
 
-                const values: PointValues = {
-                    aPosition: ValueCell.create(vertices),
-                    aElementId: ValueCell.create(fillSerial(new Float32Array(elementCount))),
-                    aTransform: transforms,
-                    aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
-                    ...color,
-                    ...marker,
-                    ...size,
+            const values: PointValues = {
+                aPosition: ValueCell.create(vertices),
+                aElementId: ValueCell.create(fillSerial(new Float32Array(elementCount))),
+                aTransform: transforms,
+                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                ...color,
+                ...marker,
+                ...size,
 
-                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uInstanceCount: ValueCell.create(instanceCount),
-                    uElementCount: ValueCell.create(group.elements.length),
+                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                uInstanceCount: ValueCell.create(instanceCount),
+                uElementCount: ValueCell.create(group.elements.length),
 
-                    drawCount: ValueCell.create(vertices.length / 3),
-                    instanceCount: ValueCell.create(instanceCount),
+                drawCount: ValueCell.create(vertices.length / 3),
+                instanceCount: ValueCell.create(instanceCount),
 
-                    dPointSizeAttenuation: ValueCell.create(true),
-                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
-                }
-                const state: RenderableState = {
-                    depthMask: defaults(props.depthMask, true),
-                    visible: defaults(props.visible, true)
-                }
+                dPointSizeAttenuation: ValueCell.create(true),
+                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+            }
+            const state: RenderableState = {
+                depthMask: defaults(props.depthMask, true),
+                visible: defaults(props.visible, true)
+            }
 
-                points = createPointRenderObject(values, state)
-                renderObjects.push(points)
-            })
+            points = createPointRenderObject(values, state)
+            renderObjects.push(points)
         },
-        update(props: PointProps) {
-            return Task.create('Point.update', async ctx => {
-                if (!points || !_units || !_elements) return false
+        async update(ctx: RuntimeContext, props: PointProps) {
+            if (!points || !_units || !_elements) return false
 
-                const newProps = { ...currentProps, ...props }
-                if (deepEqual(currentProps, newProps)) {
-                    console.log('props identical, nothing to change')
-                    return true
-                }
+            const newProps = { ...currentProps, ...props }
+            if (deepEqual(currentProps, newProps)) {
+                console.log('props identical, nothing to change')
+                return true
+            }
 
-                // const elementCount = OrderedSet.size(_elementGroup.elements)
-                // const unitCount = _units.length
+            // const elementCount = OrderedSet.size(_elementGroup.elements)
+            // const unitCount = _units.length
 
-                // const vertexMap = VertexMap.create(
-                //     elementCount,
-                //     elementCount + 1,
-                //     fillSerial(new Uint32Array(elementCount)),
-                //     fillSerial(new Uint32Array(elementCount + 1))
-                // )
+            // const vertexMap = VertexMap.create(
+            //     elementCount,
+            //     elementCount + 1,
+            //     fillSerial(new Uint32Array(elementCount)),
+            //     fillSerial(new Uint32Array(elementCount + 1))
+            // )
 
-                if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
-                    console.log('colorTheme changed', currentProps.colorTheme, newProps.colorTheme)
-                    // await ctx.update('Computing point colors');
-                    // const color = createColors(_units, _elementGroup, vertexMap, newProps.colorTheme)
-                    // ValueCell.update(points.props.color, color)
-                }
+            if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
+                console.log('colorTheme changed', currentProps.colorTheme, newProps.colorTheme)
+                // if (ctx.shouldUpdate) await ctx.update('Computing point colors');
+                // const color = createColors(_units, _elementGroup, vertexMap, newProps.colorTheme)
+                // ValueCell.update(points.props.color, color)
+            }
 
-                if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {
-                    console.log('sizeTheme changed', currentProps.sizeTheme, newProps.sizeTheme)
-                }
+            if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {
+                console.log('sizeTheme changed', currentProps.sizeTheme, newProps.sizeTheme)
+            }
 
-                currentProps = newProps
-                return false
-            })
+            currentProps = newProps
+            return false
         },
         getLoci(pickingId: PickingId) {
             const { objectId, instanceId, elementId } = pickingId

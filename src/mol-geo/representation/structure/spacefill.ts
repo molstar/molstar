@@ -10,7 +10,7 @@ import { ValueCell } from 'mol-util/value-cell'
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Element, Queries } from 'mol-model/structure';
 import { UnitsRepresentation, DefaultStructureProps } from './index';
-import { Task } from 'mol-task'
+import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors, createSphereMesh, markElement } from './utils';
 import VertexMap from '../../shape/vertex-map';
 import { deepEqual, defaults } from 'mol-util';
@@ -23,7 +23,7 @@ import { OrderedSet } from 'mol-data/int';
 import { createMarkers, MarkerAction } from '../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 
-function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
+async function createSpacefillMesh(ctx: RuntimeContext, unit: Unit, detail: number, mesh?: Mesh) {
     let radius: Element.Property<number>
     if (Unit.isAtomic(unit)) {
         radius = Queries.props.atom.vdw_radius
@@ -31,9 +31,9 @@ function createSpacefillMesh(unit: Unit, detail: number, mesh?: Mesh) {
         radius = Queries.props.coarse.sphere_radius
     } else {
         console.warn('Unsupported unit type')
-        return Task.constant('Empty mesh', Mesh.createEmpty(mesh))
+        return Mesh.createEmpty(mesh)
     }
-    return createSphereMesh(unit, (l) => radius(l) * 0.3, detail, mesh)
+    return await createSphereMesh(ctx, unit, (l) => radius(l) * 0.3, detail, mesh)
 }
 
 export const DefaultSpacefillProps = {
@@ -54,96 +54,92 @@ export default function SpacefillUnitsRepresentation(): UnitsRepresentation<Spac
 
     return {
         renderObjects,
-        create(group: Unit.SymmetryGroup, props: SpacefillProps = {}) {
+        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: SpacefillProps = {}) {
             currentProps = Object.assign({}, DefaultSpacefillProps, props)
 
-            return Task.create('Spacefill.create', async ctx => {
-                renderObjects.length = 0 // clear
-                currentGroup = group
+            renderObjects.length = 0 // clear
+            currentGroup = group
 
-                const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
-                const instanceCount = group.units.length
-                const elementCount = group.elements.length
+            const { detail, colorTheme } = { ...DefaultSpacefillProps, ...props }
+            const instanceCount = group.units.length
+            const elementCount = group.elements.length
 
-                mesh = await createSpacefillMesh(group.units[0], detail).runAsChild(ctx, 'Computing spacefill mesh')
-                // console.log(mesh)
-                vertexMap = VertexMap.fromMesh(mesh)
+            mesh = await createSpacefillMesh(ctx, group.units[0], detail)
+            // console.log(mesh)
+            vertexMap = VertexMap.fromMesh(mesh)
 
-                await ctx.update('Computing spacefill transforms');
-                const transforms = createTransforms(group)
+            if (ctx.shouldUpdate) await ctx.update('Computing spacefill transforms');
+            const transforms = createTransforms(group)
 
-                await ctx.update('Computing spacefill colors');
-                const color = createColors(group, vertexMap, colorTheme)
+            if (ctx.shouldUpdate) await ctx.update('Computing spacefill colors');
+            const color = createColors(group, vertexMap, colorTheme)
 
-                await ctx.update('Computing spacefill marks');
-                const marker = createMarkers(instanceCount * elementCount)
+            if (ctx.shouldUpdate) await ctx.update('Computing spacefill marks');
+            const marker = createMarkers(instanceCount * elementCount)
 
-                const values: MeshValues = {
-                    ...getMeshData(mesh),
-                    aTransform: transforms,
-                    aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
-                    ...color,
-                    ...marker,
+            const values: MeshValues = {
+                ...getMeshData(mesh),
+                aTransform: transforms,
+                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                ...color,
+                ...marker,
 
-                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uInstanceCount: ValueCell.create(instanceCount),
-                    uElementCount: ValueCell.create(elementCount),
+                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                uInstanceCount: ValueCell.create(instanceCount),
+                uElementCount: ValueCell.create(elementCount),
 
-                    elements: mesh.indexBuffer,
+                elements: mesh.indexBuffer,
 
-                    drawCount: ValueCell.create(mesh.triangleCount * 3),
-                    instanceCount: ValueCell.create(instanceCount),
+                drawCount: ValueCell.create(mesh.triangleCount * 3),
+                instanceCount: ValueCell.create(instanceCount),
 
-                    dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                    dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
-                    dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
-                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
-                }
-                const state: RenderableState = {
-                    depthMask: defaults(props.depthMask, true),
-                    visible: defaults(props.visible, true)
-                }
+                dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
+                dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
+                dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
+                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+            }
+            const state: RenderableState = {
+                depthMask: defaults(props.depthMask, true),
+                visible: defaults(props.visible, true)
+            }
 
-                spheres = createMeshRenderObject(values, state)
-                renderObjects.push(spheres)
-            })
+            spheres = createMeshRenderObject(values, state)
+            renderObjects.push(spheres)
         },
-        update(props: SpacefillProps) {
+        async update(ctx: RuntimeContext, props: SpacefillProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            return Task.create('Spacefill.update', async ctx => {
-                if (!spheres) return false
+            if (!spheres) return false
 
-                let updateColor = false
+            let updateColor = false
 
-                if (newProps.detail !== currentProps.detail) {
-                    mesh = await createSpacefillMesh(currentGroup.units[0], newProps.detail, mesh).runAsChild(ctx, 'Computing spacefill mesh')
-                    ValueCell.update(spheres.values.drawCount, mesh.triangleCount * 3)
-                    // TODO update in-place
-                    vertexMap = VertexMap.fromMesh(mesh)
-                    updateColor = true
-                }
+            if (newProps.detail !== currentProps.detail) {
+                mesh = await createSpacefillMesh(ctx, currentGroup.units[0], newProps.detail, mesh)
+                ValueCell.update(spheres.values.drawCount, mesh.triangleCount * 3)
+                // TODO update in-place
+                vertexMap = VertexMap.fromMesh(mesh)
+                updateColor = true
+            }
 
-                if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-                    updateColor = true
-                }
+            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
+                updateColor = true
+            }
 
-                if (updateColor) {
-                    await ctx.update('Computing spacefill colors');
-                    createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
-                }
+            if (updateColor) {
+                if (ctx.shouldUpdate) await ctx.update('Computing spacefill colors');
+                createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
+            }
 
-                ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
-                ValueCell.updateIfChanged(spheres.values.dDoubleSided, newProps.doubleSided)
-                ValueCell.updateIfChanged(spheres.values.dFlipSided, newProps.flipSided)
-                ValueCell.updateIfChanged(spheres.values.dFlatShaded, newProps.flatShaded)
+            ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
+            ValueCell.updateIfChanged(spheres.values.dDoubleSided, newProps.doubleSided)
+            ValueCell.updateIfChanged(spheres.values.dFlipSided, newProps.flipSided)
+            ValueCell.updateIfChanged(spheres.values.dFlatShaded, newProps.flatShaded)
 
-                spheres.state.visible = newProps.visible
-                spheres.state.depthMask = newProps.depthMask
+            spheres.state.visible = newProps.visible
+            spheres.state.depthMask = newProps.depthMask
 
-                currentProps = newProps
-                return true
-            })
+            currentProps = newProps
+            return true
         },
         getLoci(pickingId: PickingId) {
             const { objectId, instanceId, elementId } = pickingId

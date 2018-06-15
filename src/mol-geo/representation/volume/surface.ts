@@ -6,7 +6,7 @@
  */
 
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
-import { Task } from 'mol-task'
+import { Task, RuntimeContext } from 'mol-task'
 import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../shape/mesh';
 import { VolumeElementRepresentation } from '.';
@@ -57,55 +57,51 @@ export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
 
     return {
         renderObjects,
-        create(volume: VolumeData, props: SurfaceProps = {}) {
-            return Task.create('Point.create', async ctx => {
-                renderObjects.length = 0 // clear
-                props = { ...DefaultSurfaceProps, ...props }
+        async create(ctx: RuntimeContext, volume: VolumeData, props: SurfaceProps = {}) {
+            renderObjects.length = 0 // clear
+            props = { ...DefaultSurfaceProps, ...props }
 
-                const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
-                if (!props.flatShaded) {
-                    Mesh.computeNormalsImmediate(mesh)
-                }
+            const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
+            if (!props.flatShaded) {
+                Mesh.computeNormalsImmediate(mesh)
+            }
 
-                const instanceCount = 1
-                const color = createUniformColor({ value: 0x7ec0ee })
-                const marker = createEmptyMarkers()
+            const instanceCount = 1
+            const color = createUniformColor({ value: 0x7ec0ee })
+            const marker = createEmptyMarkers()
 
-                const values: MeshValues = {
-                    ...getMeshData(mesh),
-                    aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
-                    aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
-                    ...color,
-                    ...marker,
+            const values: MeshValues = {
+                ...getMeshData(mesh),
+                aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
+                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                ...color,
+                ...marker,
 
-                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uInstanceCount: ValueCell.create(instanceCount),
-                    uElementCount: ValueCell.create(mesh.triangleCount),
+                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                uInstanceCount: ValueCell.create(instanceCount),
+                uElementCount: ValueCell.create(mesh.triangleCount),
 
-                    elements: mesh.indexBuffer,
+                elements: mesh.indexBuffer,
 
-                    drawCount: ValueCell.create(mesh.triangleCount * 3),
-                    instanceCount: ValueCell.create(instanceCount),
+                drawCount: ValueCell.create(mesh.triangleCount * 3),
+                instanceCount: ValueCell.create(instanceCount),
 
-                    dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                    dFlatShaded: ValueCell.create(defaults(props.flatShaded, true)),
-                    dFlipSided: ValueCell.create(false),
-                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
-                }
-                const state: RenderableState = {
-                    depthMask: defaults(props.depthMask, true),
-                    visible: defaults(props.visible, true)
-                }
+                dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
+                dFlatShaded: ValueCell.create(defaults(props.flatShaded, true)),
+                dFlipSided: ValueCell.create(false),
+                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+            }
+            const state: RenderableState = {
+                depthMask: defaults(props.depthMask, true),
+                visible: defaults(props.visible, true)
+            }
 
-                surface = createMeshRenderObject(values, state)
-                renderObjects.push(surface)
-            })
+            surface = createMeshRenderObject(values, state)
+            renderObjects.push(surface)
         },
-        update(props: SurfaceProps) {
-            return Task.create('Surface.update', async ctx => {
-                // TODO
-                return false
-            })
+        async update(ctx: RuntimeContext, props: SurfaceProps) {
+            // TODO
+            return false
         },
         getLoci(pickingId: PickingId) {
             // TODO
