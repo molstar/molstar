@@ -17,18 +17,6 @@ namespace Element {
     export type Index = { readonly '@type': 'element-index' } & number
     export type Indices = OrderedSet<Index>
 
-    // export interface Packed { '@type': Tuple['@type'] }
-    // export namespace Packed {
-    //     export const Zero: Packed = Tuple.Zero;
-    //     export const create: (unit: number, index: number) => Packed = Tuple.create;
-    //     export const is: (x: any) => x is Packed = Tuple.is;
-    //     export const unitId: (e: Packed) => number = Tuple.fst;
-    //     export const elementIndex: (e: Packed) => number = Tuple.snd;
-    //     export const areEqual: (e: Packed, b: Packed) => boolean = Tuple.areEqual;
-    //     export const hashCode: (e: Packed) => number = Tuple.hashCode;
-    //     export function createEmptyArray(n: number): Packed[] { return new Float64Array(n) as any; }
-    // }
-
     /** All the information required to access element properties */
     export interface Location<U = Unit> {
         unit: U,

@@ -40,9 +40,17 @@ namespace OrderedSet {
     export function forEach<T extends number, Ctx>(set: OrderedSet<T>, f: (v: T, i: number, ctx: Ctx) => void, ctx?: Ctx): Ctx {
         return Base.forEach(set as any, f as any, ctx);
     }
+
+    export function isInterval<T extends number = number>(set: OrderedSet<T>): set is Interval<T> {
+        return Interval.is(set);
+    }
+
+    export function isSortedArray<T extends number = number>(set: OrderedSet<T>): set is SortedArray<T> {
+        return !Interval.is(set);
+    }
 }
 
-type OrderedSet<T extends number = number> = Interval | SortedArray<T>
+type OrderedSet<T extends number = number> = Interval<T> | SortedArray<T>
 //{ '@type': 'int-interval' | 'int-sorted-array' }
 
 export default OrderedSet

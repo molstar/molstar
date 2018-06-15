@@ -6,7 +6,7 @@
 
 import { Segmentation } from 'mol-data/int';
 import { RuntimeContext } from 'mol-task';
-import { Structure, Unit, Element } from '../structure';
+import { Structure, Unit } from '../structure';
 import Query from './query';
 import Selection from './selection';
 import { UniqueStructuresBuilder } from './utils/builders';
@@ -29,7 +29,7 @@ function getWholeResidues(ctx: RuntimeContext, source: Structure, structure: Str
         while (residuesIt.hasNext) {
             const rI = residuesIt.move().index;
             for (let j = residueSegments.segments[rI], _j = residueSegments.segments[rI + 1]; j < _j; j++) {
-                builder.addElement(j as Element);
+                builder.addElement(j);
             }
         }
         builder.commitUnit();

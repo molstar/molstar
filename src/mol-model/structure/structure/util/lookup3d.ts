@@ -19,6 +19,7 @@ export class StructureLookup3D {
         return this.unitLookup.find(x, y, z, radius);
     }
 
+    // TODO: find another efficient way how to implement this instead of using "tuple".
     // find(x: number, y: number, z: number, radius: number): Result<Element.Packed> {
     //     Result.reset(this.result);
     //     const { units } = this.structure;

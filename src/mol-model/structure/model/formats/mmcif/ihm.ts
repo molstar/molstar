@@ -12,6 +12,7 @@ import { getCoarseKeys } from '../../properties/utils/coarse-keys';
 import { UUID } from 'mol-util';
 import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
+import { Element } from '../../../structure'
 
 export function getIHMCoarse(data: mmCIF, entities: Entities): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
     if (data.ihm_model_list._rowCount === 0) return { hierarchy: CoarseHierarchy.Empty, conformation: void 0 as any };
@@ -71,9 +72,9 @@ function getGaussianConformation(data: mmCIF['ihm_gaussian_obj_site']): CoarseGa
 }
 
 function getChainSegments(asym_id: Column<string>) {
-    const offsets = [0];
+    const offsets = [0 as Element];
     for (let i = 1, _i = asym_id.rowCount; i < _i; i++) {
-        if (!asym_id.areValuesEqual(i - 1, i)) offsets[offsets.length] = i;
+        if (!asym_id.areValuesEqual(i - 1, i)) offsets[offsets.length] = i as Element;
     }
 
     return Segmentation.ofOffsets(offsets, Interval.ofBounds(0, asym_id.rowCount));

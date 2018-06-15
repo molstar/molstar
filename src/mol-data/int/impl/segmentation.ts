@@ -50,11 +50,11 @@ export function projectValue({ segments }: Segmentation, set: OrderedSet, value:
     return OrderedSet.findRange(set, OrderedSet.getAt(segments, idx), OrderedSet.getAt(segments, idx + 1) - 1);
 }
 
-export class SegmentIterator implements Iterator<Segs.Segment> {
+export class SegmentIterator<T extends number = number> implements Iterator<Segs.Segment<T>> {
     private segmentMin = 0;
     private segmentMax = 0;
     private setRange = Interval.Empty;
-    private value: Segs.Segment = { index: 0, start: 0, end: 0 };
+    private value: Segs.Segment<T> = { index: 0, start: 0, end: 0 };
 
     hasNext: boolean = false;
 
@@ -94,7 +94,7 @@ export class SegmentIterator implements Iterator<Segs.Segment> {
         this.hasNext = this.segmentMax >= this.segmentMin;
     }
 
-    setSegment(segment: Segs.Segment) {
+    setSegment(segment: Segs.Segment<T>) {
         this.setRange = Interval.ofBounds(segment.start, segment.end);
         this.updateSegmentRange();
     }

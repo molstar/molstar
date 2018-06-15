@@ -23,6 +23,7 @@ import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { Element } from '../../../structure'
 
 import mmCIF_Format = Format.mmCIF
 type AtomSite = mmCIF_Database['atom_site']
@@ -40,7 +41,7 @@ function findHierarchyOffsets(atom_site: AtomSite) {
     if (atom_site._rowCount === 0) return { residues: [], chains: [] };
 
     const start = 0, end = atom_site._rowCount;
-    const residues = [start], chains = [start];
+    const residues = [start as Element], chains = [start as Element];
 
     const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = atom_site;
 
@@ -52,8 +53,8 @@ function findHierarchyOffsets(atom_site: AtomSite) {
             || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i)
             || !label_comp_id.areValuesEqual(i - 1, i);
 
-        if (newResidue) residues[residues.length] = i;
-        if (newChain) chains[chains.length] = i;
+        if (newResidue) residues[residues.length] = i as Element;
+        if (newChain) chains[chains.length] = i as Element;
     }
     return { residues, chains };
 }

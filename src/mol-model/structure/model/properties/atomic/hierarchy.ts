@@ -7,7 +7,8 @@
 import { Column, Table } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
-import { ElementSymbol} from '../../types'
+import { ElementSymbol } from '../../types'
+import { Element } from '../../../structure'
 
 export const AtomsSchema = {
     type_symbol: Column.Schema.Aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
@@ -47,8 +48,8 @@ export interface AtomicData {
 }
 
 export interface AtomicSegments {
-    residueSegments: Segmentation,
-    chainSegments: Segmentation
+    residueSegments: Segmentation<Element>,
+    chainSegments: Segmentation<Element>
     // TODO: include entity segments?
 }
 

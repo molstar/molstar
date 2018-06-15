@@ -7,6 +7,7 @@
 import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import { Column } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int';
+import { Element } from '../../../structure'
 
 export interface CoarsedElementKeys {
     // assign a key to each element
@@ -27,7 +28,7 @@ export interface CoarseElementData {
     seq_id_begin: Column<number>,
     seq_id_end: Column<number>,
 
-    chainSegments: Segmentation
+    chainSegments: Segmentation<Element>
 }
 
 export type CoarseElements = CoarsedElementKeys & CoarseElementData
