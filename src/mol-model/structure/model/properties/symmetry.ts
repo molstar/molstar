@@ -44,7 +44,10 @@ export namespace Assembly {
 interface ModelSymmetry {
     readonly assemblies: ReadonlyArray<Assembly>,
     readonly spacegroup: Spacegroup,
-    readonly isNonStandardCrytalFrame: boolean
+    readonly isNonStandardCrytalFrame: boolean,
+
+    // optionally cached operators from [-3, -3, -3] to [3, 3, 3]
+    _operators_333?: SymmetryOperator[]
 }
 
 namespace ModelSymmetry {
