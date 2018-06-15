@@ -6,8 +6,8 @@
 
 import { Column, Table } from 'mol-data/db';
 import { Interval, Segmentation } from 'mol-data/int';
-import { Spacegroup, SpacegroupCell } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
+import { Vec3, Tensor, Mat4 } from 'mol-math/linear-algebra';
 import { Task } from 'mol-task';
 import UUID from 'mol-util/uuid';
 import Format from '../format';
@@ -22,7 +22,7 @@ import { getIHMCoarse } from './mmcif/ihm';
 import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
-import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
+import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 
 import mmCIF_Format = Format.mmCIF
 type AtomSite = mmCIF_Database['atom_site']
@@ -90,7 +90,7 @@ function getSymmetry(format: mmCIF_Format): ModelSymmetry {
     const assemblies = createAssemblies(format);
     const spacegroup = getSpacegroup(format);
     const isNonStandardCrytalFrame = checkNonStandardCrystalFrame(format, spacegroup);
-    return { assemblies, spacegroup, isNonStandardCrytalFrame };
+    return { assemblies, spacegroup, isNonStandardCrytalFrame, ncsOperators: getNcsOperators(format) };
 }
 
 function checkNonStandardCrystalFrame(format: mmCIF_Format, spacegroup: Spacegroup) {
@@ -109,6 +109,22 @@ function getSpacegroup(format: mmCIF_Format): Spacegroup {
         Vec3.scale(Vec3.zero(), Vec3.create(cell.angle_alpha.value(0), cell.angle_beta.value(0), cell.angle_gamma.value(0)), Math.PI / 180));
 
     return Spacegroup.create(spaceCell);
+}
+
+function getNcsOperators(format: mmCIF_Format) {
+    const { struct_ncs_oper } = format.data;
+    if (struct_ncs_oper._rowCount === 0) return void 0;
+    const { id, matrix, vector } = struct_ncs_oper;
+
+    const matrixSpace = mmCIF_Schema.struct_ncs_oper.matrix.space, vectorSpace = mmCIF_Schema.struct_ncs_oper.vector.space;
+
+    const opers: SymmetryOperator[] = [];
+    for (let i = 0; i < struct_ncs_oper._rowCount; i++) {
+        const m = Tensor.toMat3(matrixSpace, matrix.value(i));
+        const v = Tensor.toVec3(vectorSpace, vector.value(i));
+        opers[i] = SymmetryOperator.ofRotationAndOffset(`ncs_${id.value(i)}`, m, v);
+    }
+    return opers;
 }
 
 function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {

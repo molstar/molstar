@@ -409,6 +409,13 @@ export const mmCIF_Schema = {
         experiment_type: Aliased<'Fraction of bulk' | 'Single molecule'>(str),
         details: str,
     },
+    struct_ncs_oper: {
+        id: str,
+        code: str,
+        matrix: Matrix(3, 3),
+        vector: Vector(3),
+        details: str
+    },
     ihm_modeling_post_process: {
         id: int,
         protocol_id: int,
