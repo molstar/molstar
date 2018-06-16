@@ -6,28 +6,18 @@
  */
 
 import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
-import { Task, RuntimeContext } from 'mol-task'
+import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { Representation, RepresentationProps } from '..';
+import { Representation, RepresentationProps, Visual } from '..';
 import { ColorTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 
-export interface UnitsVisual<P> {
-    readonly renderObjects: ReadonlyArray<RenderObject>
-    create: (ctx: RuntimeContext, group: Unit.SymmetryGroup, props: P) => Promise<void>
-    update: (ctx: RuntimeContext, props: P) => Promise<boolean>
-    getLoci: (pickingId: PickingId) => Loci
-    mark: (loci: Loci, action: MarkerAction) => void
-}
+export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<Unit.SymmetryGroup, P> { }
+export interface  StructureVisual<P extends RepresentationProps = {}> extends Visual<Structure, P> { }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
-
-interface GroupVisual<T> {
-    readonly visual: UnitsVisual<T>
-    readonly group: Unit.SymmetryGroup
-}
 
 export const DefaultStructureProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
@@ -39,68 +29,123 @@ export const DefaultStructureProps = {
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 
-export function StructureRepresentation<P extends StructureProps>(visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
-    const renderObjects: RenderObject[] = []
-    const groupVisuals: GroupVisual<P>[] = []
-    // let currentProps: typeof DefaultStructureProps
+export function StructureRepresentation<P extends StructureProps>(unitsVisualCtor: () => UnitsVisual<P>, structureVisualCtor?: () => StructureVisual<P>): StructureRepresentation<P> {
+    let unitsVisuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
+    let structureVisual: StructureVisual<P> | undefined
 
-    return {
-        renderObjects,
-        create(structure: Structure, props: P = {} as P) {
-            // currentProps = Object.assign({}, DefaultStructureProps, props)
+    let _props: Required<P>
+    let _structure: Structure
+    let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
-            return Task.create('StructureRepresentation.create', async ctx => {
-                // const { query } = currentProps
-                // const qs = await query(structure).runAsChild(ctx)
-                // const subStructure = Selection.unionStructure(qs)
+    function create(structure: Structure, props: P = {} as P) {
+        _props = Object.assign({}, DefaultStructureProps, _props, props)
 
-                const groups = StructureSymmetry.getTransformGroups(structure);
-                for (let i = 0; i < groups.length; i++) {
-                    if(ctx.shouldUpdate) await ctx.update({
-                        message: 'Building structure unit visuals...',
-                        current: i,
-                        max: groups.length
-                    })
-                    const group = groups[i];
-                    const visual = visualCtor()
-                    groupVisuals.push({ visual, group })
-                    await visual.create(ctx, group, props)
-                    renderObjects.push(...visual.renderObjects)
+        return Task.create('Creating StructureRepresentation', async ctx => {
+            if (!_structure) {
+                _groups = StructureSymmetry.getTransformGroups(structure);
+                for (let i = 0; i < _groups.length; i++) {
+                    const group = _groups[i];
+                    const visual = unitsVisualCtor()
+                    await visual.create(ctx, group, _props)
+                    unitsVisuals.set(group.hashCode, { visual, group })
                 }
-            });
-        },
-        update(props: P) {
-            return Task.create('StructureRepresentation.update', async ctx => {
-                renderObjects.length = 0 // clear
 
-                for (let i = 0, il = groupVisuals.length; i < il; ++i) {
-                    if(ctx.shouldUpdate) await ctx.update({
-                        message: 'Updating structure unit visuals...',
-                        current: i,
-                        max: il
-                    })
-                    const groupVisual = groupVisuals[i]
-                    const { visual, group } = groupVisual
-
-                    if (!await visual.update(ctx, props)) {
-                        console.log('update failed, need to rebuild')
-                        visual.create(ctx, group, props)
+                if (structureVisualCtor) {
+                    structureVisual = structureVisualCtor()
+                    await structureVisual.create(ctx, structure, _props)
+                }
+            } else {
+                if (_structure.hashCode === structure.hashCode) {
+                    await update(_props)
+                } else {
+                    _groups = StructureSymmetry.getTransformGroups(structure);
+                    const newGroups: Unit.SymmetryGroup[] = []
+                    const oldUnitsVisuals = unitsVisuals
+                    unitsVisuals = new Map()
+                    for (let i = 0; i < _groups.length; i++) {
+                        const group = _groups[i];
+                        const visualGroup = oldUnitsVisuals.get(group.hashCode)
+                        if (visualGroup) {
+                            const { visual, group } = visualGroup
+                            if (!await visual.update(ctx, _props)) {
+                                await visual.create(ctx, group, _props)
+                            }
+                            oldUnitsVisuals.delete(group.hashCode)
+                        } else {
+                            newGroups.push(group)
+                            const visual = unitsVisualCtor()
+                            await visual.create(ctx, group, _props)
+                            unitsVisuals.set(group.hashCode, { visual, group })
+                        }
                     }
-                    renderObjects.push(...visual.renderObjects)
+    
+                    // for new groups, reuse leftover visuals
+                    const unusedVisuals: UnitsVisual<P>[] = []
+                    oldUnitsVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
+                    newGroups.forEach(async group => {
+                        const visual = unusedVisuals.pop() || unitsVisualCtor()
+                        await visual.create(ctx, group, _props)
+                        unitsVisuals.set(group.hashCode, { visual, group })
+                    })
+                    unusedVisuals.forEach(visual => visual.destroy())
+
+                    if (structureVisual) {
+                        if (!await structureVisual.update(ctx, _props)) {
+                            await structureVisual.create(ctx, _structure, _props)
+                        }
+                    }
+                }
+            }
+            _structure = structure
+        });
+    }
+
+    function update(props: P) {
+        return Task.create('Updating StructureRepresentation', async ctx => {
+            _props = Object.assign({}, DefaultStructureProps, _props, props)
+
+            unitsVisuals.forEach(async ({ visual, group }) => {
+                if (!await visual.update(ctx, _props)) {
+                    await visual.create(ctx, group, _props)
                 }
             })
-        },
-        getLoci(pickingId: PickingId) {
-            for (let i = 0, il = groupVisuals.length; i < il; ++i) {
-                const loc = groupVisuals[i].visual.getLoci(pickingId)
-                if (!isEmptyLoci(loc)) return loc
+
+            if (structureVisual) {
+                if (!await structureVisual.update(ctx, _props)) {
+                    await structureVisual.create(ctx, _structure, _props)
+                }
             }
-            return EmptyLoci
+        })
+    }
+
+    function getLoci(pickingId: PickingId) {
+        let loci: Loci = EmptyLoci
+        unitsVisuals.forEach(({ visual }) => {
+            const _loci = visual.getLoci(pickingId)
+            if (!isEmptyLoci(_loci)) loci = _loci
+        })
+        return loci
+    }
+
+    function mark(loci: Loci, action: MarkerAction) {
+        unitsVisuals.forEach(({ visual }) => visual.mark(loci, action))
+    }
+
+    function destroy() {
+        unitsVisuals.forEach(({ visual }) => visual.destroy())
+        unitsVisuals.clear()
+    }
+
+    return {
+        get renderObjects() {
+            const renderObjects: RenderObject[] = []
+            unitsVisuals.forEach(({ visual }) => renderObjects.push(...visual.renderObjects))
+            return renderObjects
         },
-        mark(loci: Loci, action: MarkerAction) {
-            for (let i = 0, il = groupVisuals.length; i < il; ++i) {
-                groupVisuals[i].visual.mark(loci, action)
-            }
-        }
+        create,
+        update,
+        getLoci,
+        mark,
+        destroy
     }
 }

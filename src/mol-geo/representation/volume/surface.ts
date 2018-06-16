@@ -50,7 +50,7 @@ export const DefaultSurfaceProps = {
 }
 export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
 
-export default function Surface(): VolumeVisual<SurfaceProps> {
+export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
     const renderObjects: RenderObject[] = []
     let surface: MeshRenderObject
     let curProps = DefaultSurfaceProps
@@ -108,6 +108,9 @@ export default function Surface(): VolumeVisual<SurfaceProps> {
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
+            // TODO
+        },
+        destroy() {
             // TODO
         }
     }

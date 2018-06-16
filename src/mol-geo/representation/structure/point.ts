@@ -47,7 +47,7 @@ export function createPointVertices(unit: Unit) {
     return vertices
 }
 
-export default function PointUnitsRepresentation(): UnitsVisual<PointProps> {
+export default function PointVisual(): UnitsVisual<PointProps> {
     const renderObjects: RenderObject[] = []
     let points: PointRenderObject
     let currentProps = DefaultPointProps
@@ -164,6 +164,9 @@ export default function PointUnitsRepresentation(): UnitsVisual<PointProps> {
         },
         mark(loci: Loci, action: MarkerAction) {
             markElement(points.values.tMarker, currentGroup, loci, action)
+        },
+        destroy() {
+            // TODO
         }
     }
 }

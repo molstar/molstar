@@ -78,7 +78,7 @@ export const DefaultBondProps = {
 }
 export type BondProps = Partial<typeof DefaultBondProps>
 
-export default function IntraUnitBonds(): UnitsVisual<BondProps> {
+export default function IntraUnitBondVisual(): UnitsVisual<BondProps> {
     const renderObjects: RenderObject[] = []
     let cylinders: MeshRenderObject
     let currentProps: typeof DefaultBondProps
@@ -203,6 +203,9 @@ export default function IntraUnitBonds(): UnitsVisual<BondProps> {
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)
             }
+        },
+        destroy() {
+            // TODO
         }
     }
 }

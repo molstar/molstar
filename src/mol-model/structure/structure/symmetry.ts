@@ -60,7 +60,7 @@ namespace StructureSymmetry {
         return hash2(u.invariantId, SortedArray.hashCode(u.elements));
     }
 
-    function areUnitsEquivalent(a: Unit, b: Unit) {
+    export function areUnitsEquivalent(a: Unit, b: Unit) {
         return a.invariantId === b.invariantId && a.model.id === b.model.id && SortedArray.areEqual(a.elements, b.elements);
     }
 
@@ -75,7 +75,11 @@ namespace StructureSymmetry {
         const ret: Unit.SymmetryGroup[] = [];
         for (const eqUnits of groups.groups) {
             const first = s.unitMap.get(eqUnits[0]);
-            ret.push({ elements: first.elements, units: eqUnits.map(id => s.unitMap.get(id)) });
+            ret.push({
+                elements: first.elements,
+                units: eqUnits.map(id => s.unitMap.get(id)),
+                hashCode: hashUnit(first)
+            });
         }
 
         return ret;

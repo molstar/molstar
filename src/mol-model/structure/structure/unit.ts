@@ -35,7 +35,11 @@ namespace Unit {
     }
 
     /** A group of units that differ only by symmetry operators. */
-    export type SymmetryGroup = { readonly elements: Element.Set, readonly units: ReadonlyArray<Unit> }
+    export type SymmetryGroup = {
+        readonly elements: Element.Set,
+        readonly units: ReadonlyArray<Unit>
+        readonly hashCode: number
+    }
 
     /** Find index of unit with given id, returns -1 if not found */
     export function findUnitById(id: number, units: ReadonlyArray<Unit>) {

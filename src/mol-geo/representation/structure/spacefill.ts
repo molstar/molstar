@@ -9,7 +9,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Element, Queries } from 'mol-model/structure';
-import { UnitsVisual, DefaultStructureProps } from './index';
+import { DefaultStructureProps, UnitsVisual } from './index';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors, createSphereMesh, markElement } from './utils';
 import VertexMap from '../../shape/vertex-map';
@@ -44,7 +44,7 @@ export const DefaultSpacefillProps = {
 }
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
-export default function SpacefillUnitsRepresentation(): UnitsVisual<SpacefillProps> {
+export default function SpacefillVisual(): UnitsVisual<SpacefillProps> {
     const renderObjects: RenderObject[] = []
     let spheres: MeshRenderObject
     let currentProps: typeof DefaultSpacefillProps
@@ -152,6 +152,9 @@ export default function SpacefillUnitsRepresentation(): UnitsVisual<SpacefillPro
         },
         mark(loci: Loci, action: MarkerAction) {
             markElement(spheres.values.tMarker, currentGroup, loci, action)
+        },
+        destroy() {
+            // TODO
         }
     }
 }
