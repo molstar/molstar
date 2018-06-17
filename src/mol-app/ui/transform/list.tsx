@@ -14,7 +14,7 @@ import { Controller } from '../../controller/controller';
 import { TransformListController } from '../../controller/transform/list';
 import { AnyTransform } from 'mol-view/state/transform';
 import { Spacefill } from './spacefill';
-import { Bond } from './bond';
+import { BallAndStick } from './ball-and-stick';
 import { AnyEntity } from 'mol-view/state/entity';
 import { FileLoader } from './file-loader';
 import { ModelToStructure } from './model';
@@ -30,8 +30,8 @@ function getTransformComponent(controller: TransformListController, entity: AnyE
             return <StructureCenter controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></StructureCenter>
         case 'spacefill-update':
             return <Spacefill controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Spacefill>
-        case 'bond-update':
-            return <Bond controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Bond>
+        case 'ballandstick-update':
+            return <BallAndStick controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></BallAndStick>
     }
     return <Transform controller={controller} entity={entity} transform={transform}></Transform>
 }

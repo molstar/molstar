@@ -9,7 +9,7 @@ import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps, Visual } from '..';
-import { ColorTheme } from '../../theme';
+import { ColorTheme, SizeTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
@@ -21,6 +21,7 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 
 export const DefaultStructureProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
+    sizeTheme: { name: 'physical' } as SizeTheme,
     alpha: 1,
     visible: true,
     doubleSided: false,

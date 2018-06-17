@@ -9,12 +9,12 @@ import { Unit, Element } from 'mol-model/structure';
 import { Mat4, Vec3 } from 'mol-math/linear-algebra'
 
 import { createUniformColor, ColorData } from '../../util/color-data';
-import { createUniformSize } from '../../util/size-data';
-import { elementSizeData } from '../../theme/structure/size/element';
+import { createUniformSize, SizeData } from '../../util/size-data';
+import { physicalSizeData, getPhysicalRadius } from '../../theme/structure/size/physical';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
-import { ValueCell } from 'mol-util';
+import { ValueCell, defaults } from 'mol-util';
 import { Mesh } from '../../shape/mesh';
 import { RuntimeContext } from 'mol-task';
 import { icosahedronVertexCount } from '../../primitive/icosahedron';
@@ -49,16 +49,27 @@ export function createColors(group: Unit.SymmetryGroup, vertexMap: VertexMap, pr
     }
 }
 
-export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: SizeTheme) {
+export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: SizeTheme): SizeData {
     switch (props.name) {
         case 'uniform':
             return createUniformSize(props)
-        case 'vdw':
-            return elementSizeData({ group, vertexMap })
+        case 'physical':
+            return physicalSizeData(defaults(props.factor, 1), { group, vertexMap })
     }
 }
 
-export async function createSphereMesh(ctx: RuntimeContext, unit: Unit, radius: Element.Property<number>, detail: number, mesh?: Mesh) {
+export function getElementRadius(unit: Unit, props: SizeTheme): Element.Property<number> {
+    switch (props.name) {
+        case 'uniform':
+            return () => props.value
+        case 'physical':
+            const radius = getPhysicalRadius(unit)
+            const factor = defaults(props.factor, 1)
+            return (l) => radius(l) * factor
+    }
+}
+
+export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, radius: Element.Property<number>, detail: number, mesh?: Mesh) {
     const { elements } = unit;
     const elementCount = elements.length;
     const vertexCount = elementCount * icosahedronVertexCount(detail)
@@ -67,13 +78,13 @@ export async function createSphereMesh(ctx: RuntimeContext, unit: Unit, radius: 
     const v = Vec3.zero()
     const m = Mat4.identity()
 
-    const { x, y, z } = unit.model.atomicConformation
+    const pos = unit.conformation.invariantPosition
     const l = Element.Location()
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
         l.element = elements[i]
-        v[0] = x[l.element]; v[1] = y[l.element]; v[2] = z[l.element]
+        pos(elements[i], v)
         Mat4.setTranslation(m, v)
 
         meshBuilder.setId(i)

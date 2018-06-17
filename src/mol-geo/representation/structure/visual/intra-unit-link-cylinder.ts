@@ -11,27 +11,28 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Link } from 'mol-model/structure';
-import { UnitsVisual, DefaultStructureProps } from './index';
+import { UnitsVisual, DefaultStructureProps } from '../index';
 import { RuntimeContext } from 'mol-task'
-import { createTransforms } from './utils';
+import { createTransforms } from '../utils';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../util/mesh-data';
-import { Mesh } from '../../shape/mesh';
-import { PickingId } from '../../util/picking';
-import { MeshBuilder } from '../../shape/mesh-builder';
+import { getMeshData } from '../../../util/mesh-data';
+import { Mesh } from '../../../shape/mesh';
+import { PickingId } from '../../../util/picking';
+import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../util/color-data';
+import { createUniformColor } from '../../../util/color-data';
 import { defaults } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, createMarkers } from '../../util/marker-data';
+import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
+import { SizeTheme } from '../../../theme';
 
-async function createBondMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
+async function createLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const elements = unit.elements;
-    const bonds = unit.links
-    const { edgeCount, a, b } = bonds
+    const links = unit.links
+    const { edgeCount, a, b } = links
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -71,25 +72,26 @@ async function createBondMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     return meshBuilder.getMesh()
 }
 
-export const DefaultBondProps = {
+export const DefaultIntraUnitLinkProps = {
     ...DefaultStructureProps,
+    sizeTheme: { name: 'physical', factor: 0.3 } as SizeTheme,
     flipSided: false,
     flatShaded: false,
 }
-export type BondProps = Partial<typeof DefaultBondProps>
+export type IntraUnitLinkProps = Partial<typeof DefaultIntraUnitLinkProps>
 
-export default function IntraUnitBondVisual(): UnitsVisual<BondProps> {
+export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
     const renderObjects: RenderObject[] = []
     let cylinders: MeshRenderObject
-    let currentProps: typeof DefaultBondProps
+    let currentProps: typeof DefaultIntraUnitLinkProps
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
     // let vertexMap: VertexMap
 
     return {
         renderObjects,
-        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: BondProps = {}) {
-            currentProps = Object.assign({}, DefaultBondProps, props)
+        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: IntraUnitLinkProps = {}) {
+            currentProps = Object.assign({}, DefaultIntraUnitLinkProps, props)
 
             renderObjects.length = 0 // clear
             currentGroup = group
@@ -98,18 +100,18 @@ export default function IntraUnitBondVisual(): UnitsVisual<BondProps> {
             const elementCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
             const instanceCount = group.units.length
 
-            mesh = await createBondMesh(ctx, unit)
+            mesh = await createLinkCylinderMesh(ctx, unit)
 
             // console.log(mesh)
             // vertexMap = VertexMap.fromMesh(mesh)
 
-            if (ctx.shouldUpdate) await ctx.update('Computing bond transforms');
+            if (ctx.shouldUpdate) await ctx.update('Computing link transforms');
             const transforms = createTransforms(group)
 
-            if (ctx.shouldUpdate) await ctx.update('Computing bond colors');
+            if (ctx.shouldUpdate) await ctx.update('Computing link colors');
             const color = createUniformColor({ value: 0xFF0000 })
 
-            if (ctx.shouldUpdate) await ctx.update('Computing bond marks');
+            if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)
 
             const values: MeshValues = {
@@ -141,7 +143,7 @@ export default function IntraUnitBondVisual(): UnitsVisual<BondProps> {
             cylinders = createMeshRenderObject(values, state)
             renderObjects.push(cylinders)
         },
-        async update(ctx: RuntimeContext, props: BondProps) {
+        async update(ctx: RuntimeContext, props: IntraUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)
 
             if (!cylinders) return false
@@ -158,54 +160,61 @@ export default function IntraUnitBondVisual(): UnitsVisual<BondProps> {
             return true
         },
         getLoci(pickingId: PickingId) {
-            const { objectId, instanceId, elementId } = pickingId
-            const unit = currentGroup.units[instanceId]
-            if (cylinders.id === objectId && Unit.isAtomic(unit)) {
-                return Link.Loci([{
-                    aUnit: unit,
-                    aIndex: unit.links.a[elementId],
-                    bUnit: unit,
-                    bIndex: unit.links.b[elementId]
-                }])
-            }
-            return EmptyLoci
+            return getLinkLoci(pickingId, currentGroup, cylinders.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            const group = currentGroup
-            const tMarker = cylinders.values.tMarker
-            const unit = group.units[0]
-            if (!Unit.isAtomic(unit)) return
-
-            const elementCount = unit.links.edgeCount * 2
-            const instanceCount = group.units.length
-
-            let changed = false
-            const array = tMarker.ref.value.array
-            if (isEveryLoci(loci)) {
-                applyMarkerAction(array, 0, elementCount * instanceCount, action)
-                changed = true
-            } else if (Link.isLoci(loci)) {
-                for (const b of loci.links) {
-                    const unitIdx = Unit.findUnitById(b.aUnit.id, group.units)
-                    if (unitIdx !== -1) {
-                        const _idx = unit.links.getEdgeIndex(b.aIndex, b.bIndex)
-                        if (_idx !== -1) {
-                            const idx = _idx
-                            if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                                changed = true
-                            }
-                        }
-                    }
-                }
-            } else {
-                return
-            }
-            if (changed) {
-                ValueCell.update(tMarker, tMarker.ref.value)
-            }
+            markLink(loci, action, currentGroup, cylinders.values)
         },
         destroy() {
             // TODO
         }
+    }
+}
+
+function getLinkLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
+    const { objectId, instanceId, elementId } = pickingId
+    const unit = group.units[instanceId]
+    if (id === objectId && Unit.isAtomic(unit)) {
+        return Link.Loci([{
+            aUnit: unit,
+            aIndex: unit.links.a[elementId],
+            bUnit: unit,
+            bIndex: unit.links.b[elementId]
+        }])
+    }
+    return EmptyLoci
+}
+
+function markLink(loci: Loci, action: MarkerAction, group: Unit.SymmetryGroup, values: MarkerData) {
+    const tMarker = values.tMarker
+    const unit = group.units[0]
+    if (!Unit.isAtomic(unit)) return
+
+    const elementCount = unit.links.edgeCount * 2
+    const instanceCount = group.units.length
+
+    let changed = false
+    const array = tMarker.ref.value.array
+    if (isEveryLoci(loci)) {
+        applyMarkerAction(array, 0, elementCount * instanceCount, action)
+        changed = true
+    } else if (Link.isLoci(loci)) {
+        for (const b of loci.links) {
+            const unitIdx = Unit.findUnitById(b.aUnit.id, group.units)
+            if (unitIdx !== -1) {
+                const _idx = unit.links.getEdgeIndex(b.aIndex, b.bIndex)
+                if (_idx !== -1) {
+                    const idx = _idx
+                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
+                        changed = true
+                    }
+                }
+            }
+        }
+    } else {
+        return
+    }
+    if (changed) {
+        ValueCell.update(tMarker, tMarker.ref.value)
     }
 }

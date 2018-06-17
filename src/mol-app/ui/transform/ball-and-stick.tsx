@@ -12,8 +12,8 @@ import * as React from 'react'
 import { View } from '../view';
 import { Controller } from '../../controller/controller';
 import { Toggle } from '../controls/common';
-import { BondEntity } from 'mol-view/state/entity';
-import { BondUpdate } from 'mol-view/state/transform'
+import { BallAndStickEntity } from 'mol-view/state/entity';
+import { BallAndStickUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
 import { ColorTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
@@ -28,7 +28,7 @@ export const ColorThemeInfo = {
 }
 export type ColorThemeInfo = keyof typeof ColorThemeInfo
 
-interface BondState {
+interface BallAndStickState {
     doubleSided: boolean
     flipSided: boolean
     flatShaded: boolean
@@ -39,7 +39,7 @@ interface BondState {
     depthMask: boolean
 }
 
-export class Bond extends View<Controller<any>, BondState, { transform: BondUpdate, entity: BondEntity, ctx: StateContext }> {
+export class BallAndStick extends View<Controller<any>, BallAndStickState, { transform: BallAndStickUpdate, entity: BallAndStickEntity, ctx: StateContext }> {
     state = {
         doubleSided: true,
         flipSided: false,
@@ -51,7 +51,7 @@ export class Bond extends View<Controller<any>, BondState, { transform: BondUpda
         depthMask: true
     }
 
-    update(state?: Partial<BondState>) {
+    update(state?: Partial<BallAndStickState>) {
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)

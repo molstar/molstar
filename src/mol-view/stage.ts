@@ -7,7 +7,7 @@
 import Viewer from 'mol-view/viewer'
 import { StateContext } from './state/context';
 import { Progress } from 'mol-task';
-import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBond } from './state/transform';
+import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick } from './state/transform';
 import { UrlEntity } from './state/entity';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 import { Context } from 'mol-app/context/context';
@@ -47,8 +47,8 @@ export class Stage {
         const urlEntity = UrlEntity.ofUrl(this.ctx, url)
         const modelEntity = await MmcifUrlToModel.apply(this.ctx, urlEntity)
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
-        StructureToSpacefill.apply(this.ctx, structureEntity, spacefillProps)
-        StructureToBond.apply(this.ctx, structureEntity, spacefillProps) // TODO props
+        StructureToSpacefill.apply(this.ctx, structureEntity, { ...spacefillProps, visible: false })
+        StructureToBallAndStick.apply(this.ctx, structureEntity, spacefillProps) // TODO props
 
         this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
     }

@@ -24,7 +24,8 @@ export interface UniformSizeTheme {
 }
 
 export interface ScaleSizeTheme {
-    name: 'vdw'
+    name: 'physical' // van-der-Waals for atoms, given radius for coarse spheres
+    factor?: number // scaling factor
 }
 
 export type SizeTheme = UniformSizeTheme | ScaleSizeTheme

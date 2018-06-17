@@ -5,14 +5,13 @@
  */
 
 import CIF from 'mol-io/reader/cif'
-import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BondEntity } from './entity';
+import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BallAndStickEntity } from './entity';
 import { Model, Structure, Format } from 'mol-model/structure';
 
 import { StateContext } from './context';
-import Spacefill, { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
-import { StructureRepresentation } from 'mol-geo/representation/structure';
 import StructureSymmetry from 'mol-model/structure/structure/symmetry';
-import Bond, { BondProps } from 'mol-geo/representation/structure/bond';
+import { SpacefillProps, SpacefillRepresentation } from 'mol-geo/representation/structure/spacefill';
+import { BallAndStickProps, BallAndStickRepresentation } from 'mol-geo/representation/structure/ball-and-stick';
 
 type transformer<I extends AnyEntity, O extends AnyEntity, P extends {}> = (ctx: StateContext, inputEntity: I, props?: P) => Promise<O>
 
@@ -95,7 +94,7 @@ export type StructureCenter = StateTransform<StructureEntity, NullEntity, {}>
 export type StructureToSpacefill = StateTransform<StructureEntity, SpacefillEntity, SpacefillProps>
 export const StructureToSpacefill: StructureToSpacefill = StateTransform.create('structure', 'spacefill', 'structure-to-spacefill',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: SpacefillProps = {}) {
-        const spacefillRepr = StructureRepresentation(Spacefill)
+        const spacefillRepr = SpacefillRepresentation()
         await spacefillRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.requestDraw()
@@ -103,15 +102,15 @@ export const StructureToSpacefill: StructureToSpacefill = StateTransform.create(
         return SpacefillEntity.ofRepr(ctx, spacefillRepr)
     })
 
-export type StructureToBond = StateTransform<StructureEntity, BondEntity, BondProps>
-    export const StructureToBond: StructureToBond = StateTransform.create('structure', 'bond', 'structure-to-bond',
-        async function (ctx: StateContext, structureEntity: StructureEntity, props: BondProps = {}) {
-            const bondRepr = StructureRepresentation(Bond)
-            await bondRepr.create(structureEntity.value, props).run(ctx.log)
-            ctx.viewer.add(bondRepr)
+export type StructureToBallAndStick = StateTransform<StructureEntity, BallAndStickEntity, BallAndStickProps>
+    export const StructureToBallAndStick: StructureToBallAndStick = StateTransform.create('structure', 'ballandstick', 'structure-to-ballandstick',
+        async function (ctx: StateContext, structureEntity: StructureEntity, props: BallAndStickProps = {}) {
+            const ballAndStickRepr = BallAndStickRepresentation()
+            await ballAndStickRepr.create(structureEntity.value, props).run(ctx.log)
+            ctx.viewer.add(ballAndStickRepr)
             ctx.viewer.requestDraw()
             console.log('stats', ctx.viewer.stats)
-            return BondEntity.ofRepr(ctx, bondRepr)
+            return BallAndStickEntity.ofRepr(ctx, ballAndStickRepr)
         })
 
 export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, SpacefillProps>
@@ -125,12 +124,12 @@ export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill
         return NullEntity
     })
 
-export type BondUpdate = StateTransform<BondEntity, NullEntity, BondProps>
-    export const BondUpdate: BondUpdate = StateTransform.create('bond', 'null', 'bond-update',
-        async function (ctx: StateContext, bondEntity: BondEntity, props: BondProps = {}) {
-            const bondRepr = bondEntity.value
-            await bondRepr.update(props).run(ctx.log)
-            ctx.viewer.add(bondRepr)
+export type BallAndStickUpdate = StateTransform<BallAndStickEntity, NullEntity, BallAndStickProps>
+    export const BallAndStickUpdate: BallAndStickUpdate = StateTransform.create('ballandstick', 'null', 'ballandstick-update',
+        async function (ctx: StateContext, ballAndStickEntity: BallAndStickEntity, props: BallAndStickProps = {}) {
+            const ballAndStickRepr = ballAndStickEntity.value
+            await ballAndStickRepr.update(props).run(ctx.log)
+            ctx.viewer.add(ballAndStickRepr)
             ctx.viewer.requestDraw()
             console.log('stats', ctx.viewer.stats)
             return NullEntity

@@ -11,21 +11,21 @@ import { Unit, Element } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
-import { UnitsVisual, DefaultStructureProps } from './index';
-import VertexMap from '../../shape/vertex-map';
-import { SizeTheme } from '../../theme';
-import { createTransforms, createColors, createSizes, markElement } from './utils';
+import { UnitsVisual, DefaultStructureProps } from '../index';
+import VertexMap from '../../../shape/vertex-map';
+import { SizeTheme } from '../../../theme';
+import { createTransforms, createColors, createSizes, markElement } from '../utils';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray, OrderedSet } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
-import { PickingId } from '../../util/picking';
+import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, createMarkers } from '../../util/marker-data';
+import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
-    sizeTheme: { name: 'vdw' } as SizeTheme
+    sizeTheme: { name: 'physical' } as SizeTheme
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
