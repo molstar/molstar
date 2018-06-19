@@ -12,7 +12,6 @@ import { Unit, Element } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors, createElementSphereMesh, markElement, getElementRadius } from '../utils';
-import VertexMap from '../../../shape/vertex-map';
 import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
@@ -39,7 +38,6 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
     let currentProps: typeof DefaultElementSphereProps
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
-    let vertexMap: VertexMap
 
     return {
         renderObjects,
@@ -56,14 +54,12 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
 
             const radius = getElementRadius(unit, sizeTheme)
             mesh = await createElementSphereMesh(ctx, unit, radius, detail, mesh)
-            // console.log(mesh)
-            vertexMap = VertexMap.fromMesh(mesh)
 
             if (ctx.shouldUpdate) await ctx.update('Computing spacefill transforms');
             const transforms = createTransforms(group)
 
             if (ctx.shouldUpdate) await ctx.update('Computing spacefill colors');
-            const color = createColors(group, vertexMap, colorTheme)
+            const color = createColors(group, elementCount, colorTheme)
 
             if (ctx.shouldUpdate) await ctx.update('Computing spacefill marks');
             const marker = createMarkers(instanceCount * elementCount)
@@ -109,8 +105,6 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
                 const radius = getElementRadius(unit, newProps.sizeTheme)
                 mesh = await createElementSphereMesh(ctx, unit, radius, newProps.detail, mesh)
                 ValueCell.update(spheres.values.drawCount, mesh.triangleCount * 3)
-                // TODO update in-place
-                vertexMap = VertexMap.fromMesh(mesh)
                 updateColor = true
             }
 
@@ -119,8 +113,9 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
             }
 
             if (updateColor) {
+                const elementCount = currentGroup.elements.length
                 if (ctx.shouldUpdate) await ctx.update('Computing spacefill colors');
-                createColors(currentGroup, vertexMap, newProps.colorTheme, spheres.values)
+                createColors(currentGroup, elementCount, newProps.colorTheme, spheres.values)
             }
 
             ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)

@@ -13,7 +13,7 @@ import { createUniformSize, SizeData } from '../../util/size-data';
 import { physicalSizeData, getPhysicalRadius } from '../../theme/structure/size/physical';
 import VertexMap from '../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../theme';
-import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../theme/structure/color';
+import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdElementColorData } from '../../theme/structure/color';
 import { ValueCell, defaults } from 'mol-util';
 import { Mesh } from '../../shape/mesh';
 import { RuntimeContext } from 'mol-task';
@@ -34,20 +34,32 @@ export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: Val
     return transforms ? ValueCell.update(transforms, array) : ValueCell.create(array)
 }
 
-export function createColors(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: ColorTheme, colorData?: ColorData) {
+export function createColors(group: Unit.SymmetryGroup, elementCount: number, props: ColorTheme, colorData?: ColorData) {
     switch (props.name) {
         case 'atom-index':
-            return elementIndexColorData({ group, vertexMap }, colorData)
+            return elementIndexColorData({ group, elementCount }, colorData)
         case 'chain-id':
-            return chainIdColorData({ group, vertexMap }, colorData)
+            return chainIdElementColorData({ group, elementCount }, colorData)
         case 'element-symbol':
-            return elementSymbolColorData({ group, vertexMap }, colorData)
+            return elementSymbolColorData({ group, elementCount }, colorData)
         case 'instance-index':
-            return instanceIndexColorData({ group, vertexMap }, colorData)
+            return instanceIndexColorData({ group, elementCount }, colorData)
         case 'uniform':
             return createUniformColor(props, colorData)
     }
 }
+
+// export function createLinkColors(group: Unit.SymmetryGroup, props: ColorTheme, colorData?: ColorData): ColorData {
+//     switch (props.name) {
+//         case 'atom-index':
+//         case 'chain-id':
+//         case 'element-symbol':
+//         case 'instance-index':
+//             return chainIdLinkColorData({ group, vertexMap }, colorData)
+//         case 'uniform':
+//             return createUniformColor(props, colorData)
+//     }
+// }
 
 export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: SizeTheme): SizeData {
     switch (props.name) {

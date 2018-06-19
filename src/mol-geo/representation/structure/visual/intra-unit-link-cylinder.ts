@@ -21,11 +21,12 @@ import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../../util/color-data';
+// import { createUniformColor } from '../../../util/color-data';
 import { defaults } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
+import { chainIdLinkColorData } from '../../../theme/structure/color/chain-id';
 
 async function createLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -102,14 +103,12 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
 
             mesh = await createLinkCylinderMesh(ctx, unit)
 
-            // console.log(mesh)
-            // vertexMap = VertexMap.fromMesh(mesh)
-
             if (ctx.shouldUpdate) await ctx.update('Computing link transforms');
             const transforms = createTransforms(group)
 
             if (ctx.shouldUpdate) await ctx.update('Computing link colors');
-            const color = createUniformColor({ value: 0xFF0000 })
+            // const color = createUniformColor({ value: 0xFF0000 })
+            const color = chainIdLinkColorData({ group, elementCount })
 
             if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)

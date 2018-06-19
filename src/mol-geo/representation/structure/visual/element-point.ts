@@ -85,7 +85,7 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             const transforms = createTransforms(group)
 
             if (ctx.shouldUpdate) await ctx.update('Computing point colors');
-            const color = createColors(group, vertexMap, colorTheme)
+            const color = createColors(group, elementCount, colorTheme)
 
             if (ctx.shouldUpdate) await ctx.update('Computing point sizes');
             const size = createSizes(group, vertexMap, sizeTheme)

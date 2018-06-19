@@ -120,13 +120,12 @@ export function createInstanceColor(props: InstanceColorProps, colorData?: Color
 
 export interface ElementColorProps {
     colorFn: (elementIdx: number) => Color
-    vertexMap: VertexMap
+    elementCount: number
 }
 
 /** Creates color texture with color for each element (i.e. shared across instances/units) */
 export function createElementColor(props: ElementColorProps, colorData?: ColorData): ColorData {
-    const { colorFn, vertexMap } = props
-    const elementCount = vertexMap.offsetCount - 1
+    const { colorFn, elementCount } = props
     const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createTextureImage(elementCount, 3)
     for (let i = 0, il = elementCount; i < il; ++i) {
         Color.toArray(colorFn(i), colors.array, i * 3)
@@ -137,13 +136,12 @@ export function createElementColor(props: ElementColorProps, colorData?: ColorDa
 export interface ElementInstanceColorProps {
     colorFn: (instanceIdx: number, elementIdx: number) => Color
     instanceCount: number,
-    vertexMap: VertexMap
+    elementCount: number
 }
 
 /** Creates color texture with color for each element instance (i.e. for each unit) */
 export function createElementInstanceColor(props: ElementInstanceColorProps, colorData?: ColorData): ColorData {
-    const { colorFn, instanceCount, vertexMap } = props
-    const elementCount = vertexMap.offsetCount - 1
+    const { colorFn, instanceCount, elementCount } = props
     const count = instanceCount * elementCount
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
     let colorOffset = 0
@@ -154,9 +152,4 @@ export function createElementInstanceColor(props: ElementInstanceColorProps, col
         }
     }
     return createTextureColor(colors, 'elementInstance', colorData)
-}
-
-/** Create color attribute or texture, depending on the vertexMap */
-export function createAttributeOrElementColor(vertexMap: VertexMap, props: AttributeColorProps, colorData?: ColorData) {
-    return vertexMap.idCount < 4 * vertexMap.offsetCount ? createAttributeColor(props, colorData) : createElementColor(props, colorData)
 }
