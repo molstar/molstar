@@ -45,6 +45,7 @@ export namespace MeshBuilder {
 
         let currentId = -1
 
+        const cylinderMap = new Map<string, Primitive>()
         const icosahedronMap = new Map<string, Primitive>()
 
         const add = (t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices: Uint32Array) => {
@@ -75,7 +76,12 @@ export namespace MeshBuilder {
                 return add(t, box.vertices, box.normals, box.indices)
             },
             addCylinder: (t: Mat4, props?: CylinderProps) => {
-                const cylinder = Cylinder(props)
+                const key = JSON.stringify(props)
+                let cylinder = cylinderMap.get(key)
+                if (cylinder === undefined) {
+                    cylinder = Cylinder(props)
+                    cylinderMap.set(key, cylinder)
+                }
                 return add(t, cylinder.vertices, cylinder.normals, cylinder.indices)
             },
             addIcosahedron: (t: Mat4, props: IcosahedronProps) => {
