@@ -18,7 +18,7 @@ export const DefaultBallAndStickProps = {
     ...DefaultElementSphereProps,
     ...DefaultIntraUnitLinkProps,
 
-    sizeTheme: { name: 'physical', factor: 0.2 } as SizeTheme,
+    sizeTheme: { name: 'uniform', value: 0.25 } as SizeTheme,
 }
 export type BallAndStickProps = Partial<typeof DefaultBallAndStickProps>
 
@@ -31,7 +31,7 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
             return [ ...sphereRepr.renderObjects, ...intraLinkRepr.renderObjects ]
         },
         create: (structure: Structure, props: BallAndStickProps = {} as BallAndStickProps) => {
-            const p = Object.assign({}, props, DefaultBallAndStickProps)
+            const p = Object.assign({}, DefaultBallAndStickProps, props)
             return Task.create('Creating BallAndStickRepresentation', async ctx => {
                 await sphereRepr.create(structure, p).runInContext(ctx)
                 await intraLinkRepr.create(structure, p).runInContext(ctx)
@@ -49,7 +49,7 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
             if (isEmptyLoci(sphereLoci)) {
                 return intraLinkLoci
             } else {
-                return sphereLoci 
+                return sphereLoci
             }
         },
         mark: (loci: Loci, action: MarkerAction) => {

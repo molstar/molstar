@@ -28,8 +28,17 @@ interface IntAdjacencyGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = 
      *
      * Because the a and b arrays contains each edge twice,
      * this always returns the smaller of the indices.
+     *
+     * `getEdgeIndex(i, j) === getEdgeIndex(j, i)`
      */
     getEdgeIndex(i: number, j: number): number,
+    /**
+     * Get the edge index between i-th and j-th vertex.
+     * -1 if the edge does not exist.
+     *
+     * `getEdgeIndex(i, j) !== getEdgeIndex(j, i)`
+     */
+    getDirectedEdgeIndex(i: number, j: number): number,
     getVertexEdgeCount(i: number): number
 }
 
@@ -46,6 +55,13 @@ namespace IntAdjacencyGraph {
             else { a = j; b = i; }
             for (let t = this.offset[a], _t = this.offset[a + 1]; t < _t; t++) {
                 if (this.b[t] === b) return t;
+            }
+            return -1;
+        }
+
+        getDirectedEdgeIndex(i: number, j: number): number {
+            for (let t = this.offset[i], _t = this.offset[i + 1]; t < _t; t++) {
+                if (this.b[t] === j) return t;
             }
             return -1;
         }
