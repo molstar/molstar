@@ -37,7 +37,7 @@ export interface RenderItem {
     getProgram: (variant: RenderVariant) => Program
 
     render: (variant: RenderVariant) => void
-    update: () => void
+    update: () => Readonly<ValueChanges>
     destroy: () => void
 }
 
@@ -51,6 +51,14 @@ export type RenderVariant = keyof typeof RenderVariantDefines
 
 type ProgramVariants = { [k: string]: ReferenceItem<Program> }
 type VertexArrayVariants = { [k: string]: WebGLVertexArrayObjectOES | undefined }
+
+interface ValueChanges {
+    attributes: boolean
+    defines: boolean
+    elements: boolean
+    textures: boolean
+    uniforms: boolean
+}
 
 export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues): RenderItem {
     const id = getNextRenderItemId()
@@ -88,6 +96,14 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
     let drawCount = values.drawCount.ref.value
     let instanceCount = values.instanceCount.ref.value
 
+    const valueChanges: ValueChanges = {
+        attributes: false,
+        defines: false,
+        elements: false,
+        textures: false,
+        uniforms: false
+    }
+
     let destroyed = false
 
     return {
@@ -112,17 +128,17 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             }
         },
         update: () => {
-            let defineChange = false
+            valueChanges.defines = false
             Object.keys(defineValues).forEach(k => {
                 const value = defineValues[k]
                 if (value.ref.version !== versions[k]) {
                     // console.log('define version changed', k)
-                    defineChange = true
+                    valueChanges.defines = true
                     versions[k] = value.ref.version
                 }
             })
 
-            if (defineChange) {
+            if (valueChanges.defines) {
                 // console.log('some defines changed, need to rebuild programs')
                 Object.keys(RenderVariantDefines).forEach(k => {
                     const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
@@ -145,8 +161,7 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                 versions.instanceCount = values.instanceCount.ref.version
             }
 
-            let bufferChange = false
-
+            valueChanges.attributes = false
             Object.keys(attributeValues).forEach(k => {
                 const value = attributeValues[k]
                 if (value.ref.version !== versions[k]) {
@@ -159,12 +174,13 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                         attributeBuffers[k].destroy()
                         const spec = schema[k] as AttributeSpec<ArrayKind>
                         attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, spec.itemSize, spec.divisor)
-                        bufferChange = true
+                        valueChanges.attributes = true
                     }
                     versions[k] = value.ref.version
                 }
             })
 
+            valueChanges.elements = false
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
                 if (elementsBuffer.length >= values.elements.ref.value.length) {
                     // console.log('elements array large enough to update')
@@ -173,12 +189,12 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                     // console.log('elements array to small, need to create new elements')
                     elementsBuffer.destroy()
                     elementsBuffer = createElementsBuffer(ctx, values.elements.ref.value)
-                    bufferChange = true
+                    valueChanges.elements = true
                 }
                 versions.elements = values.elements.ref.version
             }
 
-            if (defineChange || bufferChange) {
+            if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
                 // console.log('program/defines or buffers changed, rebuild vaos')
                 Object.keys(RenderVariantDefines).forEach(k => {
                     deleteVertexArray(ctx, vertexArrays[k])
@@ -186,14 +202,18 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                 })
             }
 
+            valueChanges.textures = false
             Object.keys(textureValues).forEach(k => {
                 const value = textureValues[k]
                 if (value.ref.version !== versions[k]) {
                     // console.log('texture version changed, uploading image', k)
                     textures[k].load(value.ref.value)
                     versions[k] = value.ref.version
+                    valueChanges.textures = true
                 }
             })
+
+            return valueChanges
         },
         destroy: () => {
             if (!destroyed) {

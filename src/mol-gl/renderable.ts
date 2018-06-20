@@ -28,7 +28,7 @@ export interface Renderable<T extends RenderableValues & BaseValues> {
 
 export function createRenderable<T extends Values<RenderableSchema> & BaseValues>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
     let boundingSphere: Sphere3D | undefined
-    
+
     return {
         get values () { return values },
         get state () { return state },
@@ -41,8 +41,8 @@ export function createRenderable<T extends Values<RenderableSchema> & BaseValues
         render: (variant: RenderVariant) => renderItem.render(variant),
         getProgram: (variant: RenderVariant) => renderItem.getProgram(variant),
         update: () => {
-            renderItem.update()
-            boundingSphere = undefined
+            const valueChanges = renderItem.update()
+            if (valueChanges.attributes) boundingSphere = undefined
         },
         dispose: () => renderItem.destroy()
     }
