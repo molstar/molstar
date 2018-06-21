@@ -21,12 +21,12 @@ type Primitive = {
 }
 
 export interface MeshBuilder {
-    add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices?: Uint32Array): number
-    addBox(t: Mat4, props?: BoxProps): number
-    addCylinder(start: Vec3, end: Vec3, scale: number, props: CylinderProps): number
-    addDoubleCylinder(start: Vec3, end: Vec3, scale: number, shift: Vec3, props: CylinderProps): number
-    // addFixedCountDashedCylinder(t: Mat4, props?: CylinderProps): number
-    addIcosahedron(center: Vec3, radius: number, detail: number): number
+    add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices?: Uint32Array): void
+    addBox(t: Mat4, props?: BoxProps): void
+    addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
+    addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
+    addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
+    addIcosahedron(center: Vec3, radius: number, detail: number): void
     setId(id: number): void
     getMesh(): Mesh
 }
@@ -43,7 +43,7 @@ const tmpCylinderMatDir = Vec3.zero()
 const tmpCylinderCenter = Vec3.zero()
 const tmpCylinderMat = Mat4.zero()
 // const tmpCylinderMatTrans = Mat4.zero()
-const tmpShiftedCylinderStart = Vec3.zero()
+const tmpCylinderStart = Vec3.zero()
 
 function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
     Vec3.setMagnitude(tmpCylinderMatDir, dir, length / 2)
@@ -99,7 +99,7 @@ export namespace MeshBuilder {
         let currentId = -1
 
         function add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices: Uint32Array) {
-            const { elementCount, elementSize } = vertices
+            const { elementCount } = vertices
             const n = getNormalMatrix(tmpMat3, t)
             for (let i = 0, il = _vertices.length; i < il; i += 3) {
                 // position
@@ -116,41 +116,64 @@ export namespace MeshBuilder {
             for (let i = 0, il = _indices.length; i < il; i += 3) {
                 ChunkedArray.add3(indices, _indices[i] + elementCount, _indices[i + 1] + elementCount, _indices[i + 2] + elementCount);
             }
-            return elementCount * elementSize
         }
 
         return {
             add,
             addBox: (t: Mat4, props?: BoxProps) => {
                 const box = Box(props)
-                return add(t, box.vertices, box.normals, box.indices)
+                add(t, box.vertices, box.normals, box.indices)
             },
-            addCylinder: (start: Vec3, end: Vec3, scale: number, props: CylinderProps) => {
-                const d = Vec3.distance(start, end) * scale
+            addCylinder: (start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) => {
+                const d = Vec3.distance(start, end) * lengthScale
                 props.height = d
                 const { vertices, normals, indices } = getCylinder(props)
                 Vec3.sub(tmpCylinderDir, end, start)
                 setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d)
-                return add(tmpCylinderMat, vertices, normals, indices)
+                add(tmpCylinderMat, vertices, normals, indices)
             },
-            addDoubleCylinder: (start: Vec3, end: Vec3, scale: number, shift: Vec3, props: CylinderProps) => {
-                const d = Vec3.distance(start, end) * scale
+            addDoubleCylinder: (start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps) => {
+                const d = Vec3.distance(start, end) * lengthScale
                 props.height = d
                 const { vertices, normals, indices } = getCylinder(props)
                 Vec3.sub(tmpCylinderDir, end, start)
                 // positivly shifted cylinder
-                Vec3.add(tmpShiftedCylinderStart, start, shift)
-                setCylinderMat(tmpCylinderMat, tmpShiftedCylinderStart, tmpCylinderDir, d)
+                Vec3.add(tmpCylinderStart, start, shift)
+                setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d)
                 add(tmpCylinderMat, vertices, normals, indices)
                 // negativly shifted cylinder
-                Vec3.sub(tmpShiftedCylinderStart, start, shift)
-                setCylinderMat(tmpCylinderMat, tmpShiftedCylinderStart, tmpCylinderDir, d)
-                return add(tmpCylinderMat, vertices, normals, indices)
+                Vec3.sub(tmpCylinderStart, start, shift)
+                setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d)
+                add(tmpCylinderMat, vertices, normals, indices)
+            },
+            addFixedCountDashedCylinder: (start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps) => {
+                const s = Math.floor(segmentCount / 2)
+                const step = 1 / segmentCount
+
+                // automatically adjust length so links/bonds that are rendered as two half cylinders
+                // have evenly spaced dashed cylinders
+                if (lengthScale < 1) {
+                    const bias = lengthScale / 2 / segmentCount
+                    lengthScale += segmentCount % 2 === 1 ? bias : -bias
+                }
+
+                const d = Vec3.distance(start, end) * lengthScale
+                props.height = d * step
+                const { vertices, normals, indices } = getCylinder(props)
+                Vec3.sub(tmpCylinderDir, end, start)
+
+                for (let j = 0; j < s; ++j) {
+                    const f = step * (j * 2 + 1)
+                    Vec3.setMagnitude(tmpCylinderDir, tmpCylinderDir, d * f)
+                    Vec3.add(tmpCylinderStart, start, tmpCylinderDir)
+                    setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d * step)
+                    add(tmpCylinderMat, vertices, normals, indices)
+                }
             },
             addIcosahedron: (center: Vec3, radius: number, detail: number) => {
                 const { vertices, normals, indices } = getIcosahedron({ radius, detail })
                 setIcosahedronMat(tmpIcosahedronMat, center)
-                return add(tmpIcosahedronMat, vertices, normals, indices)
+                add(tmpIcosahedronMat, vertices, normals, indices)
             },
             setId: (id: number) => {
                 if (currentId !== id) {

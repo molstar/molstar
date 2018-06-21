@@ -32,38 +32,35 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
     const elements = unit.elements;
     const links = unit.links
     const { edgeCount, a, b, edgeProps, offset } = links
-    const { order: _order } = edgeProps
+    const { order: _order, flags: _flags } = edgeProps
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
     const vRef = Vec3.zero()
-
     const pos = unit.conformation.invariantPosition
 
-    function referencePosition(edgeIndex: number): Vec3 | null {
-        let aI = a[edgeIndex], bI = b[edgeIndex];
-        if (aI > bI) [aI, bI] = [bI, aI]
-        for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
-            if (b[i] !== bI) return pos(elements[b[i]], vRef)
-        }
-        for (let i = offset[bI], il = offset[bI + 1]; i < il; ++i) {
-            if (a[i] !== aI) return pos(elements[a[i]], vRef)
-        }
-        return null
+    const builderProps = {
+        linkCount: edgeCount * 2,
+        referencePosition: (edgeIndex: number) => {
+            let aI = a[edgeIndex], bI = b[edgeIndex];
+            if (aI > bI) [aI, bI] = [bI, aI]
+            for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
+                if (b[i] !== bI) return pos(elements[b[i]], vRef)
+            }
+            for (let i = offset[bI], il = offset[bI + 1]; i < il; ++i) {
+                if (a[i] !== aI) return pos(elements[a[i]], vRef)
+            }
+            return null
+        },
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+            pos(elements[a[edgeIndex]], posA)
+            pos(elements[b[edgeIndex]], posB)
+        },
+        order: (edgeIndex: number) => _order[edgeIndex],
+        flags: (edgeIndex: number) => _flags[edgeIndex]
     }
 
-    function position(posA: Vec3, posB: Vec3, edgeIndex: number): void {
-        pos(elements[a[edgeIndex]], posA)
-        pos(elements[b[edgeIndex]], posB)
-    }
-
-    function order(edgeIndex: number): number {
-        return _order[edgeIndex]
-    }
-
-    const builder = { linkCount: edgeCount * 2, referencePosition, position, order }
-
-    return createLinkCylinderMesh(ctx, builder, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const DefaultIntraUnitLinkProps = {

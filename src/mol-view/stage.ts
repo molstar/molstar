@@ -42,9 +42,10 @@ export class Stage {
 
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
-        // this.loadPdbid('1crn')
-        this.loadPdbid('3pqr')
-        // this.loadPdbid('4v5a')
+        // this.loadPdbid('1crn') // small
+        this.loadPdbid('1blu') // metal coordination
+        // this.loadPdbid('3pqr') // inter unit bonds
+        // this.loadPdbid('4v5a') // ribosome
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
     }
 

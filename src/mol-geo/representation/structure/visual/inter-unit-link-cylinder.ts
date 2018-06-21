@@ -31,25 +31,20 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
-    function referencePosition(edgeIndex: number): Vec3 | null {
-        // TODO
-        return null
+    const builderProps = {
+        linkCount: bondCount,
+        referencePosition: (edgeIndex: number) => null, // TODO
+        position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
+            const b = bonds[edgeIndex]
+            const uA = b.unitA, uB = b.unitB
+            uA.conformation.position(uA.elements[b.indexA], posA)
+            uB.conformation.position(uB.elements[b.indexB], posB)
+        },
+        order: (edgeIndex: number) => bonds[edgeIndex].order,
+        flags: (edgeIndex: number) => bonds[edgeIndex].flag
     }
 
-    function position(posA: Vec3, posB: Vec3, edgeIndex: number): void {
-        const b = bonds[edgeIndex]
-        const uA = b.unitA, uB = b.unitB
-        uA.conformation.position(uA.elements[b.indexA], posA)
-        uB.conformation.position(uB.elements[b.indexB], posB)
-    }
-
-    function order(edgeIndex: number): number {
-        return bonds[edgeIndex].order
-    }
-
-    const linkBuilder = { linkCount: bondCount, referencePosition, position, order }
-
-    return createLinkCylinderMesh(ctx, linkBuilder, props, mesh)
+    return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const DefaultInterUnitLinkProps = {

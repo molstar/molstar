@@ -8,6 +8,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { RuntimeContext } from 'mol-task';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
+import { LinkType } from 'mol-model/structure/model/types';
 
 export const DefaultLinkCylinderProps = {
     linkScale: 0.4,
@@ -52,6 +53,7 @@ export interface LinkCylinderMeshBuilderProps {
     referencePosition(edgeIndex: number): Vec3 | null
     position(posA: Vec3, posB: Vec3, edgeIndex: number): void
     order(edgeIndex: number): number
+    flags(edgeIndex: number): LinkType.Flag
 }
 
 /**
@@ -59,12 +61,13 @@ export interface LinkCylinderMeshBuilderProps {
  * the half closer to the first vertex, i.e. vertex a.
  */
 export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: LinkCylinderMeshBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
-    const { linkCount, referencePosition, position, order } = linkBuilder
+    const { linkCount, referencePosition, position, order, flags } = linkBuilder
 
     if (!linkCount) return Mesh.createEmpty(mesh)
 
-    // approximate vertextCount, exact calculation would need to take link orders into account
-    const vertexCount = 32 * linkCount
+    // approximate vertextCount (* 2), exact calculation would need to take
+    // multiple cylinders for bond orders and metall coordinations into account
+    const vertexCount = props.radialSegments * 2 * linkCount * 2
     const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
 
     const va = Vec3.zero()
@@ -84,9 +87,15 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
         position(va, vb, edgeIndex)
 
         const o = order(edgeIndex)
+        const f = flags(edgeIndex) as any as LinkType // TODO
         meshBuilder.setId(edgeIndex)
 
-        if (o === 2 || o === 3) {
+        if (LinkType.is(f, LinkType.Flag.MetallicCoordination)) {
+            // show metall coordinations with dashed cylinders
+            cylinderParams.radiusTop = cylinderParams.radiusBottom = linkRadius / 3
+            meshBuilder.addFixedCountDashedCylinder(va, vb, 0.5, 7, cylinderParams)
+        } else if (o === 2 || o === 3) {
+            // show bonds with order 2 or 3 using 2 or 3 parallel cylinders
             const multiRadius = linkRadius * (linkScale / (0.5 * o))
             const absOffset = (linkRadius - multiRadius) * linkSpacing
 
