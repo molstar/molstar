@@ -41,8 +41,10 @@ export class Stage {
         this.ctx.viewer = this.viewer
 
         // this.loadPdbid('1jj2')
-        this.loadPdbid('4umt') // ligand has bond with order 3
+        // this.loadPdbid('4umt') // ligand has bond with order 3
         // this.loadPdbid('1crn')
+        this.loadPdbid('3pqr')
+        // this.loadPdbid('4v5a')
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
     }
 

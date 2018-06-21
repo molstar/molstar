@@ -8,10 +8,8 @@
 import * as argparse from 'argparse'
 require('util.promisify').shim();
 
-// import { Table } from 'mol-data/db'
 import { CifFrame } from 'mol-io/reader/cif'
 import { Model, Structure, Element, Unit, Queries, Format } from 'mol-model/structure'
-// import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
 import { openCif, downloadCif } from './helpers';
@@ -79,12 +77,12 @@ export function printLinks(structure: Structure, showIntra: boolean, showInter: 
             if (!Unit.isAtomic(unit)) continue;
 
             const elements = unit.elements;
-            const { a, b } = unit.links;
+            const { a, b, edgeCount } = unit.links;
             const { model } = unit;
 
-            if (!a.length) continue;
+            if (!edgeCount) continue;
 
-            for (let bI = 0, _bI = a.length; bI < _bI; bI++) {
+            for (let bI = 0, _bI = edgeCount * 2; bI < _bI; bI++) {
                 const x = a[bI], y = b[bI];
                 if (x >= y) continue;
                 console.log(`${atomLabel(model, elements[x])} -- ${atomLabel(model, elements[y])}`);
@@ -199,44 +197,62 @@ export function printIHMModels(model: Model) {
     console.log(Table.formatToString(model.coarseHierarchy.models));
 }
 
-async function run(frame: CifFrame) {
+async function run(frame: CifFrame, args: Args) {
     const models = await Model.create(Format.mmCIF(frame)).run();
     const structure = Structure.ofModel(models[0]);
-    //printSequence(models[0]);
-    //printIHMModels(models[0]);
-    printUnits(structure);
-    printSymmetryInfo(models[0]);
-    //printRings(structure);
-    //printLinks(structure, true, true);
-    //printModRes(models[0]);
-    //printSecStructure(models[0]);
+
+    if (args.seq) printSequence(models[0]);
+    if (args.ihm) printIHMModels(models[0]);
+    if (args.units) printUnits(structure);
+    if (args.sym) printSymmetryInfo(models[0]);
+    if (args.rings) printRings(structure);
+    if (args.intraLinks) printLinks(structure, true, false);
+    if (args.interLinks) printLinks(structure, false, true);
+    if (args.mod) printModRes(models[0]);
+    if (args.sec) printSecStructure(models[0]);
 }
 
-async function runDL(pdb: string) {
+async function runDL(pdb: string, args: Args) {
     const mmcif = await downloadFromPdb(pdb)
-    run(mmcif);
+    run(mmcif, args);
 }
 
-async function runFile(filename: string) {
+async function runFile(filename: string, args: Args) {
     const mmcif = await readPdbFile(filename);
-    run(mmcif);
+    run(mmcif, args);
 }
 
 const parser = new argparse.ArgumentParser({
     addHelp: true,
     description: 'Print info about a structure, mainly to test and showcase the mol-model module'
 });
-parser.addArgument(['--download', '-d'], {
-    help: 'Pdb entry id'
-});
-parser.addArgument(['--file', '-f'], {
-    help: 'filename'
-});
+parser.addArgument(['--download', '-d'], { help: 'Pdb entry id' });
+parser.addArgument(['--file', '-f'], { help: 'filename' });
+
+parser.addArgument(['--seq'], { help: 'print sequence', action: 'storeTrue' });
+parser.addArgument(['--ihm'], { help: 'print IHM', action: 'storeTrue' });
+parser.addArgument(['--units'], { help: 'print units', action: 'storeTrue' });
+parser.addArgument(['--sym'], { help: 'print symmetry', action: 'storeTrue' });
+parser.addArgument(['--rings'], { help: 'print rings', action: 'storeTrue' });
+parser.addArgument(['--intraLinks'], { help: 'print intra unit links', action: 'storeTrue' });
+parser.addArgument(['--interLinks'], { help: 'print inter unit links', action: 'storeTrue' });
+parser.addArgument(['--mod'], { help: 'print modified residues', action: 'storeTrue' });
+parser.addArgument(['--sec'], { help: 'print secoundary structure', action: 'storeTrue' });
 interface Args {
     download?: string,
-    file?: string
+    file?: string,
+
+    seq?: boolean,
+    ihm?: boolean,
+    units?: boolean,
+    sym?: boolean,
+    rings?: boolean,
+    intraLinks?: boolean,
+    interLinks?: boolean,
+    mod?: boolean,
+    sec?: boolean,
 }
 const args: Args = parser.parseArgs();
 
-if (args.download) runDL(args.download)
-else if (args.file) runFile(args.file)
+if (args.download) runDL(args.download, args)
+else if (args.file) runFile(args.file, args)

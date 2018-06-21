@@ -11,7 +11,8 @@ import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/r
 import { Unit, Element } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
-import { createTransforms, createColors, createElementSphereMesh, markElement, getElementRadius } from '../utils';
+import { createTransforms, createColors } from '../visual/util/common';
+import { createElementSphereMesh, markElement, getElementRadius } from '../visual/util/element';
 import { deepEqual, defaults } from 'mol-util';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';

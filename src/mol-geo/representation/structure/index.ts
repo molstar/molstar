@@ -79,7 +79,7 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
                             unitsVisuals.set(group.hashCode, { visual, group })
                         }
                     }
-    
+
                     // for new groups, reuse leftover visuals
                     const unusedVisuals: UnitsVisual<P>[] = []
                     oldUnitsVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
@@ -125,22 +125,32 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
             const _loci = visual.getLoci(pickingId)
             if (!isEmptyLoci(_loci)) loci = _loci
         })
+        if (structureVisual) {
+            const _loci = structureVisual.getLoci(pickingId)
+            if (!isEmptyLoci(_loci)) loci = _loci
+        }
         return loci
     }
 
     function mark(loci: Loci, action: MarkerAction) {
         unitsVisuals.forEach(({ visual }) => visual.mark(loci, action))
+        if (structureVisual) structureVisual.mark(loci, action)
     }
 
     function destroy() {
         unitsVisuals.forEach(({ visual }) => visual.destroy())
         unitsVisuals.clear()
+        if (structureVisual) {
+            structureVisual.destroy()
+            structureVisual = undefined
+        }
     }
 
     return {
         get renderObjects() {
             const renderObjects: RenderObject[] = []
             unitsVisuals.forEach(({ visual }) => renderObjects.push(...visual.renderObjects))
+            if (structureVisual) renderObjects.push(...structureVisual.renderObjects)
             return renderObjects
         },
         create,

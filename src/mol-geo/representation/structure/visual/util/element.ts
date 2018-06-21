@@ -2,73 +2,21 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Unit, Element } from 'mol-model/structure';
-import { Mat4, Vec3 } from 'mol-math/linear-algebra'
-
-import { createUniformColor, ColorData } from '../../util/color-data';
-import { createUniformSize, SizeData } from '../../util/size-data';
-import { physicalSizeData, getPhysicalRadius } from '../../theme/structure/size/physical';
-import VertexMap from '../../shape/vertex-map';
-import { ColorTheme, SizeTheme } from '../../theme';
-import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdElementColorData } from '../../theme/structure/color';
-import { ValueCell, defaults } from 'mol-util';
-import { Mesh } from '../../shape/mesh';
+import { SizeTheme } from '../../../../theme';
 import { RuntimeContext } from 'mol-task';
-import { icosahedronVertexCount } from '../../primitive/icosahedron';
-import { MeshBuilder } from '../../shape/mesh-builder';
+import { icosahedronVertexCount } from '../../../../primitive/icosahedron';
+import { Mesh } from '../../../../shape/mesh';
+import { MeshBuilder } from '../../../../shape/mesh-builder';
+import { ValueCell, defaults } from 'mol-util';
 import { TextureImage } from 'mol-gl/renderable/util';
-import { applyMarkerAction, MarkerAction } from '../../util/marker-data';
 import { Loci, isEveryLoci } from 'mol-model/loci';
+import { MarkerAction, applyMarkerAction } from '../../../../util/marker-data';
 import { Interval } from 'mol-data/int';
-
-export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
-    const unitCount = units.length
-    const n = unitCount * 16
-    const array = transforms && transforms.ref.value.length >= n ? transforms.ref.value : new Float32Array(n)
-    for (let i = 0; i < unitCount; i++) {
-        Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16)
-    }
-    return transforms ? ValueCell.update(transforms, array) : ValueCell.create(array)
-}
-
-export function createColors(group: Unit.SymmetryGroup, elementCount: number, props: ColorTheme, colorData?: ColorData) {
-    switch (props.name) {
-        case 'atom-index':
-            return elementIndexColorData({ group, elementCount }, colorData)
-        case 'chain-id':
-            return chainIdElementColorData({ group, elementCount }, colorData)
-        case 'element-symbol':
-            return elementSymbolColorData({ group, elementCount }, colorData)
-        case 'instance-index':
-            return instanceIndexColorData({ group, elementCount }, colorData)
-        case 'uniform':
-            return createUniformColor(props, colorData)
-    }
-}
-
-// export function createLinkColors(group: Unit.SymmetryGroup, props: ColorTheme, colorData?: ColorData): ColorData {
-//     switch (props.name) {
-//         case 'atom-index':
-//         case 'chain-id':
-//         case 'element-symbol':
-//         case 'instance-index':
-//             return chainIdLinkColorData({ group, vertexMap }, colorData)
-//         case 'uniform':
-//             return createUniformColor(props, colorData)
-//     }
-// }
-
-export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: SizeTheme): SizeData {
-    switch (props.name) {
-        case 'uniform':
-            return createUniformSize(props)
-        case 'physical':
-            return physicalSizeData(defaults(props.factor, 1), { group, vertexMap })
-    }
-}
+import { getPhysicalRadius } from '../../../../theme/structure/size/physical';
 
 export function getElementRadius(unit: Unit, props: SizeTheme): Element.Property<number> {
     switch (props.name) {
