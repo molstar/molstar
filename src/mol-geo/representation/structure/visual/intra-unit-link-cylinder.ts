@@ -32,7 +32,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
     const elements = unit.elements;
     const links = unit.links
     const { edgeCount, a, b, edgeProps, offset } = links
-    const { order } = edgeProps
+    const { order: _order } = edgeProps
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -40,17 +40,9 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
 
     const pos = unit.conformation.invariantPosition
 
-    async function eachLink(ctx: RuntimeContext, cb: (edgeIndex: number, aI: number, bI: number) => void) {
-        for (let edgeIndex = 0, _eI = edgeCount * 2; edgeIndex < _eI; ++edgeIndex) {
-            const aI = a[edgeIndex], bI = b[edgeIndex];
-            cb(edgeIndex, aI, bI)
-            if (edgeIndex % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Cylinder mesh', current: edgeIndex, max: edgeCount });
-            }
-        }
-    }
-
-    function getRefPos(aI: number, bI: number): Vec3 | null {
+    function referencePosition(edgeIndex: number): Vec3 | null {
+        let aI = a[edgeIndex], bI = b[edgeIndex];
+        if (aI > bI) [aI, bI] = [bI, aI]
         for (let i = offset[aI], il = offset[aI + 1]; i < il; ++i) {
             if (b[i] !== bI) return pos(elements[b[i]], vRef)
         }
@@ -60,16 +52,16 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
         return null
     }
 
-    function setPositions(posA: Vec3, posB: Vec3, edgeIndex: number): void {
+    function position(posA: Vec3, posB: Vec3, edgeIndex: number): void {
         pos(elements[a[edgeIndex]], posA)
         pos(elements[b[edgeIndex]], posB)
     }
 
-    function getOrder(edgeIndex: number): number {
-        return order[edgeIndex]
+    function order(edgeIndex: number): number {
+        return _order[edgeIndex]
     }
 
-    const builder = { linkCount: edgeCount, eachLink, getRefPos, setPositions, getOrder }
+    const builder = { linkCount: edgeCount * 2, referencePosition, position, order }
 
     return createLinkCylinderMesh(ctx, builder, props, mesh)
 }

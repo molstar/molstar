@@ -31,34 +31,23 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
-    async function eachLink(ctx: RuntimeContext, cb: (edgeIndex: number, aI: number, bI: number) => void) {
-        for (let edgeIndex = 0, il = bondCount; edgeIndex < il; ++edgeIndex) {
-            const b = bonds[edgeIndex]
-            const aI = b.indexA, bI = b.indexB;
-            cb(edgeIndex, aI, bI)
-            if (edgeIndex % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Cylinder mesh', current: edgeIndex, max: bondCount });
-            }
-        }
-    }
-
-    function getRefPos(aI: number, bI: number): Vec3 | null {
+    function referencePosition(edgeIndex: number): Vec3 | null {
         // TODO
         return null
     }
 
-    function setPositions(posA: Vec3, posB: Vec3, edgeIndex: number): void {
+    function position(posA: Vec3, posB: Vec3, edgeIndex: number): void {
         const b = bonds[edgeIndex]
         const uA = b.unitA, uB = b.unitB
         uA.conformation.position(uA.elements[b.indexA], posA)
         uB.conformation.position(uB.elements[b.indexB], posB)
     }
 
-    function getOrder(edgeIndex: number): number {
+    function order(edgeIndex: number): number {
         return bonds[edgeIndex].order
     }
 
-    const linkBuilder = { linkCount: bondCount, eachLink, getRefPos, setPositions, getOrder }
+    const linkBuilder = { linkCount: bondCount, referencePosition, position, order }
 
     return createLinkCylinderMesh(ctx, linkBuilder, props, mesh)
 }

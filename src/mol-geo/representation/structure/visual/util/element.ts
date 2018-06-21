@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
+import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit, Element } from 'mol-model/structure';
 import { SizeTheme } from '../../../../theme';
 import { RuntimeContext } from 'mol-task';
@@ -36,8 +36,6 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
     const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
 
     const v = Vec3.zero()
-    const m = Mat4.identity()
-
     const pos = unit.conformation.invariantPosition
     const l = Element.Location()
     l.unit = unit
@@ -45,10 +43,9 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
     for (let i = 0; i < elementCount; i++) {
         l.element = elements[i]
         pos(elements[i], v)
-        Mat4.setTranslation(m, v)
 
         meshBuilder.setId(i)
-        meshBuilder.addIcosahedron(m, { radius: radius(l), detail })
+        meshBuilder.addIcosahedron(v, radius(l), detail)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });

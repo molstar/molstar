@@ -23,14 +23,67 @@ type Primitive = {
 export interface MeshBuilder {
     add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices?: Uint32Array): number
     addBox(t: Mat4, props?: BoxProps): number
-    addCylinder(t: Mat4, props?: CylinderProps): number
-    addIcosahedron(t: Mat4, props?: IcosahedronProps): number
+    addCylinder(start: Vec3, end: Vec3, scale: number, props: CylinderProps): number
+    addDoubleCylinder(start: Vec3, end: Vec3, scale: number, shift: Vec3, props: CylinderProps): number
+    // addFixedCountDashedCylinder(t: Mat4, props?: CylinderProps): number
+    addIcosahedron(center: Vec3, radius: number, detail: number): number
     setId(id: number): void
     getMesh(): Mesh
 }
 
+const cylinderMap = new Map<string, Primitive>()
+const icosahedronMap = new Map<string, Primitive>()
+
+const up = Vec3.create(0, 1, 0)
 const tmpV = Vec3.zero()
 const tmpMat3 = Mat3.zero()
+
+const tmpCylinderDir = Vec3.zero()
+const tmpCylinderMatDir = Vec3.zero()
+const tmpCylinderCenter = Vec3.zero()
+const tmpCylinderMat = Mat4.zero()
+// const tmpCylinderMatTrans = Mat4.zero()
+const tmpShiftedCylinderStart = Vec3.zero()
+
+function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
+    Vec3.setMagnitude(tmpCylinderMatDir, dir, length / 2)
+    Vec3.add(tmpCylinderCenter, start, tmpCylinderMatDir)
+    // ensure the direction use to create the rotation is always pointing in the same
+    // direction so the triangles of adjacent cylinder will line up
+    if (Vec3.dot(tmpCylinderMatDir, up) < 0) Vec3.scale(tmpCylinderMatDir, tmpCylinderMatDir, -1)
+    Vec3.makeRotation(m, up, tmpCylinderMatDir)
+    // Mat4.fromTranslation(tmpCylinderMatTrans, tmpCylinderCenter)
+    // Mat4.mul(m, tmpCylinderMatTrans, m)
+    Mat4.setTranslation(m, tmpCylinderCenter)
+    return m
+}
+
+function getCylinder(props: CylinderProps) {
+    const key = JSON.stringify(props)
+    let cylinder = cylinderMap.get(key)
+    if (cylinder === undefined) {
+        cylinder = Cylinder(props)
+        cylinderMap.set(key, cylinder)
+    }
+    return cylinder
+}
+
+const tmpIcosahedronMat = Mat4.identity()
+
+function setIcosahedronMat(m: Mat4, center: Vec3) {
+    Mat4.setTranslation(m, center)
+    return m
+}
+
+function getIcosahedron(props: IcosahedronProps) {
+    const key = JSON.stringify(props)
+    let icosahedron = icosahedronMap.get(key)
+    if (icosahedron === undefined) {
+        icosahedron = Icosahedron(props)
+        icosahedronMap.set(key, icosahedron)
+    }
+    return icosahedron
+}
 
 // TODO cache primitives based on props
 
@@ -45,10 +98,7 @@ export namespace MeshBuilder {
 
         let currentId = -1
 
-        const cylinderMap = new Map<string, Primitive>()
-        const icosahedronMap = new Map<string, Primitive>()
-
-        const add = (t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices: Uint32Array) => {
+        function add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices: Uint32Array) {
             const { elementCount, elementSize } = vertices
             const n = getNormalMatrix(tmpMat3, t)
             for (let i = 0, il = _vertices.length; i < il; i += 3) {
@@ -60,7 +110,7 @@ export namespace MeshBuilder {
                 Vec3.fromArray(tmpV, _normals, i)
                 Vec3.transformMat3(tmpV, tmpV, n)
                 ChunkedArray.add3(normals, tmpV[0], tmpV[1], tmpV[2]);
-
+                // id
                 ChunkedArray.add(ids, currentId);
             }
             for (let i = 0, il = _indices.length; i < il; i += 3) {
@@ -75,23 +125,32 @@ export namespace MeshBuilder {
                 const box = Box(props)
                 return add(t, box.vertices, box.normals, box.indices)
             },
-            addCylinder: (t: Mat4, props?: CylinderProps) => {
-                const key = JSON.stringify(props)
-                let cylinder = cylinderMap.get(key)
-                if (cylinder === undefined) {
-                    cylinder = Cylinder(props)
-                    cylinderMap.set(key, cylinder)
-                }
-                return add(t, cylinder.vertices, cylinder.normals, cylinder.indices)
+            addCylinder: (start: Vec3, end: Vec3, scale: number, props: CylinderProps) => {
+                const d = Vec3.distance(start, end) * scale
+                props.height = d
+                const { vertices, normals, indices } = getCylinder(props)
+                Vec3.sub(tmpCylinderDir, end, start)
+                setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d)
+                return add(tmpCylinderMat, vertices, normals, indices)
             },
-            addIcosahedron: (t: Mat4, props: IcosahedronProps) => {
-                const key = JSON.stringify(props)
-                let icosahedron = icosahedronMap.get(key)
-                if (icosahedron === undefined) {
-                    icosahedron = Icosahedron(props)
-                    icosahedronMap.set(key, icosahedron)
-                }
-                return add(t, icosahedron.vertices, icosahedron.normals, icosahedron.indices)
+            addDoubleCylinder: (start: Vec3, end: Vec3, scale: number, shift: Vec3, props: CylinderProps) => {
+                const d = Vec3.distance(start, end) * scale
+                props.height = d
+                const { vertices, normals, indices } = getCylinder(props)
+                Vec3.sub(tmpCylinderDir, end, start)
+                // positivly shifted cylinder
+                Vec3.add(tmpShiftedCylinderStart, start, shift)
+                setCylinderMat(tmpCylinderMat, tmpShiftedCylinderStart, tmpCylinderDir, d)
+                add(tmpCylinderMat, vertices, normals, indices)
+                // negativly shifted cylinder
+                Vec3.sub(tmpShiftedCylinderStart, start, shift)
+                setCylinderMat(tmpCylinderMat, tmpShiftedCylinderStart, tmpCylinderDir, d)
+                return add(tmpCylinderMat, vertices, normals, indices)
+            },
+            addIcosahedron: (center: Vec3, radius: number, detail: number) => {
+                const { vertices, normals, indices } = getIcosahedron({ radius, detail })
+                setIcosahedronMat(tmpIcosahedronMat, center)
+                return add(tmpIcosahedronMat, vertices, normals, indices)
             },
             setId: (id: number) => {
                 if (currentId !== id) {

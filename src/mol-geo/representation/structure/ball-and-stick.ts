@@ -29,6 +29,7 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
 
     return {
         get renderObjects() {
+            // return linkRepr.renderObjects
             return [ ...elmementRepr.renderObjects, ...linkRepr.renderObjects ]
         },
         create: (structure: Structure, props: BallAndStickProps = {} as BallAndStickProps) => {

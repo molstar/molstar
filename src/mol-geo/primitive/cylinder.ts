@@ -14,14 +14,15 @@ export const DefaultCylinderProps = {
     height: 1,
     radialSegments: 8,
     heightSegments: 1,
-    openEnded: false,
+    topCap: false,
+    bottomCap: false,
     thetaStart: 0.0,
     thetaLength: Math.PI * 2
 }
 export type CylinderProps = Partial<typeof DefaultCylinderProps>
 
 export default function Cylinder(props?: CylinderProps) {
-    const { radiusTop, radiusBottom, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength } = { ...DefaultCylinderProps, ...props };
+    const { radiusTop, radiusBottom, height, radialSegments, heightSegments, topCap, bottomCap, thetaStart, thetaLength } = { ...DefaultCylinderProps, ...props };
 
     // buffers
     const indices: number[] = [];
@@ -36,10 +37,8 @@ export default function Cylinder(props?: CylinderProps) {
     // generate geometry
     generateTorso();
 
-    if (openEnded === false) {
-        if (radiusTop > 0) generateCap(true);
-        if (radiusBottom > 0) generateCap(false);
-    }
+    if (topCap && radiusTop > 0) generateCap(true);
+    if (bottomCap && radiusBottom > 0) generateCap(false);
 
     return {
         vertices: new Float32Array(vertices),
