@@ -27,9 +27,22 @@ interface QualityProps {
 }
 
 function getQualityProps(props: Partial<QualityProps>, structure: Structure) {
-    const quality = defaults(props.quality, 'auto' as VisualQuality)
+    let quality = defaults(props.quality, 'auto' as VisualQuality)
     let detail = 1
     let radialSegments = 12
+
+    if (quality === 'auto') {
+        const score = structure.elementCount
+        if (score > 500_000) {
+            quality = 'lowest'
+        } else if (score > 100_000) {
+            quality = 'low'
+        } else if (score > 30_000) {
+            quality = 'medium'
+        } else {
+            quality = 'high'
+        }
+    }
 
     switch (quality) {
         case 'highest':
@@ -51,9 +64,6 @@ function getQualityProps(props: Partial<QualityProps>, structure: Structure) {
         case 'lowest':
             detail = 0
             radialSegments = 3
-            break
-        case 'auto':
-            // TODO
             break
         case 'custom':
             detail = defaults(props.detail, 1)
