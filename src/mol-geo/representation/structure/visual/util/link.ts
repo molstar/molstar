@@ -9,8 +9,10 @@ import { RuntimeContext } from 'mol-task';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
 import { LinkType } from 'mol-model/structure/model/types';
+import { DefaultMeshProps } from '../../..';
 
 export const DefaultLinkCylinderProps = {
+    ...DefaultMeshProps,
     linkScale: 0.4,
     linkSpacing: 1,
     linkRadius: 0.25,

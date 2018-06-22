@@ -12,19 +12,18 @@ import { Unit, Link } from 'mol-model/structure';
 import { UnitsVisual, DefaultStructureProps } from '../index';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { fillSerial } from 'mol-gl/renderable/util';
-import { RenderableState, MeshValues } from 'mol-gl/renderable';
+import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 // import { createUniformColor } from '../../../util/color-data';
-import { defaults } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
 import { chainIdLinkColorData } from '../../../theme/structure/color/chain-id';
 import { createTransforms } from './util/common';
+import { createMeshValues, createRenderableState, updateMeshValues, updateRenderableState } from '../../util';
 
 async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -67,8 +66,6 @@ export const DefaultIntraUnitLinkProps = {
     ...DefaultStructureProps,
     ...DefaultLinkCylinderProps,
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeTheme,
-    flipSided: false,
-    flatShaded: false,
 }
 export type IntraUnitLinkProps = Partial<typeof DefaultIntraUnitLinkProps>
 
@@ -103,31 +100,17 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
             if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)
 
+            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
+
             const values: MeshValues = {
                 ...getMeshData(mesh),
-                aTransform: transforms,
-                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                 ...color,
                 ...marker,
-
-                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                uInstanceCount: ValueCell.create(instanceCount),
-                uElementCount: ValueCell.create(elementCount),
-
+                aTransform: transforms,
                 elements: mesh.indexBuffer,
-
-                drawCount: ValueCell.create(mesh.triangleCount * 3),
-                instanceCount: ValueCell.create(instanceCount),
-
-                dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
-                dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
-                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+                ...createMeshValues(currentProps, counts),
             }
-            const state: RenderableState = {
-                depthMask: defaults(props.depthMask, true),
-                visible: defaults(props.visible, true)
-            }
+            const state = createRenderableState(currentProps)
 
             cylinders = createMeshRenderObject(values, state)
             renderObjects.push(cylinders)
@@ -138,13 +121,8 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
             if (!cylinders || currentProps.radialSegments !== newProps.radialSegments) return false
             // TODO
 
-            ValueCell.updateIfChanged(cylinders.values.uAlpha, newProps.alpha)
-            ValueCell.updateIfChanged(cylinders.values.dDoubleSided, newProps.doubleSided)
-            ValueCell.updateIfChanged(cylinders.values.dFlipSided, newProps.flipSided)
-            ValueCell.updateIfChanged(cylinders.values.dFlatShaded, newProps.flatShaded)
-
-            cylinders.state.visible = newProps.visible
-            cylinders.state.depthMask = newProps.depthMask
+            updateMeshValues(cylinders.values, newProps)
+            updateRenderableState(cylinders.state, newProps)
 
             return true
         },

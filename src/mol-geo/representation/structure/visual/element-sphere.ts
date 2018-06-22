@@ -13,9 +13,8 @@ import { DefaultStructureProps, UnitsVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors } from '../visual/util/common';
 import { createElementSphereMesh, markElement, getElementRadius } from '../visual/util/element';
-import { deepEqual, defaults } from 'mol-util';
-import { fillSerial } from 'mol-gl/renderable/util';
-import { RenderableState, MeshValues } from 'mol-gl/renderable';
+import { deepEqual } from 'mol-util';
+import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
@@ -23,12 +22,13 @@ import { OrderedSet } from 'mol-data/int';
 import { createMarkers, MarkerAction } from '../../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
+import { DefaultMeshProps } from '../..';
+import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState } from '../../util';
 
 export const DefaultElementSphereProps = {
+    ...DefaultMeshProps,
     ...DefaultStructureProps,
     sizeTheme: { name: 'physical', factor: 1 } as SizeTheme,
-    flipSided: false,
-    flatShaded: false,
     detail: 0,
 }
 export type ElementSphereProps = Partial<typeof DefaultElementSphereProps>
@@ -65,31 +65,17 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
             if (ctx.shouldUpdate) await ctx.update('Computing spacefill marks');
             const marker = createMarkers(instanceCount * elementCount)
 
+            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
+
             const values: MeshValues = {
                 ...getMeshData(mesh),
-                aTransform: transforms,
-                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                 ...color,
                 ...marker,
-
-                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                uInstanceCount: ValueCell.create(instanceCount),
-                uElementCount: ValueCell.create(elementCount),
-
+                aTransform: transforms,
                 elements: mesh.indexBuffer,
-
-                drawCount: ValueCell.create(mesh.triangleCount * 3),
-                instanceCount: ValueCell.create(instanceCount),
-
-                dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
-                dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
-                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+                ...createMeshValues(currentProps, counts),
             }
-            const state: RenderableState = {
-                depthMask: defaults(props.depthMask, true),
-                visible: defaults(props.visible, true)
-            }
+            const state = createRenderableState(currentProps)
 
             spheres = createMeshRenderObject(values, state)
             renderObjects.push(spheres)
@@ -119,13 +105,8 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
                 createColors(currentGroup, elementCount, newProps.colorTheme, spheres.values)
             }
 
-            ValueCell.updateIfChanged(spheres.values.uAlpha, newProps.alpha)
-            ValueCell.updateIfChanged(spheres.values.dDoubleSided, newProps.doubleSided)
-            ValueCell.updateIfChanged(spheres.values.dFlipSided, newProps.flipSided)
-            ValueCell.updateIfChanged(spheres.values.dFlatShaded, newProps.flatShaded)
-
-            spheres.state.visible = newProps.visible
-            spheres.state.depthMask = newProps.depthMask
+            updateMeshValues(spheres.values, newProps)
+            updateRenderableState(spheres.state, newProps)
 
             currentProps = newProps
             return true

@@ -11,18 +11,17 @@ import { Link, Structure } from 'mol-model/structure';
 import { DefaultStructureProps, StructureVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { fillSerial } from 'mol-gl/renderable/util';
-import { RenderableState, MeshValues } from 'mol-gl/renderable';
+import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../../util/color-data';
-import { defaults } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
 import { createIdentityTransform } from './util/common';
+import { updateMeshValues, updateRenderableState, createMeshValues, createRenderableState } from '../../util';
 // import { chainIdLinkColorData } from '../../../theme/structure/color/chain-id';
 
 async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
@@ -51,8 +50,6 @@ export const DefaultInterUnitLinkProps = {
     ...DefaultStructureProps,
     ...DefaultLinkCylinderProps,
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeTheme,
-    flipSided: false,
-    flatShaded: false,
 }
 export type InterUnitLinkProps = Partial<typeof DefaultInterUnitLinkProps>
 
@@ -86,31 +83,17 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
             if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)
 
+            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
+
             const values: MeshValues = {
                 ...getMeshData(mesh),
-                aTransform: transforms,
-                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                 ...color,
                 ...marker,
-
-                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                uInstanceCount: ValueCell.create(instanceCount),
-                uElementCount: ValueCell.create(elementCount),
-
+                aTransform: transforms,
                 elements: mesh.indexBuffer,
-
-                drawCount: ValueCell.create(mesh.triangleCount * 3),
-                instanceCount: ValueCell.create(instanceCount),
-
-                dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                dFlatShaded: ValueCell.create(defaults(props.flatShaded, false)),
-                dFlipSided: ValueCell.create(defaults(props.flipSided, false)),
-                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+                ...createMeshValues(currentProps, counts),
             }
-            const state: RenderableState = {
-                depthMask: defaults(props.depthMask, true),
-                visible: defaults(props.visible, true)
-            }
+            const state = createRenderableState(currentProps)
 
             cylinders = createMeshRenderObject(values, state)
             renderObjects.push(cylinders)
@@ -118,16 +101,13 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
         async update(ctx: RuntimeContext, props: InterUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            if (!cylinders || currentProps.radialSegments !== newProps.radialSegments) return false
-            // TODO
+            if (!cylinders) return false
 
-            ValueCell.updateIfChanged(cylinders.values.uAlpha, newProps.alpha)
-            ValueCell.updateIfChanged(cylinders.values.dDoubleSided, newProps.doubleSided)
-            ValueCell.updateIfChanged(cylinders.values.dFlipSided, newProps.flipSided)
-            ValueCell.updateIfChanged(cylinders.values.dFlatShaded, newProps.flatShaded)
+            // TODO create in-place
+            if (currentProps.radialSegments !== newProps.radialSegments) return false
 
-            cylinders.state.visible = newProps.visible
-            cylinders.state.depthMask = newProps.depthMask
+            updateMeshValues(cylinders.values, newProps)
+            updateRenderableState(cylinders.state, newProps)
 
             return false
         },
