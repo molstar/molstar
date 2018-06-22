@@ -10,25 +10,6 @@ import { PickingId } from '../util/picking';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../util/marker-data';
 
-export type VisualQuality = 'custom' | 'auto' | 'highest' | 'high' | 'medium' | 'low' | 'lowest'
-
-export const DefaultBaseProps = {
-    alpha: 1,
-    visible: true,
-    depthMask: true,
-    useFog: true,
-    quality: 'auto' as VisualQuality
-}
-export type BaseProps = Partial<typeof DefaultBaseProps>
-
-export const DefaultMeshProps = {
-    ...DefaultBaseProps,
-    doubleSided: false,
-    flipSided: false,
-    flatShaded: false,
-}
-export type MeshProps = Partial<typeof DefaultMeshProps>
-
 export interface RepresentationProps {}
 
 export interface Representation<D, P extends RepresentationProps = {}> {

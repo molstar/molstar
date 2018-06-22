@@ -18,7 +18,7 @@ import { StateContext } from 'mol-view/state/context';
 import { ColorTheme, SizeTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
-import { VisualQuality } from 'mol-geo/representation';
+import { VisualQuality } from 'mol-geo/representation/util';
 
 export const ColorThemeInfo = {
     'atom-index': {},

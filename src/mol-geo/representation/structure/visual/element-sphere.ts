@@ -22,8 +22,7 @@ import { OrderedSet } from 'mol-data/int';
 import { createMarkers, MarkerAction } from '../../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
-import { DefaultMeshProps } from '../..';
-import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState } from '../../util';
+import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 
 export const DefaultElementSphereProps = {
     ...DefaultMeshProps,

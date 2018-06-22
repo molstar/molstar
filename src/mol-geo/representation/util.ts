@@ -6,9 +6,27 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 import { BaseValues } from 'mol-gl/renderable/schema';
-import { BaseProps, MeshProps } from '.';
 import { MeshValues, RenderableState } from 'mol-gl/renderable';
 import { fillSerial } from 'mol-gl/renderable/util';
+import { defaults } from 'mol-util';
+import { Structure } from 'mol-model/structure';
+
+export const DefaultBaseProps = {
+    alpha: 1,
+    visible: true,
+    depthMask: true,
+    useFog: true,
+    quality: 'auto' as VisualQuality
+}
+export type BaseProps = Partial<typeof DefaultBaseProps>
+
+export const DefaultMeshProps = {
+    ...DefaultBaseProps,
+    doubleSided: false,
+    flipSided: false,
+    flatShaded: false,
+}
+export type MeshProps = Partial<typeof DefaultMeshProps>
 
 type Counts = { drawCount: number, elementCount: number, instanceCount: number }
 
@@ -55,4 +73,63 @@ export function updateMeshValues(values: MeshValues, props: Required<MeshProps>)
 export function updateRenderableState(state: RenderableState, props: Required<BaseProps>) {
     state.visible = props.visible
     state.depthMask = props.depthMask
+}
+
+export type VisualQuality = 'custom' | 'auto' | 'highest' | 'high' | 'medium' | 'low' | 'lowest'
+
+interface QualityProps {
+    quality: VisualQuality
+    detail: number
+    radialSegments: number
+}
+
+export function getQualityProps(props: Partial<QualityProps>, structure: Structure) {
+    let quality = defaults(props.quality, 'auto' as VisualQuality)
+    let detail = 1
+    let radialSegments = 12
+
+    if (quality === 'auto') {
+        const score = structure.elementCount
+        if (score > 500_000) {
+            quality = 'lowest'
+        } else if (score > 100_000) {
+            quality = 'low'
+        } else if (score > 30_000) {
+            quality = 'medium'
+        } else {
+            quality = 'high'
+        }
+    }
+
+    switch (quality) {
+        case 'highest':
+            detail = 3
+            radialSegments = 36
+            break
+        case 'high':
+            detail = 2
+            radialSegments = 24
+            break
+        case 'medium':
+            detail = 1
+            radialSegments = 12
+            break
+        case 'low':
+            detail = 0
+            radialSegments = 5
+            break
+        case 'lowest':
+            detail = 0
+            radialSegments = 3
+            break
+        case 'custom':
+            detail = defaults(props.detail, 1)
+            radialSegments = defaults(props.radialSegments, 12)
+            break
+    }
+
+    return {
+        detail,
+        radialSegments
+    }
 }

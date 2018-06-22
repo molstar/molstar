@@ -8,74 +8,17 @@
 import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { Representation, RepresentationProps, Visual, VisualQuality, DefaultBaseProps } from '..';
+import { Representation, RepresentationProps, Visual } from '..';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
-import { defaults } from 'mol-util';
+import { getQualityProps, DefaultBaseProps } from '../util';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<Unit.SymmetryGroup, P> { }
 export interface  StructureVisual<P extends RepresentationProps = {}> extends Visual<Structure, P> { }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
-
-interface QualityProps {
-    quality: VisualQuality
-    detail: number
-    radialSegments: number
-}
-
-function getQualityProps(props: Partial<QualityProps>, structure: Structure) {
-    let quality = defaults(props.quality, 'auto' as VisualQuality)
-    let detail = 1
-    let radialSegments = 12
-
-    if (quality === 'auto') {
-        const score = structure.elementCount
-        if (score > 500_000) {
-            quality = 'lowest'
-        } else if (score > 100_000) {
-            quality = 'low'
-        } else if (score > 30_000) {
-            quality = 'medium'
-        } else {
-            quality = 'high'
-        }
-    }
-
-    switch (quality) {
-        case 'highest':
-            detail = 3
-            radialSegments = 36
-            break
-        case 'high':
-            detail = 2
-            radialSegments = 24
-            break
-        case 'medium':
-            detail = 1
-            radialSegments = 12
-            break
-        case 'low':
-            detail = 0
-            radialSegments = 5
-            break
-        case 'lowest':
-            detail = 0
-            radialSegments = 3
-            break
-        case 'custom':
-            detail = defaults(props.detail, 1)
-            radialSegments = defaults(props.radialSegments, 12)
-            break
-    }
-
-    return {
-        detail,
-        radialSegments
-    }
-}
 
 export const DefaultStructureProps = {
     ...DefaultBaseProps,
