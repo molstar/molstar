@@ -29,6 +29,7 @@ export const DefaultElementSphereProps = {
     ...DefaultStructureProps,
     sizeTheme: { name: 'physical', factor: 1 } as SizeTheme,
     detail: 0,
+    unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
 }
 export type ElementSphereProps = Partial<typeof DefaultElementSphereProps>
 
@@ -47,13 +48,15 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
             renderObjects.length = 0 // clear
             currentGroup = group
 
-            const { detail, colorTheme, sizeTheme } = { ...DefaultElementSphereProps, ...props }
+            const { detail, colorTheme, sizeTheme, unitKinds } = { ...DefaultElementSphereProps, ...props }
             const instanceCount = group.units.length
             const elementCount = group.elements.length
             const unit = group.units[0]
 
             const radius = getElementRadius(unit, sizeTheme)
-            mesh = await createElementSphereMesh(ctx, unit, radius, detail, mesh)
+            mesh = unitKinds.includes(unit.kind)
+                ? await createElementSphereMesh(ctx, unit, radius, detail, mesh)
+                : Mesh.createEmpty(mesh)
 
             if (ctx.shouldUpdate) await ctx.update('Computing spacefill transforms');
             const transforms = createTransforms(group)

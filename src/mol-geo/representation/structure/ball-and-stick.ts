@@ -8,7 +8,7 @@ import { StructureRepresentation } from '.';
 import { ElementSphereVisual, DefaultElementSphereProps } from './visual/element-sphere';
 import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from './visual/intra-unit-link-cylinder';
 import { PickingId } from '../../util/picking';
-import { Structure } from 'mol-model/structure';
+import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
@@ -20,6 +20,7 @@ export const DefaultBallAndStickProps = {
     ...DefaultIntraUnitLinkProps,
 
     sizeTheme: { name: 'uniform', value: 0.25 } as SizeTheme,
+    unitKinds: [ Unit.Kind.Atomic ] as Unit.Kind[]
 }
 export type BallAndStickProps = Partial<typeof DefaultBallAndStickProps>
 
@@ -29,7 +30,6 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
 
     return {
         get renderObjects() {
-            // return linkRepr.renderObjects
             return [ ...elmementRepr.renderObjects, ...linkRepr.renderObjects ]
         },
         get props() {
