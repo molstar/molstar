@@ -117,6 +117,8 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
                                     {qualityOptions}
                                 </select>
                             </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
                             <span>Color theme</span>
                             <div>
                                 <select
