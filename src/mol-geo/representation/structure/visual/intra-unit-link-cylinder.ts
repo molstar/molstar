@@ -135,7 +135,7 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
         async update(ctx: RuntimeContext, props: IntraUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            if (!cylinders) return false
+            if (!cylinders || currentProps.radialSegments !== newProps.radialSegments) return false
             // TODO
 
             ValueCell.updateIfChanged(cylinders.values.uAlpha, newProps.alpha)

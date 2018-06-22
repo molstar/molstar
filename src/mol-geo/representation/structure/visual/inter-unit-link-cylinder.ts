@@ -118,7 +118,7 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
         async update(ctx: RuntimeContext, props: InterUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            if (!cylinders) return false
+            if (!cylinders || currentProps.radialSegments !== newProps.radialSegments) return false
             // TODO
 
             ValueCell.updateIfChanged(cylinders.values.uAlpha, newProps.alpha)
@@ -129,7 +129,7 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
             cylinders.state.visible = newProps.visible
             cylinders.state.depthMask = newProps.depthMask
 
-            return true
+            return false
         },
         getLoci(pickingId: PickingId) {
             return getLinkLoci(pickingId, currentStructure, cylinders.id)

@@ -8,16 +8,64 @@
 import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { Representation, RepresentationProps, Visual } from '..';
+import { Representation, RepresentationProps, Visual, VisualQuality } from '..';
 import { ColorTheme, SizeTheme } from '../../theme';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
+import { defaults } from 'mol-util';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<Unit.SymmetryGroup, P> { }
 export interface  StructureVisual<P extends RepresentationProps = {}> extends Visual<Structure, P> { }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
+
+interface QualityProps {
+    quality: VisualQuality
+    detail: number
+    radialSegments: number
+}
+
+function getQualityProps(props: Partial<QualityProps>, structure: Structure) {
+    const quality = defaults(props.quality, 'auto' as VisualQuality)
+    let detail = 1
+    let radialSegments = 12
+
+    switch (quality) {
+        case 'highest':
+            detail = 3
+            radialSegments = 36
+            break
+        case 'high':
+            detail = 2
+            radialSegments = 24
+            break
+        case 'medium':
+            detail = 1
+            radialSegments = 12
+            break
+        case 'low':
+            detail = 0
+            radialSegments = 5
+            break
+        case 'lowest':
+            detail = 0
+            radialSegments = 3
+            break
+        case 'auto':
+            // TODO
+            break
+        case 'custom':
+            detail = defaults(props.detail, 1)
+            radialSegments = defaults(props.radialSegments, 12)
+            break
+    }
+
+    return {
+        detail,
+        radialSegments
+    }
+}
 
 export const DefaultStructureProps = {
     colorTheme: { name: 'instance-index' } as ColorTheme,
@@ -27,6 +75,7 @@ export const DefaultStructureProps = {
     doubleSided: false,
     depthMask: true,
     useFog: true,
+    quality: 'auto' as VisualQuality
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 
@@ -39,7 +88,8 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
     function create(structure: Structure, props: P = {} as P) {
-        _props = Object.assign({}, DefaultStructureProps, _props, props)
+        _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
+        console.log('create struct', (_props as any).detail, (_props as any).radialSegments)
 
         return Task.create('Creating StructureRepresentation', async ctx => {
             if (!_structure) {
@@ -103,7 +153,10 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
 
     function update(props: P) {
         return Task.create('Updating StructureRepresentation', async ctx => {
-            _props = Object.assign({}, DefaultStructureProps, _props, props)
+            console.log(getQualityProps(props, _structure))
+            _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
+
+            console.log('update struct', (_props as any).detail, (_props as any).radialSegments)
 
             unitsVisuals.forEach(async ({ visual, group }) => {
                 if (!await visual.update(ctx, _props)) {
@@ -152,6 +205,9 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
             unitsVisuals.forEach(({ visual }) => renderObjects.push(...visual.renderObjects))
             if (structureVisual) renderObjects.push(...structureVisual.renderObjects)
             return renderObjects
+        },
+        get props() {
+            return _props
         },
         create,
         update,

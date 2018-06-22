@@ -32,6 +32,9 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
             // return linkRepr.renderObjects
             return [ ...elmementRepr.renderObjects, ...linkRepr.renderObjects ]
         },
+        get props() {
+            return { ...elmementRepr.props, ...linkRepr.props }
+        },
         create: (structure: Structure, props: BallAndStickProps = {} as BallAndStickProps) => {
             const p = Object.assign({}, DefaultBallAndStickProps, props)
             return Task.create('Creating BallAndStickRepresentation', async ctx => {
@@ -40,9 +43,10 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
             })
         },
         update: (props: BallAndStickProps) => {
+            const p = Object.assign({}, props)
             return Task.create('Updating BallAndStickRepresentation', async ctx => {
-                await elmementRepr.update(props).runInContext(ctx)
-                await linkRepr.update(props).runInContext(ctx)
+                await elmementRepr.update(p).runInContext(ctx)
+                await linkRepr.update(p).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

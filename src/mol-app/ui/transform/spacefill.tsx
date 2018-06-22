@@ -15,9 +15,10 @@ import { Toggle } from '../controls/common';
 import { SpacefillEntity } from 'mol-view/state/entity';
 import { SpacefillUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorTheme } from 'mol-geo/theme';
+import { ColorTheme, SizeTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
+import { VisualQuality } from 'mol-geo/representation';
 
 export const ColorThemeInfo = {
     'atom-index': {},
@@ -35,9 +36,12 @@ interface SpacefillState {
     detail: number
     colorTheme: ColorTheme
     colorValue: Color
+    sizeTheme: SizeTheme
     visible: boolean
     alpha: number
     depthMask: boolean
+    useFog: boolean
+    quality: VisualQuality
 }
 
 export class Spacefill extends View<Controller<any>, SpacefillState, { transform: SpacefillUpdate, entity: SpacefillEntity, ctx: StateContext }> {
@@ -48,12 +52,20 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorTheme,
         colorValue: 0x000000,
+        sizeTheme: { name: 'uniform' } as SizeTheme,
         visible: true,
         alpha: 1,
-        depthMask: true
+        depthMask: true,
+        useFog: true,
+        quality: 'auto' as VisualQuality
+    }
+
+    componentWillMount() {
+        this.setState({ ...this.state, ...this.props.entity.value.props })
     }
 
     update(state?: Partial<SpacefillState>) {
+        console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)
@@ -62,6 +74,10 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
 
     render() {
         const { transform } = this.props
+
+        const qualityOptions = ['auto', 'custom', 'highest', 'high', 'medium', 'low', 'lowest'].map((name, idx) => {
+            return <option key={name} value={name}>{name}</option>
+        })
 
         const sphereDetailOptions = [0, 1, 2, 3].map((value, idx) => {
             return <option key={value} value={value}>{value.toString()}</option>
@@ -87,6 +103,18 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                 </div>
                 <div className='molstar-panel-body'>
                     <div>
+                    <div className='molstar-control-row molstar-options-group'>
+                        <span>Quality</span>
+                            <div>
+                                <select
+                                    className='molstar-form-control'
+                                    value={this.state.quality}
+                                    onChange={(e) => this.update({ quality: e.target.value as VisualQuality })}
+                                >
+                                    {qualityOptions}
+                                </select>
+                            </div>
+                        </div>
                         <div className='molstar-control-row molstar-options-group'>
                             <span>Sphere detail</span>
                             <div>

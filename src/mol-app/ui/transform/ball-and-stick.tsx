@@ -15,9 +15,10 @@ import { Toggle } from '../controls/common';
 import { BallAndStickEntity } from 'mol-view/state/entity';
 import { BallAndStickUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorTheme } from 'mol-geo/theme';
+import { ColorTheme, SizeTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
+import { VisualQuality } from 'mol-geo/representation';
 
 export const ColorThemeInfo = {
     'atom-index': {},
@@ -34,9 +35,17 @@ interface BallAndStickState {
     flatShaded: boolean
     colorTheme: ColorTheme
     colorValue: Color
+    sizeTheme: SizeTheme
     visible: boolean
     alpha: number
     depthMask: boolean
+    useFog: boolean
+    quality: VisualQuality
+    linkScale: number
+    linkSpacing: number
+    linkRadius: number
+    radialSegments: number
+    detail: number
 }
 
 export class BallAndStick extends View<Controller<any>, BallAndStickState, { transform: BallAndStickUpdate, entity: BallAndStickEntity, ctx: StateContext }> {
@@ -46,9 +55,21 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
         flatShaded: false,
         colorTheme: { name: 'element-symbol' } as ColorTheme,
         colorValue: 0x000000,
+        sizeTheme: { name: 'uniform' } as SizeTheme,
         visible: true,
         alpha: 1,
-        depthMask: true
+        depthMask: true,
+        useFog: true,
+        quality: 'auto' as VisualQuality,
+        linkScale: 0.4,
+        linkSpacing: 1,
+        linkRadius: 0.25,
+        radialSegments: 16,
+        detail: 1
+    }
+
+    componentWillMount() {
+        this.setState({ ...this.state, ...this.props.entity.value.props })
     }
 
     update(state?: Partial<BallAndStickState>) {
@@ -60,6 +81,10 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
 
     render() {
         const { transform } = this.props
+
+        const qualityOptions = ['auto', 'custom', 'highest', 'high', 'medium', 'low', 'lowest'].map((name, idx) => {
+            return <option key={name} value={name}>{name}</option>
+        })
 
         const colorThemeOptions = Object.keys(ColorThemeInfo).map((name, idx) => {
             return <option key={name} value={name}>{name}</option>
@@ -82,6 +107,16 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
                 <div className='molstar-panel-body'>
                     <div>
                         <div className='molstar-control-row molstar-options-group'>
+                            <span>Quality</span>
+                            <div>
+                                <select
+                                    className='molstar-form-control'
+                                    value={this.state.quality}
+                                    onChange={(e) => this.update({ quality: e.target.value as VisualQuality })}
+                                >
+                                    {qualityOptions}
+                                </select>
+                            </div>
                             <span>Color theme</span>
                             <div>
                                 <select

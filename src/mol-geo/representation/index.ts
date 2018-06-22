@@ -10,10 +10,13 @@ import { PickingId } from '../util/picking';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../util/marker-data';
 
+export type VisualQuality = 'custom' | 'auto' | 'highest' | 'high' | 'medium' | 'low' | 'lowest'
+
 export interface RepresentationProps {}
 
 export interface Representation<D, P extends RepresentationProps = {}> {
     readonly renderObjects: ReadonlyArray<RenderObject>
+    readonly props: Readonly<P>
     create: (data: D, props?: P) => Task<void>
     update: (props: P) => Task<void>
     getLoci: (pickingId: PickingId) => Loci

@@ -15,16 +15,15 @@ import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-sti
 
 const spacefillProps: SpacefillProps = {
     doubleSided: true,
-    detail: 0,
-    colorTheme: { name: 'atom-index' }
+    colorTheme: { name: 'atom-index' },
+    quality: 'medium'
 }
 
 const ballAndStickProps: BallAndStickProps = {
     doubleSided: true,
-    detail: 1,
-    radialSegments: 8,
     colorTheme: { name: 'chain-id' },
     sizeTheme: { name: 'uniform', value: 0.25 },
+    quality: 'medium'
 }
 
 export class Stage {
@@ -43,8 +42,8 @@ export class Stage {
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
         // this.loadPdbid('1crn') // small
-        this.loadPdbid('1blu') // metal coordination
-        // this.loadPdbid('3pqr') // inter unit bonds
+        // this.loadPdbid('1blu') // metal coordination
+        this.loadPdbid('3pqr') // inter unit bonds
         // this.loadPdbid('4v5a') // ribosome
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
     }

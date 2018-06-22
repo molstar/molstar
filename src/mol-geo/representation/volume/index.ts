@@ -19,8 +19,10 @@ export interface VolumeRepresentation<P extends RepresentationProps = {}> extend
 export function VolumeRepresentation<P>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     const renderObjects: RenderObject[] = []
     let _volumeData: VolumeData
+    let _props: P
 
     function create(volumeData: VolumeData, props: P = {} as P) {
+        _props = props
         return Task.create('VolumeRepresentation.create', async ctx => {
             _volumeData = volumeData
             const visual = visualCtor(_volumeData)
@@ -28,13 +30,18 @@ export function VolumeRepresentation<P>(visualCtor: (volumeData: VolumeData) => 
             renderObjects.push(...visual.renderObjects)
         });
     }
-    
+
     function update(props: P) {
         return Task.create('VolumeRepresentation.update', async ctx => {})
     }
 
     return {
-        renderObjects,
+        get renderObjects () {
+            return renderObjects
+        },
+        get props () {
+            return _props
+        },
         create,
         update,
         getLoci(pickingId: PickingId) {
