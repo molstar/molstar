@@ -13,7 +13,7 @@ import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
 import { Entities } from './properties/common';
 import { SecondaryStructure } from './properties/seconday-structure';
 
-//import from_gro from './formats/gro'
+// import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
 /**
  * Interface to the "source data" of the molecule.
@@ -40,6 +40,7 @@ interface Model extends Readonly<{
         readonly secondaryStructure: SecondaryStructure,
         // maps modified residue name to its parent
         readonly modifiedResidueNameMap: Map<string, string>,
+        readonly asymIdSerialMap: Map<string, number>,
         [customName: string]: any
     },
 
@@ -54,7 +55,7 @@ interface Model extends Readonly<{
 namespace Model {
     export function create(format: Format) {
         switch (format.kind) {
-            //case 'gro': return from_gro(format);
+            // case 'gro': return from_gro(format);
             case 'mmCIF': return from_mmCIF(format);
         }
     }

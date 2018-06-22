@@ -135,7 +135,7 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
-function modResMap(format: mmCIF_Format) {
+function getModifiedResidueNameMap(format: mmCIF_Format) {
     const data = format.data.pdbx_struct_mod_residue;
     const map = new Map<string, string>();
     const comp_id = data.label_comp_id.isDefined ? data.label_comp_id : data.auth_comp_id;
@@ -143,6 +143,24 @@ function modResMap(format: mmCIF_Format) {
 
     for (let i = 0; i < data._rowCount; i++) {
         map.set(comp_id.value(i), parent_id.value(i));
+    }
+
+    return map;
+}
+
+function getAsymIdSerialMap(format: mmCIF_Format) {
+    const data = format.data.struct_asym;
+    const map = new Map<string, number>();
+    let serial = 0
+
+    const id = data.id
+    const count = data._rowCount
+    for (let i = 0; i < count; ++i) {
+        const _id = id.value(i)
+        if (!map.has(_id)) {
+            map.set(_id, serial)
+            serial += 1
+        }
     }
 
     return map;
@@ -176,7 +194,8 @@ function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model
         ? format.data.entry.id.value(0)
         : format.data._name;
 
-    const modifiedResidueNameMap = modResMap(format);
+    const modifiedResidueNameMap = getModifiedResidueNameMap(format);
+    const asymIdSerialMap = getAsymIdSerialMap(format)
 
     return {
         id: UUID.create(),
@@ -191,7 +210,8 @@ function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model
         coarseConformation: coarse.conformation,
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy),
-            modifiedResidueNameMap
+            modifiedResidueNameMap,
+            asymIdSerialMap
         },
         symmetry: getSymmetry(format)
     };
