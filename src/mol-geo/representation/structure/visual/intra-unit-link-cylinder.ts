@@ -94,8 +94,7 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
             const transforms = createTransforms(group)
 
             if (ctx.shouldUpdate) await ctx.update('Computing link colors');
-            // const color = createUniformColor({ value: 0xFF0000 })
-            const color = chainIdLinkColorData({ group, elementCount })
+            const color = chainIdLinkColorData({ group, elementCount }) // TODO
 
             if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)
@@ -118,8 +117,10 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
         async update(ctx: RuntimeContext, props: IntraUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            if (!cylinders || currentProps.radialSegments !== newProps.radialSegments) return false
-            // TODO
+            if (!cylinders) return false
+
+            // TODO create in-place
+            if (currentProps.radialSegments !== newProps.radialSegments) return false
 
             updateMeshValues(cylinders.values, newProps)
             updateRenderableState(cylinders.state, newProps)

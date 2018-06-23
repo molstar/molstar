@@ -27,9 +27,74 @@ export const DefaultStructureProps = {
 }
 export type StructureProps = Partial<typeof DefaultStructureProps>
 
-export function StructureRepresentation<P extends StructureProps>(unitsVisualCtor: () => UnitsVisual<P>, structureVisualCtor?: () => StructureVisual<P>): StructureRepresentation<P> {
-    let unitsVisuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
-    let structureVisual: StructureVisual<P> | undefined
+export function StructureRepresentation<P extends StructureProps>(visualCtor: () => StructureVisual<P>): StructureRepresentation<P> {
+    let visual: StructureVisual<P>
+
+    let _props: Required<P>
+    let _structure: Structure
+
+    function create(structure: Structure, props: P = {} as P) {
+        _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
+
+        return Task.create('Creating StructureRepresentation', async ctx => {
+            if (!_structure) {
+                visual = visualCtor()
+                await visual.create(ctx, structure, _props)
+            } else {
+                if (_structure.hashCode === structure.hashCode) {
+                    await update(_props)
+                } else {
+                    if (!await visual.update(ctx, _props)) {
+                        await visual.create(ctx, _structure, _props)
+                    }
+                }
+            }
+            _structure = structure
+        });
+    }
+
+    function update(props: P) {
+        return Task.create('Updating StructureRepresentation', async ctx => {
+            _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
+
+            if (!await visual.update(ctx, _props)) {
+                await visual.create(ctx, _structure, _props)
+            }
+        })
+    }
+
+    function getLoci(pickingId: PickingId) {
+        let loci: Loci = EmptyLoci
+        const _loci = visual.getLoci(pickingId)
+        if (!isEmptyLoci(_loci)) loci = _loci
+        return loci
+    }
+
+    function mark(loci: Loci, action: MarkerAction) {
+        visual.mark(loci, action)
+    }
+
+    function destroy() {
+        visual.destroy()
+    }
+
+    return {
+        get renderObjects() {
+            return visual.renderObjects
+        },
+        get props() {
+            return _props
+        },
+        create,
+        update,
+        getLoci,
+        mark,
+        destroy
+    }
+}
+
+export function StructureUnitsRepresentation<P extends StructureProps>(visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+    let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _props: Required<P>
     let _structure: Structure
@@ -43,14 +108,9 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
                 _groups = StructureSymmetry.getTransformGroups(structure);
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
-                    const visual = unitsVisualCtor()
+                    const visual = visualCtor()
                     await visual.create(ctx, group, _props)
-                    unitsVisuals.set(group.hashCode, { visual, group })
-                }
-
-                if (structureVisualCtor) {
-                    structureVisual = structureVisualCtor()
-                    await structureVisual.create(ctx, structure, _props)
+                    visuals.set(group.hashCode, { visual, group })
                 }
             } else {
                 if (_structure.hashCode === structure.hashCode) {
@@ -58,8 +118,8 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
                 } else {
                     _groups = StructureSymmetry.getTransformGroups(structure);
                     const newGroups: Unit.SymmetryGroup[] = []
-                    const oldUnitsVisuals = unitsVisuals
-                    unitsVisuals = new Map()
+                    const oldUnitsVisuals = visuals
+                    visuals = new Map()
                     for (let i = 0; i < _groups.length; i++) {
                         const group = _groups[i];
                         const visualGroup = oldUnitsVisuals.get(group.hashCode)
@@ -71,9 +131,9 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
                             oldUnitsVisuals.delete(group.hashCode)
                         } else {
                             newGroups.push(group)
-                            const visual = unitsVisualCtor()
+                            const visual = visualCtor()
                             await visual.create(ctx, group, _props)
-                            unitsVisuals.set(group.hashCode, { visual, group })
+                            visuals.set(group.hashCode, { visual, group })
                         }
                     }
 
@@ -81,17 +141,11 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
                     const unusedVisuals: UnitsVisual<P>[] = []
                     oldUnitsVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
                     newGroups.forEach(async group => {
-                        const visual = unusedVisuals.pop() || unitsVisualCtor()
+                        const visual = unusedVisuals.pop() || visualCtor()
                         await visual.create(ctx, group, _props)
-                        unitsVisuals.set(group.hashCode, { visual, group })
+                        visuals.set(group.hashCode, { visual, group })
                     })
                     unusedVisuals.forEach(visual => visual.destroy())
-
-                    if (structureVisual) {
-                        if (!await structureVisual.update(ctx, _props)) {
-                            await structureVisual.create(ctx, _structure, _props)
-                        }
-                    }
                 }
             }
             _structure = structure
@@ -100,57 +154,38 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
 
     function update(props: P) {
         return Task.create('Updating StructureRepresentation', async ctx => {
-            console.log(getQualityProps(props, _structure))
             _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
 
-            console.log('update struct', (_props as any).detail, (_props as any).radialSegments)
-
-            unitsVisuals.forEach(async ({ visual, group }) => {
+            visuals.forEach(async ({ visual, group }) => {
                 if (!await visual.update(ctx, _props)) {
                     await visual.create(ctx, group, _props)
                 }
             })
-
-            if (structureVisual) {
-                if (!await structureVisual.update(ctx, _props)) {
-                    await structureVisual.create(ctx, _structure, _props)
-                }
-            }
         })
     }
 
     function getLoci(pickingId: PickingId) {
         let loci: Loci = EmptyLoci
-        unitsVisuals.forEach(({ visual }) => {
+        visuals.forEach(({ visual }) => {
             const _loci = visual.getLoci(pickingId)
             if (!isEmptyLoci(_loci)) loci = _loci
         })
-        if (structureVisual) {
-            const _loci = structureVisual.getLoci(pickingId)
-            if (!isEmptyLoci(_loci)) loci = _loci
-        }
         return loci
     }
 
     function mark(loci: Loci, action: MarkerAction) {
-        unitsVisuals.forEach(({ visual }) => visual.mark(loci, action))
-        if (structureVisual) structureVisual.mark(loci, action)
+        visuals.forEach(({ visual }) => visual.mark(loci, action))
     }
 
     function destroy() {
-        unitsVisuals.forEach(({ visual }) => visual.destroy())
-        unitsVisuals.clear()
-        if (structureVisual) {
-            structureVisual.destroy()
-            structureVisual = undefined
-        }
+        visuals.forEach(({ visual }) => visual.destroy())
+        visuals.clear()
     }
 
     return {
         get renderObjects() {
             const renderObjects: RenderObject[] = []
-            unitsVisuals.forEach(({ visual }) => renderObjects.push(...visual.renderObjects))
-            if (structureVisual) renderObjects.push(...structureVisual.renderObjects)
+            visuals.forEach(({ visual }) => renderObjects.push(...visual.renderObjects))
             return renderObjects
         },
         get props() {

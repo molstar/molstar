@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureRepresentation } from '.';
+import { StructureRepresentation, StructureUnitsRepresentation } from '.';
 import { ElementSphereVisual, DefaultElementSphereProps } from './visual/element-sphere';
 import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from './visual/intra-unit-link-cylinder';
 import { PickingId } from '../../util/picking';
@@ -25,46 +25,56 @@ export const DefaultBallAndStickProps = {
 export type BallAndStickProps = Partial<typeof DefaultBallAndStickProps>
 
 export function BallAndStickRepresentation(): StructureRepresentation<BallAndStickProps> {
-    const elmementRepr = StructureRepresentation(ElementSphereVisual)
-    const linkRepr = StructureRepresentation(IntraUnitLinkVisual, InterUnitLinkVisual)
+    const elmementRepr = StructureUnitsRepresentation(ElementSphereVisual)
+    const intraLinkRepr = StructureUnitsRepresentation(IntraUnitLinkVisual)
+    const interLinkRepr = StructureRepresentation(InterUnitLinkVisual)
 
     return {
         get renderObjects() {
-            return [ ...elmementRepr.renderObjects, ...linkRepr.renderObjects ]
+            return [ ...elmementRepr.renderObjects, ...intraLinkRepr.renderObjects, ...interLinkRepr.renderObjects ]
         },
         get props() {
-            return { ...elmementRepr.props, ...linkRepr.props }
+            return { ...elmementRepr.props, ...intraLinkRepr.props, ...interLinkRepr.props }
         },
         create: (structure: Structure, props: BallAndStickProps = {} as BallAndStickProps) => {
             const p = Object.assign({}, DefaultBallAndStickProps, props)
-            return Task.create('Creating BallAndStickRepresentation', async ctx => {
+            return Task.create('DistanceRestraintRepresentation', async ctx => {
                 await elmementRepr.create(structure, p).runInContext(ctx)
-                await linkRepr.create(structure, p).runInContext(ctx)
+                await intraLinkRepr.create(structure, p).runInContext(ctx)
+                await interLinkRepr.create(structure, p).runInContext(ctx)
             })
         },
         update: (props: BallAndStickProps) => {
             const p = Object.assign({}, props)
             return Task.create('Updating BallAndStickRepresentation', async ctx => {
                 await elmementRepr.update(p).runInContext(ctx)
-                await linkRepr.update(p).runInContext(ctx)
+                await intraLinkRepr.update(p).runInContext(ctx)
+                await interLinkRepr.update(p).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
             const sphereLoci = elmementRepr.getLoci(pickingId)
-            const intraLinkLoci = linkRepr.getLoci(pickingId)
+            const intraLinkLoci = intraLinkRepr.getLoci(pickingId)
+            const interLinkLoci = interLinkRepr.getLoci(pickingId)
             if (isEmptyLoci(sphereLoci)) {
-                return intraLinkLoci
+                if (isEmptyLoci(intraLinkLoci)) {
+                    return interLinkLoci
+                } else {
+                    return intraLinkLoci
+                }
             } else {
                 return sphereLoci
             }
         },
         mark: (loci: Loci, action: MarkerAction) => {
             elmementRepr.mark(loci, action)
-            linkRepr.mark(loci, action)
+            intraLinkRepr.mark(loci, action)
+            interLinkRepr.mark(loci, action)
         },
         destroy() {
             elmementRepr.destroy()
-            linkRepr.destroy()
+            intraLinkRepr.destroy()
+            interLinkRepr.destroy()
         }
     }
 }

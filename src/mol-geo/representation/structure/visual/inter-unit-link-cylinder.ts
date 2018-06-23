@@ -77,8 +77,7 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
             const transforms = createIdentityTransform()
 
             if (ctx.shouldUpdate) await ctx.update('Computing link colors');
-            const color = createUniformColor({ value: 0x999911 })
-            // const color = chainIdLinkColorData({ group, elementCount })
+            const color = createUniformColor({ value: 0x999911 }) // TODO
 
             if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)
