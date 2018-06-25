@@ -24,6 +24,7 @@ import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { Element } from '../../../structure'
+import { CustomProperties } from '../properties/custom';
 
 import mmCIF_Format = Format.mmCIF
 type AtomSite = mmCIF_Database['atom_site']
@@ -184,6 +185,7 @@ function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model
         sourceData: format,
         modelNum: format.data.atom_site.pdbx_PDB_model_num.value(0),
         entities,
+        symmetry: getSymmetry(format),
         atomicHierarchy,
         sequence: getSequence(format.data, entities, atomicHierarchy, modifiedResidueNameMap),
         atomicConformation: getConformation(atom_site),
@@ -193,7 +195,9 @@ function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy),
             modifiedResidueNameMap
         },
-        symmetry: getSymmetry(format)
+        customProperties: new CustomProperties(),
+        _staticPropertyData: Object.create(null),
+        _dynamicPropertyData: Object.create(null)
     };
 }
 

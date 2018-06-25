@@ -11,7 +11,7 @@ import { Structure, Element } from '../structure'
 import { Model } from '../model'
 import P from '../query/properties'
 
-interface Context {
+export interface CifExportContext {
     structure: Structure,
     model: Model
 }
@@ -53,7 +53,7 @@ const atom_site_fields: CifField<Element.Location>[] = [
 ];
 
 function copy_mmCif_cat(name: keyof mmCIF_Schema) {
-    return ({ model }: Context) => {
+    return ({ model }: CifExportContext) => {
         if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
         const table = model.sourceData.data[name];
         if (!table || !table._rowCount) return CifCategory.Empty;
@@ -61,12 +61,12 @@ function copy_mmCif_cat(name: keyof mmCIF_Schema) {
     };
 }
 
-function _entity({ model, structure }: Context): CifCategory {
+function _entity({ model, structure }: CifExportContext): CifCategory {
     const keys = Structure.getEntityKeys(structure);
     return CifCategory.ofTable('entity', model.entities.data, keys);
 }
 
-function _atom_site({ structure }: Context): CifCategory {
+function _atom_site({ structure }: CifExportContext): CifCategory {
     return {
         data: structure,
         name: 'atom_site',
@@ -104,7 +104,7 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
 
-    const ctx: Context[] = [{ structure, model }];
+    const ctx: CifExportContext[] = [{ structure, model }];
 
     for (const cat of Categories) {
         encoder.writeCategory(cat, ctx);

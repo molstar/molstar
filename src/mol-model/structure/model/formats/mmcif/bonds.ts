@@ -10,6 +10,8 @@ import { LinkType } from '../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from './util'
 import { Column } from 'mol-data/db'
 
+// TODO: add dynamic property descriptor for this?
+
 export interface StructConn {
     getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>
     getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>
@@ -100,7 +102,7 @@ export namespace StructConn {
 
     export const PropName = '__StructConn__';
     export function fromModel(model: Model): StructConn | undefined {
-        if (model.properties[PropName]) return model.properties[PropName];
+        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
 
         if (model.sourceData.kind !== 'mmCIF') return;
         const { struct_conn } = model.sourceData.data;
@@ -189,7 +191,7 @@ export namespace StructConn {
         }
 
         const ret = new StructConnImpl(entries);
-        model.properties[PropName] = ret;
+        model._staticPropertyData[PropName] = ret;
         return ret;
     }
 }
@@ -230,7 +232,7 @@ export namespace ComponentBond {
 
     export const PropName = '__ComponentBond__';
     export function fromModel(model: Model): ComponentBond | undefined {
-        if (model.properties[PropName]) return model.properties[PropName];
+        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
 
         if (model.sourceData.kind !== 'mmCIF') return
         const { chem_comp_bond } = model.sourceData.data;
@@ -269,7 +271,7 @@ export namespace ComponentBond {
             entry.add(nameA, nameB, ord, flags);
         }
 
-        model.properties[PropName] = compBond;
+        model._staticPropertyData[PropName] = compBond;
         return compBond;
     }
 }
