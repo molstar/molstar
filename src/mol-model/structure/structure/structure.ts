@@ -16,6 +16,7 @@ import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { Queries } from '../query';
 import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
+import StructureSymmetry from './symmetry';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -66,6 +67,13 @@ class Structure {
         if (this._links) return this._links;
         this._links = computeInterUnitBonds(this);
         return this._links;
+    }
+
+    private _symmetryGroups?: ReadonlyArray<Unit.SymmetryGroup> = void 0;
+    get symmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {
+        if (this._symmetryGroups) return this._symmetryGroups;
+        this._symmetryGroups = StructureSymmetry.computeTransformGroups(this);
+        return this._symmetryGroups;
     }
 
     constructor(units: ArrayLike<Unit>) {

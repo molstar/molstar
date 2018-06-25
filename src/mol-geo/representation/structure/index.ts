@@ -43,7 +43,7 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
 
         return Task.create('Creating StructureRepresentation', async ctx => {
             if (!_structure) {
-                _groups = StructureSymmetry.getTransformGroups(structure);
+                _groups = structure.symmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = unitsVisualCtor()
@@ -59,7 +59,7 @@ export function StructureRepresentation<P extends StructureProps>(unitsVisualCto
                 if (_structure.hashCode === structure.hashCode) {
                     await update(_props)
                 } else {
-                    _groups = StructureSymmetry.getTransformGroups(structure);
+                    _groups = structure.symmetryGroups;
                     const newGroups: Unit.SymmetryGroup[] = []
                     const oldUnitsVisuals = unitsVisuals
                     unitsVisuals = new Map()
