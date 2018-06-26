@@ -63,6 +63,12 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
     for (const cat of Categories) {
         encoder.writeCategory(cat, ctx);
     }
+    for (const customProp of model.customProperties.all) {
+        const cats = customProp.cifExport.categoryProvider(ctx[0]);
+        for (const cat of cats) {
+            encoder.writeCategory(cat, ctx);
+        }
+    }
 }
 
 function to_mmCIF(name: string, structure: Structure, asBinary = false) {

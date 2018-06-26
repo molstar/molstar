@@ -207,7 +207,7 @@ async function run(frame: CifFrame) {
     printUnits(structure);
     printSymmetryInfo(models[0]);
     //printRings(structure);
-    //printLinks(structure, true, true);
+    printLinks(structure, true, true);
     //printModRes(models[0]);
     //printSecStructure(models[0]);
 }

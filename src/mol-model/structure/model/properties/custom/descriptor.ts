@@ -7,12 +7,15 @@
 import { CifWriter } from 'mol-io/writer/cif'
 import { CifExportContext } from '../../../export/mmcif';
 
-interface PropertyDescriptor {
+interface ModelPropertyDescriptor {
     readonly isStatic: boolean,
     readonly name: string,
 
-    /** Given a structure, returns a list of category providers used for export. */
-    getCifCategories: (ctx: CifExportContext) => CifWriter.Category.Provider[]
+    cifExport: {
+        /** used category names that can be used for "filtering" by the writer */
+        readonly categoryNames: ReadonlyArray<string>,
+        categoryProvider: (ctx: CifExportContext) => CifWriter.Category.Provider[]
+    }
 }
 
-export { PropertyDescriptor }
+export { ModelPropertyDescriptor }
