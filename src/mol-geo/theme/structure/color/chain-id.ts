@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Queries, Element } from 'mol-model/structure';
+import { Unit, StructureProperties, Element } from 'mol-model/structure';
 
 import { StructureColorDataProps } from '.';
 import { ColorData, createElementColor } from '../../../util/color-data';
@@ -49,9 +49,9 @@ export function chainIdColorData(props: StructureColorDataProps, locationFn: (l:
 
     let asym_id: Element.Property<string>
     if (Unit.isAtomic(unit)) {
-        asym_id = Queries.props.chain.label_asym_id
+        asym_id = StructureProperties.chain.label_asym_id
     } else if (Unit.isCoarse(unit)) {
-        asym_id = Queries.props.coarse.asym_id
+        asym_id = StructureProperties.coarse.asym_id
     } else {
         throw new Error('unhandled unit kind')
     }
@@ -92,9 +92,9 @@ export function chainIdElementColorData(props: StructureColorDataProps, colorDat
 
     // let asym_id: Element.Property<string>
     // if (Unit.isAtomic(unit)) {
-    //     asym_id = Queries.props.chain.label_asym_id
+    //     asym_id = StructureProperties.chain.label_asym_id
     // } else if (Unit.isCoarse(unit)) {
-    //     asym_id = Queries.props.coarse.asym_id
+    //     asym_id = StructureProperties.coarse.asym_id
     // }
 
     // const l = Element.Location()

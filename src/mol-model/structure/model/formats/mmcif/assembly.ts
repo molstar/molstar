@@ -11,6 +11,7 @@ import { Assembly, OperatorGroup, OperatorGroups } from '../../properties/symmet
 import { Queries as Q, Query } from '../../../query'
 
 import mmCIF_Format = Format.mmCIF
+import { StructureProperties } from '../../../structure';
 
 export function createAssemblies(format: mmCIF_Format): ReadonlyArray<Assembly> {
     const { pdbx_struct_assembly } = format.data;
@@ -58,8 +59,8 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
             const operatorNames = expandOperators(operatorList);
             const operators = getAssemblyOperators(matrices, operatorNames, operatorOffset);
             const selector = Query(Q.generators.atoms({ chainTest: Q.pred.and(
-                Q.pred.eq(Q.props.unit.operator_name, SymmetryOperator.DefaultName),
-                Q.pred.inSet(Q.props.chain.label_asym_id, gen.asymIds)
+                Q.pred.eq(StructureProperties.unit.operator_name, SymmetryOperator.DefaultName),
+                Q.pred.inSet(StructureProperties.chain.label_asym_id, gen.asymIds)
             )}));
             groups[groups.length] = { selector, operators };
             operatorOffset += operators.length;

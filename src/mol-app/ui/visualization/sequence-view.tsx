@@ -7,7 +7,7 @@
 import * as React from 'react'
 import { View } from '../view';
 import { SequenceViewController } from '../../controller/visualization/sequence-view';
-import { Structure, StructureSequence, Queries, Selection } from 'mol-model/structure';
+import { Structure, StructureSequence, Queries, Selection, StructureProperties } from 'mol-model/structure';
 import { Context } from '../../context/context';
 import { InteractivityEvents } from '../../event/basic';
 import { SyncRuntimeContext } from 'mol-task/execution/synchronous';
@@ -27,8 +27,8 @@ export class SequenceView extends View<SequenceViewController, {}, {}> {
 
 function createQuery(entityId: string, label_seq_id: number) {
     return Queries.generators.atoms({
-        entityTest: l => Queries.props.entity.id(l) === entityId,
-        residueTest: l => Queries.props.residue.label_seq_id(l) === label_seq_id
+        entityTest: l => StructureProperties.entity.id(l) === entityId,
+        residueTest: l => StructureProperties.residue.label_seq_id(l) === label_seq_id
     });
 }
 
