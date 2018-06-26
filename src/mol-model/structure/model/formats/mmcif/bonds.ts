@@ -6,6 +6,7 @@
  */
 
 import Model from '../../model'
+import { Element } from '../../../structure'
 import { LinkType } from '../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from './util'
 import { Column } from 'mol-data/db'
@@ -85,7 +86,7 @@ export namespace StructConn {
         distance: number,
         order: number,
         flags: number,
-        partners: { residueIndex: number, atomIndex: number, symmetry: string }[]
+        partners: { residueIndex: number, atomIndex: Element, symmetry: string }[]
     }
 
     type StructConnType =

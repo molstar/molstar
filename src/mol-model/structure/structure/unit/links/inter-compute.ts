@@ -11,6 +11,7 @@ import Unit from '../../unit';
 import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen, LinkComputationParameters, MetalsSet } from './common';
 import { InterUnitBonds } from './data';
 import { UniqueArray } from 'mol-data/generic';
+import { SortedArray } from 'mol-data/int';
 
 const MAX_RADIUS = 4;
 
@@ -56,6 +57,19 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
         const altA = label_alt_idA.value(aI);
         const metalA = MetalsSet.has(aeI);
         const structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
+
+        if (structConnEntries) {
+            for (const se of structConnEntries) {
+                if (se.distance < MAX_RADIUS) continue;
+
+                for (const p of se.partners) {
+                    const _bI = SortedArray.indexOf(unitB.elements, p.atomIndex);
+                    if (_bI < 0) continue;
+                    addLink(_aI, _bI, se.order, se.flags, state);
+                    bondCount++;
+                }
+            }
+        }
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];

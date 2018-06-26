@@ -10,6 +10,7 @@ import { StructConn, ComponentBond } from '../../../model/formats/mmcif/bonds'
 import Unit from '../../unit'
 import { IntAdjacencyGraph } from 'mol-math/graph';
 import { LinkComputationParameters, getElementIdx, MetalsSet, getElementThreshold, isHydrogen, getElementPairThreshold } from './common';
+import { SortedArray } from 'mol-data/int';
 
 function getGraph(atomA: number[], atomB: number[], _order: number[], _flags: number[], atomCount: number): IntraUnitLinks {
     const builder = new IntAdjacencyGraph.EdgeBuilder(atomCount, atomA, atomB);
@@ -69,6 +70,21 @@ function _computeBonds(unit: Unit.Atomic, params: LinkComputationParameters): In
         const altA = label_alt_id.value(aI);
         const metalA = MetalsSet.has(aeI);
         const structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
+
+        if (structConnEntries) {
+            for (const se of structConnEntries) {
+                if (se.distance < MAX_RADIUS) continue;
+
+                for (const p of se.partners) {
+                    const _bI = SortedArray.indexOf(unit.elements, p.atomIndex);
+                    if (_bI < 0) continue;
+                    atomA[atomA.length] = _aI;
+                    atomB[atomB.length] = _bI;
+                    flags[flags.length] = se.flags;
+                    order[order.length] = se.order;
+                }
+            }
+        }
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];
