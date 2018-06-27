@@ -231,7 +231,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
         };
         const model = createModelIHM(format, data);
         attachProps(model);
-        models.push(createModelIHM(format, data));
+        models.push(model);
     }
 
     return models;
