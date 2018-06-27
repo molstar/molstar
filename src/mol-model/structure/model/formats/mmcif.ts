@@ -166,6 +166,11 @@ function getAsymIdSerialMap(format: mmCIF_Format) {
     return map;
 }
 
+// TODO split IHM data into models as well, atomistic ihm models have `atom_site.ihm_model_id`,
+//      how to handle it in a generic way, i.e. when there is no ihm data, use `atom_site.pdbx_PDB_model_num`
+//      but if there is use `atom_site.ihm_model_id`, `ihm_sphere_obj_site.model_id` and
+//      `ihm_gaussian_obj_site.model_id` for splitting
+//      - PDBDEV_00000002 is an example for an IHM structure with multiple models
 function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model): Model {
     const hierarchyOffsets = findHierarchyOffsets(atom_site);
     const hierarchyData = createHierarchyData(atom_site, hierarchyOffsets);
@@ -201,7 +206,7 @@ function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model
         id: UUID.create(),
         label,
         sourceData: format,
-        modelNum: format.data.atom_site.pdbx_PDB_model_num.value(0),
+        modelNum: atom_site.pdbx_PDB_model_num.value(0),
         entities,
         atomicHierarchy,
         sequence: getSequence(format.data, entities, atomicHierarchy, modifiedResidueNameMap),
