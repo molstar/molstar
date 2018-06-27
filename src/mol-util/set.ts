@@ -15,14 +15,14 @@ export function isSuperset<T>(setA: Set<T>, setB: Set<T>) {
 }
 
 /** Create set containing elements of both set a and set b. */
-export function union<T>(setA: Set<T>, setB: Set<T>) {
+export function union<T>(setA: Set<T>, setB: Set<T>): Set<T> {
     const union = new Set(setA);
     for (const elem of Array.from(setB)) union.add(elem);
     return union;
 }
 
 /** Create set containing elements of set a that are also in set b. */
-export function intersection<T>(setA: Set<T>, setB: Set<T>) {
+export function intersection<T>(setA: Set<T>, setB: Set<T>): Set<T> {
     const intersection = new Set();
     for (const elem of Array.from(setB)) {
         if (setA.has(elem)) intersection.add(elem);
@@ -31,7 +31,7 @@ export function intersection<T>(setA: Set<T>, setB: Set<T>) {
 }
 
 /** Create set containing elements of set a that are not in set b. */
-export function difference<T>(setA: Set<T>, setB: Set<T>) {
+export function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
     const difference = new Set(setA);
     for (const elem of Array.from(setB)) difference.delete(elem);
     return difference;
