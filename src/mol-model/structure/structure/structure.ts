@@ -14,9 +14,10 @@ import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
-import { Queries } from '../query';
 import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
 import { CrossLinkRestraints, extractCrossLinkRestraints } from './unit/pair-restraints';
+import StructureSymmetry from './symmetry';
+import StructureProperties from './properties';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -75,6 +76,13 @@ class Structure {
         if (this._crossLinkRestraints) return this._crossLinkRestraints;
         this._crossLinkRestraints = extractCrossLinkRestraints(this);
         return this._crossLinkRestraints;
+    }
+
+    private _unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup> = void 0;
+    get unitSymmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {
+        if (this._unitSymmetryGroups) return this._unitSymmetryGroups;
+        this._unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
+        return this._unitSymmetryGroups;
     }
 
     constructor(units: ArrayLike<Unit>) {
@@ -253,7 +261,7 @@ namespace Structure {
         const keys = UniqueArray.create<number, number>();
 
         for (const unit of units) {
-            const prop = unit.kind === Unit.Kind.Atomic ? Queries.props.entity.key : Queries.props.coarse.entityKey;
+            const prop = unit.kind === Unit.Kind.Atomic ? StructureProperties.entity.key : StructureProperties.coarse.entityKey;
 
             l.unit = unit;
             const elements = unit.elements;

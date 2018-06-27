@@ -9,7 +9,8 @@ import * as argparse from 'argparse'
 require('util.promisify').shim();
 
 import { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure, Element, Unit, Queries, Format } from 'mol-model/structure'
+import { Model, Structure, Element, Unit, Format, StructureProperties } from 'mol-model/structure'
+// import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { Table } from 'mol-data/db';
 import { openCif, downloadCif } from './helpers';
@@ -164,7 +165,7 @@ export function printUnits(structure: Structure) {
         } else if (Unit.isCoarse(l.unit)) {
             console.log(`Coarse unit ${unit.id} ${unit.conformation.operator.name} (${Unit.isSpheres(l.unit) ? 'spheres' : 'gaussians'}): ${size} elements.`);
 
-            const props = Queries.props.coarse;
+            const props = StructureProperties.coarse;
             const seq = l.unit.model.sequence;
 
             for (let j = 0, _j = Math.min(size, 3); j < _j; j++) {

@@ -11,6 +11,7 @@ import { AtomicHierarchy, AtomicConformation } from './properties/atomic'
 import { ModelSymmetry } from './properties/symmetry'
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
 import { Entities } from './properties/common';
+import { CustomProperties } from './properties/custom';
 import { SecondaryStructure } from './properties/seconday-structure';
 
 // import from_gro from './formats/gro'
@@ -35,16 +36,22 @@ interface Model extends Readonly<{
     atomicHierarchy: AtomicHierarchy,
     atomicConformation: AtomicConformation,
 
-    /** Various parts of the code can "cache" custom properties here */
     properties: {
+        // secondary structure provided by the input file
         readonly secondaryStructure: SecondaryStructure,
         // maps modified residue name to its parent
         readonly modifiedResidueNameMap: Map<string, string>,
-        readonly asymIdSerialMap: Map<string, number>,
-        [customName: string]: any
+        readonly asymIdSerialMap: Map<string, number>
     },
 
-    // TODO: separate properties to "static" (propagated with trajectory) and "dynamic" (computed for each frame separately)
+    customProperties: CustomProperties,
+
+    /**
+     * Not to be accessed directly, each custom property descriptor
+     * defines property accessors that use this field to store the data.
+     */
+    _staticPropertyData: { [name: string]: any },
+    _dynamicPropertyData: { [name: string]: any },
 
     coarseHierarchy: CoarseHierarchy,
     coarseConformation: CoarseConformation

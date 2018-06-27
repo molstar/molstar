@@ -24,8 +24,10 @@ import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { Element } from '../../../structure'
+import { CustomProperties } from '../properties/custom';
 
 import mmCIF_Format = Format.mmCIF
+import { ComponentBond } from './mmcif/bonds';
 type AtomSite = mmCIF_Database['atom_site']
 
 function findModelEnd({ data }: mmCIF_Format, startIndex: number) {
@@ -208,6 +210,7 @@ function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model
         sourceData: format,
         modelNum: atom_site.pdbx_PDB_model_num.value(0),
         entities,
+        symmetry: getSymmetry(format),
         atomicHierarchy,
         sequence: getSequence(format.data, entities, atomicHierarchy, modifiedResidueNameMap),
         atomicConformation: getConformation(atom_site),
@@ -218,8 +221,14 @@ function createModel(format: mmCIF_Format, atom_site: AtomSite, previous?: Model
             modifiedResidueNameMap,
             asymIdSerialMap
         },
-        symmetry: getSymmetry(format)
+        customProperties: new CustomProperties(),
+        _staticPropertyData: Object.create(null),
+        _dynamicPropertyData: Object.create(null)
     };
+}
+
+function attachProps(model: Model) {
+    ComponentBond.attachFromMmCif(model);
 }
 
 function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
@@ -239,6 +248,7 @@ function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
             const modelEnd = findModelEnd(format, modelStart);
             const atom_site = await sortAtomSite(ctx, format.data.atom_site, modelStart, modelEnd);
             const model = createModel(format, atom_site, models.length > 0 ? models[models.length - 1] : void 0);
+            attachProps(model);
             models.push(model);
             modelStart = modelEnd;
         }

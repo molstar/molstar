@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Query, Queries, Structure, Element, StructureSymmetry } from 'mol-model/structure';
+import { Query, Queries, Structure, Element, StructureSymmetry, StructureProperties as Props } from 'mol-model/structure';
 
 export enum QueryParamType {
     String,
@@ -47,23 +47,23 @@ const AtomSiteParameters = {
 
 // function entityTest(params: any): Element.Predicate | undefined {
 //     if (typeof params.entity_id === 'undefined') return void 0;
-//     const p = Queries.props.entity.id, id = '' + params.entityId;
+//     const p = Props.entity.id, id = '' + params.entityId;
 //     return Element.property(l => p(l) === id);
 // }
 
 function entityTest1_555(params: any): Element.Predicate | undefined {
     if (typeof params.entity_id === 'undefined') return Element.property(l => l.unit.conformation.operator.isIdentity);
-    const p = Queries.props.entity.id, id = '' + params.entityId;
+    const p = Props.entity.id, id = '' + params.entityId;
     return Element.property(l => l.unit.conformation.operator.isIdentity && p(l) === id);
 }
 
 function chainTest(params: any): Element.Predicate | undefined {
     if (typeof params.label_asym_id !== 'undefined') {
-        const p = Queries.props.chain.label_asym_id, id = '' + params.label_asym_id;
+        const p = Props.chain.label_asym_id, id = '' + params.label_asym_id;
         return Element.property(l => p(l) === id);
     }
     if (typeof params.auth_asym_id !== 'undefined') {
-        const p = Queries.props.chain.auth_asym_id, id = '' + params.auth_asym_id;
+        const p = Props.chain.auth_asym_id, id = '' + params.auth_asym_id;
         return Element.property(l => p(l) === id);
     }
     return void 0;
@@ -73,27 +73,27 @@ function residueTest(params: any): Element.Predicate | undefined {
     const props: Element.Property<any>[] = [], values: any[] = [];
 
     if (typeof params.label_seq_id !== 'undefined') {
-        props.push(Queries.props.residue.label_seq_id);
+        props.push(Props.residue.label_seq_id);
         values.push(+params.label_seq_id);
     }
 
     if (typeof params.auth_seq_id !== 'undefined') {
-        props.push(Queries.props.residue.auth_seq_id);
+        props.push(Props.residue.auth_seq_id);
         values.push(+params.auth_seq_id);
     }
 
     if (typeof params.label_comp_id !== 'undefined') {
-        props.push(Queries.props.residue.label_comp_id);
+        props.push(Props.residue.label_comp_id);
         values.push(params.label_comp_id);
     }
 
     if (typeof params.auth_comp_id !== 'undefined') {
-        props.push(Queries.props.residue.auth_comp_id);
+        props.push(Props.residue.auth_comp_id);
         values.push(params.auth_comp_id);
     }
 
     if (typeof params.pdbx_PDB_ins_code !== 'undefined') {
-        props.push(Queries.props.residue.pdbx_PDB_ins_code);
+        props.push(Props.residue.pdbx_PDB_ins_code);
         values.push(params.pdbx_PDB_ins_code);
     }
 

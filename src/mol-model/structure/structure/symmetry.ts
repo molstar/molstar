@@ -68,7 +68,7 @@ namespace StructureSymmetry {
         return EquivalenceClasses<number, Unit>(hashUnit, areUnitsEquivalent);
     }
 
-    export function getTransformGroups(s: Structure): ReadonlyArray<Unit.SymmetryGroup> {
+    export function computeTransformGroups(s: Structure): ReadonlyArray<Unit.SymmetryGroup> {
         const groups = UnitEquivalenceBuilder();
         for (const u of s.units) groups.add(u.id, u);
 

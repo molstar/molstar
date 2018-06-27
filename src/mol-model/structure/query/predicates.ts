@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Element } from '../structure'
-import P from './properties'
+import { Element, StructureProperties as P } from '../structure'
 
 namespace Predicates {
     export interface SetLike<A> { has(v: A): boolean }

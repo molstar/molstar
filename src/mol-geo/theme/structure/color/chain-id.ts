@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Queries, Element } from 'mol-model/structure';
+import { Unit, StructureProperties, Element } from 'mol-model/structure';
 
 import { StructureColorDataProps } from '.';
 import { ColorData, createElementColor, createUniformColor } from '../../../util/color-data';
@@ -13,11 +13,12 @@ import { ColorScale } from 'mol-util/color';
 function getAsymId(unit: Unit): Element.Property<string> {
     switch (unit.kind) {
         case Unit.Kind.Atomic:
-            return Queries.props.chain.label_asym_id
+            return StructureProperties.chain.label_asym_id
         case Unit.Kind.Spheres:
         case Unit.Kind.Gaussians:
-            return Queries.props.coarse.asym_id
+            return StructureProperties.coarse.asym_id
     }
+    throw new Error('unhandled unit kind')
 }
 
 export function chainIdColorData(props: StructureColorDataProps, locationFn: (l: Element.Location, renderElementIdx: number) => void, colorData?: ColorData) {

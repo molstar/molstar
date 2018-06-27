@@ -4,15 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Element, Unit, Queries } from 'mol-model/structure';
+import { Element, Unit, StructureProperties } from 'mol-model/structure';
 import { StructureSizeDataProps } from '.';
 import { createAttributeSize } from '../../../util/size-data';
 
 export function getPhysicalRadius(unit: Unit): Element.Property<number> {
     if (Unit.isAtomic(unit)) {
-        return Queries.props.atom.vdw_radius
+        return StructureProperties.atom.vdw_radius
     } else if (Unit.isSpheres(unit)) {
-        return Queries.props.coarse.sphere_radius
+        return StructureProperties.coarse.sphere_radius
     } else {
         return () => 0
     }

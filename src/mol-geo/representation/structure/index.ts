@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureSymmetry, Unit } from 'mol-model/structure';
+import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps, Visual } from '..';
@@ -105,7 +105,7 @@ export function StructureUnitsRepresentation<P extends StructureProps>(visualCto
 
         return Task.create('Creating StructureRepresentation', async ctx => {
             if (!_structure) {
-                _groups = StructureSymmetry.getTransformGroups(structure);
+                _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = visualCtor()
@@ -116,7 +116,7 @@ export function StructureUnitsRepresentation<P extends StructureProps>(visualCto
                 if (_structure.hashCode === structure.hashCode) {
                     await update(_props)
                 } else {
-                    _groups = StructureSymmetry.getTransformGroups(structure);
+                    _groups = structure.unitSymmetryGroups;
                     const newGroups: Unit.SymmetryGroup[] = []
                     const oldUnitsVisuals = visuals
                     visuals = new Map()

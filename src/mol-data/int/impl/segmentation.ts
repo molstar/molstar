@@ -54,7 +54,7 @@ export class SegmentIterator<T extends number = number> implements Iterator<Segs
     private segmentMin = 0;
     private segmentMax = 0;
     private setRange = Interval.Empty;
-    private value: Segs.Segment<T> = { index: 0, start: 0, end: 0 };
+    private value: Segs.Segment<T> = { index: 0, start: 0 as T, end: 0 as T };
 
     hasNext: boolean = false;
 
@@ -75,8 +75,8 @@ export class SegmentIterator<T extends number = number> implements Iterator<Segs
         const segmentEnd = this.segments[this.segmentMin + 1];
         // TODO: add optimized version for interval and array?
         const setEnd = OrderedSet.findPredecessorIndexInInterval(this.set, segmentEnd, this.setRange);
-        this.value.start = Interval.start(this.setRange);
-        this.value.end = setEnd;
+        this.value.start = Interval.start(this.setRange) as T;
+        this.value.end = setEnd as T;
         this.setRange = Interval.ofBounds(setEnd, Interval.end(this.setRange));
         return setEnd > this.value.start;
     }

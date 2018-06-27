@@ -6,8 +6,7 @@
 
 import Query from './query'
 import Selection from './selection'
-import P from './properties'
-import { Element, Unit } from '../structure'
+import { Element, Unit, StructureProperties as P } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
 import { LinearGroupingBuilder } from './utils/builders';
 
