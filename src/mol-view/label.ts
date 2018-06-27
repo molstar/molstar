@@ -61,7 +61,7 @@ export function elementLabel(loc: Element.Location) {
         if (seq_id_begin === seq_id_end) {
             const entityKey = Props.coarse.entityKey(loc)
             const seq = loc.unit.model.sequence.byEntityKey[entityKey]
-            const comp_id = seq.compId.value(seq_id_begin)
+            const comp_id = seq.compId.value(seq_id_begin - 1) // 1-indexed
             element = `[${comp_id}]${seq_id_begin}:${asym_id}`
         } else {
             element = `${seq_id_begin}-${seq_id_end}:${asym_id}`
