@@ -72,7 +72,6 @@ const chain = {
 
 const coarse = {
     key: atom.key,
-    modelKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.modelKey[l.element]),
     entityKey: Element.property(l => !Unit.isCoarse(l.unit) ? notCoarse() : l.unit.coarseElements.entityKey[l.element]),
 
     x: atom.x,

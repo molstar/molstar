@@ -135,11 +135,6 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
     };
 }
 
-// TODO split IHM data into models as well, atomistic ihm models have `atom_site.ihm_model_id`,
-//      how to handle it in a generic way, i.e. when there is no ihm data, use `atom_site.pdbx_PDB_model_num`
-//      but if there is use `atom_site.ihm_model_id`, `ihm_sphere_obj_site.model_id` and
-//      `ihm_gaussian_obj_site.model_id` for splitting
-//      - PDBDEV_00000002 is an example for an IHM structure with multiple models
 function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
     const atomic = getAtomicHierarchyAndConformation(format, data.atom_site, data.entities);
     const coarse = getIHMCoarse(data);
@@ -216,6 +211,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
     const { ihm_model_list } = format.data;
     const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
 
+    // TODO: will IHM require sorting or will we trust it?
     const atom_sites = splitTable(format.data.atom_site, format.data.atom_site.ihm_model_id);
     const sphere_sites = splitTable(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site.model_id);
     const gauss_sites = splitTable(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site.model_id);
@@ -228,7 +224,6 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
         const data: IHMData = {
             model_id: id,
             model_name: model_name.value(i),
-            ihm_model_list,
             entities: entities,
             atom_site: atom_sites.has(id) ? atom_sites.get(id)! : Table.window(format.data.atom_site, format.data.atom_site._schema, 0, 0),
             ihm_sphere_obj_site: sphere_sites.has(id) ? sphere_sites.get(id)! : Table.window(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site._schema, 0, 0),
@@ -240,34 +235,12 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
     }
 
     return models;
-
-    // const atomCount = format.data.atom_site._rowCount;
-    // const isIHM = format.data.ihm_model_list._rowCount > 0;
-
-    // if (atomCount === 0) {
-    //     return isIHM
-    //         ? [createModel(format, format.data.atom_site, void 0)]
-    //         : [];
-    // }
-
-
-    // const models: Model[] = [];
-    // let modelStart = 0;
-    // while (modelStart < atomCount) {
-    //     const modelEnd = findModelEnd(format, modelStart);
-    //     const atom_site = await sortAtomSite(ctx, format.data.atom_site, modelStart, modelEnd);
-    //     const model = createModel(format, atom_site, models.length > 0 ? models[models.length - 1] : void 0);
-    //     attachProps(model);
-    //     models.push(model);
-    //     modelStart = modelEnd;
-    // }
-    // return models;
 }
 
 function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
     return Task.create('Create mmCIF Model', async ctx => {
         const isIHM = format.data.ihm_model_list._rowCount > 0;
-        return isIHM ?  await readIHM(ctx, format) : await readStandard(ctx, format);
+        return isIHM ? await readIHM(ctx, format) : await readStandard(ctx, format);
     });
 }
 

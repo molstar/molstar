@@ -102,6 +102,7 @@ namespace Table {
     }
 
     export function window<S extends R, R extends Schema>(table: Table<S>, schema: R, start: number, end: number) {
+        if (start === 0 && end === table._rowCount) return table;
         const ret = Object.create(null);
         const columns = Object.keys(schema);
         ret._rowCount = view.length;

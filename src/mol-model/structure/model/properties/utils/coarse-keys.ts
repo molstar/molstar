@@ -49,25 +49,18 @@ function missingEntity(k: string) {
     throw new Error(`Missing entity entry for entity id '${k}'.`);
 }
 
-function missingModel(k: string) {
-    throw new Error(`Missing entity entry for model id '${k}'.`);
-}
-
-export function getCoarseKeys(data: CoarseElementData, modelIndex: (id: number) => number, entities: Entities): CoarsedElementKeys {
-    const { model_id, entity_id, asym_id, seq_id_begin, seq_id_end, count, chainSegments } = data;
+export function getCoarseKeys(data: CoarseElementData, entities: Entities): CoarsedElementKeys {
+    const { entity_id, asym_id, seq_id_begin, seq_id_end, count, chainSegments } = data;
 
     const seqMaps = new Map<number, Map<number, number>>();
     const chainMaps = new Map<number, Map<string, number>>(), chainCounter = { index: 0 };
 
     const chainKey = new Int32Array(count);
     const entityKey = new Int32Array(count);
-    const modelKey = new Int32Array(count);
 
     for (let i = 0; i < count; i++) {
         entityKey[i] = entities.getEntityIndex(entity_id.value(i));
         if (entityKey[i] < 0) missingEntity(entity_id.value(i));
-        modelKey[i] = modelIndex(model_id.value(i));
-        if (modelKey[i] < 0) missingModel('' + model_id.value(i));
     }
 
     for (let cI = 0; cI < chainSegments.count; cI++) {
@@ -92,5 +85,5 @@ export function getCoarseKeys(data: CoarseElementData, modelIndex: (id: number) 
 
     const { findChainKey, findSequenceKey } = createLookUp(entities, chainMaps, seqMaps);
 
-    return { chainKey, entityKey, /*modelKey,*/ findSequenceKey, findChainKey };
+    return { chainKey, entityKey, findSequenceKey, findChainKey };
 }

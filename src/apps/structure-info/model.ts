@@ -12,7 +12,6 @@ import { CifFrame } from 'mol-io/reader/cif'
 import { Model, Structure, Element, Unit, Format, StructureProperties } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
-import { Table } from 'mol-data/db';
 import { openCif, downloadCif } from './helpers';
 import { BitFlags } from 'mol-util';
 import { SecondaryStructureType } from 'mol-model/structure/model/types';
@@ -192,12 +191,6 @@ export function printSymmetryInfo(model: Model) {
     console.log(`NCS operators: ${symmetry.ncsOperators && symmetry.ncsOperators.map(a => a.name).join(', ')}`);
 }
 
-export function printIHMModels(model: Model) {
-    if (!model.coarseHierarchy.isDefined) return false;
-    console.log('\nIHM Models\n=============');
-    console.log(Table.formatToString(model.coarseHierarchy.models));
-}
-
 export function printModelStats(models: ReadonlyArray<Model>) {
     console.log('\nModels\n=============');
 
@@ -217,7 +210,6 @@ async function run(frame: CifFrame, args: Args) {
 
     if (args.models) printModelStats(models);
     if (args.seq) printSequence(models[0]);
-    if (args.ihm) printIHMModels(models[0]);
     if (args.units) printUnits(structure);
     if (args.sym) printSymmetryInfo(models[0]);
     if (args.rings) printRings(structure);

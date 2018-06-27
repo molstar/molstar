@@ -14,39 +14,31 @@ import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
 import { Element } from '../../../structure'
 
-type AtomSite = mmCIF['atom_site']
-type SphereSite = mmCIF['ihm_sphere_obj_site']
-type GaussSite = mmCIF['ihm_gaussian_obj_site']
-type IHMModels = mmCIF['ihm_model_list']
-
 export interface IHMData {
     model_id: number,
     model_name: string,
-    ihm_model_list: IHMModels,
     entities: Entities,
-    atom_site: AtomSite,
-    ihm_sphere_obj_site: SphereSite,
-    ihm_gaussian_obj_site: GaussSite
+    atom_site: mmCIF['atom_site'],
+    ihm_sphere_obj_site: mmCIF['ihm_sphere_obj_site'],
+    ihm_gaussian_obj_site: mmCIF['ihm_gaussian_obj_site']
 }
 
 export const EmptyIHMCoarse = { hierarchy: CoarseHierarchy.Empty, conformation: void 0 as any }
 
 export function getIHMCoarse(data: IHMData): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
-    const { ihm_model_list, ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
-    const modelIndex = Column.createIndexer(ihm_model_list.model_id);
+    const { ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
 
     const sphereData = getData(ihm_sphere_obj_site);
     const sphereConformation = getSphereConformation(ihm_sphere_obj_site);
-    const sphereKeys = getCoarseKeys(sphereData, modelIndex, data.entities);
+    const sphereKeys = getCoarseKeys(sphereData, data.entities);
 
     const gaussianData = getData(ihm_gaussian_obj_site);
     const gaussianConformation = getGaussianConformation(ihm_gaussian_obj_site);
-    const gaussianKeys = getCoarseKeys(gaussianData, modelIndex, data.entities);
+    const gaussianKeys = getCoarseKeys(gaussianData, data.entities);
 
     return {
         hierarchy: {
             isDefined: true,
-            //models: ihm_model_list,
             spheres: { ...sphereData, ...sphereKeys },
             gaussians: { ...gaussianData, ...gaussianKeys },
         },
@@ -96,6 +88,6 @@ function getChainSegments(asym_id: Column<string>) {
 }
 
 function getData(data: mmCIF['ihm_sphere_obj_site'] | mmCIF['ihm_gaussian_obj_site']): CoarseElementData {
-    const { model_id, entity_id, seq_id_begin, seq_id_end, asym_id } = data;
-    return { count: model_id.rowCount, entity_id, model_id, asym_id, seq_id_begin, seq_id_end, chainSegments: getChainSegments(asym_id) };
+    const { entity_id, seq_id_begin, seq_id_end, asym_id } = data;
+    return { count: entity_id.rowCount, entity_id, asym_id, seq_id_begin, seq_id_end, chainSegments: getChainSegments(asym_id) };
 }

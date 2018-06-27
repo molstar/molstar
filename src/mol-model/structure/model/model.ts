@@ -25,6 +25,7 @@ interface Model extends Readonly<{
     id: UUID,
     label: string,
 
+    // for IHM, corresponds to ihm_model_list.model_id
     modelNum: number,
 
     sourceData: Format,
