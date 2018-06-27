@@ -14,24 +14,39 @@ import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
 import { Element } from '../../../structure'
 
-export function getIHMCoarse(data: mmCIF, entities: Entities): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
-    if (data.ihm_model_list._rowCount === 0) return { hierarchy: CoarseHierarchy.Empty, conformation: void 0 as any };
+type AtomSite = mmCIF['atom_site']
+type SphereSite = mmCIF['ihm_sphere_obj_site']
+type GaussSite = mmCIF['ihm_gaussian_obj_site']
+type IHMModels = mmCIF['ihm_model_list']
 
+export interface IHMData {
+    model_id: number,
+    model_name: string,
+    ihm_model_list: IHMModels,
+    entities: Entities,
+    atom_site: AtomSite,
+    ihm_sphere_obj_site: SphereSite,
+    ihm_gaussian_obj_site: GaussSite
+}
+
+export const EmptyIHMCoarse = { hierarchy: CoarseHierarchy.Empty, conformation: void 0 as any }
+
+export function getIHMCoarse(data: IHMData): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
     const { ihm_model_list, ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
     const modelIndex = Column.createIndexer(ihm_model_list.model_id);
 
     const sphereData = getData(ihm_sphere_obj_site);
     const sphereConformation = getSphereConformation(ihm_sphere_obj_site);
-    const sphereKeys = getCoarseKeys(sphereData, modelIndex, entities);
+    const sphereKeys = getCoarseKeys(sphereData, modelIndex, data.entities);
 
     const gaussianData = getData(ihm_gaussian_obj_site);
     const gaussianConformation = getGaussianConformation(ihm_gaussian_obj_site);
-    const gaussianKeys = getCoarseKeys(gaussianData, modelIndex, entities);
+    const gaussianKeys = getCoarseKeys(gaussianData, modelIndex, data.entities);
 
     return {
         hierarchy: {
             isDefined: true,
-            models: ihm_model_list,
+            //models: ihm_model_list,
             spheres: { ...sphereData, ...sphereKeys },
             gaussians: { ...gaussianData, ...gaussianKeys },
         },

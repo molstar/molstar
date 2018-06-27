@@ -15,8 +15,9 @@ export interface CoarsedElementKeys {
     chainKey: ArrayLike<number>,
     // assign a key to each element, index to the Model.entities.data table
     entityKey: ArrayLike<number>,
-    // assign a key to each element, index to the CoarseHierarchy.models table
-    modelKey: ArrayLike<number>,
+    
+    // // assign a key to each element, index to the CoarseHierarchy.models table
+    // modelKey: ArrayLike<number>,
 
     /** find index of the residue/feature element where seq_id is included */
     findSequenceKey(entityId: string, asym_id: string, seq_id: number): number
@@ -38,7 +39,7 @@ export type CoarseElements = CoarsedElementKeys & CoarseElementData
 
 export interface CoarseHierarchy {
     isDefined: boolean,
-    models: mmCIF['ihm_model_list'],
+    //models: mmCIF['ihm_model_list'],
     spheres: CoarseElements,
     gaussians: CoarseElements
 }

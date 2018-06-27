@@ -198,10 +198,24 @@ export function printIHMModels(model: Model) {
     console.log(Table.formatToString(model.coarseHierarchy.models));
 }
 
+export function printModelStats(models: ReadonlyArray<Model>) {
+    console.log('\nModels\n=============');
+
+    for (const m of models) {
+        if (m.coarseHierarchy.isDefined) {
+            console.log(`${m.label} ${m.modelNum}: ${m.atomicHierarchy.atoms._rowCount} atom(s), ${m.coarseHierarchy.spheres.count} sphere(s), ${m.coarseHierarchy.gaussians.count} gaussian(s)`);
+        } else {
+            console.log(`${m.label} ${m.modelNum}: ${m.atomicHierarchy.atoms._rowCount} atom(s)`);
+        }
+    }
+    console.log();
+}
+
 async function run(frame: CifFrame, args: Args) {
     const models = await Model.create(Format.mmCIF(frame)).run();
     const structure = Structure.ofModel(models[0]);
 
+    if (args.models) printModelStats(models);
     if (args.seq) printSequence(models[0]);
     if (args.ihm) printIHMModels(models[0]);
     if (args.units) printUnits(structure);
@@ -230,6 +244,7 @@ const parser = new argparse.ArgumentParser({
 parser.addArgument(['--download', '-d'], { help: 'Pdb entry id' });
 parser.addArgument(['--file', '-f'], { help: 'filename' });
 
+parser.addArgument(['--models'], { help: 'print models info', action: 'storeTrue' });
 parser.addArgument(['--seq'], { help: 'print sequence', action: 'storeTrue' });
 parser.addArgument(['--ihm'], { help: 'print IHM', action: 'storeTrue' });
 parser.addArgument(['--units'], { help: 'print units', action: 'storeTrue' });
@@ -243,6 +258,7 @@ interface Args {
     download?: string,
     file?: string,
 
+    models?:boolean,
     seq?: boolean,
     ihm?: boolean,
     units?: boolean,

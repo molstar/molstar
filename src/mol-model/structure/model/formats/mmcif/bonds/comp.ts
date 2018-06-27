@@ -43,6 +43,7 @@ export namespace ComponentBond {
     }
 
     export function attachFromMmCif(model: Model): boolean {
+        if (model.customProperties.has(Descriptor)) return true;
         if (model.sourceData.kind !== 'mmCIF') return false;
         const { chem_comp_bond } = model.sourceData.data;
         if (chem_comp_bond._rowCount === 0) return false;

@@ -92,5 +92,5 @@ export function getCoarseKeys(data: CoarseElementData, modelIndex: (id: number) 
 
     const { findChainKey, findSequenceKey } = createLookUp(entities, chainMaps, seqMaps);
 
-    return { chainKey, entityKey, modelKey, findSequenceKey, findChainKey };
+    return { chainKey, entityKey, /*modelKey,*/ findSequenceKey, findChainKey };
 }
