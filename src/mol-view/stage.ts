@@ -43,14 +43,14 @@ export class Stage {
 
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
-        // this.loadPdbid('1crn') // small
+        this.loadPdbid('1crn') // small
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
         // this.loadPdbid('3pqr') // inter unit bonds
         // this.loadPdbid('4v5a') // ribosome
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
 
-        this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`)
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`)
     }
 
     async loadMmcifUrl (url: string) {
@@ -59,7 +59,7 @@ export class Stage {
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
 
         StructureToSpacefill.apply(this.ctx, structureEntity, { ...spacefillProps, visible: true })
-        // StructureToBallAndStick.apply(this.ctx, structureEntity, ballAndStickProps)
+        StructureToBallAndStick.apply(this.ctx, structureEntity, ballAndStickProps)
         StructureToDistanceRestraint.apply(this.ctx, structureEntity, ballAndStickProps)
 
         this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
