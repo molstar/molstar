@@ -21,11 +21,6 @@ const Vector = Schema.Vector;
 const List = Schema.List;
 
 export const mmCIF_Schema = {
-    atom_sites: {
-        entry_id: str,
-        fract_transf_matrix: Matrix(3, 3),
-        fract_transf_vector: Vector(3)
-    },
     atom_site: {
         auth_asym_id: str,
         auth_atom_id: str,
@@ -49,6 +44,11 @@ export const mmCIF_Schema = {
         pdbx_PDB_model_num: int,
         pdbx_formal_charge: int,
         ihm_model_id: int,
+    },
+    atom_sites: {
+        entry_id: str,
+        fract_transf_matrix: Matrix(3, 3),
+        fract_transf_vector: Vector(3),
     },
     cell: {
         angle_alpha: float,
@@ -80,11 +80,11 @@ export const mmCIF_Schema = {
         pdbx_aromatic_flag: Aliased<'Y' | 'N'>(str),
     },
     entity: {
+        details: str,
+        formula_weight: float,
         id: str,
         src_method: Aliased<'nat' | 'man' | 'syn'>(str),
         type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
-        details: str,
-        formula_weight: float,
         pdbx_description: str,
         pdbx_number_of_molecules: float,
         pdbx_mutation: str,
@@ -93,9 +93,9 @@ export const mmCIF_Schema = {
     },
     entity_poly_seq: {
         entity_id: str,
-        num: int,
+        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
         mon_id: str,
-        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str)
+        num: int,
     },
     entry: {
         id: str,
@@ -181,6 +181,13 @@ export const mmCIF_Schema = {
         entry_id: str,
         text: List(',', x => x),
         pdbx_keywords: str,
+    },
+    struct_ncs_oper: {
+        code: Aliased<'given' | 'generate'>(str),
+        details: str,
+        id: str,
+        matrix: Matrix(3, 3),
+        vector: Vector(3),
     },
     struct_sheet_range: {
         beg_label_asym_id: str,
@@ -409,13 +416,6 @@ export const mmCIF_Schema = {
         experiment_type: Aliased<'Fraction of bulk' | 'Single molecule'>(str),
         details: str,
     },
-    struct_ncs_oper: {
-        id: str,
-        code: str,
-        matrix: Matrix(3, 3),
-        vector: Vector(3),
-        details: str
-    },
     ihm_modeling_post_process: {
         id: int,
         protocol_id: int,
@@ -509,6 +509,7 @@ export const mmCIF_Schema = {
     },
     ihm_predicted_contact_restraint: {
         id: int,
+        group_id: int,
         entity_id_1: str,
         entity_id_2: str,
         asym_id_1: str,
@@ -519,6 +520,7 @@ export const mmCIF_Schema = {
         seq_id_2: int,
         atom_id_1: str,
         atom_id_2: str,
+        distance_lower_limit: float,
         distance_upper_limit: float,
         probability: float,
         restraint_type: Aliased<'lower bound' | 'upper bound' | 'lower and upper bound'>(str),
@@ -551,6 +553,8 @@ export const mmCIF_Schema = {
         comp_id_2: str,
         seq_id_1: int,
         seq_id_2: int,
+        atom_id_1: str,
+        atom_id_2: str,
         restraint_type: Aliased<'harmonic' | 'upper bound' | 'lower bound'>(str),
         conditional_crosslink_flag: Aliased<'ALL' | 'ANY'>(str),
         model_granularity: Aliased<'by-residue' | 'by-feature' | 'by-atom'>(str),
