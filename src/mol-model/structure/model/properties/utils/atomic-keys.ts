@@ -92,11 +92,5 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
 
     const { findChainKey, findResidueKey } = createLookUp(entities, chainMaps, residueMaps);
 
-    return {
-        residueKey: residueKey,
-        chainKey: chainKey,
-        entityKey: entityKey,
-        findChainKey,
-        findResidueKey
-    };
+    return { residueKey, chainKey, entityKey, findChainKey, findResidueKey };
 }

@@ -2,6 +2,7 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
@@ -17,6 +18,8 @@ export interface CoarsedElementKeys {
     // assign a key to each element, index to the CoarseHierarchy.models table
     modelKey: ArrayLike<number>,
 
+    /** find index of the residue/feature element where seq_id is included */
+    findSequenceKey(entityId: string, asym_id: string, seq_id: number): number
     findChainKey(entityId: string, asym_id: string): number
 }
 
