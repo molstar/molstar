@@ -111,6 +111,7 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
         getProgram: (variant: RenderVariant) => programs[variant].value,
 
         render: (variant: RenderVariant) => {
+            if (drawCount === 0 || instanceCount === 0) return
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
             program.setUniforms(uniformValues)
