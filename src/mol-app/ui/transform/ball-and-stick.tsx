@@ -19,6 +19,7 @@ import { ColorTheme, SizeTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
+import { Unit } from 'mol-model/structure';
 
 export const ColorThemeInfo = {
     'atom-index': {},
@@ -46,6 +47,7 @@ interface BallAndStickState {
     linkRadius: number
     radialSegments: number
     detail: number
+    unitKinds: Unit.Kind[]
 }
 
 export class BallAndStick extends View<Controller<any>, BallAndStickState, { transform: BallAndStickUpdate, entity: BallAndStickEntity, ctx: StateContext }> {
@@ -65,7 +67,8 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
         linkSpacing: 1,
         linkRadius: 0.25,
         radialSegments: 16,
-        detail: 1
+        detail: 1,
+        unitKinds: [] as Unit.Kind[]
     }
 
     componentWillMount() {

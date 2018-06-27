@@ -19,6 +19,7 @@ import { ColorTheme, SizeTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
+import { Unit } from 'mol-model/structure';
 
 export const ColorThemeInfo = {
     'atom-index': {},
@@ -42,6 +43,7 @@ interface SpacefillState {
     depthMask: boolean
     useFog: boolean
     quality: VisualQuality
+    unitKinds: Unit.Kind[]
 }
 
 export class Spacefill extends View<Controller<any>, SpacefillState, { transform: SpacefillUpdate, entity: SpacefillEntity, ctx: StateContext }> {
@@ -57,7 +59,8 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
         alpha: 1,
         depthMask: true,
         useFog: true,
-        quality: 'auto' as VisualQuality
+        quality: 'auto' as VisualQuality,
+        unitKinds: [] as Unit.Kind[]
     }
 
     componentWillMount() {

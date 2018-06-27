@@ -103,15 +103,15 @@ export function getQualityProps(props: Partial<QualityProps>, structure: Structu
 
     switch (quality) {
         case 'highest':
-            detail = 3
+            detail = 2
             radialSegments = 36
             break
         case 'high':
-            detail = 2
+            detail = 1
             radialSegments = 24
             break
         case 'medium':
-            detail = 1
+            detail = 0
             radialSegments = 12
             break
         case 'low':

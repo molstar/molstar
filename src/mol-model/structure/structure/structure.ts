@@ -16,10 +16,12 @@ import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { Queries } from '../query';
 import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
+import { CrossLinkRestraints, extractCrossLinkRestraints } from './unit/pair-restraints';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
     readonly units: ReadonlyArray<Unit>;
+    /** Count of all elements in the structure, i.e. the sum of the elements in the units */
     readonly elementCount: number;
 
     private _hashCode = 0;
@@ -66,6 +68,13 @@ class Structure {
         if (this._links) return this._links;
         this._links = computeInterUnitBonds(this);
         return this._links;
+    }
+
+    private _crossLinkRestraints?: CrossLinkRestraints = void 0;
+    get crossLinkRestraints() {
+        if (this._crossLinkRestraints) return this._crossLinkRestraints;
+        this._crossLinkRestraints = extractCrossLinkRestraints(this);
+        return this._crossLinkRestraints;
     }
 
     constructor(units: ArrayLike<Unit>) {

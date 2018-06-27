@@ -14,6 +14,7 @@ import { Model, Structure } from 'mol-model/structure';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-stick';
+import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
 
 const getNextId = idFactory(1)
 
@@ -126,5 +127,12 @@ export type BallAndStickEntity = StateEntity<StructureRepresentation<BallAndStic
 export namespace BallAndStickEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<BallAndStickProps>): BallAndStickEntity {
         return StateEntity.create(ctx, 'ballandstick', repr )
+    }
+}
+
+export type DistanceRestraintEntity = StateEntity<StructureRepresentation<DistanceRestraintProps>, 'distancerestraint'>
+export namespace DistanceRestraintEntity {
+    export function ofRepr(ctx: StateContext, repr: StructureRepresentation<DistanceRestraintProps>): DistanceRestraintEntity {
+        return StateEntity.create(ctx, 'distancerestraint', repr )
     }
 }

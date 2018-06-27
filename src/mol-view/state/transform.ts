@@ -5,13 +5,14 @@
  */
 
 import CIF from 'mol-io/reader/cif'
-import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BallAndStickEntity } from './entity';
+import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BallAndStickEntity, DistanceRestraintEntity } from './entity';
 import { Model, Structure, Format } from 'mol-model/structure';
 
 import { StateContext } from './context';
 import StructureSymmetry from 'mol-model/structure/structure/symmetry';
 import { SpacefillProps, SpacefillRepresentation } from 'mol-geo/representation/structure/spacefill';
 import { BallAndStickProps, BallAndStickRepresentation } from 'mol-geo/representation/structure/ball-and-stick';
+import { DistanceRestraintRepresentation, DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
 
 type transformer<I extends AnyEntity, O extends AnyEntity, P extends {}> = (ctx: StateContext, inputEntity: I, props?: P) => Promise<O>
 
@@ -85,11 +86,11 @@ export const ModelToStructure: ModelToStructure = StateTransform.create('model',
     })
 
 export type StructureCenter = StateTransform<StructureEntity, NullEntity, {}>
-    export const StructureCenter: StructureCenter = StateTransform.create('structure', 'null', 'structure-center',
-        async function (ctx: StateContext, structureEntity: StructureEntity) {
-            ctx.viewer.center(structureEntity.value.boundary.sphere.center)
-            return NullEntity
-        })
+export const StructureCenter: StructureCenter = StateTransform.create('structure', 'null', 'structure-center',
+    async function (ctx: StateContext, structureEntity: StructureEntity) {
+        ctx.viewer.center(structureEntity.value.boundary.sphere.center)
+        return NullEntity
+    })
 
 export type StructureToSpacefill = StateTransform<StructureEntity, SpacefillEntity, SpacefillProps>
 export const StructureToSpacefill: StructureToSpacefill = StateTransform.create('structure', 'spacefill', 'structure-to-spacefill',
@@ -103,15 +104,26 @@ export const StructureToSpacefill: StructureToSpacefill = StateTransform.create(
     })
 
 export type StructureToBallAndStick = StateTransform<StructureEntity, BallAndStickEntity, BallAndStickProps>
-    export const StructureToBallAndStick: StructureToBallAndStick = StateTransform.create('structure', 'ballandstick', 'structure-to-ballandstick',
-        async function (ctx: StateContext, structureEntity: StructureEntity, props: BallAndStickProps = {}) {
-            const ballAndStickRepr = BallAndStickRepresentation()
-            await ballAndStickRepr.create(structureEntity.value, props).run(ctx.log)
-            ctx.viewer.add(ballAndStickRepr)
-            ctx.viewer.requestDraw()
-            console.log('stats', ctx.viewer.stats)
-            return BallAndStickEntity.ofRepr(ctx, ballAndStickRepr)
-        })
+export const StructureToBallAndStick: StructureToBallAndStick = StateTransform.create('structure', 'ballandstick', 'structure-to-ballandstick',
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: BallAndStickProps = {}) {
+        const ballAndStickRepr = BallAndStickRepresentation()
+        await ballAndStickRepr.create(structureEntity.value, props).run(ctx.log)
+        ctx.viewer.add(ballAndStickRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return BallAndStickEntity.ofRepr(ctx, ballAndStickRepr)
+    })
+
+export type StructureToDistanceRestraint = StateTransform<StructureEntity, DistanceRestraintEntity, DistanceRestraintProps>
+export const StructureToDistanceRestraint: StructureToDistanceRestraint = StateTransform.create('structure', 'distancerestraint', 'structure-to-distancerestraint',
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: DistanceRestraintProps = {}) {
+        const distanceRestraintRepr = DistanceRestraintRepresentation()
+        await distanceRestraintRepr.create(structureEntity.value, props).run(ctx.log)
+        ctx.viewer.add(distanceRestraintRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return DistanceRestraintEntity.ofRepr(ctx, distanceRestraintRepr)
+    })
 
 export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, SpacefillProps>
 export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill', 'null', 'spacefill-update',
@@ -125,15 +137,26 @@ export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill
     })
 
 export type BallAndStickUpdate = StateTransform<BallAndStickEntity, NullEntity, BallAndStickProps>
-    export const BallAndStickUpdate: BallAndStickUpdate = StateTransform.create('ballandstick', 'null', 'ballandstick-update',
-        async function (ctx: StateContext, ballAndStickEntity: BallAndStickEntity, props: BallAndStickProps = {}) {
-            const ballAndStickRepr = ballAndStickEntity.value
-            await ballAndStickRepr.update(props).run(ctx.log)
-            ctx.viewer.add(ballAndStickRepr)
-            ctx.viewer.requestDraw()
-            console.log('stats', ctx.viewer.stats)
-            return NullEntity
-        })
+export const BallAndStickUpdate: BallAndStickUpdate = StateTransform.create('ballandstick', 'null', 'ballandstick-update',
+    async function (ctx: StateContext, ballAndStickEntity: BallAndStickEntity, props: BallAndStickProps = {}) {
+        const ballAndStickRepr = ballAndStickEntity.value
+        await ballAndStickRepr.update(props).run(ctx.log)
+        ctx.viewer.add(ballAndStickRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return NullEntity
+    })
+
+export type DistanceRestraintUpdate = StateTransform<DistanceRestraintEntity, NullEntity, DistanceRestraintProps>
+export const DistanceRestraintUpdate: DistanceRestraintUpdate = StateTransform.create('distancerestraint', 'null', 'distancerestraint-update',
+    async function (ctx: StateContext, distanceRestraintEntity: DistanceRestraintEntity, props: DistanceRestraintProps = {}) {
+        const distanceRestraintRepr = distanceRestraintEntity.value
+        await distanceRestraintRepr.update(props).run(ctx.log)
+        ctx.viewer.add(distanceRestraintRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return NullEntity
+    })
 
 // composed
 
