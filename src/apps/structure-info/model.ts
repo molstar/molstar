@@ -238,7 +238,6 @@ parser.addArgument(['--file', '-f'], { help: 'filename' });
 
 parser.addArgument(['--models'], { help: 'print models info', action: 'storeTrue' });
 parser.addArgument(['--seq'], { help: 'print sequence', action: 'storeTrue' });
-parser.addArgument(['--ihm'], { help: 'print IHM', action: 'storeTrue' });
 parser.addArgument(['--units'], { help: 'print units', action: 'storeTrue' });
 parser.addArgument(['--sym'], { help: 'print symmetry', action: 'storeTrue' });
 parser.addArgument(['--rings'], { help: 'print rings', action: 'storeTrue' });

@@ -38,10 +38,11 @@ interface Model extends Readonly<{
     atomicConformation: AtomicConformation,
 
     properties: {
-        // secondary structure provided by the input file
+        /** secondary structure provided by the input file */
         readonly secondaryStructure: SecondaryStructure,
-        // maps modified residue name to its parent
+        /** maps modified residue name to its parent */
         readonly modifiedResidueNameMap: Map<string, string>,
+        /** maps asym ids to serial numbers that are unique per asym id */
         readonly asymIdSerialMap: Map<string, number>
     },
 
