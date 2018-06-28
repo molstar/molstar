@@ -7,7 +7,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Link } from 'mol-model/structure';
 import { UnitsVisual, DefaultStructureProps } from '../index';
 import { RuntimeContext } from 'mol-task'
@@ -70,18 +70,15 @@ export const DefaultIntraUnitLinkProps = {
 export type IntraUnitLinkProps = Partial<typeof DefaultIntraUnitLinkProps>
 
 export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
-    const renderObjects: RenderObject[] = []
-    let cylinders: MeshRenderObject
+    let renderObject: MeshRenderObject
     let currentProps: typeof DefaultIntraUnitLinkProps
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
 
     return {
-        renderObjects,
+        get renderObject () { return renderObject },
         async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: IntraUnitLinkProps = {}) {
             currentProps = Object.assign({}, DefaultIntraUnitLinkProps, props)
-
-            renderObjects.length = 0 // clear
             currentGroup = group
 
             const unit = group.units[0]
@@ -90,13 +87,8 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
 
             mesh = await createIntraUnitLinkCylinderMesh(ctx, unit, currentProps)
 
-            if (ctx.shouldUpdate) await ctx.update('Computing link transforms');
             const transforms = createTransforms(group)
-
-            if (ctx.shouldUpdate) await ctx.update('Computing link colors');
             const color = chainIdLinkColorData({ group, elementCount }) // TODO
-
-            if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -111,27 +103,26 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
             }
             const state = createRenderableState(currentProps)
 
-            cylinders = createMeshRenderObject(values, state)
-            renderObjects.push(cylinders)
+            renderObject = createMeshRenderObject(values, state)
         },
         async update(ctx: RuntimeContext, props: IntraUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            if (!cylinders) return false
+            if (!renderObject) return false
 
             // TODO create in-place
             if (currentProps.radialSegments !== newProps.radialSegments) return false
 
-            updateMeshValues(cylinders.values, newProps)
-            updateRenderableState(cylinders.state, newProps)
+            updateMeshValues(renderObject.values, newProps)
+            updateRenderableState(renderObject.state, newProps)
 
             return true
         },
         getLoci(pickingId: PickingId) {
-            return getLinkLoci(pickingId, currentGroup, cylinders.id)
+            return getLinkLoci(pickingId, currentGroup, renderObject.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            markLink(loci, action, currentGroup, cylinders.values)
+            markLink(loci, action, currentGroup, renderObject.values)
         },
         destroy() {
             // TODO

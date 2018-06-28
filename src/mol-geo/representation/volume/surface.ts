@@ -10,7 +10,7 @@ import { Task, RuntimeContext } from 'mol-task'
 import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../shape/mesh';
 import { VolumeVisual } from '.';
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
+import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { fillSerial } from 'mol-gl/renderable/util';
 import { ValueCell, defaults } from 'mol-util';
 import { Mat4 } from 'mol-math/linear-algebra';
@@ -51,14 +51,12 @@ export const DefaultSurfaceProps = {
 export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
 
 export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
-    const renderObjects: RenderObject[] = []
-    let surface: MeshRenderObject
+    let renderObject: MeshRenderObject
     let curProps = DefaultSurfaceProps
 
     return {
-        renderObjects,
+        get renderObject () { return renderObject },
         async create(ctx: RuntimeContext, volume: VolumeData, props: SurfaceProps = {}) {
-            renderObjects.length = 0 // clear
             props = { ...DefaultSurfaceProps, ...props }
 
             const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
@@ -96,8 +94,7 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
                 visible: defaults(props.visible, true)
             }
 
-            surface = createMeshRenderObject(values, state)
-            renderObjects.push(surface)
+            renderObject = createMeshRenderObject(values, state)
         },
         async update(ctx: RuntimeContext, props: SurfaceProps) {
             // TODO

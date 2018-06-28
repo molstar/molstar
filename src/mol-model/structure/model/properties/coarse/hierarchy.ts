@@ -27,7 +27,12 @@ export interface CoarseElementData {
     seq_id_begin: Column<number>,
     seq_id_end: Column<number>,
 
-    chainSegments: Segmentation<Element>
+    chainSegments: Segmentation<Element>,
+    /**
+     * bonded/connected stretches of polymer chains, i.e. a chain will be
+     * broken into multiple polymer segments if there are missing residues
+     */
+    polymerSegments: Segmentation<Element>
 }
 
 export type CoarseElements = CoarsedElementKeys & CoarseElementData

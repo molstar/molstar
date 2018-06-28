@@ -7,20 +7,19 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Unit, Element } from 'mol-model/structure';
+import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { Unit } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors } from '../visual/util/common';
-import { createElementSphereMesh, markElement, getElementRadius } from '../visual/util/element';
+import { createElementSphereMesh, markElement, getElementRadius, getElementLoci } from '../visual/util/element';
 import { deepEqual } from 'mol-util';
 import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { OrderedSet } from 'mol-data/int';
 import { createMarkers, MarkerAction } from '../../../util/marker-data';
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { Loci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 
@@ -34,18 +33,15 @@ export const DefaultElementSphereProps = {
 export type ElementSphereProps = Partial<typeof DefaultElementSphereProps>
 
 export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
-    const renderObjects: RenderObject[] = []
-    let spheres: MeshRenderObject
+    let renderObject: MeshRenderObject
     let currentProps: typeof DefaultElementSphereProps
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
 
     return {
-        renderObjects,
+        get renderObject () { return renderObject },
         async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: ElementSphereProps = {}) {
             currentProps = Object.assign({}, DefaultElementSphereProps, props)
-
-            renderObjects.length = 0 // clear
             currentGroup = group
 
             const { detail, colorTheme, sizeTheme, unitKinds } = { ...DefaultElementSphereProps, ...props }
@@ -58,13 +54,8 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
                 ? await createElementSphereMesh(ctx, unit, radius, detail, mesh)
                 : Mesh.createEmpty(mesh)
 
-            if (ctx.shouldUpdate) await ctx.update('Computing spacefill transforms');
             const transforms = createTransforms(group)
-
-            if (ctx.shouldUpdate) await ctx.update('Computing spacefill colors');
             const color = createColors(group, elementCount, colorTheme)
-
-            if (ctx.shouldUpdate) await ctx.update('Computing spacefill marks');
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -79,13 +70,12 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
             }
             const state = createRenderableState(currentProps)
 
-            spheres = createMeshRenderObject(values, state)
-            renderObjects.push(spheres)
+            renderObject = createMeshRenderObject(values, state)
         },
         async update(ctx: RuntimeContext, props: ElementSphereProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            if (!spheres) return false
+            if (!renderObject) return false
 
             let updateColor = false
 
@@ -93,7 +83,7 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
                 const unit = currentGroup.units[0]
                 const radius = getElementRadius(unit, newProps.sizeTheme)
                 mesh = await createElementSphereMesh(ctx, unit, radius, newProps.detail, mesh)
-                ValueCell.update(spheres.values.drawCount, mesh.triangleCount * 3)
+                ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
                 updateColor = true
             }
 
@@ -103,27 +93,21 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
 
             if (updateColor) {
                 const elementCount = currentGroup.elements.length
-                if (ctx.shouldUpdate) await ctx.update('Computing spacefill colors');
-                createColors(currentGroup, elementCount, newProps.colorTheme, spheres.values)
+                if (ctx.shouldUpdate) await ctx.update('Computing sphere colors');
+                createColors(currentGroup, elementCount, newProps.colorTheme, renderObject.values)
             }
 
-            updateMeshValues(spheres.values, newProps)
-            updateRenderableState(spheres.state, newProps)
+            updateMeshValues(renderObject.values, newProps)
+            updateRenderableState(renderObject.state, newProps)
 
             currentProps = newProps
             return true
         },
         getLoci(pickingId: PickingId) {
-            const { objectId, instanceId, elementId } = pickingId
-            if (spheres.id === objectId) {
-                const unit = currentGroup.units[instanceId]
-                const indices = OrderedSet.ofSingleton(elementId as Element.Index);
-                return Element.Loci([{ unit, indices }])
-            }
-            return EmptyLoci
+            return getElementLoci(renderObject.id, currentGroup, pickingId)
         },
         mark(loci: Loci, action: MarkerAction) {
-            markElement(spheres.values.tMarker, currentGroup, loci, action)
+            markElement(renderObject.values.tMarker, currentGroup, loci, action)
         },
         destroy() {
             // TODO

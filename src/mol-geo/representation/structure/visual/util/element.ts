@@ -13,10 +13,11 @@ import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
 import { ValueCell, defaults } from 'mol-util';
 import { TextureImage } from 'mol-gl/renderable/util';
-import { Loci, isEveryLoci } from 'mol-model/loci';
+import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../../../util/marker-data';
-import { Interval } from 'mol-data/int';
+import { Interval, OrderedSet } from 'mol-data/int';
 import { getPhysicalRadius } from '../../../../theme/structure/size/physical';
+import { PickingId } from '../../../../util/picking';
 
 export function getElementRadius(unit: Unit, props: SizeTheme): Element.Property<number> {
     switch (props.name) {
@@ -55,7 +56,6 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
     return meshBuilder.getMesh()
 }
 
-
 export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.SymmetryGroup, loci: Loci, action: MarkerAction) {
     let changed = false
     const elementCount = group.elements.length
@@ -90,4 +90,14 @@ export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.Symmet
     if (changed) {
         ValueCell.update(tMarker, tMarker.ref.value)
     }
+}
+
+export function getElementLoci(id: number, group: Unit.SymmetryGroup, pickingId: PickingId) {
+    const { objectId, instanceId, elementId } = pickingId
+    if (id === objectId) {
+        const unit = group.units[instanceId]
+        const indices = OrderedSet.ofSingleton(elementId as Element.Index);
+        return Element.Loci([{ unit, indices }])
+    }
+    return EmptyLoci
 }

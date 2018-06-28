@@ -49,7 +49,12 @@ export interface AtomicData {
 
 export interface AtomicSegments {
     residueSegments: Segmentation<Element>,
-    chainSegments: Segmentation<Element>
+    chainSegments: Segmentation<Element>,
+    /**
+     * bonded/connected stretches of polymer chains, i.e. a chain will be
+     * broken into multiple polymer segments if there are missing residues
+     */
+    polymerSegments: Segmentation<Element>
     // TODO: include entity segments?
 }
 

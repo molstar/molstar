@@ -23,7 +23,7 @@ export interface Representation<D, P extends RepresentationProps = {}> {
 }
 
 export interface Visual<D, P extends RepresentationProps = {}> {
-    readonly renderObjects: ReadonlyArray<RenderObject>
+    readonly renderObject: RenderObject
     create: (ctx: RuntimeContext, data: D, props: P) => Promise<void>
     update: (ctx: RuntimeContext, props: P) => Promise<boolean>
     getLoci: (pickingId: PickingId) => Loci

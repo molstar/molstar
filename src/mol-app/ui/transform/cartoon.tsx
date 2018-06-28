@@ -12,8 +12,8 @@ import * as React from 'react'
 import { View } from '../view';
 import { Controller } from '../../controller/controller';
 import { Toggle } from '../controls/common';
-import { DistanceRestraintEntity } from 'mol-view/state/entity';
-import { DistanceRestraintUpdate } from 'mol-view/state/transform'
+import { CartoonEntity } from 'mol-view/state/entity';
+import { CartoonUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
 import { ColorTheme, SizeTheme } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
@@ -30,10 +30,11 @@ export const ColorThemeInfo = {
 }
 export type ColorThemeInfo = keyof typeof ColorThemeInfo
 
-interface BallAndStickState {
+interface CartoonState {
     doubleSided: boolean
     flipSided: boolean
     flatShaded: boolean
+    detail: number
     colorTheme: ColorTheme
     colorValue: Color
     sizeTheme: SizeTheme
@@ -42,19 +43,15 @@ interface BallAndStickState {
     depthMask: boolean
     useFog: boolean
     quality: VisualQuality
-    linkScale: number
-    linkSpacing: number
-    linkRadius: number
-    radialSegments: number
-    detail: number
     unitKinds: Unit.Kind[]
 }
 
-export class BallAndStick extends View<Controller<any>, BallAndStickState, { transform: DistanceRestraintUpdate, entity: DistanceRestraintEntity, ctx: StateContext }> {
+export class Cartoon extends View<Controller<any>, CartoonState, { transform: CartoonUpdate, entity: CartoonEntity, ctx: StateContext }> {
     state = {
         doubleSided: true,
         flipSided: false,
         flatShaded: false,
+        detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorTheme,
         colorValue: 0x000000,
         sizeTheme: { name: 'uniform' } as SizeTheme,
@@ -63,11 +60,6 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
         depthMask: true,
         useFog: true,
         quality: 'auto' as VisualQuality,
-        linkScale: 0.4,
-        linkSpacing: 1,
-        linkRadius: 0.25,
-        radialSegments: 16,
-        detail: 1,
         unitKinds: [] as Unit.Kind[]
     }
 
@@ -75,7 +67,8 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
         this.setState({ ...this.state, ...this.props.entity.value.props })
     }
 
-    update(state?: Partial<BallAndStickState>) {
+    update(state?: Partial<CartoonState>) {
+        console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)
@@ -87,6 +80,10 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
 
         const qualityOptions = ['auto', 'custom', 'highest', 'high', 'medium', 'low', 'lowest'].map((name, idx) => {
             return <option key={name} value={name}>{name}</option>
+        })
+
+        const sphereDetailOptions = [0, 1, 2, 3].map((value, idx) => {
+            return <option key={value} value={value}>{value.toString()}</option>
         })
 
         const colorThemeOptions = Object.keys(ColorThemeInfo).map((name, idx) => {
@@ -109,8 +106,8 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
                 </div>
                 <div className='molstar-panel-body'>
                     <div>
-                        <div className='molstar-control-row molstar-options-group'>
-                            <span>Quality</span>
+                    <div className='molstar-control-row molstar-options-group'>
+                        <span>Quality</span>
                             <div>
                                 <select
                                     className='molstar-form-control'
@@ -118,6 +115,18 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
                                     onChange={(e) => this.update({ quality: e.target.value as VisualQuality })}
                                 >
                                     {qualityOptions}
+                                </select>
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <span>Sphere detail</span>
+                            <div>
+                                <select
+                                    className='molstar-form-control'
+                                    value={this.state.detail}
+                                    onChange={(e) => this.update({ detail: parseInt(e.target.value) })}
+                                >
+                                    {sphereDetailOptions}
                                 </select>
                             </div>
                         </div>

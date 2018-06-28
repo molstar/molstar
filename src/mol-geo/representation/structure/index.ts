@@ -79,12 +79,8 @@ export function StructureRepresentation<P extends StructureProps>(visualCtor: ()
     }
 
     return {
-        get renderObjects() {
-            return visual.renderObjects
-        },
-        get props() {
-            return _props
-        },
+        get renderObjects() { return [ visual.renderObject ] },
+        get props() { return _props },
         create,
         update,
         getLoci,
@@ -185,7 +181,7 @@ export function StructureUnitsRepresentation<P extends StructureProps>(visualCto
     return {
         get renderObjects() {
             const renderObjects: RenderObject[] = []
-            visuals.forEach(({ visual }) => renderObjects.push(...visual.renderObjects))
+            visuals.forEach(({ visual }) => renderObjects.push(visual.renderObject))
             return renderObjects
         },
         get props() {

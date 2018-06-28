@@ -6,21 +6,21 @@
  */
 
 import { ValueCell } from 'mol-util/value-cell'
-import { createPointRenderObject, RenderObject, PointRenderObject } from 'mol-gl/render-object'
-import { Unit, Element } from 'mol-model/structure';
+import { createPointRenderObject, PointRenderObject } from 'mol-gl/render-object'
+import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
 import { UnitsVisual, DefaultStructureProps } from '../index';
 import VertexMap from '../../../shape/vertex-map';
 import { SizeTheme } from '../../../theme';
-import { markElement } from './util/element';
+import { markElement, getElementLoci } from './util/element';
 import { createTransforms, createColors, createSizes } from './util/common';
 import { deepEqual, defaults } from 'mol-util';
-import { SortedArray, OrderedSet } from 'mol-data/int';
+import { SortedArray } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../../util/picking';
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { Loci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 
@@ -49,8 +49,7 @@ export function createPointVertices(unit: Unit) {
 }
 
 export default function PointVisual(): UnitsVisual<PointProps> {
-    const renderObjects: RenderObject[] = []
-    let points: PointRenderObject
+    let renderObject: PointRenderObject
     let currentProps = DefaultPointProps
     let currentGroup: Unit.SymmetryGroup
 
@@ -58,11 +57,9 @@ export default function PointVisual(): UnitsVisual<PointProps> {
     let _elements: SortedArray
 
     return {
-        renderObjects,
+        get renderObject () { return renderObject },
         async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: PointProps = {}) {
             currentProps = Object.assign({}, DefaultPointProps, props)
-
-            renderObjects.length = 0 // clear
             currentGroup = group
 
             _units = group.units
@@ -79,19 +76,10 @@ export default function PointVisual(): UnitsVisual<PointProps> {
                 fillSerial(new Uint32Array(elementCount + 1))
             )
 
-            if (ctx.shouldUpdate) await ctx.update('Computing point vertices');
             const vertices = createPointVertices(_units[0])
-
-            if (ctx.shouldUpdate) await ctx.update('Computing point transforms');
             const transforms = createTransforms(group)
-
-            if (ctx.shouldUpdate) await ctx.update('Computing point colors');
             const color = createColors(group, elementCount, colorTheme)
-
-            if (ctx.shouldUpdate) await ctx.update('Computing point sizes');
             const size = createSizes(group, vertexMap, sizeTheme)
-
-            if (ctx.shouldUpdate) await ctx.update('Computing spacefill marks');
             const marker = createMarkers(instanceCount * elementCount)
 
             const values: PointValues = {
@@ -118,11 +106,10 @@ export default function PointVisual(): UnitsVisual<PointProps> {
                 visible: defaults(props.visible, true)
             }
 
-            points = createPointRenderObject(values, state)
-            renderObjects.push(points)
+            renderObject = createPointRenderObject(values, state)
         },
         async update(ctx: RuntimeContext, props: PointProps) {
-            if (!points || !_units || !_elements) return false
+            if (!renderObject || !_units || !_elements) return false
 
             const newProps = { ...currentProps, ...props }
             if (deepEqual(currentProps, newProps)) {
@@ -130,21 +117,8 @@ export default function PointVisual(): UnitsVisual<PointProps> {
                 return true
             }
 
-            // const elementCount = OrderedSet.size(_elementGroup.elements)
-            // const unitCount = _units.length
-
-            // const vertexMap = VertexMap.create(
-            //     elementCount,
-            //     elementCount + 1,
-            //     fillSerial(new Uint32Array(elementCount)),
-            //     fillSerial(new Uint32Array(elementCount + 1))
-            // )
-
             if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
                 console.log('colorTheme changed', currentProps.colorTheme, newProps.colorTheme)
-                // if (ctx.shouldUpdate) await ctx.update('Computing point colors');
-                // const color = createColors(_units, _elementGroup, vertexMap, newProps.colorTheme)
-                // ValueCell.update(points.props.color, color)
             }
 
             if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {
@@ -155,16 +129,10 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             return false
         },
         getLoci(pickingId: PickingId) {
-            const { objectId, instanceId, elementId } = pickingId
-            if (points.id === objectId) {
-                const unit = currentGroup.units[instanceId]
-                const indices = OrderedSet.ofSingleton(elementId as Element.Index)
-                return Element.Loci([{ unit, indices }])
-            }
-            return EmptyLoci
+            return getElementLoci(renderObject.id, currentGroup, pickingId)
         },
         mark(loci: Loci, action: MarkerAction) {
-            markElement(points.values.tMarker, currentGroup, loci, action)
+            markElement(renderObject.values.tMarker, currentGroup, loci, action)
         },
         destroy() {
             // TODO

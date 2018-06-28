@@ -178,6 +178,10 @@ const SPACE_SEPARATED_LIST_FIELDS = [
     '_pdbx_soln_scatter.data_analysis_software_list', // SCTPL5 GNOM
 ];
 
+const SEMICOLON_SEPARATED_LIST_FIELDS = [
+    '_chem_comp.pdbx_synonyms' // GLYCERIN; PROPANE-1,2,3-TRIOL
+]
+
 export function generateSchema (frames: CifFrame[]) {
     const schema: Database = {}
 
@@ -249,6 +253,9 @@ export function generateSchema (frames: CifFrame[]) {
                             console.log(`comma separated: ${d.header}`)
                         } else if (SPACE_SEPARATED_LIST_FIELDS.includes(d.header)) {
                             fieldType = { 'list': [ 'str', ' ' ] };
+                            console.log(`space separated: ${d.header}`)
+                        } else if (SEMICOLON_SEPARATED_LIST_FIELDS.includes(d.header)) {
+                            fieldType = { 'list': [ 'str', ';' ] };
                             console.log(`space separated: ${d.header}`)
                         }
                     }
