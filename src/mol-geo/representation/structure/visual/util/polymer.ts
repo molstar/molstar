@@ -13,14 +13,14 @@ export function getPolymerElementCount(unit: Unit) {
     const { elements } = unit
     const l = Element.Location(unit)
     if (Unit.isAtomic(unit)) {
-        const { chainSegments, residueSegments } = unit.model.atomicHierarchy
-        const chainsIt = Segmentation.transientSegments(chainSegments, elements);
+        const { polymerSegments, residueSegments } = unit.model.atomicHierarchy
+        const polymerIt = Segmentation.transientSegments(polymerSegments, elements);
         const residuesIt = Segmentation.transientSegments(residueSegments, elements);
-        while (chainsIt.hasNext) {
-            residuesIt.setSegment(chainsIt.move());
+        while (polymerIt.hasNext) {
+            residuesIt.setSegment(polymerIt.move());
             while (residuesIt.hasNext) {
-                l.element = elements[residuesIt.move().start];
-                if (StructureProperties.entity.type(l) === 'polymer') count++
+                residuesIt.move();
+                count++
             }
         }
     } else if (Unit.isSpheres(unit)) {

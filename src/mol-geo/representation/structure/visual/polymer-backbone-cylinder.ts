@@ -46,10 +46,12 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
         const residuesIt = Segmentation.transientSegments(residueSegments, elements);
 
         let i = 0
+        let first = true
 
         while (polymerIt.hasNext) {
             const polymerSegment = polymerIt.move();
             residuesIt.setSegment(polymerSegment);
+            first = true
             while (residuesIt.hasNext) {
                 const residueSegment = residuesIt.move();
                 l.element = elements[residueSegment.start];
@@ -70,8 +72,12 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
                 }
                 pos(l.element, curV)
 
-                builder.setId(residueSegment.start)
-                builder.addCylinder(prevV, curV, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
+                if (!first) {
+                    builder.setId(residueSegment.start)
+                    builder.addCylinder(prevV, curV, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
+                } else {
+                    first = false
+                }
 
                 Vec3.copy(prevV, curV)
 

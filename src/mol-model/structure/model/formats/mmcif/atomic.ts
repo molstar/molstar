@@ -29,14 +29,12 @@ function findHierarchyOffsets(atom_site: AtomSite) {
 
     for (let i = start + 1; i < end; i++) {
         const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !label_asym_id.areValuesEqual(i - 1, i);
-        // TODO improve???
-        const newPolymer = newChain
-            || label_seq_id.value(i - 1) !== label_seq_id.value(i) - 1;
         const newResidue = newChain
             || !label_seq_id.areValuesEqual(i - 1, i)
             || !auth_seq_id.areValuesEqual(i - 1, i)
             || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i)
             || !label_comp_id.areValuesEqual(i - 1, i);
+        const newPolymer = newResidue && label_seq_id.value(i - 1) !== label_seq_id.value(i) - 1;
 
         if (newResidue) residues[residues.length] = i as Element;
         if (newPolymer) polymers[polymers.length] = i as Element;

@@ -74,9 +74,10 @@ export class Stage {
         // this.loadPdbid('3pqr') // inter unit bonds
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
+        this.loadPdbid('3sn6') // ...
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
 
-        this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`)
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`)
     }
 
     async loadMmcifUrl (url: string) {
