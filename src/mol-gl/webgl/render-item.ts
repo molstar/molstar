@@ -117,9 +117,11 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             program.setUniforms(uniformValues)
             if (oesVertexArrayObject && vertexArray) {
                 oesVertexArrayObject.bindVertexArrayOES(vertexArray)
-            } else {
-                program.bindAttributes(attributeBuffers)
+                // TODO need to bind elements buffer explicitely since it is not always recorded in the VAO
                 if (elementsBuffer) elementsBuffer.bind()
+            } else {
+                if (elementsBuffer) elementsBuffer.bind()
+                program.bindAttributes(attributeBuffers)
             }
             program.bindTextures(textures)
             if (elementsBuffer) {
