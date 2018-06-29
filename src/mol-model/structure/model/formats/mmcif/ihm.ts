@@ -28,6 +28,8 @@ export const EmptyIHMCoarse = { hierarchy: CoarseHierarchy.Empty, conformation: 
 export function getIHMCoarse(data: IHMData): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
     const { ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
 
+    if (ihm_sphere_obj_site._rowCount === 0 && ihm_gaussian_obj_site._rowCount === 0) return EmptyIHMCoarse;
+
     const sphereData = getData(ihm_sphere_obj_site);
     const sphereConformation = getSphereConformation(ihm_sphere_obj_site);
     const sphereKeys = getCoarseKeys(sphereData, data.entities);
