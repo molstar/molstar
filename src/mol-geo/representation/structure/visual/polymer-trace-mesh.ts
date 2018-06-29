@@ -10,8 +10,8 @@ import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Element, StructureProperties } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
-import { createTransforms, createColors } from '../visual/util/common';
-import { markElement } from '../visual/util/element';
+import { createTransforms, createColors } from './util/common';
+import { markElement } from './util/element';
 import { deepEqual } from 'mol-util';
 import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
