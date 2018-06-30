@@ -70,7 +70,8 @@ export class Stage {
 
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
-        this.loadPdbid('1crn') // small
+        // this.loadPdbid('1crn') // small
+        this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus TODO funky inter unit bonds rendering
         // this.loadPdbid('1blu') // metal coordination
         // this.loadPdbid('3pqr') // inter unit bonds
