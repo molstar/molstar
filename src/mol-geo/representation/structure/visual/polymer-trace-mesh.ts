@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Unit, Element, StructureProperties } from 'mol-model/structure';
+import { Unit, Element } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors } from './util/common';
@@ -17,14 +17,13 @@ import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { OrderedSet, Segmentation } from 'mol-data/int';
+import { OrderedSet } from 'mol-data/int';
 import { createMarkers, MarkerAction } from '../../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
-import { Vec3 } from 'mol-math/linear-algebra';
-import { getPolymerElementCount } from './util/polymer';
+import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
 
 async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
@@ -34,77 +33,20 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
 
-    const { elements } = unit
-    const curV = Vec3.zero()
-    const prevV = Vec3.zero()
-    const pos = unit.conformation.invariantPosition
-    const l = Element.Location(unit)
+    let i = 0
+    const polymerTraceIt = PolymerBackboneIterator(unit)
+    while (polymerTraceIt.hasNext) {
+        const v = polymerTraceIt.move()
+        builder.setId(v.indexA)
+        // TODO size theme
+        builder.addCylinder(v.posA, v.posB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+        builder.setId(v.indexB)
+        builder.addCylinder(v.posB, v.posA, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
 
-    if (Unit.isAtomic(unit)) {
-        const { chainSegments, residueSegments } = unit.model.atomicHierarchy
-        const chainsIt = Segmentation.transientSegments(chainSegments, elements);
-        const residuesIt = Segmentation.transientSegments(residueSegments, elements);
-
-        let i = 0
-        let prevSeqId = -1
-
-        while (chainsIt.hasNext) {
-            const chainSegment = chainsIt.move();
-            residuesIt.setSegment(chainSegment);
-            while (residuesIt.hasNext) {
-                const residueSegment = residuesIt.move();
-                l.element = elements[residueSegment.start];
-                if (StructureProperties.entity.type(l) !== 'polymer') continue;
-
-                const seqId = StructureProperties.residue.label_seq_id(l)
-
-                // for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                //     l.element = elements[j];
-                // }
-                // TODO get proper trace element
-                pos(l.element, curV)
-
-                if (seqId - 1 === prevSeqId) {
-                    // TODO draw trace
-                    builder.setId(residueSegment.start)
-                    builder.addCylinder(prevV, curV, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
-                }
-
-                Vec3.copy(prevV, curV)
-                prevSeqId = seqId
-
-                if (i % 10000 === 0 && ctx.shouldUpdate) {
-                    await ctx.update({ message: 'Cartoon mesh', current: i, max: polymerElementCount });
-                }
-                ++i
-            }
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
         }
-    } else if (Unit.isSpheres(unit)) {
-        let prevSeqIdEnd = -1
-        for (let i = 0, il = elements.length; i < il; ++i) {
-            l.element = elements[i]
-            if (StructureProperties.entity.type(l) !== 'polymer') continue;
-            // console.log(elementLabel(l), StructureProperties.entity.type(l))
-
-            pos(elements[i], curV)
-            const seqIdBegin = StructureProperties.coarse.seq_id_begin(l)
-            const seqIdEnd = StructureProperties.coarse.seq_id_end(l)
-
-            pos(elements[i], curV)
-
-            if (seqIdBegin - 1 === prevSeqIdEnd) {
-                // TODO draw trace
-                builder.setId(i)
-                builder.addCylinder(prevV, curV, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
-            }
-
-            Vec3.copy(prevV, curV)
-            prevSeqIdEnd = seqIdEnd
-
-            if (i % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
-            }
-        }
+        ++i
     }
 
     return builder.getMesh()

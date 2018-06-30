@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Viewer from 'mol-view/viewer'
+import Viewer from './viewer'
 import { StateContext } from './state/context';
 import { Progress } from 'mol-task';
 import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone } from './state/transform';
@@ -15,6 +15,7 @@ import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-sti
 import { CartoonProps } from 'mol-geo/representation/structure/cartoon';
 import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
 import { BackboneProps } from 'mol-geo/representation/structure/backbone';
+import { Queries as Q, StructureProperties as SP, Query, Selection } from 'mol-model/structure';
 
 const spacefillProps: SpacefillProps = {
     doubleSided: true,
@@ -26,7 +27,8 @@ const spacefillProps: SpacefillProps = {
 const ballAndStickProps: BallAndStickProps = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
-    sizeTheme: { name: 'uniform', value: 0.25 },
+    sizeTheme: { name: 'uniform', value: 0.05 },
+    linkRadius: 0.05,
     quality: 'auto',
     useFog: false
 }
@@ -68,16 +70,20 @@ export class Stage {
 
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
-        // this.loadPdbid('1crn') // small
+        this.loadPdbid('1crn') // small
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
         // this.loadPdbid('3pqr') // inter unit bonds
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
-        this.loadPdbid('3sn6') // ...
+        // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`)
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`)
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000003.cif`)
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000004.cif`)
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000005.cif`)
     }
 
     async loadMmcifUrl (url: string) {
@@ -85,13 +91,21 @@ export class Stage {
         const modelEntity = await MmcifUrlToModel.apply(this.ctx, urlEntity)
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
 
+        StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: true })
         StructureToSpacefill.apply(this.ctx, structureEntity, { ...spacefillProps, visible: false })
-        StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: false })
         StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: false })
-        StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: true })
+        // StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: true })
         StructureToCartoon.apply(this.ctx, structureEntity, { ...cartoonProps, visible: false })
 
         this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
+
+        const structureEntity2 = await ModelToStructure.apply(this.ctx, modelEntity)
+        const q1 = Q.generators.atoms({
+            residueTest: l => SP.residue.label_seq_id(l) > 30
+        });
+        structureEntity2.value = Selection.unionStructure(await Query(q1)(structureEntity2.value).run());
+        StructureToBackbone.apply(this.ctx, structureEntity2, { ...backboneProps, visible: true })
+        StructureToCartoon.apply(this.ctx, structureEntity2, { ...cartoonProps, visible: true })
     }
 
     loadPdbid (pdbid: string) {
