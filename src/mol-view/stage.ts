@@ -71,7 +71,7 @@ export class Stage {
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
         this.loadPdbid('1crn') // small
-        // this.loadPdbid('1rb8') // virus
+        // this.loadPdbid('1rb8') // virus TODO funky inter unit bonds rendering
         // this.loadPdbid('1blu') // metal coordination
         // this.loadPdbid('3pqr') // inter unit bonds
         // this.loadPdbid('4v5a') // ribosome
@@ -79,11 +79,19 @@ export class Stage {
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
 
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`)
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`)
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000003.cif`)
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000004.cif`)
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000005.cif`)
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000003.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000004.cif`) // TODO issue with cross-link extraction
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000005.cif`) // TODO only three spacefill atoms rendered
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000006.cif`) // TODO only three spacefill atoms rendered
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000007.cif`) // TODO only three spacefill atoms rendered
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000008.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000010.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000011.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000012.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000014.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000016.cif`) // TODO only three spacefill atoms rendered
     }
 
     async loadMmcifUrl (url: string) {

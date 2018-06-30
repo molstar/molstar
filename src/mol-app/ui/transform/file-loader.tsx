@@ -9,18 +9,60 @@ import { View } from '../view';
 import { FileInput } from '../controls/common';
 import { TransformListController } from '../../controller/transform/list';
 import { FileEntity } from 'mol-view/state/entity';
-import { MmcifFileToSpacefill } from 'mol-view/state/transform';
+import { MmcifFileToModel, ModelToStructure, StructureToBallAndStick, StructureToSpacefill, StructureToDistanceRestraint, StructureToBackbone } from 'mol-view/state/transform';
 import { StateContext } from 'mol-view/state/context';
+import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
+import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-stick';
+import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
+import { BackboneProps } from 'mol-geo/representation/structure/backbone';
+
+const spacefillProps: SpacefillProps = {
+    doubleSided: true,
+    colorTheme: { name: 'chain-id' },
+    quality: 'auto',
+    useFog: false
+}
+
+const ballAndStickProps: BallAndStickProps = {
+    doubleSided: true,
+    colorTheme: { name: 'chain-id' },
+    sizeTheme: { name: 'uniform', value: 0.05 },
+    linkRadius: 0.05,
+    quality: 'auto',
+    useFog: false
+}
+
+const distanceRestraintProps: DistanceRestraintProps = {
+    doubleSided: true,
+    colorTheme: { name: 'chain-id' },
+    linkRadius: 0.5,
+    quality: 'auto',
+    useFog: false
+}
+
+const backboneProps: BackboneProps = {
+    doubleSided: true,
+    colorTheme: { name: 'chain-id' },
+    quality: 'auto',
+    useFog: false
+}
 
 export class FileLoader extends View<TransformListController, {}, { ctx: StateContext }> {
     render() {
         return <div className='molstar-file-loader'>
             <FileInput
                 accept='*.cif'
-                onChange={files => {
+                onChange={async files => {
                     if (files) {
-                        const fileEntity = FileEntity.ofFile(this.props.ctx, files[0])
-                        MmcifFileToSpacefill.apply(this.props.ctx, fileEntity)
+                        const ctx = this.props.ctx
+                        const fileEntity = FileEntity.ofFile(ctx, files[0])
+                        const modelEntity = await MmcifFileToModel.apply(ctx, fileEntity)
+                        const structureEntity = await ModelToStructure.apply(ctx, modelEntity)
+
+                        StructureToBallAndStick.apply(ctx, structureEntity, { ...ballAndStickProps, visible: true })
+                        StructureToSpacefill.apply(ctx, structureEntity, { ...spacefillProps, visible: false })
+                        StructureToDistanceRestraint.apply(ctx, structureEntity, { ...distanceRestraintProps, visible: false })
+                        StructureToBackbone.apply(ctx, structureEntity, { ...backboneProps, visible: true })
                     }
                 }}
             />
