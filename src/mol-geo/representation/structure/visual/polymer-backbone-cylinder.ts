@@ -33,9 +33,9 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
 
     let i = 0
-    const polymerTraceIt = PolymerBackboneIterator(unit)
-    while (polymerTraceIt.hasNext) {
-        const { indexA, indexB, posA, posB } = polymerTraceIt.move()
+    const polymerBackboneIt = PolymerBackboneIterator(unit)
+    while (polymerBackboneIt.hasNext) {
+        const { indexA, indexB, posA, posB } = polymerBackboneIt.move()
         builder.setId(indexA)
         // TODO size theme
         builder.addCylinder(posA, posB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })

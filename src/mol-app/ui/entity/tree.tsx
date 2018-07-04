@@ -13,13 +13,13 @@ import { View } from '../view';
 import { EntityTreeController } from '../../controller/entity/tree';
 import { Controller } from '../../controller/controller';
 import { AnyEntity, RootEntity } from 'mol-view/state/entity';
-import { AnyTransform, SpacefillUpdate, UrlToData, DataToCif, FileToData, CifToMmcif, MmcifToModel, ModelToStructure, StructureToSpacefill, MmcifFileToSpacefill, StructureCenter, StructureToBallAndStick, DistanceRestraintUpdate, CartoonUpdate, BallAndStickUpdate, BackboneUpdate } from 'mol-view/state/transform';
+import { AnyTransform, SpacefillUpdate, UrlToData, DataToCif, FileToData, CifToMmcif, MmcifToModel, ModelToStructure, StructureToSpacefill, MmcifFileToSpacefill, StructureCenter, StructureToBallAndStick, DistanceRestraintUpdate, CartoonUpdate, BallAndStickUpdate, BackboneUpdate, MmcifUrlToSpacefill } from 'mol-view/state/transform';
 
 function getTransforms(entity: AnyEntity): AnyTransform[] {
     const transforms: AnyTransform[] = []
     switch (entity.kind) {
         case 'root':
-            transforms.push(MmcifFileToSpacefill)
+            transforms.push(MmcifFileToSpacefill, MmcifUrlToSpacefill)
             break;
         case 'url':
             transforms.push(UrlToData)

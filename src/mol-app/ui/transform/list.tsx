@@ -22,9 +22,12 @@ import { StructureCenter } from './structure';
 import { Cartoon } from './cartoon';
 import { DistanceRestraint } from './distance-restraint';
 import { Backbone } from './backbone';
+import { UrlLoader } from './url-loader';
 
 function getTransformComponent(controller: TransformListController, entity: AnyEntity, transform: AnyTransform) {
     switch (transform.kind) {
+        case 'url-to-spacefill':
+            return <UrlLoader controller={controller} ctx={controller.context.stage.ctx}></UrlLoader>
         case 'file-to-spacefill':
             return <FileLoader controller={controller} ctx={controller.context.stage.ctx}></FileLoader>
         case 'model-to-structure':

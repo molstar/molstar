@@ -78,7 +78,6 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
-
 export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, previous?: Model) {
     const hierarchyOffsets = findHierarchyOffsets(atom_site);
     const hierarchyData = createHierarchyData(atom_site, hierarchyOffsets);

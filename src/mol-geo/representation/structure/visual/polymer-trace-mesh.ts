@@ -23,7 +23,20 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
-import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
+import { getPolymerElementCount, PolymerTraceIterator } from './util/polymer';
+import { Vec3 } from 'mol-math/linear-algebra';
+
+// export function spline(target: THREE.Vector3, p1: THREE.Vector3, p2: THREE.Vector3, p3: THREE.Vector3, t: number) {
+//     let a = Math.pow(1 - t, 2) / 2;
+//     let c = Math.pow(t, 2) / 2;
+//     let b = 1 - a - c;
+
+//     let x = a * p1.x + b * p2.x + c * p3.x;
+//     let y = a * p1.y + b * p2.y + c * p3.y;
+//     let z = a * p1.z + b * p2.z + c * p3.z;
+
+//     target.set(x, y, z);
+// }
 
 async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
@@ -32,16 +45,31 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
 
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
+    const linearSegmentCount = 10
+
+    const v0 = Vec3.zero()
+    const v1 = Vec3.zero()
 
     let i = 0
-    const polymerTraceIt = PolymerBackboneIterator(unit)
+    const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setId(v.indexA)
-        // TODO size theme
-        builder.addCylinder(v.posA, v.posB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
-        builder.setId(v.indexB)
-        builder.addCylinder(v.posB, v.posA, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+
+        Vec3.spline(v1, v.c0, v.c1, v.c2, v.c3, 0.5, 0.5)
+
+        builder.setId(v.index)
+        for (let j = 1; j <= linearSegmentCount; ++j) {
+            let t = j * 1.0 / linearSegmentCount;
+            Vec3.copy(v0, v1)
+            // if ((v.last && t > 0.5) || (v.first && t < 0.5)) break
+            if (t < 0.5) {
+                Vec3.spline(v1, v.c0, v.c1, v.c2, v.c3, t + 0.5, 0.5)
+            } else {
+                Vec3.spline(v1, v.c1, v.c2, v.c3, v.c4, t - 0.5, 0.5)
+            }
+            // TODO size theme
+            builder.addCylinder(v0, v1, 1.0, { radiusTop: 0.1, radiusBottom: 0.1 })
+        }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });

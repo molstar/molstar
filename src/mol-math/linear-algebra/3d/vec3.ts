@@ -19,6 +19,7 @@
 
 import Mat4 from './mat4';
 import { Quat, Mat3 } from '../3d';
+import { spline as _spline } from '../../interpolate'
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
@@ -275,6 +276,17 @@ namespace Vec3 {
         out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
         out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
         out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+
+        return out;
+    }
+
+    /**
+     * Performs a spline interpolation with two control points and a tension parameter
+     */
+    export function spline(out: Vec3, a: Vec3, b: Vec3, c: Vec3, d: Vec3, t: number, tension: number) {
+        out[0] = _spline(a[0], b[0], c[0], d[0], t, tension);
+        out[1] = _spline(a[1], b[1], c[1], d[1], t, tension);
+        out[2] = _spline(a[2], b[2], c[2], d[2], t, tension);
 
         return out;
     }

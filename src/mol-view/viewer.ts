@@ -100,7 +100,8 @@ namespace Viewer {
         const scene = Scene.create(ctx)
         // const controls = TrackballControls.create(input, scene, {})
         const controls = TrackballControls.create(input, camera, {})
-        const renderer = Renderer.create(ctx, camera)
+        // const renderer = Renderer.create(ctx, camera, { clearColor: 0xFFFFFF })
+        const renderer = Renderer.create(ctx, camera, { clearColor: 0x000000 })
 
         const pickScale = 1 / 4
         const pickWidth = Math.round(canvas.width * pickScale)
@@ -152,12 +153,12 @@ namespace Viewer {
             camera.near = Math.max(0.01, Math.min(near, targetDistance - 0.5))
 
             let fogNear = targetDistance - camera.near + 1 * focusRadius - nearPlaneDelta;
-            let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta; 
-                                        
-            //console.log(fogNear, fogFar); 
+            let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta;
+
+            //console.log(fogNear, fogFar);
             camera.fogNear = Math.max(fogNear, 0.1);
             camera.fogFar = Math.max(fogFar, 0.2);
-            
+
             // console.log(camera.fogNear, camera.fogFar, targetDistance)
 
             switch (variant) {

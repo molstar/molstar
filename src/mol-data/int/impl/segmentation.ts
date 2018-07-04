@@ -41,6 +41,7 @@ export function ofOffsets(offsets: ArrayLike<number>, bounds: Interval): Segment
     return create(segments);
 }
 
+/** Get number of segments in a segmentation */
 export function count({ count }: Segmentation) { return count; }
 export function getSegment({ segmentMap }: Segmentation, value: number) { return segmentMap[value]; }
 
