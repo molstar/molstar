@@ -89,7 +89,16 @@ const coarse = {
     gaussian_covariance_matrix: Element.property(l => !Unit.isGaussians(l.unit) ? notCoarse('gaussians') : l.unit.coarseConformation.covariance_matrix[l.element])
 }
 
-function eK(l: Element.Location) { return !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.entityKey[l.unit.chainIndex[l.element]]; }
+function eK(l: Element.Location) {
+    switch (l.unit.kind) {
+        case Unit.Kind.Atomic:
+            return l.unit.model.atomicHierarchy.entityKey[l.unit.chainIndex[l.element]]
+        case Unit.Kind.Spheres:
+            return l.unit.model.coarseHierarchy.spheres.entityKey[l.element]
+        case Unit.Kind.Gaussians:
+            return l.unit.model.coarseHierarchy.gaussians.entityKey[l.element]
+    }
+}
 
 const entity = {
     key: eK,

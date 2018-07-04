@@ -30,7 +30,7 @@ export const ColorThemeInfo = {
 }
 export type ColorThemeInfo = keyof typeof ColorThemeInfo
 
-interface BallAndStickState {
+interface DistanceRestraintState {
     doubleSided: boolean
     flipSided: boolean
     flatShaded: boolean
@@ -50,7 +50,7 @@ interface BallAndStickState {
     unitKinds: Unit.Kind[]
 }
 
-export class BallAndStick extends View<Controller<any>, BallAndStickState, { transform: DistanceRestraintUpdate, entity: DistanceRestraintEntity, ctx: StateContext }> {
+export class DistanceRestraint extends View<Controller<any>, DistanceRestraintState, { transform: DistanceRestraintUpdate, entity: DistanceRestraintEntity, ctx: StateContext }> {
     state = {
         doubleSided: true,
         flipSided: false,
@@ -75,7 +75,7 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
         this.setState({ ...this.state, ...this.props.entity.value.props })
     }
 
-    update(state?: Partial<BallAndStickState>) {
+    update(state?: Partial<DistanceRestraintState>) {
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)

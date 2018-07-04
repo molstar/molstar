@@ -2,7 +2,6 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
- * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 import { ValueCell } from 'mol-util/value-cell'
@@ -12,7 +11,6 @@ import { Unit } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors } from './util/common';
-import { createElementSphereMesh, markElement, getElementRadius, getElementLoci } from './util/element';
 import { deepEqual } from 'mol-util';
 import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
@@ -22,37 +20,67 @@ import { createMarkers, MarkerAction } from '../../../util/marker-data';
 import { Loci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
+import { MeshBuilder } from '../../../shape/mesh-builder';
+import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
+import { getElementLoci, markElement } from './util/element';
 
-export const DefaultElementSphereProps = {
+async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
+    const polymerElementCount = getPolymerElementCount(unit)
+    console.log('polymerElementCount backbone', polymerElementCount)
+    if (!polymerElementCount) return Mesh.createEmpty(mesh)
+
+    // TODO better vertex count estimates
+    const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
+
+    let i = 0
+    const polymerTraceIt = PolymerBackboneIterator(unit)
+    while (polymerTraceIt.hasNext) {
+        const { indexA, indexB, posA, posB } = polymerTraceIt.move()
+        builder.setId(indexA)
+        // TODO size theme
+        builder.addCylinder(posA, posB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+        builder.setId(indexB)
+        builder.addCylinder(posB, posA, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
+        }
+        ++i
+    }
+
+    return builder.getMesh()
+}
+
+export const DefaultPolymerBackboneProps = {
     ...DefaultMeshProps,
     ...DefaultStructureProps,
     sizeTheme: { name: 'physical', factor: 1 } as SizeTheme,
     detail: 0,
     unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
 }
-export type ElementSphereProps = Partial<typeof DefaultElementSphereProps>
+export type PolymerBackboneProps = Partial<typeof DefaultPolymerBackboneProps>
 
-export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
+export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
     let renderObject: MeshRenderObject
-    let currentProps: typeof DefaultElementSphereProps
+    let currentProps: typeof DefaultPolymerBackboneProps
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
 
     return {
         get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: ElementSphereProps = {}) {
-            currentProps = Object.assign({}, DefaultElementSphereProps, props)
+        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: PolymerBackboneProps = {}) {
+            currentProps = Object.assign({}, DefaultPolymerBackboneProps, props)
             currentGroup = group
 
-            const { detail, colorTheme, sizeTheme, unitKinds } = { ...DefaultElementSphereProps, ...props }
+            const { colorTheme, unitKinds } = { ...DefaultPolymerBackboneProps, ...props }
             const instanceCount = group.units.length
             const elementCount = group.elements.length
             const unit = group.units[0]
 
-            const radius = getElementRadius(unit, sizeTheme)
             mesh = unitKinds.includes(unit.kind)
-                ? await createElementSphereMesh(ctx, unit, radius, detail, mesh)
+                ? await createPolymerBackboneCylinderMesh(ctx, unit, mesh)
                 : Mesh.createEmpty(mesh)
+            console.log(mesh)
 
             const transforms = createTransforms(group)
             const color = createColors(group, elementCount, colorTheme)
@@ -67,12 +95,13 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
                 aTransform: transforms,
                 elements: mesh.indexBuffer,
                 ...createMeshValues(currentProps, counts),
+                aColor: ValueCell.create(new Float32Array(mesh.vertexCount * 3))
             }
             const state = createRenderableState(currentProps)
 
             renderObject = createMeshRenderObject(values, state)
         },
-        async update(ctx: RuntimeContext, props: ElementSphereProps) {
+        async update(ctx: RuntimeContext, props: PolymerBackboneProps) {
             const newProps = Object.assign({}, currentProps, props)
 
             if (!renderObject) return false
@@ -81,8 +110,7 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
 
             if (newProps.detail !== currentProps.detail) {
                 const unit = currentGroup.units[0]
-                const radius = getElementRadius(unit, newProps.sizeTheme)
-                mesh = await createElementSphereMesh(ctx, unit, radius, newProps.detail, mesh)
+                mesh = await createPolymerBackboneCylinderMesh(ctx, unit, mesh)
                 ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
                 updateColor = true
             }
@@ -93,7 +121,7 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
 
             if (updateColor) {
                 const elementCount = currentGroup.elements.length
-                if (ctx.shouldUpdate) await ctx.update('Computing sphere colors');
+                if (ctx.shouldUpdate) await ctx.update('Computing trace colors');
                 createColors(currentGroup, elementCount, newProps.colorTheme, renderObject.values)
             }
 

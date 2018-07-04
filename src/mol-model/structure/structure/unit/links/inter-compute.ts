@@ -12,6 +12,7 @@ import { getElementIdx, getElementPairThreshold, getElementThreshold, isHydrogen
 import { InterUnitBonds } from './data';
 import { UniqueArray } from 'mol-data/generic';
 import { SortedArray } from 'mol-data/int';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 
 const MAX_RADIUS = 4;
 
@@ -34,11 +35,14 @@ function addLink(indexA: number, indexB: number, order: number, flag: LinkType.F
     UniqueArray.add(state.bondedB, indexB, indexB);
 }
 
+const _imageTransform = Mat4.zero();
+
 function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkComputationParameters, map: Map<number, InterUnitBonds.UnitPairBonds[]>) {
     const state: PairState = { mapAB: new Map(), mapBA: new Map(), bondedA: UniqueArray.create(), bondedB: UniqueArray.create() };
     let bondCount = 0;
 
-    const { elements: atomsA, conformation: { x, y, z } } = unitA;
+    const { elements: atomsA } = unitA;
+    const { x: xA, y: yA, z: zA } = unitA.model.atomicConformation;
     const { elements: atomsB } = unitB;
     const atomCount = unitA.elements.length;
 
@@ -47,17 +51,15 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
     const { lookup3d } = unitB;
     const structConn = unitA.model === unitB.model && unitA.model.sourceData.kind === 'mmCIF' ? StructConn.get(unitA.model) : void 0;
 
+    // the lookup queries need to happen in the "unitB space".
+    // that means imageA = inverseOperB(operA(aI))
+    const imageTransform = Mat4.mul(_imageTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix);
+    const imageA = Vec3.zero();
+
     for (let _aI = 0; _aI < atomCount; _aI++) {
         const aI =  atomsA[_aI];
 
-        const aeI = getElementIdx(type_symbolA.value(aI));
-        const { indices, count, squaredDistances } = lookup3d.find(x(aI), y(aI), z(aI), MAX_RADIUS);
-        const isHa = isHydrogen(aeI);
-        const thresholdA = getElementThreshold(aeI);
-        const altA = label_alt_idA.value(aI);
-        const metalA = MetalsSet.has(aeI);
         const structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
-
         if (structConnEntries) {
             for (const se of structConnEntries) {
                 if (se.distance < MAX_RADIUS) continue;
@@ -70,6 +72,18 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
                 }
             }
         }
+
+        const aeI = getElementIdx(type_symbolA.value(aI));
+
+        Vec3.set(imageA, xA[aI], yA[aI], zA[aI]);
+        Vec3.transformMat4(imageA, imageA, imageTransform);
+        const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], MAX_RADIUS);
+        if (count === 0) continue;
+
+        const isHa = isHydrogen(aeI);
+        const thresholdA = getElementThreshold(aeI);
+        const altA = label_alt_idA.value(aI);
+        const metalA = MetalsSet.has(aeI);
 
         for (let ni = 0; ni < count; ni++) {
             const _bI = indices[ni];

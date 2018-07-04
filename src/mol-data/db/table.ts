@@ -105,7 +105,7 @@ namespace Table {
         if (start === 0 && end === table._rowCount) return table;
         const ret = Object.create(null);
         const columns = Object.keys(schema);
-        ret._rowCount = view.length;
+        ret._rowCount = end - start;
         ret._columns = columns;
         ret._schema = schema;
         for (const k of columns) {

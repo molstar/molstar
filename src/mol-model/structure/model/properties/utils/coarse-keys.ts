@@ -31,6 +31,7 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
         if (!cm.has(c)) return -1;
         return cm.get(c)!;
     }
+    // TODO consider implementing as binary search
     const findSequenceKey: CoarsedElementKeys['findSequenceKey'] = (e, c, s) => {
         const eKey = getEntKey(e);
         if (eKey < 0) return -1;

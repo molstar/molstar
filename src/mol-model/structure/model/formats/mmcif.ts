@@ -22,9 +22,11 @@ import { getIHMCoarse, EmptyIHMCoarse, IHMData } from './mmcif/ihm';
 import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
+import { StructConn } from './mmcif/bonds/struct_conn';
+import { ChemicalComponent } from '../properties/chemical-component';
+import { ComponentType, getMoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
-import { StructConn } from './mmcif/bonds/struct_conn';
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -99,6 +101,26 @@ function getAsymIdSerialMap(format: mmCIF_Format) {
     return map;
 }
 
+function getChemicalComponentMap(format: mmCIF_Format) {
+    const map = new Map<string, ChemicalComponent>();
+    const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
+    for (let i = 0, il = id.rowCount; i < il; ++i) {
+        const _id = id.value(i)
+        const _type = type.value(i)
+        const cc: ChemicalComponent = {
+            id: _id,
+            type: ComponentType[_type],
+            moleculeType: getMoleculeType(_type, _id),
+            name: name.value(i),
+            synonyms: pdbx_synonyms.value(i),
+            formula: formula.value(i),
+            formulaWeight: formula_weight.value(i),
+        }
+        map.set(_id, cc)
+    }
+    return map
+}
+
 function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, previous?: Model): Model {
     const atomic = getAtomicHierarchyAndConformation(format, atom_site, entities, previous);
     if (previous && atomic.sameAsPrevious) {
@@ -112,6 +134,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
 
     const modifiedResidueNameMap = getModifiedResidueNameMap(format);
     const asymIdSerialMap = getAsymIdSerialMap(format)
+    const chemicalComponentMap = getChemicalComponentMap(format)
 
     return {
         id: UUID.create(),
@@ -128,7 +151,8 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
             modifiedResidueNameMap,
-            asymIdSerialMap
+            asymIdSerialMap,
+            chemicalComponentMap
         },
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
@@ -141,6 +165,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
     const coarse = getIHMCoarse(data);
     const modifiedResidueNameMap = getModifiedResidueNameMap(format);
     const asymIdSerialMap = getAsymIdSerialMap(format)
+    const chemicalComponentMap = getChemicalComponentMap(format)
 
     return {
         id: UUID.create(),
@@ -157,7 +182,8 @@ function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
             modifiedResidueNameMap,
-            asymIdSerialMap
+            asymIdSerialMap,
+            chemicalComponentMap
         },
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
@@ -233,7 +259,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
         };
         const model = createModelIHM(format, data);
         attachProps(model);
-        models.push(createModelIHM(format, data));
+        models.push(model);
     }
 
     return models;

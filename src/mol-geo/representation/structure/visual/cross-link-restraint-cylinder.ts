@@ -6,7 +6,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Link, Structure } from 'mol-model/structure';
 import { DefaultStructureProps, StructureVisual } from '../index';
 import { RuntimeContext } from 'mol-task'
@@ -57,18 +57,15 @@ export const DefaultCrossLinkRestraintProps = {
 export type CrossLinkRestraintProps = Partial<typeof DefaultCrossLinkRestraintProps>
 
 export function CrossLinkRestraintVisual(): StructureVisual<CrossLinkRestraintProps> {
-    const renderObjects: RenderObject[] = []
-    let cylinders: MeshRenderObject
+    let renderObject: MeshRenderObject
     let currentProps: typeof DefaultCrossLinkRestraintProps
     let mesh: Mesh
     let currentStructure: Structure
 
     return {
-        renderObjects,
+        get renderObject () { return renderObject },
         async create(ctx: RuntimeContext, structure: Structure, props: CrossLinkRestraintProps = {}) {
             currentProps = Object.assign({}, DefaultCrossLinkRestraintProps, props)
-
-            renderObjects.length = 0 // clear
             currentStructure = structure
 
             const elementCount = structure.crossLinkRestraints.count
@@ -76,13 +73,8 @@ export function CrossLinkRestraintVisual(): StructureVisual<CrossLinkRestraintPr
 
             mesh = await createCrossLinkRestraintCylinderMesh(ctx, structure, currentProps)
 
-            if (ctx.shouldUpdate) await ctx.update('Computing link transforms');
             const transforms = createIdentityTransform()
-
-            if (ctx.shouldUpdate) await ctx.update('Computing link colors');
             const color = createUniformColor({ value: 0x119911 }) // TODO
-
-            if (ctx.shouldUpdate) await ctx.update('Computing link marks');
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -97,28 +89,26 @@ export function CrossLinkRestraintVisual(): StructureVisual<CrossLinkRestraintPr
             }
             const state = createRenderableState(currentProps)
 
-            cylinders = createMeshRenderObject(values, state)
-            console.log(values, instanceCount, elementCount)
-            renderObjects.push(cylinders)
+            renderObject = createMeshRenderObject(values, state)
         },
         async update(ctx: RuntimeContext, props: CrossLinkRestraintProps) {
             const newProps = Object.assign({}, currentProps, props)
 
-            if (!cylinders) return false
+            if (!renderObject) return false
 
             // TODO create in-place
             if (currentProps.radialSegments !== newProps.radialSegments) return false
 
-            updateMeshValues(cylinders.values, newProps)
-            updateRenderableState(cylinders.state, newProps)
+            updateMeshValues(renderObject.values, newProps)
+            updateRenderableState(renderObject.state, newProps)
 
             return false
         },
         getLoci(pickingId: PickingId) {
-            return getLinkLoci(pickingId, currentStructure, cylinders.id)
+            return getLinkLoci(pickingId, currentStructure, renderObject.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            markLink(loci, action, currentStructure, cylinders.values)
+            markLink(loci, action, currentStructure, renderObject.values)
         },
         destroy() {
             // TODO

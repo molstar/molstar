@@ -37,6 +37,7 @@ const Categories = [
     copy_mmCif_category('exptl'),
     copy_mmCif_category('cell'),
     copy_mmCif_category('symmetry'),
+    copy_mmCif_category('chem_comp'),
     _entity,
     _atom_site
 ];

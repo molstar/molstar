@@ -27,7 +27,7 @@ export function VolumeRepresentation<P>(visualCtor: (volumeData: VolumeData) => 
             _volumeData = volumeData
             const visual = visualCtor(_volumeData)
             await visual.create(ctx, _volumeData, props)
-            renderObjects.push(...visual.renderObjects)
+            renderObjects.push(visual.renderObject)
         });
     }
 
@@ -36,12 +36,8 @@ export function VolumeRepresentation<P>(visualCtor: (volumeData: VolumeData) => 
     }
 
     return {
-        get renderObjects () {
-            return renderObjects
-        },
-        get props () {
-            return _props
-        },
+        get renderObjects () { return renderObjects },
+        get props () { return _props },
         create,
         update,
         getLoci(pickingId: PickingId) {

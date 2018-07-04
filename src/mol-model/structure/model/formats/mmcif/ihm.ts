@@ -28,6 +28,8 @@ export const EmptyIHMCoarse = { hierarchy: CoarseHierarchy.Empty, conformation: 
 export function getIHMCoarse(data: IHMData): { hierarchy: CoarseHierarchy, conformation: CoarseConformation } {
     const { ihm_sphere_obj_site, ihm_gaussian_obj_site } = data;
 
+    if (ihm_sphere_obj_site._rowCount === 0 && ihm_gaussian_obj_site._rowCount === 0) return EmptyIHMCoarse;
+
     const sphereData = getData(ihm_sphere_obj_site);
     const sphereConformation = getSphereConformation(ihm_sphere_obj_site);
     const sphereKeys = getCoarseKeys(sphereData, data.entities);
@@ -78,16 +80,24 @@ function getGaussianConformation(data: mmCIF['ihm_gaussian_obj_site']): CoarseGa
     };
 }
 
-function getChainSegments(asym_id: Column<string>) {
-    const offsets = [0 as Element];
+function getSegments(asym_id: Column<string>, seq_id_begin: Column<number>, seq_id_end: Column<number>) {
+    const polymerOffsets = [0 as Element], chainOffsets = [0 as Element];
     for (let i = 1, _i = asym_id.rowCount; i < _i; i++) {
-        if (!asym_id.areValuesEqual(i - 1, i)) offsets[offsets.length] = i as Element;
+        const newChain = !asym_id.areValuesEqual(i - 1, i);
+        const newPolymer = newChain
+            || seq_id_end.value(i - 1) !== seq_id_begin.value(i) - 1;
+
+        if (newPolymer) polymerOffsets[polymerOffsets.length] = i as Element;
+        if (newChain) chainOffsets[chainOffsets.length] = i as Element;
     }
 
-    return Segmentation.ofOffsets(offsets, Interval.ofBounds(0, asym_id.rowCount));
+    return {
+        chainSegments: Segmentation.ofOffsets(chainOffsets, Interval.ofBounds(0, asym_id.rowCount)),
+        polymerSegments: Segmentation.ofOffsets(polymerOffsets, Interval.ofBounds(0, asym_id.rowCount))
+    }
 }
 
 function getData(data: mmCIF['ihm_sphere_obj_site'] | mmCIF['ihm_gaussian_obj_site']): CoarseElementData {
     const { entity_id, seq_id_begin, seq_id_end, asym_id } = data;
-    return { count: entity_id.rowCount, entity_id, asym_id, seq_id_begin, seq_id_end, chainSegments: getChainSegments(asym_id) };
+    return { count: entity_id.rowCount, entity_id, asym_id, seq_id_begin, seq_id_end, ...getSegments(asym_id, seq_id_begin, seq_id_end) };
 }

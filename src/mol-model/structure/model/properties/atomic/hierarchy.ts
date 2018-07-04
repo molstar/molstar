@@ -51,7 +51,12 @@ export interface AtomicSegments {
     /** Maps residueIndex to a range of atoms [segments[rI], segments[rI + 1]) */
     residueSegments: Segmentation<Element>,
     /** Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]) */
-    chainSegments: Segmentation<Element>
+    chainSegments: Segmentation<Element>,
+    /**
+     * bonded/connected stretches of polymer chains, i.e. a chain will be
+     * broken into multiple polymer segments if there are missing residues
+     */
+    polymerSegments: Segmentation<Element>
     // TODO: include entity segments?
 }
 
