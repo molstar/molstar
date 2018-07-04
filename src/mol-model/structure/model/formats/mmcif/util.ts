@@ -17,10 +17,9 @@ export function findEntityIdByAsymId(model: Model, asymId: string) {
 }
 
 export function findAtomIndexByLabelName(model: Model, residueIndex: number, atomName: string, altLoc: string | null): Element {
-    const { segmentMap, segments } = model.atomicHierarchy.residueSegments
-    const idx = segmentMap[residueIndex]
+    const { segments } = model.atomicHierarchy.residueSegments;
     const { label_atom_id, label_alt_id } = model.atomicHierarchy.atoms;
-    for (let i = segments[idx], n = segments[idx + 1]; i <= n; ++i) {
+    for (let i = segments[residueIndex], n = segments[residueIndex + 1]; i < n; ++i) {
         if (label_atom_id.value(i) === atomName && (!altLoc || label_alt_id.value(i) === altLoc)) return i as Element;
     }
     return -1 as Element;

@@ -24,11 +24,10 @@ export namespace ComponentBond {
         cifExport: {
             categoryNames: ['chem_comp_bond'],
             categoryProvider(ctx) {
-                const comp_names = getUniqueResidueNames(ctx.structure);
                 const chem_comp_bond = getChemCompBond(ctx.model);
-
                 if (!chem_comp_bond) return [];
 
+                const comp_names = getUniqueResidueNames(ctx.structure);
                 const { comp_id, _rowCount } = chem_comp_bond;
                 const indices: number[] = [];
                 for (let i = 0; i < _rowCount; i++) {
@@ -95,7 +94,7 @@ export namespace ComponentBond {
         if (!model.customProperties.has(Descriptor)) return void 0;
         const chem_comp_bond = getChemCompBond(model);
 
-        let compBond = new ComponentBondImpl();
+        const compBond = new ComponentBondImpl();
 
         const { comp_id, atom_id_1, atom_id_2, value_order, pdbx_aromatic_flag, _rowCount: rowCount } = chem_comp_bond;
 

@@ -6,17 +6,68 @@
  */
 
 import Model from '../../../model'
-import { Element } from '../../../../structure'
+import { Element, Structure } from '../../../../structure'
 import { LinkType } from '../../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from 'mol-data/db'
+import { ModelPropertyDescriptor } from '../../../properties/custom';
+import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
+import { SortedArray } from 'mol-data/int';
+import { CifWriter } from 'mol-io/writer/cif'
 
 export interface StructConn {
-    getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>
-    getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>
+    getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>,
+    getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>,
+    readonly entries: ReadonlyArray<StructConn.Entry>
 }
 
 export namespace StructConn {
+    export const Descriptor: ModelPropertyDescriptor = {
+        isStatic: true,
+        name: 'struct_conn',
+        cifExport: {
+            categoryNames: ['struct_conn'],
+            categoryProvider(ctx) {
+                const struct_conn = getStructConn(ctx.model);
+                if (!struct_conn) return [];
+
+                const strConn = get(ctx.model);
+                if (!strConn || strConn.entries.length === 0) return [];
+
+                const foundAtoms = new Set<Element>();
+                const indices: number[] = [];
+                for (const entry of strConn.entries) {
+                    const { partners } = entry;
+                    let hasAll = true;
+                    for (let i = 0, _i = partners.length; i < _i; i++) {
+                        const atom = partners[i].atomIndex;
+                        if (foundAtoms.has(atom)) continue;
+                        if (hasAtom(ctx.structure, atom)) {
+                            foundAtoms.add(atom);
+                        } else {
+                            hasAll = false;
+                            break;
+                        }
+                    }
+                    if (hasAll) {
+                        indices[indices.length] = entry.rowIndex;
+                    }
+                }
+
+                return [
+                    () => CifWriter.Category.ofTable('struct_conn', struct_conn, indices)
+                ];
+            }
+        }
+    }
+
+    function hasAtom({ units }: Structure, element: Element) {
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            if (SortedArray.indexOf(units[i].elements, element) >= 0) return true;
+        }
+        return false;
+    }
+
     function _resKey(rA: number, rB: number) {
         if (rA < rB) return `${rA}-${rB}`;
         return `${rB}-${rA}`;
@@ -77,6 +128,7 @@ export namespace StructConn {
     }
 
     export interface Entry {
+        rowIndex: number,
         distance: number,
         order: number,
         flags: number,
@@ -95,19 +147,33 @@ export namespace StructConn {
         | 'modres'
         | 'saltbr'
 
-    export const PropName = '__StructConn__';
-    export function fromModel(model: Model): StructConn | undefined {
-        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
-
-        if (model.sourceData.kind !== 'mmCIF') return;
+    export function attachFromMmCif(model: Model): boolean {
+        if (model.customProperties.has(Descriptor)) return true;
+        if (model.sourceData.kind !== 'mmCIF') return false;
         const { struct_conn } = model.sourceData.data;
-        if (!struct_conn._rowCount) return void 0;
+        if (struct_conn._rowCount === 0) return false;
+        model.customProperties.add(Descriptor);
+        model._staticPropertyData.__StructConnData__ = struct_conn;
+        return true;
+    }
+
+    function getStructConn(model: Model) {
+        return model._staticPropertyData.__StructConnData__ as mmCIF_Database['struct_conn'];
+    }
+
+    export const PropName = '__StructConn__';
+    export function get(model: Model): StructConn | undefined {
+        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
+        if (!model.customProperties.has(Descriptor)) return void 0;
+
+        const struct_conn = getStructConn(model);
 
         const { conn_type_id, pdbx_dist_value, pdbx_value_order } = struct_conn;
         const p1 = {
             label_asym_id: struct_conn.ptnr1_label_asym_id,
             label_comp_id: struct_conn.ptnr1_label_comp_id,
             label_seq_id: struct_conn.ptnr1_label_seq_id,
+            auth_seq_id: struct_conn.ptnr1_auth_seq_id,
             label_atom_id: struct_conn.ptnr1_label_atom_id,
             label_alt_id: struct_conn.pdbx_ptnr1_label_alt_id,
             ins_code: struct_conn.pdbx_ptnr1_PDB_ins_code,
@@ -117,6 +183,7 @@ export namespace StructConn {
             label_asym_id: struct_conn.ptnr2_label_asym_id,
             label_comp_id: struct_conn.ptnr2_label_comp_id,
             label_seq_id: struct_conn.ptnr2_label_seq_id,
+            auth_seq_id: struct_conn.ptnr2_auth_seq_id,
             label_atom_id: struct_conn.ptnr2_label_atom_id,
             label_alt_id: struct_conn.pdbx_ptnr2_label_alt_id,
             ins_code: struct_conn.pdbx_ptnr2_PDB_ins_code,
@@ -128,9 +195,9 @@ export namespace StructConn {
             const asymId = ps.label_asym_id.value(row)
             const residueIndex = model.atomicHierarchy.findResidueKey(
                 findEntityIdByAsymId(model, asymId),
-                ps.label_comp_id.value(row),
                 asymId,
-                ps.label_seq_id.value(row),
+                ps.label_comp_id.value(row),
+                ps.auth_seq_id.value(row),
                 ps.ins_code.value(row)
             );
             if (residueIndex < 0) return void 0;
@@ -182,7 +249,7 @@ export namespace StructConn {
                 case 'saltbr': flags = LinkType.Flag.Ion; break;
             }
 
-            entries.push({ flags, order, distance: pdbx_dist_value.value(i), partners });
+            entries.push({ rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partners });
         }
 
         const ret = new StructConnImpl(entries);

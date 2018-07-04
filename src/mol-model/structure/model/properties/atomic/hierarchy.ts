@@ -48,7 +48,9 @@ export interface AtomicData {
 }
 
 export interface AtomicSegments {
+    /** Maps residueIndex to a range of atoms [segments[rI], segments[rI + 1]) */
     residueSegments: Segmentation<Element>,
+    /** Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]) */
     chainSegments: Segmentation<Element>
     // TODO: include entity segments?
 }

@@ -45,7 +45,7 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
     const { type_symbol: type_symbolA, label_alt_id: label_alt_idA } = unitA.model.atomicHierarchy.atoms;
     const { type_symbol: type_symbolB, label_alt_id: label_alt_idB } = unitB.model.atomicHierarchy.atoms;
     const { lookup3d } = unitB;
-    const structConn = unitA.model === unitB.model && unitA.model.sourceData.kind === 'mmCIF' ? StructConn.fromModel(unitA.model) : void 0;
+    const structConn = unitA.model === unitB.model && unitA.model.sourceData.kind === 'mmCIF' ? StructConn.get(unitA.model) : void 0;
 
     for (let _aI = 0; _aI < atomCount; _aI++) {
         const aI =  atomsA[_aI];
