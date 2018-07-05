@@ -141,7 +141,7 @@ function encodeField(field: Field, data: { data: any, keys: () => Iterator<any> 
                 allPresent = false;
             } else {
                 mask[offset] = Column.ValueKind.Present;
-                array[offset] = getter(key, d);
+                array[offset] = getter(key, d, offset);
             }
             offset++;
         }

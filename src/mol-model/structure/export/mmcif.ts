@@ -35,10 +35,15 @@ function _entity({ model, structure }: CifExportContext): CifCategory {
 const Categories = [
     copy_mmCif_category('entry'),
     copy_mmCif_category('exptl'),
+    _entity,
     copy_mmCif_category('cell'),
     copy_mmCif_category('symmetry'),
+    copy_mmCif_category('pdbx_struct_assembly'),
+    copy_mmCif_category('pdbx_struct_assembly_gen'),
+    copy_mmCif_category('pdbx_struct_oper_list'),
+    // TODO: filter for actual present residues?
     copy_mmCif_category('chem_comp'),
-    _entity,
+    copy_mmCif_category('atom_sites'),
     _atom_site
 ];
 

@@ -14,7 +14,7 @@ import E = CifWriter.Encodings
 
 const atom_site_fields: CifField<Element.Location>[] = [
     CifField.str('group_PDB', P.residue.group_PDB),
-    CifField.int('id', P.atom.id, { encoder: E.deltaRLE }),
+    CifField.index('id'),
     CifField.str('type_symbol', P.atom.type_symbol as any),
     CifField.str('label_atom_id', P.atom.label_atom_id),
     CifField.str('label_alt_id', P.atom.label_alt_id),
