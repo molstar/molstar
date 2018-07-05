@@ -22,10 +22,11 @@ import { getIHMCoarse, EmptyIHMCoarse, IHMData } from './mmcif/ihm';
 import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
-
-import mmCIF_Format = Format.mmCIF
+import { StructConn } from './mmcif/bonds/struct_conn';
 import { ChemicalComponent } from '../properties/chemical-component';
 import { ComponentType, getMoleculeType } from '../types';
+
+import mmCIF_Format = Format.mmCIF
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -192,6 +193,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
 
 function attachProps(model: Model) {
     ComponentBond.attachFromMmCif(model);
+    StructConn.attachFromMmCif(model);
 }
 
 function findModelEnd(num: Column<number>, startIndex: number) {

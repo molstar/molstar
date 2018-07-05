@@ -73,14 +73,14 @@ export default class TextEncoder implements Encoder<string> {
     }
 }
 
-function writeValue(builder: StringBuilder, data: any, key: any, f: Field<any, any>, floatPrecision: number): boolean {
+function writeValue(builder: StringBuilder, data: any, key: any, f: Field<any, any>, floatPrecision: number, index: number): boolean {
     const kind = f.valueKind;
     const p = kind ? kind(key, data) : Column.ValueKind.Present;
     if (p !== Column.ValueKind.Present) {
         if (p === Column.ValueKind.NotPresent) writeNotPresent(builder);
         else writeUnknown(builder);
     } else {
-        const val = f.value(key, data);
+        const val = f.value(key, data, index);
         const t = f.type;
         if (t === Field.Type.Str) {
             if (isMultiline(val as string)) {
@@ -127,7 +127,7 @@ function writeCifSingleRecord(category: Category<any>, builder: StringBuilder, f
         if (!filter.includeField(category.name, f.name)) continue;
 
         StringBuilder.writePadRight(builder, `_${category.name}.${f.name}`, width);
-        const multiline = writeValue(builder, data, key, f, precisions[_f]);
+        const multiline = writeValue(builder, data, key, f, precisions[_f], 0);
         if (!multiline) StringBuilder.newline(builder);
     }
     StringBuilder.write(builder, '#\n');
@@ -147,6 +147,7 @@ function writeCifLoop(categories: Category[], builder: StringBuilder, filter: Ca
         writeLine(builder, `_${first.name}.${fields[i].name}`);
     }
 
+    let index = 0;
     for (let _c = 0; _c < categories.length; _c++) {
         const category = categories[_c];
         const data = category.data;
@@ -159,9 +160,10 @@ function writeCifLoop(categories: Category[], builder: StringBuilder, filter: Ca
 
             let multiline = false;
             for (let _f = 0; _f < fieldCount; _f++) {
-                multiline = writeValue(builder, data, key, fields[_f], precisions[_f]);
+                multiline = writeValue(builder, data, key, fields[_f], precisions[_f], index);
             }
             if (!multiline) StringBuilder.newline(builder);
+            index++;
         }
     }
     StringBuilder.write(builder, '#\n');

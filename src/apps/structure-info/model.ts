@@ -13,8 +13,6 @@ import { Model, Structure, Element, Unit, Format, StructureProperties } from 'mo
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { openCif, downloadCif } from './helpers';
-import { BitFlags } from 'mol-util';
-import { SecondaryStructureType } from 'mol-model/structure/model/types';
 import { UnitRings } from 'mol-model/structure/structure/unit/rings';
 import { Vec3 } from 'mol-math/linear-algebra';
 
@@ -51,7 +49,7 @@ export function residueLabel(model: Model, rI: number) {
 export function printSecStructure(model: Model) {
     console.log('\nSecondary Structure\n=============');
     const { residues } = model.atomicHierarchy;
-    const { type, key } = model.properties.secondaryStructure;
+    const { key, elements } = model.properties.secondaryStructure;
 
     const count = residues._rowCount;
     let rI = 0;
@@ -60,12 +58,8 @@ export function printSecStructure(model: Model) {
         while (rI < count && key[start] === key[rI]) rI++;
         rI--;
 
-        if (BitFlags.has(type[start], SecondaryStructureType.Flag.Beta)) {
-            console.log(`Sheet: ${residueLabel(model, start)} - ${residueLabel(model, rI)} (key ${key[start]})`);
-        } else if (BitFlags.has(type[start], SecondaryStructureType.Flag.Helix)) {
-            console.log(`Helix: ${residueLabel(model, start)} - ${residueLabel(model, rI)} (key ${key[start]})`);
-        }
-
+        const e = elements[key[start]];
+        if (e.kind !== 'none') console.log(`${e.kind}: ${residueLabel(model, start)} - ${residueLabel(model, rI)}`);
         rI++;
     }
 }

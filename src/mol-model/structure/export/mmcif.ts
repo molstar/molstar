@@ -17,6 +17,7 @@ export interface CifExportContext {
 }
 
 import CifCategory = CifWriter.Category
+import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
 
 function copy_mmCif_category(name: keyof mmCIF_Schema) {
     return ({ model }: CifExportContext) => {
@@ -33,12 +34,30 @@ function _entity({ model, structure }: CifExportContext): CifCategory {
 }
 
 const Categories = [
+    // Basics
     copy_mmCif_category('entry'),
     copy_mmCif_category('exptl'),
+    _entity,
+
+    // Symmetry
     copy_mmCif_category('cell'),
     copy_mmCif_category('symmetry'),
+
+    // Assemblies
+    copy_mmCif_category('pdbx_struct_assembly'),
+    copy_mmCif_category('pdbx_struct_assembly_gen'),
+    copy_mmCif_category('pdbx_struct_oper_list'),
+
+    // Secondary structure
+    _struct_conf,
+    _struct_sheet_range,
+
+    // Misc
+    // TODO: filter for actual present residues?
     copy_mmCif_category('chem_comp'),
-    _entity,
+    copy_mmCif_category('atom_sites'),
+
+    // Atoms
     _atom_site
 ];
 
