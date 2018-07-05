@@ -17,6 +17,7 @@ export interface CifExportContext {
 }
 
 import CifCategory = CifWriter.Category
+import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
 
 function copy_mmCif_category(name: keyof mmCIF_Schema) {
     return ({ model }: CifExportContext) => {
@@ -48,7 +49,8 @@ const Categories = [
     copy_mmCif_category('pdbx_struct_oper_list'),
 
     // Secondary structure
-    // TODO
+    _struct_conf,
+    _struct_sheet_range,
 
     // Misc
     // TODO: filter for actual present residues?

@@ -56,9 +56,7 @@ function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, eleme
         const element: SecondaryStructure.Helix = {
             kind: 'helix',
             flags: type,
-            type_id: pdbx_PDB_helix_class.valueKind(i) === Column.ValueKind.Present
-                ? pdbx_PDB_helix_class.value(i) : conf_type_id.valueKind(i) === Column.ValueKind.Present
-                ? conf_type_id.value(i) : 'HELIX_P',
+            type_id: conf_type_id.valueKind(i) === Column.ValueKind.Present ? conf_type_id.value(i) : 'HELIX_P',
             helix_class: pdbx_PDB_helix_class.value(i),
             details: details.valueKind(i) === Column.ValueKind.Present ? details.value(i) : void 0
         };
