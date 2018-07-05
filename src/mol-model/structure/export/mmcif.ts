@@ -33,17 +33,29 @@ function _entity({ model, structure }: CifExportContext): CifCategory {
 }
 
 const Categories = [
+    // Basics
     copy_mmCif_category('entry'),
     copy_mmCif_category('exptl'),
     _entity,
+
+    // Symmetry
     copy_mmCif_category('cell'),
     copy_mmCif_category('symmetry'),
+
+    // Assemblies
     copy_mmCif_category('pdbx_struct_assembly'),
     copy_mmCif_category('pdbx_struct_assembly_gen'),
     copy_mmCif_category('pdbx_struct_oper_list'),
+
+    // Secondary structure
+    // TODO
+
+    // Misc
     // TODO: filter for actual present residues?
     copy_mmCif_category('chem_comp'),
     copy_mmCif_category('atom_sites'),
+
+    // Atoms
     _atom_site
 ];
 

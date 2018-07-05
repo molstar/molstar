@@ -8,10 +8,35 @@ import { SecondaryStructureType } from '../types';
 
 /** Secondary structure "indexed" by residues. */
 interface SecondaryStructure {
-    // assign flags to each residue
     readonly type: ArrayLike<SecondaryStructureType>,
-    /** unique value for each "element". This is because single sheet is speficied by multiple records. */
-    readonly key: ArrayLike<number>
+
+    /** index into the elements array */
+    readonly index: ArrayLike<number>,
+    /** indexed by key */
+    readonly elements: ReadonlyArray<SecondaryStructure.Element>
+}
+
+namespace SecondaryStructure {
+    export type Element = None | Helix | Sheet
+
+    export interface None {
+        kind: 'none'
+    }
+
+    export interface Helix {
+        kind: 'helix',
+        flags: SecondaryStructureType,
+        type_id: string, // TODO: use aliased type?
+        helix_class: string,
+        details?: string
+    }
+
+    export interface Sheet {
+        kind: 'sheet',
+        flags: SecondaryStructureType,
+        sheet_id: string,
+        symmetry?: string
+    }
 }
 
 export { SecondaryStructure }
