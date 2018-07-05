@@ -49,16 +49,16 @@ export function residueLabel(model: Model, rI: number) {
 export function printSecStructure(model: Model) {
     console.log('\nSecondary Structure\n=============');
     const { residues } = model.atomicHierarchy;
-    const { index, elements } = model.properties.secondaryStructure;
+    const { key, elements } = model.properties.secondaryStructure;
 
     const count = residues._rowCount;
     let rI = 0;
     while (rI < count) {
         let start = rI;
-        while (rI < count && index[start] === index[rI]) rI++;
+        while (rI < count && key[start] === key[rI]) rI++;
         rI--;
 
-        const e = elements[index[start]];
+        const e = elements[key[start]];
         if (e.kind !== 'none') console.log(`${e.kind}: ${residueLabel(model, start)} - ${residueLabel(model, rI)}`);
         rI++;
     }

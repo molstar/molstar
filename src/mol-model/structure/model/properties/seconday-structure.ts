@@ -11,7 +11,7 @@ interface SecondaryStructure {
     readonly type: ArrayLike<SecondaryStructureType>,
 
     /** index into the elements array */
-    readonly index: ArrayLike<number>,
+    readonly key: ArrayLike<number>,
     /** indexed by key */
     readonly elements: ReadonlyArray<SecondaryStructure.Element>
 }

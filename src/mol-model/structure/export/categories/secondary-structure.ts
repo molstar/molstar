@@ -75,7 +75,7 @@ interface SSElement<T extends SecondaryStructure.Element> {
 }
 
 function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContext, kind: SecondaryStructure.Element['kind']) {
-    const { index, elements } = ctx.model.properties.secondaryStructure;
+    const { key, elements } = ctx.model.properties.secondaryStructure;
 
     const ssElements: SSElement<any>[] = [];
 
@@ -91,7 +91,7 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
             if (move) current = residues.move();
 
             const start = current!.index;
-            const startIdx = index[start];
+            const startIdx = key[start];
             const element = elements[startIdx];
             if (element.kind !== kind) {
                 move = true;
@@ -102,7 +102,7 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
             while (residues.hasNext) {
                 prev = current!.index;
                 current = residues.move();
-                if (startIdx !== index[current.index]) {
+                if (startIdx !== key[current.index]) {
                     move = false;
                     ssElements[ssElements.length] = {
                         start: Element.Location(unit, segs.segments[start]),

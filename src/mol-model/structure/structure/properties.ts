@@ -59,7 +59,7 @@ const residue = {
 
     // Properties
     secondary_structure_type: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.type[l.unit.residueIndex[l.element]]),
-    secondary_structure_key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.index[l.unit.residueIndex[l.element]]),
+    secondary_structure_key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.properties.secondaryStructure.key[l.unit.residueIndex[l.element]]),
 }
 
 const chain = {

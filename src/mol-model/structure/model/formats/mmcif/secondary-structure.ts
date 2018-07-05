@@ -20,7 +20,7 @@ export function getSecondaryStructureMmCif(data: mmCIF_Database, hierarchy: Atom
 
     const secStruct: SecondaryStructureData = {
         type: new Int32Array(hierarchy.residues._rowCount) as any,
-        index: new Int32Array(hierarchy.residues._rowCount) as any,
+        key: new Int32Array(hierarchy.residues._rowCount) as any,
         elements
     };
 
@@ -34,10 +34,10 @@ type SecondaryStructureEntry = {
     endSeqNumber: number,
     endInsCode: string | null,
     type: SecondaryStructureType,
-    index: number
+    key: number
 }
 type SecondaryStructureMap = Map<string, Map<number, SecondaryStructureEntry>>
-type SecondaryStructureData = { type: SecondaryStructureType[], index: number[], elements: SecondaryStructure.Element[]  }
+type SecondaryStructureData = { type: SecondaryStructureType[], key: number[], elements: SecondaryStructure.Element[]  }
 
 function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, elements: SecondaryStructure.Element[]) {
     if (!cat._rowCount) return;
@@ -66,7 +66,7 @@ function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, eleme
             endSeqNumber: end_label_seq_id.value(i),
             endInsCode: pdbx_end_PDB_ins_code.value(i),
             type,
-            index: elements.length
+            key: elements.length
         };
 
         elements[elements.length] = element;
@@ -112,7 +112,7 @@ function addSheets(cat: mmCIF['struct_sheet_range'], map: SecondaryStructureMap,
             endSeqNumber: end_label_seq_id.value(i),
             endInsCode: pdbx_end_PDB_ins_code.value(i),
             type,
-            index: elements.length
+            key: elements.length
         };
 
         elements[elements.length] = element;
@@ -131,13 +131,13 @@ function addSheets(cat: mmCIF['struct_sheet_range'], map: SecondaryStructureMap,
 
 function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: SecondaryStructureEntry, resStart: number, resEnd: number, data: SecondaryStructureData) {
     const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
-    const { endSeqNumber, endInsCode, index, type } = entry;
+    const { endSeqNumber, endInsCode, key, type } = entry;
 
     let rI = resStart;
     while (rI < resEnd) {
         const seqNumber = label_seq_id.value(rI);
         data.type[rI] = type;
-        data.index[rI] = index;
+        data.key[rI] = key;
 
         if ((seqNumber > endSeqNumber) ||
             (seqNumber === endSeqNumber && pdbx_PDB_ins_code.value(rI) === endInsCode)) {
