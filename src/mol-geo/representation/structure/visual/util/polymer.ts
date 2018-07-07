@@ -5,7 +5,7 @@
  */
 
 import { Unit, Element, StructureProperties, Model } from 'mol-model/structure';
-import { Segmentation } from 'mol-data/int';
+import { Segmentation, Interval } from 'mol-data/int';
 import { MoleculeType } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
 import { SegmentIterator } from 'mol-data/int/impl/segmentation';
@@ -83,8 +83,12 @@ function getTraceName2(model: Model, residueModelIndex: number) {
     let traceName = ''
     if (moleculeType === MoleculeType.protein) {
         traceName = 'CA'
-    } else if (moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA) {
-        traceName = 'P'
+    } else if (moleculeType === MoleculeType.DNA) {
+        // traceName = 'P'
+        traceName = 'C3\''
+    } else if (moleculeType === MoleculeType.RNA) {
+        // traceName = 'P'
+        traceName = 'C4\''
     }
     return traceName
 }
@@ -96,6 +100,32 @@ function getTraceElement2(model: Model, residueModelSegment: Segmentation.Segmen
         if (model.atomicHierarchy.atoms.label_atom_id.value(j) === traceName) return j
     }
     console.log('trace name element not found', { ...residueModelSegment })
+    return residueModelSegment.start
+}
+
+function getDirectionName2(model: Model, residueModelIndex: number) {
+    const compId = model.atomicHierarchy.residues.label_comp_id.value(residueModelIndex)
+    const chemCompMap = model.properties.chemicalComponentMap
+    const cc = chemCompMap.get(compId)
+    const moleculeType = cc ? cc.moleculeType : MoleculeType.unknown
+    let traceName = ''
+    if (moleculeType === MoleculeType.protein) {
+        traceName = 'O'
+    } else if (moleculeType === MoleculeType.DNA) {
+        traceName = 'O4\''
+    } else if (moleculeType === MoleculeType.RNA) {
+        traceName = 'C3\''
+    }
+    return traceName
+}
+
+function getDirectionElement2(model: Model, residueModelSegment: Segmentation.Segment<Element>) {
+    const traceName = getDirectionName2(model, residueModelSegment.index)
+
+    for (let j = residueModelSegment.start, _j = residueModelSegment.end; j < _j; j++) {
+        if (model.atomicHierarchy.atoms.label_atom_id.value(j) === traceName) return j
+    }
+    console.log('direction name element not found', { ...residueModelSegment })
     return residueModelSegment.start
 }
 
@@ -268,8 +298,8 @@ export class CoarsePolymerBackboneIterator<T extends number = number> implements
 
 
 /**
- * Iterates over individual residues/coarse elements in polymers while providing information
- * about the neighbourhood in the underlying model for drawing splines
+ * Iterates over individual residues/coarse elements in polymers of a unit while
+ * providing information about the neighbourhood in the underlying model for drawing splines
  */
 export function PolymerTraceIterator(unit: Unit): Iterator<PolymerTraceElement> {
     switch (unit.kind) {
@@ -285,51 +315,63 @@ interface PolymerTraceElement {
     index: number
     first: boolean
     last: boolean
-    c0: Vec3
-    c1: Vec3
-    c2: Vec3
-    c3: Vec3
-    c4: Vec3
+
+    t0: Vec3
+    t1: Vec3
+    t2: Vec3
+    t3: Vec3
+    t4: Vec3
+    t5: Vec3
+    t6: Vec3
+
+    d12: Vec3
+    d23: Vec3
+    d34: Vec3
+    d45: Vec3
 }
 
-function createPolymerTraceElement (unit: Unit) {
+function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
     return {
         center: Element.Location(unit),
         index: 0,
         first: false,
         last: false,
-        c0: Vec3.zero(),
-        c1: Vec3.zero(),
-        c2: Vec3.zero(),
-        c3: Vec3.zero(),
-        c4: Vec3.zero()
+
+        t0: Vec3.zero(),
+        t1: Vec3.zero(),
+        t2: Vec3.zero(),
+        t3: Vec3.zero(),
+        t4: Vec3.zero(),
+        t5: Vec3.zero(),
+        t6: Vec3.zero(),
+
+        d12: Vec3.zero(),
+        d23: Vec3.zero(),
+        d34: Vec3.zero(),
+        d45: Vec3.zero(),
     }
 }
 
 const enum AtomicPolymerTraceIteratorState { nextPolymer, nextResidue }
 
-function setSegment (outSegment: Segmentation.Segment<Element>, index: number, segments: Segmentation<Element>, boundingSegment: Segmentation.Segment<Element>): Segmentation.Segment<Element> {
-    index = Math.min(Math.max(0, index), segments.segments.length - 2)
-    outSegment.index = index
-    outSegment.start = segments.segments[index]
-    outSegment.end = segments.segments[index + 1]
+function setSegment (outSegment: Segmentation.Segment<Element>, index: number, segments: Segmentation<Element>, min: number, max: number): Segmentation.Segment<Element> {
+    // index = Math.min(Math.max(0, index), segments.segments.length - 2)
+    const _index = Math.min(Math.max(min, index), max)
+    if (isNaN(_index)) console.log(_index, index, min, max)
+    outSegment.index = _index
+    outSegment.start = segments.segments[_index]
+    outSegment.end = segments.segments[_index + 1]
+    // console.log(index, {...outSegment}, {...boundingSegment}, segments.segments[boundingSegment.index])
     return outSegment
 }
-
-// const p0 = Vec3.zero()
-// const p1 = Vec3.zero()
-// const p2 = Vec3.zero()
-// const p3 = Vec3.zero()
-// const p4 = Vec3.zero()
-// const p5 = Vec3.zero()
-// const p6 = Vec3.zero()
 
 export class AtomicPolymerTraceIterator<T extends number = number> implements Iterator<PolymerTraceElement> {
     private value: PolymerTraceElement
 
     private polymerIt: SegmentIterator<Element>
     private residueIt: SegmentIterator<Element>
-    private polymerSegment: Segmentation.Segment<Element>
+    private residueSegmentMin: number
+    private residueSegmentMax: number
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
     private residueSegments: Segmentation<Element>
 
@@ -345,42 +387,62 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
         target[2] = this.unit.model.atomicConformation.z[index]
     }
 
+    updateResidueSegmentRange(polymerSegment: Segmentation.Segment<Element>) {
+        const { polymerSegments, residueSegments } = this.unit.model.atomicHierarchy
+        const sMin = polymerSegments.segments[polymerSegment.index]
+        const sMax = polymerSegments.segments[polymerSegment.index + 1] - 1
+        this.residueSegmentMin = residueSegments.segmentMap[sMin]
+        this.residueSegmentMax = residueSegments.segmentMap[sMax]
+    }
+
     move() {
         const { residueIt, polymerIt, value } = this
-        value.first = false
-        value.last = false
 
         if (this.state === AtomicPolymerTraceIteratorState.nextPolymer) {
             if (polymerIt.hasNext) {
-                this.polymerSegment = polymerIt.move();
-                residueIt.setSegment(this.polymerSegment);
+                const polymerSegment = polymerIt.move();
+                residueIt.setSegment(polymerSegment);
+                this.updateResidueSegmentRange(polymerSegment)
                 this.state = AtomicPolymerTraceIteratorState.nextResidue
-                value.first = true
             }
         }
 
         if (this.state === AtomicPolymerTraceIteratorState.nextResidue) {
+            const { tmpSegment, residueSegments, residueSegmentMin, residueSegmentMax } = this
             const residueSegment = residueIt.move();
+            const resSegIdx = residueSegment.index
             value.index = setTraceElement(value.center, residueSegment)
 
-            setSegment(this.tmpSegment, residueSegment.index - 2, this.residueSegments, this.polymerSegment)
-            this.pos(value.c0, getTraceElement2(this.unit.model, this.tmpSegment))
+            setSegment(tmpSegment, resSegIdx - 3, residueSegments, residueSegmentMin, residueSegmentMax)
+            this.pos(value.t0, getTraceElement2(this.unit.model, tmpSegment))
 
-            setSegment(this.tmpSegment, residueSegment.index - 1, this.residueSegments, this.polymerSegment)
-            this.pos(value.c1, getTraceElement2(this.unit.model, this.tmpSegment))
+            setSegment(tmpSegment, resSegIdx - 2, residueSegments, residueSegmentMin, residueSegmentMax)
+            this.pos(value.t1, getTraceElement2(this.unit.model, tmpSegment))
+            this.pos(value.d12, getDirectionElement2(this.unit.model, tmpSegment))
 
-            setSegment(this.tmpSegment, residueSegment.index, this.residueSegments, this.polymerSegment)
-            this.pos(value.c2, getTraceElement2(this.unit.model, this.tmpSegment))
+            setSegment(tmpSegment, resSegIdx - 1, residueSegments, residueSegmentMin, residueSegmentMax)
+            this.pos(value.t2, getTraceElement2(this.unit.model, tmpSegment))
+            this.pos(value.d23, getDirectionElement2(this.unit.model, tmpSegment))
 
-            setSegment(this.tmpSegment, residueSegment.index + 1, this.residueSegments, this.polymerSegment)
-            this.pos(value.c3, getTraceElement2(this.unit.model, this.tmpSegment))
+            setSegment(tmpSegment, resSegIdx, residueSegments, residueSegmentMin, residueSegmentMax)
+            this.pos(value.t3, getTraceElement2(this.unit.model, tmpSegment))
+            this.pos(value.d34, getDirectionElement2(this.unit.model, tmpSegment))
 
-            setSegment(this.tmpSegment, residueSegment.index + 2, this.residueSegments, this.polymerSegment)
-            this.pos(value.c4, getTraceElement2(this.unit.model, this.tmpSegment))
+            setSegment(tmpSegment, resSegIdx + 1, residueSegments, residueSegmentMin, residueSegmentMax)
+            this.pos(value.t4, getTraceElement2(this.unit.model, tmpSegment))
+            this.pos(value.d45, getDirectionElement2(this.unit.model, tmpSegment))
+
+            setSegment(tmpSegment, resSegIdx + 2, residueSegments, residueSegmentMin, residueSegmentMax)
+            this.pos(value.t5, getTraceElement2(this.unit.model, tmpSegment))
+
+            setSegment(tmpSegment, resSegIdx + 3, residueSegments, residueSegmentMin, residueSegmentMax)
+            this.pos(value.t6, getTraceElement2(this.unit.model, tmpSegment))
+
+            value.first = resSegIdx === residueSegmentMin
+            value.last = resSegIdx === residueSegmentMax
 
             if (!residueIt.hasNext) {
                 this.state = AtomicPolymerTraceIteratorState.nextPolymer
-                value.last = true
             }
         }
 

@@ -27,6 +27,7 @@ export interface MeshBuilder {
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
     addIcosahedron(center: Vec3, radius: number, detail: number): void
+    addTube(controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number): void
     setId(id: number): void
     getMesh(): Mesh
 }
@@ -174,6 +175,84 @@ export namespace MeshBuilder {
                 const { vertices, normals, indices } = getIcosahedron({ radius, detail })
                 setIcosahedronMat(tmpIcosahedronMat, center)
                 add(tmpIcosahedronMat, vertices, normals, indices)
+            },
+            addTube: (controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number) => {
+                console.log(controlPoints, torsionVectors, normalVectors, linearSegments, radialSegments)
+
+                const ico = getIcosahedron({ radius: 0.1, detail: 1 })
+
+                const radialVector = Vec3.zero()
+                const normalVector = Vec3.zero()
+                const tempPos = Vec3.zero()
+                const a = Vec3.zero()
+                const b = Vec3.zero()
+                const u = Vec3.zero()
+                const v = Vec3.zero()
+
+                const waveFactor = 1
+                const width = 0.6
+                const height = 0.2
+
+                const vertexCount = vertices.elementCount
+                const di = 1 / linearSegments
+
+                for (let i = 0; i <= linearSegments; ++i) {
+                    const i3 = i * 3
+                    Vec3.fromArray(u, torsionVectors, i3)
+                    Vec3.fromArray(v, normalVectors, i3)
+
+                    const tt = di * i - 0.5;
+                    const ff = 1 + (waveFactor - 1) * (Math.cos(2 * Math.PI * tt) + 1);
+                    const w = ff * width, h = ff * height;
+
+                    for (let j = 0; j < radialSegments; ++j) {
+                        let t = 2 * Math.PI * j / radialSegments;
+
+                        Vec3.copy(a, u)
+                        Vec3.copy(b, v)
+                        Vec3.add(
+                            radialVector,
+                            Vec3.scale(a, a, w * Math.cos(t)),
+                            Vec3.scale(b, b, h * Math.sin(t))
+                        )
+
+                        Vec3.copy(a, u)
+                        Vec3.copy(b, v)
+                        Vec3.add(
+                            normalVector,
+                            Vec3.scale(a, a, h * Math.cos(t)),
+                            Vec3.scale(b, b, w * Math.sin(t))
+                        )
+                        Vec3.normalize(normalVector, normalVector)
+
+                        Vec3.fromArray(tempPos, controlPoints, i3)
+                        Vec3.add(tempPos, tempPos, radialVector)
+
+                        ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
+                        ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
+                        ChunkedArray.add(ids, currentId);
+
+                        // setIcosahedronMat(tmpIcosahedronMat, tempPos)
+                        // add(tmpIcosahedronMat, ico.vertices, ico.normals, ico.indices)
+                    }
+                }
+
+                for (let i = 0; i < linearSegments; ++i) {
+                    for (let j = 0; j < radialSegments; ++j) {
+                        ChunkedArray.add3(
+                            indices,
+                            (vertexCount + i * radialSegments + (j + 1) % radialSegments),
+                            (vertexCount + (i + 1) * radialSegments + (j + 1) % radialSegments),
+                            (vertexCount + i * radialSegments + j)
+                        );
+                        ChunkedArray.add3(
+                            indices,
+                            (vertexCount + (i + 1) * radialSegments + (j + 1) % radialSegments),
+                            (vertexCount + (i + 1) * radialSegments + j),
+                            (vertexCount + i * radialSegments + j)
+                        );
+                    }
+                }
             },
             setId: (id: number) => {
                 if (currentId !== id) {

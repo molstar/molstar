@@ -52,18 +52,22 @@ export function projectValue({ segments }: Segmentation, set: OrderedSet, value:
 }
 
 export class SegmentIterator<T extends number = number> implements Iterator<Segs.Segment<T>> {
-    private segmentMin = 0;
-    private segmentMax = 0;
+    private _segmentMin = 0;
+    private _segmentMax = 0;
+    private segmentCur = 0;
     private setRange = Interval.Empty;
     private value: Segs.Segment<T> = { index: 0, start: 0 as T, end: 0 as T };
 
     hasNext: boolean = false;
 
+    get segmentMin() { return this._segmentMin }
+    get segmentMax() { return this._segmentMax }
+
     move() {
         while (this.hasNext) {
             if (this.updateValue()) {
-                this.value.index = this.segmentMin++;
-                this.hasNext = this.segmentMax >= this.segmentMin && Interval.size(this.setRange) > 0;
+                this.value.index = this.segmentCur++;
+                this.hasNext = this._segmentMax >= this.segmentCur && Interval.size(this.setRange) > 0;
                 break;
             } else {
                 this.updateSegmentRange();
@@ -73,7 +77,7 @@ export class SegmentIterator<T extends number = number> implements Iterator<Segs
     }
 
     private updateValue() {
-        const segmentEnd = this.segments[this.segmentMin + 1];
+        const segmentEnd = this.segments[this.segmentCur + 1];
         // TODO: add optimized version for interval and array?
         const setEnd = OrderedSet.findPredecessorIndexInInterval(this.set, segmentEnd, this.setRange);
         this.value.start = Interval.start(this.setRange) as T;
@@ -89,10 +93,11 @@ export class SegmentIterator<T extends number = number> implements Iterator<Segs
             return;
         }
 
-        this.segmentMin = this.segmentMap[OrderedSet.getAt(this.set, sMin)];
-        this.segmentMax = this.segmentMap[OrderedSet.getAt(this.set, sMax)];
+        this.segmentCur = this.segmentMap[OrderedSet.getAt(this.set, sMin)];
+        this._segmentMax = this.segmentMap[OrderedSet.getAt(this.set, sMax)];
 
-        this.hasNext = this.segmentMax >= this.segmentMin;
+        this._segmentMin = this.segmentCur
+        this.hasNext = this._segmentMax >= this.segmentCur;
     }
 
     setSegment(segment: Segs.Segment<T>) {

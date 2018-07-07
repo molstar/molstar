@@ -380,6 +380,13 @@ namespace Vec3 {
         return v[0] === 0 && v[1] === 0 && v[2] === 0
     }
 
+    export function projectPointOnVector(out: Vec3, point: Vec3, vector: Vec3, origin: Vec3) {
+        // point.sub(origin).projectOnVector(vector).add(origin)
+        Vec3.sub(out, Vec3.copy(out, point), origin)
+        const scalar = Vec3.dot(vector, out) / Vec3.squaredMagnitude(vector);
+        return Vec3.add(out, Vec3.scale(out, Vec3.copy(out, vector), scalar), origin);
+    }
+
     export function toString(a: Vec3) {
         return `[${a[0]} ${a[1]} ${a[2]}]`;
     }

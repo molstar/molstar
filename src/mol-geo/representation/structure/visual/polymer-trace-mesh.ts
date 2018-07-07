@@ -26,17 +26,11 @@ import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 
-// export function spline(target: THREE.Vector3, p1: THREE.Vector3, p2: THREE.Vector3, p3: THREE.Vector3, t: number) {
-//     let a = Math.pow(1 - t, 2) / 2;
-//     let c = Math.pow(t, 2) / 2;
-//     let b = 1 - a - c;
-
-//     let x = a * p1.x + b * p2.x + c * p3.x;
-//     let y = a * p1.y + b * p2.y + c * p3.y;
-//     let z = a * p1.z + b * p2.z + c * p3.z;
-
-//     target.set(x, y, z);
-// }
+export function reflect(target: Vec3, p1: Vec3, p2: Vec3, amount: number) {
+    target[0] = p1[0] - amount * (p2[0] - p1[0])
+    target[1] = p1[1] - amount * (p2[1] - p1[1])
+    target[2] = p1[2] - amount * (p2[2] - p1[2])
+}
 
 async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
@@ -45,34 +39,150 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
 
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
-    const linearSegmentCount = 10
+    const linearSegments = 5
+    const radialSegments = 8
+    const tension = 0.9
 
-    const v0 = Vec3.zero()
-    const v1 = Vec3.zero()
+    const tA = Vec3.zero()
+    const tB = Vec3.zero()
+    const dA = Vec3.zero()
+    const dB = Vec3.zero()
+    const torsionVec = Vec3.zero()
+    const initialTorsionVec = Vec3.zero()
+    const tangentVec = Vec3.zero()
+    const normalVec = Vec3.zero()
+
+    const tmp = Vec3.zero()
+    const reflectedControlPoint = Vec3.zero()
+
+    const pn = (linearSegments + 1) * 3
+    const controlPoints = new Float32Array(pn)
+    const torsionVectors = new Float32Array(pn)
+    const normalVectors = new Float32Array(pn)
 
     let i = 0
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-
-        Vec3.spline(v1, v.c0, v.c1, v.c2, v.c3, 0.5, 0.5)
-
         builder.setId(v.index)
-        for (let j = 1; j <= linearSegmentCount; ++j) {
-            let t = j * 1.0 / linearSegmentCount;
-            Vec3.copy(v0, v1)
-            // if ((v.last && t > 0.5) || (v.first && t < 0.5)) break
-            if (t < 0.5) {
-                Vec3.spline(v1, v.c0, v.c1, v.c2, v.c3, t + 0.5, 0.5)
-            } else {
-                Vec3.spline(v1, v.c1, v.c2, v.c3, v.c4, t - 0.5, 0.5)
-            }
-            // TODO size theme
-            builder.addCylinder(v0, v1, 1.0, { radiusTop: 0.1, radiusBottom: 0.1 })
+
+        Vec3.spline(tB, v.t1, v.t2, v.t3, v.t4, 0.5, tension)
+        Vec3.spline(dA, v.d12, v.d23, v.d34, v.d45, 0.5, tension)
+
+        Vec3.normalize(initialTorsionVec, Vec3.sub(initialTorsionVec, tB, dB))
+
+        Vec3.toArray(tB, controlPoints, 0)
+        Vec3.normalize(torsionVec, Vec3.sub(torsionVec, tB, dB))
+        Vec3.toArray(torsionVec, torsionVectors, 0)
+        // approximate tangent as direction to previous control point
+        Vec3.normalize(tangentVec, Vec3.sub(tangentVec, tB, tA))
+        Vec3.normalize(normalVec, Vec3.cross(normalVec, tangentVec, torsionVec))
+        Vec3.toArray(normalVec, normalVectors, 0)
+
+        //
+
+        const t12 = Vec3.zero()
+        const t23 = Vec3.zero()
+        const t34 = Vec3.zero()
+        const t45 = Vec3.zero()
+        Vec3.spline(t12, v.t0, v.t1, v.t2, v.t3, 0.5, tension)
+        Vec3.spline(t23, v.t1, v.t2, v.t3, v.t4, 0.5, tension)
+        Vec3.spline(t34, v.t2, v.t3, v.t4, v.t5, 0.5, tension)
+        Vec3.spline(t45, v.t3, v.t4, v.t5, v.t6, 0.5, tension)
+
+        // const dp12 = Vec3.zero()
+        // const dp23 = Vec3.zero()
+        // const dp34 = Vec3.zero()
+        // const dp45 = Vec3.zero()
+        // Vec3.projectPointOnVector(dp12, v.d12, t12, v.t1)
+        // Vec3.projectPointOnVector(dp23, v.d23, t23, v.t2)
+        // Vec3.projectPointOnVector(dp34, v.d34, t34, v.t3)
+        // Vec3.projectPointOnVector(dp45, v.d45, t45, v.t4)
+
+        const td12 = Vec3.zero()
+        const td23 = Vec3.zero()
+        const td34 = Vec3.zero()
+        const td45 = Vec3.zero()
+        Vec3.normalize(td12, Vec3.sub(td12, t12, v.d12))
+        Vec3.scaleAndAdd(v.d12, t12, td12, 1)
+        Vec3.normalize(td23, Vec3.sub(td23, t23, v.d23))
+        if (Vec3.dot(td12, td23) < 0) {
+            Vec3.scaleAndAdd(v.d23, t23, td23, -1)
+            console.log('foo td0 td1')
+        } else {
+            Vec3.scaleAndAdd(v.d23, t23, td23, 1)
+        }
+        Vec3.normalize(td34, Vec3.sub(td34, t34, v.d34))
+        if (Vec3.dot(td12, td34) < 0) {
+            Vec3.scaleAndAdd(v.d34, t34, td34, -1)
+            console.log('foo td1 td2')
+        } else {
+            Vec3.scaleAndAdd(v.d34, t34, td34, 1)
+        }
+        Vec3.normalize(td45, Vec3.sub(td45, t45, v.d45))
+        if (Vec3.dot(td12, td45) < 0) {
+            Vec3.scaleAndAdd(v.d45, t45, td45, -1)
+            console.log('foo td2 td3')
+        } else {
+            Vec3.scaleAndAdd(v.d45, t45, td45, 1)
         }
 
+        // console.log(td0, td1, td2, td3)
+
+        builder.addIcosahedron(t12, 0.3, 1)
+        builder.addIcosahedron(t23, 0.3, 1)
+        builder.addIcosahedron(t34, 0.3, 1)
+        builder.addIcosahedron(t45, 0.3, 1)
+
+        // builder.addIcosahedron(dp12, 0.3, 1)
+        // builder.addIcosahedron(dp23, 0.3, 1)
+        // builder.addIcosahedron(dp34, 0.3, 1)
+        // builder.addIcosahedron(dp45, 0.3, 1)
+
+        builder.addIcosahedron(v.d12, 0.3, 1)
+        builder.addIcosahedron(v.d23, 0.3, 1)
+        builder.addIcosahedron(v.d34, 0.3, 1)
+        builder.addIcosahedron(v.d45, 0.3, 1)
+
+        for (let j = 1; j <= linearSegments; ++j) {
+            const t = j * 1.0 / linearSegments;
+            Vec3.copy(tA, tB)
+            // if ((v.last && t > 0.5) || (v.first && t < 0.5)) break
+
+            if (t < 0.5) {
+                Vec3.spline(tB, v.t1, v.t2, v.t3, v.t4, t + 0.5, tension)
+            } else {
+                Vec3.spline(tB, v.t2, v.t3, v.t4, v.t5, t - 0.5, tension)
+            }
+            Vec3.spline(dB, v.d12, v.d23, v.d34, v.d45, t, tension)
+
+            // reflect(reflectedControlPoint, tB, tA, 1)
+            Vec3.toArray(tB, controlPoints, j * 3)
+
+            Vec3.normalize(torsionVec, Vec3.sub(torsionVec, tB, dB))
+            // if (Vec3.dot(initialTorsionVec, torsionVec) < 0) Vec3.scale(torsionVec, torsionVec, -1)
+            Vec3.toArray(torsionVec, torsionVectors, j * 3)
+
+            // approximate tangent as direction to previous control point
+            Vec3.normalize(tangentVec, Vec3.sub(tangentVec, tB, tA))
+            Vec3.normalize(normalVec, Vec3.cross(normalVec, tangentVec, torsionVec))
+            Vec3.toArray(normalVec, normalVectors, j * 3)
+
+            // TODO size theme
+            // builder.addCylinder(tA, tB, 1.0, { radiusTop: 0.3, radiusBottom: 0.3 })
+
+            builder.addIcosahedron(dB, 0.1, 1)
+
+            builder.addCylinder(tB, Vec3.add(tmp, tB, torsionVec), 1.0, { radiusTop: 0.1, radiusBottom: 0.1 })
+            // builder.addCylinder(tB, Vec3.add(tmp, tB, normalVec), 1.0, { radiusTop: 0.1, radiusBottom: 0.1 })
+
+            console.log(tA, tB)
+        }
+
+        builder.addTube(controlPoints, torsionVectors, normalVectors, linearSegments, radialSegments)
+
         if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
+            await ctx.update({ message: 'Polymer trace mesh', current: i, max: polymerElementCount });
         }
         ++i
     }

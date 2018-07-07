@@ -73,14 +73,14 @@ export class Stage {
 
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
-        // this.loadPdbid('1crn') // small
+        this.loadPdbid('1crn') // small
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
         // this.loadPdbid('3pqr') // inter unit bonds
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
-        this.loadPdbid('3sn6') // discontinuous chains
+        // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
@@ -103,7 +103,7 @@ export class Stage {
         const modelEntity = await MmcifUrlToModel.apply(this.ctx, urlEntity)
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
 
-        // StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: true })
+        StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: false })
         StructureToSpacefill.apply(this.ctx, structureEntity, { ...spacefillProps, visible: false })
         StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: false })
         // StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: true })
@@ -111,13 +111,14 @@ export class Stage {
 
         this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
 
-        const structureEntity2 = await ModelToStructure.apply(this.ctx, modelEntity)
-        const q1 = Q.generators.atoms({
-            residueTest: l => SP.residue.label_seq_id(l) > 30
-        });
-        structureEntity2.value = Selection.unionStructure(await Query(q1)(structureEntity2.value).run());
-        StructureToBackbone.apply(this.ctx, structureEntity2, { ...backboneProps, visible: true })
-        StructureToCartoon.apply(this.ctx, structureEntity2, { ...cartoonProps, visible: true })
+        // const structureEntity2 = await ModelToStructure.apply(this.ctx, modelEntity)
+        // const q1 = Q.generators.atoms({
+        //     residueTest: l => SP.residue.label_seq_id(l) < 10
+        // });
+        // structureEntity2.value = Selection.unionStructure(await Query(q1)(structureEntity2.value).run());
+        // StructureToBackbone.apply(this.ctx, structureEntity2, { ...backboneProps, visible: true })
+        // StructureToCartoon.apply(this.ctx, structureEntity2, { ...cartoonProps, visible: true })
+        // StructureToBallAndStick.apply(this.ctx, structureEntity2, { ...ballAndStickProps, visible: true })
     }
 
     loadPdbid (pdbid: string) {
