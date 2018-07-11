@@ -8,7 +8,7 @@ import { Column, Table } from 'mol-data/db';
 import { Interval, Segmentation } from 'mol-data/int';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import UUID from 'mol-util/uuid';
-import { Element } from '../../../../structure';
+import { ElementIndex } from '../../../../structure';
 import Format from '../../format';
 import { Model } from '../../model';
 import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../properties/atomic';
@@ -23,11 +23,11 @@ function findHierarchyOffsets(atom_site: AtomSite) {
     if (atom_site._rowCount === 0) return { residues: [], polymers: [], chains: [] };
 
     const start = 0, end = atom_site._rowCount;
-    const residues = [start as Element], chains = [start as Element], polymers = [start as Element];
+    const residues = [start as ElementIndex], chains = [start as ElementIndex], polymers = [start as ElementIndex];
 
     const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = atom_site;
 
-    for (let i = start + 1; i < end; i++) {
+    for (let i = start + 1 as ElementIndex; i < end; i++) {
         const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !label_asym_id.areValuesEqual(i - 1, i);
         const newResidue = newChain
             || !label_seq_id.areValuesEqual(i - 1, i)
@@ -36,9 +36,9 @@ function findHierarchyOffsets(atom_site: AtomSite) {
             || !label_comp_id.areValuesEqual(i - 1, i);
         const newPolymer = newResidue && label_seq_id.value(i - 1) !== label_seq_id.value(i) - 1;
 
-        if (newResidue) residues[residues.length] = i as Element;
-        if (newPolymer) polymers[polymers.length] = i as Element;
-        if (newChain) chains[chains.length] = i as Element;
+        if (newResidue) residues[residues.length] = i;
+        if (newPolymer) polymers[polymers.length] = i;
+        if (newChain) chains[chains.length] = i;
     }
     return { residues, polymers, chains };
 }

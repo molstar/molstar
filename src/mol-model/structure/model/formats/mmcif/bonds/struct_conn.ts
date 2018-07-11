@@ -6,7 +6,7 @@
  */
 
 import { Model } from '../../../model'
-import { Element, Structure } from '../../../../structure'
+import { Structure } from '../../../../structure'
 import { LinkType } from '../../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from 'mol-data/db'
@@ -14,6 +14,7 @@ import { ModelPropertyDescriptor } from '../../../properties/custom';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
+import { ElementIndex } from '../../../indexing';
 
 export interface StructConn {
     getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>,
@@ -34,7 +35,7 @@ export namespace StructConn {
                 const strConn = get(ctx.model);
                 if (!strConn || strConn.entries.length === 0) return [];
 
-                const foundAtoms = new Set<Element>();
+                const foundAtoms = new Set<ElementIndex>();
                 const indices: number[] = [];
                 for (const entry of strConn.entries) {
                     const { partners } = entry;
@@ -61,7 +62,7 @@ export namespace StructConn {
         }
     }
 
-    function hasAtom({ units }: Structure, element: Element) {
+    function hasAtom({ units }: Structure, element: ElementIndex) {
         for (let i = 0, _i = units.length; i < _i; i++) {
             if (SortedArray.indexOf(units[i].elements, element) >= 0) return true;
         }
@@ -132,7 +133,7 @@ export namespace StructConn {
         distance: number,
         order: number,
         flags: number,
-        partners: { residueIndex: number, atomIndex: Element, symmetry: string }[]
+        partners: { residueIndex: number, atomIndex: ElementIndex, symmetry: string }[]
     }
 
     type StructConnType =

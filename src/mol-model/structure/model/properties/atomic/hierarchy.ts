@@ -8,8 +8,8 @@ import { Column, Table } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import { ElementSymbol } from '../../types'
-import { Element } from '../../../structure'
-import { ChainIndex, EntityIndex, ResidueIndex } from '../../indexing';
+// import { Element } from '../../../structure'
+import { ChainIndex, EntityIndex, ResidueIndex, ElementIndex } from '../../indexing';
 
 export const AtomsSchema = {
     type_symbol: Column.Schema.Aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
@@ -50,7 +50,7 @@ export interface AtomicData {
 
 export interface AtomicSegments {
     /** Maps residueIndex to a range of atoms [segments[rI], segments[rI + 1]) */
-    residueAtomSegments: Segmentation<Element, ResidueIndex>,
+    residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>,
     /**
      * Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]),
      *
@@ -59,12 +59,12 @@ export interface AtomicSegments {
      * const start = rI[offsets[i]], const end = rI[offsets[i + 1] - 1] + 1;
      * for (let j = start; j < end; i++) { }
      */
-    chainAtomSegments: Segmentation<Element, ChainIndex>,
+    chainAtomSegments: Segmentation<ElementIndex, ChainIndex>,
     /**
      * bonded/connected stretches of polymer chains, i.e. a chain will be
      * broken into multiple polymer segments if there are missing residues
      */
-    polymerAtomSegments: Segmentation<Element>
+    polymerAtomSegments: Segmentation<ElementIndex>
 
     // TODO: include entity segments?
 }

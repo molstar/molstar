@@ -7,6 +7,7 @@
 
 import { Entities } from '../common';
 import { CoarseElementData, CoarsedElementKeys } from '../coarse';
+import { ChainIndex, ElementIndex } from '../../indexing';
 
 function getElementKey(map: Map<string, number>, key: string, counter: { index: number }) {
     if (map.has(key)) return map.get(key)!;
@@ -26,22 +27,22 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
     const getEntKey = entities.getEntityIndex;
     const findChainKey: CoarsedElementKeys['findChainKey'] = (e, c) => {
         const eKey = getEntKey(e);
-        if (eKey < 0) return -1;
+        if (eKey < 0) return -1 as ChainIndex;
         const cm = chain.get(eKey)!;
-        if (!cm.has(c)) return -1;
-        return cm.get(c)!;
+        if (!cm.has(c)) return -1 as ChainIndex;
+        return cm.get(c)! as ChainIndex;
     }
     // TODO consider implementing as binary search
     const findSequenceKey: CoarsedElementKeys['findSequenceKey'] = (e, c, s) => {
         const eKey = getEntKey(e);
-        if (eKey < 0) return -1;
+        if (eKey < 0) return -1 as ElementIndex;
         const cm = chain.get(eKey);
-        if (cm === undefined) return -1
+        if (cm === undefined) return -1 as ElementIndex
         const cKey = cm.get(c)
-        if (cKey === undefined) return -1
+        if (cKey === undefined) return -1 as ElementIndex
         const sm = seq.get(cKey)!
-        if (!sm.has(s)) return -1;
-        return sm.get(s)!
+        if (!sm.has(s)) return -1 as ElementIndex;
+        return sm.get(s)! as ElementIndex
     }
     return { findChainKey, findSequenceKey };
 }

@@ -12,7 +12,7 @@ import { getCoarseKeys } from '../../properties/utils/coarse-keys';
 import { UUID } from 'mol-util';
 import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
-import { Element } from '../../../structure'
+import { ElementIndex } from '../../indexing';
 
 export interface IHMData {
     model_id: number,
@@ -81,14 +81,14 @@ function getGaussianConformation(data: mmCIF['ihm_gaussian_obj_site']): CoarseGa
 }
 
 function getSegments(asym_id: Column<string>, seq_id_begin: Column<number>, seq_id_end: Column<number>) {
-    const polymerOffsets = [0 as Element], chainOffsets = [0 as Element];
+    const polymerOffsets = [0 as ElementIndex], chainOffsets = [0 as ElementIndex];
     for (let i = 1, _i = asym_id.rowCount; i < _i; i++) {
         const newChain = !asym_id.areValuesEqual(i - 1, i);
         const newPolymer = newChain
             || seq_id_end.value(i - 1) !== seq_id_begin.value(i) - 1;
 
-        if (newPolymer) polymerOffsets[polymerOffsets.length] = i as Element;
-        if (newChain) chainOffsets[chainOffsets.length] = i as Element;
+        if (newPolymer) polymerOffsets[polymerOffsets.length] = i as ElementIndex;
+        if (newChain) chainOffsets[chainOffsets.length] = i as ElementIndex;
     }
 
     return {

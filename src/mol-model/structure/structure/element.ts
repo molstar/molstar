@@ -6,12 +6,13 @@
 
 import { OrderedSet, SortedArray } from 'mol-data/int'
 import Unit from './unit'
+import { ElementIndex } from '../model';
 
 /** Element index in Model */
-type Element = { readonly '@type': 'element' } & number
+// type Element = { readonly '@type': 'element' } & number
 
 namespace Element {
-    export type Set = SortedArray<Element>
+    export type Set = SortedArray<ElementIndex>
 
     /** Index into Unit.elements */
     export type Index = { readonly '@type': 'element-index' } & number
@@ -20,9 +21,9 @@ namespace Element {
     export interface Location<U = Unit> {
         unit: U,
         /** Index into element (atomic/coarse) properties of unit.model */
-        element: Element
+        element: ElementIndex
     }
-    export function Location(unit?: Unit, element?: Element): Location { return { unit: unit as any, element: element || (0 as Element) }; }
+    export function Location(unit?: Unit, element?: ElementIndex): Location { return { unit: unit as any, element: element || (0 as ElementIndex) }; }
     export interface Property<T> { (location: Location): T }
     export interface Predicate extends Property<boolean> { }
 

@@ -7,7 +7,7 @@
 import { IntMap, SortedArray, Iterator, Segmentation } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
-import { Model } from '../model'
+import { Model, ElementIndex } from '../model'
 import { sort, arraySwap, hash1, sortArray } from 'mol-data/util';
 import Element from './element'
 import Unit from './unit'
@@ -131,7 +131,7 @@ namespace Structure {
                 c++;
             }
 
-            const elements = SortedArray.ofBounds(start as Element, chains.offsets[c + 1] as Element);
+            const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 
@@ -151,7 +151,7 @@ namespace Structure {
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
         const { chainSegments } = elements;
         for (let cI = 0; cI < chainSegments.count; cI++) {
-            const elements = SortedArray.ofBounds(chainSegments.offsets[cI] as Element, chainSegments.offsets[cI + 1] as Element);
+            const elements = SortedArray.ofBounds<ElementIndex>(chainSegments.offsets[cI], chainSegments.offsets[cI + 1]);
             builder.addUnit(kind, model, SymmetryOperator.Default, elements);
         }
     }

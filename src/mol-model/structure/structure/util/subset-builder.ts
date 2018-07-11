@@ -10,15 +10,16 @@ import Element from '../element';
 import StructureSymmetry from '../symmetry';
 import Unit from '../unit';
 import Structure from '../structure';
+import { ElementIndex } from '../../model';
 
 export class StructureSubsetBuilder {
     private ids: number[] = [];
-    private unitMap = IntMap.Mutable<Element[]>();
+    private unitMap = IntMap.Mutable<ElementIndex[]>();
     private parentId = -1;
-    private currentUnit: Element[] = [];
+    private currentUnit: ElementIndex[] = [];
     elementCount = 0;
 
-    addToUnit(parentId: number, e: Element) {
+    addToUnit(parentId: number, e: ElementIndex) {
         const unit = this.unitMap.get(parentId);
         if (!!unit) { unit[unit.length] = e; }
         else {
@@ -33,7 +34,7 @@ export class StructureSubsetBuilder {
         this.currentUnit = this.currentUnit.length > 0 ? [] : this.currentUnit;
     }
 
-    addElement(e: Element) {
+    addElement(e: ElementIndex) {
         this.currentUnit[this.currentUnit.length] = e;
         this.elementCount++;
     }
@@ -45,9 +46,9 @@ export class StructureSubsetBuilder {
         this.parentId = -1;
     }
 
-    setUnit(parentId: number, elements: ArrayLike<Element>) {
+    setUnit(parentId: number, elements: ArrayLike<ElementIndex>) {
         this.ids[this.ids.length] = parentId;
-        this.unitMap.set(parentId, elements as Element[]);
+        this.unitMap.set(parentId, elements as ElementIndex[]);
         this.elementCount += elements.length;
     }
 

@@ -13,6 +13,7 @@ import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import { Column } from 'mol-data/db';
+import { ElementIndex } from '../../model';
 
 export function _struct_conf(ctx: CifExportContext): CifCategory {
     const elements = findElements(ctx, 'helix');
@@ -91,7 +92,7 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
         const segs = unit.model.atomicHierarchy.residueAtomSegments;
         const residues = Segmentation.transientSegments(segs, unit.elements);
 
-        let current: Segmentation.Segment<Element>, move = true;
+        let current: Segmentation.Segment<ElementIndex>, move = true;
         while (residues.hasNext) {
             if (move) current = residues.move();
 
