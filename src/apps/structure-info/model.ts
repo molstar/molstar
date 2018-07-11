@@ -9,7 +9,7 @@ import * as argparse from 'argparse'
 require('util.promisify').shim();
 
 import { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure, Element, Unit, Format, StructureProperties } from 'mol-model/structure'
+import { Model, Structure, StructureElement, Unit, Format, StructureProperties } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { openCif, downloadCif } from './helpers';
@@ -146,7 +146,7 @@ export function printRings(structure: Structure) {
 
 export function printUnits(structure: Structure) {
     console.log('\nUnits\n=============');
-    const l = Element.Location();
+    const l = StructureElement.create();
 
     for (const unit of structure.units) {
         l.unit = unit;

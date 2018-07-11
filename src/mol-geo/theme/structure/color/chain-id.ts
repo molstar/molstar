@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, Element } from 'mol-model/structure';
+import { Unit, StructureProperties, StructureElement } from 'mol-model/structure';
 
 import { StructureColorDataProps } from '.';
 import { ColorData, createElementColor, createUniformColor } from '../../../util/color-data';
 import { ColorScale } from 'mol-util/color';
 
-function getAsymId(unit: Unit): Element.Property<string> {
+function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
         case Unit.Kind.Atomic:
             return StructureProperties.chain.label_asym_id
@@ -21,7 +21,7 @@ function getAsymId(unit: Unit): Element.Property<string> {
     throw new Error('unhandled unit kind')
 }
 
-export function chainIdColorData(props: StructureColorDataProps, locationFn: (l: Element.Location, renderElementIdx: number) => void, colorData?: ColorData) {
+export function chainIdColorData(props: StructureColorDataProps, locationFn: (l: StructureElement, renderElementIdx: number) => void, colorData?: ColorData) {
     const { group: { units }, elementCount } = props
     const unit = units[0]
 
@@ -32,7 +32,7 @@ export function chainIdColorData(props: StructureColorDataProps, locationFn: (l:
     const scale = ColorScale.create({ domain })
     const asym_id = getAsymId(unit)
 
-    const l = Element.Location()
+    const l = StructureElement.create()
     l.unit = unit
 
     return createElementColor({
@@ -46,7 +46,7 @@ export function chainIdColorData(props: StructureColorDataProps, locationFn: (l:
 
 export function chainIdElementColorData(props: StructureColorDataProps, colorData?: ColorData) {
     const elements = props.group.units[0].elements
-    function locationFn(l: Element.Location, renderElementIdx: number) {
+    function locationFn(l: StructureElement, renderElementIdx: number) {
         l.element = elements[renderElementIdx]
     }
     return chainIdColorData(props, locationFn, colorData)
@@ -55,11 +55,11 @@ export function chainIdElementColorData(props: StructureColorDataProps, colorDat
 export function chainIdLinkColorData(props: StructureColorDataProps, colorData?: ColorData): ColorData {
     const unit = props.group.units[0]
     const elements = unit.elements
-    let locationFn: (l: Element.Location, renderElementIdx: number) => void
+    let locationFn: (l: StructureElement, renderElementIdx: number) => void
     switch (unit.kind) {
         case Unit.Kind.Atomic:
             const { a } = unit.links
-            locationFn = (l: Element.Location, renderElementIdx: number) => {
+            locationFn = (l: StructureElement, renderElementIdx: number) => {
                 l.element = elements[a[renderElementIdx]]
             }
             return chainIdColorData(props, locationFn, colorData)

@@ -6,7 +6,7 @@
 
 import { IntMap, SortedArray } from 'mol-data/int';
 import { sortArray } from 'mol-data/util';
-import Element from '../element';
+import StructureElement from '../element';
 import StructureSymmetry from '../symmetry';
 import Unit from '../unit';
 import Structure from '../structure';
@@ -101,7 +101,7 @@ export class StructureSubsetBuilder {
         return this._getStructure(true);
     }
 
-    setSingletonLocation(location: Element.Location) {
+    setSingletonLocation(location: StructureElement) {
         const id = this.ids[0];
         location.unit = this.parent.unitMap.get(id);
         location.element = this.unitMap.get(id)[0];

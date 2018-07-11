@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Element, StructureProperties, ElementIndex } from 'mol-model/structure';
+import { Unit, StructureElement, StructureProperties, ElementIndex } from 'mol-model/structure';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
@@ -15,7 +15,7 @@ import { SymmetryOperator } from 'mol-math/geometry';
 export function getPolymerElementCount(unit: Unit) {
     let count = 0
     const { elements } = unit
-    const l = Element.Location(unit)
+    const l = StructureElement.create(unit)
     if (Unit.isAtomic(unit)) {
         const { polymerAtomSegments, residueAtomSegments } = unit.model.atomicHierarchy
         const polymerIt = Segmentation.transientSegments(polymerAtomSegments, elements);
@@ -36,7 +36,7 @@ export function getPolymerElementCount(unit: Unit) {
     return count
 }
 
-function getTraceName(l: Element.Location) {
+function getTraceName(l: StructureElement) {
     const compId = StructureProperties.residue.label_comp_id(l)
     const chemCompMap = l.unit.model.properties.chemicalComponentMap
     const cc = chemCompMap.get(compId)
@@ -50,7 +50,7 @@ function getTraceName(l: Element.Location) {
     return traceName
 }
 
-function setTraceElement(l: Element.Location, residueSegment: Segmentation.Segment<ElementIndex>) {
+function setTraceElement(l: StructureElement, residueSegment: Segmentation.Segment<ElementIndex>) {
     const elements = l.unit.elements
     l.element = elements[residueSegment.start]
     const traceName = getTraceName(l)
@@ -73,8 +73,8 @@ export function PolymerBackboneIterator(unit: Unit): Iterator<PolymerBackbonePai
 }
 
 interface PolymerBackbonePair {
-    centerA: Element.Location
-    centerB: Element.Location
+    centerA: StructureElement
+    centerB: StructureElement
     indexA: number
     indexB: number
     posA: Vec3
@@ -83,8 +83,8 @@ interface PolymerBackbonePair {
 
 function createPolymerBackbonePair (unit: Unit) {
     return {
-        centerA: Element.Location(unit),
-        centerB: Element.Location(unit),
+        centerA: StructureElement.create(unit),
+        centerB: StructureElement.create(unit),
         indexA: 0,
         indexB: 0,
         posA: Vec3.zero(),
@@ -244,7 +244,7 @@ export function PolymerTraceIterator(unit: Unit): Iterator<PolymerTraceElement> 
 }
 
 interface PolymerTraceElement {
-    center: Element.Location
+    center: StructureElement
     index: number
     pos: Vec3
     posPrev: Vec3
@@ -254,7 +254,7 @@ interface PolymerTraceElement {
 
 function createPolymerTraceElement (unit: Unit) {
     return {
-        center: Element.Location(unit),
+        center: StructureElement.create(unit),
         index: 0,
         pos: Vec3.zero(),
         posPrev: Vec3.zero(),

@@ -11,7 +11,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, Element, Selection, StructureSymmetry, Query, Format, StructureProperties as SP } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, StructureElement, Selection, StructureSymmetry, Query, Format, StructureProperties as SP } from 'mol-model/structure'
 //import { Segmentation, OrderedSet } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -119,8 +119,8 @@ export namespace PropertyAccess {
         return s;
     }
 
-    function sumProperty(structure: Structure, p: Element.Property<number>) {
-        const l = Element.Location();
+    function sumProperty(structure: Structure, p: StructureElement.Property<number>) {
+        const l = StructureElement.create();
         let s = 0;
 
         for (const unit of structure.units) {

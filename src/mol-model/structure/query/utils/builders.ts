@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Element, Structure } from '../../structure';
+import { StructureElement, Structure } from '../../structure';
 import Selection from '../selection';
 import { HashSet } from 'mol-data/generic';
 import { structureUnion } from './structure';
@@ -56,7 +56,7 @@ export class LinearGroupingBuilder {
 
     private singletonSelection(): Selection {
         const builder = this.source.subsetBuilder(true);
-        const loc = Element.Location();
+        const loc = StructureElement.create();
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
             this.builders[i].setSingletonLocation(loc);
             builder.addToUnit(loc.unit.id, loc.element);

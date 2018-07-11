@@ -5,7 +5,7 @@
  */
 
 import { Vec3 } from 'mol-math/linear-algebra';
-import { Unit, Element } from 'mol-model/structure';
+import { Unit, StructureElement } from 'mol-model/structure';
 import { SizeTheme } from '../../../../theme';
 import { RuntimeContext } from 'mol-task';
 import { icosahedronVertexCount } from '../../../../primitive/icosahedron';
@@ -19,7 +19,7 @@ import { Interval, OrderedSet } from 'mol-data/int';
 import { getPhysicalRadius } from '../../../../theme/structure/size/physical';
 import { PickingId } from '../../../../util/picking';
 
-export function getElementRadius(unit: Unit, props: SizeTheme): Element.Property<number> {
+export function getElementRadius(unit: Unit, props: SizeTheme): StructureElement.Property<number> {
     switch (props.name) {
         case 'uniform':
             return () => props.value
@@ -30,7 +30,7 @@ export function getElementRadius(unit: Unit, props: SizeTheme): Element.Property
     }
 }
 
-export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, radius: Element.Property<number>, detail: number, mesh?: Mesh) {
+export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, radius: StructureElement.Property<number>, detail: number, mesh?: Mesh) {
     const { elements } = unit;
     const elementCount = elements.length;
     const vertexCount = elementCount * icosahedronVertexCount(detail)
@@ -38,7 +38,7 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
 
     const v = Vec3.zero()
     const pos = unit.conformation.invariantPosition
-    const l = Element.Location()
+    const l = StructureElement.create()
     l.unit = unit
 
     for (let i = 0; i < elementCount; i++) {
@@ -64,7 +64,7 @@ export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.Symmet
     if (isEveryLoci(loci)) {
         applyMarkerAction(array, 0, elementCount * instanceCount, action)
         changed = true
-    } else if (Element.isLoci(loci)) {
+    } else if (StructureElement.isLoci(loci)) {
         for (const e of loci.elements) {
             const unitIdx = Unit.findUnitById(e.unit.id, group.units)
             if (unitIdx !== -1) {
@@ -96,8 +96,8 @@ export function getElementLoci(id: number, group: Unit.SymmetryGroup, pickingId:
     const { objectId, instanceId, elementId } = pickingId
     if (id === objectId) {
         const unit = group.units[instanceId]
-        const indices = OrderedSet.ofSingleton(elementId as Element.Index);
-        return Element.Loci([{ unit, indices }])
+        const indices = OrderedSet.ofSingleton(elementId as StructureElement.Index);
+        return StructureElement.Loci([{ unit, indices }])
     }
     return EmptyLoci
 }

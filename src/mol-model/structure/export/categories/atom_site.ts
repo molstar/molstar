@@ -6,13 +6,13 @@
  */
 
 import { CifWriter } from 'mol-io/writer/cif';
-import { Element, Structure, StructureProperties as P } from '../../structure';
+import { StructureElement, Structure, StructureProperties as P } from '../../structure';
 import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import E = CifWriter.Encodings
 
-const atom_site_fields: CifField<Element.Location>[] = [
+const atom_site_fields: CifField<StructureElement>[] = [
     CifField.str('group_PDB', P.residue.group_PDB),
     CifField.index('id'),
     CifField.str('type_symbol', P.atom.type_symbol as any),
@@ -38,7 +38,7 @@ const atom_site_fields: CifField<Element.Location>[] = [
     CifField.str('auth_asym_id', P.chain.auth_asym_id),
 
     CifField.int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE }),
-    CifField.str<Element.Location, Structure>('operator_name', P.unit.operator_name, {
+    CifField.str<StructureElement, Structure>('operator_name', P.unit.operator_name, {
         shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
     })
 ];

@@ -9,7 +9,7 @@ import { Model } from '../../../model'
 import { LinkType } from '../../../types'
 import { ModelPropertyDescriptor } from '../../../properties/custom';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import { Structure, Unit, StructureProperties, Element } from '../../../../structure';
+import { Structure, Unit, StructureProperties, StructureElement } from '../../../../structure';
 import { Segmentation } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
 
@@ -134,7 +134,7 @@ export namespace ComponentBond {
     function getUniqueResidueNames(s: Structure) {
         const prop = StructureProperties.residue.label_comp_id;
         const names = new Set<string>();
-        const loc = Element.Location();
+        const loc = StructureElement.create();
         for (const unit of s.units) {
             if (!Unit.isAtomic(unit)) continue;
             const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);

@@ -9,7 +9,7 @@ import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model, ElementIndex } from '../model'
 import { sort, arraySwap, hash1, sortArray } from 'mol-data/util';
-import Element from './element'
+import StructureElement from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
@@ -49,7 +49,7 @@ class Structure {
         return hash;
     }
 
-    elementLocations(): Iterator<Element.Location> {
+    elementLocations(): Iterator<StructureElement> {
         return new Structure.ElementLocationIterator(this);
     }
 
@@ -159,7 +159,7 @@ namespace Structure {
     export class StructureBuilder {
         private units: Unit[] = [];
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: Element.Set): Unit {
+        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
             const unit = Unit.create(this.units.length, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
@@ -211,15 +211,15 @@ namespace Structure {
         return true;
     }
 
-    export class ElementLocationIterator implements Iterator<Element.Location> {
-        private current = Element.Location();
+    export class ElementLocationIterator implements Iterator<StructureElement> {
+        private current = StructureElement.create();
         private unitIndex = 0;
-        private elements: Element.Set;
+        private elements: StructureElement.Set;
         private maxIdx = 0;
         private idx = -1;
 
         hasNext: boolean;
-        move(): Element.Location {
+        move(): StructureElement {
             this.advance();
             this.current.element = this.elements[this.idx];
             return this.current;
@@ -257,7 +257,7 @@ namespace Structure {
 
     export function getEntityKeys(structure: Structure) {
         const { units } = structure;
-        const l = Element.Location();
+        const l = StructureElement.create();
         const keys = UniqueArray.create<number, number>();
 
         for (const unit of units) {

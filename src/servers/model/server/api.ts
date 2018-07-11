@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Query, Queries, Structure, Element, StructureSymmetry, StructureProperties as Props } from 'mol-model/structure';
+import { Query, Queries, Structure, StructureElement, StructureSymmetry, StructureProperties as Props } from 'mol-model/structure';
 
 export enum QueryParamType {
     String,
@@ -51,26 +51,26 @@ const AtomSiteParameters = {
 //     return Element.property(l => p(l) === id);
 // }
 
-function entityTest1_555(params: any): Element.Predicate | undefined {
-    if (typeof params.entity_id === 'undefined') return Element.property(l => l.unit.conformation.operator.isIdentity);
+function entityTest1_555(params: any): StructureElement.Predicate | undefined {
+    if (typeof params.entity_id === 'undefined') return StructureElement.property(l => l.unit.conformation.operator.isIdentity);
     const p = Props.entity.id, id = '' + params.entityId;
-    return Element.property(l => l.unit.conformation.operator.isIdentity && p(l) === id);
+    return StructureElement.property(l => l.unit.conformation.operator.isIdentity && p(l) === id);
 }
 
-function chainTest(params: any): Element.Predicate | undefined {
+function chainTest(params: any): StructureElement.Predicate | undefined {
     if (typeof params.label_asym_id !== 'undefined') {
         const p = Props.chain.label_asym_id, id = '' + params.label_asym_id;
-        return Element.property(l => p(l) === id);
+        return StructureElement.property(l => p(l) === id);
     }
     if (typeof params.auth_asym_id !== 'undefined') {
         const p = Props.chain.auth_asym_id, id = '' + params.auth_asym_id;
-        return Element.property(l => p(l) === id);
+        return StructureElement.property(l => p(l) === id);
     }
     return void 0;
 }
 
-function residueTest(params: any): Element.Predicate | undefined {
-    const props: Element.Property<any>[] = [], values: any[] = [];
+function residueTest(params: any): StructureElement.Predicate | undefined {
+    const props: StructureElement.Property<any>[] = [], values: any[] = [];
 
     if (typeof params.label_seq_id !== 'undefined') {
         props.push(Props.residue.label_seq_id);
@@ -99,12 +99,12 @@ function residueTest(params: any): Element.Predicate | undefined {
 
     switch (props.length) {
         case 0: return void 0;
-        case 1: return Element.property(l => props[0](l) === values[0]);
-        case 2: return Element.property(l => props[0](l) === values[0] && props[1](l) === values[1]);
-        case 3: return Element.property(l => props[0](l) === values[0] && props[1](l) === values[1] && props[2](l) === values[2]);
+        case 1: return StructureElement.property(l => props[0](l) === values[0]);
+        case 2: return StructureElement.property(l => props[0](l) === values[0] && props[1](l) === values[1]);
+        case 3: return StructureElement.property(l => props[0](l) === values[0] && props[1](l) === values[1] && props[2](l) === values[2]);
         default: {
             const len = props.length;
-            return Element.property(l => {
+            return StructureElement.property(l => {
                 for (let i = 0; i < len; i++) if (!props[i](l) !== values[i]) return false;
                 return true;
             });

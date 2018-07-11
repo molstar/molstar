@@ -5,7 +5,7 @@
  */
 
 import { HashSet } from 'mol-data/generic'
-import { Structure, Element, Unit } from '../structure'
+import { Structure, StructureElement, Unit } from '../structure'
 import { structureUnion } from './utils/structure';
 import { OrderedSet, SortedArray } from 'mol-data/int';
 
@@ -35,13 +35,13 @@ namespace Selection {
         return structureUnion(sel.source, sel.structures);
     }
 
-    export function toLoci(sel: Selection): Element.Loci {
-        const loci: { unit: Unit, indices: OrderedSet<Element.Index> }[] = [];
+    export function toLoci(sel: Selection): StructureElement.Loci {
+        const loci: { unit: Unit, indices: OrderedSet<StructureElement.Index> }[] = [];
         const { unitMap } = sel.source;
 
         for (const unit of unionStructure(sel).units) {
             if (unit === unitMap.get(unit.id)) {
-                loci[loci.length] = { unit, indices: OrderedSet.ofBounds(0 as Element.Index, unit.elements.length as Element.Index) };
+                loci[loci.length] = { unit, indices: OrderedSet.ofBounds(0 as StructureElement.Index, unit.elements.length as StructureElement.Index) };
             } else {
                 loci[loci.length] = {
                     unit,
@@ -50,7 +50,7 @@ namespace Selection {
             }
         }
 
-        return Element.Loci(loci);
+        return StructureElement.Loci(loci);
     }
 
     export interface Builder {

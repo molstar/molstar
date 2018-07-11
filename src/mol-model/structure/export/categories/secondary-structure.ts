@@ -7,7 +7,7 @@
 import { Segmentation } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif';
 import { SecondaryStructure } from '../../model/properties/seconday-structure';
-import { Element, Unit, StructureProperties as P } from '../../structure';
+import { StructureElement, Unit, StructureProperties as P } from '../../structure';
 import { CifExportContext } from '../mmcif';
 
 import CifField = CifWriter.Field
@@ -60,7 +60,7 @@ const struct_sheet_range_fields: CifField[] = [
     CifField.str('symmetry', (i, data) => '', { valueKind: (i, d) => Column.ValueKind.Unknown })
 ];
 
-function residueIdFields(prefix: string, loc: (e: SSElement<any>) => Element.Location): CifField<number, SSElement<SecondaryStructure.Helix>[]>[] {
+function residueIdFields(prefix: string, loc: (e: SSElement<any>) => StructureElement): CifField<number, SSElement<SecondaryStructure.Helix>[]>[] {
     return [
         CifField.str(`${prefix}label_comp_id`, (i, d) => P.residue.label_comp_id(loc(d[i]))),
         CifField.int(`${prefix}label_seq_id`, (i, d) => P.residue.label_seq_id(loc(d[i]))),
@@ -74,8 +74,8 @@ function residueIdFields(prefix: string, loc: (e: SSElement<any>) => Element.Loc
 }
 
 interface SSElement<T extends SecondaryStructure.Element> {
-    start: Element.Location,
-    end: Element.Location,
+    start: StructureElement,
+    end: StructureElement,
     length: number,
     element: T
 }
@@ -111,8 +111,8 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
                 if (startIdx !== key[current.index]) {
                     move = false;
                     ssElements[ssElements.length] = {
-                        start: Element.Location(unit, segs.offsets[start]),
-                        end: Element.Location(unit, segs.offsets[prev]),
+                        start: StructureElement.create(unit, segs.offsets[start]),
+                        end: StructureElement.create(unit, segs.offsets[prev]),
                         length: prev - start + 1,
                         element
                     }

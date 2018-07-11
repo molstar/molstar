@@ -6,22 +6,22 @@
 
 import Query from './query'
 import Selection from './selection'
-import { Element, Unit, StructureProperties as P } from '../structure'
+import { StructureElement, Unit, StructureProperties as P } from '../structure'
 import { OrderedSet, Segmentation } from 'mol-data/int'
 import { LinearGroupingBuilder } from './utils/builders';
 
 export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s);
 
 export interface AtomQueryParams {
-    entityTest: Element.Predicate,
-    chainTest: Element.Predicate,
-    residueTest: Element.Predicate,
-    atomTest: Element.Predicate,
-    groupBy: Element.Property<any>
+    entityTest: StructureElement.Predicate,
+    chainTest: StructureElement.Predicate,
+    residueTest: StructureElement.Predicate,
+    atomTest: StructureElement.Predicate,
+    groupBy: StructureElement.Property<any>
 }
 
 export interface AtomGroupsQueryParams extends AtomQueryParams {
-    groupBy: Element.Property<any>
+    groupBy: StructureElement.Property<any>
 }
 
 export function residues(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.residue.key }); }
@@ -43,10 +43,10 @@ export function atoms(params?: Partial<AtomGroupsQueryParams>): Query.Provider {
     return atomGroupsGrouped(normalized);
 }
 
-function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
+function atomGroupsLinear(atomTest: StructureElement.Predicate): Query.Provider {
     return async (structure, ctx) => {
         const { units } = structure;
-        const l = Element.Location();
+        const l = StructureElement.create();
         const builder = structure.subsetBuilder(true);
 
         let progress = 0;
@@ -72,7 +72,7 @@ function atomGroupsLinear(atomTest: Element.Predicate): Query.Provider {
 function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query.Provider {
     return async (structure, ctx) => {
         const { units } = structure;
-        const l = Element.Location();
+        const l = StructureElement.create();
         const builder = structure.subsetBuilder(true);
 
         let progress = 0;
@@ -120,7 +120,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
 function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query.Provider {
     return async (structure, ctx) => {
         const { units } = structure;
-        const l = Element.Location();
+        const l = StructureElement.create();
         const builder = new LinearGroupingBuilder(structure);
 
         let progress = 0;
