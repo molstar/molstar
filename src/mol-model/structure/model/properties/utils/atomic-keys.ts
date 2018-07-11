@@ -7,6 +7,7 @@
 import { AtomicData, AtomicSegments, AtomicKeys } from '../atomic'
 import { Interval, Segmentation } from 'mol-data/int'
 import { Entities } from '../common'
+import { ChainIndex, ResidueIndex, EntityIndex } from '../../indexing';
 
 function getResidueId(comp_id: string, seq_id: number, ins_code: string) {
     return `${comp_id} ${seq_id} ${ins_code}`;
@@ -30,20 +31,20 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
     const getEntKey = entities.getEntityIndex;
     const findChainKey: AtomicKeys['findChainKey'] = (e, c) => {
         let eKey = getEntKey(e);
-        if (eKey < 0) return -1;
+        if (eKey < 0) return -1 as ChainIndex;
         const cm = chain.get(eKey)!;
-        if (!cm.has(c)) return -1;
-        return cm.get(c)!;
+        if (!cm.has(c)) return -1 as ChainIndex;
+        return cm.get(c)! as ChainIndex;
     }
     const findResidueKey: AtomicKeys['findResidueKey'] = (e, c, name, seq, ins) => {
         let eKey = getEntKey(e);
-        if (eKey < 0) return -1;
+        if (eKey < 0) return -1 as ResidueIndex;
         const cm = chain.get(eKey)!;
-        if (!cm.has(c)) return -1;
+        if (!cm.has(c)) return -1 as ResidueIndex;
         const rm = residue.get(cm.get(c)!)!
         const id = getResidueId(name, seq, ins);
-        if (!rm.has(id)) return -1;
-        return rm.get(id)!;
+        if (!rm.has(id)) return -1 as ResidueIndex;
+        return rm.get(id)! as ResidueIndex;
     }
     return { findChainKey, findResidueKey };
 }
@@ -92,5 +93,5 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
 
     const { findChainKey, findResidueKey } = createLookUp(entities, chainMaps, residueMaps);
 
-    return { residueKey, chainKey, entityKey, findChainKey, findResidueKey };
+    return { getEntityKey: cI => entityKey[cI] as EntityIndex, findChainKey, findResidueKey };
 }

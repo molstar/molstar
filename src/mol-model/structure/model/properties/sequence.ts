@@ -8,6 +8,7 @@ import { Column } from 'mol-data/db'
 import { AtomicHierarchy } from './atomic/hierarchy';
 import { Entities } from './common';
 import { Sequence } from '../../../sequence';
+import { ChainIndex } from '../indexing';
 
 interface StructureSequence {
     readonly sequences: ReadonlyArray<StructureSequence.Entity>,
@@ -30,14 +31,14 @@ namespace StructureSequence {
         const byEntityKey: StructureSequence['byEntityKey'] = { };
         const sequences: StructureSequence.Entity[] = [];
 
-        for (let cI = 0, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
-            const entityKey = hierarchy.entityKey[cI];
+        for (let cI = 0 as ChainIndex, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
+            const entityKey = hierarchy.getEntityKey(cI);
             // Only for polymers, trying to mirror _entity_poly_seq
             if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'polymer') continue;
 
             let start = cI;
             cI++;
-            while (cI < _cI && entityKey === hierarchy.entityKey[cI] && entities.data.type.value(entityKey) !== 'polymer') {
+            while (cI < _cI && entityKey === hierarchy.getEntityKey(cI) && entities.data.type.value(entityKey) !== 'polymer') {
                 cI++;
             }
             cI--;

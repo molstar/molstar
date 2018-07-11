@@ -48,7 +48,7 @@ const atom = {
 }
 
 const residue = {
-    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residueKey[l.unit.residueIndex[l.element]]),
+    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.residueIndex[l.element]),
 
     group_PDB: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.group_PDB.value(l.unit.residueIndex[l.element])),
     label_comp_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.residues.label_comp_id.value(l.unit.residueIndex[l.element])),
@@ -63,7 +63,7 @@ const residue = {
 }
 
 const chain = {
-    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chainKey[l.unit.chainIndex[l.element]]),
+    key: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.chainIndex[l.element]),
 
     label_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.label_asym_id.value(l.unit.chainIndex[l.element])),
     auth_asym_id: Element.property(l => !Unit.isAtomic(l.unit) ? notAtomic() : l.unit.model.atomicHierarchy.chains.auth_asym_id.value(l.unit.chainIndex[l.element])),
@@ -92,7 +92,7 @@ const coarse = {
 function eK(l: Element.Location) {
     switch (l.unit.kind) {
         case Unit.Kind.Atomic:
-            return l.unit.model.atomicHierarchy.entityKey[l.unit.chainIndex[l.element]]
+            return l.unit.model.atomicHierarchy.getEntityKey(l.unit.chainIndex[l.element])
         case Unit.Kind.Spheres:
             return l.unit.model.coarseHierarchy.spheres.entityKey[l.element]
         case Unit.Kind.Gaussians:

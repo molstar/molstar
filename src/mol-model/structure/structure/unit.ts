@@ -13,6 +13,7 @@ import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } 
 import { ValueRef } from 'mol-util';
 import { UnitRings } from './unit/rings';
 import Element from './element'
+import { ChainIndex, ResidueIndex } from '../model/indexing';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -82,8 +83,8 @@ namespace Unit {
         readonly conformation: SymmetryOperator.ArrayMapping;
 
         // Reference some commonly accessed things for faster access.
-        readonly residueIndex: ArrayLike<number>;
-        readonly chainIndex: ArrayLike<number>;
+        readonly residueIndex: ArrayLike<ResidueIndex>;
+        readonly chainIndex: ArrayLike<ChainIndex>;
 
         private props: AtomicProperties;
 

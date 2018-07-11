@@ -10,6 +10,7 @@ import { SecondaryStructureType } from '../../types';
 import { AtomicHierarchy } from '../../properties/atomic';
 import { SecondaryStructure } from '../../properties/seconday-structure';
 import { Column } from 'mol-data/db';
+import { ChainIndex, ResidueIndex } from '../../indexing';
 
 export function getSecondaryStructureMmCif(data: mmCIF_Database, hierarchy: AtomicHierarchy): SecondaryStructure {
     const map: SecondaryStructureMap = new Map();
@@ -130,7 +131,7 @@ function addSheets(cat: mmCIF['struct_sheet_range'], map: SecondaryStructureMap,
     return;
 }
 
-function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: SecondaryStructureEntry, resStart: number, resEnd: number, data: SecondaryStructureData) {
+function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: SecondaryStructureEntry, resStart: ResidueIndex, resEnd: ResidueIndex, data: SecondaryStructureData) {
     const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
     const { endSeqNumber, endInsCode, key, type } = entry;
 
@@ -154,7 +155,7 @@ function assignSecondaryStructureRanges(hierarchy: AtomicHierarchy, map: Seconda
     const { label_asym_id } = hierarchy.chains;
     const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
 
-    for (let cI = 0; cI < chainCount; cI++) {
+    for (let cI = 0 as ChainIndex; cI < chainCount; cI++) {
         const resStart = AtomicHierarchy.chainStartResidueIndex(hierarchy, cI), resEnd = AtomicHierarchy.chainEndResidueIndexExcl(hierarchy, cI);
         const asymId = label_asym_id.value(cI);
         if (map.has(asymId)) {
