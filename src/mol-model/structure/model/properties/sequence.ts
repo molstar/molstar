@@ -25,7 +25,7 @@ namespace StructureSequence {
 
     export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: Map<string, string>): StructureSequence {
         const { label_comp_id, label_seq_id } = hierarchy.residues
-        const { chainSegments, residueSegments } = hierarchy
+        const { chainAtomSegments, residueAtomSegments } = hierarchy
 
         const byEntityKey: StructureSequence['byEntityKey'] = { };
         const sequences: StructureSequence.Entity[] = [];
@@ -42,8 +42,8 @@ namespace StructureSequence {
             }
             cI--;
 
-            const rStart = residueSegments.segmentMap[chainSegments.segments[start]];
-            const rEnd = residueSegments.segmentMap[chainSegments.segments[cI + 1]];
+            const rStart = residueAtomSegments.index[chainAtomSegments.offsets[start]];
+            const rEnd = residueAtomSegments.index[chainAtomSegments.offsets[cI + 1]];
 
             const compId = Column.window(label_comp_id, rStart, rEnd);
             const num = Column.window(label_seq_id, rStart, rEnd);

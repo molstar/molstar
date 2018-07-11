@@ -65,7 +65,7 @@ export function getCoarseKeys(data: CoarseElementData, entities: Entities): Coar
     }
 
     for (let cI = 0; cI < chainSegments.count; cI++) {
-        const start = chainSegments.segments[cI], end = chainSegments.segments[cI + 1];
+        const start = chainSegments.offsets[cI], end = chainSegments.offsets[cI + 1];
         const map = getElementSubstructureKeyMap(chainMaps, entityKey[start]);
         const key = getElementKey(map, asym_id.value(start), chainCounter);
         for (let i = start; i < end; i++) chainKey[i] = key;

@@ -24,8 +24,10 @@ namespace Segmentation {
 
 interface Segmentation<T extends number = number> {
     '@type': 'segmentation',
-    readonly segments: ArrayLike<T>,
-    readonly segmentMap: ArrayLike<number>,
+    /** All segments are defined by offsets [offsets[i], offsets[i + 1]) for i \in [0, count - 1] */
+    readonly offsets: ArrayLike<T>,
+    /** Segment index of the i-th element */
+    readonly index: ArrayLike<number>,
     readonly count: number
 }
 

@@ -123,8 +123,8 @@ namespace Unit {
             this.elements = elements;
             this.conformation = conformation;
 
-            this.residueIndex = model.atomicHierarchy.residueSegments.segmentMap;
-            this.chainIndex = model.atomicHierarchy.chainSegments.segmentMap;
+            this.residueIndex = model.atomicHierarchy.residueAtomSegments.index;
+            this.chainIndex = model.atomicHierarchy.chainAtomSegments.index;
             this.props = props;
         }
     }

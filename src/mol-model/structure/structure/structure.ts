@@ -118,20 +118,20 @@ namespace Structure {
      * of consecutive "single atom chains".
      */
     export function ofModel(model: Model): Structure {
-        const chains = model.atomicHierarchy.chainSegments;
+        const chains = model.atomicHierarchy.chainAtomSegments;
         const builder = new StructureBuilder();
 
         for (let c = 0; c < chains.count; c++) {
-            const start = chains.segments[c];
+            const start = chains.offsets[c];
 
             // merge all consecutive "single atom chains"
             while (c + 1 < chains.count
-                && chains.segments[c + 1] - chains.segments[c] === 1
-                && chains.segments[c + 2] - chains.segments[c + 1] === 1) {
+                && chains.offsets[c + 1] - chains.offsets[c] === 1
+                && chains.offsets[c + 2] - chains.offsets[c + 1] === 1) {
                 c++;
             }
 
-            const elements = SortedArray.ofBounds(start as Element, chains.segments[c + 1] as Element);
+            const elements = SortedArray.ofBounds(start as Element, chains.offsets[c + 1] as Element);
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 
@@ -151,7 +151,7 @@ namespace Structure {
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
         const { chainSegments } = elements;
         for (let cI = 0; cI < chainSegments.count; cI++) {
-            const elements = SortedArray.ofBounds(chainSegments.segments[cI] as Element, chainSegments.segments[cI + 1] as Element);
+            const elements = SortedArray.ofBounds(chainSegments.offsets[cI] as Element, chainSegments.offsets[cI + 1] as Element);
             builder.addUnit(kind, model, SymmetryOperator.Default, elements);
         }
     }
@@ -266,7 +266,7 @@ namespace Structure {
             l.unit = unit;
             const elements = unit.elements;
 
-            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainSegments, elements);
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
                 l.element = elements[chainSegment.start];

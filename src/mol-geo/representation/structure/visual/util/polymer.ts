@@ -17,9 +17,9 @@ export function getPolymerElementCount(unit: Unit) {
     const { elements } = unit
     const l = Element.Location(unit)
     if (Unit.isAtomic(unit)) {
-        const { polymerSegments, residueSegments } = unit.model.atomicHierarchy
-        const polymerIt = Segmentation.transientSegments(polymerSegments, elements);
-        const residuesIt = Segmentation.transientSegments(residueSegments, elements);
+        const { polymerAtomSegments, residueAtomSegments } = unit.model.atomicHierarchy
+        const polymerIt = Segmentation.transientSegments(polymerAtomSegments, elements);
+        const residuesIt = Segmentation.transientSegments(residueAtomSegments, elements);
         while (polymerIt.hasNext) {
             residuesIt.setSegment(polymerIt.move());
             while (residuesIt.hasNext) {
@@ -147,9 +147,9 @@ export class AtomicPolymerBackboneIterator<T extends number = number> implements
     }
 
     constructor(unit: Unit.Atomic) {
-        const { polymerSegments, residueSegments } = unit.model.atomicHierarchy
-        this.polymerIt = Segmentation.transientSegments(polymerSegments, unit.elements);
-        this.residueIt = Segmentation.transientSegments(residueSegments, unit.elements);
+        const { polymerAtomSegments, residueAtomSegments } = unit.model.atomicHierarchy
+        this.polymerIt = Segmentation.transientSegments(polymerAtomSegments, unit.elements);
+        this.residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements);
         this.pos = unit.conformation.invariantPosition
         this.value = createPolymerBackbonePair(unit)
         this.hasNext = this.residueIt.hasNext || this.polymerIt.hasNext
@@ -318,9 +318,9 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
     }
 
     constructor(unit: Unit.Atomic) {
-        const { polymerSegments, residueSegments } = unit.model.atomicHierarchy
-        this.polymerIt = Segmentation.transientSegments(polymerSegments, unit.elements);
-        this.residueIt = Segmentation.transientSegments(residueSegments, unit.elements);
+        const { polymerAtomSegments, residueAtomSegments } = unit.model.atomicHierarchy
+        this.polymerIt = Segmentation.transientSegments(polymerAtomSegments, unit.elements);
+        this.residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements);
         // this.pos = unit.conformation.invariantPosition
         this.value = createPolymerTraceElement(unit)
         this.hasNext = this.residueIt.hasNext || this.polymerIt.hasNext

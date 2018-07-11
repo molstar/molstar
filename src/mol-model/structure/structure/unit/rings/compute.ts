@@ -13,7 +13,7 @@ export default function computeRings(unit: Unit.Atomic) {
     const size = largestResidue(unit);
     const state = State(unit, size);
 
-    const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, unit.elements);
+    const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
     while (residuesIt.hasNext) {
         const seg = residuesIt.move();
         processResidue(state, seg.start, seg.end);
@@ -75,7 +75,7 @@ function resetState(state: State) {
 }
 
 function largestResidue(unit: Unit.Atomic) {
-    const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, unit.elements);
+    const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
     let size = 0;
     while (residuesIt.hasNext) {
         const seg = residuesIt.move();

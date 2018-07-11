@@ -29,20 +29,20 @@ async function readPdbFile(path: string) {
 }
 
 export function atomLabel(model: Model, aI: number) {
-    const { atoms, residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
     const { label_atom_id } = atoms
     const { label_comp_id, label_seq_id } = residues
     const { label_asym_id } = chains
-    const rI = residueSegments.segmentMap[aI]
-    const cI = chainSegments.segmentMap[aI]
+    const rI = residueAtomSegments.index[aI]
+    const cI = chainAtomSegments.index[aI]
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
+    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
     const { label_comp_id, label_seq_id } = residues
     const { label_asym_id } = chains
-    const cI = chainSegments.segmentMap[residueSegments.segments[rI]]
+    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]]
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
 }
 

@@ -135,7 +135,7 @@ function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: Second
     const { endSeqNumber, endInsCode, key, type } = entry;
 
     let rI = resStart;
-    while (rI <= resEnd) {
+    while (rI < resEnd) {
         const seqNumber = label_seq_id.value(rI);
         data.type[rI] = type;
         data.key[rI] = key;
@@ -150,18 +150,17 @@ function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: Second
 }
 
 function assignSecondaryStructureRanges(hierarchy: AtomicHierarchy, map: SecondaryStructureMap, data: SecondaryStructureData) {
-    const { segments: chainAtomSegments, count: chainCount } = hierarchy.chainSegments;
-    const { segmentMap: residueIndex } = hierarchy.residueSegments;
+    const { count: chainCount } = hierarchy.chainAtomSegments;
     const { label_asym_id } = hierarchy.chains;
     const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
 
     for (let cI = 0; cI < chainCount; cI++) {
-        const resStart = residueIndex[chainAtomSegments[cI]], resEnd = residueIndex[chainAtomSegments[cI + 1] - 1];
+        const resStart = AtomicHierarchy.chainStartResidueIndex(hierarchy, cI), resEnd = AtomicHierarchy.chainEndResidueIndexExcl(hierarchy, cI);
         const asymId = label_asym_id.value(cI);
         if (map.has(asymId)) {
             const entries = map.get(asymId)!;
 
-            for (let rI = resStart; rI <= resEnd; rI++) {
+            for (let rI = resStart; rI < resEnd; rI++) {
                 const seqNumber = label_seq_id.value(rI);
                 if (entries.has(seqNumber)) {
                     const entry = entries.get(seqNumber)!;

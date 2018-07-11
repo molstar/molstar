@@ -21,14 +21,14 @@ function getWholeResidues(ctx: RuntimeContext, source: Structure, structure: Str
             continue;
         }
 
-        const { residueSegments } = unit.model.atomicHierarchy;
+        const { residueAtomSegments } = unit.model.atomicHierarchy;
 
         const elements = unit.elements;
         builder.beginUnit(unit.id);
-        const residuesIt = Segmentation.transientSegments(residueSegments, elements);
+        const residuesIt = Segmentation.transientSegments(residueAtomSegments, elements);
         while (residuesIt.hasNext) {
             const rI = residuesIt.move().index;
-            for (let j = residueSegments.segments[rI], _j = residueSegments.segments[rI + 1]; j < _j; j++) {
+            for (let j = residueAtomSegments.offsets[rI], _j = residueAtomSegments.offsets[rI + 1]; j < _j; j++) {
                 builder.addElement(j);
             }
         }

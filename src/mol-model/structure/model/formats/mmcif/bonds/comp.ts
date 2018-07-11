@@ -137,7 +137,7 @@ export namespace ComponentBond {
         const loc = Element.Location();
         for (const unit of s.units) {
             if (!Unit.isAtomic(unit)) continue;
-            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, unit.elements);
+            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
             loc.unit = unit;
             while (residues.hasNext) {
                 const seg = residues.move();

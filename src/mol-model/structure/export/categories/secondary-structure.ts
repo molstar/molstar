@@ -88,7 +88,7 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
         // currently can only support this for "identity" operators.
         if (!Unit.isAtomic(unit) || !unit.conformation.operator.isIdentity) continue;
 
-        const segs = unit.model.atomicHierarchy.residueSegments;
+        const segs = unit.model.atomicHierarchy.residueAtomSegments;
         const residues = Segmentation.transientSegments(segs, unit.elements);
 
         let current: Segmentation.Segment<Element>, move = true;
@@ -110,8 +110,8 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
                 if (startIdx !== key[current.index]) {
                     move = false;
                     ssElements[ssElements.length] = {
-                        start: Element.Location(unit, segs.segments[start]),
-                        end: Element.Location(unit, segs.segments[prev]),
+                        start: Element.Location(unit, segs.offsets[start]),
+                        end: Element.Location(unit, segs.offsets[prev]),
                         length: prev - start + 1,
                         element
                     }

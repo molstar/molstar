@@ -49,14 +49,22 @@ export interface AtomicData {
 
 export interface AtomicSegments {
     /** Maps residueIndex to a range of atoms [segments[rI], segments[rI + 1]) */
-    residueSegments: Segmentation<Element>,
-    /** Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]) */
-    chainSegments: Segmentation<Element>,
+    residueAtomSegments: Segmentation<Element>,
+    /**
+     * Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]),
+     *
+     * residues of i-th chain are accessed like this:
+     * const rI = residueAtomSegments.index, offsets = chainAtomSegments.offsets;
+     * const start = rI[offsets[i]], const end = rI[offsets[i + 1] - 1] + 1;
+     * for (let j = start; j < end; i++) { }
+     */
+    chainAtomSegments: Segmentation<Element>,
     /**
      * bonded/connected stretches of polymer chains, i.e. a chain will be
      * broken into multiple polymer segments if there are missing residues
      */
-    polymerSegments: Segmentation<Element>
+    polymerAtomSegments: Segmentation<Element>
+
     // TODO: include entity segments?
 }
 
@@ -80,3 +88,15 @@ export interface AtomicKeys {
 
 type _Hierarchy = AtomicData & AtomicSegments & AtomicKeys
 export interface AtomicHierarchy extends _Hierarchy { }
+
+export namespace AtomicHierarchy {
+    /** Start residue inclusive */
+    export function chainStartResidueIndex(segs: AtomicSegments, cI: number) {
+        return segs.residueAtomSegments.index[segs.chainAtomSegments.offsets[cI]];
+    }
+
+    /** End residue exclusive */
+    export function chainEndResidueIndexExcl(segs: AtomicSegments, cI: number) {
+        return segs.residueAtomSegments.index[segs.chainAtomSegments.offsets[cI + 1] - 1] + 1;
+    }
+}

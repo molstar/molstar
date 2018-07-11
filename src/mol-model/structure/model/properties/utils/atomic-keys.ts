@@ -67,7 +67,7 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
 
     const atomSet = Interval.ofBounds(0, data.atoms._rowCount);
 
-    const chainsIt = Segmentation.transientSegments(segments.chainSegments, atomSet);
+    const chainsIt = Segmentation.transientSegments(segments.chainAtomSegments, atomSet);
     while (chainsIt.hasNext) {
         const chainSegment = chainsIt.move();
         const cI = chainSegment.index;
@@ -81,7 +81,7 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
         entityKey[cI] = eKey;
 
         const residueMap = getElementSubstructureKeyMap(residueMaps, cKey);
-        const residuesIt = Segmentation.transientSegments(segments.residueSegments, atomSet, chainSegment);
+        const residuesIt = Segmentation.transientSegments(segments.residueAtomSegments, atomSet, chainSegment);
         while (residuesIt.hasNext) {
             const residueSegment = residuesIt.move();
             const rI = residueSegment.index;

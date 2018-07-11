@@ -92,9 +92,9 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
     }
 
     const hierarchySegments: AtomicSegments = {
-        residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, Interval.ofBounds(0, atom_site._rowCount)),
-        chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, Interval.ofBounds(0, atom_site._rowCount)),
-        polymerSegments: Segmentation.ofOffsets(hierarchyOffsets.polymers, Interval.ofBounds(0, atom_site._rowCount)),
+        residueAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, Interval.ofBounds(0, atom_site._rowCount)),
+        chainAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, Interval.ofBounds(0, atom_site._rowCount)),
+        polymerAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.polymers, Interval.ofBounds(0, atom_site._rowCount)),
     }
 
     const hierarchyKeys = getAtomicKeys(hierarchyData, entities, hierarchySegments);
