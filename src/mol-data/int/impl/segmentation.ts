@@ -50,18 +50,18 @@ export function projectValue({ offsets }: Segmentation, set: OrderedSet, value: 
     return OrderedSet.findRange(set, OrderedSet.getAt(offsets, idx), OrderedSet.getAt(offsets, idx + 1) - 1);
 }
 
-export class SegmentIterator<T extends number = number> implements Iterator<Segs.Segment<T>> {
+export class SegmentIterator<I extends number = number> implements Iterator<Segs.Segment<I>> {
     private segmentMin = 0;
     private segmentMax = 0;
     private setRange = Interval.Empty;
-    private value: Segs.Segment<T> = { index: 0, start: 0 as T, end: 0 as T };
+    private value: Segs.Segment<I> = { index: 0 as I, start: 0, end: 0 };
 
     hasNext: boolean = false;
 
     move() {
         while (this.hasNext) {
             if (this.updateValue()) {
-                this.value.index = this.segmentMin++;
+                this.value.index = this.segmentMin++ as I;
                 this.hasNext = this.segmentMax >= this.segmentMin && Interval.size(this.setRange) > 0;
                 break;
             } else {
@@ -75,8 +75,8 @@ export class SegmentIterator<T extends number = number> implements Iterator<Segs
         const segmentEnd = this.segments[this.segmentMin + 1];
         // TODO: add optimized version for interval and array?
         const setEnd = OrderedSet.findPredecessorIndexInInterval(this.set, segmentEnd, this.setRange);
-        this.value.start = Interval.start(this.setRange) as T;
-        this.value.end = setEnd as T;
+        this.value.start = Interval.start(this.setRange);
+        this.value.end = setEnd;
         this.setRange = Interval.ofBounds(setEnd, Interval.end(this.setRange));
         return setEnd > this.value.start;
     }
@@ -94,7 +94,7 @@ export class SegmentIterator<T extends number = number> implements Iterator<Segs
         this.hasNext = this.segmentMax >= this.segmentMin;
     }
 
-    setSegment(segment: Segs.Segment<T>) {
+    setSegment(segment: Segs.Segment<number>) {
         this.setRange = Interval.ofBounds(segment.start, segment.end);
         this.updateSegmentRange();
     }

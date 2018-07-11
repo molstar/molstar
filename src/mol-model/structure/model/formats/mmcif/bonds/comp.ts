@@ -141,7 +141,7 @@ export namespace ComponentBond {
             loc.unit = unit;
             while (residues.hasNext) {
                 const seg = residues.move();
-                loc.element = seg.start;
+                loc.element = unit.elements[seg.start];
                 names.add(prop(loc));
             }
         }

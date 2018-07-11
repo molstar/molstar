@@ -7,7 +7,7 @@
 import Query from './query'
 import Selection from './selection'
 import { StructureElement, Unit, StructureProperties as P } from '../structure'
-import { OrderedSet, Segmentation } from 'mol-data/int'
+import { Segmentation } from 'mol-data/int'
 import { LinearGroupingBuilder } from './utils/builders';
 
 export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s);
@@ -87,20 +87,20 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
-                l.element = OrderedSet.getAt(elements, chainSegment.start);
+                l.element = elements[chainSegment.start];
                 // test entity and chain
                 if (!entityTest(l) || !chainTest(l)) continue;
 
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
                     const residueSegment = residuesIt.move();
-                    l.element = OrderedSet.getAt(elements, residueSegment.start);
+                    l.element = elements[residueSegment.start];
 
                     // test residue
                     if (!residueTest(l)) continue;
 
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                        l.element = OrderedSet.getAt(elements, j);
+                        l.element = elements[j];
                         if (atomTest(l)) {
                             builder.addElement(l.element);
                         }
@@ -134,20 +134,20 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
             const residuesIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
-                l.element = OrderedSet.getAt(elements, chainSegment.start);
+                l.element = elements[chainSegment.start];
                 // test entity and chain
                 if (!entityTest(l) || !chainTest(l)) continue;
 
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
                     const residueSegment = residuesIt.move();
-                    l.element = OrderedSet.getAt(elements, residueSegment.start);
+                    l.element = elements[residueSegment.start];
 
                     // test residue
                     if (!residueTest(l)) continue;
 
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
-                        l.element = OrderedSet.getAt(elements, j);
+                        l.element = elements[j];
                         if (atomTest(l)) builder.add(groupBy(l), unit.id, l.element);
                     }
                 }

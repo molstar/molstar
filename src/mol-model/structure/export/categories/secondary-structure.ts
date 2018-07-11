@@ -9,11 +9,9 @@ import { CifWriter } from 'mol-io/writer/cif';
 import { SecondaryStructure } from '../../model/properties/seconday-structure';
 import { StructureElement, Unit, StructureProperties as P } from '../../structure';
 import { CifExportContext } from '../mmcif';
-
 import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import { Column } from 'mol-data/db';
-import { ElementIndex } from '../../model';
 
 export function _struct_conf(ctx: CifExportContext): CifCategory {
     const elements = findElements(ctx, 'helix');
@@ -42,7 +40,7 @@ function compare_ssr(x: SSElement<SecondaryStructure.Sheet>, y: SSElement<Second
 
 const struct_conf_fields: CifField[] = [
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('conf_type_id', (i, data) => data[i].element.type_id),
-    CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('conf_type_id', (i, data, idx) => `${data[i].element.type_id}${idx + 1}`),
+    CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('id', (i, data, idx) => `${data[i].element.type_id}${idx + 1}`),
     ...residueIdFields('beg_', e => e.start),
     ...residueIdFields('end_', e => e.end),
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('pdbx_PDB_helix_class', (i, data) => data[i].element.helix_class),
@@ -53,8 +51,8 @@ const struct_conf_fields: CifField[] = [
 ];
 
 const struct_sheet_range_fields: CifField[] = [
-    CifField.index('id'),
     CifField.str<number, SSElement<SecondaryStructure.Sheet>[]>('sheet_id', (i, data) => data[i].element.sheet_id),
+    CifField.index('id'),
     ...residueIdFields('beg_', e => e.start),
     ...residueIdFields('end_', e => e.end),
     CifField.str('symmetry', (i, data) => '', { valueKind: (i, d) => Column.ValueKind.Unknown })
@@ -66,7 +64,7 @@ function residueIdFields(prefix: string, loc: (e: SSElement<any>) => StructureEl
         CifField.int(`${prefix}label_seq_id`, (i, d) => P.residue.label_seq_id(loc(d[i]))),
         CifField.str(`pdbx_${prefix}PDB_ins_code`, (i, d) => P.residue.pdbx_PDB_ins_code(loc(d[i]))),
         CifField.str(`${prefix}label_asym_id`, (i, d) => P.chain.label_asym_id(loc(d[i]))),
-        CifField.str(`${prefix}_entity_id`, (i, d) => P.chain.label_entity_id(loc(d[i]))),
+        CifField.str(`${prefix}label_entity_id`, (i, d) => P.chain.label_entity_id(loc(d[i]))),
         CifField.str(`${prefix}auth_comp_id`, (i, d) => P.residue.auth_comp_id(loc(d[i]))),
         CifField.int(`${prefix}auth_seq_id`, (i, d) => P.residue.auth_seq_id(loc(d[i]))),
         CifField.str(`${prefix}auth_asym_id`, (i, d) => P.chain.auth_asym_id(loc(d[i])))
@@ -92,7 +90,7 @@ function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContex
         const segs = unit.model.atomicHierarchy.residueAtomSegments;
         const residues = Segmentation.transientSegments(segs, unit.elements);
 
-        let current: Segmentation.Segment<ElementIndex>, move = true;
+        let current: Segmentation.Segment, move = true;
         while (residues.hasNext) {
             if (move) current = residues.move();
 

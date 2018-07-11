@@ -70,17 +70,20 @@ function getNcsOperators(format: mmCIF_Format) {
     }
     return opers;
 }
-function getModifiedResidueNameMap(format: mmCIF_Format) {
+function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['modifiedResidues'] {
     const data = format.data.pdbx_struct_mod_residue;
-    const map = new Map<string, string>();
+    const parentId = new Map<string, string>();
+    const details = new Map<string, string>();
     const comp_id = data.label_comp_id.isDefined ? data.label_comp_id : data.auth_comp_id;
-    const parent_id = data.parent_comp_id;
+    const parent_id = data.parent_comp_id, details_data = data.details;
 
     for (let i = 0; i < data._rowCount; i++) {
-        map.set(comp_id.value(i), parent_id.value(i));
+        const id = comp_id.value(i);
+        parentId.set(id, parent_id.value(i));
+        details.set(id, details_data.value(i));
     }
 
-    return map;
+    return { parentId, details };
 }
 
 function getAsymIdSerialMap(format: mmCIF_Format) {
@@ -132,7 +135,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         ? format.data.entry.id.value(0)
         : format.data._name;
 
-    const modifiedResidueNameMap = getModifiedResidueNameMap(format);
+    const modifiedResidues = getModifiedResidueNameMap(format);
     const asymIdSerialMap = getAsymIdSerialMap(format)
     const chemicalComponentMap = getChemicalComponentMap(format)
 
@@ -143,14 +146,14 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         modelNum: atom_site.pdbx_PDB_model_num.value(0),
         entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, entities, atomic.hierarchy, modifiedResidueNameMap),
+        sequence: getSequence(format.data, entities, atomic.hierarchy, modifiedResidues.parentId),
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
-            modifiedResidueNameMap,
+            modifiedResidues,
             asymIdSerialMap,
             chemicalComponentMap
         },
@@ -163,7 +166,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
 function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
     const atomic = getAtomicHierarchyAndConformation(format, data.atom_site, data.entities);
     const coarse = getIHMCoarse(data);
-    const modifiedResidueNameMap = getModifiedResidueNameMap(format);
+    const modifiedResidues = getModifiedResidueNameMap(format);
     const asymIdSerialMap = getAsymIdSerialMap(format)
     const chemicalComponentMap = getChemicalComponentMap(format)
 
@@ -174,14 +177,14 @@ function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
         modelNum: data.model_id,
         entities: data.entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, data.entities, atomic.hierarchy, modifiedResidueNameMap),
+        sequence: getSequence(format.data, data.entities, atomic.hierarchy, modifiedResidues.parentId),
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
-            modifiedResidueNameMap,
+            modifiedResidues,
             asymIdSerialMap,
             chemicalComponentMap
         },

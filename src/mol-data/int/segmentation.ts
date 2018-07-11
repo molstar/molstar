@@ -9,7 +9,7 @@ import OrderedSet from './ordered-set'
 import * as Impl from './impl/segmentation'
 
 namespace Segmentation {
-    export interface Segment<T extends number = number, I extends number = number> { index: number, start: T, end: T }
+    export interface Segment<I extends number = number> { index: I, start: number, end: number }
 
     export const create: <T extends number = number, I extends number = number>(segs: ArrayLike<T>) => Segmentation<T, I> = Impl.create as any;
     export const ofOffsets: <T extends number = number, I extends number = number>(offsets: ArrayLike<T>, bounds: Interval) => Segmentation<T, I> = Impl.ofOffsets as any;
@@ -19,7 +19,7 @@ namespace Segmentation {
     export const projectValue: <T extends number = number, I extends number = number>(segs: Segmentation<T, I>, set: OrderedSet<T>, value: T) => Interval = Impl.projectValue as any;
 
     // Segment iterator that mutates a single segment object to mark all the segments.
-    export const transientSegments: <T extends number = number, I extends number = number>(segs: Segmentation<T, I>, set: OrderedSet<T>, segment?: Segment<T>) => Impl.SegmentIterator<T> = Impl.segments as any;
+    export const transientSegments: <T extends number = number, I extends number = number>(segs: Segmentation<T, I>, set: OrderedSet<T>, segment?: Segment) => Impl.SegmentIterator<I> = Impl.segments as any;
 }
 
 interface Segmentation<T extends number = number, I extends number = number> {

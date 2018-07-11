@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, StructureProperties, ElementIndex } from 'mol-model/structure';
+import { Unit, StructureElement, StructureProperties } from 'mol-model/structure';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
@@ -50,7 +50,7 @@ function getTraceName(l: StructureElement) {
     return traceName
 }
 
-function setTraceElement(l: StructureElement, residueSegment: Segmentation.Segment<ElementIndex>) {
+function setTraceElement(l: StructureElement, residueSegment: Segmentation.Segment) {
     const elements = l.unit.elements
     l.element = elements[residueSegment.start]
     const traceName = getTraceName(l)
@@ -97,9 +97,9 @@ const enum AtomicPolymerBackboneIteratorState { nextPolymer, firstResidue, nextR
 export class AtomicPolymerBackboneIterator<T extends number = number> implements Iterator<PolymerBackbonePair> {
     private value: PolymerBackbonePair
 
-    private polymerIt: SegmentIterator<ElementIndex>
-    private residueIt: SegmentIterator<ElementIndex>
-    private polymerSegment: Segmentation.Segment<ElementIndex>
+    private polymerIt: SegmentIterator
+    private residueIt: SegmentIterator
+    private polymerSegment: Segmentation.Segment
     private state: AtomicPolymerBackboneIteratorState = AtomicPolymerBackboneIteratorState.nextPolymer
     private pos: SymmetryOperator.CoordinateMapper
 
@@ -161,8 +161,8 @@ const enum CoarsePolymerBackboneIteratorState { nextPolymer, firstElement, nextE
 export class CoarsePolymerBackboneIterator<T extends number = number> implements Iterator<PolymerBackbonePair> {
     private value: PolymerBackbonePair
 
-    private polymerIt: SegmentIterator<ElementIndex>
-    private polymerSegment: Segmentation.Segment<ElementIndex>
+    private polymerIt: SegmentIterator
+    private polymerSegment: Segmentation.Segment
     private state: CoarsePolymerBackboneIteratorState = CoarsePolymerBackboneIteratorState.nextPolymer
     private pos: SymmetryOperator.CoordinateMapper
     private elementIndex: number
@@ -268,8 +268,8 @@ function createPolymerTraceElement (unit: Unit) {
 export class AtomicPolymerTraceIterator<T extends number = number> implements Iterator<PolymerTraceElement> {
     private value: PolymerTraceElement
 
-    private polymerIt: SegmentIterator<ElementIndex>
-    private residueIt: SegmentIterator<ElementIndex>
+    private polymerIt: SegmentIterator
+    private residueIt: SegmentIterator
     // private polymerSegment: Segmentation.Segment<Element>
     // private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
     // private pos: SymmetryOperator.CoordinateMapper

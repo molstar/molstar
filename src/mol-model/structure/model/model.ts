@@ -42,7 +42,10 @@ export interface Model extends Readonly<{
         /** secondary structure provided by the input file */
         readonly secondaryStructure: SecondaryStructure,
         /** maps modified residue name to its parent */
-        readonly modifiedResidueNameMap: Map<string, string>,
+        readonly modifiedResidues: {
+            parentId: Map<string, string>,
+            details: Map<string, string>
+        },
         /** maps asym id to unique serial number */
         readonly asymIdSerialMap: Map<string, number>
         /** maps residue name to `ChemicalComponent` data */

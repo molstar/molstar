@@ -18,6 +18,7 @@ export interface CifExportContext {
 
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
+import { _pdbx_struct_mod_residue } from './categories/modified-residues';
 
 function copy_mmCif_category(name: keyof mmCIF_Schema) {
     return ({ model }: CifExportContext) => {
@@ -56,6 +57,8 @@ const Categories = [
     // TODO: filter for actual present residues?
     copy_mmCif_category('chem_comp'),
     copy_mmCif_category('atom_sites'),
+
+    _pdbx_struct_mod_residue,
 
     // Atoms
     _atom_site

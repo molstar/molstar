@@ -119,7 +119,7 @@ export function printSequence(model: Model) {
 
 export function printModRes(model: Model) {
     console.log('\nModified Residues\n=============');
-    const map = model.properties.modifiedResidueNameMap;
+    const map = model.properties.modifiedResidues.parentId;
     const { label_comp_id, _rowCount } = model.atomicHierarchy.residues;
     for (let i = 0; i < _rowCount; i++) {
         const comp_id = label_comp_id.value(i);
