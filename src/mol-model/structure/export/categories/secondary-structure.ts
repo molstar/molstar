@@ -25,7 +25,7 @@ export function _struct_conf(ctx: CifExportContext): CifCategory {
 }
 
 export function _struct_sheet_range(ctx: CifExportContext): CifCategory {
-    const elements = findElements(ctx, 'sheet');
+    const elements = (findElements(ctx, 'sheet') as SSElement<SecondaryStructure.Sheet>[]).sort(compare_ssr);
     return {
         data: elements,
         name: 'struct_sheet_range',
@@ -33,6 +33,11 @@ export function _struct_sheet_range(ctx: CifExportContext): CifCategory {
         rowCount: elements.length
     };
 }
+
+function compare_ssr(x: SSElement<SecondaryStructure.Sheet>, y: SSElement<SecondaryStructure.Sheet>) {
+    const a = x.element, b = y.element;
+    return a.sheet_id < b.sheet_id ? -1 : a.sheet_id === b.sheet_id ? x.start.element - y.start.element : 1
+};
 
 const struct_conf_fields: CifField[] = [
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('conf_type_id', (i, data) => data[i].element.type_id),
