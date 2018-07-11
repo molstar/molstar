@@ -17,10 +17,11 @@ interface StructureElement<U = Unit> {
 namespace StructureElement {
     export function create(unit?: Unit, element?: ElementIndex): StructureElement { return { unit: unit as any, element: element || (0 as ElementIndex) }; }
 
+    // TODO: when nominal types are available, make this indexed by UnitIndex
     export type Set = SortedArray<ElementIndex>
 
     /** Index into Unit.elements */
-    export type Index = { readonly '@type': 'element-index' } & number
+    export type UnitIndex = { readonly '@type': 'structure-element-index' } & number
 
     export interface Property<T> { (location: StructureElement): T }
     export interface Predicate extends Property<boolean> { }
@@ -46,11 +47,11 @@ namespace StructureElement {
              * Indices into the unit.elements array.
              * Can use OrderedSet.forEach to iterate (or OrderedSet.size + OrderedSet.getAt)
              */
-            indices: OrderedSet<Index>
+            indices: OrderedSet<UnitIndex>
         }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet<Index> }>): Loci {
+    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet<UnitIndex> }>): Loci {
         return { kind: 'element-loci', elements: elements as Loci['elements'] };
     }
 

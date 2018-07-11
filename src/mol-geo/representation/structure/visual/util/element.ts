@@ -96,7 +96,7 @@ export function getElementLoci(id: number, group: Unit.SymmetryGroup, pickingId:
     const { objectId, instanceId, elementId } = pickingId
     if (id === objectId) {
         const unit = group.units[instanceId]
-        const indices = OrderedSet.ofSingleton(elementId as StructureElement.Index);
+        const indices = OrderedSet.ofSingleton(elementId as StructureElement.UnitIndex);
         return StructureElement.Loci([{ unit, indices }])
     }
     return EmptyLoci

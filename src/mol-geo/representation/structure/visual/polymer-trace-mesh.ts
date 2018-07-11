@@ -134,7 +134,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
             const { objectId, instanceId, elementId } = pickingId
             if (renderObject.id === objectId) {
                 const unit = currentGroup.units[instanceId]
-                const indices = OrderedSet.ofSingleton(elementId as StructureElement.Index);
+                const indices = OrderedSet.ofSingleton(elementId as StructureElement.UnitIndex);
                 return StructureElement.Loci([{ unit, indices }])
             }
             return EmptyLoci
