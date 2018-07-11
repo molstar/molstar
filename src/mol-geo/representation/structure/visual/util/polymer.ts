@@ -215,10 +215,10 @@ export class CoarsePolymerBackboneIterator<T extends number = number> implements
     }
 
     constructor(unit: Unit.Spheres | Unit.Gaussians) {
-        const { polymerSegments } = Unit.isSpheres(unit)
+        const { polymerElementSegments } = Unit.isSpheres(unit)
             ? unit.model.coarseHierarchy.spheres
             : unit.model.coarseHierarchy.gaussians
-        this.polymerIt = Segmentation.transientSegments(polymerSegments, unit.elements);
+        this.polymerIt = Segmentation.transientSegments(polymerElementSegments, unit.elements);
 
         this.pos = unit.conformation.invariantPosition
         this.value = createPolymerBackbonePair(unit)

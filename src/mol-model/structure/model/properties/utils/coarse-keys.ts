@@ -52,7 +52,7 @@ function missingEntity(k: string) {
 }
 
 export function getCoarseKeys(data: CoarseElementData, entities: Entities): CoarsedElementKeys {
-    const { entity_id, asym_id, seq_id_begin, seq_id_end, count, chainSegments } = data;
+    const { entity_id, asym_id, seq_id_begin, seq_id_end, count, chainElementSegments } = data;
 
     const seqMaps = new Map<number, Map<number, number>>();
     const chainMaps = new Map<number, Map<string, number>>(), chainCounter = { index: 0 };
@@ -65,8 +65,8 @@ export function getCoarseKeys(data: CoarseElementData, entities: Entities): Coar
         if (entityKey[i] < 0) missingEntity(entity_id.value(i));
     }
 
-    for (let cI = 0; cI < chainSegments.count; cI++) {
-        const start = chainSegments.offsets[cI], end = chainSegments.offsets[cI + 1];
+    for (let cI = 0; cI < chainElementSegments.count; cI++) {
+        const start = chainElementSegments.offsets[cI], end = chainElementSegments.offsets[cI + 1];
         const map = getElementSubstructureKeyMap(chainMaps, entityKey[start]);
         const key = getElementKey(map, asym_id.value(start), chainCounter);
         for (let i = start; i < end; i++) chainKey[i] = key;

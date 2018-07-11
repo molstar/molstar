@@ -12,7 +12,7 @@ import { getCoarseKeys } from '../../properties/utils/coarse-keys';
 import { UUID } from 'mol-util';
 import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
-import { ElementIndex } from '../../indexing';
+import { ElementIndex, ChainIndex } from '../../indexing';
 
 export interface IHMData {
     model_id: number,
@@ -92,8 +92,8 @@ function getSegments(asym_id: Column<string>, seq_id_begin: Column<number>, seq_
     }
 
     return {
-        chainSegments: Segmentation.ofOffsets(chainOffsets, Interval.ofBounds(0, asym_id.rowCount)),
-        polymerSegments: Segmentation.ofOffsets(polymerOffsets, Interval.ofBounds(0, asym_id.rowCount))
+        chainElementSegments: Segmentation.ofOffsets<ElementIndex, ChainIndex>(chainOffsets, Interval.ofBounds(0, asym_id.rowCount)),
+        polymerElementSegments: Segmentation.ofOffsets(polymerOffsets, Interval.ofBounds(0, asym_id.rowCount))
     }
 }
 

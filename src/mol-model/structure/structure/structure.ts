@@ -149,9 +149,9 @@ namespace Structure {
     }
 
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
-        const { chainSegments } = elements;
-        for (let cI = 0; cI < chainSegments.count; cI++) {
-            const elements = SortedArray.ofBounds<ElementIndex>(chainSegments.offsets[cI], chainSegments.offsets[cI + 1]);
+        const { chainElementSegments } = elements;
+        for (let cI = 0; cI < chainElementSegments.count; cI++) {
+            const elements = SortedArray.ofBounds<ElementIndex>(chainElementSegments.offsets[cI], chainElementSegments.offsets[cI + 1]);
             builder.addUnit(kind, model, SymmetryOperator.Default, elements);
         }
     }
