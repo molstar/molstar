@@ -22,22 +22,22 @@ export namespace ComponentBond {
         isStatic: true,
         name: 'chem_comp_bond',
         cifExport: {
-            categoryNames: ['chem_comp_bond'],
-            categoryProvider(ctx) {
-                const chem_comp_bond = getChemCompBond(ctx.model);
-                if (!chem_comp_bond) return [];
+            categories: [{
+                name: 'chem_comp_bond',
+                instance(ctx) {
+                    const chem_comp_bond = getChemCompBond(ctx.model);
+                    if (!chem_comp_bond) return CifWriter.Category.Empty;
 
-                const comp_names = getUniqueResidueNames(ctx.structure);
-                const { comp_id, _rowCount } = chem_comp_bond;
-                const indices: number[] = [];
-                for (let i = 0; i < _rowCount; i++) {
-                    if (comp_names.has(comp_id.value(i))) indices[indices.length] = i;
+                    const comp_names = getUniqueResidueNames(ctx.structure);
+                    const { comp_id, _rowCount } = chem_comp_bond;
+                    const indices: number[] = [];
+                    for (let i = 0; i < _rowCount; i++) {
+                        if (comp_names.has(comp_id.value(i))) indices[indices.length] = i;
+                    }
+
+                    return CifWriter.Category.ofTable(chem_comp_bond, indices)
                 }
-
-                return [
-                    () => CifWriter.Category.ofTable('chem_comp_bond', chem_comp_bond, indices)
-                ];
-            }
+            }]
         }
     }
 

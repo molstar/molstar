@@ -7,7 +7,7 @@
 import { Table } from 'mol-data/db'
 import { CifWriter } from 'mol-io/writer/cif'
 import * as S from './schemas'
-import { getCategoryInstanceProvider } from './utils'
+//import { getCategoryInstanceProvider } from './utils'
 
 export default function create(allData: any) {
     const mols = Object.keys(allData);
@@ -21,7 +21,7 @@ export default function create(allData: any) {
     const sources = getSources(data);
     if (!sources._rowCount) return enc.getData();
 
-    enc.writeCategory(getCategoryInstanceProvider(`pdbx_domain_annotation_sources`, sources));
+    enc.writeCategory({ name: `pdbx_domain_annotation_sources`, instance: () => CifWriter.Category.ofTable(sources) });
 
     for (const cat of Object.keys(S.categories)) {
         writeDomain(enc, getDomain(cat, (S.categories as any)[cat], data));
@@ -38,8 +38,8 @@ type MappingRow = Table.Row<S.mapping>;
 
 function writeDomain(enc: CifWriter.Encoder, domain: DomainAnnotation | undefined) {
     if (!domain) return;
-    enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_annotation`, domain.domains));
-    enc.writeCategory(getCategoryInstanceProvider(`pdbx_${domain.name}_domain_mapping`, domain.mappings));
+    enc.writeCategory({ name: `pdbx_${domain.name}_domain_annotation`, instance: () =>  CifWriter.Category.ofTable(domain.domains) });
+    enc.writeCategory({ name: `pdbx_${domain.name}_domain_mapping`, instance: () => CifWriter.Category.ofTable(domain.mappings) });
 }
 
 function getSources(data: any): Table<S.Sources> {

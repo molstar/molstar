@@ -11,7 +11,7 @@ export function getFieldDigitCount(field: Field) {
     return 6;
 }
 
-export function getIncludedFields(category: Category<any, any>) {
+export function getIncludedFields(category: Category.Instance) {
     return category.fields.some(f => !!f.shouldInclude)
         ? category.fields.filter(f => !f.shouldInclude || f.shouldInclude(category.data))
         : category.fields;

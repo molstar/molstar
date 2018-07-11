@@ -62,6 +62,15 @@ entity.pdbx_mutation
 entity.pdbx_fragment
 entity.pdbx_ec
 
+entity_poly.entity_id
+entity_poly.type
+entity_poly.nstd_linkage
+entity_poly.nstd_monomer
+entity_poly.pdbx_seq_one_letter_code  
+entity_poly.pdbx_seq_one_letter_code_can 
+entity_poly.pdbx_strand_id
+entity_poly.pdbx_target_identifier
+
 entity_poly_seq.entity_id
 entity_poly_seq.num
 entity_poly_seq.mon_id

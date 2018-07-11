@@ -13,16 +13,6 @@ import { CifExportContext } from '../mmcif';
 import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 
-export function _pdbx_struct_mod_residue(ctx: CifExportContext): CifCategory {
-    const residues = getModifiedResidues(ctx);
-    return {
-        data: residues,
-        name: 'pdbx_struct_mod_residue',
-        fields: pdbx_struct_mod_residue_fields,
-        rowCount: residues.length
-    };
-}
-
 const pdbx_struct_mod_residue_fields: CifField<number, StructureElement[]>[] = [
     CifField.index('id'),
     CifField.str(`label_comp_id`, (i, xs) => P.residue.label_comp_id(xs[i])),
@@ -58,4 +48,12 @@ function getModifiedResidues({ model, structure }: CifExportContext): StructureE
         }
     }
     return ret;
+}
+
+export const _pdbx_struct_mod_residue: CifCategory<CifExportContext> = {
+    name: 'pdbx_struct_mod_residue',
+    instance(ctx) {
+        const residues = getModifiedResidues(ctx);
+        return { fields: pdbx_struct_mod_residue_fields, data: residues, rowCount: residues.length };
+    }
 }

@@ -39,16 +39,18 @@ const atom_site_fields: CifField<StructureElement>[] = [
 
     CifField.int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE }),
     CifField.str<StructureElement, Structure>('operator_name', P.unit.operator_name, {
-        shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
+        shouldInclude: structure => { console.log(!!structure); return structure.units.some(u => !u.conformation.operator.isIdentity) }
     })
 ];
 
-export function _atom_site({ structure }: CifExportContext): CifCategory {
-    return {
-        data: structure,
-        name: 'atom_site',
-        fields: atom_site_fields,
-        rowCount: structure.elementCount,
-        keys: () => structure.elementLocations()
+export const _atom_site: CifCategory<CifExportContext> = {
+    name: 'atom_site',
+    instance({ structure }: CifExportContext) {
+        return {
+            fields: atom_site_fields,
+            data: structure,
+            rowCount: structure.elementCount,
+            keys: () => structure.elementLocations()
+        };
     }
 }

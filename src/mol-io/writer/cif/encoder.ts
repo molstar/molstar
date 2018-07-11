@@ -69,19 +69,19 @@ export namespace Field {
     }
 }
 
-export interface Category<Key = any, Data = any> {
+export interface Category<Ctx = any> {
     name: string,
-    fields: Field<Key, Data>[],
-    data?: Data,
-    rowCount: number,
-    keys?: () => Iterator<Key>
+    instance(ctx: Ctx): Category.Instance
 }
 
 export namespace Category {
-    export const Empty: Category = { name: 'empty', rowCount: 0, fields: [] };
+    export const Empty: Instance = { fields: [], rowCount: 0 };
 
-    export interface Provider<Ctx = any> {
-        (ctx: Ctx): Category
+    export interface Instance<Key = any, Data = any> {
+        fields: Field[],
+        data?: Data,
+        rowCount: number,
+        keys?: () => Iterator<Key>
     }
 
     export interface Filter {
@@ -102,11 +102,11 @@ export namespace Category {
         getFormat(cat, field) { return void 0; }
     }
 
-    export function ofTable(name: string, table: Table<Table.Schema>, indices?: ArrayLike<number>): Category<number, Table<Table.Schema>> {
+    export function ofTable(table: Table<Table.Schema>, indices?: ArrayLike<number>): Category.Instance {
         if (indices) {
-            return { name, fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: indices.length, keys: () => Iterator.Array(indices) };
+            return { fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: indices.length, keys: () => Iterator.Array(indices) };
         }
-        return { name, fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: table._rowCount };
+        return { fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: table._rowCount };
     }
 }
 
@@ -115,7 +115,7 @@ export interface Encoder<T = string | Uint8Array> extends EncoderBase {
     setFormatter(formatter?: Category.Formatter): void,
 
     startDataBlock(header: string): void,
-    writeCategory<Ctx>(category: Category.Provider<Ctx>, contexts?: Ctx[]): void,
+    writeCategory<Ctx>(category: Category<Ctx>, contexts?: Ctx[]): void,
     getData(): T
 }
 
@@ -123,7 +123,7 @@ export namespace Encoder {
     export function writeDatabase(encoder: Encoder, name: string, database: Database<Database.Schema>) {
         encoder.startDataBlock(name);
         for (const table of database._tableNames) {
-            encoder.writeCategory(() => Category.ofTable(table, database[table]));
+            encoder.writeCategory({ name: table, instance: () => Category.ofTable(database[table]) });
         }
     }
 

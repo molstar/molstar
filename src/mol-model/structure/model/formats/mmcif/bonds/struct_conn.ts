@@ -27,38 +27,38 @@ export namespace StructConn {
         isStatic: true,
         name: 'struct_conn',
         cifExport: {
-            categoryNames: ['struct_conn'],
-            categoryProvider(ctx) {
-                const struct_conn = getStructConn(ctx.model);
-                if (!struct_conn) return [];
+            categories: [{
+                name: 'struct_conn',
+                instance(ctx) {
+                    const struct_conn = getStructConn(ctx.model);
+                    if (!struct_conn) return CifWriter.Category.Empty;
 
-                const strConn = get(ctx.model);
-                if (!strConn || strConn.entries.length === 0) return [];
+                    const strConn = get(ctx.model);
+                    if (!strConn || strConn.entries.length === 0) return CifWriter.Category.Empty;
 
-                const foundAtoms = new Set<ElementIndex>();
-                const indices: number[] = [];
-                for (const entry of strConn.entries) {
-                    const { partners } = entry;
-                    let hasAll = true;
-                    for (let i = 0, _i = partners.length; i < _i; i++) {
-                        const atom = partners[i].atomIndex;
-                        if (foundAtoms.has(atom)) continue;
-                        if (hasAtom(ctx.structure, atom)) {
-                            foundAtoms.add(atom);
-                        } else {
-                            hasAll = false;
-                            break;
+                    const foundAtoms = new Set<ElementIndex>();
+                    const indices: number[] = [];
+                    for (const entry of strConn.entries) {
+                        const { partners } = entry;
+                        let hasAll = true;
+                        for (let i = 0, _i = partners.length; i < _i; i++) {
+                            const atom = partners[i].atomIndex;
+                            if (foundAtoms.has(atom)) continue;
+                            if (hasAtom(ctx.structure, atom)) {
+                                foundAtoms.add(atom);
+                            } else {
+                                hasAll = false;
+                                break;
+                            }
+                        }
+                        if (hasAll) {
+                            indices[indices.length] = entry.rowIndex;
                         }
                     }
-                    if (hasAll) {
-                        indices[indices.length] = entry.rowIndex;
-                    }
-                }
 
-                return [
-                    () => CifWriter.Category.ofTable('struct_conn', struct_conn, indices)
-                ];
-            }
+                    return CifWriter.Category.ofTable(struct_conn, indices);
+                }
+            }]
         }
     }
 

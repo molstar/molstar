@@ -24,15 +24,11 @@ async function getCIF(ctx: RuntimeContext, path: string) {
     return parsed.result;
 }
 
-function getCategoryInstanceProvider(cat: CifCategory, fields: CifWriter.Field[]): CifWriter.Category.Provider {
-    return function (ctx: any) {
-        return {
-            data: cat,
-            name: cat.name,
-            fields,
-            rowCount: cat.rowCount
-        };
-    }
+function getCategoryInstanceProvider(cat: CifCategory, fields: CifWriter.Field[]): CifWriter.Category {
+    return {
+        name: cat.name,
+        instance: () => ({ data: cat, fields, rowCount: cat.rowCount })
+    };
 }
 
 export default function convert(path: string, asText = false) {

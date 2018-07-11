@@ -13,25 +13,21 @@ import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import { Column } from 'mol-data/db';
 
-export function _struct_conf(ctx: CifExportContext): CifCategory {
-    const elements = findElements(ctx, 'helix');
-    return {
-        data: elements,
-        name: 'struct_conf',
-        fields: struct_conf_fields,
-        rowCount: elements.length
-    };
-}
+export const _struct_conf: CifCategory<CifExportContext> = {
+    name: 'struct_conf',
+    instance(ctx) {
+        const elements = findElements(ctx, 'helix');
+        return { fields: struct_conf_fields, data: elements, rowCount: elements.length };
+    }
+};
 
-export function _struct_sheet_range(ctx: CifExportContext): CifCategory {
-    const elements = (findElements(ctx, 'sheet') as SSElement<SecondaryStructure.Sheet>[]).sort(compare_ssr);
-    return {
-        data: elements,
-        name: 'struct_sheet_range',
-        fields: struct_sheet_range_fields,
-        rowCount: elements.length
-    };
-}
+export const _struct_sheet_range: CifCategory<CifExportContext> = {
+    name: 'struct_sheet_range',
+    instance(ctx) {
+        const elements = (findElements(ctx, 'sheet') as SSElement<SecondaryStructure.Sheet>[]).sort(compare_ssr);
+        return { fields: struct_sheet_range_fields, data: elements, rowCount: elements.length };
+    }
+};
 
 function compare_ssr(x: SSElement<SecondaryStructure.Sheet>, y: SSElement<SecondaryStructure.Sheet>) {
     const a = x.element, b = y.element;
