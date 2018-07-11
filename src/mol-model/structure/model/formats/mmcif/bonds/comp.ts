@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../../model'
+import { Model } from '../../../model'
 import { LinkType } from '../../../types'
 import { ModelPropertyDescriptor } from '../../../properties/custom';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';

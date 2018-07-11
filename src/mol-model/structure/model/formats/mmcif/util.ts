@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../model'
+import { Model } from '../../model'
 import { Element } from '../../../structure'
 
 export function findEntityIdByAsymId(model: Model, asymId: string) {

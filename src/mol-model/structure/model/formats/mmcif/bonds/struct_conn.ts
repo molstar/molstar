@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../../model'
+import { Model } from '../../../model'
 import { Element, Structure } from '../../../../structure'
 import { LinkType } from '../../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'

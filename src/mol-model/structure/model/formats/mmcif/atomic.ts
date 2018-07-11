@@ -10,7 +10,7 @@ import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import UUID from 'mol-util/uuid';
 import { Element } from '../../../../structure';
 import Format from '../../format';
-import Model from '../../model';
+import { Model } from '../../model';
 import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../properties/atomic';
 import { getAtomicKeys } from '../../properties/utils/atomic-keys';
 import { ElementSymbol } from '../../types';

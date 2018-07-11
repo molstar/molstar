@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../../model'
+import { Model } from '../../../model'
 import { Table } from 'mol-data/db'
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { findAtomIndexByLabelName } from '../util';

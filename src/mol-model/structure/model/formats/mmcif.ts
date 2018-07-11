@@ -11,7 +11,7 @@ import { Tensor, Vec3 } from 'mol-math/linear-algebra';
 import { Task, RuntimeContext } from 'mol-task';
 import UUID from 'mol-util/uuid';
 import Format from '../format';
-import Model from '../model';
+import { Model } from '../model';
 import { Entities } from '../properties/common';
 import { CustomProperties } from '../properties/custom';
 import { ModelSymmetry } from '../properties/symmetry';
