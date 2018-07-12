@@ -23,11 +23,14 @@ namespace OrderedSet {
 
     export const min: <T extends number = number>(set: OrderedSet<T>) => T = Base.min as any;
     export const max: <T extends number = number>(set: OrderedSet<T>) => T = Base.max as any;
+    export const start: <T extends number = number>(set: OrderedSet<T>) => T = Base.start as any;
+    export const end: <T extends number = number>(set: OrderedSet<T>) => T = Base.end as any;
     export const size: <T extends number = number>(set: OrderedSet<T>) => number = Base.size as any;
     export const hashCode: <T extends number = number>(set: OrderedSet<T>) => number = Base.hashCode as any;
 
     export const areEqual: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => boolean = Base.areEqual as any;
     export const areIntersecting: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => boolean = Base.areIntersecting as any;
+    /** Check if the 2nd argument is a subset of the 1st */
     export const isSubset: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => boolean = Base.isSubset as any;
 
     export const union: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => OrderedSet<T> = Base.union as any;
@@ -48,6 +51,12 @@ namespace OrderedSet {
 
     export function isSortedArray<T extends number = number>(set: OrderedSet<T>): set is SortedArray<T> {
         return !Interval.is(set);
+    }
+
+    export function toArray<T extends number = number>(set: OrderedSet<T>): T[] {
+        const array: T[] = []
+        OrderedSet.forEach(set, v => array.push(v))
+        return array
     }
 }
 
