@@ -70,6 +70,7 @@ function getNcsOperators(format: mmCIF_Format) {
     }
     return opers;
 }
+
 function getModifiedResidueNameMap(format: mmCIF_Format) {
     const data = format.data.pdbx_struct_mod_residue;
     const map = new Map<string, string>();
@@ -121,8 +122,22 @@ function getChemicalComponentMap(format: mmCIF_Format) {
     return map
 }
 
-function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, previous?: Model): Model {
-    const atomic = getAtomicHierarchyAndConformation(format, atom_site, entities, previous);
+export interface FormatData {
+    modifiedResidueNameMap: Map<string, string>
+    asymIdSerialMap: Map<string, number>
+    chemicalComponentMap: Map<string, ChemicalComponent>
+}
+
+function getFormatData(format: mmCIF_Format): FormatData {
+    return {
+        modifiedResidueNameMap: getModifiedResidueNameMap(format),
+        asymIdSerialMap: getAsymIdSerialMap(format),
+        chemicalComponentMap: getChemicalComponentMap(format)
+    }
+}
+
+function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, formatData: FormatData, previous?: Model): Model {
+    const atomic = getAtomicHierarchyAndConformation(format, atom_site, entities, formatData, previous);
     if (previous && atomic.sameAsPrevious) {
         return { ...previous, atomicConformation: atomic.conformation };
     }
@@ -132,10 +147,6 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         ? format.data.entry.id.value(0)
         : format.data._name;
 
-    const modifiedResidueNameMap = getModifiedResidueNameMap(format);
-    const asymIdSerialMap = getAsymIdSerialMap(format)
-    const chemicalComponentMap = getChemicalComponentMap(format)
-
     return {
         id: UUID.create(),
         label,
@@ -143,16 +154,14 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         modelNum: atom_site.pdbx_PDB_model_num.value(0),
         entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, entities, atomic.hierarchy, modifiedResidueNameMap),
+        sequence: getSequence(format.data, entities, atomic.hierarchy, formatData.modifiedResidueNameMap),
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
-            modifiedResidueNameMap,
-            asymIdSerialMap,
-            chemicalComponentMap
+            ...formatData
         },
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
@@ -160,12 +169,9 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
     };
 }
 
-function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
-    const atomic = getAtomicHierarchyAndConformation(format, data.atom_site, data.entities);
-    const coarse = getIHMCoarse(data);
-    const modifiedResidueNameMap = getModifiedResidueNameMap(format);
-    const asymIdSerialMap = getAsymIdSerialMap(format)
-    const chemicalComponentMap = getChemicalComponentMap(format)
+function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatData): Model {
+    const atomic = getAtomicHierarchyAndConformation(format, data.atom_site, data.entities, formatData);
+    const coarse = getIHMCoarse(data, formatData);
 
     return {
         id: UUID.create(),
@@ -174,16 +180,14 @@ function createModelIHM(format: mmCIF_Format, data: IHMData): Model {
         modelNum: data.model_id,
         entities: data.entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, data.entities, atomic.hierarchy, modifiedResidueNameMap),
+        sequence: getSequence(format.data, data.entities, atomic.hierarchy, formatData.modifiedResidueNameMap),
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
             secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
-            modifiedResidueNameMap,
-            asymIdSerialMap,
-            chemicalComponentMap
+            ...formatData
         },
         customProperties: new CustomProperties(),
         _staticPropertyData: Object.create(null),
@@ -204,7 +208,7 @@ function findModelEnd(num: Column<number>, startIndex: number) {
     return endIndex;
 }
 
-async function readStandard(ctx: RuntimeContext, format: mmCIF_Format) {
+async function readStandard(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
     const atomCount = format.data.atom_site._rowCount;
     const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
 
@@ -213,7 +217,7 @@ async function readStandard(ctx: RuntimeContext, format: mmCIF_Format) {
     while (modelStart < atomCount) {
         const modelEnd = findModelEnd(format.data.atom_site.pdbx_PDB_model_num, modelStart);
         const atom_site = await sortAtomSite(ctx, format.data.atom_site, modelStart, modelEnd);
-        const model = createStandardModel(format, atom_site, entities, models.length > 0 ? models[models.length - 1] : void 0);
+        const model = createStandardModel(format, atom_site, entities, formatData, models.length > 0 ? models[models.length - 1] : void 0);
         attachProps(model);
         models.push(model);
         modelStart = modelEnd;
@@ -235,7 +239,7 @@ function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
     return ret;
 }
 
-async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
+async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
     const { ihm_model_list } = format.data;
     const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
 
@@ -257,7 +261,7 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
             ihm_sphere_obj_site: sphere_sites.has(id) ? sphere_sites.get(id)! : Table.window(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site._schema, 0, 0),
             ihm_gaussian_obj_site: gauss_sites.has(id) ? gauss_sites.get(id)! : Table.window(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site._schema, 0, 0)
         };
-        const model = createModelIHM(format, data);
+        const model = createModelIHM(format, data, formatData);
         attachProps(model);
         models.push(model);
     }
@@ -266,9 +270,10 @@ async function readIHM(ctx: RuntimeContext, format: mmCIF_Format) {
 }
 
 function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
+    const formatData = getFormatData(format)
     return Task.create('Create mmCIF Model', async ctx => {
         const isIHM = format.data.ihm_model_list._rowCount > 0;
-        return isIHM ? await readIHM(ctx, format) : await readStandard(ctx, format);
+        return isIHM ? await readIHM(ctx, format, formatData) : await readStandard(ctx, format, formatData);
     });
 }
 

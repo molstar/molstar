@@ -17,13 +17,16 @@ import { ElementSymbol } from '../../types';
 import { Entities } from '../../properties/common';
 
 import mmCIF_Format = Format.mmCIF
+import { getAtomicRanges } from '../../properties/utils/atomic-ranges';
+import { FormatData } from '../mmcif';
+
 type AtomSite = mmCIF_Database['atom_site']
 
 function findHierarchyOffsets(atom_site: AtomSite) {
-    if (atom_site._rowCount === 0) return { residues: [], polymers: [], chains: [] };
+    if (atom_site._rowCount === 0) return { residues: [], chains: [] };
 
     const start = 0, end = atom_site._rowCount;
-    const residues = [start as Element], chains = [start as Element], polymers = [start as Element];
+    const residues = [start as Element], chains = [start as Element];
 
     const { label_entity_id, label_asym_id, label_seq_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = atom_site;
 
@@ -34,13 +37,11 @@ function findHierarchyOffsets(atom_site: AtomSite) {
             || !auth_seq_id.areValuesEqual(i - 1, i)
             || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i)
             || !label_comp_id.areValuesEqual(i - 1, i);
-        const newPolymer = newResidue && label_seq_id.value(i - 1) !== label_seq_id.value(i) - 1;
 
         if (newResidue) residues[residues.length] = i as Element;
-        if (newPolymer) polymers[polymers.length] = i as Element;
         if (newChain) chains[chains.length] = i as Element;
     }
-    return { residues, polymers, chains };
+    return { residues, chains };
 }
 
 function createHierarchyData(atom_site: AtomSite, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {
@@ -78,7 +79,7 @@ function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
         && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
 }
 
-export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, previous?: Model) {
+export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, formatData: FormatData, previous?: Model) {
     const hierarchyOffsets = findHierarchyOffsets(atom_site);
     const hierarchyData = createHierarchyData(atom_site, hierarchyOffsets);
 
@@ -93,11 +94,11 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
     const hierarchySegments: AtomicSegments = {
         residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, Interval.ofBounds(0, atom_site._rowCount)),
         chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, Interval.ofBounds(0, atom_site._rowCount)),
-        polymerSegments: Segmentation.ofOffsets(hierarchyOffsets.polymers, Interval.ofBounds(0, atom_site._rowCount)),
     }
 
     const hierarchyKeys = getAtomicKeys(hierarchyData, entities, hierarchySegments);
-    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
+    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, formatData.chemicalComponentMap);
+    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments, ...hierarchyRanges };
     return {
         sameAsPrevious: false,
         hierarchy,

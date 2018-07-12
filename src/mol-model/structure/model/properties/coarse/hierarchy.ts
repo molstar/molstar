@@ -8,6 +8,7 @@
 import { Column } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int';
 import { Element } from '../../../structure'
+import SortedRanges from 'mol-data/int/sorted-ranges';
 
 export interface CoarsedElementKeys {
     // assign a key to each element
@@ -28,14 +29,14 @@ export interface CoarseElementData {
     seq_id_end: Column<number>,
 
     chainSegments: Segmentation<Element>,
-    /**
-     * bonded/connected stretches of polymer chains, i.e. a chain will be
-     * broken into multiple polymer segments if there are missing residues
-     */
-    polymerSegments: Segmentation<Element>
 }
 
-export type CoarseElements = CoarsedElementKeys & CoarseElementData
+export interface CoarseRanges {
+    polymerRanges: SortedRanges<Element>
+    gapRanges: SortedRanges<Element>
+}
+
+export type CoarseElements = CoarsedElementKeys & CoarseElementData & CoarseRanges
 
 export interface CoarseHierarchy {
     isDefined: boolean,

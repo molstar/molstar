@@ -9,6 +9,7 @@ import { Segmentation } from 'mol-data/int'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import { ElementSymbol } from '../../types'
 import { Element } from '../../../structure'
+import SortedRanges from 'mol-data/int/sorted-ranges';
 
 export const AtomsSchema = {
     type_symbol: Column.Schema.Aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
@@ -52,11 +53,6 @@ export interface AtomicSegments {
     residueSegments: Segmentation<Element>,
     /** Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]) */
     chainSegments: Segmentation<Element>,
-    /**
-     * bonded/connected stretches of polymer chains, i.e. a chain will be
-     * broken into multiple polymer segments if there are missing residues
-     */
-    polymerSegments: Segmentation<Element>
     // TODO: include entity segments?
 }
 
@@ -78,5 +74,10 @@ export interface AtomicKeys {
     findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
 }
 
-type _Hierarchy = AtomicData & AtomicSegments & AtomicKeys
+export interface AtomicRanges {
+    polymerRanges: SortedRanges<Element>
+    gapRanges: SortedRanges<Element>
+}
+
+type _Hierarchy = AtomicData & AtomicSegments & AtomicKeys & AtomicRanges
 export interface AtomicHierarchy extends _Hierarchy { }
