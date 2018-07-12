@@ -79,28 +79,28 @@ export enum ComponentType {
 
 /** Chemical component type names for protein */
 export const ProteinComponentTypeNames = [
-    'D-peptide linking', 'L-peptide linking', 'D-peptide NH3 amino terminus',
-    'L-peptide NH3 amino terminus', 'D-peptide COOH carboxy terminus',
-    'L-peptide COOH carboxy terminus', 'peptide linking', 'peptide-like',
-    'L-gamma-peptide, C-delta linking', 'D-gamma-peptide, C-delta linking',
-    'L-beta-peptide, C-gamma linking', 'D-beta-peptide, C-gamma linking',
+    'D-PEPTIDE LINKING', 'L-PEPTIDE LINKING', 'D-PEPTIDE NH3 AMINO TERMINUS',
+    'L-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE COOH CARBOXY TERMINUS',
+    'L-PEPTIDE COOH CARBOXY TERMINUS', 'PEPTIDE LINKING', 'PEPTIDE-LIKE',
+    'L-GAMMA-PEPTIDE, C-DELTA LINKING', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
+    'L-BETA-PEPTIDE, C-GAMMA LINKING', 'D-BETA-PEPTIDE, C-GAMMA LINKING',
 ]
 
 /** Chemical component type names for DNA */
 export const DNAComponentTypeNames = [
-    'DNA linking', 'L-DNA linking', 'DNA OH 5 prime terminus', 'DNA OH 3 prime terminus',
+    'DNA LINKING', 'L-DNA LINKING', 'DNA OH 5 PRIME TERMINUS', 'DNA OH 3 PRIME TERMINUS',
 ]
 
 /** Chemical component type names for RNA */
 export const RNAComponentTypeNames = [
-    'RNA linking', 'L-RNA linking', 'RNA OH 5 prime terminus', 'RNA OH 3 prime terminus',
+    'RNA LINKING', 'L-RNA LINKING', 'RNA OH 5 PRIME TERMINUS', 'RNA OH 3 PRIME TERMINUS',
 ]
 
 /** Chemical component type names for saccharide */
 export const SaccharideComponentTypeNames = [
-    'D-saccharide 1,4 and 1,4 linking', 'L-saccharide 1,4 and 1,4 linking',
-    'D-saccharide 1,4 and 1,6 linking', 'L-saccharide 1,4 and 1,6 linking', 'L-saccharide',
-    'D-saccharide', 'saccharide',
+    'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,4 LINKING',
+    'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE',
+    'D-SACCHARIDE', 'SACCHARIDE',
 ]
 
 /** Common names for water molecules */
@@ -110,6 +110,8 @@ export const WaterNames = [
 
 /** get the molecule type from component type and id */
 export function getMoleculeType(compType: string, compId: string) {
+    compType = compType.toUpperCase()
+    compId = compId.toUpperCase()
     if (ProteinComponentTypeNames.includes(compType)) {
         return MoleculeType.protein
     } else if (RNAComponentTypeNames.includes(compType)) {
@@ -125,6 +127,10 @@ export function getMoleculeType(compType: string, compId: string) {
     } else {
         return MoleculeType.unknown
     }
+}
+
+export function isPolymer(moleculeType: MoleculeType) {
+    return moleculeType === MoleculeType.protein || moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA
 }
 
 /**
