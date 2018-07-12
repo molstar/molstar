@@ -5,45 +5,46 @@
  */
 
 import { Unit, Element, StructureProperties, Model } from 'mol-model/structure';
-import { Segmentation, Interval } from 'mol-data/int';
-import { MoleculeType } from 'mol-model/structure/model/types';
+import { Segmentation, OrderedSet, Interval } from 'mol-data/int';
+import { MoleculeType, SecondaryStructureType } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
-import { SegmentIterator } from 'mol-data/int/impl/segmentation';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { SymmetryOperator } from 'mol-math/geometry';
+import SortedRanges from 'mol-data/int/sorted-ranges';
 
-// type TraceMap = Map<number, number>
-
-// interface TraceMaps {
-//     atomic: TraceMap
-//     spheres: TraceMap
-//     gaussians: TraceMap
-// }
-
-// function calculateTraceMaps (model: Model): TraceMaps {
-
-// }
+export function getPolymerRanges(unit: Unit) {
+    switch (unit.kind) {
+        case Unit.Kind.Atomic: return unit.model.atomicHierarchy.polymerRanges
+        case Unit.Kind.Spheres: return unit.model.coarseHierarchy.spheres.polymerRanges
+        case Unit.Kind.Gaussians: return unit.model.coarseHierarchy.gaussians.polymerRanges
+    }
+}
 
 export function getPolymerElementCount(unit: Unit) {
     let count = 0
     const { elements } = unit
-    const l = Element.Location(unit)
-    if (Unit.isAtomic(unit)) {
-        const { polymerSegments, residueSegments } = unit.model.atomicHierarchy
-        const polymerIt = Segmentation.transientSegments(polymerSegments, elements);
-        const residuesIt = Segmentation.transientSegments(residueSegments, elements);
-        while (polymerIt.hasNext) {
-            residuesIt.setSegment(polymerIt.move());
-            while (residuesIt.hasNext) {
-                residuesIt.move();
-                count++
+    const polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), elements)
+    switch (unit.kind) {
+        case Unit.Kind.Atomic:
+            const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, elements)
+            while (polymerIt.hasNext) {
+                const polymerSegment = polymerIt.move()
+                residueIt.setSegment(polymerSegment)
+                while (residueIt.hasNext) {
+                    const residueSegment = residueIt.move()
+                    const { start, end } = residueSegment
+                    if (OrderedSet.areIntersecting(Interval.ofBounds(elements[start], elements[end - 1]), elements)) ++count
+                }
             }
-        }
-    } else if (Unit.isSpheres(unit)) {
-        for (let i = 0, il = elements.length; i < il; ++i) {
-            l.element = elements[i]
-            if (StructureProperties.entity.type(l) === 'polymer') count++
-        }
+            break
+        case Unit.Kind.Spheres:
+        case Unit.Kind.Gaussians:
+            while (polymerIt.hasNext) {
+                const { start, end } = polymerIt.move()
+                // TODO add OrderedSet.intersectionSize
+                count += OrderedSet.size(OrderedSet.intersect(Interval.ofBounds(elements[start], elements[end - 1]), elements))
+            }
+            break
     }
     return count
 }
@@ -99,7 +100,7 @@ function getTraceElement2(model: Model, residueModelSegment: Segmentation.Segmen
     for (let j = residueModelSegment.start, _j = residueModelSegment.end; j < _j; j++) {
         if (model.atomicHierarchy.atoms.label_atom_id.value(j) === traceName) return j
     }
-    console.log('trace name element not found', { ...residueModelSegment })
+    console.log(`trace name element "${traceName}" not found`, { ...residueModelSegment })
     return residueModelSegment.start
 }
 
@@ -115,9 +116,19 @@ function getDirectionName2(model: Model, residueModelIndex: number) {
         traceName = 'O4\''
     } else if (moleculeType === MoleculeType.RNA) {
         traceName = 'C3\''
+    } else {
+        console.log('molecule type unknown', Number.isInteger(residueModelIndex) ? compId : residueModelIndex, chemCompMap)
     }
     return traceName
 }
+
+// function residueLabel(model: Model, rI: number) {
+//     const { residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
+//     const { label_comp_id, label_seq_id } = residues
+//     const { label_asym_id } = chains
+//     const cI = chainSegments.segmentMap[residueSegments.segments[rI]]
+//     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
+// }
 
 function getDirectionElement2(model: Model, residueModelSegment: Segmentation.Segment<Element>) {
     const traceName = getDirectionName2(model, residueModelSegment.index)
@@ -125,10 +136,9 @@ function getDirectionElement2(model: Model, residueModelSegment: Segmentation.Se
     for (let j = residueModelSegment.start, _j = residueModelSegment.end; j < _j; j++) {
         if (model.atomicHierarchy.atoms.label_atom_id.value(j) === traceName) return j
     }
-    console.log('direction name element not found', { ...residueModelSegment })
+    // console.log('direction name element not found', { ...residueModelSegment })
     return residueModelSegment.start
 }
-
 
 
 /** Iterates over consecutive pairs of residues/coarse elements in polymers */
@@ -166,8 +176,8 @@ const enum AtomicPolymerBackboneIteratorState { nextPolymer, firstResidue, nextR
 export class AtomicPolymerBackboneIterator<T extends number = number> implements Iterator<PolymerBackbonePair> {
     private value: PolymerBackbonePair
 
-    private polymerIt: SegmentIterator<Element>
-    private residueIt: SegmentIterator<Element>
+    private polymerIt: SortedRanges.Iterator<Element>
+    private residueIt: Segmentation.Iterator<Element>
     private polymerSegment: Segmentation.Segment<Element>
     private state: AtomicPolymerBackboneIteratorState = AtomicPolymerBackboneIteratorState.nextPolymer
     private pos: SymmetryOperator.CoordinateMapper
@@ -178,26 +188,25 @@ export class AtomicPolymerBackboneIterator<T extends number = number> implements
         const { residueIt, polymerIt, value, pos } = this
 
         if (this.state === AtomicPolymerBackboneIteratorState.nextPolymer) {
-            if (polymerIt.hasNext) {
+            while (polymerIt.hasNext) {
                 this.polymerSegment = polymerIt.move();
+                // console.log('polymerSegment', this.polymerSegment)
                 residueIt.setSegment(this.polymerSegment);
-                this.state = AtomicPolymerBackboneIteratorState.firstResidue
-            }
-        }
 
-        if (this.state === AtomicPolymerBackboneIteratorState.firstResidue) {
-            const residueSegment = residueIt.move();
-            if (residueIt.hasNext) {
-                value.indexB = setTraceElement(value.centerB, residueSegment)
-                pos(value.centerB.element, value.posB)
-                this.state = AtomicPolymerBackboneIteratorState.nextResidue
-            } else {
-                this.state = AtomicPolymerBackboneIteratorState.nextPolymer
+                const residueSegment = residueIt.move();
+                // console.log('first residueSegment', residueSegment, residueIt.hasNext)
+                if (residueIt.hasNext) {
+                    value.indexB = setTraceElement(value.centerB, residueSegment)
+                    pos(value.centerB.element, value.posB)
+                    this.state = AtomicPolymerBackboneIteratorState.nextResidue
+                    break
+                }
             }
         }
 
         if (this.state === AtomicPolymerBackboneIteratorState.nextResidue) {
             const residueSegment = residueIt.move();
+            // console.log('next residueSegment', residueSegment)
             value.centerA.element = value.centerB.element
             value.indexA = value.indexB
             Vec3.copy(value.posA, value.posB)
@@ -205,31 +214,37 @@ export class AtomicPolymerBackboneIterator<T extends number = number> implements
             pos(value.centerB.element, value.posB)
 
             if (!residueIt.hasNext) {
+                // TODO need to advance to a polymer that has two or more residues (can't assume it has)
                 this.state = AtomicPolymerBackboneIteratorState.nextPolymer
             }
         }
 
         this.hasNext = residueIt.hasNext || polymerIt.hasNext
+        
+        // console.log('hasNext', this.hasNext)
+        // console.log('value', this.value)
 
         return this.value;
     }
 
     constructor(unit: Unit.Atomic) {
-        const { polymerSegments, residueSegments } = unit.model.atomicHierarchy
-        this.polymerIt = Segmentation.transientSegments(polymerSegments, unit.elements);
-        this.residueIt = Segmentation.transientSegments(residueSegments, unit.elements);
+        const { residueSegments } = unit.model.atomicHierarchy
+        // console.log('unit.elements', OrderedSet.toArray(unit.elements))
+        this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
+        this.residueIt = Segmentation.transientSegments(residueSegments, unit.elements)
         this.pos = unit.conformation.invariantPosition
         this.value = createPolymerBackbonePair(unit)
-        this.hasNext = this.residueIt.hasNext || this.polymerIt.hasNext
+
+        this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
     }
 }
 
-const enum CoarsePolymerBackboneIteratorState { nextPolymer, firstElement, nextElement }
+const enum CoarsePolymerBackboneIteratorState { nextPolymer, nextElement }
 
 export class CoarsePolymerBackboneIterator<T extends number = number> implements Iterator<PolymerBackbonePair> {
     private value: PolymerBackbonePair
 
-    private polymerIt: SegmentIterator<Element>
+    private polymerIt: SortedRanges.Iterator<Element>
     private polymerSegment: Segmentation.Segment<Element>
     private state: CoarsePolymerBackboneIteratorState = CoarsePolymerBackboneIteratorState.nextPolymer
     private pos: SymmetryOperator.CoordinateMapper
@@ -243,23 +258,19 @@ export class CoarsePolymerBackboneIterator<T extends number = number> implements
         if (this.state === CoarsePolymerBackboneIteratorState.nextPolymer) {
             if (polymerIt.hasNext) {
                 this.polymerSegment = polymerIt.move();
+                console.log('polymer', this.polymerSegment)
                 this.elementIndex = this.polymerSegment.start
-                this.state = CoarsePolymerBackboneIteratorState.firstElement
+                this.elementIndex += 1
+                if (this.elementIndex + 1 < this.polymerSegment.end) {
+                    value.centerB.element = value.centerB.unit.elements[this.elementIndex]
+                    value.indexB = this.elementIndex
+                    pos(value.centerB.element, value.posB)
+
+                    this.state = CoarsePolymerBackboneIteratorState.nextElement
+                } else {
+                    this.state = CoarsePolymerBackboneIteratorState.nextPolymer
+                }
             }
-        }
-
-        if (this.state === CoarsePolymerBackboneIteratorState.firstElement) {
-            this.elementIndex += 1
-            if (this.elementIndex + 1 < this.polymerSegment.end) {
-                value.centerB.element = value.centerB.unit.elements[this.elementIndex]
-                value.indexB = this.elementIndex
-                pos(value.centerB.element, value.posB)
-
-                this.state = CoarsePolymerBackboneIteratorState.nextElement
-            } else {
-                this.state = CoarsePolymerBackboneIteratorState.nextPolymer
-            }
-
         }
 
         if (this.state === CoarsePolymerBackboneIteratorState.nextElement) {
@@ -282,13 +293,12 @@ export class CoarsePolymerBackboneIterator<T extends number = number> implements
     }
 
     constructor(unit: Unit.Spheres | Unit.Gaussians) {
-        const { polymerSegments } = Unit.isSpheres(unit)
-            ? unit.model.coarseHierarchy.spheres
-            : unit.model.coarseHierarchy.gaussians
-        this.polymerIt = Segmentation.transientSegments(polymerSegments, unit.elements);
+        this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements);
 
         this.pos = unit.conformation.invariantPosition
         this.value = createPolymerBackbonePair(unit)
+
+        console.log('CoarsePolymerBackboneIterator', this.polymerIt.hasNext)
 
         this.hasNext = this.polymerIt.hasNext
     }
@@ -315,19 +325,16 @@ interface PolymerTraceElement {
     index: number
     first: boolean
     last: boolean
+    secStrucType: SecondaryStructureType
 
     t0: Vec3
     t1: Vec3
     t2: Vec3
     t3: Vec3
     t4: Vec3
-    t5: Vec3
-    t6: Vec3
 
     d12: Vec3
     d23: Vec3
-    d34: Vec3
-    d45: Vec3
 }
 
 function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
@@ -336,19 +343,16 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         index: 0,
         first: false,
         last: false,
+        secStrucType: SecondaryStructureType.create(SecondaryStructureType.Flag.NA),
 
         t0: Vec3.zero(),
         t1: Vec3.zero(),
         t2: Vec3.zero(),
         t3: Vec3.zero(),
         t4: Vec3.zero(),
-        t5: Vec3.zero(),
-        t6: Vec3.zero(),
 
         d12: Vec3.zero(),
         d23: Vec3.zero(),
-        d34: Vec3.zero(),
-        d45: Vec3.zero(),
     }
 }
 
@@ -368,8 +372,8 @@ function setSegment (outSegment: Segmentation.Segment<Element>, index: number, s
 export class AtomicPolymerTraceIterator<T extends number = number> implements Iterator<PolymerTraceElement> {
     private value: PolymerTraceElement
 
-    private polymerIt: SegmentIterator<Element>
-    private residueIt: SegmentIterator<Element>
+    private polymerIt: SortedRanges.Iterator<Element>
+    private residueIt: Segmentation.Iterator<Element>
     private residueSegmentMin: number
     private residueSegmentMax: number
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
@@ -388,9 +392,9 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
     }
 
     updateResidueSegmentRange(polymerSegment: Segmentation.Segment<Element>) {
-        const { polymerSegments, residueSegments } = this.unit.model.atomicHierarchy
-        const sMin = polymerSegments.segments[polymerSegment.index]
-        const sMax = polymerSegments.segments[polymerSegment.index + 1] - 1
+        const { polymerRanges, residueSegments } = this.unit.model.atomicHierarchy
+        const sMin = polymerRanges[polymerSegment.index * 2]
+        const sMax = polymerRanges[polymerSegment.index * 2 + 1]
         this.residueSegmentMin = residueSegments.segmentMap[sMin]
         this.residueSegmentMax = residueSegments.segmentMap[sMax]
     }
@@ -399,11 +403,15 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
         const { residueIt, polymerIt, value } = this
 
         if (this.state === AtomicPolymerTraceIteratorState.nextPolymer) {
-            if (polymerIt.hasNext) {
+            while (polymerIt.hasNext) {
                 const polymerSegment = polymerIt.move();
+                // console.log('polymerSegment', {...polymerSegment})
                 residueIt.setSegment(polymerSegment);
                 this.updateResidueSegmentRange(polymerSegment)
-                this.state = AtomicPolymerTraceIteratorState.nextResidue
+                if (residueIt.hasNext) {
+                    this.state = AtomicPolymerTraceIteratorState.nextResidue
+                    break
+                }
             }
         }
 
@@ -411,32 +419,26 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
             const { tmpSegment, residueSegments, residueSegmentMin, residueSegmentMax } = this
             const residueSegment = residueIt.move();
             const resSegIdx = residueSegment.index
+            // console.log(residueLabel(this.unit.model, resSegIdx), resSegIdx, this.unit.model.properties.secondaryStructure.type[resSegIdx])
             value.index = setTraceElement(value.center, residueSegment)
 
-            setSegment(tmpSegment, resSegIdx - 3, residueSegments, residueSegmentMin, residueSegmentMax)
+            setSegment(tmpSegment, resSegIdx - 2, residueSegments, residueSegmentMin, residueSegmentMax)
             this.pos(value.t0, getTraceElement2(this.unit.model, tmpSegment))
 
-            setSegment(tmpSegment, resSegIdx - 2, residueSegments, residueSegmentMin, residueSegmentMax)
+            setSegment(tmpSegment, resSegIdx - 1, residueSegments, residueSegmentMin, residueSegmentMax)
             this.pos(value.t1, getTraceElement2(this.unit.model, tmpSegment))
             this.pos(value.d12, getDirectionElement2(this.unit.model, tmpSegment))
 
-            setSegment(tmpSegment, resSegIdx - 1, residueSegments, residueSegmentMin, residueSegmentMax)
+            setSegment(tmpSegment, resSegIdx, residueSegments, residueSegmentMin, residueSegmentMax)
+            value.secStrucType = this.unit.model.properties.secondaryStructure.type[resSegIdx]
             this.pos(value.t2, getTraceElement2(this.unit.model, tmpSegment))
             this.pos(value.d23, getDirectionElement2(this.unit.model, tmpSegment))
 
-            setSegment(tmpSegment, resSegIdx, residueSegments, residueSegmentMin, residueSegmentMax)
-            this.pos(value.t3, getTraceElement2(this.unit.model, tmpSegment))
-            this.pos(value.d34, getDirectionElement2(this.unit.model, tmpSegment))
-
             setSegment(tmpSegment, resSegIdx + 1, residueSegments, residueSegmentMin, residueSegmentMax)
-            this.pos(value.t4, getTraceElement2(this.unit.model, tmpSegment))
-            this.pos(value.d45, getDirectionElement2(this.unit.model, tmpSegment))
+            this.pos(value.t3, getTraceElement2(this.unit.model, tmpSegment))
 
             setSegment(tmpSegment, resSegIdx + 2, residueSegments, residueSegmentMin, residueSegmentMax)
-            this.pos(value.t5, getTraceElement2(this.unit.model, tmpSegment))
-
-            setSegment(tmpSegment, resSegIdx + 3, residueSegments, residueSegmentMin, residueSegmentMax)
-            this.pos(value.t6, getTraceElement2(this.unit.model, tmpSegment))
+            this.pos(value.t4, getTraceElement2(this.unit.model, tmpSegment))
 
             value.first = resSegIdx === residueSegmentMin
             value.last = resSegIdx === residueSegmentMax
@@ -452,18 +454,16 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
     }
 
     constructor(unit: Unit.Atomic) {
-        const { polymerSegments, residueSegments } = unit.model.atomicHierarchy
-        this.polymerIt = Segmentation.transientSegments(polymerSegments, unit.elements);
+        const { residueSegments } = unit.model.atomicHierarchy
+        this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
         this.residueIt = Segmentation.transientSegments(residueSegments, unit.elements);
         this.residueSegments = residueSegments
         this.value = createPolymerTraceElement(unit)
-        this.hasNext = this.residueIt.hasNext || this.polymerIt.hasNext
+        this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
 
         this.tmpSegment = { index: 0, start: 0 as Element, end: 0 as Element }
 
         this.unit = unit
-        console.log('model', unit.model)
-        console.log('unit', unit)
     }
 }
 

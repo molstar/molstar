@@ -9,7 +9,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Link } from 'mol-model/structure';
-import { UnitsVisual, DefaultStructureProps } from '../index';
+import { UnitsVisual, DefaultStructureProps } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh } from './util/link';
 import { MeshValues } from 'mol-gl/renderable';

@@ -27,7 +27,7 @@ export interface MeshBuilder {
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
     addIcosahedron(center: Vec3, radius: number, detail: number): void
-    addTube(controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number): void
+    addTube(controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number): void
     setId(id: number): void
     getMesh(): Mesh
 }
@@ -176,13 +176,13 @@ export namespace MeshBuilder {
                 setIcosahedronMat(tmpIcosahedronMat, center)
                 add(tmpIcosahedronMat, vertices, normals, indices)
             },
-            addTube: (controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number) => {
-                console.log(controlPoints, torsionVectors, normalVectors, linearSegments, radialSegments)
+            addTube: (controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number) => {
+                // console.log(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments)
 
-                const ico = getIcosahedron({ radius: 0.1, detail: 1 })
+                // const ico = getIcosahedron({ radius: 0.1, detail: 1 })
 
-                const radialVector = Vec3.zero()
                 const normalVector = Vec3.zero()
+                const binormalVector = Vec3.zero()
                 const tempPos = Vec3.zero()
                 const a = Vec3.zero()
                 const b = Vec3.zero()
@@ -190,16 +190,14 @@ export namespace MeshBuilder {
                 const v = Vec3.zero()
 
                 const waveFactor = 1
-                const width = 0.6
-                const height = 0.2
 
                 const vertexCount = vertices.elementCount
                 const di = 1 / linearSegments
 
                 for (let i = 0; i <= linearSegments; ++i) {
                     const i3 = i * 3
-                    Vec3.fromArray(u, torsionVectors, i3)
-                    Vec3.fromArray(v, normalVectors, i3)
+                    Vec3.fromArray(u, normalVectors, i3)
+                    Vec3.fromArray(v, binormalVectors, i3)
 
                     const tt = di * i - 0.5;
                     const ff = 1 + (waveFactor - 1) * (Math.cos(2 * Math.PI * tt) + 1);
@@ -211,7 +209,7 @@ export namespace MeshBuilder {
                         Vec3.copy(a, u)
                         Vec3.copy(b, v)
                         Vec3.add(
-                            radialVector,
+                            normalVector,
                             Vec3.scale(a, a, w * Math.cos(t)),
                             Vec3.scale(b, b, h * Math.sin(t))
                         )
@@ -219,14 +217,14 @@ export namespace MeshBuilder {
                         Vec3.copy(a, u)
                         Vec3.copy(b, v)
                         Vec3.add(
-                            normalVector,
+                            binormalVector,
                             Vec3.scale(a, a, h * Math.cos(t)),
                             Vec3.scale(b, b, w * Math.sin(t))
                         )
                         Vec3.normalize(normalVector, normalVector)
 
                         Vec3.fromArray(tempPos, controlPoints, i3)
-                        Vec3.add(tempPos, tempPos, radialVector)
+                        Vec3.add(tempPos, tempPos, binormalVector)
 
                         ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
                         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);

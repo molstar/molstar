@@ -7,7 +7,7 @@
 import Viewer from './viewer'
 import { StateContext } from './state/context';
 import { Progress } from 'mol-task';
-import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone } from './state/transform';
+import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone, StructureCenter } from './state/transform';
 import { UrlEntity } from './state/entity';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 import { Context } from 'mol-app/context/context';
@@ -15,7 +15,7 @@ import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-sti
 import { CartoonProps } from 'mol-geo/representation/structure/cartoon';
 import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
 import { BackboneProps } from 'mol-geo/representation/structure/backbone';
-import { Queries as Q, StructureProperties as SP, Query, Selection } from 'mol-model/structure';
+// import { Queries as Q, StructureProperties as SP, Query, Selection } from 'mol-model/structure';
 
 const spacefillProps: SpacefillProps = {
     doubleSided: true,
@@ -77,11 +77,13 @@ export class Stage {
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
-        // this.loadPdbid('3pqr') // inter unit bonds
+        // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
+        // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
+        // this.loadMmcifUrl(`../../examples/1crn.cif`)
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok
@@ -101,24 +103,27 @@ export class Stage {
     async loadMmcifUrl (url: string) {
         const urlEntity = UrlEntity.ofUrl(this.ctx, url)
         const modelEntity = await MmcifUrlToModel.apply(this.ctx, urlEntity)
+        console.log(modelEntity.value)
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
 
         StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: false })
         StructureToSpacefill.apply(this.ctx, structureEntity, { ...spacefillProps, visible: false })
         StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: false })
-        // StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: true })
+        StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: true })
         StructureToCartoon.apply(this.ctx, structureEntity, { ...cartoonProps, visible: true })
+        StructureCenter.apply(this.ctx, structureEntity)
 
         this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
 
         // const structureEntity2 = await ModelToStructure.apply(this.ctx, modelEntity)
         // const q1 = Q.generators.atoms({
-        //     residueTest: l => SP.residue.label_seq_id(l) < 10
+        //     residueTest: l => SP.residue.label_seq_id(l) < 7
         // });
         // structureEntity2.value = Selection.unionStructure(await Query(q1)(structureEntity2.value).run());
-        // StructureToBackbone.apply(this.ctx, structureEntity2, { ...backboneProps, visible: true })
-        // StructureToCartoon.apply(this.ctx, structureEntity2, { ...cartoonProps, visible: true })
-        // StructureToBallAndStick.apply(this.ctx, structureEntity2, { ...ballAndStickProps, visible: true })
+        // await StructureToBackbone.apply(this.ctx, structureEntity2, { ...backboneProps, visible: true })
+        // await StructureToCartoon.apply(this.ctx, structureEntity2, { ...cartoonProps, visible: true })
+        // await StructureToBallAndStick.apply(this.ctx, structureEntity2, { ...ballAndStickProps, visible: false })
+        // StructureCenter.apply(this.ctx, structureEntity2)
     }
 
     loadPdbid (pdbid: string) {

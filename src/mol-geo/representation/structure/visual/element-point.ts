@@ -11,7 +11,7 @@ import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 import { fillSerial } from 'mol-gl/renderable/util';
 
-import { UnitsVisual, DefaultStructureProps } from '../index';
+import { UnitsVisual, DefaultStructureProps } from '..';
 import VertexMap from '../../../shape/vertex-map';
 import { SizeTheme } from '../../../theme';
 import { markElement, getElementLoci } from './util/element';

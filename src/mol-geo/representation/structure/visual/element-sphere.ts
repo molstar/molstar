@@ -9,7 +9,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
-import { DefaultStructureProps, UnitsVisual } from '../index';
+import { DefaultStructureProps, UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors } from './util/common';
 import { createElementSphereMesh, markElement, getElementRadius, getElementLoci } from './util/element';

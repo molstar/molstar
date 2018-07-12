@@ -8,7 +8,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
-import { DefaultStructureProps, UnitsVisual } from '../index';
+import { DefaultStructureProps, UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors } from './util/common';
 import { deepEqual } from 'mol-util';
@@ -26,8 +26,8 @@ import { getElementLoci, markElement } from './util/element';
 
 async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
-    console.log('polymerElementCount backbone', polymerElementCount)
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
+    console.log('polymerElementCount backbone', polymerElementCount)
 
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
@@ -80,7 +80,7 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
             mesh = unitKinds.includes(unit.kind)
                 ? await createPolymerBackboneCylinderMesh(ctx, unit, mesh)
                 : Mesh.createEmpty(mesh)
-            console.log(mesh)
+            // console.log(mesh)
 
             const transforms = createTransforms(group)
             const color = createColors(group, elementCount, colorTheme)
