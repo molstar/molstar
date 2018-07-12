@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.293, IHM 0.130.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.296, IHM 0.132.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -80,25 +80,25 @@ export const mmCIF_Schema = {
         pdbx_aromatic_flag: Aliased<'Y' | 'N'>(str),
     },
     entity: {
-        id: str,
-        type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
-        src_method: Aliased<'nat' | 'man' | 'syn'>(str),
+        details: str,
         formula_weight: float,
+        id: str,
+        src_method: Aliased<'nat' | 'man' | 'syn'>(str),
+        type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
         pdbx_description: str,
         pdbx_number_of_molecules: float,
         pdbx_mutation: str,
         pdbx_fragment: str,
         pdbx_ec: List(',', x => x),
-        details: str,
     },
     entity_poly: {
         entity_id: str,
-        type: str,
         nstd_linkage: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
         nstd_monomer: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
+        type: Aliased<'polypeptide(D)' | 'polypeptide(L)' | 'polydeoxyribonucleotide' | 'polyribonucleotide' | 'polysaccharide(D)' | 'polysaccharide(L)' | 'polydeoxyribonucleotide/polyribonucleotide hybrid' | 'cyclic-pseudo-peptide' | 'peptide nucleic acid' | 'other'>(str),
+        pdbx_strand_id: List(',', x => x),
         pdbx_seq_one_letter_code: str,
         pdbx_seq_one_letter_code_can: str,
-        pdbx_strand_id: str,
         pdbx_target_identifier: str,
     },
     entity_poly_seq: {
@@ -119,11 +119,11 @@ export const mmCIF_Schema = {
         title: str,
     },
     struct_asym: {
-        id: str,
+        details: str,
         entity_id: str,
+        id: str,
         pdbx_modified: str,
         pdbx_blank_PDB_chainid_flag: Aliased<'Y' | 'N'>(str),
-        details: str,
     },
     struct_conf: {
         beg_label_asym_id: str,
@@ -338,7 +338,7 @@ export const mmCIF_Schema = {
         asym_id: str,
         seq_id_begin: int,
         seq_id_end: int,
-        starting_model_source: Aliased<'comparative model' | 'experimental model' | 'integrative model' | 'other ab initio models'>(str),
+        starting_model_source: Aliased<'comparative model' | 'experimental model' | 'integrative model' | 'ab initio model' | 'other'>(str),
         starting_model_auth_asym_id: str,
         starting_model_sequence_offset: int,
         dataset_list_id: int,

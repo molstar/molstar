@@ -155,6 +155,7 @@ const COMMA_SEPARATED_LIST_FIELDS = [
     '_em_diffraction.tilt_angle_list', // 20,40,50,55
     '_em_entity_assembly.entity_id_list',
     '_entity.pdbx_ec',
+    '_entity_poly.pdbx_strand_id', // A,B
     '_pdbx_depui_entry_details.experimental_methods',
     '_pdbx_depui_entry_details.requested_accession_types',
     '_pdbx_soln_scatter_model.software_list', // INSIGHT II, HOMOLOGY, DISCOVERY, BIOPOLYMER, DELPHI
