@@ -25,6 +25,7 @@ describe('ordered set', () => {
     const singleton10 = OrderedSet.ofSingleton(10);
     const range1_4 = OrderedSet.ofRange(1, 4);
     const arr136 = OrderedSet.ofSortedArray([1, 3, 6]);
+    const arr12369 = OrderedSet.ofSortedArray([1, 2, 3, 6, 9]);
 
     const iB = (s: number, e: number) => Interval.ofBounds(s, e);
 
@@ -47,6 +48,14 @@ describe('ordered set', () => {
         expect(OrderedSet.areIntersecting(empty, singleton10)).toBe(false);
         expect(OrderedSet.areIntersecting(empty, range1_4)).toBe(false);
         expect(OrderedSet.areIntersecting(empty, arr136)).toBe(false);
+
+        expect(OrderedSet.areIntersecting(Interval.ofRange(2, 3), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(2, 6), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(2, 8), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(4, 8), arr12369)).toBe(true);
+
+        expect(OrderedSet.areIntersecting(Interval.ofRange(4, 5), arr12369)).toBe(false);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(7, 8), arr12369)).toBe(false);
     });
 
     it('isSubset', () => {

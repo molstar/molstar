@@ -29,6 +29,8 @@ export function indexOf(set: OrderedSetImpl, x: number) { return I.is(set) ? I.i
 export function getAt(set: OrderedSetImpl, i: number) { return I.is(set) ? I.getAt(set, i) : set[i]; }
 export function min(set: OrderedSetImpl) { return I.is(set) ? I.min(set) : S.min(set); }
 export function max(set: OrderedSetImpl) { return I.is(set) ? I.max(set) : S.max(set); }
+export function start(set: OrderedSetImpl) { return I.is(set) ? I.start(set) : S.start(set); }
+export function end(set: OrderedSetImpl) { return I.is(set) ? I.end(set) : S.end(set); }
 
 export function hashCode(set: OrderedSetImpl) { return I.is(set) ? I.hashCode(set) : S.hashCode(set); }
 // TODO: possibly add more hash functions to allow for multilevel hashing.
@@ -97,7 +99,10 @@ export function subtract(a: OrderedSetImpl, b: OrderedSetImpl) {
 function areEqualIS(a: I, b: S) { return I.size(a) === S.size(b) && I.start(a) === S.start(b) && I.end(a) === S.end(b); }
 
 function areIntersectingSI(a: S, b: I) {
-    return areRangesIntersecting(a, b);
+    if (S.size(a) === 0 || I.size(b) === 0) return false
+    const predAMinB = S.findPredecessorIndex(a, I.min(b))
+    const predAMaxB = S.findPredecessorIndex(a, I.max(b))
+    return predAMinB !== predAMaxB
 }
 
 function isSubsetSI(a: S, b: I) {
