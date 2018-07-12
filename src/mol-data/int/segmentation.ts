@@ -20,6 +20,8 @@ namespace Segmentation {
 
     // Segment iterator that mutates a single segment object to mark all the segments.
     export const transientSegments: <T extends number = number>(segs: Segmentation<T>, set: OrderedSet<T>, segment?: Segment<T>) => Impl.SegmentIterator<T> = Impl.segments as any;
+
+    export type Iterator<T extends number = number> = Impl.SegmentIterator<T>
 }
 
 interface Segmentation<T extends number = number> {
