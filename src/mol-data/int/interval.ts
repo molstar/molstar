@@ -45,6 +45,8 @@ namespace Interval {
     export const findPredecessorIndex: <T extends number = number>(interval: Interval<T>, x: T) => number = Impl.findPredecessorIndex as any;
     export const findPredecessorIndexInInterval: <T extends number = number>(interval: Interval<T>, x: T, bounds: Interval) => number = Impl.findPredecessorIndexInInterval as any;
     export const findRange: <T extends number = number>(interval: Interval<T>, min: T, max: T) => Interval = Impl.findRange as any;
+    /** Size of the intersection of the two intervals */
+    export const intersectionSize: <T extends number = number>(a: Interval<T>, b: Interval<T>) => number = Impl.intersectionSize as any;
 
     /** Get a new interval that is the intersection of the two intervals */
     export const intersect: <T extends number = number>(a: Interval<T>, b: Interval<T>) => Interval<T> = Impl.intersect as any;

@@ -116,6 +116,13 @@ describe('ordered set', () => {
         expect(OrderedSet.findRange(arr136, 2, 7)).toEqual(iB(1, 3));
     })
 
+    it('intersectionSize', () => {
+        expect(OrderedSet.intersectionSize(arr136, range1_4)).toEqual(2);
+        expect(OrderedSet.intersectionSize(arr12369, range1_4)).toEqual(3);
+        expect(OrderedSet.intersectionSize(OrderedSet.ofSortedArray([12, 13, 16]), range1_4)).toEqual(0);
+        expect(OrderedSet.intersectionSize(OrderedSet.ofSortedArray([1, 2, 4]), range1_4)).toEqual(3);
+    })
+
     testEq('union ES', OrderedSet.union(empty, singleton10), [10]);
     testEq('union ER', OrderedSet.union(empty, range1_4), [1, 2, 3, 4]);
     testEq('union EA', OrderedSet.union(empty, arr136), [1, 3, 6]);

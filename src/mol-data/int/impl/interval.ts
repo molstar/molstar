@@ -59,3 +59,7 @@ export function intersect(a: Tuple, b: Tuple) {
     if (!areIntersecting(a, b)) return Empty;
     return ofBounds(Math.max(start(a), start(b)), Math.min(end(a), end(b)));
 }
+
+export function intersectionSize(a: Tuple, b: Tuple) {
+    return size(findRange(a, min(b), max(b)))
+}

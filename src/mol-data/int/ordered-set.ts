@@ -40,6 +40,7 @@ namespace OrderedSet {
     export const findPredecessorIndex: <T extends number = number>(set: OrderedSet<T>, x: number) => number = Base.findPredecessorIndex as any;
     export const findPredecessorIndexInInterval: <T extends number = number>(set: OrderedSet<T>, x: T, range: Interval) => number = Base.findPredecessorIndexInInterval as any;
     export const findRange: <T extends number = number>(set: OrderedSet<T>, min: T, max: T) => Interval = Base.findRange as any;
+    export const intersectionSize: <T extends number = number>(a: OrderedSet<T>, b: OrderedSet<T>) => number = Base.intersectionSize as any;
 
     export function forEach<T extends number, Ctx>(set: OrderedSet<T>, f: (v: T, i: number, ctx: Ctx) => void, ctx?: Ctx): Ctx {
         return Base.forEach(set as any, f as any, ctx);

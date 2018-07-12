@@ -161,15 +161,8 @@ export function isSubset(a: Nums, b: Nums) {
 export function union(a: Nums, b: Nums) {
     if (a === b) return a;
 
-    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
-    let i = sI, j = sJ;
-    let commonCount = 0;
-    while (i < endI && j < endJ) {
-        const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { i++; j++; commonCount++; }
-    }
+    const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    const commonCount = getCommonCount(a, b, startI, startJ, endI, endJ);
 
     const lenA = a.length, lenB = b.length;
     // A === B || B is subset of A ==> A
@@ -181,12 +174,12 @@ export function union(a: Nums, b: Nums) {
     let offset = 0;
 
     // insert the "prefixes"
-    for (let k = 0; k < sI; k++) indices[offset++] = a[k];
-    for (let k = 0; k < sJ; k++) indices[offset++] = b[k];
+    for (let k = 0; k < startI; k++) indices[offset++] = a[k];
+    for (let k = 0; k < startJ; k++) indices[offset++] = b[k];
 
     // insert the common part
-    i = sI;
-    j = sJ;
+    let i = startI;
+    let j = startJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { indices[offset++] = x; i++; }
@@ -201,11 +194,14 @@ export function union(a: Nums, b: Nums) {
     return ofSortedArray(indices);
 }
 
-export function intersect(a: Nums, b: Nums) {
-    if (a === b) return a;
+export function intersectionSize(a: Nums, b: Nums) {
+    if (a === b) return size(a);
+    const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    return getCommonCount(a, b, startI, startJ, endI, endJ);
+}
 
-    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
-    let i = sI, j = sJ;
+function getCommonCount(a: Nums, b: Nums, startI: number, startJ: number, endI: number, endJ: number) {
+    let i = startI, j = startJ;
     let commonCount = 0;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
@@ -213,6 +209,14 @@ export function intersect(a: Nums, b: Nums) {
         else if (x > y) { j++; }
         else { i++; j++; commonCount++; }
     }
+    return commonCount;
+}
+
+export function intersect(a: Nums, b: Nums) {
+    if (a === b) return a;
+
+    const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    const commonCount = getCommonCount(a, b, startI, startJ, endI, endJ);
 
     const lenA = a.length, lenB = b.length;
     // no common elements
@@ -224,8 +228,8 @@ export function intersect(a: Nums, b: Nums) {
 
     const indices = new Int32Array(commonCount);
     let offset = 0;
-    i = sI;
-    j = sJ;
+    let i = startI;
+    let j = startJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { i++; }

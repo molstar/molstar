@@ -72,6 +72,14 @@ export function findRange(set: OrderedSetImpl, min: number, max: number) {
     return I.is(set) ? I.findRange(set, min, max) : S.findRange(set, min, max);
 }
 
+export function intersectionSize(a: OrderedSetImpl, b: OrderedSetImpl): number {
+    if (I.is(a)) {
+        if (I.is(b)) return I.intersectionSize(a, b);
+        return intersectionSizeSI(b, a);
+    } else if (I.is(b)) return intersectionSizeSI(a, b);
+    return S.intersectionSize(a, b);
+}
+
 export function union(a: OrderedSetImpl, b: OrderedSetImpl) {
     if (I.is(a)) {
         if (I.is(b)) return unionII(a, b);
@@ -163,6 +171,12 @@ function unionSI(a: S, b: I) {
     for (let i = end, _i = a.length; i < _i; i++) indices[offset] = a[i];
 
     return ofSortedArray(indices);
+}
+
+function intersectionSizeSI(a: S, b: I): number {
+    if (!I.size(b)) return 0;
+    const r = S.findRange(a, I.min(b), I.max(b));
+    return I.end(r) - I.start(r);
 }
 
 function intersectSI(a: S, b: I) {

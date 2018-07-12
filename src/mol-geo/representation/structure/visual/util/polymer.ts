@@ -41,8 +41,7 @@ export function getPolymerElementCount(unit: Unit) {
         case Unit.Kind.Gaussians:
             while (polymerIt.hasNext) {
                 const { start, end } = polymerIt.move()
-                // TODO add OrderedSet.intersectionSize
-                count += OrderedSet.size(OrderedSet.intersect(Interval.ofBounds(elements[start], elements[end - 1]), elements))
+                count += OrderedSet.intersectionSize(Interval.ofBounds(elements[start], elements[end - 1]), elements)
             }
             break
     }
@@ -222,7 +221,7 @@ export class AtomicPolymerBackboneIterator<T extends number = number> implements
         }
 
         this.hasNext = residueIt.hasNext || polymerIt.hasNext
-        
+
         // console.log('hasNext', this.hasNext)
         // console.log('value', this.value)
 
