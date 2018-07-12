@@ -71,6 +71,7 @@ export function findPredecessorIndexInInterval(xs: Nums, v: number, bounds: Inte
     const sv = xs[s];
     if (v <= sv) return s;
     if (e > s && v > xs[e - 1]) return e;
+    // do a linear search if there are only 10 or less items remaining
     if (v - sv <= 11) return linearSearchPredInRange(xs, v, s + 1, e);
     return binarySearchPredIndexRange(xs, v, s, e);
 }
@@ -82,6 +83,7 @@ export function findRange(xs: Nums, min: number, max: number) {
 function binarySearchRange(xs: Nums, value: number, start: number, end: number) {
     let min = start, max = end - 1;
     while (min <= max) {
+        // do a linear search if there are only 10 or less items remaining
         if (min + 11 > max) {
             for (let i = min; i <= max; i++) {
                 if (value === xs[i]) return i;
@@ -101,6 +103,7 @@ function binarySearchRange(xs: Nums, value: number, start: number, end: number) 
 function binarySearchPredIndexRange(xs: Nums, value: number, start: number, end: number) {
     let min = start, max = end - 1;
     while (min < max) {
+        // do a linear search if there are only 10 or less items remaining
         if (min + 11 > max) {
             for (let i = min; i <= max; i++) {
                 if (value <= xs[i]) return i;
