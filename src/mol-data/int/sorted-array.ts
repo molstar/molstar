@@ -14,7 +14,7 @@ namespace SortedArray {
     export const ofSortedArray: <T extends number = number>(xs: ArrayLike<number>) => SortedArray<T> = Impl.ofSortedArray as any;
     // create sorted array [min, max] (it DOES contain the max value)
     export const ofRange: <T extends number = number>(min: T, max: T) => SortedArray<T> = Impl.ofRange as any;
-    // create sorted array [min, max) (it DOES not contain the max value)
+    // create sorted array [min, max) (it does NOT contain the max value)
     export const ofBounds: <T extends number = number>(min: T, max: T) => SortedArray<T> = (min, max) => Impl.ofRange(min, max - 1) as any;
     export const is: <T extends number = number>(v: any) => v is SortedArray<T> = Impl.is as any;
 
