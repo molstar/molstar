@@ -18,8 +18,8 @@
  */
 
 import Mat4 from './mat4';
-import { Quat, Mat3 } from '../3d';
-import { spline as _spline } from '../../interpolate'
+import { Quat, Mat3, EPSILON } from '../3d';
+import { spline as _spline, clamp } from '../../interpolate'
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
@@ -124,6 +124,7 @@ namespace Vec3 {
         return out;
     }
 
+    /** Scales b, then adds a and b together */
     export function scaleAndAdd(out: Vec3, a: Vec3, b: Vec3, scale: number) {
         out[0] = a[0] + (b[0] * scale);
         out[1] = a[1] + (b[1] * scale);
@@ -242,6 +243,15 @@ namespace Vec3 {
         out[1] = ay + t * (b[1] - ay);
         out[2] = az + t * (b[2] - az);
         return out;
+    }
+
+    const slerpRelVec = Vec3.zero()
+    export function slerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
+        const dot = clamp(Vec3.dot(a, b), -1, 1);
+        const theta = Math.acos(dot) * t;
+        Vec3.scaleAndAdd(slerpRelVec, b, a, -dot);
+        Vec3.normalize(slerpRelVec, slerpRelVec);
+        return Vec3.add(out, Vec3.scale(out, a, Math.cos(theta)), Vec3.scale(slerpRelVec, slerpRelVec, Math.sin(theta)));
     }
 
     /**
@@ -366,6 +376,24 @@ namespace Vec3 {
         } else {
             return Math.acos(cosine);
         }
+    }
+
+    /**
+     * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
+     */
+    export function exactEquals(a: Vec3, b: Vec3) {
+        return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+    }
+    
+    /**
+     * Returns whether or not the vectors have approximately the same elements in the same position.
+     */
+    export function equals(a: Vec3, b: Vec3) {
+        const a0 = a[0], a1 = a[1], a2 = a[2];
+        const b0 = b[0], b1 = b[1], b2 = b[2];
+        return (Math.abs(a0 - b0) <= EPSILON.Value * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= EPSILON.Value * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+                Math.abs(a2 - b2) <= EPSILON.Value * Math.max(1.0, Math.abs(a2), Math.abs(b2)));
     }
 
     const rotTemp = zero();
