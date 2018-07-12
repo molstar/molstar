@@ -56,6 +56,9 @@ describe('ordered set', () => {
 
         expect(OrderedSet.areIntersecting(Interval.ofRange(4, 5), arr12369)).toBe(false);
         expect(OrderedSet.areIntersecting(Interval.ofRange(7, 8), arr12369)).toBe(false);
+
+        expect(OrderedSet.areIntersecting(Interval.ofRange(6, 6), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(3, 4), OrderedSet.ofSortedArray([0, 1, 10]))).toBe(false);
     });
 
     it('isSubset', () => {

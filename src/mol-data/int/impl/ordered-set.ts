@@ -99,10 +99,7 @@ export function subtract(a: OrderedSetImpl, b: OrderedSetImpl) {
 function areEqualIS(a: I, b: S) { return I.size(a) === S.size(b) && I.start(a) === S.start(b) && I.end(a) === S.end(b); }
 
 function areIntersectingSI(a: S, b: I) {
-    if (S.size(a) === 0 || I.size(b) === 0) return false
-    const predAMinB = S.findPredecessorIndex(a, I.min(b))
-    const predAMaxB = S.findPredecessorIndex(a, I.max(b))
-    return predAMinB !== predAMaxB
+    return a.length !== 0 && I.size(S.findRange(a, I.min(b), I.max(b))) !== 0;
 }
 
 function isSubsetSI(a: S, b: I) {
