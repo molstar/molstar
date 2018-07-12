@@ -22,7 +22,7 @@ import { ChemicalComponent } from './properties/chemical-component';
  *
  * "Atoms" are integers in the range [0, atomCount).
  */
-interface Model extends Readonly<{
+export interface Model extends Readonly<{
     id: UUID,
     label: string,
 
@@ -42,7 +42,10 @@ interface Model extends Readonly<{
         /** secondary structure provided by the input file */
         readonly secondaryStructure: SecondaryStructure,
         /** maps modified residue name to its parent */
-        readonly modifiedResidueNameMap: Map<string, string>,
+        readonly modifiedResidues: {
+            parentId: Map<string, string>,
+            details: Map<string, string>
+        },
         /** maps asym id to unique serial number */
         readonly asymIdSerialMap: Map<string, number>
         /** maps residue name to `ChemicalComponent` data */
@@ -64,25 +67,11 @@ interface Model extends Readonly<{
 
 } { }
 
-namespace Model {
+export namespace Model {
     export function create(format: Format) {
         switch (format.kind) {
             // case 'gro': return from_gro(format);
             case 'mmCIF': return from_mmCIF(format);
         }
     }
-
-    // TODO: figure the place to include this?
-    // export interface Property<T, K> { (model: Model, index: number): T, _kind: K }
-    // export interface AtomicProperty<T> extends Property<T, 'atomic'> { }
-    // export interface CoarseProperty<T> extends Property<T, 'coarse'> { }
-    // export interface SphereProperty<T> extends Property<T, 'sphere'> { }
-    // export interface GaussianProperty<T> extends Property<T, 'gaussian'> { }
-
-    // export function atomProp<T>(p: (model: Model, i: number) => T): AtomicProperty<T> { return p as any; }
-    // export function residueProp<T>(p: (model: Model, residueIndex: number) => T): AtomicProperty<T> {
-    //     return p as any;
-    // }
 }
-
-export default Model

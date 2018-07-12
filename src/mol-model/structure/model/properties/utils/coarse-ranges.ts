@@ -7,15 +7,15 @@
 import { CoarseRanges, CoarseElementData } from '../coarse/hierarchy';
 import { Segmentation, Interval } from 'mol-data/int';
 import SortedRanges from 'mol-data/int/sorted-ranges';
-import { Element } from '../../../../structure';
 import { ChemicalComponent } from '../chemical-component';
+import { ElementIndex } from '../../indexing';
 
 // TODO assumes all coarse elements are part of a polymer
 
 export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: Map<string, ChemicalComponent>): CoarseRanges {
     const polymerRanges: number[] = []
     const gapRanges: number[] = []
-    const chainIt = Segmentation.transientSegments(data.chainSegments, Interval.ofBounds(0, data.count))
+    const chainIt = Segmentation.transientSegments(data.chainElementSegments, Interval.ofBounds(0, data.count))
 
     const { seq_id_begin, seq_id_end } = data
 
@@ -46,7 +46,7 @@ export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: M
     console.log(polymerRanges, gapRanges)
 
     return {
-        polymerRanges: SortedRanges.ofSortedRanges(polymerRanges as Element[]),
-        gapRanges: SortedRanges.ofSortedRanges(gapRanges as Element[])
+        polymerRanges: SortedRanges.ofSortedRanges(polymerRanges as ElementIndex[]),
+        gapRanges: SortedRanges.ofSortedRanges(gapRanges as ElementIndex[])
     }
 }

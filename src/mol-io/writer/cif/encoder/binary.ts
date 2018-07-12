@@ -38,7 +38,7 @@ export default class BinaryEncoder implements Encoder<Uint8Array> {
         });
     }
 
-    writeCategory<Ctx>(category: Category.Provider<Ctx>, contexts?: Ctx[]) {
+    writeCategory<Ctx>(category: Category<Ctx>, contexts?: Ctx[]) {
         if (!this.data) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -47,23 +47,23 @@ export default class BinaryEncoder implements Encoder<Uint8Array> {
             throw new Error('No data block created.');
         }
 
-        const src = !contexts || !contexts.length ? [category(<any>void 0)] : contexts.map(c => category(c));
-        const categories = src.filter(c => c && c.rowCount > 0);
-        if (!categories.length) return;
-        if (!this.filter.includeCategory(categories[0].name)) return;
+        if (!this.filter.includeCategory(category.name)) return;
 
-        const count = categories.reduce((a, c) => a + c.rowCount, 0);
+        const src = !contexts || !contexts.length ? [category.instance(<any>void 0)] : contexts.map(c => category.instance(c));
+        const instances = src.filter(c => c && c.rowCount > 0);
+        if (!instances.length) return;
+
+        const count = instances.reduce((a, c) => a + c.rowCount, 0);
         if (!count) return;
 
-        const first = categories[0]!;
-        const cat: EncodedCategory = { name: '_' + first.name, columns: [], rowCount: count };
-        const data = categories.map(c => ({ data: c.data, keys: () => c.keys ? c.keys() : Iterator.Range(0, c.rowCount - 1) }));
-        const fields = getIncludedFields(first);
+        const cat: EncodedCategory = { name: '_' + category.name, columns: [], rowCount: count };
+        const data = instances.map(c => ({ data: c.data, keys: () => c.keys ? c.keys() : Iterator.Range(0, c.rowCount - 1) }));
+        const fields = getIncludedFields(instances[0]);
 
         for (const f of fields) {
-            if (!this.filter.includeField(first.name, f.name)) continue;
+            if (!this.filter.includeField(category.name, f.name)) continue;
 
-            const format = this.formatter.getFormat(first.name, f.name);
+            const format = this.formatter.getFormat(category.name, f.name);
             cat.columns.push(encodeField(f, data, count, getArrayCtor(f, format), getEncoder(f, format)));
         }
         // no columns included.

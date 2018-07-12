@@ -5,11 +5,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../../model'
+import { Model } from '../../../model'
 import { LinkType } from '../../../types'
 import { ModelPropertyDescriptor } from '../../../properties/custom';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
-import { Structure, Unit, StructureProperties, Element } from '../../../../structure';
+import { Structure, Unit, StructureProperties, StructureElement } from '../../../../structure';
 import { Segmentation } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
 
@@ -22,22 +22,22 @@ export namespace ComponentBond {
         isStatic: true,
         name: 'chem_comp_bond',
         cifExport: {
-            categoryNames: ['chem_comp_bond'],
-            categoryProvider(ctx) {
-                const chem_comp_bond = getChemCompBond(ctx.model);
-                if (!chem_comp_bond) return [];
+            categories: [{
+                name: 'chem_comp_bond',
+                instance(ctx) {
+                    const chem_comp_bond = getChemCompBond(ctx.model);
+                    if (!chem_comp_bond) return CifWriter.Category.Empty;
 
-                const comp_names = getUniqueResidueNames(ctx.structure);
-                const { comp_id, _rowCount } = chem_comp_bond;
-                const indices: number[] = [];
-                for (let i = 0; i < _rowCount; i++) {
-                    if (comp_names.has(comp_id.value(i))) indices[indices.length] = i;
+                    const comp_names = getUniqueResidueNames(ctx.structure);
+                    const { comp_id, _rowCount } = chem_comp_bond;
+                    const indices: number[] = [];
+                    for (let i = 0; i < _rowCount; i++) {
+                        if (comp_names.has(comp_id.value(i))) indices[indices.length] = i;
+                    }
+
+                    return CifWriter.Category.ofTable(chem_comp_bond, indices)
                 }
-
-                return [
-                    () => CifWriter.Category.ofTable('chem_comp_bond', chem_comp_bond, indices)
-                ];
-            }
+            }]
         }
     }
 
@@ -134,14 +134,14 @@ export namespace ComponentBond {
     function getUniqueResidueNames(s: Structure) {
         const prop = StructureProperties.residue.label_comp_id;
         const names = new Set<string>();
-        const loc = Element.Location();
+        const loc = StructureElement.create();
         for (const unit of s.units) {
             if (!Unit.isAtomic(unit)) continue;
-            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, unit.elements);
+            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
             loc.unit = unit;
             while (residues.hasNext) {
                 const seg = residues.move();
-                loc.element = seg.start;
+                loc.element = unit.elements[seg.start];
                 names.add(prop(loc));
             }
         }

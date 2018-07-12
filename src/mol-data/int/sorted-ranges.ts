@@ -28,13 +28,13 @@ namespace SortedRanges {
         return new Iterator<T>(ranges, set)
     }
 
-    export class Iterator<T extends number = number> implements _Iterator<Segmentation.Segment<T>> {
-        private value: Segmentation.Segment<T> = { index: 0, start: 0 as T, end: 0 as T }
+    export class Iterator<I extends number = number> implements _Iterator<Segmentation.Segment<I>> {
+        private value: Segmentation.Segment<I> = { index: 0 as I, start: 0, end: 0 }
     
         private curIndex = 0
         private maxIndex = 0
-        private interval: Interval<T>
-        private curMin: T = 0 as T
+        private interval: Interval<I>
+        private curMin: I = 0 as I
     
         hasNext: boolean = false;
     
@@ -43,9 +43,9 @@ namespace SortedRanges {
         }
     
         updateValue() {
-            this.value.index = this.curIndex / 2
-            this.value.start = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex]) as T
-            this.value.end = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex + 1]) + 1 as T
+            this.value.index = this.curIndex / 2 as I
+            this.value.start = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex])
+            this.value.end = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex + 1]) + 1
         }
 
         move() {
@@ -67,7 +67,7 @@ namespace SortedRanges {
             return (index % 2 === 1) ? index - 1 : index
         }
     
-        constructor(private ranges: SortedRanges<T>, private set: OrderedSet<T>) {
+        constructor(private ranges: SortedRanges<I>, private set: OrderedSet<I>) {
             if (ranges.length) {
                 this.curIndex = this.getRangeIndex(OrderedSet.min(set))
                 this.maxIndex = Math.min(ranges.length - 2, this.getRangeIndex(OrderedSet.max(set)))

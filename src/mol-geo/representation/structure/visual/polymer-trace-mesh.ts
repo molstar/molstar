@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Unit, Element } from 'mol-model/structure';
+import { Unit, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { createTransforms, createColors } from './util/common';
@@ -284,8 +284,8 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
             const { objectId, instanceId, elementId } = pickingId
             if (renderObject.id === objectId) {
                 const unit = currentGroup.units[instanceId]
-                const indices = OrderedSet.ofSingleton(elementId as Element.Index);
-                return Element.Loci([{ unit, indices }])
+                const indices = OrderedSet.ofSingleton(elementId as StructureElement.UnitIndex);
+                return StructureElement.Loci([{ unit, indices }])
             }
             return EmptyLoci
         },

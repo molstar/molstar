@@ -5,8 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../../model'
-import { Element, Structure } from '../../../../structure'
+import { Model } from '../../../model'
+import { Structure } from '../../../../structure'
 import { LinkType } from '../../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from 'mol-data/db'
@@ -14,6 +14,7 @@ import { ModelPropertyDescriptor } from '../../../properties/custom';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
+import { ElementIndex } from '../../../indexing';
 
 export interface StructConn {
     getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>,
@@ -26,42 +27,42 @@ export namespace StructConn {
         isStatic: true,
         name: 'struct_conn',
         cifExport: {
-            categoryNames: ['struct_conn'],
-            categoryProvider(ctx) {
-                const struct_conn = getStructConn(ctx.model);
-                if (!struct_conn) return [];
+            categories: [{
+                name: 'struct_conn',
+                instance(ctx) {
+                    const struct_conn = getStructConn(ctx.model);
+                    if (!struct_conn) return CifWriter.Category.Empty;
 
-                const strConn = get(ctx.model);
-                if (!strConn || strConn.entries.length === 0) return [];
+                    const strConn = get(ctx.model);
+                    if (!strConn || strConn.entries.length === 0) return CifWriter.Category.Empty;
 
-                const foundAtoms = new Set<Element>();
-                const indices: number[] = [];
-                for (const entry of strConn.entries) {
-                    const { partners } = entry;
-                    let hasAll = true;
-                    for (let i = 0, _i = partners.length; i < _i; i++) {
-                        const atom = partners[i].atomIndex;
-                        if (foundAtoms.has(atom)) continue;
-                        if (hasAtom(ctx.structure, atom)) {
-                            foundAtoms.add(atom);
-                        } else {
-                            hasAll = false;
-                            break;
+                    const foundAtoms = new Set<ElementIndex>();
+                    const indices: number[] = [];
+                    for (const entry of strConn.entries) {
+                        const { partners } = entry;
+                        let hasAll = true;
+                        for (let i = 0, _i = partners.length; i < _i; i++) {
+                            const atom = partners[i].atomIndex;
+                            if (foundAtoms.has(atom)) continue;
+                            if (hasAtom(ctx.structure, atom)) {
+                                foundAtoms.add(atom);
+                            } else {
+                                hasAll = false;
+                                break;
+                            }
+                        }
+                        if (hasAll) {
+                            indices[indices.length] = entry.rowIndex;
                         }
                     }
-                    if (hasAll) {
-                        indices[indices.length] = entry.rowIndex;
-                    }
-                }
 
-                return [
-                    () => CifWriter.Category.ofTable('struct_conn', struct_conn, indices)
-                ];
-            }
+                    return CifWriter.Category.ofTable(struct_conn, indices);
+                }
+            }]
         }
     }
 
-    function hasAtom({ units }: Structure, element: Element) {
+    function hasAtom({ units }: Structure, element: ElementIndex) {
         for (let i = 0, _i = units.length; i < _i; i++) {
             if (SortedArray.indexOf(units[i].elements, element) >= 0) return true;
         }
@@ -132,7 +133,7 @@ export namespace StructConn {
         distance: number,
         order: number,
         flags: number,
-        partners: { residueIndex: number, atomIndex: Element, symmetry: string }[]
+        partners: { residueIndex: number, atomIndex: ElementIndex, symmetry: string }[]
     }
 
     type StructConnType =

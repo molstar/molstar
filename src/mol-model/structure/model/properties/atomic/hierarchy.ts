@@ -8,7 +8,7 @@ import { Column, Table } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
 import { ElementSymbol } from '../../types'
-import { Element } from '../../../structure'
+import { ChainIndex, EntityIndex, ResidueIndex, ElementIndex } from '../../indexing';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 
 export const AtomsSchema = {
@@ -50,34 +50,52 @@ export interface AtomicData {
 
 export interface AtomicSegments {
     /** Maps residueIndex to a range of atoms [segments[rI], segments[rI + 1]) */
-    residueSegments: Segmentation<Element>,
-    /** Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]) */
-    chainSegments: Segmentation<Element>,
+    residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>,
+    /**
+     * Maps chainIndex to a range of atoms [segments[cI], segments[cI + 1]),
+     *
+     * residues of i-th chain are accessed like this:
+     * const rI = residueAtomSegments.index, offsets = chainAtomSegments.offsets;
+     * const start = rI[offsets[i]], const end = rI[offsets[i + 1] - 1] + 1;
+     * for (let j = start; j < end; i++) { }
+     */
+    chainAtomSegments: Segmentation<ElementIndex, ChainIndex>,
+
     // TODO: include entity segments?
 }
 
 export interface AtomicKeys {
-    // TODO: since Atoms must be sorted now, get rid of keys
     // TODO: include (lazily computed) "entity/chain/residue" indices?
 
-    // assign a key to each residue index.
-    residueKey: ArrayLike<number>,
-    // assign a key to each chain index
-    chainKey: ArrayLike<number>,
-    // assigne a key to each chain index
-    // also index to the Entities table.
-    entityKey: ArrayLike<number>,
+    /** @returns index or -1 if not present. */
+    getEntityKey(cI: ChainIndex): EntityIndex,
 
-    findChainKey(entityId: string, label_asym_id: string): number,
+    /** @returns index or -1 if not present. */
+    findChainKey(entityId: string, label_asym_id: string): ChainIndex,
 
-    /** Unique number for each of the residue. Also the index of the 1st occurence of this residue. */
-    findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): number
+    /**
+     * Unique number for each of the residue. Also the index of the 1st occurence of this residue.
+     * @returns index or -1 if not present.
+     */
+    findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): ResidueIndex
 }
 
 export interface AtomicRanges {
-    polymerRanges: SortedRanges<Element>
-    gapRanges: SortedRanges<Element>
+    polymerRanges: SortedRanges<ElementIndex>
+    gapRanges: SortedRanges<ElementIndex>
 }
 
 type _Hierarchy = AtomicData & AtomicSegments & AtomicKeys & AtomicRanges
 export interface AtomicHierarchy extends _Hierarchy { }
+
+export namespace AtomicHierarchy {
+    /** Start residue inclusive */
+    export function chainStartResidueIndex(segs: AtomicSegments, cI: ChainIndex) {
+        return segs.residueAtomSegments.index[segs.chainAtomSegments.offsets[cI]];
+    }
+
+    /** End residue exclusive */
+    export function chainEndResidueIndexExcl(segs: AtomicSegments, cI: ChainIndex) {
+        return segs.residueAtomSegments.index[segs.chainAtomSegments.offsets[cI + 1] - 1] + 1 as ResidueIndex;
+    }
+}

@@ -6,35 +6,35 @@
 
 import { OrderedSet, SortedArray } from 'mol-data/int'
 import Unit from './unit'
+import { ElementIndex } from '../model';
 
-/** Element index in Model */
-type Element = { readonly '@type': 'element' } & number
+interface StructureElement<U = Unit> {
+    unit: U,
+    /** Index into element (atomic/coarse) properties of unit.model */
+    element: ElementIndex
+}
 
-namespace Element {
-    export type Set = SortedArray<Element>
+namespace StructureElement {
+    export function create(unit?: Unit, element?: ElementIndex): StructureElement { return { unit: unit as any, element: element || (0 as ElementIndex) }; }
+
+    // TODO: when nominal types are available, make this indexed by UnitIndex
+    export type Set = SortedArray<ElementIndex>
 
     /** Index into Unit.elements */
-    export type Index = { readonly '@type': 'element-index' } & number
+    export type UnitIndex = { readonly '@type': 'structure-element-index' } & number
 
-    /** All the information required to access element properties */
-    export interface Location<U = Unit> {
-        unit: U,
-        /** Index into element (atomic/coarse) properties of unit.model */
-        element: Element
-    }
-    export function Location(unit?: Unit, element?: Element): Location { return { unit: unit as any, element: element || (0 as Element) }; }
-    export interface Property<T> { (location: Location): T }
+    export interface Property<T> { (location: StructureElement): T }
     export interface Predicate extends Property<boolean> { }
 
     export function property<T>(p: Property<T>) { return p; }
 
     function _wrongUnitKind(kind: string) { throw new Error(`Property only available for ${kind} models.`); }
-    export function atomicProperty<T>(p: (location: Location<Unit.Atomic>) => T) {
-        return property(l => Unit.isAtomic(l.unit) ? p(l as Location<Unit.Atomic>) : _wrongUnitKind('atomic') );
+    export function atomicProperty<T>(p: (location: StructureElement<Unit.Atomic>) => T) {
+        return property(l => Unit.isAtomic(l.unit) ? p(l as StructureElement<Unit.Atomic>) : _wrongUnitKind('atomic') );
     }
 
-    export function coarseProperty<T>(p: (location: Location<Unit.Spheres | Unit.Gaussians>) => T) {
-        return property(l => Unit.isCoarse(l.unit) ? p(l as Location<Unit.Spheres | Unit.Gaussians>) : _wrongUnitKind('coarse') );
+    export function coarseProperty<T>(p: (location: StructureElement<Unit.Spheres | Unit.Gaussians>) => T) {
+        return property(l => Unit.isCoarse(l.unit) ? p(l as StructureElement<Unit.Spheres | Unit.Gaussians>) : _wrongUnitKind('coarse') );
     }
 
     /** Represents multiple element index locations */
@@ -47,11 +47,11 @@ namespace Element {
              * Indices into the unit.elements array.
              * Can use OrderedSet.forEach to iterate (or OrderedSet.size + OrderedSet.getAt)
              */
-            indices: OrderedSet<Index>
+            indices: OrderedSet<UnitIndex>
         }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet<Index> }>): Loci {
+    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet<UnitIndex> }>): Loci {
         return { kind: 'element-loci', elements: elements as Loci['elements'] };
     }
 
@@ -60,4 +60,4 @@ namespace Element {
     }
 }
 
-export default Element
+export default StructureElement

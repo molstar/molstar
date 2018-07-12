@@ -7,7 +7,7 @@
 
 import { Column } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int';
-import { Element } from '../../../structure'
+import { ElementIndex, ChainIndex } from '../../indexing';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 
 export interface CoarsedElementKeys {
@@ -17,8 +17,8 @@ export interface CoarsedElementKeys {
     entityKey: ArrayLike<number>,
 
     /** find index of the residue/feature element where seq_id is included */
-    findSequenceKey(entityId: string, asym_id: string, seq_id: number): number
-    findChainKey(entityId: string, asym_id: string): number
+    findSequenceKey(entityId: string, asym_id: string, seq_id: number): ElementIndex
+    findChainKey(entityId: string, asym_id: string): ChainIndex
 }
 
 export interface CoarseElementData {
@@ -28,12 +28,12 @@ export interface CoarseElementData {
     seq_id_begin: Column<number>,
     seq_id_end: Column<number>,
 
-    chainSegments: Segmentation<Element>,
+    chainElementSegments: Segmentation<ElementIndex, ChainIndex>,
 }
 
 export interface CoarseRanges {
-    polymerRanges: SortedRanges<Element>
-    gapRanges: SortedRanges<Element>
+    polymerRanges: SortedRanges<ElementIndex>
+    gapRanges: SortedRanges<ElementIndex>
 }
 
 export type CoarseElements = CoarsedElementKeys & CoarseElementData & CoarseRanges

@@ -8,6 +8,7 @@ import { Column } from 'mol-data/db'
 import { AtomicHierarchy } from './atomic/hierarchy';
 import { Entities } from './common';
 import { Sequence } from '../../../sequence';
+import { ChainIndex } from '../indexing';
 
 interface StructureSequence {
     readonly sequences: ReadonlyArray<StructureSequence.Entity>,
@@ -25,25 +26,25 @@ namespace StructureSequence {
 
     export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: Map<string, string>): StructureSequence {
         const { label_comp_id, label_seq_id } = hierarchy.residues
-        const { chainSegments, residueSegments } = hierarchy
+        const { chainAtomSegments, residueAtomSegments } = hierarchy
 
         const byEntityKey: StructureSequence['byEntityKey'] = { };
         const sequences: StructureSequence.Entity[] = [];
 
-        for (let cI = 0, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
-            const entityKey = hierarchy.entityKey[cI];
+        for (let cI = 0 as ChainIndex, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
+            const entityKey = hierarchy.getEntityKey(cI);
             // Only for polymers, trying to mirror _entity_poly_seq
             if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'polymer') continue;
 
             let start = cI;
             cI++;
-            while (cI < _cI && entityKey === hierarchy.entityKey[cI] && entities.data.type.value(entityKey) !== 'polymer') {
+            while (cI < _cI && entityKey === hierarchy.getEntityKey(cI) && entities.data.type.value(entityKey) !== 'polymer') {
                 cI++;
             }
             cI--;
 
-            const rStart = residueSegments.segmentMap[chainSegments.segments[start]];
-            const rEnd = residueSegments.segmentMap[chainSegments.segments[cI + 1]];
+            const rStart = residueAtomSegments.index[chainAtomSegments.offsets[start]];
+            const rEnd = residueAtomSegments.index[chainAtomSegments.offsets[cI + 1]];
 
             const compId = Column.window(label_comp_id, rStart, rEnd);
             const num = Column.window(label_seq_id, rStart, rEnd);

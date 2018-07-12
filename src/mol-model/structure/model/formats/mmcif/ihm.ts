@@ -12,7 +12,7 @@ import { getCoarseKeys } from '../../properties/utils/coarse-keys';
 import { UUID } from 'mol-util';
 import { Segmentation, Interval } from 'mol-data/int';
 import { Mat3, Tensor } from 'mol-math/linear-algebra';
-import { Element } from '../../../structure'
+import { ElementIndex, ChainIndex } from '../../indexing';
 import { getCoarseRanges } from '../../properties/utils/coarse-ranges';
 import { FormatData } from '../mmcif';
 
@@ -85,14 +85,14 @@ function getGaussianConformation(data: mmCIF['ihm_gaussian_obj_site']): CoarseGa
 }
 
 function getSegments(asym_id: Column<string>, seq_id_begin: Column<number>, seq_id_end: Column<number>) {
-    const chainOffsets = [0 as Element];
+    const chainOffsets = [0 as ElementIndex];
     for (let i = 1, _i = asym_id.rowCount; i < _i; i++) {
         const newChain = !asym_id.areValuesEqual(i - 1, i);
-        if (newChain) chainOffsets[chainOffsets.length] = i as Element;
+        if (newChain) chainOffsets[chainOffsets.length] = i as ElementIndex;
     }
 
     return {
-        chainSegments: Segmentation.ofOffsets(chainOffsets, Interval.ofBounds(0, asym_id.rowCount))
+        chainElementSegments: Segmentation.ofOffsets<ElementIndex, ChainIndex>(chainOffsets, Interval.ofBounds(0, asym_id.rowCount))
     }
 }
 

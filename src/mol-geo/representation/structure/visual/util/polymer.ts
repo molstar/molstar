@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Element, StructureProperties, Model } from 'mol-model/structure';
+import { Unit, StructureElement, StructureProperties, Model, ElementIndex } from 'mol-model/structure';
 import { Segmentation, OrderedSet, Interval } from 'mol-data/int';
 import { MoleculeType, SecondaryStructureType } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
@@ -26,7 +26,7 @@ export function getPolymerElementCount(unit: Unit) {
     const polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), elements)
     switch (unit.kind) {
         case Unit.Kind.Atomic:
-            const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueSegments, elements)
+            const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements)
             while (polymerIt.hasNext) {
                 const polymerSegment = polymerIt.move()
                 residueIt.setSegment(polymerSegment)
@@ -49,7 +49,7 @@ export function getPolymerElementCount(unit: Unit) {
     return count
 }
 
-function getTraceName(l: Element.Location) {
+function getTraceName(l: StructureElement) {
     const compId = StructureProperties.residue.label_comp_id(l)
     const chemCompMap = l.unit.model.properties.chemicalComponentMap
     const cc = chemCompMap.get(compId)
@@ -63,7 +63,7 @@ function getTraceName(l: Element.Location) {
     return traceName
 }
 
-function setTraceElement(l: Element.Location, residueSegment: Segmentation.Segment<Element>) {
+function setTraceElement(l: StructureElement, residueSegment: Segmentation.Segment) {
     const elements = l.unit.elements
     l.element = elements[residueSegment.start]
     const traceName = getTraceName(l)
@@ -94,7 +94,8 @@ function getTraceName2(model: Model, residueModelIndex: number) {
     return traceName
 }
 
-function getTraceElement2(model: Model, residueModelSegment: Segmentation.Segment<Element>) {
+// TODO fix type
+function getTraceElement2(model: Model, residueModelSegment: Segmentation.Segment<number>) {
     const traceName = getTraceName2(model, residueModelSegment.index)
 
     for (let j = residueModelSegment.start, _j = residueModelSegment.end; j < _j; j++) {
@@ -130,7 +131,8 @@ function getDirectionName2(model: Model, residueModelIndex: number) {
 //     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
 // }
 
-function getDirectionElement2(model: Model, residueModelSegment: Segmentation.Segment<Element>) {
+// TODO fix type
+function getDirectionElement2(model: Model, residueModelSegment: Segmentation.Segment<number>) {
     const traceName = getDirectionName2(model, residueModelSegment.index)
 
     for (let j = residueModelSegment.start, _j = residueModelSegment.end; j < _j; j++) {
@@ -152,8 +154,8 @@ export function PolymerBackboneIterator(unit: Unit): Iterator<PolymerBackbonePai
 }
 
 interface PolymerBackbonePair {
-    centerA: Element.Location
-    centerB: Element.Location
+    centerA: StructureElement
+    centerB: StructureElement
     indexA: number
     indexB: number
     posA: Vec3
@@ -162,8 +164,8 @@ interface PolymerBackbonePair {
 
 function createPolymerBackbonePair (unit: Unit) {
     return {
-        centerA: Element.Location(unit),
-        centerB: Element.Location(unit),
+        centerA: StructureElement.create(unit),
+        centerB: StructureElement.create(unit),
         indexA: 0,
         indexB: 0,
         posA: Vec3.zero(),
@@ -176,9 +178,9 @@ const enum AtomicPolymerBackboneIteratorState { nextPolymer, firstResidue, nextR
 export class AtomicPolymerBackboneIterator<T extends number = number> implements Iterator<PolymerBackbonePair> {
     private value: PolymerBackbonePair
 
-    private polymerIt: SortedRanges.Iterator<Element>
-    private residueIt: Segmentation.Iterator<Element>
-    private polymerSegment: Segmentation.Segment<Element>
+    private polymerIt: SortedRanges.Iterator<ElementIndex>
+    private residueIt: Segmentation.SegmentIterator<number> // TODO specific type
+    private polymerSegment: Segmentation.Segment<ElementIndex>
     private state: AtomicPolymerBackboneIteratorState = AtomicPolymerBackboneIteratorState.nextPolymer
     private pos: SymmetryOperator.CoordinateMapper
 
@@ -228,10 +230,10 @@ export class AtomicPolymerBackboneIterator<T extends number = number> implements
     }
 
     constructor(unit: Unit.Atomic) {
-        const { residueSegments } = unit.model.atomicHierarchy
+        const { residueAtomSegments } = unit.model.atomicHierarchy
         // console.log('unit.elements', OrderedSet.toArray(unit.elements))
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
-        this.residueIt = Segmentation.transientSegments(residueSegments, unit.elements)
+        this.residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements)
         this.pos = unit.conformation.invariantPosition
         this.value = createPolymerBackbonePair(unit)
 
@@ -244,8 +246,8 @@ const enum CoarsePolymerBackboneIteratorState { nextPolymer, nextElement }
 export class CoarsePolymerBackboneIterator<T extends number = number> implements Iterator<PolymerBackbonePair> {
     private value: PolymerBackbonePair
 
-    private polymerIt: SortedRanges.Iterator<Element>
-    private polymerSegment: Segmentation.Segment<Element>
+    private polymerIt: SortedRanges.Iterator<ElementIndex>
+    private polymerSegment: Segmentation.Segment<ElementIndex>
     private state: CoarsePolymerBackboneIteratorState = CoarsePolymerBackboneIteratorState.nextPolymer
     private pos: SymmetryOperator.CoordinateMapper
     private elementIndex: number
@@ -321,7 +323,7 @@ export function PolymerTraceIterator(unit: Unit): Iterator<PolymerTraceElement> 
 }
 
 interface PolymerTraceElement {
-    center: Element.Location
+    center: StructureElement
     index: number
     first: boolean
     last: boolean
@@ -339,7 +341,7 @@ interface PolymerTraceElement {
 
 function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
     return {
-        center: Element.Location(unit),
+        center: StructureElement.create(unit),
         index: 0,
         first: false,
         last: false,
@@ -358,13 +360,13 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
 
 const enum AtomicPolymerTraceIteratorState { nextPolymer, nextResidue }
 
-function setSegment (outSegment: Segmentation.Segment<Element>, index: number, segments: Segmentation<Element>, min: number, max: number): Segmentation.Segment<Element> {
+function setSegment (outSegment: Segmentation.Segment<number>, index: number, segments: Segmentation<number>, min: number, max: number): Segmentation.Segment<number> {
     // index = Math.min(Math.max(0, index), segments.segments.length - 2)
     const _index = Math.min(Math.max(min, index), max)
     if (isNaN(_index)) console.log(_index, index, min, max)
     outSegment.index = _index
-    outSegment.start = segments.segments[_index]
-    outSegment.end = segments.segments[_index + 1]
+    outSegment.start = segments.offsets[_index]
+    outSegment.end = segments.offsets[_index + 1]
     // console.log(index, {...outSegment}, {...boundingSegment}, segments.segments[boundingSegment.index])
     return outSegment
 }
@@ -372,14 +374,14 @@ function setSegment (outSegment: Segmentation.Segment<Element>, index: number, s
 export class AtomicPolymerTraceIterator<T extends number = number> implements Iterator<PolymerTraceElement> {
     private value: PolymerTraceElement
 
-    private polymerIt: SortedRanges.Iterator<Element>
-    private residueIt: Segmentation.Iterator<Element>
+    private polymerIt: SortedRanges.Iterator<ElementIndex>
+    private residueIt: Segmentation.SegmentIterator<number> // TODO specialize type
     private residueSegmentMin: number
     private residueSegmentMax: number
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
-    private residueSegments: Segmentation<Element>
+    private residueSegments: Segmentation<ElementIndex>
 
-    private tmpSegment: Segmentation.Segment<Element>
+    private tmpSegment: Segmentation.Segment<number>
 
     private unit: Unit.Atomic
 
@@ -391,12 +393,12 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
         target[2] = this.unit.model.atomicConformation.z[index]
     }
 
-    updateResidueSegmentRange(polymerSegment: Segmentation.Segment<Element>) {
-        const { polymerRanges, residueSegments } = this.unit.model.atomicHierarchy
+    updateResidueSegmentRange(polymerSegment: Segmentation.Segment<ElementIndex>) {
+        const { polymerRanges, residueAtomSegments } = this.unit.model.atomicHierarchy
         const sMin = polymerRanges[polymerSegment.index * 2]
         const sMax = polymerRanges[polymerSegment.index * 2 + 1]
-        this.residueSegmentMin = residueSegments.segmentMap[sMin]
-        this.residueSegmentMax = residueSegments.segmentMap[sMax]
+        this.residueSegmentMin = residueAtomSegments.index[sMin]
+        this.residueSegmentMax = residueAtomSegments.index[sMax]
     }
 
     move() {
@@ -454,14 +456,14 @@ export class AtomicPolymerTraceIterator<T extends number = number> implements It
     }
 
     constructor(unit: Unit.Atomic) {
-        const { residueSegments } = unit.model.atomicHierarchy
+        const { residueAtomSegments } = unit.model.atomicHierarchy
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
-        this.residueIt = Segmentation.transientSegments(residueSegments, unit.elements);
-        this.residueSegments = residueSegments
+        this.residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements);
+        this.residueSegments = residueAtomSegments
         this.value = createPolymerTraceElement(unit)
         this.hasNext = this.residueIt.hasNext && this.polymerIt.hasNext
 
-        this.tmpSegment = { index: 0, start: 0 as Element, end: 0 as Element }
+        this.tmpSegment = { index: 0, start: 0 as ElementIndex, end: 0 as ElementIndex }
 
         this.unit = unit
     }

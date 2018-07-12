@@ -8,15 +8,15 @@ import { AtomicSegments } from '../atomic';
 import { AtomicData, AtomicRanges } from '../atomic/hierarchy';
 import { Segmentation, Interval } from 'mol-data/int';
 import SortedRanges from 'mol-data/int/sorted-ranges';
-import { Element } from '../../../../structure';
 import { ChemicalComponent } from '../chemical-component';
 import { MoleculeType, isPolymer } from '../../types';
+import { ElementIndex } from '../../indexing';
 
 export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chemicalComponentMap: Map<string, ChemicalComponent>): AtomicRanges {
     const polymerRanges: number[] = []
     const gapRanges: number[] = []
-    const chainIt = Segmentation.transientSegments(segments.chainSegments, Interval.ofBounds(0, data.atoms._rowCount))
-    const residueIt = Segmentation.transientSegments(segments.residueSegments, Interval.ofBounds(0, data.atoms._rowCount))
+    const chainIt = Segmentation.transientSegments(segments.chainAtomSegments, Interval.ofBounds(0, data.atoms._rowCount))
+    const residueIt = Segmentation.transientSegments(segments.residueAtomSegments, Interval.ofBounds(0, data.atoms._rowCount))
     const { label_seq_id, label_comp_id } = data.residues
 
     let prevSeqId: number
@@ -63,7 +63,7 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chem
     console.log(polymerRanges, gapRanges)
 
     return {
-        polymerRanges: SortedRanges.ofSortedRanges(polymerRanges as Element[]),
-        gapRanges: SortedRanges.ofSortedRanges(gapRanges as Element[])
+        polymerRanges: SortedRanges.ofSortedRanges(polymerRanges as ElementIndex[]),
+        gapRanges: SortedRanges.ofSortedRanges(gapRanges as ElementIndex[])
     }
 }

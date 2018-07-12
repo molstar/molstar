@@ -10,27 +10,34 @@ import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
 import { Structure } from '../structure'
 import { Model } from '../model'
 import { _atom_site } from './categories/atom_site';
+import CifCategory = CifWriter.Category
+import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
+import { _pdbx_struct_mod_residue } from './categories/modified-residues';
 
 export interface CifExportContext {
     structure: Structure,
-    model: Model
+    model: Model,
+    cache: any
 }
 
-import CifCategory = CifWriter.Category
-import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
-
-function copy_mmCif_category(name: keyof mmCIF_Schema) {
-    return ({ model }: CifExportContext) => {
-        if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
-        const table = model.sourceData.data[name];
-        if (!table || !table._rowCount) return CifCategory.Empty;
-        return CifCategory.ofTable(name, table);
+function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportContext> {
+    return {
+        name,
+        instance({ model }) {
+            if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
+            const table = model.sourceData.data[name];
+            if (!table || !table._rowCount) return CifCategory.Empty;
+            return CifCategory.ofTable(table);
+        }
     };
 }
 
-function _entity({ model, structure }: CifExportContext): CifCategory {
-    const keys = Structure.getEntityKeys(structure);
-    return CifCategory.ofTable('entity', model.entities.data, keys);
+const _entity: CifCategory<CifExportContext> = {
+    name: 'entity',
+    instance({ structure, model}) {
+        const keys = Structure.getEntityKeys(structure);
+        return CifCategory.ofTable(model.entities.data, keys);
+    }
 }
 
 const Categories = [
@@ -52,10 +59,17 @@ const Categories = [
     _struct_conf,
     _struct_sheet_range,
 
+    // Sequence
+    copy_mmCif_category('struct_asym'), // TODO: filter only present chains?
+    copy_mmCif_category('entity_poly'),
+    copy_mmCif_category('entity_poly_seq'),
+
     // Misc
     // TODO: filter for actual present residues?
     copy_mmCif_category('chem_comp'),
     copy_mmCif_category('atom_sites'),
+
+    _pdbx_struct_mod_residue,
 
     // Atoms
     _atom_site
@@ -78,13 +92,13 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
 
-    const ctx: CifExportContext[] = [{ structure, model }];
+    const ctx: CifExportContext[] = [{ structure, model, cache: Object.create(null) }];
 
     for (const cat of Categories) {
         encoder.writeCategory(cat, ctx);
     }
     for (const customProp of model.customProperties.all) {
-        const cats = customProp.cifExport.categoryProvider(ctx[0]);
+        const cats = customProp.cifExport.categories;
         for (const cat of cats) {
             encoder.writeCategory(cat, ctx);
         }

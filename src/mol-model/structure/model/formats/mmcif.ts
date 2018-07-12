@@ -11,7 +11,7 @@ import { Tensor, Vec3 } from 'mol-math/linear-algebra';
 import { Task, RuntimeContext } from 'mol-task';
 import UUID from 'mol-util/uuid';
 import Format from '../format';
-import Model from '../model';
+import { Model } from '../model';
 import { Entities } from '../properties/common';
 import { CustomProperties } from '../properties/custom';
 import { ModelSymmetry } from '../properties/symmetry';
@@ -70,18 +70,20 @@ function getNcsOperators(format: mmCIF_Format) {
     }
     return opers;
 }
-
-function getModifiedResidueNameMap(format: mmCIF_Format) {
+function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['modifiedResidues'] {
     const data = format.data.pdbx_struct_mod_residue;
-    const map = new Map<string, string>();
+    const parentId = new Map<string, string>();
+    const details = new Map<string, string>();
     const comp_id = data.label_comp_id.isDefined ? data.label_comp_id : data.auth_comp_id;
-    const parent_id = data.parent_comp_id;
+    const parent_id = data.parent_comp_id, details_data = data.details;
 
     for (let i = 0; i < data._rowCount; i++) {
-        map.set(comp_id.value(i), parent_id.value(i));
+        const id = comp_id.value(i);
+        parentId.set(id, parent_id.value(i));
+        details.set(id, details_data.value(i));
     }
 
-    return map;
+    return { parentId, details };
 }
 
 function getAsymIdSerialMap(format: mmCIF_Format) {
@@ -123,14 +125,14 @@ function getChemicalComponentMap(format: mmCIF_Format) {
 }
 
 export interface FormatData {
-    modifiedResidueNameMap: Map<string, string>
+    modifiedResidues: Model['properties']['modifiedResidues']
     asymIdSerialMap: Map<string, number>
     chemicalComponentMap: Map<string, ChemicalComponent>
 }
 
 function getFormatData(format: mmCIF_Format): FormatData {
     return {
-        modifiedResidueNameMap: getModifiedResidueNameMap(format),
+        modifiedResidues: getModifiedResidueNameMap(format),
         asymIdSerialMap: getAsymIdSerialMap(format),
         chemicalComponentMap: getChemicalComponentMap(format)
     }
@@ -154,7 +156,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         modelNum: atom_site.pdbx_PDB_model_num.value(0),
         entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, entities, atomic.hierarchy, formatData.modifiedResidueNameMap),
+        sequence: getSequence(format.data, entities, atomic.hierarchy, formatData.modifiedResidues.parentId),
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         coarseHierarchy: coarse.hierarchy,
@@ -180,7 +182,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
         modelNum: data.model_id,
         entities: data.entities,
         symmetry: getSymmetry(format),
-        sequence: getSequence(format.data, data.entities, atomic.hierarchy, formatData.modifiedResidueNameMap),
+        sequence: getSequence(format.data, data.entities, atomic.hierarchy, formatData.modifiedResidues.parentId),
         atomicHierarchy: atomic.hierarchy,
         atomicConformation: atomic.conformation,
         coarseHierarchy: coarse.hierarchy,

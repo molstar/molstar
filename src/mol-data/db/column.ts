@@ -141,8 +141,8 @@ namespace Column {
         return createFirstIndexMapOfColumn(column);
     }
 
-    export function createIndexer<T>(column: Column<T>) {
-        return createIndexerOfColumn(column);
+    export function createIndexer<T, R extends number = number>(column: Column<T>) {
+        return createIndexerOfColumn(column) as ((e: T) => R);
     }
 
     export function mapToArray<T, S>(column: Column<T>, f: (v: T) => S, ctor?: ArrayCtor<S>): ArrayLike<S> {

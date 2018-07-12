@@ -10,6 +10,7 @@ import { SecondaryStructureType } from '../../types';
 import { AtomicHierarchy } from '../../properties/atomic';
 import { SecondaryStructure } from '../../properties/seconday-structure';
 import { Column } from 'mol-data/db';
+import { ChainIndex, ResidueIndex } from '../../indexing';
 
 export function getSecondaryStructureMmCif(data: mmCIF_Database, hierarchy: AtomicHierarchy): SecondaryStructure {
     const map: SecondaryStructureMap = new Map();
@@ -37,7 +38,7 @@ type SecondaryStructureEntry = {
     key: number
 }
 type SecondaryStructureMap = Map<string, Map<number, SecondaryStructureEntry>>
-type SecondaryStructureData = { type: SecondaryStructureType[], key: number[], elements: SecondaryStructure.Element[]  }
+type SecondaryStructureData = { type: SecondaryStructureType[], key: number[], elements: SecondaryStructure.Element[] }
 
 function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, elements: SecondaryStructure.Element[]) {
     if (!cat._rowCount) return;
@@ -47,11 +48,11 @@ function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, eleme
     const { pdbx_PDB_helix_class, conf_type_id, details } = cat;
 
     for (let i = 0, _i = cat._rowCount; i < _i; i++) {
-        const type =  SecondaryStructureType.create(pdbx_PDB_helix_class.valueKind(i) === Column.ValueKind.Present
+        const type = SecondaryStructureType.create(pdbx_PDB_helix_class.valueKind(i) === Column.ValueKind.Present
             ? SecondaryStructureType.SecondaryStructurePdb[pdbx_PDB_helix_class.value(i)]
             : conf_type_id.valueKind(i) === Column.ValueKind.Present
-            ? SecondaryStructureType.SecondaryStructureMmcif[conf_type_id.value(i)]
-            : SecondaryStructureType.Flag.NA);
+                ? SecondaryStructureType.SecondaryStructureMmcif[conf_type_id.value(i)]
+                : SecondaryStructureType.Flag.NA);
 
         const element: SecondaryStructure.Helix = {
             kind: 'helix',
@@ -68,6 +69,7 @@ function addHelices(cat: mmCIF['struct_conf'], map: SecondaryStructureMap, eleme
             type,
             key: elements.length
         };
+
 
         elements[elements.length] = element;
 
@@ -129,7 +131,7 @@ function addSheets(cat: mmCIF['struct_sheet_range'], map: SecondaryStructureMap,
     return;
 }
 
-function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: SecondaryStructureEntry, resStart: number, resEnd: number, data: SecondaryStructureData) {
+function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: SecondaryStructureEntry, resStart: ResidueIndex, resEnd: ResidueIndex, data: SecondaryStructureData) {
     const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
     const { endSeqNumber, endInsCode, key, type } = entry;
 
@@ -149,14 +151,13 @@ function assignSecondaryStructureEntry(hierarchy: AtomicHierarchy, entry: Second
 }
 
 function assignSecondaryStructureRanges(hierarchy: AtomicHierarchy, map: SecondaryStructureMap, data: SecondaryStructureData) {
-    const { segments: chainSegments, count: chainCount } = hierarchy.chainSegments;
+    const { count: chainCount } = hierarchy.chainAtomSegments;
     const { label_asym_id } = hierarchy.chains;
     const { label_seq_id, pdbx_PDB_ins_code } = hierarchy.residues;
 
-    for (let cI = 0; cI < chainCount; cI++) {
-        const resStart = chainSegments[cI], resEnd = chainSegments[cI + 1];
+    for (let cI = 0 as ChainIndex; cI < chainCount; cI++) {
+        const resStart = AtomicHierarchy.chainStartResidueIndex(hierarchy, cI), resEnd = AtomicHierarchy.chainEndResidueIndexExcl(hierarchy, cI);
         const asymId = label_asym_id.value(cI);
-
         if (map.has(asymId)) {
             const entries = map.get(asymId)!;
 

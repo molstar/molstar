@@ -4,11 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Element, Structure } from '../../structure';
+import { StructureElement, Structure } from '../../structure';
 import Selection from '../selection';
 import { HashSet } from 'mol-data/generic';
 import { structureUnion } from './structure';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
+import { ElementIndex } from '../../model';
 
 export class UniqueStructuresBuilder {
     private set = HashSet(Structure.hashCode, Structure.areEqual);
@@ -36,7 +37,7 @@ export class LinearGroupingBuilder {
     private builders: StructureSubsetBuilder[] = [];
     private builderMap = new Map<string, StructureSubsetBuilder>();
 
-    add(key: any, unit: number, element: Element) {
+    add(key: any, unit: number, element: ElementIndex) {
         let b = this.builderMap.get(key);
         if (!b) {
             b = this.source.subsetBuilder(true);
@@ -55,7 +56,7 @@ export class LinearGroupingBuilder {
 
     private singletonSelection(): Selection {
         const builder = this.source.subsetBuilder(true);
-        const loc = Element.Location();
+        const loc = StructureElement.create();
         for (let i = 0, _i = this.builders.length; i < _i; i++) {
             this.builders[i].setSingletonLocation(loc);
             builder.addToUnit(loc.unit.id, loc.element);

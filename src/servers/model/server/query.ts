@@ -95,6 +95,7 @@ export async function resolveRequest(req: Request, writer: Writer) {
     };
 
     encoder.writeCategory(_model_server_stats, [stats]);
+    encoder.encode();
 
     encoder.writeTo(writer);
 
@@ -112,9 +113,9 @@ import CifField = CifWriter.Field
 
 function string<T>(name: string, str: (data: T, i: number) => string, isSpecified?: (data: T) => boolean): CifField<number, T> {
     if (isSpecified) {
-        return CifField.str(name,  (i, d) => str(d, i), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
+        return CifField.str(name, (i, d) => str(d, i), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
     }
-    return CifField.str(name,  (i, d) => str(d, i));
+    return CifField.str(name, (i, d) => str(d, i));
 }
 
 function int32<T>(name: string, value: (data: T) => number): CifField<number, T> {
@@ -144,33 +145,29 @@ const _model_server_stats_fields: CifField<number, Stats>[] = [
 ];
 
 
-function _model_server_result(request: Request): CifWriter.Category {
-    return {
-        data: request,
-        name: 'model_server_result',
-        fields: _model_server_result_fields,
-        rowCount: 1
-    };
-}
+const _model_server_result: CifWriter.Category<Request> = {
+    name: 'model_server_result',
+    instance: (request) => ({ data: request, fields: _model_server_result_fields, rowCount: 1 })
+};
 
-function _model_server_params(request: Request): CifWriter.Category {
-    const params: string[][] = [];
-    for (const k of Object.keys(request.normalizedParams)) {
-        params.push([k, '' + request.normalizedParams[k]]);
+const _model_server_params: CifWriter.Category<Request> = {
+    name: 'model_server_params',
+    instance(request) {
+        const params: string[][] = [];
+        for (const k of Object.keys(request.normalizedParams)) {
+            params.push([k, '' + request.normalizedParams[k]]);
+        }
+        return {
+            data: params,
+
+            fields: _model_server_params_fields,
+            rowCount: params.length
+        }
     }
-    return {
-        data: params,
-        name: 'model_server_params',
-        fields: _model_server_params_fields,
-        rowCount: params.length
-    };
-}
+};
 
-function _model_server_stats(stats: Stats): CifWriter.Category {
-    return {
-        data: stats,
-        name: 'model_server_stats',
-        fields: _model_server_stats_fields,
-        rowCount: 1
-    };
+
+const _model_server_stats: CifWriter.Category<Stats> = {
+    name: 'model_server_stats',
+    instance: (stats) => ({ data: stats, fields: _model_server_stats_fields, rowCount: 1 })
 }

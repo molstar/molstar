@@ -4,10 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Model from './model/model'
+import { Model } from './model/model'
 import * as Types from './model/types'
 import Format from './model/format'
 import { ModelSymmetry } from './model/properties/symmetry'
 import StructureSequence from './model/properties/sequence'
 
+export * from './model/indexing'
 export { Model, Types, Format, ModelSymmetry, StructureSequence }

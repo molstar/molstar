@@ -4,19 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Element, StructureProperties as P } from '../structure'
+import { StructureElement, StructureProperties as P } from '../structure'
 
 namespace Predicates {
     export interface SetLike<A> { has(v: A): boolean }
     function isSetLike<A>(x: any): x is SetLike<A> { return !!x && !!x.has }
 
-    export function eq<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) === value; }
-    export function lt<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) < value; }
-    export function lte<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) <= value; }
-    export function gt<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) > value; }
-    export function gte<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) >= value; }
+    export function eq<A>(p: StructureElement.Property<A>, value: A): StructureElement.Predicate { return l => p(l) === value; }
+    export function lt<A>(p: StructureElement.Property<A>, value: A): StructureElement.Predicate { return l => p(l) < value; }
+    export function lte<A>(p: StructureElement.Property<A>, value: A): StructureElement.Predicate { return l => p(l) <= value; }
+    export function gt<A>(p: StructureElement.Property<A>, value: A): StructureElement.Predicate { return l => p(l) > value; }
+    export function gte<A>(p: StructureElement.Property<A>, value: A): StructureElement.Predicate { return l => p(l) >= value; }
 
-    export function inSet<A>(p: Element.Property<A>, values: SetLike<A> | ArrayLike<A>): Element.Predicate {
+    export function inSet<A>(p: StructureElement.Property<A>, values: SetLike<A> | ArrayLike<A>): StructureElement.Predicate {
         if (isSetLike(values)) {
             return l => values.has(p(l));
         } else {
@@ -27,7 +27,7 @@ namespace Predicates {
         }
     }
 
-    export function and(...ps: Element.Predicate[]): Element.Predicate {
+    export function and(...ps: StructureElement.Predicate[]): StructureElement.Predicate {
         switch (ps.length) {
             case 0: return P.constant.true;
             case 1: return ps[0];
@@ -61,7 +61,7 @@ namespace Predicates {
         }
     }
 
-    export function or(...ps: Element.Predicate[]): Element.Predicate {
+    export function or(...ps: StructureElement.Predicate[]): StructureElement.Predicate {
         switch (ps.length) {
             case 0: return P.constant.false;
             case 1: return ps[0];

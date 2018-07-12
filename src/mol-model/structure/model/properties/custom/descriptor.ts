@@ -12,9 +12,7 @@ interface ModelPropertyDescriptor {
     readonly name: string,
 
     cifExport: {
-        /** used category names that can be used for "filtering" by the writer */
-        readonly categoryNames: ReadonlyArray<string>,
-        categoryProvider: (ctx: CifExportContext) => CifWriter.Category.Provider[]
+        categories: CifWriter.Category<CifExportContext>[]
     }
 }
 

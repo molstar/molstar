@@ -4,21 +4,22 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../../model'
+import { Model } from '../../../model'
 import { Table } from 'mol-data/db'
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { findAtomIndexByLabelName } from '../util';
-import { Element, Unit } from '../../../../structure';
+import { Unit } from '../../../../structure';
+import { ElementIndex } from '../../../indexing';
 
 function findAtomIndex(model: Model, entityId: string, asymId: string, compId: string, seqId: number, atomId: string) {
     if (!model.atomicHierarchy.atoms.auth_atom_id.isDefined) return -1
     const residueIndex = model.atomicHierarchy.findResidueKey(entityId, compId, asymId, seqId, '')
     if (residueIndex < 0) return -1
-    return findAtomIndexByLabelName(model, residueIndex, atomId, '') as Element
+    return findAtomIndexByLabelName(model, residueIndex, atomId, '') as ElementIndex
 }
 
 export interface IHMCrossLinkRestraint {
-    getIndicesByElement: (element: Element, kind: Unit.Kind) => number[]
+    getIndicesByElement: (element: ElementIndex, kind: Unit.Kind) => number[]
     data: Table<mmCIF_Schema['ihm_cross_link_restraint']>
 }
 
@@ -47,7 +48,7 @@ export namespace IHMCrossLinkRestraint {
             atom_id: ihm_cross_link_restraint.atom_id_2,
         }
 
-        function _add(map: Map<Element, number[]>, element: Element, row: number) {
+        function _add(map: Map<ElementIndex, number[]>, element: ElementIndex, row: number) {
             const indices = map.get(element)
             if (indices) indices.push(row)
             else map.set(element, [ row ])
@@ -60,14 +61,14 @@ export namespace IHMCrossLinkRestraint {
 
             if (ihm_cross_link_restraint.model_granularity.value(row) === 'by-atom') {
                 const atomicElement = findAtomIndex(model, entityId, asymId, ps.comp_id.value(row), seqId, ps.atom_id.value(row))
-                if (atomicElement >= 0) _add(atomicElementMap, atomicElement as Element, row)
+                if (atomicElement >= 0) _add(atomicElementMap, atomicElement as ElementIndex, row)
             } else if (model.coarseHierarchy.isDefined) {
                 const sphereElement = model.coarseHierarchy.spheres.findSequenceKey(entityId, asymId, seqId)
                 if (sphereElement >= 0) {
-                    _add(sphereElementMap, sphereElement as Element, row)
+                    _add(sphereElementMap, sphereElement, row)
                 } else {
                     const gaussianElement = model.coarseHierarchy.gaussians.findSequenceKey(entityId, asymId, seqId)
-                    if (gaussianElement >= 0) _add(gaussianElementMap, gaussianElement as Element, row)
+                    if (gaussianElement >= 0) _add(gaussianElementMap, gaussianElement, row)
                 }
             }
         }
@@ -81,11 +82,11 @@ export namespace IHMCrossLinkRestraint {
         }
 
         /** map from atomic element to cross link indices */
-        const atomicElementMap: Map<Element, number[]> = new Map()
+        const atomicElementMap: Map<ElementIndex, number[]> = new Map()
         /** map from sphere element to cross link indices */
-        const sphereElementMap: Map<Element, number[]> = new Map()
+        const sphereElementMap: Map<ElementIndex, number[]> = new Map()
         /** map from gaussian element to cross link indices */
-        const gaussianElementMap: Map<Element, number[]> = new Map()
+        const gaussianElementMap: Map<ElementIndex, number[]> = new Map()
 
         const emptyIndexArray: number[] = [];
 
@@ -95,7 +96,7 @@ export namespace IHMCrossLinkRestraint {
         }
 
         const crossLinkRestraint = {
-            getIndicesByElement: (element: Element, kind: Unit.Kind) => {
+            getIndicesByElement: (element: ElementIndex, kind: Unit.Kind) => {
                 const map = getMapByKind(kind)
                 const idx = map.get(element)
                 return idx !== undefined ? idx : emptyIndexArray

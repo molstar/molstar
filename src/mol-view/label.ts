@@ -5,14 +5,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, Element, StructureProperties as Props } from 'mol-model/structure';
+import { Unit, StructureElement, StructureProperties as Props } from 'mol-model/structure';
 import { Loci } from 'mol-model/loci';
 import { OrderedSet } from 'mol-data/int';
 
-const elementLocA = Element.Location()
-const elementLocB = Element.Location()
+const elementLocA = StructureElement.create()
+const elementLocB = StructureElement.create()
 
-function setElementLocation(loc: Element.Location, unit: Unit, index: number) {
+function setElementLocation(loc: StructureElement, unit: Unit, index: number) {
     loc.unit = unit
     loc.element = unit.elements[index]
 }
@@ -23,7 +23,7 @@ export function labelFirst(loci: Loci): string {
             const e = loci.elements[0]
             if (e) {
                 const el = e.unit.elements[OrderedSet.getAt(e.indices, 0)];
-                return elementLabel(Element.Location(e.unit, el))
+                return elementLabel(StructureElement.create(e.unit, el))
             } else {
                 return 'Unknown'
             }
@@ -43,7 +43,7 @@ export function labelFirst(loci: Loci): string {
     }
 }
 
-export function elementLabel(loc: Element.Location) {
+export function elementLabel(loc: StructureElement) {
     const model = loc.unit.model.label
     const instance = loc.unit.conformation.operator.name
     let element = ''

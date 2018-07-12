@@ -5,6 +5,7 @@
  */
 
 import { CifWriter } from 'mol-io/writer/cif'
+import * as fs from 'fs'
 
 const category1fields: CifWriter.Field[] = [
     CifWriter.Field.str('f1', i => 'v' + i),
@@ -18,24 +19,49 @@ const category2fields: CifWriter.Field[] = [
     CifWriter.Field.float('e3', i => Math.random()),
 ];
 
-function getInstance(ctx: { name: string, fields: CifWriter.Field[], rowCount: number }): CifWriter.Category {
+function getCat(name: string): CifWriter.Category {
     return {
-        data: void 0,
-        name: ctx.name,
-        fields: ctx.fields,
-        rowCount: ctx.rowCount
+        name,
+        instance(ctx: { fields: CifWriter.Field[], rowCount: number }) {
+            return { data: void 0, fields: ctx.fields, rowCount: ctx.rowCount };
+        }
+    };
+}
+
+function testText() {
+    const enc = CifWriter.createEncoder();
+
+    const filter: CifWriter.Category.Filter = {
+        includeCategory(cat) { return true; },
+        includeField(cat, field) { return !(cat === 'cat2' && field === 'e2') }
     }
+
+    enc.startDataBlock('test');
+    enc.setFilter(filter);
+    enc.writeCategory(getCat('cat1'), [{ rowCount: 5, fields: category1fields }]);
+    enc.writeCategory(getCat('cat2'), [{ rowCount: 1, fields: category2fields }]);
+    console.log(enc.getData());
 }
 
-const enc = CifWriter.createEncoder();
+testText();
 
-const filter: CifWriter.Category.Filter = {
-    includeCategory(cat) { return true; },
-    includeField(cat, field) { return !(cat === 'cat2' && field === 'e2') }
+
+function testBinary() {
+    const enc = CifWriter.createEncoder({ binary: true });
+
+    const filter: CifWriter.Category.Filter = {
+        includeCategory(cat) { return true; },
+        includeField(cat, field) { return !(cat === 'cat2' && field === 'e2') }
+    }
+
+    enc.startDataBlock('test');
+    enc.setFilter(filter);
+    enc.writeCategory(getCat('cat1'), [{ rowCount: 5, fields: category1fields }]);
+    enc.writeCategory(getCat('cat2'), [{ rowCount: 1, fields: category2fields }]);
+    enc.encode();
+    const data = enc.getData() as Uint8Array;
+    fs.writeFileSync('e:/test/mol-star/test.bcif', new Buffer(data));
+    console.log('written binary');
 }
 
-enc.startDataBlock('test');
-enc.setFilter(filter);
-enc.writeCategory(getInstance, [{ rowCount: 5, name: 'cat1', fields: category1fields }]);
-enc.writeCategory(getInstance, [{ rowCount: 1, name: 'cat2', fields: category2fields  }]);
-console.log(enc.getData());
+testBinary();

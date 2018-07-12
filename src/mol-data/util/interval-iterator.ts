@@ -8,8 +8,8 @@
 import { OrderedSet, Interval, Segmentation } from '../int';
 
 /** Emits a segment of length one for each element in the interval that is also in the set */
-export class IntervalIterator<T extends number = number> implements Iterator<Segmentation.Segment<T>> {
-    private value: Segmentation.Segment<T> = { index: 0, start: 0 as T, end: 0 as T }
+export class IntervalIterator<I extends number = number> implements Iterator<Segmentation.Segment<I>> {
+    private value: Segmentation.Segment<I> = { index: 0 as I, start: 0, end: 0 }
 
     private curIndex = 0
     private maxIndex = 0
@@ -17,9 +17,9 @@ export class IntervalIterator<T extends number = number> implements Iterator<Seg
     hasNext: boolean = false;
 
     updateValue() {
-        this.value.index = this.curIndex
-        this.value.start = OrderedSet.findPredecessorIndex(this.set, Interval.getAt(this.interval, this.curIndex)) as  T
-        this.value.end = this.value.start + 1 as T 
+        this.value.index = this.curIndex as I
+        this.value.start = OrderedSet.findPredecessorIndex(this.set, Interval.getAt(this.interval, this.curIndex))
+        this.value.end = this.value.start + 1
     }
 
     move() {
@@ -34,7 +34,7 @@ export class IntervalIterator<T extends number = number> implements Iterator<Seg
         return this.value;
     }
 
-    constructor(private interval: Interval<T>, private set: OrderedSet<T>) {
+    constructor(private interval: Interval<I>, private set: OrderedSet<I>) {
         if (Interval.size(interval)) {
             this.curIndex = Interval.findPredecessorIndex(interval, OrderedSet.min(set))
             this.maxIndex = Interval.findPredecessorIndex(interval, OrderedSet.max(set))

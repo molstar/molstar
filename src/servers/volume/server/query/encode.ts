@@ -28,9 +28,9 @@ interface ResultContext {
 
 function string<T>(name: string, str: (data: T) => string, isSpecified?: (data: T) => boolean): CifWriter.Field<number, T> {
     if (isSpecified) {
-        return CifWriter.Field.str(name,  (i, d) => str(d), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
+        return CifWriter.Field.str(name, (i, d) => str(d), { valueKind: (i, d) => isSpecified(d) ? Column.ValueKind.Present : Column.ValueKind.NotPresent });
     }
-    return CifWriter.Field.str(name,  (i, d) => str(d));
+    return CifWriter.Field.str(name, (i, d) => str(d));
 }
 
 function int32<T>(name: string, value: (data: T) => number): CifWriter.Field<number, T> {
@@ -90,53 +90,54 @@ const _volume_data_3d_info_fields = [
     float64<_vd3d_Ctx>('max_sampled', ctx => ctx.sampledValuesInfo.max)
 ];
 
-function _volume_data_3d_info(result: ResultContext): CifWriter.Category {
-    const ctx: _vd3d_Ctx = {
-        header: result.query.data.header,
-        channelIndex: result.channelIndex,
-        grid: result.query.samplingInfo.gridDomain,
-        sampleRate: result.query.samplingInfo.sampling.rate,
-        globalValuesInfo: result.query.data.header.sampling[0].valuesInfo[result.channelIndex],
-        sampledValuesInfo: result.query.data.header.sampling[result.query.samplingInfo.sampling.index].valuesInfo[result.channelIndex]
-    };
+const _volume_data_3d_info: CifWriter.Category<ResultContext> = {
+    name: 'volume_data_3d_info',
+    instance(result) {
+        const ctx: _vd3d_Ctx = {
+            header: result.query.data.header,
+            channelIndex: result.channelIndex,
+            grid: result.query.samplingInfo.gridDomain,
+            sampleRate: result.query.samplingInfo.sampling.rate,
+            globalValuesInfo: result.query.data.header.sampling[0].valuesInfo[result.channelIndex],
+            sampledValuesInfo: result.query.data.header.sampling[result.query.samplingInfo.sampling.index].valuesInfo[result.channelIndex]
+        };
 
-    return {
-        data: ctx,
-        name: 'volume_data_3d_info',
-        fields: _volume_data_3d_info_fields,
-        rowCount: 1
-    };
-}
+        return { data: ctx, fields: _volume_data_3d_info_fields, rowCount: 1 }
+    }
+};
 
 function _volume_data_3d_number(i: number, ctx: DataFormat.ValueArray): number {
     return ctx[i];
 }
 
-function _volume_data_3d(ctx: ResultContext) {
-    const data = ctx.query.values[ctx.channelIndex];
+const _volume_data_3d: CifWriter.Category<ResultContext> = {
+    name: 'volume_data_3d',
+    instance(ctx) {
+        const data = ctx.query.values[ctx.channelIndex];
 
-    const E = ArrayEncoding;
-    let encoder: ArrayEncoder;
-    let typedArray: any;
-    if (ctx.query.data.header.valueType === DataFormat.ValueType.Float32 || ctx.query.data.header.valueType === DataFormat.ValueType.Int16) {
-        let min: number, max: number;
-        min = data[0], max = data[0];
-        for (let i = 0, n = data.length; i < n; i++) {
-            let v = data[i];
-            if (v < min) min = v;
-            else if (v > max) max = v;
+        const E = ArrayEncoding;
+        let encoder: ArrayEncoder;
+        let typedArray: any;
+        if (ctx.query.data.header.valueType === DataFormat.ValueType.Float32 || ctx.query.data.header.valueType === DataFormat.ValueType.Int16) {
+            let min: number, max: number;
+            min = data[0], max = data[0];
+            for (let i = 0, n = data.length; i < n; i++) {
+                let v = data[i];
+                if (v < min) min = v;
+                else if (v > max) max = v;
+            }
+            typedArray = Float32Array;
+            // encode into 255 steps and store each value in 1 byte.
+            encoder = E.by(E.intervalQuantizaiton(min, max, 255, Uint8Array)).and(E.byteArray);
+        } else {
+            typedArray = Int8Array;
+            // just encode the bytes
+            encoder = E.by(E.byteArray)
         }
-        typedArray = Float32Array;
-        // encode into 255 steps and store each value in 1 byte.
-        encoder = E.by(E.intervalQuantizaiton(min, max, 255, Uint8Array)).and(E.byteArray);
-    } else {
-        typedArray = Int8Array;
-        // just encode the bytes
-        encoder = E.by(E.byteArray)
-    }
 
-    const fields = [CifWriter.Field.float('values', _volume_data_3d_number, { encoder, typedArray, digitCount: 6 })];
-    return { data, name: 'volume_data_3d', fields, rowCount: data.length };
+        const fields = [CifWriter.Field.float('values', _volume_data_3d_number, { encoder, typedArray, digitCount: 6 })];
+        return { data, fields, rowCount: data.length };
+    }
 }
 
 function pickQueryBoxDimension(ctx: Data.QueryContext, e: 'a' | 'b', d: number) {
@@ -171,13 +172,9 @@ const _density_server_result_fields = [
     queryBoxDimension('b', 2)
 ]
 
-function _density_server_result(ctx: Data.QueryContext): CifWriter.Category {
-    return {
-        data: ctx,
-        name: 'density_server_result',
-        fields: _density_server_result_fields,
-        rowCount: 1
-    };
+const _density_server_result: CifWriter.Category<Data.QueryContext> = {
+    name: 'density_server_result',
+    instance: ctx => ({ data: ctx, fields: _density_server_result_fields, rowCount: 1 })
 }
 
 function write(encoder: CifWriter.Encoder, query: Data.QueryContext) {

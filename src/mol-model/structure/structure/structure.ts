@@ -7,9 +7,9 @@
 import { IntMap, SortedArray, Iterator, Segmentation } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
-import { Model } from '../model'
+import { Model, ElementIndex } from '../model'
 import { sort, arraySwap, hash1, sortArray } from 'mol-data/util';
-import Element from './element'
+import StructureElement from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
@@ -49,7 +49,7 @@ class Structure {
         return hash;
     }
 
-    elementLocations(): Iterator<Element.Location> {
+    elementLocations(): Iterator<StructureElement> {
         return new Structure.ElementLocationIterator(this);
     }
 
@@ -118,20 +118,20 @@ namespace Structure {
      * of consecutive "single atom chains".
      */
     export function ofModel(model: Model): Structure {
-        const chains = model.atomicHierarchy.chainSegments;
+        const chains = model.atomicHierarchy.chainAtomSegments;
         const builder = new StructureBuilder();
 
         for (let c = 0; c < chains.count; c++) {
-            const start = chains.segments[c];
+            const start = chains.offsets[c];
 
             // merge all consecutive "single atom chains"
             while (c + 1 < chains.count
-                && chains.segments[c + 1] - chains.segments[c] === 1
-                && chains.segments[c + 2] - chains.segments[c + 1] === 1) {
+                && chains.offsets[c + 1] - chains.offsets[c] === 1
+                && chains.offsets[c + 2] - chains.offsets[c + 1] === 1) {
                 c++;
             }
 
-            const elements = SortedArray.ofBounds(start as Element, chains.segments[c + 1] as Element);
+            const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 
@@ -149,9 +149,9 @@ namespace Structure {
     }
 
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
-        const { chainSegments } = elements;
-        for (let cI = 0; cI < chainSegments.count; cI++) {
-            const elements = SortedArray.ofBounds(chainSegments.segments[cI] as Element, chainSegments.segments[cI + 1] as Element);
+        const { chainElementSegments } = elements;
+        for (let cI = 0; cI < chainElementSegments.count; cI++) {
+            const elements = SortedArray.ofBounds<ElementIndex>(chainElementSegments.offsets[cI], chainElementSegments.offsets[cI + 1]);
             builder.addUnit(kind, model, SymmetryOperator.Default, elements);
         }
     }
@@ -159,7 +159,7 @@ namespace Structure {
     export class StructureBuilder {
         private units: Unit[] = [];
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: Element.Set): Unit {
+        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
             const unit = Unit.create(this.units.length, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
@@ -211,15 +211,15 @@ namespace Structure {
         return true;
     }
 
-    export class ElementLocationIterator implements Iterator<Element.Location> {
-        private current = Element.Location();
+    export class ElementLocationIterator implements Iterator<StructureElement> {
+        private current = StructureElement.create();
         private unitIndex = 0;
-        private elements: Element.Set;
+        private elements: StructureElement.Set;
         private maxIdx = 0;
         private idx = -1;
 
         hasNext: boolean;
-        move(): Element.Location {
+        move(): StructureElement {
             this.advance();
             this.current.element = this.elements[this.idx];
             return this.current;
@@ -257,7 +257,7 @@ namespace Structure {
 
     export function getEntityKeys(structure: Structure) {
         const { units } = structure;
-        const l = Element.Location();
+        const l = StructureElement.create();
         const keys = UniqueArray.create<number, number>();
 
         for (const unit of units) {
@@ -266,7 +266,7 @@ namespace Structure {
             l.unit = unit;
             const elements = unit.elements;
 
-            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainSegments, elements);
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
                 l.element = elements[chainSegment.start];

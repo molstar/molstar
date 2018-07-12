@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Element, Unit, StructureProperties } from 'mol-model/structure';
+import { StructureElement, Unit, StructureProperties } from 'mol-model/structure';
 import { StructureSizeDataProps } from '.';
 import { createAttributeSize } from '../../../util/size-data';
 
-export function getPhysicalRadius(unit: Unit): Element.Property<number> {
+export function getPhysicalRadius(unit: Unit): StructureElement.Property<number> {
     if (Unit.isAtomic(unit)) {
         return StructureProperties.atom.vdw_radius
     } else if (Unit.isSpheres(unit)) {
@@ -27,7 +27,7 @@ export function physicalSizeData(factor: number, props: StructureSizeDataProps) 
     const unit = group.units[0]
     const elements = group.elements;
     const radius = getPhysicalRadius(unit)
-    const l = Element.Location()
+    const l = StructureElement.create()
     l.unit = unit
     return createAttributeSize({
         sizeFn: (elementIdx: number) => {

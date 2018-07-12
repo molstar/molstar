@@ -9,7 +9,7 @@ import * as argparse from 'argparse'
 require('util.promisify').shim();
 
 import { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure, Element, Unit, Format, StructureProperties } from 'mol-model/structure'
+import { Model, Structure, StructureElement, Unit, Format, StructureProperties } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { openCif, downloadCif } from './helpers';
@@ -29,20 +29,20 @@ async function readPdbFile(path: string) {
 }
 
 export function atomLabel(model: Model, aI: number) {
-    const { atoms, residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
+    const { atoms, residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
     const { label_atom_id } = atoms
     const { label_comp_id, label_seq_id } = residues
     const { label_asym_id } = chains
-    const rI = residueSegments.segmentMap[aI]
-    const cI = chainSegments.segmentMap[aI]
+    const rI = residueAtomSegments.index[aI]
+    const cI = chainAtomSegments.index[aI]
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)} ${label_atom_id.value(aI)}`
 }
 
 export function residueLabel(model: Model, rI: number) {
-    const { residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
+    const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
     const { label_comp_id, label_seq_id } = residues
     const { label_asym_id } = chains
-    const cI = chainSegments.segmentMap[residueSegments.segments[rI]]
+    const cI = chainAtomSegments.index[residueAtomSegments.offsets[rI]]
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
 }
 
@@ -119,7 +119,7 @@ export function printSequence(model: Model) {
 
 export function printModRes(model: Model) {
     console.log('\nModified Residues\n=============');
-    const map = model.properties.modifiedResidueNameMap;
+    const map = model.properties.modifiedResidues.parentId;
     const { label_comp_id, _rowCount } = model.atomicHierarchy.residues;
     for (let i = 0; i < _rowCount; i++) {
         const comp_id = label_comp_id.value(i);
@@ -146,7 +146,7 @@ export function printRings(structure: Structure) {
 
 export function printUnits(structure: Structure) {
     console.log('\nUnits\n=============');
-    const l = Element.Location();
+    const l = StructureElement.create();
 
     for (const unit of structure.units) {
         l.unit = unit;

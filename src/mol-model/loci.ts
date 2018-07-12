@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Element } from './structure'
+import { StructureElement } from './structure'
 import { Link } from './structure/structure/unit/links'
 
 /** A Loci that includes every loci */
@@ -21,4 +21,4 @@ export function isEmptyLoci(x: any): x is EmptyLoci {
     return !!x && x.kind === 'empty-loci';
 }
 
-export type Loci =  Element.Loci | Link.Loci | EveryLoci | EmptyLoci
+export type Loci =  StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci
