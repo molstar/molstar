@@ -23,6 +23,7 @@ import { createMeshValues, updateMeshValues, updateRenderableState, createRender
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement } from './util/element';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
@@ -32,15 +33,22 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
 
+    const { elements } = unit
+    const pos = unit.conformation.invariantPosition
+    const pA = Vec3.zero()
+    const pB = Vec3.zero()
+
     let i = 0
     const polymerBackboneIt = PolymerBackboneIterator(unit)
     while (polymerBackboneIt.hasNext) {
-        const { indexA, indexB, posA, posB } = polymerBackboneIt.move()
-        builder.setId(indexA)
         // TODO size theme
-        builder.addCylinder(posA, posB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
-        builder.setId(indexB)
-        builder.addCylinder(posB, posA, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+        const { centerA, centerB } = polymerBackboneIt.move()
+        pos(centerA.element, pA)
+        pos(centerB.element, pB)
+        builder.setId(elements[centerA.element])
+        builder.addCylinder(pA, pB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+        builder.setId(elements[centerB.element])
+        builder.addCylinder(pB, pA, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });

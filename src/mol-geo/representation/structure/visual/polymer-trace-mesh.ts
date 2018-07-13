@@ -73,7 +73,7 @@ function interpolateNormals(controlPoints: Helpers.NumberArray, tangentVectors: 
         //     console.warn(i, 'flip compared to prev', radToDeg(Math.acos(Vec3.dot(prevNormal, normalVec))))
         // }
         Vec3.copy(prevNormal, normalVec)
-        
+
         Vec3.normalize(binormalVec, Vec3.cross(binormalVec, tangentVec, normalVec))
         Vec3.toArray(binormalVec, binormalVectors, i * 3)
     }
@@ -83,6 +83,8 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
     const polymerElementCount = getPolymerElementCount(unit)
     console.log('polymerElementCount', polymerElementCount)
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
+
+    const { elements } = unit
 
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
@@ -108,7 +110,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setId(v.index)
+        builder.setId(elements[v.center.element])
 
         for (let j = 0; j <= linearSegments; ++j) {
             const t = j * 1.0 / linearSegments;
