@@ -160,7 +160,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
         //     Vec3.fromArray(normalVec, normalVectors, j * 3)
         //     Vec3.fromArray(binormalVec, binormalVectors, j * 3)
         //     Vec3.fromArray(tangentVec, tangentVectors, j * 3)
-        //     builder.addIcosahedron(controlPoint, 0.1, 1)
+        //     builder.addIcosahedron(controlPoint, 0.25, 1)
         //     builder.addCylinder(
         //         controlPoint,
         //         Vec3.add(tmp, controlPoint, normalVec),
@@ -181,18 +181,24 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
         //     )
         // }
 
+        // builder.addIcosahedron(v.t0, 0.25, 1)
+        // builder.addIcosahedron(v.t1, 0.25, 1)
+        // builder.addIcosahedron(v.t2, 0.25, 1)
+        // builder.addIcosahedron(v.t3, 0.25, 1)
+        // builder.addIcosahedron(v.t4, 0.25, 1)
+
         let width = 0.2
         let height = 0.2
         if (
             SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta) ||
             SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
         ) {
-            width = 0.2
-            height = 0.6
+            width = 0.1
+            height = 0.8
         }
 
         // TODO size theme
-        builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height)
+        builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Polymer trace mesh', current: i, max: polymerElementCount });

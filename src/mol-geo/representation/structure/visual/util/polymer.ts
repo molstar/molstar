@@ -265,6 +265,19 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
     private residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>
 
+    private p0 = Vec3.zero();
+    private p1 = Vec3.zero();
+    private p2 = Vec3.zero();
+    private p3 = Vec3.zero();
+    private p4 = Vec3.zero();
+    private p5 = Vec3.zero();
+    private p6 = Vec3.zero();
+
+    private v01 = Vec3.zero();
+    private v12 = Vec3.zero();
+    private v23 = Vec3.zero();
+    private v34 = Vec3.zero();
+
     hasNext: boolean = false;
 
     private pos(target: Vec3, index: number) {
@@ -294,6 +307,24 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return elementIndex === -1 ? 0 as ElementIndex : elementIndex
     }
 
+    setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
+        const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
+        if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
+            Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1/4)
+        } else {
+            Vec3.copy(out, p2)
+        }
+    }
+
+    setDirectionVector(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
+        const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
+        if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
+            Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p2, p3)), 1/3)
+        } else {
+            Vec3.copy(out, p2)
+        }
+    }
+
     move() {
         const { residueIt, polymerIt, value } = this
 
@@ -313,16 +344,29 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const { index: residueIndex } = residueIt.move();
             value.center.element = this.getElementIndex(residueIndex, 'trace')
 
-            this.pos(value.t0, this.getAtomIndex(residueIndex - 2, 'trace'))
-            this.pos(value.t1, this.getAtomIndex(residueIndex - 1, 'trace'))
-            this.pos(value.t2, this.getAtomIndex(residueIndex, 'trace'))
-            this.pos(value.t3, this.getAtomIndex(residueIndex + 1, 'trace'))
-            this.pos(value.t4, this.getAtomIndex(residueIndex + 2, 'trace'))
+            this.pos(this.p0, this.getAtomIndex(residueIndex - 3, 'trace'))
+            this.pos(this.p1, this.getAtomIndex(residueIndex - 2, 'trace'))
+            this.pos(this.p2, this.getAtomIndex(residueIndex - 1, 'trace'))
+            this.pos(this.p3, this.getAtomIndex(residueIndex, 'trace'))
+            this.pos(this.p4, this.getAtomIndex(residueIndex + 1, 'trace'))
+            this.pos(this.p5, this.getAtomIndex(residueIndex + 2, 'trace'))
+            this.pos(this.p6, this.getAtomIndex(residueIndex + 3, 'trace'))
 
-            this.pos(value.d12, this.getAtomIndex(residueIndex - 1, 'direction'))
-            this.pos(value.d23, this.getAtomIndex(residueIndex, 'direction'))
+            this.pos(this.v01, this.getAtomIndex(residueIndex - 2, 'direction'))
+            this.pos(this.v12, this.getAtomIndex(residueIndex - 1, 'direction'))
+            this.pos(this.v23, this.getAtomIndex(residueIndex, 'direction'))
+            this.pos(this.v34, this.getAtomIndex(residueIndex + 1, 'direction'))
 
             this.value.secStrucType = this.unit.model.properties.secondaryStructure.type[residueIndex]
+
+            this.setControlPoint(value.t0, this.p0, this.p1, this.p2, residueIndex - 2)
+            this.setControlPoint(value.t1, this.p1, this.p2, this.p3, residueIndex - 1)
+            this.setControlPoint(value.t2, this.p2, this.p3, this.p4, residueIndex)
+            this.setControlPoint(value.t3, this.p3, this.p4, this.p5, residueIndex + 1)
+            this.setControlPoint(value.t4, this.p4, this.p5, this.p6, residueIndex + 2)
+
+            this.setDirectionVector(value.d12, this.v01, this.v12, this.v23, residueIndex)
+            this.setDirectionVector(value.d23, this.v12, this.v23, this.v34, residueIndex + 1)
 
             value.first = residueIndex === this.polymerSegment.start
             value.last = residueIndex === this.polymerSegment.end - 1

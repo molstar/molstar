@@ -27,7 +27,7 @@ export interface MeshBuilder {
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
     addIcosahedron(center: Vec3, radius: number, detail: number): void
-    addTube(controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number): void
+    addTube(controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number): void
     setId(id: number): void
     getMesh(): Mesh
 }
@@ -176,11 +176,7 @@ export namespace MeshBuilder {
                 setIcosahedronMat(tmpIcosahedronMat, center)
                 add(tmpIcosahedronMat, vertices, normals, indices)
             },
-            addTube: (controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number) => {
-                // console.log(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments)
-
-                // const ico = getIcosahedron({ radius: 0.1, detail: 1 })
-
+            addTube: (controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number) => {
                 const normalVector = Vec3.zero()
                 const binormalVector = Vec3.zero()
                 const tempPos = Vec3.zero()
@@ -188,8 +184,6 @@ export namespace MeshBuilder {
                 const b = Vec3.zero()
                 const u = Vec3.zero()
                 const v = Vec3.zero()
-
-                const waveFactor = 1
 
                 const vertexCount = vertices.elementCount
                 const di = 1 / linearSegments
@@ -229,9 +223,6 @@ export namespace MeshBuilder {
                         ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
                         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
                         ChunkedArray.add(ids, currentId);
-
-                        // setIcosahedronMat(tmpIcosahedronMat, tempPos)
-                        // add(tmpIcosahedronMat, ico.vertices, ico.normals, ico.indices)
                     }
                 }
 
