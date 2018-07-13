@@ -43,11 +43,11 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
     while (polymerBackboneIt.hasNext) {
         // TODO size theme
         const { centerA, centerB } = polymerBackboneIt.move()
-        pos(centerA.element, pA)
-        pos(centerB.element, pB)
-        builder.setId(elements[centerA.element])
+        pos(elements[centerA.element], pA)
+        pos(elements[centerB.element], pB)
+        builder.setId(centerA.element)
         builder.addCylinder(pA, pB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
-        builder.setId(elements[centerB.element])
+        builder.setId(centerB.element)
         builder.addCylinder(pB, pA, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

@@ -81,15 +81,13 @@ function interpolateNormals(controlPoints: Helpers.NumberArray, tangentVectors: 
 
 async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
-    console.log('polymerElementCount', polymerElementCount)
+    console.log('polymerElementCount trace', polymerElementCount)
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
-
-    const { elements } = unit
 
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
-    const linearSegments = 12
-    const radialSegments = 16
+    const linearSegments = 8
+    const radialSegments = 12
     const tension = 0.9
 
     const tanA = Vec3.zero()
@@ -110,7 +108,8 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setId(elements[v.center.element])
+        // builder.setId(elements[v.center.element])
+        builder.setId(v.center.element)
 
         for (let j = 0; j <= linearSegments; ++j) {
             const t = j * 1.0 / linearSegments;

@@ -24,24 +24,24 @@ namespace SortedRanges {
         return size
     }
 
-    export function transientSegments<T extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>) {
-        return new Iterator<T>(ranges, set)
+    export function transientSegments<T extends number = number, I extends number = number>(ranges: SortedRanges<T>, set: OrderedSet<T>) {
+        return new Iterator<T, I>(ranges, set)
     }
 
-    export class Iterator<I extends number = number> implements _Iterator<Segmentation.Segment<I>> {
-        private value: Segmentation.Segment<I> = { index: 0 as I, start: 0, end: 0 }
-    
+    export class Iterator<T extends number = number, I extends number = number> implements _Iterator<Segmentation.Segment<I>> {
+        private value: Segmentation.Segment<I> = { index: 0 as I, start: 0 as T, end: 0 as T }
+
         private curIndex = 0
         private maxIndex = 0
-        private interval: Interval<I>
-        private curMin: I = 0 as I
-    
+        private interval: Interval<T>
+        private curMin: T = 0 as T
+
         hasNext: boolean = false;
-    
+
         updateInterval() {
             this.interval = Interval.ofRange(this.ranges[this.curIndex], this.ranges[this.curIndex + 1])
         }
-    
+
         updateValue() {
             this.value.index = this.curIndex / 2 as I
             this.value.start = OrderedSet.findPredecessorIndex(this.set, this.ranges[this.curIndex])
@@ -61,13 +61,13 @@ namespace SortedRanges {
             }
             return this.value;
         }
-    
+
         getRangeIndex(value: number) {
             const index = SortedArray.findPredecessorIndex(this.ranges, value)
             return (index % 2 === 1) ? index - 1 : index
         }
-    
-        constructor(private ranges: SortedRanges<I>, private set: OrderedSet<I>) {
+
+        constructor(private ranges: SortedRanges<T>, private set: OrderedSet<T>) {
             if (ranges.length) {
                 this.curIndex = this.getRangeIndex(OrderedSet.min(set))
                 this.maxIndex = Math.min(ranges.length - 2, this.getRangeIndex(OrderedSet.max(set)))
