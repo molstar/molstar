@@ -73,7 +73,7 @@ export class Stage {
 
         // this.loadPdbid('1jj2')
         // this.loadPdbid('4umt') // ligand has bond with order 3
-        this.loadPdbid('1crn') // small
+        // this.loadPdbid('1crn') // small
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
@@ -82,7 +82,7 @@ export class Stage {
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
-        // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
+        this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok

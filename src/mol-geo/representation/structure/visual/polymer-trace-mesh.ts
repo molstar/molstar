@@ -187,18 +187,19 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
         // builder.addIcosahedron(v.t3, 0.25, 1)
         // builder.addIcosahedron(v.t4, 0.25, 1)
 
-        let width = 0.2
-        let height = 0.2
-        if (
-            SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta) ||
-            SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
-        ) {
-            width = 0.1
-            height = 0.8
-        }
+        let width = 0.2, height = 0.2
 
         // TODO size theme
-        builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1)
+        if (SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)) {
+            width = 1.0; height = 0.15
+            const arrowWidth = v.secStrucChange ? 1.7 : 0
+            builder.addSheet(controlPoints, normalVectors, binormalVectors, linearSegments, width, height, arrowWidth)
+        } else {
+            if (SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)) {
+                width = 0.2; height = 1.0
+            }
+            builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1)
+        }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Polymer trace mesh', current: i, max: polymerElementCount });

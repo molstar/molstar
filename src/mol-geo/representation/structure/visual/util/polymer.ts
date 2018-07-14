@@ -132,7 +132,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
     private state: AtomicPolymerBackboneIteratorState = AtomicPolymerBackboneIteratorState.nextPolymer
     hasNext: boolean = false;
 
-    getElementIndex(residueIndex: ResidueIndex, atomType: 'trace' | 'direction') {
+    private getElementIndex(residueIndex: ResidueIndex, atomType: 'trace' | 'direction') {
         const index = getElementIndexForResidueTypeAtomId(this.unit.model, residueIndex, atomType)
         // // TODO handle case when it returns -1
         // return SortedArray.indexOf(this.unit.elements, index) as ElementIndex
@@ -239,6 +239,7 @@ interface PolymerTraceElement {
     center: StructureElement
     first: boolean, last: boolean
     secStrucType: SecondaryStructureType
+    secStrucChange: boolean
     t0: Vec3, t1: Vec3, t2: Vec3, t3: Vec3, t4: Vec3
     d12: Vec3, d23: Vec3
 }
@@ -248,6 +249,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         center: StructureElement.create(unit),
         first: false, last: false,
         secStrucType: SecondaryStructureType.create(SecondaryStructureType.Flag.NA),
+        secStrucChange: false,
         t0: Vec3.zero(), t1: Vec3.zero(), t2: Vec3.zero(), t3: Vec3.zero(), t4: Vec3.zero(),
         d12: Vec3.create(1, 0, 0), d23: Vec3.create(1, 0, 0),
     }
@@ -273,10 +275,10 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private p5 = Vec3.zero();
     private p6 = Vec3.zero();
 
-    private v01 = Vec3.zero();
+    // private v01 = Vec3.zero();
     private v12 = Vec3.zero();
     private v23 = Vec3.zero();
-    private v34 = Vec3.zero();
+    // private v34 = Vec3.zero();
 
     hasNext: boolean = false;
 
@@ -286,18 +288,18 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         target[2] = this.unit.model.atomicConformation.z[index]
     }
 
-    updateResidueSegmentRange(polymerSegment: Segmentation.Segment<ResidueIndex>) {
+    private updateResidueSegmentRange(polymerSegment: Segmentation.Segment<ResidueIndex>) {
         const { index } = this.unit.model.atomicHierarchy.residueAtomSegments
         this.residueSegmentMin = index[this.unit.elements[polymerSegment.start]]
         this.residueSegmentMax = index[this.unit.elements[polymerSegment.end - 1]]
     }
 
-    getAtomIndex(residueIndex: number, atomType: 'trace' | 'direction') {
+    private getAtomIndex(residueIndex: number, atomType: 'trace' | 'direction') {
         const index = Math.min(Math.max(this.residueSegmentMin, residueIndex), this.residueSegmentMax)
         return getElementIndexForResidueTypeAtomId(this.unit.model, index as ResidueIndex, atomType)
     }
 
-    getElementIndex(residueIndex: number, atomType: 'trace' | 'direction') {
+    private getElementIndex(residueIndex: number, atomType: 'trace' | 'direction') {
         const index = this.getAtomIndex(residueIndex, atomType)
         // TODO handle case when it returns -1
         const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
@@ -307,7 +309,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         return elementIndex === -1 ? 0 as ElementIndex : elementIndex
     }
 
-    setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
+    private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
         const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
         if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
             Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1/4)
@@ -316,14 +318,14 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         }
     }
 
-    setDirectionVector(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
-        const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
-        if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
-            Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p2, p3)), 1/3)
-        } else {
-            Vec3.copy(out, p2)
-        }
-    }
+    // private setDirectionVector(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
+    //     const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
+    //     if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
+    //         Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p2, p3)), 1/3)
+    //     } else {
+    //         Vec3.copy(out, p2)
+    //     }
+    // }
 
     move() {
         const { residueIt, polymerIt, value } = this
@@ -352,10 +354,10 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.pos(this.p5, this.getAtomIndex(residueIndex + 2, 'trace'))
             this.pos(this.p6, this.getAtomIndex(residueIndex + 3, 'trace'))
 
-            this.pos(this.v01, this.getAtomIndex(residueIndex - 2, 'direction'))
+            // this.pos(this.v01, this.getAtomIndex(residueIndex - 2, 'direction'))
             this.pos(this.v12, this.getAtomIndex(residueIndex - 1, 'direction'))
             this.pos(this.v23, this.getAtomIndex(residueIndex, 'direction'))
-            this.pos(this.v34, this.getAtomIndex(residueIndex + 1, 'direction'))
+            // this.pos(this.v34, this.getAtomIndex(residueIndex + 1, 'direction'))
 
             this.value.secStrucType = this.unit.model.properties.secondaryStructure.type[residueIndex]
 
@@ -365,11 +367,14 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.setControlPoint(value.t3, this.p3, this.p4, this.p5, residueIndex + 1)
             this.setControlPoint(value.t4, this.p4, this.p5, this.p6, residueIndex + 2)
 
-            this.setDirectionVector(value.d12, this.v01, this.v12, this.v23, residueIndex)
-            this.setDirectionVector(value.d23, this.v12, this.v23, this.v34, residueIndex + 1)
+            // this.setDirectionVector(value.d12, this.v01, this.v12, this.v23, residueIndex)
+            // this.setDirectionVector(value.d23, this.v12, this.v23, this.v34, residueIndex + 1)
+            Vec3.copy(value.d12, this.v12)
+            Vec3.copy(value.d23, this.v23)
 
-            value.first = residueIndex === this.polymerSegment.start
-            value.last = residueIndex === this.polymerSegment.end - 1
+            value.first = residueIndex === this.residueSegmentMin
+            value.last = residueIndex === this.residueSegmentMax
+            value.secStrucChange = this.unit.model.properties.secondaryStructure.key[residueIndex] !== this.unit.model.properties.secondaryStructure.key[residueIndex + 1]
 
             if (!residueIt.hasNext) {
                 this.state = AtomicPolymerTraceIteratorState.nextPolymer

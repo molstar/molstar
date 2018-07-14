@@ -13,6 +13,8 @@ import Cylinder, { CylinderProps } from '../primitive/cylinder';
 import Icosahedron, { IcosahedronProps } from '../primitive/icosahedron';
 import { Mesh } from './mesh';
 import { getNormalMatrix } from '../util';
+import { addSheet } from '../primitive/sheet';
+import { addTube } from '../primitive/tube';
 
 type Primitive = {
     vertices: Float32Array
@@ -28,6 +30,7 @@ export interface MeshBuilder {
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
     addIcosahedron(center: Vec3, radius: number, detail: number): void
     addTube(controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number): void
+    addSheet(controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowWidth: number): void
     setId(id: number): void
     getMesh(): Mesh
 }
@@ -177,71 +180,10 @@ export namespace MeshBuilder {
                 add(tmpIcosahedronMat, vertices, normals, indices)
             },
             addTube: (controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number) => {
-                const normalVector = Vec3.zero()
-                const binormalVector = Vec3.zero()
-                const tempPos = Vec3.zero()
-                const a = Vec3.zero()
-                const b = Vec3.zero()
-                const u = Vec3.zero()
-                const v = Vec3.zero()
-
-                const vertexCount = vertices.elementCount
-                const di = 1 / linearSegments
-
-                for (let i = 0; i <= linearSegments; ++i) {
-                    const i3 = i * 3
-                    Vec3.fromArray(u, normalVectors, i3)
-                    Vec3.fromArray(v, binormalVectors, i3)
-
-                    const tt = di * i - 0.5;
-                    const ff = 1 + (waveFactor - 1) * (Math.cos(2 * Math.PI * tt) + 1);
-                    const w = ff * width, h = ff * height;
-
-                    for (let j = 0; j < radialSegments; ++j) {
-                        let t = 2 * Math.PI * j / radialSegments;
-
-                        Vec3.copy(a, u)
-                        Vec3.copy(b, v)
-                        Vec3.add(
-                            normalVector,
-                            Vec3.scale(a, a, w * Math.cos(t)),
-                            Vec3.scale(b, b, h * Math.sin(t))
-                        )
-
-                        Vec3.copy(a, u)
-                        Vec3.copy(b, v)
-                        Vec3.add(
-                            binormalVector,
-                            Vec3.scale(a, a, h * Math.cos(t)),
-                            Vec3.scale(b, b, w * Math.sin(t))
-                        )
-                        Vec3.normalize(normalVector, normalVector)
-
-                        Vec3.fromArray(tempPos, controlPoints, i3)
-                        Vec3.add(tempPos, tempPos, binormalVector)
-
-                        ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
-                        ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
-                        ChunkedArray.add(ids, currentId);
-                    }
-                }
-
-                for (let i = 0; i < linearSegments; ++i) {
-                    for (let j = 0; j < radialSegments; ++j) {
-                        ChunkedArray.add3(
-                            indices,
-                            (vertexCount + i * radialSegments + (j + 1) % radialSegments),
-                            (vertexCount + (i + 1) * radialSegments + (j + 1) % radialSegments),
-                            (vertexCount + i * radialSegments + j)
-                        );
-                        ChunkedArray.add3(
-                            indices,
-                            (vertexCount + (i + 1) * radialSegments + (j + 1) % radialSegments),
-                            (vertexCount + (i + 1) * radialSegments + j),
-                            (vertexCount + i * radialSegments + j)
-                        );
-                    }
-                }
+                addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, waveFactor, vertices, normals, indices, ids, currentId)
+            },
+            addSheet: (controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowWidth: number) => {
+                addSheet(controlPoints, normalVectors, binormalVectors, linearSegments, width, height, arrowWidth, vertices, normals, indices, ids, currentId)
             },
             setId: (id: number) => {
                 if (currentId !== id) {
