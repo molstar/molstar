@@ -7,8 +7,8 @@
 import { Segmentation } from 'mol-data/int';
 import { RuntimeContext } from 'mol-task';
 import { Structure, Unit } from '../structure';
-import Query from './query';
-import Selection from './selection';
+import { StructureQuery } from './query';
+import { StructureSelection } from './selection';
 import { UniqueStructuresBuilder } from './utils/builders';
 import { StructureUniqueSubsetBuilder } from '../structure/util/unique-subset-builder';
 
@@ -37,18 +37,18 @@ function getWholeResidues(ctx: RuntimeContext, source: Structure, structure: Str
     return builder.getStructure();
 }
 
-export function wholeResidues(query: Query.Provider, isFlat: boolean): Query.Provider {
-    return async (structure, ctx) => {
-        const inner = await query(structure, ctx);
-        if (Selection.isSingleton(inner)) {
-            return Selection.Singletons(structure, getWholeResidues(ctx, structure, inner.structure));
+export function wholeResidues(query: StructureQuery, isFlat: boolean): StructureQuery {
+    return async (ctx) => {
+        const inner = await query(ctx);
+        if (StructureSelection.isSingleton(inner)) {
+            return StructureSelection.Singletons(ctx.structure, getWholeResidues(ctx.taskCtx, ctx.structure, inner.structure));
         } else {
-            const builder = new UniqueStructuresBuilder(structure);
+            const builder = new UniqueStructuresBuilder(ctx.structure);
             let progress = 0;
             for (const s of inner.structures) {
-                builder.add(getWholeResidues(ctx, structure, s));
+                builder.add(getWholeResidues(ctx.taskCtx, ctx.structure, s));
                 progress++;
-                if (ctx.shouldUpdate) await ctx.update({ message: 'Whole Residues', current: progress, max: inner.structures.length });
+                if (ctx.taskCtx.shouldUpdate) await ctx.taskCtx.update({ message: 'Whole Residues', current: progress, max: inner.structures.length });
             }
             return builder.getSelection();
         }
@@ -83,17 +83,17 @@ async function getIncludeSurroundings(ctx: RuntimeContext, source: Structure, st
     return !!params.wholeResidues ? getWholeResidues(ctx, source, builder.getStructure()) : builder.getStructure();
 }
 
-export function includeSurroundings(query: Query.Provider, params: IncludeSurroundingsParams): Query.Provider {
-    return async (structure, ctx) => {
-        const inner = await query(structure, ctx);
-        if (Selection.isSingleton(inner)) {
-            const surr = await getIncludeSurroundings(ctx, structure, inner.structure, params);
-            const ret = Selection.Singletons(structure, surr);
+export function includeSurroundings(query: StructureQuery, params: IncludeSurroundingsParams): StructureQuery {
+    return async (ctx) => {
+        const inner = await query(ctx);
+        if (StructureSelection.isSingleton(inner)) {
+            const surr = await getIncludeSurroundings(ctx.taskCtx, ctx.structure, inner.structure, params);
+            const ret = StructureSelection.Singletons(ctx.structure, surr);
             return ret;
         } else {
-            const builder = new UniqueStructuresBuilder(structure);
+            const builder = new UniqueStructuresBuilder(ctx.structure);
             for (const s of inner.structures) {
-                builder.add(await getIncludeSurroundings(ctx, structure, s, params));
+                builder.add(await getIncludeSurroundings(ctx.taskCtx, ctx.structure, s, params));
             }
             return builder.getSelection();
         }

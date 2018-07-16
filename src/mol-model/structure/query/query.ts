@@ -4,21 +4,16 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, RuntimeContext } from 'mol-task'
+import { RuntimeContext } from 'mol-task'
 import { Structure } from '../structure'
-import Selection from './selection'
+import { StructureSelection } from './selection'
+import { QueryContext } from './context';
 
-// TODO: Query { (s: Structure): Computation<Selection> }
-
-interface Query { (s: Structure): Task<Selection>, provider: Query.Provider }
-function Query(q: Query.Provider): Query {
-    const ret = (s => Task.create('Query', ctx => q(s, ctx))) as Query;
-    ret.provider = q;
-    return ret;
+interface StructureQuery { (ctx: QueryContext): Promise<StructureSelection> }
+namespace StructureQuery {
+    export function run(query: StructureQuery, structure: Structure, ctx?: RuntimeContext) {
+        return query(new QueryContext(structure, ctx || RuntimeContext.Synchronous))
+    }
 }
 
-namespace Query {
-    export interface Provider { (s: Structure, ctx: RuntimeContext): Promise<Selection> }
-}
-
-export default Query
+export { StructureQuery }

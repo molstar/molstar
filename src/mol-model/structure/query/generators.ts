@@ -4,49 +4,50 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Query from './query'
-import Selection from './selection'
-import { StructureElement, Unit, StructureProperties as P } from '../structure'
+import { StructureQuery } from './query'
+import { StructureSelection } from './selection'
+import { Unit, StructureProperties as P } from '../structure'
 import { Segmentation } from 'mol-data/int'
 import { LinearGroupingBuilder } from './utils/builders';
+import { QueryPredicate, QueryFn, QueryContextView } from './context';
 
-export const all: Query.Provider = async (s, ctx) => Selection.Singletons(s, s);
+export const all: StructureQuery = async (ctx) => StructureSelection.Singletons(ctx.structure, ctx.structure);
 
-export interface AtomQueryParams {
-    entityTest: StructureElement.Predicate,
-    chainTest: StructureElement.Predicate,
-    residueTest: StructureElement.Predicate,
-    atomTest: StructureElement.Predicate,
-    groupBy: StructureElement.Property<any>
+export interface AtomsQueryParams {
+    entityTest: QueryPredicate,
+    chainTest: QueryPredicate,
+    residueTest: QueryPredicate,
+    atomTest: QueryPredicate,
+    groupBy: QueryFn
 }
 
-export interface AtomGroupsQueryParams extends AtomQueryParams {
-    groupBy: StructureElement.Property<any>
-}
+export function residues(params?: Partial<AtomsQueryParams>) { return atoms({ ...params, groupBy: ctx => P.residue.key(ctx.element) }); }
+export function chains(params?: Partial<AtomsQueryParams>) { return atoms({ ...params, groupBy: ctx => P.chain.key(ctx.element) }); }
 
-export function residues(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.residue.key }); }
-export function chains(params?: Partial<AtomQueryParams>) { return atoms({ ...params, groupBy: P.chain.key }); }
+function _true(ctx: QueryContextView) { return true; }
+function _zero(ctx: QueryContextView) { return 0; }
 
-export function atoms(params?: Partial<AtomGroupsQueryParams>): Query.Provider {
+export function atoms(params?: Partial<AtomsQueryParams>): StructureQuery {
     if (!params || (!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy)) return all;
     if (!!params.atomTest && !params.residueTest && !params.chainTest && !params.entityTest && !params.groupBy) return atomGroupsLinear(params.atomTest);
 
-    const normalized: AtomGroupsQueryParams = {
-        entityTest: params.entityTest || P.constant.true,
-        chainTest: params.chainTest || P.constant.true,
-        residueTest: params.residueTest || P.constant.true,
-        atomTest: params.atomTest || P.constant.true,
-        groupBy: params.groupBy || P.constant.zero,
+    const normalized: AtomsQueryParams = {
+        entityTest: params.entityTest || _true,
+        chainTest: params.chainTest || _true,
+        residueTest: params.residueTest || _true,
+        atomTest: params.atomTest || _true,
+        groupBy: params.groupBy || _zero,
     };
 
     if (!params.groupBy) return atomGroupsSegmented(normalized)
     return atomGroupsGrouped(normalized);
 }
 
-function atomGroupsLinear(atomTest: StructureElement.Predicate): Query.Provider {
-    return async (structure, ctx) => {
+function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
+    return async (ctx) => {
+        const { structure } = ctx;
         const { units } = structure;
-        const l = StructureElement.create();
+        const l = ctx.pushCurrentElement();
         const builder = structure.subsetBuilder(true);
 
         let progress = 0;
@@ -57,22 +58,23 @@ function atomGroupsLinear(atomTest: StructureElement.Predicate): Query.Provider 
             builder.beginUnit(unit.id);
             for (let j = 0, _j = elements.length; j < _j; j++) {
                 l.element = elements[j];
-                if (atomTest(l)) builder.addElement(l.element);
+                if (atomTest(ctx)) builder.addElement(l.element);
             }
             builder.commitUnit();
 
             progress++;
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: progress, max: units.length });
+            if (ctx.taskCtx.shouldUpdate) await ctx.taskCtx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
-
-        return Selection.Singletons(structure, builder.getStructure());
+        ctx.popCurrentElement();
+        return StructureSelection.Singletons(structure, builder.getStructure());
     };
 }
 
-function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomGroupsQueryParams): Query.Provider {
-    return async (structure, ctx) => {
+function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomsQueryParams): StructureQuery {
+    return async (ctx) => {
+        const { structure } = ctx;
         const { units } = structure;
-        const l = StructureElement.create();
+        const l = ctx.pushCurrentElement();
         const builder = structure.subsetBuilder(true);
 
         let progress = 0;
@@ -89,7 +91,7 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
                 const chainSegment = chainsIt.move();
                 l.element = elements[chainSegment.start];
                 // test entity and chain
-                if (!entityTest(l) || !chainTest(l)) continue;
+                if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
@@ -97,11 +99,11 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
                     l.element = elements[residueSegment.start];
 
                     // test residue
-                    if (!residueTest(l)) continue;
+                    if (!residueTest(ctx)) continue;
 
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
                         l.element = elements[j];
-                        if (atomTest(l)) {
+                        if (atomTest(ctx)) {
                             builder.addElement(l.element);
                         }
                     }
@@ -110,17 +112,18 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             builder.commitUnit();
 
             progress++;
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: progress, max: units.length });
+            if (ctx.taskCtx.shouldUpdate) await ctx.taskCtx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
-
-        return Selection.Singletons(structure, builder.getStructure());
+        ctx.popCurrentElement();
+        return StructureSelection.Singletons(structure, builder.getStructure());
     };
 }
 
-function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomGroupsQueryParams): Query.Provider {
-    return async (structure, ctx) => {
+function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomsQueryParams): StructureQuery {
+    return async (ctx) => {
+        const { structure } = ctx;
         const { units } = structure;
-        const l = StructureElement.create();
+        const l = ctx.pushCurrentElement();
         const builder = new LinearGroupingBuilder(structure);
 
         let progress = 0;
@@ -136,7 +139,7 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
                 const chainSegment = chainsIt.move();
                 l.element = elements[chainSegment.start];
                 // test entity and chain
-                if (!entityTest(l) || !chainTest(l)) continue;
+                if (!entityTest(ctx) || !chainTest(ctx)) continue;
 
                 residuesIt.setSegment(chainSegment);
                 while (residuesIt.hasNext) {
@@ -144,19 +147,19 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
                     l.element = elements[residueSegment.start];
 
                     // test residue
-                    if (!residueTest(l)) continue;
+                    if (!residueTest(ctx)) continue;
 
                     for (let j = residueSegment.start, _j = residueSegment.end; j < _j; j++) {
                         l.element = elements[j];
-                        if (atomTest(l)) builder.add(groupBy(l), unit.id, l.element);
+                        if (atomTest(ctx)) builder.add(groupBy(ctx), unit.id, l.element);
                     }
                 }
             }
 
             progress++;
-            if (ctx.shouldUpdate) await ctx.update({ message: 'Atom Groups', current: progress, max: units.length });
+            if (ctx.taskCtx.shouldUpdate) await ctx.taskCtx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
-
+        ctx.popCurrentElement();
         return builder.getSelection();
     };
 }

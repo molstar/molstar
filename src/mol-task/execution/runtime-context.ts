@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { SyncRuntimeContext } from './synchronous';
+
 interface RuntimeContext {
     readonly shouldUpdate: boolean,
     readonly isSynchronous: boolean,
@@ -26,6 +28,8 @@ namespace RuntimeContext {
         max: number,
         canAbort: boolean
     }
+
+    export const Synchronous = SyncRuntimeContext;
 }
 
 export { RuntimeContext }
