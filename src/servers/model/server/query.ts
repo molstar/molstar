@@ -13,7 +13,7 @@ import { ConsoleLogger } from 'mol-util/console-logger';
 import Writer from 'mol-io/writer/writer';
 import { CifWriter } from 'mol-io/writer/cif'
 import { encode_mmCIF_categories } from 'mol-model/structure/export/mmcif';
-import { Selection } from 'mol-model/structure';
+import { StructureSelection, StructureQuery } from 'mol-model/structure';
 import Version from '../version'
 import { Column } from 'mol-data/db';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
@@ -69,7 +69,7 @@ export async function resolveRequest(req: Request, writer: Writer) {
         ? await req.queryDefinition.structureTransform(req.normalizedParams, wrappedStructure.structure)
         : wrappedStructure.structure;
     const query = req.queryDefinition.query(req.normalizedParams, structure);
-    const result = Selection.unionStructure(await query(structure).run(abortingObserver, 250));
+    const result = StructureSelection.unionStructure(await StructureQuery.asTask(query, structure).run(abortingObserver, 250));
     perf.end('query');
 
     ConsoleLogger.logId(req.id, 'Query', 'Query finished.');

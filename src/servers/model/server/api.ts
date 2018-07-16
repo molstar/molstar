@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Query, Queries, Structure, StructureElement, StructureSymmetry, StructureProperties as Props } from 'mol-model/structure';
+import { StructureQuery, Queries, Structure, StructureElement, StructureSymmetry, StructureProperties as Props, QueryPredicate } from 'mol-model/structure';
 
 export enum QueryParamType {
     String,
@@ -26,7 +26,7 @@ export interface QueryDefinition {
     name: string,
     niceName: string,
     exampleId: string, // default is 1cbs
-    query: (params: any, structure: Structure) => Query,
+    query: (params: any, structure: Structure) => StructureQuery,
     description: string,
     params: QueryParamInfo[],
     structureTransform?: (params: any, s: Structure) => Promise<Structure>
@@ -51,25 +51,25 @@ const AtomSiteParameters = {
 //     return Element.property(l => p(l) === id);
 // }
 
-function entityTest1_555(params: any): StructureElement.Predicate | undefined {
-    if (typeof params.entity_id === 'undefined') return StructureElement.property(l => l.unit.conformation.operator.isIdentity);
+function entityTest1_555(params: any): QueryPredicate | undefined {
+    if (typeof params.entity_id === 'undefined') return ctx => ctx.element.unit.conformation.operator.isIdentity;
     const p = Props.entity.id, id = '' + params.entityId;
-    return StructureElement.property(l => l.unit.conformation.operator.isIdentity && p(l) === id);
+    return ctx => ctx.element.unit.conformation.operator.isIdentity && p(ctx.element) === id;
 }
 
-function chainTest(params: any): StructureElement.Predicate | undefined {
+function chainTest(params: any): QueryPredicate | undefined {
     if (typeof params.label_asym_id !== 'undefined') {
         const p = Props.chain.label_asym_id, id = '' + params.label_asym_id;
-        return StructureElement.property(l => p(l) === id);
+        return ctx => p(ctx.element) === id;
     }
     if (typeof params.auth_asym_id !== 'undefined') {
         const p = Props.chain.auth_asym_id, id = '' + params.auth_asym_id;
-        return StructureElement.property(l => p(l) === id);
+        return ctx => p(ctx.element) === id;
     }
     return void 0;
 }
 
-function residueTest(params: any): StructureElement.Predicate | undefined {
+function residueTest(params: any): QueryPredicate | undefined {
     const props: StructureElement.Property<any>[] = [], values: any[] = [];
 
     if (typeof params.label_seq_id !== 'undefined') {
@@ -99,15 +99,15 @@ function residueTest(params: any): StructureElement.Predicate | undefined {
 
     switch (props.length) {
         case 0: return void 0;
-        case 1: return StructureElement.property(l => props[0](l) === values[0]);
-        case 2: return StructureElement.property(l => props[0](l) === values[0] && props[1](l) === values[1]);
-        case 3: return StructureElement.property(l => props[0](l) === values[0] && props[1](l) === values[1] && props[2](l) === values[2]);
+        case 1: return ctx => props[0](ctx.element) === values[0];
+        case 2: return ctx => props[0](ctx.element) === values[0] && props[1](ctx.element) === values[1];
+        case 3: return ctx => props[0](ctx.element) === values[0] && props[1](ctx.element) === values[1] && props[2](ctx.element) === values[2];
         default: {
             const len = props.length;
-            return StructureElement.property(l => {
-                for (let i = 0; i < len; i++) if (!props[i](l) !== values[i]) return false;
+            return ctx => {
+                for (let i = 0; i < len; i++) if (!props[i](ctx.element) !== values[i]) return false;
                 return true;
-            });
+            };
         }
     }
 }
@@ -117,13 +117,13 @@ function residueTest(params: any): StructureElement.Predicate | undefined {
 // }
 
 const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
-    'full': { niceName: 'Full Structure', query: () => Query(Queries.generators.all), description: 'The full structure.' },
+    'full': { niceName: 'Full Structure', query: () => Queries.generators.all, description: 'The full structure.' },
     'residueInteraction': {
         niceName: 'Residues Inside a Sphere',
         description: 'Identifies all residues within the given radius from the source residue.',
         query(p) {
             const center = Queries.generators.atoms({ entityTest: entityTest1_555(p), chainTest: chainTest(p), residueTest: residueTest(p) });
-            return Query(Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true }));
+            return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
         },
         structureTransform(p, s) {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();

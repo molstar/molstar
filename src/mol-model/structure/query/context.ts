@@ -8,7 +8,6 @@ import { RuntimeContext } from 'mol-task';
 import { Structure, StructureElement } from '../structure';
 
 export interface QueryContextView {
-    readonly taskCtx: RuntimeContext;
     readonly element: StructureElement;
 }
 

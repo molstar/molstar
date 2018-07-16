@@ -5,7 +5,7 @@
  */
 
 import Structure from './structure'
-import { Selection } from '../query'
+import { StructureSelection, QueryContext } from '../query'
 import { ModelSymmetry } from '../model'
 import { Task, RuntimeContext } from 'mol-task';
 import { SortedArray } from 'mol-data/int';
@@ -25,12 +25,14 @@ namespace StructureSymmetry {
 
             const assembler = Structure.Builder();
 
+            const queryCtx = new QueryContext(structure, ctx);
+
             for (const g of assembly.operatorGroups) {
-                const selection = await g.selector(structure).runAsChild(ctx);
-                if (Selection.structureCount(selection) === 0) {
+                const selection = await g.selector(queryCtx);
+                if (StructureSelection.structureCount(selection) === 0) {
                     continue;
                 }
-                const { units } = Selection.unionStructure(selection);
+                const { units } = StructureSelection.unionStructure(selection);
 
                 for (const oper of g.operators) {
                     for (const unit of units) {

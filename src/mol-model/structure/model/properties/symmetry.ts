@@ -6,13 +6,13 @@
 
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { arrayFind } from 'mol-data/util'
-import { Query } from '../../query'
+import { StructureQuery } from '../../query'
 import { Model } from '../../model'
 import { Spacegroup } from 'mol-math/geometry';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
-    readonly selector: Query,
+    readonly selector: StructureQuery,
     readonly operators: ReadonlyArray<SymmetryOperator>
 }
 

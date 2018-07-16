@@ -7,10 +7,9 @@
 import * as React from 'react'
 import { View } from '../view';
 import { SequenceViewController } from '../../controller/visualization/sequence-view';
-import { Structure, StructureSequence, Queries, Selection, StructureProperties } from 'mol-model/structure';
+import { Structure, StructureSequence, Queries, StructureSelection, StructureProperties, StructureQuery } from 'mol-model/structure';
 import { Context } from '../../context/context';
 import { InteractivityEvents } from '../../event/basic';
-import { SyncRuntimeContext } from 'mol-task/execution/synchronous';
 import { EmptyLoci } from 'mol-model/loci';
 
 export class SequenceView extends View<SequenceViewController, {}, {}> {
@@ -27,8 +26,8 @@ export class SequenceView extends View<SequenceViewController, {}, {}> {
 
 function createQuery(entityId: string, label_seq_id: number) {
     return Queries.generators.atoms({
-        entityTest: l => StructureProperties.entity.id(l) === entityId,
-        residueTest: l => StructureProperties.residue.label_seq_id(l) === label_seq_id
+        entityTest: ctx => StructureProperties.entity.id(ctx.element) === entityId,
+        residueTest: ctx => StructureProperties.residue.label_seq_id(ctx.element) === label_seq_id
     });
 }
 
@@ -42,7 +41,7 @@ class EntitySequence extends React.Component<{ ctx: Context, seq: StructureSeque
         }
 
         const query = createQuery(this.props.seq.entityId, seqId);
-        const loci = Selection.toLoci(await query(this.props.structure, SyncRuntimeContext));
+        const loci = StructureSelection.toLoci(await StructureQuery.run(query, this.props.structure));
         if (loci.elements.length === 0) InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, EmptyLoci);
         else InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, loci);
     }

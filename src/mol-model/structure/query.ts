@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Selection from './query/selection'
-import Query from './query/query'
+import { StructureSelection } from './query/selection'
+import { StructureQuery } from './query/query'
+export * from './query/context'
 import * as generators from './query/generators'
 import * as modifiers from './query/modifiers'
 import pred from './query/predicates'
@@ -16,4 +17,4 @@ export const Queries = {
     pred
 }
 
-export { Selection, Query }
+export { StructureSelection, StructureQuery }

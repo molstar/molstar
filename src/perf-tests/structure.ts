@@ -11,7 +11,7 @@ import * as fs from 'fs'
 import fetch from 'node-fetch'
 import CIF from 'mol-io/reader/cif'
 
-import { Structure, Model, Queries as Q, StructureElement, Selection, StructureSymmetry, Query, Format, StructureProperties as SP } from 'mol-model/structure'
+import { Structure, Model, Queries as Q, StructureElement, StructureSelection, StructureSymmetry, StructureQuery, Format, StructureProperties as SP } from 'mol-model/structure'
 //import { Segmentation, OrderedSet } from 'mol-data/int'
 
 import to_mmCIF from 'mol-model/structure/export/mmcif'
@@ -325,13 +325,13 @@ export namespace PropertyAccess {
         const auth_comp_id = SP.residue.auth_comp_id, op = SP.unit.operator_name;
         //const q1 = Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'REA' });
         const q1 = Q.modifiers.includeSurroundings(Q.generators.atoms({
-            chainTest: l => op(l) === '1_555',
-            residueTest: l => auth_comp_id(l) === 'REA'
+            chainTest: l => op(l.element) === '1_555',
+            residueTest: l => auth_comp_id(l.element) === 'REA'
         }), {
             radius: 5,
             wholeResidues: true
         });
-        const surr = Selection.unionStructure(await query(Query(q1), a));
+        const surr = StructureSelection.unionStructure(await StructureQuery.run(q1, a));
         console.timeEnd('symmetry')
 
         // for (const u of surr.units) {
@@ -371,8 +371,8 @@ export namespace PropertyAccess {
     //     console.log('group count', uniqueGroups.groups.length);
     // }
 
-    function query(q: Query, s: Structure) {
-        return q(s).run();
+    function query(q: StructureQuery, s: Structure) {
+        return StructureQuery.run(q, s);
     }
 
     export async function run() {
@@ -431,14 +431,14 @@ export namespace PropertyAccess {
         //const auth_asym_id = SP.chain.auth_asym_id;
         //const set =  new Set(['A', 'B', 'C', 'D']);
         //const q = Q.generators.atomGroups({ atomTest: l => auth_seq_id(l) < 3 });
-        const q = Query(Q.generators.atoms({ atomTest: Q.pred.eq(SP.residue.auth_comp_id, 'ALA') }));
+        const q = Q.generators.atoms({ atomTest: Q.pred.eq(l => SP.residue.auth_comp_id(l.element), 'ALA') });
         const P = SP
         //const q0 = Q.generators.atoms({ atomTest: l => auth_comp_id(l) === 'ALA' });
-        const q1 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA' }));
-        const q2 = Query(Q.generators.atoms({ residueTest: l => auth_comp_id(l) === 'ALA', groupBy: SP.residue.key }));
-        const q3 = Query(Q.generators.atoms({
-            chainTest: Q.pred.inSet(P.chain.auth_asym_id, ['A', 'B', 'C', 'D']),
-            residueTest: Q.pred.eq(P.residue.auth_comp_id, 'ALA')
+        const q1 = (Q.generators.atoms({ residueTest: l => auth_comp_id(l.element) === 'ALA' }));
+        const q2 = (Q.generators.atoms({ residueTest: l => auth_comp_id(l.element) === 'ALA', groupBy: l => SP.residue.key(l.element) }));
+        const q3 = (Q.generators.atoms({
+            chainTest: Q.pred.inSet(l => P.chain.auth_asym_id(l.element), ['A', 'B', 'C', 'D']),
+            residueTest: Q.pred.eq(l => P.residue.auth_comp_id(l.element), 'ALA')
         }));
         await query(q, structures[0]);
         //console.log(to_mmCIF('test', Selection.union(q0r)));
@@ -452,7 +452,7 @@ export namespace PropertyAccess {
         console.time('q2')
         const q2r = await query(q2, structures[0]);
         console.timeEnd('q2')
-        console.log(Selection.structureCount(q2r));
+        console.log(StructureSelection.structureCount(q2r));
         //console.log(q1(structures[0]));
 
         const col = models[0].atomicConformation.atomId.value;
