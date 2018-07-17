@@ -195,6 +195,16 @@ namespace Vec3 {
     }
 
     /**
+     * Negates the components of a vec3
+     */
+    export function negate(out: Vec3, a: Vec3) {
+        out[0] = -a[0];
+        out[1] = -a[1];
+        out[2] = -a[2];
+        return out;
+    }
+
+    /**
      * Returns the inverse of the components of a Vec3
      */
     export function inverse(out: Vec3, a: Vec3) {
@@ -384,7 +394,7 @@ namespace Vec3 {
     export function exactEquals(a: Vec3, b: Vec3) {
         return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
     }
-    
+
     /**
      * Returns whether or not the vectors have approximately the same elements in the same position.
      */

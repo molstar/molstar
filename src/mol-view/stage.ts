@@ -82,8 +82,8 @@ export class Stage {
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
-        this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
-        // this.loadMmcifUrl(`../../examples/1crn.cif`)
+        // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
+        this.loadMmcifUrl(`../../examples/1crn.cif`)
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok
