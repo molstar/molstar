@@ -4,7 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { RuntimeContext } from 'mol-task';
 import { Structure, StructureElement } from '../structure';
 
 export interface QueryContextView {
@@ -17,7 +16,6 @@ export class QueryContext implements QueryContextView {
     private currentLocked = false;
 
     readonly inputStructure: Structure;
-    readonly taskCtx: RuntimeContext;
 
     /** Current element */
     readonly element: StructureElement = StructureElement.create();
@@ -44,9 +42,8 @@ export class QueryContext implements QueryContextView {
         (this.currentStructure as any) = void 0;
     }
 
-    constructor(structure: Structure, taskCtx: RuntimeContext) {
+    constructor(structure: Structure) {
         this.inputStructure = structure;
-        this.taskCtx = taskCtx;
     }
 }
 

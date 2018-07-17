@@ -25,10 +25,10 @@ namespace StructureSymmetry {
 
             const assembler = Structure.Builder();
 
-            const queryCtx = new QueryContext(structure, ctx);
+            const queryCtx = new QueryContext(structure);
 
             for (const g of assembly.operatorGroups) {
-                const selection = await g.selector(queryCtx);
+                const selection = g.selector(queryCtx);
                 if (StructureSelection.structureCount(selection) === 0) {
                     continue;
                 }

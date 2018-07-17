@@ -69,7 +69,7 @@ export async function resolveRequest(req: Request, writer: Writer) {
         ? await req.queryDefinition.structureTransform(req.normalizedParams, wrappedStructure.structure)
         : wrappedStructure.structure;
     const query = req.queryDefinition.query(req.normalizedParams, structure);
-    const result = StructureSelection.unionStructure(await StructureQuery.asTask(query, structure).run(abortingObserver, 250));
+    const result = StructureSelection.unionStructure(StructureQuery.run1(query, structure));
     perf.end('query');
 
     ConsoleLogger.logId(req.id, 'Query', 'Query finished.');

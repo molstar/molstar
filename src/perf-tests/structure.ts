@@ -331,7 +331,7 @@ export namespace PropertyAccess {
             radius: 5,
             wholeResidues: true
         });
-        const surr = StructureSelection.unionStructure(await StructureQuery.run(q1, a));
+        const surr = StructureSelection.unionStructure(StructureQuery.run1(q1, a));
         console.timeEnd('symmetry')
 
         // for (const u of surr.units) {
@@ -372,7 +372,7 @@ export namespace PropertyAccess {
     // }
 
     function query(q: StructureQuery, s: Structure) {
-        return StructureQuery.run(q, s);
+        return StructureQuery.run1(q, s);
     }
 
     export async function run() {
@@ -444,13 +444,13 @@ export namespace PropertyAccess {
         //console.log(to_mmCIF('test', Selection.union(q0r)));
 
         console.time('q1')
-        await query(q1, structures[0]);
+        query(q1, structures[0]);
         console.timeEnd('q1')
         console.time('q1')
-        await query(q1, structures[0]);
+        query(q1, structures[0]);
         console.timeEnd('q1')
         console.time('q2')
-        const q2r = await query(q2, structures[0]);
+        const q2r = query(q2, structures[0]);
         console.timeEnd('q2')
         console.log(StructureSelection.structureCount(q2r));
         //console.log(q1(structures[0]));
@@ -461,8 +461,8 @@ export namespace PropertyAccess {
             //.add('test q', () => q1(structures[0]))
             //.add('test q', () => q(structures[0]))
             .add('test int', () => sumProperty(structures[0], l => col(l.element)))
-            .add('test q1', async () => await query(q1, structures[0]))
-            .add('test q3', async () => await query(q3, structures[0]))
+            .add('test q1', async () => query(q1, structures[0]))
+            .add('test q3', async () => query(q3, structures[0]))
             // .add('sum residue', () => sumPropertyResidue(structures[0], l => l.unit.hierarchy.residues.auth_seq_id.value(l.unit.residueIndex[l.atom])))
 
             // .add('baseline', () =>  baseline(models[0]))
