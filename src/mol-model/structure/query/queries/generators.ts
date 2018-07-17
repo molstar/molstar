@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureQuery } from './query'
-import { StructureSelection } from './selection'
-import { Unit, StructureProperties as P } from '../structure'
+import { StructureQuery } from '../query'
+import { StructureSelection } from '../selection'
+import { Unit, StructureProperties as P } from '../../structure'
 import { Segmentation } from 'mol-data/int'
-import { LinearGroupingBuilder } from './utils/builders';
-import { QueryPredicate, QueryFn, QueryContextView } from './context';
+import { LinearGroupingBuilder } from '../utils/builders';
+import { QueryPredicate, QueryFn, QueryContextView } from '../context';
 
-export const all: StructureQuery = async (ctx) => StructureSelection.Singletons(ctx.structure, ctx.structure);
+export const all: StructureQuery = async (ctx) => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
 
 export interface AtomsQueryParams {
     entityTest: QueryPredicate,
@@ -45,10 +45,10 @@ export function atoms(params?: Partial<AtomsQueryParams>): StructureQuery {
 
 function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
     return async (ctx) => {
-        const { structure } = ctx;
-        const { units } = structure;
+        const { inputStructure } = ctx;
+        const { units } = inputStructure;
         const l = ctx.pushCurrentElement();
-        const builder = structure.subsetBuilder(true);
+        const builder = inputStructure.subsetBuilder(true);
 
         let progress = 0;
         for (const unit of units) {
@@ -66,16 +66,16 @@ function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
             if (ctx.taskCtx.shouldUpdate) await ctx.taskCtx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
         ctx.popCurrentElement();
-        return StructureSelection.Singletons(structure, builder.getStructure());
+        return StructureSelection.Singletons(inputStructure, builder.getStructure());
     };
 }
 
 function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: AtomsQueryParams): StructureQuery {
     return async (ctx) => {
-        const { structure } = ctx;
-        const { units } = structure;
+        const { inputStructure } = ctx;
+        const { units } = inputStructure;
         const l = ctx.pushCurrentElement();
-        const builder = structure.subsetBuilder(true);
+        const builder = inputStructure.subsetBuilder(true);
 
         let progress = 0;
         for (const unit of units) {
@@ -115,16 +115,16 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
             if (ctx.taskCtx.shouldUpdate) await ctx.taskCtx.update({ message: 'Atom Groups', current: progress, max: units.length });
         }
         ctx.popCurrentElement();
-        return StructureSelection.Singletons(structure, builder.getStructure());
+        return StructureSelection.Singletons(inputStructure, builder.getStructure());
     };
 }
 
 function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, groupBy }: AtomsQueryParams): StructureQuery {
     return async (ctx) => {
-        const { structure } = ctx;
-        const { units } = structure;
+        const { inputStructure } = ctx;
+        const { units } = inputStructure;
         const l = ctx.pushCurrentElement();
-        const builder = new LinearGroupingBuilder(structure);
+        const builder = new LinearGroupingBuilder(inputStructure);
 
         let progress = 0;
         for (const unit of units) {

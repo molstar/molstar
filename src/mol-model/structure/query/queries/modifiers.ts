@@ -6,11 +6,11 @@
 
 import { Segmentation } from 'mol-data/int';
 import { RuntimeContext } from 'mol-task';
-import { Structure, Unit } from '../structure';
-import { StructureQuery } from './query';
-import { StructureSelection } from './selection';
-import { UniqueStructuresBuilder } from './utils/builders';
-import { StructureUniqueSubsetBuilder } from '../structure/util/unique-subset-builder';
+import { Structure, Unit } from '../../structure';
+import { StructureQuery } from '../query';
+import { StructureSelection } from '../selection';
+import { UniqueStructuresBuilder } from '../utils/builders';
+import { StructureUniqueSubsetBuilder } from '../../structure/util/unique-subset-builder';
 
 function getWholeResidues(ctx: RuntimeContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -41,12 +41,12 @@ export function wholeResidues(query: StructureQuery, isFlat: boolean): Structure
     return async (ctx) => {
         const inner = await query(ctx);
         if (StructureSelection.isSingleton(inner)) {
-            return StructureSelection.Singletons(ctx.structure, getWholeResidues(ctx.taskCtx, ctx.structure, inner.structure));
+            return StructureSelection.Singletons(ctx.inputStructure, getWholeResidues(ctx.taskCtx, ctx.inputStructure, inner.structure));
         } else {
-            const builder = new UniqueStructuresBuilder(ctx.structure);
+            const builder = new UniqueStructuresBuilder(ctx.inputStructure);
             let progress = 0;
             for (const s of inner.structures) {
-                builder.add(getWholeResidues(ctx.taskCtx, ctx.structure, s));
+                builder.add(getWholeResidues(ctx.taskCtx, ctx.inputStructure, s));
                 progress++;
                 if (ctx.taskCtx.shouldUpdate) await ctx.taskCtx.update({ message: 'Whole Residues', current: progress, max: inner.structures.length });
             }
@@ -87,13 +87,13 @@ export function includeSurroundings(query: StructureQuery, params: IncludeSurrou
     return async (ctx) => {
         const inner = await query(ctx);
         if (StructureSelection.isSingleton(inner)) {
-            const surr = await getIncludeSurroundings(ctx.taskCtx, ctx.structure, inner.structure, params);
-            const ret = StructureSelection.Singletons(ctx.structure, surr);
+            const surr = await getIncludeSurroundings(ctx.taskCtx, ctx.inputStructure, inner.structure, params);
+            const ret = StructureSelection.Singletons(ctx.inputStructure, surr);
             return ret;
         } else {
-            const builder = new UniqueStructuresBuilder(ctx.structure);
+            const builder = new UniqueStructuresBuilder(ctx.inputStructure);
             for (const s of inner.structures) {
-                builder.add(await getIncludeSurroundings(ctx.taskCtx, ctx.structure, s, params));
+                builder.add(await getIncludeSurroundings(ctx.taskCtx, ctx.inputStructure, s, params));
             }
             return builder.getSelection();
         }
