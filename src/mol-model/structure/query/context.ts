@@ -12,34 +12,32 @@ export interface QueryContextView {
 }
 
 export class QueryContext implements QueryContextView {
-    private currentStack: StructureElement[] = [];
-    private currentLocked = false;
+    private currentElementStack: StructureElement[] = [];
+    private currentStructureStack: Structure[] = [];
 
     readonly inputStructure: Structure;
 
     /** Current element */
     readonly element: StructureElement = StructureElement.create();
-    readonly currentStructure: Structure = void 0 as any;
+    currentStructure: Structure = void 0 as any;
 
     pushCurrentElement(): StructureElement {
-        this.currentStack[this.currentStack.length] = this.element;
+        this.currentElementStack[this.currentElementStack.length] = this.element;
         (this.element as StructureElement) = StructureElement.create();
         return this.element;
     }
 
     popCurrentElement() {
-        (this.element as StructureElement) = this.currentStack.pop()!;
+        (this.element as StructureElement) = this.currentElementStack.pop()!;
     }
 
-    lockCurrentStructure(structure: Structure) {
-        if (this.currentLocked) throw new Error('Current structure already locked.');
-        this.currentLocked = true;
-        (this.currentStructure as Structure) = structure;
+    pushCurrentStructure() {
+        if (this.currentStructure) this.currentStructureStack.push(this.currentStructure);
     }
 
-    unlockCurrentStructure() {
-        this.currentLocked = false;
-        (this.currentStructure as any) = void 0;
+    popCurrentStructure() {
+        if (this.currentStructureStack.length) (this.currentStructure as Structure) = this.currentStructureStack.pop()!;
+        else (this.currentStructure as Structure) = void 0 as any;
     }
 
     constructor(structure: Structure) {

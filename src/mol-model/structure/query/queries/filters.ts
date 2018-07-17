@@ -4,37 +4,93 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { SortedArray } from 'mol-data/int';
-import { Structure } from '../../structure';
-import { QueryPredicate } from '../context';
+import { isSuperset } from 'mol-util/set';
+import { Unit } from '../../structure';
+import { QueryContext, QueryFn, QueryPredicate } from '../context';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
+import { structureAreIntersecting } from '../utils/structure';
 
 export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
     return ctx => {
         const sel = query(ctx);
-
-        if (StructureSelection.isSingleton(sel)) {
-            const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
-            for (const unit of ctx.inputStructure.units) {
-                const { elements } = unit;
-                for (let i = 0, _i = elements.length; i < _i; i++) {
-                    // TODO: optimize this somehow???
-                    const s = Structure.create([unit.getChild(SortedArray.ofSingleton(elements[i]))]);
-                    ctx.lockCurrentStructure(s);
-                    if (pred(ctx)) ret.add(s);
-                    ctx.unlockCurrentStructure();
-                }
-            }
-            return ret.getSelection();
-        } else {
-            const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
-            for (const s of sel.structures) {
-                ctx.lockCurrentStructure(s);
-                if (pred(ctx)) ret.add(s);
-                ctx.unlockCurrentStructure();
-            }
-            return ret.getSelection();
-        }
+        const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+        ctx.pushCurrentElement();
+        StructureSelection.forEach(sel, s => {
+            ctx.currentStructure = s;
+            if (pred(ctx)) ret.add(s);
+        });
+        ctx.popCurrentStructure();
+        return ret.getSelection();
     };
 }
+
+export interface UnitTypeProperties { atomic?: QueryFn, coarse?: QueryFn }
+
+export function getCurrentStructureProperties(ctx: QueryContext, props: UnitTypeProperties, set: Set<any>) {
+    const { units } = ctx.currentStructure;
+    const l = ctx.pushCurrentElement();
+
+    for (const unit of units) {
+        l.unit = unit;
+        const elements = unit.elements;
+
+        let fn;
+        if (Unit.isAtomic(unit)) fn = props.atomic;
+        else fn = props.coarse;
+        if (!fn) continue;
+
+        for (let j = 0, _j = elements.length; j < _j; j++) {
+            l.element = elements[j];
+            set.add(fn(ctx));
+        }
+    }
+    ctx.popCurrentElement();
+    return set;
+}
+
+function getSelectionProperties(ctx: QueryContext, query: StructureQuery, props: UnitTypeProperties) {
+    const set = new Set();
+
+    const sel = query(ctx);
+    ctx.pushCurrentElement();
+    StructureSelection.forEach(sel, s => {
+        ctx.currentStructure = s;
+        getCurrentStructureProperties(ctx, props, set);
+    });
+    ctx.popCurrentElement();
+    return set;
+}
+
+export function withSameAtomProperties(query: StructureQuery, propertySource: StructureQuery, props: UnitTypeProperties): StructureQuery {
+    return ctx => {
+        const sel = query(ctx);
+        const propSet = getSelectionProperties(ctx, propertySource, props);
+
+        const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+        ctx.pushCurrentStructure();
+        StructureSelection.forEach(sel, s => {
+            ctx.currentStructure = s;
+            const currentProps = getCurrentStructureProperties(ctx, props, new Set());
+            if (isSuperset(currentProps, propSet)) {
+                ret.add(s);
+            }
+        });
+        ctx.popCurrentStructure();
+        return ret.getSelection();
+    };
+}
+
+export function areIntersectedBy(query: StructureQuery, by: StructureQuery): StructureQuery {
+    return ctx => {
+        const mask = StructureSelection.unionStructure(by(ctx));
+        const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+
+        StructureSelection.forEach(query(ctx), s => {
+            if (structureAreIntersecting(mask, s)) ret.add(s);
+        });
+        return ret.getSelection();
+    };
+}
+
+// TODO: within, isConnectedTo

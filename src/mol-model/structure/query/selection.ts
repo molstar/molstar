@@ -101,6 +101,24 @@ namespace StructureSelection {
     export function LinearBuilder(structure: Structure): Builder { return new LinearBuilderImpl(structure); }
     export function UniqueBuilder(structure: Structure): Builder { return new HashBuilderImpl(structure); }
 
+    export function forEach(sel: StructureSelection, fn: (s: Structure, i: number) => void) {
+        let idx = 0;
+        if (StructureSelection.isSingleton(sel)) {
+            for (const unit of sel.structure.units) {
+                const { elements } = unit;
+                for (let i = 0, _i = elements.length; i < _i; i++) {
+                    // TODO: optimize this somehow???
+                    const s = Structure.create([unit.getChild(SortedArray.ofSingleton(elements[i]))]);
+                    fn(s, idx++);
+                }
+            }
+        } else {
+            for (const s of sel.structures) {
+                fn(s, idx++);
+            }
+        }
+    }
+
     // TODO: spatial lookup
 }
 
