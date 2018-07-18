@@ -68,14 +68,17 @@ namespace SortedRanges {
         }
 
         constructor(private ranges: SortedRanges<T>, private set: OrderedSet<T>) {
-            if (ranges.length) {
+            // TODO cleanup, refactor to make it clearer
+            const min = SortedArray.findPredecessorIndex(this.ranges, OrderedSet.min(set))
+            const max = SortedArray.findPredecessorIndex(this.ranges, OrderedSet.max(set))
+            if (ranges.length && min !== max) {
                 this.curIndex = this.getRangeIndex(OrderedSet.min(set))
                 this.maxIndex = Math.min(ranges.length - 2, this.getRangeIndex(OrderedSet.max(set)))
                 this.curMin = this.ranges[this.curIndex]
                 this.updateInterval()
             }
 
-            this.hasNext = ranges.length > 0 && this.curIndex <= this.maxIndex
+            this.hasNext = ranges.length > 0 && min !== max && this.curIndex <= this.maxIndex
         }
     }
 }

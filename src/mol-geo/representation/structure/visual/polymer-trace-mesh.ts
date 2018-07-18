@@ -191,14 +191,14 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
 
         // TODO size theme
         if (SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)) {
-            width = 1.0; height = 0.15
-            const arrowWidth = v.secStrucChange ? 1.7 : 0
-            builder.addSheet(controlPoints, normalVectors, binormalVectors, linearSegments, width, height, arrowWidth)
+            width = 0.15; height = 1.0
+            const arrowHeight = v.secStrucChange ? 1.7 : 0
+            builder.addSheet(controlPoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
         } else {
             if (SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)) {
                 width = 0.2; height = 1.0
             }
-            builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1)
+            builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

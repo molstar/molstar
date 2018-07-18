@@ -16,10 +16,16 @@ import { getNormalMatrix } from '../util';
 import { addSheet } from '../primitive/sheet';
 import { addTube } from '../primitive/tube';
 
-type Primitive = {
+interface Primitive {
     vertices: Float32Array
     normals: Float32Array
     indices: Uint32Array
+}
+
+export interface MeshBuilderState {
+    vertices: ChunkedArray<number, 3>
+    normals: ChunkedArray<number, 3>
+    indices: ChunkedArray<number, 3>
 }
 
 export interface MeshBuilder {
@@ -29,8 +35,8 @@ export interface MeshBuilder {
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
     addIcosahedron(center: Vec3, radius: number, detail: number): void
-    addTube(controlPoints: Helpers.NumberArray, torsionVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number): void
-    addSheet(controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowWidth: number): void
+    addTube(centers: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean): void
+    addSheet(centers: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean): void
     setId(id: number): void
     getMesh(): Mesh
 }
@@ -56,10 +62,7 @@ function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
     // direction so the triangles of adjacent cylinder will line up
     if (Vec3.dot(tmpCylinderMatDir, up) < 0) Vec3.scale(tmpCylinderMatDir, tmpCylinderMatDir, -1)
     Vec3.makeRotation(m, up, tmpCylinderMatDir)
-    // Mat4.fromTranslation(tmpCylinderMatTrans, tmpCylinderCenter)
-    // Mat4.mul(m, tmpCylinderMatTrans, m)
-    Mat4.setTranslation(m, tmpCylinderCenter)
-    return m
+    return Mat4.setTranslation(m, tmpCylinderCenter)
 }
 
 function getCylinder(props: CylinderProps) {
@@ -75,8 +78,7 @@ function getCylinder(props: CylinderProps) {
 const tmpIcosahedronMat = Mat4.identity()
 
 function setIcosahedronMat(m: Mat4, center: Vec3) {
-    Mat4.setTranslation(m, center)
-    return m
+    return Mat4.setTranslation(m, center)
 }
 
 function getIcosahedron(props: IcosahedronProps) {
@@ -96,6 +98,7 @@ export namespace MeshBuilder {
         const vertices = ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.vertexBuffer.ref.value : initialCount);
         const normals = ChunkedArray.create(Float32Array, 3, chunkSize, mesh ? mesh.normalBuffer.ref.value : initialCount);
         const indices = ChunkedArray.create(Uint32Array, 3, chunkSize * 3, mesh ? mesh.indexBuffer.ref.value : initialCount * 3);
+        const state: MeshBuilderState = { vertices, normals, indices };
 
         const ids = ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.idBuffer.ref.value : initialCount);
         const offsets = ChunkedArray.create(Uint32Array, 1, chunkSize, mesh ? mesh.offsetBuffer.ref.value : initialCount);
@@ -179,11 +182,13 @@ export namespace MeshBuilder {
                 setIcosahedronMat(tmpIcosahedronMat, center)
                 add(tmpIcosahedronMat, vertices, normals, indices)
             },
-            addTube: (controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number) => {
-                addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, waveFactor, vertices, normals, indices, ids, currentId)
+            addTube: (centers: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) => {
+                const addedVertexCount = addTube(centers, normals, binormals, linearSegments, radialSegments, width, height, waveFactor, startCap, endCap, state)
+                for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(ids, currentId);
             },
-            addSheet: (controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowWidth: number) => {
-                addSheet(controlPoints, normalVectors, binormalVectors, linearSegments, width, height, arrowWidth, vertices, normals, indices, ids, currentId)
+            addSheet: (controls: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) => {
+                const addedVertexCount = addSheet(controls, normals, binormals, linearSegments, width, height, arrowHeight, startCap, endCap, state)
+                for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(ids, currentId);
             },
             setId: (id: number) => {
                 if (currentId !== id) {
