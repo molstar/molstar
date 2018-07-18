@@ -80,7 +80,8 @@ export class Stage {
         // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
-        this.loadPdbid('3sn6') // discontinuous chains
+        this.loadPdbid('2np2') // dna
+        // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)

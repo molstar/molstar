@@ -25,7 +25,7 @@ import { createMeshValues, updateMeshValues, updateRenderableState, createRender
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { SecondaryStructureType } from 'mol-model/structure/model/types';
+import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 // import { radToDeg } from 'mol-math/misc';
 
 const tmpNormal = Vec3.zero()
@@ -88,7 +88,6 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
     const linearSegments = 8
     const radialSegments = 12
-    const tension = 0.9
 
     const tanA = Vec3.zero()
     const tanB = Vec3.zero()
@@ -110,6 +109,10 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
         const v = polymerTraceIt.move()
         // builder.setId(elements[v.center.element])
         builder.setId(v.center.element)
+
+        const isNucleic = v.moleculeType === MoleculeType.DNA || v.moleculeType === MoleculeType.RNA
+        const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
+        const tension = (isNucleic || isSheet) ? 0.5 : 0.9
 
         for (let j = 0; j <= linearSegments; ++j) {
             const t = j * 1.0 / linearSegments;
@@ -190,13 +193,15 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
         let width = 0.2, height = 0.2
 
         // TODO size theme
-        if (SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)) {
+        if (isSheet) {
             width = 0.15; height = 1.0
             const arrowHeight = v.secStrucChange ? 1.7 : 0
             builder.addSheet(controlPoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
         } else {
             if (SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)) {
                 width = 0.2; height = 1.0
+            } else if (isNucleic) {
+                width = 1.5; height = 0.3
             }
             builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
         }

@@ -330,6 +330,7 @@ interface PolymerTraceElement {
     first: boolean, last: boolean
     secStrucType: SecondaryStructureType
     secStrucChange: boolean
+    moleculeType: MoleculeType
     t0: Vec3, t1: Vec3, t2: Vec3, t3: Vec3, t4: Vec3
     d12: Vec3, d23: Vec3
 }
@@ -340,6 +341,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         first: false, last: false,
         secStrucType: SecondaryStructureType.create(SecondaryStructureType.Flag.NA),
         secStrucChange: false,
+        moleculeType: MoleculeType.unknown,
         t0: Vec3.zero(), t1: Vec3.zero(), t2: Vec3.zero(), t3: Vec3.zero(), t4: Vec3.zero(),
         d12: Vec3.create(1, 0, 0), d23: Vec3.create(1, 0, 0),
     }
@@ -465,6 +467,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.first = residueIndex === this.residueSegmentMin
             value.last = residueIndex === this.residueSegmentMax
             value.secStrucChange = this.unit.model.properties.secondaryStructure.key[residueIndex] !== this.unit.model.properties.secondaryStructure.key[residueIndex + 1]
+            value.moleculeType = getMoleculeType(this.unit.model, residueIndex)
 
             if (!residueIt.hasNext) {
                 this.state = AtomicPolymerTraceIteratorState.nextPolymer
