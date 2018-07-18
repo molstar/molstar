@@ -65,9 +65,6 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chem
         }
     }
 
-    console.log('polymerRanges', polymerRanges)
-    console.log('gapRanges', gapRanges)
-
     return {
         polymerRanges: SortedRanges.ofSortedRanges(polymerRanges as ElementIndex[]),
         gapRanges: SortedRanges.ofSortedRanges(gapRanges as ElementIndex[])

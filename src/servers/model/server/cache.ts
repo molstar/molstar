@@ -48,18 +48,24 @@ export class Cache<T> {
     private refresh(e: CacheNode<T>) {
         this.clearTimeout(e);
 
-        e.value.timeoutId = setTimeout(() => this.expire(e), ServerConfig.cacheParams.entryTimeoutInMs);
+        e.value.timeoutId = setTimeout(() => this.expireNode(e), ServerConfig.cacheParams.entryTimeoutInMs);
         this.entries.remove(e);
         this.entries.addFirst(e.value);
     }
 
-    private expire(e: CacheNode<T>, notify = true) {
+    private expireNode(e: CacheNode<T>, notify = true) {
         if (notify) ConsoleLogger.log('Cache', `${e.value.key} expired.`);
         this.dispose(e);
     }
 
     expireAll() {
-        for (let e = this.entries.first; e; e = e.next) this.expire(e, false);
+        for (let e = this.entries.first; e; e = e.next) this.expireNode(e, false);
+    }
+
+    expire(key: string) {
+        const entry = this.entryMap.get(key);
+        if (!entry) return;
+        this.expireNode(entry);
     }
 
     add(item: T) {
@@ -85,7 +91,6 @@ export class Cache<T> {
     has(key: string) {
         return this.entryMap.has(key);
     }
-
 
     get(key: string) {
         if (!this.entryMap.has(key)) return void 0;

@@ -44,9 +44,12 @@ const config = {
      */
     maxQueryTimeInMs: 5 * 1000,
 
+    /** Maximum number of requests before "server busy" */
+    maxQueueLength: 30,
+
     /**
      * Maps a request identifier to a filename.
-     * 
+     *
      * @param source
      *   Source of the data.
      * @param id

@@ -1,6 +1,7 @@
-import { createRequest, resolveRequest } from './server/query';
+import { resolveJob } from './server/query';
 import * as fs from 'fs'
 import { StructureCache } from './server/structure-wrapper';
+import { createJob } from './server/jobs';
 
 function wrapFile(fn: string) {
     const w = {
@@ -34,9 +35,9 @@ function wrapFile(fn: string) {
 
 async function run() {
     try {
-        const request = createRequest('_local_', 'e:/test/quick/1cbs_updated.cif', 'residueInteraction', { label_comp_id: 'REA' });
+        const request = createJob('_local_', 'e:/test/quick/1cbs_updated.cif', 'residueInteraction', { label_comp_id: 'REA' });
         const writer = wrapFile('e:/test/mol-star/1cbs_full.cif');
-        await resolveRequest(request, writer);
+        await resolveJob(request, writer);
         writer.end();
     } finally {
         StructureCache.expireAll();

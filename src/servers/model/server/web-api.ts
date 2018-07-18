@@ -8,7 +8,9 @@ import * as express from 'express';
 import Config from '../config';
 import { QueryDefinition, QueryList } from './api';
 import { ConsoleLogger } from 'mol-util/console-logger';
-import { createRequest, resolveRequest } from './query';
+import { resolveJob } from './query';
+import { JobManager } from './jobs';
+import { UUID } from 'mol-util';
 
 function makePath(p: string) {
     return Config.appPrefix + '/' + p;
@@ -16,9 +18,9 @@ function makePath(p: string) {
 
 function wrapResponse(fn: string, res: express.Response) {
     const w = {
-        do404(this: any) {
+        doError(this: any, code = 404) {
             if (!this.headerWritten) {
-                res.writeHead(404);
+                res.writeHead(code);
                 this.headerWritten = true;
             }
             this.end();
@@ -53,15 +55,44 @@ function wrapResponse(fn: string, res: express.Response) {
     return w;
 }
 
+const responseMap = new Map<UUID, express.Response>();
+
+async function processNextJob() {
+    if (!JobManager.hasNext()) return;
+
+    const job = JobManager.getNext();
+    const response = responseMap.get(job.id)!;
+    responseMap.delete(job.id);
+
+    const filenameBase = `${job.entryId}_${job.queryDefinition.name.replace(/\s/g, '_')}`
+    const writer = wrapResponse(job.responseFormat.isBinary ? `${filenameBase}.bcif` : `${filenameBase}.cif`, response);
+    try {
+        writer.writeHeader(job.responseFormat.isBinary);
+        await resolveJob(job, writer);
+        writer.end();
+    } catch (e) {
+        ConsoleLogger.errorId(job.id, '' + e);
+        // TODO: add some error?
+        writer.doError(404);
+    } finally {
+        setImmediate(processNextJob);
+    }
+}
+
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
     app.get(makePath(':entryId/' + queryName), async (req, res) => {
         ConsoleLogger.log('Server', `Query '${req.params.entryId}/${queryName}'...`);
 
-        const request = createRequest('pdb', req.params.entryId, queryName, req.query);
-        const writer = wrapResponse(request.responseFormat.isBinary ? 'result.bcif' : 'result.cif', res);
-        writer.writeHeader(request.responseFormat.isBinary);
-        await resolveRequest(request, writer);
-        writer.end();
+        if (JobManager.size >= Config.maxQueueLength) {
+            // TODO use proper code: server busy
+            res.writeHead(404);
+            res.end();
+            return;
+        }
+
+        const jobId = JobManager.add('pdb', req.params.entryId, queryName, req.query);
+        responseMap.set(jobId, res);
+        processNextJob();
     });
 }
 

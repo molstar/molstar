@@ -22,7 +22,6 @@ export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: M
 
     while (chainIt.hasNext) {
         const { start, end } = chainIt.move();
-        console.log('chain', start, end)
 
         let startIndex = -1
         let prevSeqEnd = -1
@@ -44,8 +43,6 @@ export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: M
             prevSeqEnd = seqEnd
         }
     }
-
-    console.log(polymerRanges, gapRanges)
 
     return {
         polymerRanges: SortedRanges.ofSortedRanges(polymerRanges as ElementIndex[]),
