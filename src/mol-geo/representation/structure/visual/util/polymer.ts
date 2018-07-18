@@ -20,6 +20,14 @@ export function getPolymerRanges(unit: Unit): SortedRanges<ElementIndex> {
     }
 }
 
+export function getGapRanges(unit: Unit): SortedRanges<ElementIndex> {
+    switch (unit.kind) {
+        case Unit.Kind.Atomic: return unit.model.atomicHierarchy.gapRanges
+        case Unit.Kind.Spheres: return unit.model.coarseHierarchy.spheres.gapRanges
+        case Unit.Kind.Gaussians: return unit.model.coarseHierarchy.gaussians.gapRanges
+    }
+}
+
 export function getPolymerElementCount(unit: Unit) {
     let count = 0
     const { elements } = unit
@@ -44,6 +52,17 @@ export function getPolymerElementCount(unit: Unit) {
                 count += OrderedSet.intersectionSize(Interval.ofBounds(elements[start], elements[end - 1]), elements)
             }
             break
+    }
+    return count
+}
+
+export function getPolymerGapCount(unit: Unit) {
+    let count = 0
+    const { elements } = unit
+    const gapIt = SortedRanges.transientSegments(getGapRanges(unit), elements)
+    while (gapIt.hasNext) {
+        const { start, end } = gapIt.move()
+        if (OrderedSet.areIntersecting(Interval.ofBounds(elements[start], elements[end - 1]), elements)) ++count
     }
     return count
 }
@@ -134,9 +153,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
 
     private getElementIndex(residueIndex: ResidueIndex, atomType: 'trace' | 'direction') {
         const index = getElementIndexForResidueTypeAtomId(this.unit.model, residueIndex, atomType)
-        // // TODO handle case when it returns -1
-        // return SortedArray.indexOf(this.unit.elements, index) as ElementIndex
-
+        // TODO handle case when it returns -1
         const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
         if (elementIndex === -1) {
             console.log('-1', residueIndex, atomType, index)
@@ -219,6 +236,79 @@ export class CoarsePolymerBackboneIterator implements Iterator<PolymerBackbonePa
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements);
         this.value = createPolymerBackbonePair(unit)
         this.hasNext = this.polymerIt.hasNext
+    }
+}
+
+/** Iterates over gaps, i.e. the stem residues/coarse elements adjacent to gaps */
+export function PolymerGapIterator(unit: Unit): Iterator<PolymerGapPair> {
+    switch (unit.kind) {
+        case Unit.Kind.Atomic: return new AtomicPolymerGapIterator(unit)
+        case Unit.Kind.Spheres:
+        case Unit.Kind.Gaussians:
+            return new CoarsePolymerGapIterator(unit)
+    }
+}
+
+interface PolymerGapPair {
+    centerA: StructureElement
+    centerB: StructureElement
+}
+
+function createPolymerGapPair (unit: Unit) {
+    return {
+        centerA: StructureElement.create(unit),
+        centerB: StructureElement.create(unit),
+    }
+}
+
+export class AtomicPolymerGapIterator implements Iterator<PolymerGapPair> {
+    private value: PolymerGapPair
+    private gapIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>
+    hasNext: boolean = false;
+
+    private getElementIndex(residueIndex: ResidueIndex, atomType: 'trace' | 'direction') {
+        const index = getElementIndexForResidueTypeAtomId(this.unit.model, residueIndex, atomType)
+        // TODO handle case when it returns -1
+        const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
+        if (elementIndex === -1) {
+            console.log('-1', residueIndex, atomType, index)
+        }
+        return elementIndex === -1 ? 0 as ElementIndex : elementIndex
+    }
+
+    move() {
+        const { elements, residueIndex } = this.unit
+        const gapSegment = this.gapIt.move();
+        this.value.centerA.element = this.getElementIndex(residueIndex[elements[gapSegment.start]], 'trace')
+        this.value.centerB.element = this.getElementIndex(residueIndex[elements[gapSegment.end - 1]], 'trace')
+        this.hasNext = this.gapIt.hasNext
+        return this.value;
+    }
+
+    constructor(private unit: Unit.Atomic) {
+        this.gapIt = SortedRanges.transientSegments(getGapRanges(unit), unit.elements);
+        this.value = createPolymerGapPair(unit)
+        this.hasNext = this.gapIt.hasNext
+    }
+}
+
+export class CoarsePolymerGapIterator implements Iterator<PolymerGapPair> {
+    private value: PolymerGapPair
+    private gapIt: SortedRanges.Iterator<ElementIndex, ElementIndex>
+    hasNext: boolean = false;
+
+    move() {
+        const gapSegment = this.gapIt.move();
+        this.value.centerA.element = this.unit.elements[gapSegment.start]
+        this.value.centerB.element = this.unit.elements[gapSegment.end - 1]
+        this.hasNext = this.gapIt.hasNext
+        return this.value;
+    }
+
+    constructor(private unit: Unit.Spheres | Unit.Gaussians) {
+        this.gapIt = SortedRanges.transientSegments(getGapRanges(unit), unit.elements);
+        this.value = createPolymerGapPair(unit)
+        this.hasNext = this.gapIt.hasNext
     }
 }
 

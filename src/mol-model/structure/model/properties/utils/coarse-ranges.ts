@@ -11,6 +11,7 @@ import { ChemicalComponent } from '../chemical-component';
 import { ElementIndex } from '../../indexing';
 
 // TODO assumes all coarse elements are part of a polymer
+// TODO add gaps at the ends of the chains by comparing to the polymer sequence data
 
 export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: Map<string, ChemicalComponent>): CoarseRanges {
     const polymerRanges: number[] = []
@@ -33,6 +34,7 @@ export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: M
             } else {
                 if (prevSeqEnd !== seq_id_begin.value(i) - 1) {
                     polymerRanges.push(startIndex, i - 1)
+                    gapRanges.push(i - 1, i)
                     startIndex = i
                 }
             }

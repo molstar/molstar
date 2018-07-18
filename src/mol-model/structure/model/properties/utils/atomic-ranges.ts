@@ -12,6 +12,8 @@ import { ChemicalComponent } from '../chemical-component';
 import { MoleculeType, isPolymer } from '../../types';
 import { ElementIndex } from '../../indexing';
 
+// TODO add gaps at the ends of the chains by comparing to the polymer sequence data
+
 export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chemicalComponentMap: Map<string, ChemicalComponent>): AtomicRanges {
     const polymerRanges: number[] = []
     const gapRanges: number[] = []
@@ -20,6 +22,7 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chem
     const { label_seq_id, label_comp_id } = data.residues
 
     let prevSeqId: number
+    let prevStart: number
     let prevEnd: number
     let startIndex: number
 
@@ -27,6 +30,7 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chem
         const chainSegment = chainIt.move();
         residueIt.setSegment(chainSegment);
         prevSeqId = -1
+        prevStart = -1
         prevEnd = -1
         startIndex = -1
 
@@ -40,7 +44,7 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chem
                 if (startIndex !== -1) {
                     if (seqId !== prevSeqId + 1) {
                         polymerRanges.push(startIndex, prevEnd - 1)
-                        gapRanges.push(prevEnd - 1, residueSegment.start)
+                        gapRanges.push(prevStart, residueSegment.end - 1)
                         startIndex = residueSegment.start
                     } else if (!residueIt.hasNext) {
                         polymerRanges.push(startIndex, residueSegment.end - 1)
@@ -54,13 +58,15 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, chem
                     startIndex = -1
                 }
             }
-            
+
+            prevStart = residueSegment.start
             prevEnd = residueSegment.end
             prevSeqId = seqId
         }
     }
 
-    console.log(polymerRanges, gapRanges)
+    console.log('polymerRanges', polymerRanges)
+    console.log('gapRanges', gapRanges)
 
     return {
         polymerRanges: SortedRanges.ofSortedRanges(polymerRanges as ElementIndex[]),
