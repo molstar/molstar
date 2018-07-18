@@ -41,7 +41,7 @@ class EntitySequence extends React.Component<{ ctx: Context, seq: StructureSeque
         }
 
         const query = createQuery(this.props.seq.entityId, seqId);
-        const loci = StructureSelection.toLoci(StructureQuery.run1(query, this.props.structure));
+        const loci = StructureSelection.toLoci(StructureQuery.run(query, this.props.structure));
         if (loci.elements.length === 0) InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, EmptyLoci);
         else InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, loci);
     }

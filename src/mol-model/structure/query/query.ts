@@ -10,7 +10,7 @@ import { QueryContext } from './context';
 
 interface StructureQuery { (ctx: QueryContext): StructureSelection }
 namespace StructureQuery {
-    export function run1(query: StructureQuery, structure: Structure) {
+    export function run(query: StructureQuery, structure: Structure) {
         return query(new QueryContext(structure))
     }
 }

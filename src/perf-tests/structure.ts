@@ -331,7 +331,7 @@ export namespace PropertyAccess {
             radius: 5,
             wholeResidues: true
         });
-        const surr = StructureSelection.unionStructure(StructureQuery.run1(q1, a));
+        const surr = StructureSelection.unionStructure(StructureQuery.run(q1, a));
         console.timeEnd('symmetry')
 
         // for (const u of surr.units) {
@@ -372,7 +372,7 @@ export namespace PropertyAccess {
     // }
 
     function query(q: StructureQuery, s: Structure) {
-        return StructureQuery.run1(q, s);
+        return StructureQuery.run(q, s);
     }
 
     export async function run() {

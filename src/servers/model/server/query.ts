@@ -36,7 +36,7 @@ export async function resolveJob(job: Job, writer: Writer) {
         ? await job.queryDefinition.structureTransform(job.normalizedParams, wrappedStructure.structure)
         : wrappedStructure.structure;
     const query = job.queryDefinition.query(job.normalizedParams, structure);
-    const result = StructureSelection.unionStructure(StructureQuery.run1(query, structure));
+    const result = StructureSelection.unionStructure(StructureQuery.run(query, structure));
     perf.end('query');
 
     ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
