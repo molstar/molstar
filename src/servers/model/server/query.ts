@@ -32,11 +32,12 @@ export async function resolveJob(job: Job, writer: Writer) {
     const wrappedStructure = await getStructure(job);
 
     perf.start('query');
+    // TODO: encode errors that happen past this point as CIF rather than just 404
     const structure = job.queryDefinition.structureTransform
         ? await job.queryDefinition.structureTransform(job.normalizedParams, wrappedStructure.structure)
         : wrappedStructure.structure;
     const query = job.queryDefinition.query(job.normalizedParams, structure);
-    const result = StructureSelection.unionStructure(StructureQuery.run(query, structure));
+    const result = StructureSelection.unionStructure(StructureQuery.run(query, structure, Config.maxQueryTimeInMs));
     perf.end('query');
 
     ConsoleLogger.logId(job.id, 'Query', 'Query finished.');

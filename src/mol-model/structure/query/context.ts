@@ -5,6 +5,7 @@
  */
 
 import { Structure, StructureElement } from '../structure';
+import { now } from 'mol-task';
 
 export interface QueryContextView {
     readonly element: StructureElement;
@@ -14,6 +15,8 @@ export interface QueryContextView {
 export class QueryContext implements QueryContextView {
     private currentElementStack: StructureElement[] = [];
     private currentStructureStack: Structure[] = [];
+    private timeCreated = now();
+    private timeoutMs: number;
 
     readonly inputStructure: Structure;
 
@@ -40,8 +43,18 @@ export class QueryContext implements QueryContextView {
         else (this.currentStructure as Structure) = void 0 as any;
     }
 
-    constructor(structure: Structure) {
+    throwIfTimedOut() {
+        if (this.timeoutMs === 0) return;
+        if (now() - this.timeCreated > this.timeoutMs) {
+            throw new Error(`The query took too long to execute (> ${this.timeoutMs / 1000}s).`);
+        }
+    }
+
+    // todo timeout
+
+    constructor(structure: Structure, timeoutMs = 0) {
         this.inputStructure = structure;
+        this.timeoutMs = timeoutMs;
     }
 }
 

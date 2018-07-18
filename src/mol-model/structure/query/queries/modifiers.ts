@@ -10,8 +10,9 @@ import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { UniqueStructuresBuilder } from '../utils/builders';
 import { StructureUniqueSubsetBuilder } from '../../structure/util/unique-subset-builder';
+import { QueryContext } from '../context';
 
-function getWholeResidues(source: Structure, structure: Structure) {
+function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
     for (const unit of structure.units) {
         if (unit.kind !== Unit.Kind.Atomic) {
@@ -32,6 +33,8 @@ function getWholeResidues(source: Structure, structure: Structure) {
             }
         }
         builder.commitUnit();
+
+        ctx.throwIfTimedOut();
     }
     return builder.getStructure();
 }
@@ -40,11 +43,11 @@ export function wholeResidues(query: StructureQuery, isFlat: boolean): Structure
     return ctx => {
         const inner = query(ctx);
         if (StructureSelection.isSingleton(inner)) {
-            return StructureSelection.Singletons(ctx.inputStructure, getWholeResidues(ctx.inputStructure, inner.structure));
+            return StructureSelection.Singletons(ctx.inputStructure, getWholeResidues(ctx, ctx.inputStructure, inner.structure));
         } else {
             const builder = new UniqueStructuresBuilder(ctx.inputStructure);
             for (const s of inner.structures) {
-                builder.add(getWholeResidues(ctx.inputStructure, s));
+                builder.add(getWholeResidues(ctx, ctx.inputStructure, s));
             }
             return builder.getSelection();
         }
@@ -60,7 +63,7 @@ export interface IncludeSurroundingsParams {
     wholeResidues?: boolean
 }
 
-function getIncludeSurroundings(source: Structure, structure: Structure, params: IncludeSurroundingsParams) {
+function getIncludeSurroundings(ctx: QueryContext, source: Structure, structure: Structure, params: IncludeSurroundingsParams) {
     const builder = new StructureUniqueSubsetBuilder(source);
     const lookup = source.lookup3d;
     const r = params.radius;
@@ -72,21 +75,23 @@ function getIncludeSurroundings(source: Structure, structure: Structure, params:
             const e = elements[i];
             lookup.findIntoBuilder(x(e), y(e), z(e), r, builder);
         }
+
+        ctx.throwIfTimedOut();
     }
-    return !!params.wholeResidues ? getWholeResidues(source, builder.getStructure()) : builder.getStructure();
+    return !!params.wholeResidues ? getWholeResidues(ctx, source, builder.getStructure()) : builder.getStructure();
 }
 
 export function includeSurroundings(query: StructureQuery, params: IncludeSurroundingsParams): StructureQuery {
     return ctx => {
         const inner = query(ctx);
         if (StructureSelection.isSingleton(inner)) {
-            const surr = getIncludeSurroundings(ctx.inputStructure, inner.structure, params);
+            const surr = getIncludeSurroundings(ctx, ctx.inputStructure, inner.structure, params);
             const ret = StructureSelection.Singletons(ctx.inputStructure, surr);
             return ret;
         } else {
             const builder = new UniqueStructuresBuilder(ctx.inputStructure);
             for (const s of inner.structures) {
-                builder.add(getIncludeSurroundings(ctx.inputStructure, s, params));
+                builder.add(getIncludeSurroundings(ctx, ctx.inputStructure, s, params));
             }
             return builder.getSelection();
         }

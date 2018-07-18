@@ -11,8 +11,9 @@ export function merge(queries: ArrayLike<StructureQuery>): StructureQuery {
     return ctx => {
         const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
         for (let i = 0; i < queries.length; i++) {
-            StructureSelection.forEach(queries[i](ctx), s => {
+            StructureSelection.forEach(queries[i](ctx), (s, j) => {
                 ret.add(s);
+                if (i % 100) ctx.throwIfTimedOut();
             });
         }
         return ret.getSelection();

@@ -60,6 +60,8 @@ function atomGroupsLinear(atomTest: QueryPredicate): StructureQuery {
                 if (atomTest(ctx)) builder.addElement(l.element);
             }
             builder.commitUnit();
+
+            ctx.throwIfTimedOut();
         }
         ctx.popCurrentElement();
         return StructureSelection.Singletons(inputStructure, builder.getStructure());
@@ -105,6 +107,8 @@ function atomGroupsSegmented({ entityTest, chainTest, residueTest, atomTest }: A
                 }
             }
             builder.commitUnit();
+
+            ctx.throwIfTimedOut();
         }
         ctx.popCurrentElement();
         return StructureSelection.Singletons(inputStructure, builder.getStructure());
@@ -146,6 +150,8 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
                     }
                 }
             }
+
+            ctx.throwIfTimedOut();
         }
         ctx.popCurrentElement();
         return builder.getSelection();
