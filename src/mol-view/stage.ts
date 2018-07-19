@@ -81,8 +81,12 @@ export class Stage {
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('2np2') // dna
-        // this.loadPdbid('1d66') // dna
-        this.loadPdbid('1bna') // B form dna
+        this.loadPdbid('1d66') // dna
+        // this.loadPdbid('9dna') // A form dna
+        // this.loadPdbid('1bna') // B form dna
+        // this.loadPdbid('199d') // C form dna
+        // this.loadPdbid('4lb6') // Z form dna
+        // this.loadPdbid('1egk') // 4-way dna-rna junction
         // this.loadPdbid('1y26') // rna
         // this.loadPdbid('1xv6') // rna, modified nucleotides
         // this.loadPdbid('3bbm') // rna with linker

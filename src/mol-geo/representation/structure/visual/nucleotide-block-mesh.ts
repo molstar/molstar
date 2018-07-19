@@ -94,7 +94,7 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?:
                     Vec3.normalize(v34, Vec3.sub(v34, p4, p3))
                     Vec3.normalize(vC, Vec3.cross(vC, v12, v34))
                     Mat4.targetTo(t, p1, p2, vC)
-                    Vec3.scaleAndAdd(center, p1, v12, height / 2)
+                    Vec3.scaleAndAdd(center, p1, v12, height / 2 - 0.2)
                     Mat4.setTranslation(t, center)
                     builder.setId(SortedArray.findPredecessorIndex(elements, idx6))
                     builder.addBox(t, { width: width, height: depth, depth: height })

@@ -85,7 +85,7 @@ export function getResidueTypeAtomId(moleculeType: MoleculeType, atomType: 'trac
         case MoleculeType.DNA:
             switch (atomType) {
                 case 'trace': return 'C3\''
-                case 'direction': return 'O4\''
+                case 'direction': return 'C1\''
             }
             break
     }
