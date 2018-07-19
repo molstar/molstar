@@ -80,7 +80,14 @@ export class Stage {
         // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
-        this.loadPdbid('2np2') // dna
+        // this.loadPdbid('2np2') // dna
+        // this.loadPdbid('1d66') // dna
+        this.loadPdbid('1bna') // B form dna
+        // this.loadPdbid('1y26') // rna
+        // this.loadPdbid('1xv6') // rna, modified nucleotides
+        // this.loadPdbid('3bbm') // rna with linker
+        // this.loadPdbid('1gfl') // GFP, flourophore has carbonyl oxygen removed
+        // this.loadPdbid('1sfi') // contains cyclic peptid
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)

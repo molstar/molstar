@@ -11,6 +11,7 @@ import Iterator from 'mol-data/iterator';
 import { Vec3 } from 'mol-math/linear-algebra';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse';
+import { getElementIndexForAtomId, getMoleculeType } from 'mol-model/structure/util';
 
 export function getPolymerRanges(unit: Unit): SortedRanges<ElementIndex> {
     switch (unit.kind) {
@@ -67,7 +68,7 @@ export function getPolymerGapCount(unit: Unit) {
     return count
 }
 
-function getResidueTypeAtomId(moleculeType: MoleculeType, atomType: 'trace' | 'direction') {
+export function getResidueTypeAtomId(moleculeType: MoleculeType, atomType: 'trace' | 'direction') {
     switch (moleculeType) {
         case MoleculeType.protein:
             switch (atomType) {
@@ -91,34 +92,10 @@ function getResidueTypeAtomId(moleculeType: MoleculeType, atomType: 'trace' | 'd
     return ''
 }
 
-function getMoleculeType(model: Model, residueIndex: ResidueIndex) {
-    const compId = model.atomicHierarchy.residues.label_comp_id.value(residueIndex)
-    const chemCompMap = model.properties.chemicalComponentMap
-    const cc = chemCompMap.get(compId)
-    return cc ? cc.moleculeType : MoleculeType.unknown
-}
-
-function getElementIndexForAtomId(model: Model, rI: ResidueIndex, atomId: string): ElementIndex {
-    const { offsets } = model.atomicHierarchy.residueAtomSegments
-    const { label_atom_id } = model.atomicHierarchy.atoms
-    for (let j = offsets[rI], _j = offsets[rI + 1]; j < _j; j++) {
-        if (label_atom_id.value(j) === atomId) return j as ElementIndex
-    }
-    return offsets[rI] as ElementIndex
-}
-
-function getElementIndexForResidueTypeAtomId(model: Model, rI: ResidueIndex, atomType: 'trace' | 'direction') {
+export function getElementIndexForResidueTypeAtomId(model: Model, rI: ResidueIndex, atomType: 'trace' | 'direction') {
     const atomId = getResidueTypeAtomId(getMoleculeType(model, rI), atomType)
     return getElementIndexForAtomId(model, rI, atomId)
 }
-
-// function residueLabel(model: Model, rI: number) {
-//     const { residues, chains, residueSegments, chainSegments } = model.atomicHierarchy
-//     const { label_comp_id, label_seq_id } = residues
-//     const { label_asym_id } = chains
-//     const cI = chainSegments.segmentMap[residueSegments.segments[rI]]
-//     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
-// }
 
 /** Iterates over consecutive pairs of residues/coarse elements in polymers */
 export function PolymerBackboneIterator(unit: Unit): Iterator<PolymerBackbonePair> {

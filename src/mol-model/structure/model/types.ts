@@ -108,6 +108,15 @@ export const WaterNames = [
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
 ]
 
+export const RnaBaseNames = [ 'A', 'C', 'T', 'G', 'I', 'U' ]
+export const DnaBaseNames = [ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ]
+export const PurinBaseNames = [ 'A', 'G', 'DA', 'DG', 'DI' ]
+export const PyrimidineBaseNames = [ 'C', 'T', 'U', 'DC', 'DT', 'DU' ]
+export const BaseNames = RnaBaseNames.concat(DnaBaseNames)
+
+export const isPurinBase = (compId: string) => PurinBaseNames.includes(compId.toUpperCase())
+export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.includes(compId.toUpperCase())
+
 /** get the molecule type from component type and id */
 export function getMoleculeType(compType: string, compId: string) {
     compType = compType.toUpperCase()
@@ -131,6 +140,10 @@ export function getMoleculeType(compType: string, compId: string) {
 
 export function isPolymer(moleculeType: MoleculeType) {
     return moleculeType === MoleculeType.protein || moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA
+}
+
+export function isNucleic(moleculeType: MoleculeType) {
+    return moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA
 }
 
 /**
