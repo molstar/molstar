@@ -85,7 +85,7 @@ async function parseCif(data: string|Uint8Array) {
 async function readStructure(key: string, sourceId: string, entryId: string) {
     const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
     if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
-    if (!fs.existsSync(filename)) throw new Error(`Could not map '${key}' to an existing file.`);
+    if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
 
     perf.start('read');
     let data;

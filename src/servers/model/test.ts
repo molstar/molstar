@@ -36,8 +36,9 @@ function wrapFile(fn: string) {
 async function run() {
     try {
         const request = createJob('_local_', 'e:/test/quick/1cbs_updated.cif', 'residueInteraction', { label_comp_id: 'REA' });
+        const encoder = await resolveJob(request);
         const writer = wrapFile('e:/test/mol-star/1cbs_full.cif');
-        await resolveJob(request, writer);
+        encoder.writeTo(writer);
         writer.end();
     } finally {
         StructureCache.expireAll();

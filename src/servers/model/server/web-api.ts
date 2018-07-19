@@ -18,9 +18,9 @@ function makePath(p: string) {
 
 function wrapResponse(fn: string, res: express.Response) {
     const w = {
-        doError(this: any, code = 404) {
+        doError(this: any, code = 404, message = 'Not Found.') {
             if (!this.headerWritten) {
-                res.writeHead(code);
+                res.status(code).send(message);
                 this.headerWritten = true;
             }
             this.end();
@@ -66,33 +66,34 @@ async function processNextJob() {
 
     const filenameBase = `${job.entryId}_${job.queryDefinition.name.replace(/\s/g, '_')}`
     const writer = wrapResponse(job.responseFormat.isBinary ? `${filenameBase}.bcif` : `${filenameBase}.cif`, response);
+
     try {
+        const encoder = await resolveJob(job);
         writer.writeHeader(job.responseFormat.isBinary);
-        await resolveJob(job, writer);
+        encoder.writeTo(writer);
     } catch (e) {
         ConsoleLogger.errorId(job.id, '' + e);
-        // TODO: add some error?
-        writer.doError(404);
+        writer.doError(404, '' + e);
     } finally {
         writer.end();
+        ConsoleLogger.logId(job.id, 'Query', 'Finished.');
         setImmediate(processNextJob);
     }
 }
 
 function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
-    app.get(makePath(':entryId/' + queryName), async (req, res) => {
+    app.get(makePath(':entryId/' + queryName), (req, res) => {
         ConsoleLogger.log('Server', `Query '${req.params.entryId}/${queryName}'...`);
 
         if (JobManager.size >= Config.maxQueueLength) {
-            // TODO use proper code: server busy
-            res.writeHead(404);
+            res.status(503).send('Too many queries, please try again later.');
             res.end();
             return;
         }
 
         const jobId = JobManager.add('pdb', req.params.entryId, queryName, req.query);
         responseMap.set(jobId, res);
-        processNextJob();
+        if (JobManager.size === 1) processNextJob();
     });
 }
 

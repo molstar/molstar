@@ -6,7 +6,6 @@
 
 import { Column } from 'mol-data/db';
 import { CifWriter } from 'mol-io/writer/cif';
-import Writer from 'mol-io/writer/writer';
 import { StructureQuery, StructureSelection } from 'mol-model/structure';
 import { encode_mmCIF_categories } from 'mol-model/structure/export/mmcif';
 import { now, Progress } from 'mol-task';
@@ -26,12 +25,11 @@ export interface Stats {
 
 const perf = new PerformanceMonitor();
 
-export async function resolveJob(job: Job, writer: Writer) {
+export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
     ConsoleLogger.logId(job.id, 'Query', 'Starting.');
 
     const wrappedStructure = await getStructure(job);
 
-    let startedWriting = false;
     try {
         const encoder = CifWriter.createEncoder({ binary: job.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
         perf.start('query');
@@ -54,8 +52,6 @@ export async function resolveJob(job: Job, writer: Writer) {
         // encoder.setFilter();
         perf.end('encode');
 
-        ConsoleLogger.logId(job.id, 'Query', 'Encoded.');
-
         const stats: Stats = {
             structure: wrappedStructure,
             queryTimeMs: perf.time('query'),
@@ -64,26 +60,21 @@ export async function resolveJob(job: Job, writer: Writer) {
 
         encoder.writeCategory(_model_server_stats, [stats]);
         encoder.encode();
-        startedWriting = true;
-        encoder.writeTo(writer);
-        ConsoleLogger.logId(job.id, 'Query', 'Written.');
+        ConsoleLogger.logId(job.id, 'Query', 'Encoded.');
+        return encoder;
     } catch (e) {
         ConsoleLogger.errorId(job.id, e);
-        if (!startedWriting) {
-            doError(job, writer, e);
-        } else {
-            ConsoleLogger.errorId(job.id, 'Error was not relayed to the user because it happened during "write".');
-        }
+        return doError(job, e);
     }
 }
 
-function doError(job: Job, writer: Writer, e: any) {
+function doError(job: Job, e: any) {
     const encoder = CifWriter.createEncoder({ binary: job.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
     encoder.writeCategory(_model_server_result, [job]);
     encoder.writeCategory(_model_server_params, [job]);
     encoder.writeCategory(_model_server_error, ['' + e]);
     encoder.encode();
-    encoder.writeTo(writer);
+    return encoder;
 }
 
 const maxTime = Config.maxQueryTimeInMs;
