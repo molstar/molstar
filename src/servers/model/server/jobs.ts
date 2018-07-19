@@ -22,10 +22,12 @@ export interface Job {
 
     queryDefinition: QueryDefinition,
     normalizedParams: any,
-    responseFormat: ResponseFormat
+    responseFormat: ResponseFormat,
+
+    outputFilename?: string
 }
 
-export function createJob(sourceId: '_local_' | string, entryId: string, queryName: string, params: any): Job {
+export function createJob(sourceId: '_local_' | string, entryId: string, queryName: string, params: any, outputFilename?: string): Job {
     const queryDefinition = getQueryByName(queryName);
     if (!queryDefinition) throw new Error(`Query '${queryName}' is not supported.`);
 
@@ -39,7 +41,8 @@ export function createJob(sourceId: '_local_' | string, entryId: string, queryNa
         entryId,
         queryDefinition,
         normalizedParams,
-        responseFormat: { isBinary: !!params.binary }
+        responseFormat: { isBinary: !!params.binary },
+        outputFilename
     };
 }
 
@@ -50,8 +53,8 @@ class _JobQueue {
         return this.list.count;
     }
 
-    add(sourceId: '_local_' | string, entryId: string, queryName: string, params: any) {
-        const job = createJob(sourceId, entryId, queryName, params);
+    add(sourceId: '_local_' | string, entryId: string, queryName: string, params: any, outputFilename?: string) {
+        const job = createJob(sourceId, entryId, queryName, params, outputFilename);
         this.list.addLast(job);
         return job.id;
     }
