@@ -13,6 +13,7 @@ import * as util from 'util'
 import * as fs from 'fs'
 import * as zlib from 'zlib'
 import { Job } from './jobs';
+import { ConsoleLogger } from 'mol-util/console-logger';
 
 require('util.promisify').shim();
 
@@ -87,7 +88,14 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
     if (!fs.existsSync(filename)) throw new Error(`Could not map '${key}' to an existing file.`);
 
     perf.start('read');
-    const data = await readFile(filename);
+    let data;
+    try {
+        data = await readFile(filename);
+    } catch (e) {
+        ConsoleLogger.error(key, '' + e);
+        throw new Error(`Could not read the file for '${key}' from disk.`);
+    }
+
     perf.end('read');
     perf.start('parse');
     const frame = (await parseCif(data)).blocks[0];

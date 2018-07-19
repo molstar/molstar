@@ -31,43 +31,59 @@ export async function resolveJob(job: Job, writer: Writer) {
 
     const wrappedStructure = await getStructure(job);
 
-    perf.start('query');
-    // TODO: encode errors that happen past this point as CIF rather than just 404
-    const structure = job.queryDefinition.structureTransform
-        ? await job.queryDefinition.structureTransform(job.normalizedParams, wrappedStructure.structure)
-        : wrappedStructure.structure;
-    const query = job.queryDefinition.query(job.normalizedParams, structure);
-    const result = StructureSelection.unionStructure(StructureQuery.run(query, structure, Config.maxQueryTimeInMs));
-    perf.end('query');
+    let startedWriting = false;
+    try {
+        const encoder = CifWriter.createEncoder({ binary: job.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
+        perf.start('query');
+        const structure = job.queryDefinition.structureTransform
+            ? await job.queryDefinition.structureTransform(job.normalizedParams, wrappedStructure.structure)
+            : wrappedStructure.structure;
+        const query = job.queryDefinition.query(job.normalizedParams, structure);
+        const result = await StructureSelection.unionStructure(StructureQuery.run(query, structure, Config.maxQueryTimeInMs));
+        perf.end('query');
 
-    ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
+        ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
 
+        perf.start('encode');
+        encoder.startDataBlock(structure.units[0].model.label.toUpperCase());
+        encoder.writeCategory(_model_server_result, [job]);
+        encoder.writeCategory(_model_server_params, [job]);
+
+        // encoder.setFilter(mmCIF_Export_Filters.onlyPositions);
+        encode_mmCIF_categories(encoder, result);
+        // encoder.setFilter();
+        perf.end('encode');
+
+        ConsoleLogger.logId(job.id, 'Query', 'Encoded.');
+
+        const stats: Stats = {
+            structure: wrappedStructure,
+            queryTimeMs: perf.time('query'),
+            encodeTimeMs: perf.time('encode')
+        };
+
+        encoder.writeCategory(_model_server_stats, [stats]);
+        encoder.encode();
+        startedWriting = true;
+        encoder.writeTo(writer);
+        ConsoleLogger.logId(job.id, 'Query', 'Written.');
+    } catch (e) {
+        ConsoleLogger.errorId(job.id, e);
+        if (!startedWriting) {
+            doError(job, writer, e);
+        } else {
+            ConsoleLogger.errorId(job.id, 'Error was not relayed to the user because it happened during "write".');
+        }
+    }
+}
+
+function doError(job: Job, writer: Writer, e: any) {
     const encoder = CifWriter.createEncoder({ binary: job.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
-
-    perf.start('encode');
-    encoder.startDataBlock(structure.units[0].model.label.toUpperCase());
     encoder.writeCategory(_model_server_result, [job]);
     encoder.writeCategory(_model_server_params, [job]);
-
-    // encoder.setFilter(mmCIF_Export_Filters.onlyPositions);
-    encode_mmCIF_categories(encoder, result);
-    // encoder.setFilter();
-    perf.end('encode');
-
-    ConsoleLogger.logId(job.id, 'Query', 'Encoded.');
-
-    const stats: Stats = {
-        structure: wrappedStructure,
-        queryTimeMs: perf.time('query'),
-        encodeTimeMs: perf.time('encode')
-    };
-
-    encoder.writeCategory(_model_server_stats, [stats]);
+    encoder.writeCategory(_model_server_error, ['' + e]);
     encoder.encode();
-
     encoder.writeTo(writer);
-
-    ConsoleLogger.logId(job.id, 'Query', 'Written.');
 }
 
 const maxTime = Config.maxQueryTimeInMs;
@@ -88,7 +104,7 @@ function int32<T>(name: string, value: (data: T) => number): CifField<number, T>
     return CifField.int(name, (i, d) => value(d));
 }
 
-const _model_server_result_fields: CifField<number, Job>[] = [
+const _model_server_result_fields: CifField<any, Job>[] = [
     string<Job>('job_id', ctx => '' + ctx.id),
     string<Job>('datetime_utc', ctx => ctx.datetime_utc),
     string<Job>('server_version', ctx => Version),
@@ -102,6 +118,10 @@ const _model_server_params_fields: CifField<number, string[]>[] = [
     string<string[]>('value', (ctx, i) => ctx[i][1])
 ];
 
+const _model_server_error_fields: CifField<number, string>[] = [
+    string<string>('message', (ctx, i) => ctx)
+];
+
 const _model_server_stats_fields: CifField<number, Stats>[] = [
     int32<Stats>('io_time_ms', ctx => ctx.structure.info.readTime | 0),
     int32<Stats>('parse_time_ms', ctx => ctx.structure.info.parseTime | 0),
@@ -110,10 +130,14 @@ const _model_server_stats_fields: CifField<number, Stats>[] = [
     int32<Stats>('encode_time_ms', ctx => ctx.encodeTimeMs | 0)
 ];
 
-
 const _model_server_result: CifWriter.Category<Job> = {
     name: 'model_server_result',
     instance: (job) => ({ data: job, fields: _model_server_result_fields, rowCount: 1 })
+};
+
+const _model_server_error: CifWriter.Category<string> = {
+    name: 'model_server_error',
+    instance: (message) => ({ data: message, fields: _model_server_error_fields, rowCount: 1 })
 };
 
 const _model_server_params: CifWriter.Category<Job> = {

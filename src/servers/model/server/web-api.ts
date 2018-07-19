@@ -69,12 +69,12 @@ async function processNextJob() {
     try {
         writer.writeHeader(job.responseFormat.isBinary);
         await resolveJob(job, writer);
-        writer.end();
     } catch (e) {
         ConsoleLogger.errorId(job.id, '' + e);
         // TODO: add some error?
         writer.doError(404);
     } finally {
+        writer.end();
         setImmediate(processNextJob);
     }
 }
