@@ -15,7 +15,7 @@ export const DefaultPolyhedronProps = {
 }
 export type PolyhedronProps = Partial<typeof DefaultPolyhedronProps>
 
-export default function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, props?: PolyhedronProps) {
+export function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, props?: PolyhedronProps) {
     const { radius, detail } = { ...DefaultPolyhedronProps, ...props }
     const builder = createBuilder()
     const { vertices, indices } = builder

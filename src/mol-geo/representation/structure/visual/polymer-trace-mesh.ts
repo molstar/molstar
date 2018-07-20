@@ -24,16 +24,23 @@ import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator } from './util/polymer';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
-// import { radToDeg } from 'mol-math/misc';
+import { degToRad } from 'mol-math/misc';
+
+// TODO handle polymer ends properly
+// TODO avoid allocating Vec3, use global temp vars
 
 const tmpNormal = Vec3.zero()
 const tangentVec = Vec3.zero()
 const normalVec = Vec3.zero()
 const binormalVec = Vec3.zero()
-
 const prevNormal = Vec3.zero()
+
+const t = Mat4.identity()
+const rotX90 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(1, 0, 0))
+const rotY90 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(0, 1, 0))
+const rotXY90 = Mat4.mul(Mat4.identity(), rotX90, rotY90)
 
 const orthogonalizeTmpVec = Vec3.zero()
 /** Get a vector that is similar to b but orthogonal to a */
@@ -45,13 +52,9 @@ function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
 
 function interpolateNormals(controlPoints: Helpers.NumberArray, tangentVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, firstNormalVector: Vec3, lastNormalVector: Vec3) {
     const n = controlPoints.length / 3
-    // const n1 = n - 1
 
-    // const angle = radToDeg(Math.acos(Vec3.dot(firstNormalVector, lastNormalVector)))
-    // console.log('angle', angle)
     if (Vec3.dot(firstNormalVector, lastNormalVector) < 0) {
         Vec3.scale(lastNormalVector, lastNormalVector, -1)
-        // console.log('flipped last normal vector')
     }
 
     Vec3.copy(prevNormal, firstNormalVector)
@@ -65,13 +68,6 @@ function interpolateNormals(controlPoints: Helpers.NumberArray, tangentVectors: 
         orthogonalize(normalVec, tangentVec, tmpNormal)
         Vec3.toArray(normalVec, normalVectors, i * 3)
 
-        // const deltaAngle = radToDeg(Math.acos(Vec3.dot(prevNormal, normalVec)))
-        // if (deltaAngle > (angle / n1) * 5 && deltaAngle > 20) {
-        //     console.warn(i, 'large delta angle', deltaAngle)
-        // }
-        // if (Vec3.dot(normalVec, prevNormal) < 0) {
-        //     console.warn(i, 'flip compared to prev', radToDeg(Math.acos(Vec3.dot(prevNormal, normalVec))))
-        // }
         Vec3.copy(prevNormal, normalVec)
 
         Vec3.normalize(binormalVec, Vec3.cross(binormalVec, tangentVec, normalVec))
@@ -107,11 +103,11 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        // builder.setId(elements[v.center.element])
         builder.setId(v.center.element)
 
         const isNucleic = v.moleculeType === MoleculeType.DNA || v.moleculeType === MoleculeType.RNA
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
+        const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
         const tension = (isNucleic || isSheet) ? 0.5 : 0.9
 
         for (let j = 0; j <= linearSegments; ++j) {
@@ -198,12 +194,28 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
             const arrowHeight = v.secStrucChange ? 1.7 : 0
             builder.addSheet(controlPoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
         } else {
-            if (SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)) {
+            if (isHelix) {
                 width = 0.2; height = 1.0
             } else if (isNucleic) {
                 width = 1.5; height = 0.3
             }
             builder.addTube(controlPoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
+        }
+
+        if ((isSheet && !v.secStrucChange) || !isSheet) {
+            const upVec = Vec3.zero()
+            let width = 0.5, height = 1.2, depth = 0.6
+            if (isNucleic) {
+                Vec3.fromArray(upVec, binormalVectors, Math.round(linearSegments / 2) * 3)
+                depth = 0.9
+            } else {
+                Vec3.fromArray(upVec, normalVectors, Math.round(linearSegments / 2) * 3)
+            }
+
+            Mat4.targetTo(t, v.t3, v.t1, upVec)
+            Mat4.mul(t, t, rotXY90)
+            Mat4.setTranslation(t, v.t2)
+            builder.addWedge(t, { width, height, depth })
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

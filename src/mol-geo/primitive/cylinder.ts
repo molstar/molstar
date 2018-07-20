@@ -21,7 +21,7 @@ export const DefaultCylinderProps = {
 }
 export type CylinderProps = Partial<typeof DefaultCylinderProps>
 
-export default function Cylinder(props?: CylinderProps) {
+export function Cylinder(props?: CylinderProps) {
     const { radiusTop, radiusBottom, height, radialSegments, heightSegments, topCap, bottomCap, thetaStart, thetaLength } = { ...DefaultCylinderProps, ...props };
 
     // buffers

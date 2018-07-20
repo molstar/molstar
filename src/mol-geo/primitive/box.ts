@@ -17,7 +17,7 @@ export type BoxProps = Partial<typeof DefaultBoxProps>
 
 const tmpVector = Vec3.zero();
 
-export default function Box(props?: BoxProps) {
+export function Box(props?: BoxProps) {
     const { width, height, depth } = { ...DefaultBoxProps, ...props }
 
     // buffers

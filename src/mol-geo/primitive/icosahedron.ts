@@ -6,7 +6,7 @@
 
 // adapted from three.js, MIT License Copyright 2010-2018 three.js authors
 
-import Polyhedron from './polyhedron'
+import { Polyhedron } from './polyhedron'
 
 const t = ( 1 + Math.sqrt( 5 ) ) / 2;
 
@@ -33,6 +33,6 @@ export const DefaultIcosahedronProps = {
 }
 export type IcosahedronProps = Partial<typeof DefaultIcosahedronProps>
 
-export default function Icosahedron(props?: IcosahedronProps) {
+export function Icosahedron(props?: IcosahedronProps) {
     return Polyhedron(vertices, indices, { ...DefaultIcosahedronProps, ...props })
 }

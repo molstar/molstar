@@ -8,9 +8,11 @@ import { ValueCell } from 'mol-util/value-cell'
 import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
 
-import Box, { BoxProps } from '../primitive/box';
-import Cylinder, { CylinderProps } from '../primitive/cylinder';
-import Icosahedron, { IcosahedronProps } from '../primitive/icosahedron';
+import { Box, BoxProps } from '../primitive/box';
+import { Plane, PlaneProps } from '../primitive/plane';
+import { Wedge, WedgeProps } from '../primitive/wedge';
+import { Cylinder, CylinderProps } from '../primitive/cylinder';
+import { Icosahedron, IcosahedronProps } from '../primitive/icosahedron';
 import { Mesh } from './mesh';
 import { getNormalMatrix } from '../util';
 import { addSheet } from '../primitive/sheet';
@@ -31,6 +33,8 @@ export interface MeshBuilderState {
 export interface MeshBuilder {
     add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices?: Uint32Array): void
     addBox(t: Mat4, props?: BoxProps): void
+    addPlane(t: Mat4, props?: PlaneProps): void
+    addWedge(t: Mat4, props?: WedgeProps): void
     addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
@@ -128,8 +132,16 @@ export namespace MeshBuilder {
         return {
             add,
             addBox: (t: Mat4, props?: BoxProps) => {
-                const box = Box(props)
-                add(t, box.vertices, box.normals, box.indices)
+                const { vertices, normals, indices } = Box(props)
+                add(t, vertices, normals, indices)
+            },
+            addPlane: (t: Mat4, props?: PlaneProps) => {
+                const { vertices, normals, indices } = Plane(props)
+                add(t, vertices, normals, indices)
+            },
+            addWedge: (t: Mat4, props?: WedgeProps) => {
+                const { vertices, normals, indices } = Wedge(props)
+                add(t, vertices, normals, indices)
             },
             addCylinder: (start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) => {
                 const d = Vec3.distance(start, end) * lengthScale
