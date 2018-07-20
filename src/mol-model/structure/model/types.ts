@@ -54,6 +54,45 @@ export const enum MoleculeType {
     saccharide
 }
 
+const AtomRole = {
+    trace: '', direction: '', backboneStart: '', backboneEnd: ''
+}
+export type AtomRole = keyof typeof AtomRole
+
+export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: string } } = {
+    [MoleculeType.protein]: {
+        trace: 'CA', // TODO 'BB'
+        direction: 'O', // TODO 'OC1', 'O1', 'OX1', 'OXT'
+        backboneStart: 'N',
+        backboneEnd: 'C'
+    },
+    [MoleculeType.RNA]: {
+        trace: 'C4\'', // TODO 'C4*'
+        direction: 'C3\'', // 'C3*'
+        backboneStart: 'P',
+        backboneEnd: 'O3\'' // TODO 'O3*'
+    },
+    [MoleculeType.DNA]: {
+        trace: 'C3\'', // TODO 'C3*'
+        direction: 'C1\'', // TODO 'C1*'
+        backboneStart: 'P',
+        backboneEnd: 'O3\'' // TODO 'O3*'
+    }
+}
+
+export const ProteinBackboneAtoms = [
+    'CA', 'C', 'N', 'O',
+    'O1', 'O2', 'OC1', 'OC2', 'OX1', 'OXT',
+    'H', 'H1', 'H2', 'H3', 'HA', 'HN',
+    'BB'
+]
+
+export const NucleicBackboneAtoms = [
+    'P', 'OP1', 'OP2',
+    'O2\'', 'O3\'', 'O4\'', 'O5\'', 'C1\'', 'C2\'', 'C3\'', 'C4\'', 'C5\'',
+    'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
+]
+
 /** Chemical component types as defined in the mmCIF CCD */
 export enum ComponentType {
     // protein

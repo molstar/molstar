@@ -91,17 +91,15 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
         };
     }
 
+    const conformation = getConformation(atom_site)
+
     const hierarchySegments: AtomicSegments = {
         residueAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, Interval.ofBounds(0, atom_site._rowCount)),
         chainAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, Interval.ofBounds(0, atom_site._rowCount)),
     }
 
     const hierarchyKeys = getAtomicKeys(hierarchyData, entities, hierarchySegments);
-    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, formatData.chemicalComponentMap);
+    const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, formatData.chemicalComponentMap);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments, ...hierarchyRanges };
-    return {
-        sameAsPrevious: false,
-        hierarchy,
-        conformation: getConformation(atom_site)
-    };
+    return { sameAsPrevious: false, hierarchy, conformation };
 }

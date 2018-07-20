@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureElement, Model, ElementIndex, ResidueIndex } from 'mol-model/structure';
+import { Unit, StructureElement, ElementIndex, ResidueIndex } from 'mol-model/structure';
 import { Segmentation, OrderedSet, Interval, SortedArray } from 'mol-data/int';
-import { MoleculeType, SecondaryStructureType } from 'mol-model/structure/model/types';
+import { MoleculeType, SecondaryStructureType, AtomRole } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
 import { Vec3 } from 'mol-math/linear-algebra';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse';
-import { getElementIndexForAtomId, getMoleculeType } from 'mol-model/structure/util';
+import { getMoleculeType, getElementIndexForAtomRole } from 'mol-model/structure/util';
 
 export function getPolymerRanges(unit: Unit): SortedRanges<ElementIndex> {
     switch (unit.kind) {
@@ -68,34 +68,7 @@ export function getPolymerGapCount(unit: Unit) {
     return count
 }
 
-export function getResidueTypeAtomId(moleculeType: MoleculeType, atomType: 'trace' | 'direction') {
-    switch (moleculeType) {
-        case MoleculeType.protein:
-            switch (atomType) {
-                case 'trace': return 'CA'
-                case 'direction': return 'O'
-            }
-            break
-        case MoleculeType.RNA:
-            switch (atomType) {
-                case 'trace': return 'C4\''
-                case 'direction': return 'C3\''
-            }
-            break
-        case MoleculeType.DNA:
-            switch (atomType) {
-                case 'trace': return 'C3\''
-                case 'direction': return 'C1\''
-            }
-            break
-    }
-    return ''
-}
 
-export function getElementIndexForResidueTypeAtomId(model: Model, rI: ResidueIndex, atomType: 'trace' | 'direction') {
-    const atomId = getResidueTypeAtomId(getMoleculeType(model, rI), atomType)
-    return getElementIndexForAtomId(model, rI, atomId)
-}
 
 /** Iterates over consecutive pairs of residues/coarse elements in polymers */
 export function PolymerBackboneIterator(unit: Unit): Iterator<PolymerBackbonePair> {
@@ -119,21 +92,22 @@ function createPolymerBackbonePair (unit: Unit) {
     }
 }
 
-const enum AtomicPolymerBackboneIteratorState { nextPolymer, firstResidue, nextResidue }
+const enum AtomicPolymerBackboneIteratorState { nextPolymer, firstResidue, nextResidue, cycle }
 
 export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePair> {
     private value: PolymerBackbonePair
     private polymerIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>
     private residueIt: Segmentation.SegmentIterator<ResidueIndex>
     private state: AtomicPolymerBackboneIteratorState = AtomicPolymerBackboneIteratorState.nextPolymer
+    private residueSegment: Segmentation.Segment<ResidueIndex>
     hasNext: boolean = false;
 
-    private getElementIndex(residueIndex: ResidueIndex, atomType: 'trace' | 'direction') {
-        const index = getElementIndexForResidueTypeAtomId(this.unit.model, residueIndex, atomType)
+    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
+        const index = getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
         // TODO handle case when it returns -1
         const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
         if (elementIndex === -1) {
-            console.log('-1', residueIndex, atomType, index)
+            console.log('-1', residueIndex, atomRole, index)
         }
         return elementIndex === -1 ? 0 as ElementIndex : elementIndex
     }
@@ -141,10 +115,10 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
     move() {
         if (this.state === AtomicPolymerBackboneIteratorState.nextPolymer) {
             while (this.polymerIt.hasNext) {
-                const residueSegment = this.polymerIt.move()
-                this.residueIt.setSegment(residueSegment);
+                this.residueIt.setSegment(this.polymerIt.move());
                 if (this.residueIt.hasNext) {
-                    this.value.centerB.element = this.getElementIndex(this.residueIt.move().index, 'trace')
+                    this.residueSegment = this.residueIt.move()
+                    this.value.centerB.element = this.getElementIndex(this.residueSegment.index, 'trace')
                     this.state = AtomicPolymerBackboneIteratorState.nextResidue
                     break
                 }
@@ -152,15 +126,26 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
         }
 
         if (this.state === AtomicPolymerBackboneIteratorState.nextResidue) {
+            this.residueSegment = this.residueIt.move()
             this.value.centerA.element = this.value.centerB.element
-            this.value.centerB.element = this.getElementIndex(this.residueIt.move().index, 'trace')
+            this.value.centerB.element = this.getElementIndex(this.residueSegment.index, 'trace')
             if (!this.residueIt.hasNext) {
-                // TODO need to advance to a polymer that has two or more residues (can't assume it has)
-                this.state = AtomicPolymerBackboneIteratorState.nextPolymer
+                if (this.unit.model.atomicHierarchy.cyclicPolymerMap.has(this.residueSegment.index)) {
+                    this.state = AtomicPolymerBackboneIteratorState.cycle
+                } else {
+                    // TODO need to advance to a polymer that has two or more residues (can't assume it has)
+                    this.state = AtomicPolymerBackboneIteratorState.nextPolymer
+                }
             }
+        } else if (this.state === AtomicPolymerBackboneIteratorState.cycle) {
+            const { cyclicPolymerMap } = this.unit.model.atomicHierarchy
+            this.value.centerA.element = this.value.centerB.element
+            this.value.centerB.element = this.getElementIndex(cyclicPolymerMap.get(this.residueSegment.index)!, 'trace')
+            // TODO need to advance to a polymer that has two or more residues (can't assume it has)
+            this.state = AtomicPolymerBackboneIteratorState.nextPolymer
         }
 
-        this.hasNext = this.residueIt.hasNext || this.polymerIt.hasNext
+        this.hasNext = this.residueIt.hasNext || this.polymerIt.hasNext || this.state === AtomicPolymerBackboneIteratorState.cycle
         return this.value;
     }
 
@@ -243,12 +228,12 @@ export class AtomicPolymerGapIterator implements Iterator<PolymerGapPair> {
     private gapIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>
     hasNext: boolean = false;
 
-    private getElementIndex(residueIndex: ResidueIndex, atomType: 'trace' | 'direction') {
-        const index = getElementIndexForResidueTypeAtomId(this.unit.model, residueIndex, atomType)
+    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
+        const index = getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
         // TODO handle case when it returns -1
         const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
         if (elementIndex === -1) {
-            console.log('-1', residueIndex, atomType, index)
+            console.log('-1', residueIndex, atomRole, index)
         }
         return elementIndex === -1 ? 0 as ElementIndex : elementIndex
     }
@@ -363,22 +348,38 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.residueSegmentMax = index[this.unit.elements[polymerSegment.end - 1]]
     }
 
-    private getAtomIndex(residueIndex: number, atomType: 'trace' | 'direction') {
-        const index = Math.min(Math.max(this.residueSegmentMin, residueIndex), this.residueSegmentMax)
-        return getElementIndexForResidueTypeAtomId(this.unit.model, index as ResidueIndex, atomType)
+    private getAtomIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
+        const { cyclicPolymerMap } = this.unit.model.atomicHierarchy
+        if (residueIndex < this.residueSegmentMin) {
+            const cyclicIndex = cyclicPolymerMap.get(this.residueSegmentMin)
+            if (cyclicIndex !== undefined) {
+
+                residueIndex = cyclicIndex - (this.residueSegmentMin - residueIndex - 1) as ResidueIndex
+            } else {
+                residueIndex = this.residueSegmentMin
+            }
+        } else if (residueIndex > this.residueSegmentMax) {
+            const cyclicIndex = cyclicPolymerMap.get(this.residueSegmentMax)
+            if (cyclicIndex !== undefined) {
+                residueIndex = cyclicIndex + (residueIndex - this.residueSegmentMax - 1) as ResidueIndex
+            } else {
+                residueIndex = this.residueSegmentMax
+            }
+        }
+        return getElementIndexForAtomRole(this.unit.model, residueIndex as ResidueIndex, atomRole)
     }
 
-    private getElementIndex(residueIndex: number, atomType: 'trace' | 'direction') {
-        const index = this.getAtomIndex(residueIndex, atomType)
+    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
+        const index = this.getAtomIndex(residueIndex, atomRole)
         // TODO handle case when it returns -1
         const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
         if (elementIndex === -1) {
-            console.log('-1', residueIndex, atomType, index)
+            console.log('-1', residueIndex, atomRole, index)
         }
         return elementIndex === -1 ? 0 as ElementIndex : elementIndex
     }
 
-    private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
+    private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
         const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
         if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
             Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1/4)
@@ -386,15 +387,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             Vec3.copy(out, p2)
         }
     }
-
-    // private setDirectionVector(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: number) {
-    //     const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
-    //     if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
-    //         Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p2, p3)), 1/3)
-    //     } else {
-    //         Vec3.copy(out, p2)
-    //     }
-    // }
 
     move() {
         const { residueIt, polymerIt, value } = this
@@ -415,29 +407,27 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             const { index: residueIndex } = residueIt.move();
             value.center.element = this.getElementIndex(residueIndex, 'trace')
 
-            this.pos(this.p0, this.getAtomIndex(residueIndex - 3, 'trace'))
-            this.pos(this.p1, this.getAtomIndex(residueIndex - 2, 'trace'))
-            this.pos(this.p2, this.getAtomIndex(residueIndex - 1, 'trace'))
+            this.pos(this.p0, this.getAtomIndex(residueIndex - 3 as ResidueIndex, 'trace'))
+            this.pos(this.p1, this.getAtomIndex(residueIndex - 2 as ResidueIndex, 'trace'))
+            this.pos(this.p2, this.getAtomIndex(residueIndex - 1 as ResidueIndex, 'trace'))
             this.pos(this.p3, this.getAtomIndex(residueIndex, 'trace'))
-            this.pos(this.p4, this.getAtomIndex(residueIndex + 1, 'trace'))
-            this.pos(this.p5, this.getAtomIndex(residueIndex + 2, 'trace'))
-            this.pos(this.p6, this.getAtomIndex(residueIndex + 3, 'trace'))
+            this.pos(this.p4, this.getAtomIndex(residueIndex + 1 as ResidueIndex, 'trace'))
+            this.pos(this.p5, this.getAtomIndex(residueIndex + 2 as ResidueIndex, 'trace'))
+            this.pos(this.p6, this.getAtomIndex(residueIndex + 3 as ResidueIndex, 'trace'))
 
-            // this.pos(this.v01, this.getAtomIndex(residueIndex - 2, 'direction'))
-            this.pos(this.v12, this.getAtomIndex(residueIndex - 1, 'direction'))
+            // this.pos(this.v01, this.getAtomIndex(residueIndex - 2 as ResidueIndex, 'direction'))
+            this.pos(this.v12, this.getAtomIndex(residueIndex - 1 as ResidueIndex, 'direction'))
             this.pos(this.v23, this.getAtomIndex(residueIndex, 'direction'))
-            // this.pos(this.v34, this.getAtomIndex(residueIndex + 1, 'direction'))
+            // this.pos(this.v34, this.getAtomIndex(residueIndex + 1 as ResidueIndex, 'direction'))
 
             this.value.secStrucType = this.unit.model.properties.secondaryStructure.type[residueIndex]
 
-            this.setControlPoint(value.t0, this.p0, this.p1, this.p2, residueIndex - 2)
-            this.setControlPoint(value.t1, this.p1, this.p2, this.p3, residueIndex - 1)
+            this.setControlPoint(value.t0, this.p0, this.p1, this.p2, residueIndex - 2 as ResidueIndex)
+            this.setControlPoint(value.t1, this.p1, this.p2, this.p3, residueIndex - 1 as ResidueIndex)
             this.setControlPoint(value.t2, this.p2, this.p3, this.p4, residueIndex)
-            this.setControlPoint(value.t3, this.p3, this.p4, this.p5, residueIndex + 1)
-            this.setControlPoint(value.t4, this.p4, this.p5, this.p6, residueIndex + 2)
+            this.setControlPoint(value.t3, this.p3, this.p4, this.p5, residueIndex + 1 as ResidueIndex)
+            this.setControlPoint(value.t4, this.p4, this.p5, this.p6, residueIndex + 2 as ResidueIndex)
 
-            // this.setDirectionVector(value.d12, this.v01, this.v12, this.v23, residueIndex)
-            // this.setDirectionVector(value.d23, this.v12, this.v23, this.v34, residueIndex + 1)
             Vec3.copy(value.d12, this.v12)
             Vec3.copy(value.d23, this.v23)
 

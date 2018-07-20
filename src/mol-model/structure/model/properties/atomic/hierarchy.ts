@@ -83,6 +83,7 @@ export interface AtomicKeys {
 export interface AtomicRanges {
     polymerRanges: SortedRanges<ElementIndex>
     gapRanges: SortedRanges<ElementIndex>
+    cyclicPolymerMap: Map<ResidueIndex, ResidueIndex>
 }
 
 type _Hierarchy = AtomicData & AtomicSegments & AtomicKeys & AtomicRanges

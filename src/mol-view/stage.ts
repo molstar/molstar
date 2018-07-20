@@ -83,7 +83,7 @@ export class Stage {
         // this.loadPdbid('2np2') // dna
         // this.loadPdbid('1d66') // dna
         // this.loadPdbid('9dna') // A form dna
-        this.loadPdbid('1bna') // B form dna
+        // this.loadPdbid('1bna') // B form dna
         // this.loadPdbid('199d') // C form dna
         // this.loadPdbid('4lb6') // Z form dna
         // this.loadPdbid('1egk') // 4-way dna-rna junction
@@ -91,7 +91,7 @@ export class Stage {
         // this.loadPdbid('1xv6') // rna, modified nucleotides
         // this.loadPdbid('3bbm') // rna with linker
         // this.loadPdbid('1gfl') // GFP, flourophore has carbonyl oxygen removed
-        // this.loadPdbid('1sfi') // contains cyclic peptid
+        this.loadPdbid('1sfi') // contains cyclic peptid
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)

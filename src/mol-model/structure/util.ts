@@ -5,13 +5,22 @@
  */
 
 import { Model, ResidueIndex, ElementIndex } from './model';
-import { MoleculeType } from './model/types';
+import { MoleculeType, AtomRole, MoleculeTypeAtomRoleId } from './model/types';
 
 export function getMoleculeType(model: Model, rI: ResidueIndex) {
     const compId = model.atomicHierarchy.residues.label_comp_id.value(rI)
     const chemCompMap = model.properties.chemicalComponentMap
     const cc = chemCompMap.get(compId)
     return cc ? cc.moleculeType : MoleculeType.unknown
+}
+
+export function getAtomIdForAtomRole(moleculeType: MoleculeType, atomRole: AtomRole) {
+    const m = MoleculeTypeAtomRoleId[moleculeType]
+    if (m !== undefined) {
+        const a = m[atomRole]
+        if (a !== undefined) return a
+    }
+    return ''
 }
 
 export function getElementIndexForAtomId(model: Model, rI: ResidueIndex, atomId: string): ElementIndex {
@@ -21,6 +30,11 @@ export function getElementIndexForAtomId(model: Model, rI: ResidueIndex, atomId:
         if (label_atom_id.value(j) === atomId) return j as ElementIndex
     }
     return offsets[rI] as ElementIndex
+}
+
+export function getElementIndexForAtomRole(model: Model, rI: ResidueIndex, atomRole: AtomRole) {
+    const atomId = getAtomIdForAtomRole(getMoleculeType(model, rI), atomRole)
+    return getElementIndexForAtomId(model, rI, atomId)
 }
 
 export function residueLabel(model: Model, rI: number) {

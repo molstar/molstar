@@ -25,8 +25,7 @@ import { getElementLoci, markElement } from './util/element';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation, SortedArray } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
-import { getElementIndexForAtomId } from 'mol-model/structure/util';
-import { getElementIndexForResidueTypeAtomId } from './util/polymer';
+import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
 
 async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -77,7 +76,7 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?:
                     idx3 = getElementIndexForAtomId(model, residueIndex, 'C6')
                     idx4 = getElementIndexForAtomId(model, residueIndex, 'C2')
                     idx5 = getElementIndexForAtomId(model, residueIndex, 'N9')
-                    idx6 = getElementIndexForResidueTypeAtomId(model, residueIndex, 'trace')
+                    idx6 = getElementIndexForAtomRole(model, residueIndex, 'trace')
                 } else if (isPyrimidineBase(compId)) {
                     height = 3.0
                     idx1 = getElementIndexForAtomId(model, residueIndex, 'N3')
@@ -85,7 +84,7 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?:
                     idx3 = getElementIndexForAtomId(model, residueIndex, 'C4')
                     idx4 = getElementIndexForAtomId(model, residueIndex, 'C2')
                     idx5 = getElementIndexForAtomId(model, residueIndex, 'N1')
-                    idx6 = getElementIndexForResidueTypeAtomId(model, residueIndex, 'trace')
+                    idx6 = getElementIndexForAtomRole(model, residueIndex, 'trace')
                 }
 
                 if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1 && idx5 !== -1 && idx6 !== -1) {
