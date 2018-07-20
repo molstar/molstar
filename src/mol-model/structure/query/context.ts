@@ -4,35 +4,57 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { RuntimeContext } from 'mol-task';
 import { Structure, StructureElement } from '../structure';
+import { now } from 'mol-task';
 
 export interface QueryContextView {
     readonly element: StructureElement;
+    readonly currentStructure: Structure;
 }
 
 export class QueryContext implements QueryContextView {
-    private currentStack: StructureElement[] = [];
+    private currentElementStack: StructureElement[] = [];
+    private currentStructureStack: Structure[] = [];
+    private timeCreated = now();
+    private timeoutMs: number;
 
-    readonly structure: Structure;
-    readonly taskCtx: RuntimeContext;
+    readonly inputStructure: Structure;
 
     /** Current element */
     readonly element: StructureElement = StructureElement.create();
+    currentStructure: Structure = void 0 as any;
 
     pushCurrentElement(): StructureElement {
-        this.currentStack[this.currentStack.length] = this.element;
+        this.currentElementStack[this.currentElementStack.length] = this.element;
         (this.element as StructureElement) = StructureElement.create();
         return this.element;
     }
 
     popCurrentElement() {
-        (this.element as StructureElement) = this.currentStack.pop()!;
+        (this.element as StructureElement) = this.currentElementStack.pop()!;
     }
 
-    constructor(structure: Structure, taskCtx: RuntimeContext) {
-        this.structure = structure;
-        this.taskCtx = taskCtx;
+    pushCurrentStructure() {
+        if (this.currentStructure) this.currentStructureStack.push(this.currentStructure);
+    }
+
+    popCurrentStructure() {
+        if (this.currentStructureStack.length) (this.currentStructure as Structure) = this.currentStructureStack.pop()!;
+        else (this.currentStructure as Structure) = void 0 as any;
+    }
+
+    throwIfTimedOut() {
+        if (this.timeoutMs === 0) return;
+        if (now() - this.timeCreated > this.timeoutMs) {
+            throw new Error(`The query took too long to execute (> ${this.timeoutMs / 1000}s).`);
+        }
+    }
+
+    // todo timeout
+
+    constructor(structure: Structure, timeoutMs = 0) {
+        this.inputStructure = structure;
+        this.timeoutMs = timeoutMs;
     }
 }
 

@@ -34,14 +34,14 @@ function createQuery(entityId: string, label_seq_id: number) {
 // TODO: this is really ineffective and should be done using a canvas.
 class EntitySequence extends React.Component<{ ctx: Context, seq: StructureSequence.Entity, structure: Structure }> {
 
-    async raiseInteractityEvent(seqId?: number) {
+    raiseInteractityEvent(seqId?: number) {
         if (typeof seqId === 'undefined') {
             InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, EmptyLoci);
             return;
         }
 
         const query = createQuery(this.props.seq.entityId, seqId);
-        const loci = StructureSelection.toLoci(await StructureQuery.run(query, this.props.structure));
+        const loci = StructureSelection.toLoci(StructureQuery.run(query, this.props.structure));
         if (loci.elements.length === 0) InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, EmptyLoci);
         else InteractivityEvents.HighlightLoci.dispatch(this.props.ctx, loci);
     }

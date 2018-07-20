@@ -1,0 +1,107 @@
+/**
+ * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { JobManager, Job } from './jobs';
+import { ConsoleLogger } from 'mol-util/console-logger';
+import { resolveJob } from './query';
+import { StructureCache } from './structure-wrapper';
+import { now } from 'mol-task';
+import { PerformanceMonitor } from 'mol-util/performance-monitor';
+
+export type LocalInput = {
+    input: string,
+    output: string,
+    query: string,
+    params?: any
+}[];
+
+export async function runLocal(input: LocalInput) {
+    if (!input.length) {
+        ConsoleLogger.error('Local', 'No input');
+        return;
+    }
+
+    for (const job of input) {
+        JobManager.add('_local_', job.input, job.query, job.params || { }, job.output);
+    }
+    JobManager.sort();
+
+    const started = now();
+
+    let job: Job | undefined = JobManager.getNext();
+    let key = job.key;
+    let progress = 0;
+    while (job) {
+        try {
+            const encoder = await resolveJob(job);
+            const writer = wrapFile(job.outputFilename!);
+            encoder.writeTo(writer);
+            writer.end();
+            ConsoleLogger.logId(job.id, 'Query', 'Written.');
+
+            if (JobManager.hasNext()) {
+                job = JobManager.getNext();
+                if (key !== job.key) StructureCache.expire(key);
+                key = job.key;
+            } else {
+                break;
+            }
+        } catch (e) {
+            ConsoleLogger.errorId(job.id, e);
+        }
+        ConsoleLogger.log('Progress', `[${++progress}/${input.length}] after ${PerformanceMonitor.format(now() - started)}.`);
+    }
+
+    ConsoleLogger.log('Progress', `Done in ${PerformanceMonitor.format(now() - started)}.`);
+    StructureCache.expireAll();
+}
+
+function wrapFile(fn: string) {
+    const w = {
+        open(this: any) {
+            if (this.opened) return;
+            makeDir(path.dirname(fn));
+            this.file = fs.openSync(fn, 'w');
+            this.opened = true;
+        },
+        writeBinary(this: any, data: Uint8Array) {
+            this.open();
+            fs.writeSync(this.file, new Buffer(data));
+            return true;
+        },
+        writeString(this: any, data: string) {
+            this.open();
+            fs.writeSync(this.file, data);
+            return true;
+        },
+        end(this: any) {
+            if (!this.opened || this.ended) return;
+            fs.close(this.file, function () { });
+            this.ended = true;
+        },
+        file: 0,
+        ended: false,
+        opened: false
+    };
+
+    return w;
+}
+
+function makeDir(path: string, root?: string): boolean {
+    let dirs = path.split(/\/|\\/g),
+        dir = dirs.shift();
+
+    root = (root || '') + dir + '/';
+
+    try { fs.mkdirSync(root); }
+    catch (e) {
+        if (!fs.statSync(root).isDirectory()) throw new Error(e);
+    }
+
+    return !dirs.length || makeDir(dirs.join('/'), root);
+}

@@ -12,6 +12,8 @@ import CIF from 'mol-io/reader/cif'
 import * as util from 'util'
 import * as fs from 'fs'
 import * as zlib from 'zlib'
+import { Job } from './jobs';
+import { ConsoleLogger } from 'mol-util/console-logger';
 
 require('util.promisify').shim();
 
@@ -38,13 +40,12 @@ export class StructureWrapper {
     structure: Structure;
 }
 
-export async function getStructure(sourceId: '_local_' | string, entryId: string): Promise<StructureWrapper> {
-    const key = `${sourceId}/${entryId}`;
+export async function getStructure(job: Job): Promise<StructureWrapper> {
     if (Config.cacheParams.useCache) {
-        const ret = StructureCache.get(key);
+        const ret = StructureCache.get(job.key);
         if (ret) return ret;
     }
-    const ret = await readStructure(key, sourceId, entryId);
+    const ret = await readStructure(job.key, job.sourceId, job.entryId);
     if (Config.cacheParams.useCache) {
         StructureCache.add(ret);
     }
@@ -83,10 +84,18 @@ async function parseCif(data: string|Uint8Array) {
 
 async function readStructure(key: string, sourceId: string, entryId: string) {
     const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
-    if (!filename) throw new Error(`Entry '${key}' not found.`);
+    if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
+    if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
 
     perf.start('read');
-    const data = await readFile(filename);
+    let data;
+    try {
+        data = await readFile(filename);
+    } catch (e) {
+        ConsoleLogger.error(key, '' + e);
+        throw new Error(`Could not read the file for '${key}' from disk.`);
+    }
+
     perf.end('read');
     perf.start('parse');
     const frame = (await parseCif(data)).blocks[0];

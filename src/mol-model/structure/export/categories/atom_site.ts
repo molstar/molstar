@@ -39,7 +39,7 @@ const atom_site_fields: CifField<StructureElement>[] = [
 
     CifField.int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE }),
     CifField.str<StructureElement, Structure>('operator_name', P.unit.operator_name, {
-        shouldInclude: structure => { console.log(!!structure); return structure.units.some(u => !u.conformation.operator.isIdentity) }
+        shouldInclude: structure => structure.units.some(u => !u.conformation.operator.isIdentity)
     })
 ];
 

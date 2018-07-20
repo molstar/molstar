@@ -7,8 +7,8 @@
 import { StructureSelection } from './query/selection'
 import { StructureQuery } from './query/query'
 export * from './query/context'
-import * as generators from './query/generators'
-import * as modifiers from './query/modifiers'
+import * as generators from './query/queries/generators'
+import * as modifiers from './query/queries/modifiers'
 import pred from './query/predicates'
 
 export const Queries = {

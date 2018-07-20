@@ -98,20 +98,80 @@ export namespace Tasks {
             .on('cycle', (e: any) => console.log(String(e.target)))
             .run();
     }
+
+    function add(x: number, y: number) {
+        return x + y;
+    }
+
+    // async function addAs(x: number, y: number) {
+    //     return x + y;
+    // }
+
+    async function opAsync(n: number) {
+        let ret = 0;
+        for (let i = 0; i < n; i++) {
+            const v = add(i, i + 1);
+            ret += (v as any).then ? await v : v;
+        }
+        return ret;
+    }
+
+    function opNormal(n: number) {
+        let ret = 0;
+        for (let i = 0; i < n; i++) {
+            ret += add(i, i + 1);
+        }
+        return ret;
+    }
+
+    export async function awaitF() {
+        const N = 10000000;
+
+        console.time('async');
+        console.log(await opAsync(N));
+        console.timeEnd('async');
+
+        console.time('async');
+        console.log(await opAsync(N));
+        console.timeEnd('async');
+
+        console.time('async');
+        console.log(await opAsync(N));
+        console.timeEnd('async');
+
+        console.time('normal');
+        console.log(opNormal(N));
+        console.timeEnd('normal');
+        console.time('normal');
+        console.log(opNormal(N));
+        console.timeEnd('normal');
+        console.time('normal');
+        console.log(opNormal(N));
+        console.timeEnd('normal');
+
+        // const suite = new B.Suite();
+        // suite
+        //     .add(`async`, async () => { return await opAsync(100000); })
+        //     .add(`normal`, () => { return opNormal(100000); })
+        //     .on('cycle', (e: any) => console.log(String(e.target)))
+        //     .run();
+    }
 }
 
 (async function() {
     // await Tasks.testImmediate();
     // await Tasks.testImmediate();
 
-    await Tasks.baseline();
-    await Tasks.yielding();
-    await Tasks.yielding1();
-    await Tasks.testYielding();
-    await Tasks.baseline();
-    await Tasks.yielding();
-    await Tasks.yielding1();
-    await Tasks.testYielding();
+    // await Tasks.baseline();
+    // await Tasks.yielding();
+    // await Tasks.yielding1();
+    // await Tasks.testYielding();
+    // await Tasks.baseline();
+    // await Tasks.yielding();
+    // await Tasks.yielding1();
+    // await Tasks.testYielding();
+
+    await Tasks.awaitF();
 }())
 
 // console.time('test')
