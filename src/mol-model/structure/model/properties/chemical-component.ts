@@ -15,3 +15,5 @@ export interface ChemicalComponent {
     formula: string
     formulaWeight: number
 }
+
+export type ChemicalComponentMap = ReadonlyMap<string, ChemicalComponent>

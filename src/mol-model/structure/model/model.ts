@@ -15,7 +15,7 @@ import { CustomProperties } from './properties/custom';
 import { SecondaryStructure } from './properties/seconday-structure';
 
 import from_mmCIF from './formats/mmcif'
-import { ChemicalComponent } from './properties/chemical-component';
+import { ChemicalComponentMap } from './properties/chemical-component';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -42,14 +42,14 @@ export interface Model extends Readonly<{
         /** secondary structure provided by the input file */
         readonly secondaryStructure: SecondaryStructure,
         /** maps modified residue name to its parent */
-        readonly modifiedResidues: {
-            parentId: Map<string, string>,
-            details: Map<string, string>
-        },
+        readonly modifiedResidues: Readonly<{
+            parentId: ReadonlyMap<string, string>,
+            details: ReadonlyMap<string, string>
+        }>,
         /** maps asym id to unique serial number */
-        readonly asymIdSerialMap: Map<string, number>
+        readonly asymIdSerialMap: ReadonlyMap<string, number>
         /** maps residue name to `ChemicalComponent` data */
-        readonly chemicalComponentMap: Map<string, ChemicalComponent>
+        readonly chemicalComponentMap: ChemicalComponentMap
     },
 
     customProperties: CustomProperties,

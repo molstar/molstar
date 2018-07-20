@@ -23,7 +23,7 @@ import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
 import { StructConn } from './mmcif/bonds/struct_conn';
-import { ChemicalComponent } from '../properties/chemical-component';
+import { ChemicalComponent, ChemicalComponentMap } from '../properties/chemical-component';
 import { ComponentType, getMoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
@@ -86,7 +86,7 @@ function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['m
     return { parentId, details };
 }
 
-function getAsymIdSerialMap(format: mmCIF_Format) {
+function getAsymIdSerialMap(format: mmCIF_Format): ReadonlyMap<string, number> {
     const data = format.data.struct_asym;
     const map = new Map<string, number>();
     let serial = 0
@@ -104,7 +104,7 @@ function getAsymIdSerialMap(format: mmCIF_Format) {
     return map;
 }
 
-function getChemicalComponentMap(format: mmCIF_Format) {
+function getChemicalComponentMap(format: mmCIF_Format): ChemicalComponentMap {
     const map = new Map<string, ChemicalComponent>();
     const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
     for (let i = 0, il = id.rowCount; i < il; ++i) {
@@ -126,8 +126,8 @@ function getChemicalComponentMap(format: mmCIF_Format) {
 
 export interface FormatData {
     modifiedResidues: Model['properties']['modifiedResidues']
-    asymIdSerialMap: Map<string, number>
-    chemicalComponentMap: Map<string, ChemicalComponent>
+    asymIdSerialMap: Model['properties']['asymIdSerialMap']
+    chemicalComponentMap: Model['properties']['chemicalComponentMap']
 }
 
 function getFormatData(format: mmCIF_Format): FormatData {

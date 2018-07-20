@@ -49,7 +49,7 @@ namespace Sequence {
         return { kind: Kind.Generic, code: (v: string) => 'X' };
     }
 
-    function modCode(code: (name: string) => string, map: Map<string, string>): (name: string) => string {
+    function modCode(code: (name: string) => string, map: ReadonlyMap<string, string>): (name: string) => string {
         return n => {
             const ret = code(n);
             if (ret !== 'X' || !map.has(n)) return ret;
@@ -57,7 +57,7 @@ namespace Sequence {
         }
     }
 
-    export function ofResidueNames(residueName: Column<string>, seqId: Column<number>, modifiedMap?: Map<string, string>): Sequence {
+    export function ofResidueNames(residueName: Column<string>, seqId: Column<number>, modifiedMap?: ReadonlyMap<string, string>): Sequence {
         if (seqId.rowCount === 0) throw new Error('cannot be empty');
 
         const { kind, code } = determineKind(residueName);

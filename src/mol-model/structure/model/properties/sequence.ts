@@ -24,7 +24,7 @@ namespace StructureSequence {
         readonly sequence: Sequence
     }
 
-    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: Map<string, string>): StructureSequence {
+    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: ReadonlyMap<string, string>): StructureSequence {
         const { label_comp_id, label_seq_id } = hierarchy.residues
         const { chainAtomSegments, residueAtomSegments } = hierarchy
 
