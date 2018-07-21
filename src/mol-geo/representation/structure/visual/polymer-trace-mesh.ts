@@ -23,57 +23,14 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
-import { getPolymerElementCount, PolymerTraceIterator } from './util/polymer';
+import { getPolymerElementCount, PolymerTraceIterator, interpolateNormals } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
-import { degToRad } from 'mol-math/misc';
 
 // TODO handle polymer ends properly
 // TODO avoid allocating Vec3, use global temp vars
 
-const tmpNormal = Vec3.zero()
-const tangentVec = Vec3.zero()
-const normalVec = Vec3.zero()
-const binormalVec = Vec3.zero()
-const prevNormal = Vec3.zero()
-
 const t = Mat4.identity()
-const rotX90 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(1, 0, 0))
-const rotY90 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(0, 1, 0))
-const rotXY90 = Mat4.mul(Mat4.identity(), rotX90, rotY90)
-
-const orthogonalizeTmpVec = Vec3.zero()
-/** Get a vector that is similar to b but orthogonal to a */
-function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
-    Vec3.normalize(orthogonalizeTmpVec, Vec3.cross(orthogonalizeTmpVec, a, b))
-    Vec3.normalize(out, Vec3.cross(out, orthogonalizeTmpVec, a))
-    return out
-}
-
-function interpolateNormals(controlPoints: Helpers.NumberArray, tangentVectors: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, firstNormalVector: Vec3, lastNormalVector: Vec3) {
-    const n = controlPoints.length / 3
-
-    if (Vec3.dot(firstNormalVector, lastNormalVector) < 0) {
-        Vec3.scale(lastNormalVector, lastNormalVector, -1)
-    }
-
-    Vec3.copy(prevNormal, firstNormalVector)
-
-    for (let i = 0; i < n; ++i) {
-        const t = i === 0 ? 0 : 1 / (n - i)
-        Vec3.normalize(tmpNormal, Vec3.slerp(tmpNormal, prevNormal, lastNormalVector, t))
-
-        Vec3.fromArray(tangentVec, tangentVectors, i * 3)
-
-        orthogonalize(normalVec, tangentVec, tmpNormal)
-        Vec3.toArray(normalVec, normalVectors, i * 3)
-
-        Vec3.copy(prevNormal, normalVec)
-
-        Vec3.normalize(binormalVec, Vec3.cross(binormalVec, tangentVec, normalVec))
-        Vec3.toArray(binormalVec, binormalVectors, i * 3)
-    }
-}
 
 async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
@@ -90,8 +47,6 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
 
     const tB = Vec3.zero()
     const tangentVec = Vec3.zero()
-
-    const tmp = Vec3.zero()
 
     const pn = (linearSegments + 1) * 3
     const controlPoints = new Float32Array(pn)
@@ -128,63 +83,8 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
             Vec3.toArray(tangentVec, tangentVectors, j * 3)
         }
 
-        const firstControlPoint = Vec3.zero()
-        const lastControlPoint = Vec3.zero()
-        const firstTangentVec = Vec3.zero()
-        const lastTangentVec = Vec3.zero()
-        const firstNormalVec = Vec3.zero()
-        const lastNormalVec = Vec3.zero()
-        const firstDirPoint = Vec3.zero()
-        const lastDirPoint = Vec3.zero()
-
-        Vec3.fromArray(firstControlPoint, controlPoints, 0)
-        Vec3.fromArray(lastControlPoint, controlPoints, linearSegments * 3)
-        Vec3.fromArray(firstTangentVec, tangentVectors, 0)
-        Vec3.fromArray(lastTangentVec, tangentVectors, linearSegments * 3)
-        Vec3.copy(firstDirPoint, v.d12)
-        Vec3.copy(lastDirPoint, v.d23)
-
-        Vec3.normalize(tmpNormal, Vec3.sub(tmp, firstControlPoint, firstDirPoint))
-        orthogonalize(firstNormalVec, firstTangentVec, tmpNormal)
-
-        Vec3.normalize(tmpNormal, Vec3.sub(tmp, lastControlPoint, lastDirPoint))
-        orthogonalize(lastNormalVec, lastTangentVec, tmpNormal)
-
         // console.log('ELEMENT', i)
-        interpolateNormals(controlPoints, tangentVectors, normalVectors, binormalVectors, firstNormalVec, lastNormalVec)
-
-        // const controlPoint = Vec3.zero()
-        // for (let j = 0; j <= linearSegments; ++j) {
-        //     Vec3.fromArray(controlPoint, controlPoints, j * 3)
-        //     Vec3.fromArray(normalVec, normalVectors, j * 3)
-        //     Vec3.fromArray(binormalVec, binormalVectors, j * 3)
-        //     Vec3.fromArray(tangentVec, tangentVectors, j * 3)
-        //     builder.addIcosahedron(controlPoint, 0.25, 1)
-        //     builder.addCylinder(
-        //         controlPoint,
-        //         Vec3.add(tmp, controlPoint, normalVec),
-        //         1.5,
-        //         { radiusTop: 0.07, radiusBottom: 0.07 }
-        //     )
-        //     builder.addCylinder(
-        //         controlPoint,
-        //         Vec3.add(tmp, controlPoint, binormalVec),
-        //         0.8,
-        //         { radiusTop: 0.07, radiusBottom: 0.07 }
-        //     )
-        //     builder.addCylinder(
-        //         controlPoint,
-        //         Vec3.add(tmp, controlPoint, tangentVec),
-        //         j === 0 ? 2 : 1.5,
-        //         { radiusTop: 0.03, radiusBottom: 0.03 }
-        //     )
-        // }
-
-        // builder.addIcosahedron(v.t0, 0.25, 1)
-        // builder.addIcosahedron(v.t1, 0.25, 1)
-        // builder.addIcosahedron(v.t2, 0.25, 1)
-        // builder.addIcosahedron(v.t3, 0.25, 1)
-        // builder.addIcosahedron(v.t4, 0.25, 1)
+        interpolateNormals(controlPoints, tangentVectors, normalVectors, binormalVectors, v.d12, v.d23)
 
         let width = 0.2, height = 0.2
 
@@ -213,7 +113,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
             }
 
             Mat4.targetTo(t, v.t3, v.t1, upVec)
-            Mat4.mul(t, t, rotXY90)
+            Mat4.mul(t, t, Mat4.rotXY90)
             Mat4.setTranslation(t, v.t2)
             builder.addWedge(t, { width, height, depth })
         }

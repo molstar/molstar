@@ -20,8 +20,10 @@
 import { EPSILON, equalEps } from './common'
 import Vec3 from './vec3';
 import Quat from './quat';
+import { degToRad } from '../../misc';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
+interface ReadonlyMat4 extends Array<number> { readonly [d: number]: number, '@type': 'mat4', length: 16 }
 
 function Mat4() {
     return Mat4.zero();
@@ -830,6 +832,13 @@ namespace Mat4 {
         }
         return out;
     }
+
+    /** Rotation matrix for 90deg rotation around x-axis */
+    export const rotX90: ReadonlyMat4 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(1, 0, 0))
+    /** Rotation matrix for 90deg rotation around y-axis */
+    export const rotY90: ReadonlyMat4 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(0, 1, 0))
+    /** Rotation matrix for 90deg rotation around first x-axis and then y-axis */
+    export const rotXY90: ReadonlyMat4 = Mat4.mul(Mat4.identity(), rotX90, rotY90)
 }
 
 export default Mat4

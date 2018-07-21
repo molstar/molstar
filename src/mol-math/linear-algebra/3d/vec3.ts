@@ -415,14 +415,22 @@ namespace Vec3 {
     }
 
     export function isZero(v: Vec3) {
-        return v[0] === 0 && v[1] === 0 && v[2] === 0
+        return v[0] === 0 && v[1] === 0 && v[2] === 0;
     }
 
     export function projectPointOnVector(out: Vec3, point: Vec3, vector: Vec3, origin: Vec3) {
         // point.sub(origin).projectOnVector(vector).add(origin)
-        Vec3.sub(out, Vec3.copy(out, point), origin)
-        const scalar = Vec3.dot(vector, out) / Vec3.squaredMagnitude(vector);
-        return Vec3.add(out, Vec3.scale(out, Vec3.copy(out, vector), scalar), origin);
+        sub(out, copy(out, point), origin)
+        const scalar = dot(vector, out) / squaredMagnitude(vector);
+        return add(out, scale(out, copy(out, vector), scalar), origin);
+    }
+
+    const orthogonalizeTmp = zero();
+    /** Get a vector that is similar to b but orthogonal to a */
+    export function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
+        normalize(orthogonalizeTmp, cross(orthogonalizeTmp, a, b));
+        normalize(out, cross(out, orthogonalizeTmp, a));
+        return out;
     }
 
     export function toString(a: Vec3) {
