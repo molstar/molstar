@@ -29,6 +29,8 @@ import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/
 
 // TODO handle polymer ends properly
 // TODO avoid allocating Vec3, use global temp vars
+// TODO move more interpolation code into ./util/polymer/interpolate
+// TODO move direction wedges into separate visual
 
 const t = Mat4.identity()
 
