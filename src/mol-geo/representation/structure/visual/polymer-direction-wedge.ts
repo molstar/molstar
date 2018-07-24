@@ -24,22 +24,22 @@ import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment } from './util/polymer';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 
-// TODO handle polymer ends properly
+const t = Mat4.identity()
 
-async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
+async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
-    console.log('polymerElementCount trace', polymerElementCount)
+    console.log('polymerElementCount direction', polymerElementCount)
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
     // TODO better vertex count estimates
     const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
-    const linearSegments = 8
-    const radialSegments = 12
+    const linearSegments = 1
 
     const state = createCurveSegmentState(linearSegments)
-    const { curvePoints, normalVectors, binormalVectors } = state
+    const { normalVectors, binormalVectors } = state
 
     let i = 0
     const polymerTraceIt = PolymerTraceIterator(unit)
@@ -49,30 +49,29 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
 
         const isNucleic = v.moleculeType === MoleculeType.DNA || v.moleculeType === MoleculeType.RNA
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
-        const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
         const tension = (isNucleic || isSheet) ? 0.5 : 0.9
 
         // console.log('ELEMENT', i)
         interpolateCurveSegment(state, v, tension)
 
-        let width = 0.2, height = 0.2
-
-        // TODO size theme
-        if (isSheet) {
-            width = 0.15; height = 1.0
-            const arrowHeight = v.secStrucChange ? 1.7 : 0
-            builder.addSheet(curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
-        } else {
-            if (isHelix) {
-                width = 0.2; height = 1.0
-            } else if (isNucleic) {
-                width = 1.5; height = 0.3
+        if ((isSheet && !v.secStrucChange) || !isSheet) {
+            const upVec = Vec3.zero()
+            let width = 0.5, height = 1.2, depth = 0.6
+            if (isNucleic) {
+                Vec3.fromArray(upVec, binormalVectors, Math.round(linearSegments / 2) * 3)
+                depth = 0.9
+            } else {
+                Vec3.fromArray(upVec, normalVectors, Math.round(linearSegments / 2) * 3)
             }
-            builder.addTube(curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
+
+            Mat4.targetTo(t, v.p3, v.p1, upVec)
+            Mat4.mul(t, t, Mat4.rotXY90)
+            Mat4.setTranslation(t, v.p2)
+            builder.addWedge(t, { width, height, depth })
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Polymer trace mesh', current: i, max: polymerElementCount });
+            await ctx.update({ message: 'Polymer direction mesh', current: i, max: polymerElementCount });
         }
         ++i
     }
@@ -80,34 +79,34 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, mesh?: Me
     return builder.getMesh()
 }
 
-export const DefaultPolymerTraceProps = {
+export const DefaultPolymerDirectionProps = {
     ...DefaultMeshProps,
     ...DefaultStructureProps,
     sizeTheme: { name: 'physical', factor: 1 } as SizeTheme,
     detail: 0,
     unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
 }
-export type PolymerTraceProps = Partial<typeof DefaultPolymerTraceProps>
+export type PolymerDirectionProps = Partial<typeof DefaultPolymerDirectionProps>
 
-export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
+export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {
     let renderObject: MeshRenderObject
-    let currentProps: typeof DefaultPolymerTraceProps
+    let currentProps: typeof DefaultPolymerDirectionProps
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
 
     return {
         get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: PolymerTraceProps = {}) {
-            currentProps = Object.assign({}, DefaultPolymerTraceProps, props)
+        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: PolymerDirectionProps = {}) {
+            currentProps = Object.assign({}, DefaultPolymerDirectionProps, props)
             currentGroup = group
 
-            const { colorTheme, unitKinds } = { ...DefaultPolymerTraceProps, ...props }
+            const { colorTheme, unitKinds } = { ...DefaultPolymerDirectionProps, ...props }
             const instanceCount = group.units.length
             const elementCount = group.elements.length
             const unit = group.units[0]
 
             mesh = unitKinds.includes(unit.kind)
-                ? await createPolymerTraceMesh(ctx, unit, mesh)
+                ? await createPolymerDirectionWedgeMesh(ctx, unit, mesh)
                 : Mesh.createEmpty(mesh)
 
             const transforms = createTransforms(group)
@@ -128,7 +127,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
 
             renderObject = createMeshRenderObject(values, state)
         },
-        async update(ctx: RuntimeContext, props: PolymerTraceProps) {
+        async update(ctx: RuntimeContext, props: PolymerDirectionProps) {
             const newProps = Object.assign({}, currentProps, props)
 
             if (!renderObject) return false
@@ -137,7 +136,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
 
             if (newProps.detail !== currentProps.detail) {
                 const unit = currentGroup.units[0]
-                mesh = await createPolymerTraceMesh(ctx, unit, mesh)
+                mesh = await createPolymerDirectionWedgeMesh(ctx, unit, mesh)
                 ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
                 updateColor = true
             }
@@ -148,7 +147,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
 
             if (updateColor) {
                 const elementCount = currentGroup.elements.length
-                if (ctx.shouldUpdate) await ctx.update('Computing trace colors');
+                if (ctx.shouldUpdate) await ctx.update('Computing direction colors');
                 createColors(currentGroup, elementCount, newProps.colorTheme, renderObject.values)
             }
 

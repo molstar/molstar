@@ -33,7 +33,8 @@ interface PolymerTraceElement {
     secStrucType: SecondaryStructureType
     secStrucChange: boolean
     moleculeType: MoleculeType
-    t0: Vec3, t1: Vec3, t2: Vec3, t3: Vec3, t4: Vec3
+
+    p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, p4: Vec3
     d12: Vec3, d23: Vec3
 }
 
@@ -44,7 +45,7 @@ function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
         secStrucType: SecondaryStructureType.create(SecondaryStructureType.Flag.NA),
         secStrucChange: false,
         moleculeType: MoleculeType.unknown,
-        t0: Vec3.zero(), t1: Vec3.zero(), t2: Vec3.zero(), t3: Vec3.zero(), t4: Vec3.zero(),
+        p0: Vec3.zero(), p1: Vec3.zero(), p2: Vec3.zero(), p3: Vec3.zero(), p4: Vec3.zero(),
         d12: Vec3.create(1, 0, 0), d23: Vec3.create(1, 0, 0),
     }
 }
@@ -162,11 +163,11 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
             this.value.secStrucType = this.unit.model.properties.secondaryStructure.type[residueIndex]
 
-            this.setControlPoint(value.t0, this.p0, this.p1, this.p2, residueIndex - 2 as ResidueIndex)
-            this.setControlPoint(value.t1, this.p1, this.p2, this.p3, residueIndex - 1 as ResidueIndex)
-            this.setControlPoint(value.t2, this.p2, this.p3, this.p4, residueIndex)
-            this.setControlPoint(value.t3, this.p3, this.p4, this.p5, residueIndex + 1 as ResidueIndex)
-            this.setControlPoint(value.t4, this.p4, this.p5, this.p6, residueIndex + 2 as ResidueIndex)
+            this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndex - 2 as ResidueIndex)
+            this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndex - 1 as ResidueIndex)
+            this.setControlPoint(value.p2, this.p2, this.p3, this.p4, residueIndex)
+            this.setControlPoint(value.p3, this.p3, this.p4, this.p5, residueIndex + 1 as ResidueIndex)
+            this.setControlPoint(value.p4, this.p4, this.p5, this.p6, residueIndex + 2 as ResidueIndex)
 
             Vec3.copy(value.d12, this.v12)
             Vec3.copy(value.d23, this.v23)
@@ -231,11 +232,11 @@ export class CoarsePolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.elementIndex += 1
             this.value.center.element = this.value.center.unit.elements[this.elementIndex]
 
-            this.pos(this.value.t0, this.elementIndex - 2)
-            this.pos(this.value.t1, this.elementIndex - 1)
-            this.pos(this.value.t2, this.elementIndex)
-            this.pos(this.value.t3, this.elementIndex + 1)
-            this.pos(this.value.t4, this.elementIndex + 2)
+            this.pos(this.value.p0, this.elementIndex - 2)
+            this.pos(this.value.p1, this.elementIndex - 1)
+            this.pos(this.value.p2, this.elementIndex)
+            this.pos(this.value.p3, this.elementIndex + 1)
+            this.pos(this.value.p4, this.elementIndex + 2)
 
             this.value.first = this.elementIndex === this.polymerSegment.start
             this.value.last = this.elementIndex === this.polymerSegment.end - 1

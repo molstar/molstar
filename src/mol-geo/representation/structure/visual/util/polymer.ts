@@ -11,7 +11,7 @@ import SortedRanges from 'mol-data/int/sorted-ranges';
 export * from './polymer/backbone-iterator'
 export * from './polymer/gap-iterator'
 export * from './polymer/trace-iterator'
-export * from './polymer/interpolate'
+export * from './polymer/curve-segment'
 
 export function getPolymerRanges(unit: Unit): SortedRanges<ElementIndex> {
     switch (unit.kind) {

@@ -72,6 +72,7 @@ export class Stage {
         this.ctx.viewer = this.viewer
 
         // this.loadPdbid('1jj2')
+        // this.loadPdbid('1grm') // helix-like sheets
         // this.loadPdbid('4umt') // ligand has bond with order 3
         // this.loadPdbid('1crn') // small
         // this.loadPdbid('1hrv') // viral assembly
