@@ -116,6 +116,7 @@ const _model_server_error_fields: CifField<number, string>[] = [
 const _model_server_stats_fields: CifField<number, Stats>[] = [
     int32<Stats>('io_time_ms', ctx => ctx.structure.info.readTime | 0),
     int32<Stats>('parse_time_ms', ctx => ctx.structure.info.parseTime | 0),
+    int32<Stats>('attach_props_time_ms', ctx => ctx.structure.info.attachPropsTime | 0),
     int32<Stats>('create_model_time_ms', ctx => ctx.structure.info.createModelTime | 0),
     int32<Stats>('query_time_ms', ctx => ctx.queryTimeMs | 0),
     int32<Stats>('encode_time_ms', ctx => ctx.encodeTimeMs | 0)

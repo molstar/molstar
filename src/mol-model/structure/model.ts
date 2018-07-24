@@ -10,5 +10,6 @@ import Format from './model/format'
 import { ModelSymmetry } from './model/properties/symmetry'
 import StructureSequence from './model/properties/sequence'
 
+export * from './model/properties/custom'
 export * from './model/indexing'
 export { Model, Types, Format, ModelSymmetry, StructureSequence }

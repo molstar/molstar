@@ -10,7 +10,9 @@ import { Entities } from '../common'
 import { ChainIndex, ResidueIndex, EntityIndex } from '../../indexing';
 
 function getResidueId(comp_id: string, seq_id: number, ins_code: string) {
-    return `${comp_id} ${seq_id} ${ins_code}`;
+    // TODO: add new index that support comp_id again?
+    return `${seq_id} ${ins_code}`;
+    //return `${comp_id} ${seq_id} ${ins_code}`;
 }
 
 function getElementKey(map: Map<string, number>, key: string, counter: { index: number }) {

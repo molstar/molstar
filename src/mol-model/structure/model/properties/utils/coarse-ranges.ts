@@ -13,7 +13,7 @@ import { ElementIndex } from '../../indexing';
 // TODO assumes all coarse elements are part of a polymer
 // TODO add gaps at the ends of the chains by comparing to the polymer sequence data
 
-export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: Map<string, ChemicalComponent>): CoarseRanges {
+export function getCoarseRanges(data: CoarseElementData, chemicalComponentMap: ReadonlyMap<string, ChemicalComponent>): CoarseRanges {
     const polymerRanges: number[] = []
     const gapRanges: number[] = []
     const chainIt = Segmentation.transientSegments(data.chainElementSegments, Interval.ofBounds(0, data.count))

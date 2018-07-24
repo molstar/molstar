@@ -14,6 +14,7 @@ import * as fs from 'fs'
 import * as zlib from 'zlib'
 import { Job } from './jobs';
 import { ConsoleLogger } from 'mol-util/console-logger';
+import { attachModelProperties } from '../properties';
 
 require('util.promisify').shim();
 
@@ -27,6 +28,7 @@ export interface StructureInfo {
     readTime: number;
     parseTime: number;
     createModelTime: number;
+    attachPropsTime: number;
 
     sourceId: string,
     entryId: string
@@ -104,6 +106,10 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
     const models = await Model.create(Format.mmCIF(frame)).run();
     perf.end('createModel');
 
+    perf.start('attachProps');
+    await attachModelProperties(models[0]);
+    perf.end('attachProps');
+
     const structure = Structure.ofModel(models[0]);
 
     const ret: StructureWrapper = {
@@ -112,6 +118,7 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
             readTime: perf.time('read'),
             parseTime: perf.time('parse'),
             createModelTime: perf.time('createModel'),
+            attachPropsTime: perf.time('attachProps'),
             sourceId,
             entryId
         },

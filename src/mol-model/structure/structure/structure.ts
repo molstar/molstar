@@ -18,6 +18,7 @@ import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
 import { CrossLinkRestraints, extractCrossLinkRestraints } from './unit/pair-restraints';
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
+import { ResidueIndex } from '../model/indexing';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -277,6 +278,25 @@ namespace Structure {
 
         sortArray(keys.array);
         return keys.array;
+    }
+
+    export function getUniqueAtomicResidueIndices(structure: Structure, model: Model): ReadonlyArray<ResidueIndex> {
+        const uniqueResidues = UniqueArray.create<ResidueIndex, ResidueIndex>();
+        const unitGroups = structure.unitSymmetryGroups;
+        for (const unitGroup of unitGroups) {
+            const unit = unitGroup.units[0];
+            if (unit.model !== model || !Unit.isAtomic(unit)) {
+                continue;
+            }
+
+            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
+            while (residues.hasNext) {
+                const seg = residues.move();
+                UniqueArray.add(uniqueResidues, seg.index, seg.index);
+            }
+        }
+        sortArray(uniqueResidues.array);
+        return uniqueResidues.array;
     }
 }
 
