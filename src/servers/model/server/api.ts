@@ -4,9 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StructureQuery, Queries, Structure, StructureElement, StructureSymmetry, StructureProperties as Props, QueryPredicate } from 'mol-model/structure';
+import { Queries, Structure, StructureQuery, StructureSymmetry } from 'mol-model/structure';
+import { getAtomsTests } from '../query/atoms';
 
 export enum QueryParamType {
+    JSON,
     String,
     Integer,
     Float
@@ -18,7 +20,7 @@ export interface QueryParamInfo {
     description?: string,
     required?: boolean,
     defaultValue?: any,
-    exampleValue?: string,
+    exampleValues?: string[],
     validation?: (v: any) => void
 }
 
@@ -32,7 +34,7 @@ export interface QueryDefinition {
     structureTransform?: (params: any, s: Structure) => Promise<Structure>
 }
 
-const AtomSiteParameters = {
+const AtomSiteParams = {
     entity_id: <QueryParamInfo>{ name: 'entity_id', type: QueryParamType.String, description: 'Corresponds to the \'_entity.id\' or \'*.label_entity_id\' field, depending on the context.' },
 
     label_asym_id: <QueryParamInfo>{ name: 'label_asym_id', type: QueryParamType.String, description: 'Corresponds to the \'_atom_site.label_asym_id\' field.' },
@@ -45,110 +47,76 @@ const AtomSiteParameters = {
     pdbx_PDB_ins_code: <QueryParamInfo>{ name: 'pdbx_PDB_ins_code', type: QueryParamType.String, description: 'Corresponds to the \'_atom_site.pdbx_PDB_ins_code\' field.' },
 };
 
-// function entityTest(params: any): Element.Predicate | undefined {
-//     if (typeof params.entity_id === 'undefined') return void 0;
-//     const p = Props.entity.id, id = '' + params.entityId;
-//     return Element.property(l => p(l) === id);
-// }
+const AtomSiteTestParams: QueryParamInfo = {
+    name: 'atom_site',
+    type: QueryParamType.JSON,
+    description: 'Object or array of objects describing atom properties. Name are same as in wwPDB mmCIF dictionary of the atom_site category.',
+    exampleValues: [`{ label_comp_id: 'ALA' }`, `{ label_seq_id: 123, label_asym_id: 'A' }`]
+};
 
-function entityTest1_555(params: any): QueryPredicate | undefined {
-    if (typeof params.entity_id === 'undefined') return ctx => ctx.element.unit.conformation.operator.isIdentity;
-    const p = Props.entity.id, id = '' + params.entityId;
-    return ctx => ctx.element.unit.conformation.operator.isIdentity && p(ctx.element) === id;
-}
-
-function chainTest(params: any): QueryPredicate | undefined {
-    if (typeof params.label_asym_id !== 'undefined') {
-        const p = Props.chain.label_asym_id, id = '' + params.label_asym_id;
-        return ctx => p(ctx.element) === id;
-    }
-    if (typeof params.auth_asym_id !== 'undefined') {
-        const p = Props.chain.auth_asym_id, id = '' + params.auth_asym_id;
-        return ctx => p(ctx.element) === id;
-    }
-    return void 0;
-}
-
-function residueTest(params: any): QueryPredicate | undefined {
-    const props: StructureElement.Property<any>[] = [], values: any[] = [];
-
-    if (typeof params.label_seq_id !== 'undefined') {
-        props.push(Props.residue.label_seq_id);
-        values.push(+params.label_seq_id);
-    }
-
-    if (typeof params.auth_seq_id !== 'undefined') {
-        props.push(Props.residue.auth_seq_id);
-        values.push(+params.auth_seq_id);
-    }
-
-    if (typeof params.label_comp_id !== 'undefined') {
-        props.push(Props.residue.label_comp_id);
-        values.push(params.label_comp_id);
-    }
-
-    if (typeof params.auth_comp_id !== 'undefined') {
-        props.push(Props.residue.auth_comp_id);
-        values.push(params.auth_comp_id);
-    }
-
-    if (typeof params.pdbx_PDB_ins_code !== 'undefined') {
-        props.push(Props.residue.pdbx_PDB_ins_code);
-        values.push(params.pdbx_PDB_ins_code);
-    }
-
-    switch (props.length) {
-        case 0: return void 0;
-        case 1: return ctx => props[0](ctx.element) === values[0];
-        case 2: return ctx => props[0](ctx.element) === values[0] && props[1](ctx.element) === values[1];
-        case 3: return ctx => props[0](ctx.element) === values[0] && props[1](ctx.element) === values[1] && props[2](ctx.element) === values[2];
-        default: {
-            const len = props.length;
-            return ctx => {
-                for (let i = 0; i < len; i++) if (!props[i](ctx.element) !== values[i]) return false;
-                return true;
-            };
+const RadiusParam: QueryParamInfo = {
+    name: 'radius',
+    type: QueryParamType.Float,
+    defaultValue: 5,
+    exampleValues: ['5'],
+    description: 'Value in Angstroms.',
+    validation(v: any) {
+        if (v < 1 || v > 10) {
+            throw `Invalid radius for residue interaction query (must be a value between 1 and 10).`;
         }
     }
-}
-
-// function buildResiduesQuery(params: any): Query.Provider {
-//     return Queries.generators.atoms({ entityTest: entityTest(params), chainTest: chainTest(params), residueTest: residueTest(params) });
-// }
+};
 
 const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
     'full': { niceName: 'Full Structure', query: () => Queries.generators.all, description: 'The full structure.' },
+    'atoms': {
+        niceName: 'Atoms',
+        description: 'Atoms satisfying the given criteria.',
+        query: p => Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test))),
+        params: [ AtomSiteTestParams ]
+    },
+    'symmetryMates': {
+        niceName: 'Symmetry Mates',
+        description: 'Computes crystal symmetry mates within the specified radius',
+        query: () => Queries.generators.all,
+        structureTransform(p, s) {
+            return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
+        },
+    },
+    'assembly': {
+        niceName: 'Assembly',
+        description: 'Computes crystal symmetry mates within the specified radius',
+        query: () => Queries.generators.all,
+        structureTransform(p, s) {
+            return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
+        },
+    },
     'residueInteraction': {
         niceName: 'Residues Inside a Sphere',
-        description: 'Identifies all residues within the given radius from the source residue.',
+        description: 'Identifies all residues within the given radius from the source residue. Takes crystal symmetry into account.',
         query(p) {
-            const center = Queries.generators.atoms({ entityTest: entityTest1_555(p), chainTest: chainTest(p), residueTest: residueTest(p) });
+            const tests = getAtomsTests(p);
+            const center = Queries.combinators.merge(tests.map(test => Queries.generators.atoms({
+                ...test,
+                entityTest: test.entityTest
+                    ? ctx => test.entityTest!(ctx) && ctx.element.unit.conformation.operator.isIdentity
+                    : ctx => ctx.element.unit.conformation.operator.isIdentity
+            })));
             return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
         },
         structureTransform(p, s) {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
         },
         params: [
-            AtomSiteParameters.entity_id,
-            AtomSiteParameters.label_asym_id,
-            AtomSiteParameters.auth_asym_id,
-            AtomSiteParameters.label_comp_id,
-            AtomSiteParameters.auth_comp_id,
-            AtomSiteParameters.pdbx_PDB_ins_code,
-            AtomSiteParameters.label_seq_id,
-            AtomSiteParameters.auth_seq_id,
-            {
-                name: 'radius',
-                type: QueryParamType.Float,
-                defaultValue: 5,
-                exampleValue: '5',
-                description: 'Value in Angstroms.',
-                validation(v: any) {
-                    if (v < 1 || v > 10) {
-                        throw `Invalid radius for residue interaction query (must be a value between 1 and 10).`;
-                    }
-                }
-            },
+            AtomSiteParams.entity_id,
+            AtomSiteParams.label_asym_id,
+            AtomSiteParams.auth_asym_id,
+            AtomSiteParams.label_comp_id,
+            AtomSiteParams.auth_comp_id,
+            AtomSiteParams.pdbx_PDB_ins_code,
+            AtomSiteParams.label_seq_id,
+            AtomSiteParams.auth_seq_id,
+            RadiusParam,
         ]
     },
 };
