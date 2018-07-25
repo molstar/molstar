@@ -77,7 +77,7 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
     },
     'symmetryMates': {
         niceName: 'Symmetry Mates',
-        description: 'Computes crystal symmetry mates within the specified radius',
+        description: 'Computes crystal symmetry mates within the specified radius.',
         query: () => Queries.generators.all,
         structureTransform(p, s) {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
@@ -85,11 +85,18 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
     },
     'assembly': {
         niceName: 'Assembly',
-        description: 'Computes crystal symmetry mates within the specified radius',
+        description: 'Computes structural assembly.',
         query: () => Queries.generators.all,
         structureTransform(p, s) {
-            return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
+            return StructureSymmetry.buildAssembly(s, '' + p.name).run();
         },
+        params: [{
+            name: 'name',
+            type: QueryParamType.String,
+            defaultValue: '1',
+            exampleValues: ['1'],
+            description: 'Assembly name.'
+        }]
     },
     'residueInteraction': {
         niceName: 'Residues Inside a Sphere',
