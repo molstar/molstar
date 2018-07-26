@@ -7,6 +7,10 @@
 import { Model } from 'mol-model/structure';
 import { StructureQualityReport } from './properties/structure-quality-report';
 
-export async function attachModelProperties(model: Model) {
-    await StructureQualityReport.attachFromPDBeApi(model);
+export function attachModelProperties(model: Model): Promise<any>[] {
+    // return a list of promises that start attaching the props in parallel
+    // (if there are downloads etc.)
+    return [
+        StructureQualityReport.attachFromPDBeApi(model)
+    ];
 }

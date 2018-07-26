@@ -8,6 +8,7 @@ import { QueryPredicate, StructureElement, StructureProperties as Props, Queries
 import { AtomsQueryParams } from 'mol-model/structure/query/queries/generators';
 
 export function getAtomsTests(params: any): Partial<AtomsQueryParams>[] {
+    if (!params) return [{ }];
     if (Array.isArray(params)) {
         return params.map(p => atomsTest(p));
     } else {
@@ -25,12 +26,14 @@ function atomsTest(params: any): Partial<AtomsQueryParams> {
 }
 
 function entityTest(params: any): QueryPredicate | undefined {
-    if (typeof params.entity_id === 'undefined') return void 0;
+    if (!params || typeof params.entity_id === 'undefined') return void 0;
     const p = Props.entity.id, id = '' + params.label_entity_id;
     return ctx => p(ctx.element) === id;
 }
 
 function chainTest(params: any): QueryPredicate | undefined {
+    if (!params) return void 0;
+
     if (typeof params.label_asym_id !== 'undefined') {
         const p = Props.chain.label_asym_id, id = '' + params.label_asym_id;
         return ctx => p(ctx.element) === id;
@@ -43,6 +46,8 @@ function chainTest(params: any): QueryPredicate | undefined {
 }
 
 function residueTest(params: any): QueryPredicate | undefined {
+    if (!params) return void 0;
+
     const props: StructureElement.Property<any>[] = [], values: any[] = [];
 
     if (typeof params.label_seq_id !== 'undefined') {
@@ -74,6 +79,8 @@ function residueTest(params: any): QueryPredicate | undefined {
 }
 
 function atomTest(params: any): QueryPredicate | undefined {
+    if (!params) return void 0;
+
     const props: StructureElement.Property<any>[] = [], values: any[] = [];
 
     if (typeof params.label_atom_id !== 'undefined') {
