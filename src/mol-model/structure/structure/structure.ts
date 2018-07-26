@@ -19,6 +19,8 @@ import { CrossLinkRestraints, extractCrossLinkRestraints } from './unit/pair-res
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
 import { ResidueIndex } from '../model/indexing';
+import { Carbohydrates } from './carbohydrates/data';
+import { computeCarbohydrates } from './carbohydrates/compute';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -84,6 +86,13 @@ class Structure {
         if (this._unitSymmetryGroups) return this._unitSymmetryGroups;
         this._unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
         return this._unitSymmetryGroups;
+    }
+
+    private _carbohydrates?: Carbohydrates = void 0;
+    get carbohydrates(): Carbohydrates {
+        if (this._carbohydrates) return this._carbohydrates;
+        this._carbohydrates = computeCarbohydrates(this);
+        return this._carbohydrates;
     }
 
     constructor(units: ArrayLike<Unit>) {

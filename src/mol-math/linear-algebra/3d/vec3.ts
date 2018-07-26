@@ -162,6 +162,26 @@ namespace Vec3 {
         return out;
     }
 
+    /**
+     * Returns the minimum of two Vec3's
+     */
+    export function min(out: Vec3, a: Vec3, b: Vec3) {
+        out[0] = Math.min(a[0], b[0]);
+        out[1] = Math.min(a[1], b[1]);
+        out[2] = Math.min(a[2], b[2]);
+        return out;
+    }
+
+    /**
+     * Returns the maximum of two Vec3's
+     */
+    export function max(out: Vec3, a: Vec3, b: Vec3) {
+        out[0] = Math.max(a[0], b[0]);
+        out[1] = Math.max(a[1], b[1]);
+        out[2] = Math.max(a[2], b[2]);
+        return out;
+    }
+
     export function distance(a: Vec3, b: Vec3) {
         const x = b[0] - a[0],
             y = b[1] - a[1],

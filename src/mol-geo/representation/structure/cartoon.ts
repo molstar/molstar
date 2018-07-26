@@ -14,6 +14,7 @@ import { PolymerTraceVisual, DefaultPolymerTraceProps } from './visual/polymer-t
 import { PolymerGapVisual, DefaultPolymerGapProps } from './visual/polymer-gap-cylinder';
 import { NucleotideBlockVisual, DefaultNucleotideBlockProps } from './visual/nucleotide-block-mesh';
 import { PolymerDirectionVisual, DefaultPolymerDirectionProps } from './visual/polymer-direction-wedge';
+import { CarbohydrateSymbolVisual } from './visual/carbohydrate-symbol-mesh';
 
 export const DefaultCartoonProps = {
     ...DefaultPolymerTraceProps,
@@ -28,13 +29,14 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
     const gapRepr = StructureUnitsRepresentation(PolymerGapVisual)
     const blockRepr = StructureUnitsRepresentation(NucleotideBlockVisual)
     const directionRepr = StructureUnitsRepresentation(PolymerDirectionVisual)
+    const carbohydrateRepr = StructureRepresentation(CarbohydrateSymbolVisual)
 
     return {
         get renderObjects() {
-            return [ ...traceRepr.renderObjects, ...gapRepr.renderObjects, ...blockRepr.renderObjects, ...directionRepr.renderObjects ]
+            return [ ...traceRepr.renderObjects, ...gapRepr.renderObjects, ...blockRepr.renderObjects, ...directionRepr.renderObjects, ...carbohydrateRepr.renderObjects ]
         },
         get props() {
-            return { ...traceRepr.props, ...gapRepr.props, ...blockRepr.props, ...directionRepr.props }
+            return { ...traceRepr.props, ...gapRepr.props, ...blockRepr.props, ...carbohydrateRepr.props }
         },
         create: (structure: Structure, props: CartoonProps = {} as CartoonProps) => {
             const p = Object.assign({}, DefaultCartoonProps, props)
@@ -43,6 +45,7 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
                 await gapRepr.create(structure, p).runInContext(ctx)
                 await blockRepr.create(structure, p).runInContext(ctx)
                 await directionRepr.create(structure, p).runInContext(ctx)
+                await carbohydrateRepr.create(structure, p).runInContext(ctx)
             })
         },
         update: (props: CartoonProps) => {
@@ -52,6 +55,7 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
                 await gapRepr.update(p).runInContext(ctx)
                 await blockRepr.update(p).runInContext(ctx)
                 await directionRepr.update(p).runInContext(ctx)
+                await carbohydrateRepr.update(p).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
@@ -59,22 +63,26 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
             const gapLoci = gapRepr.getLoci(pickingId)
             const blockLoci = blockRepr.getLoci(pickingId)
             const directionLoci = directionRepr.getLoci(pickingId)
+            const carbohydrateRepr = directionRepr.getLoci(pickingId)
             return !isEmptyLoci(traceLoci) ? traceLoci
                 : !isEmptyLoci(gapLoci) ? gapLoci
                 : !isEmptyLoci(blockLoci) ? blockLoci
-                : directionLoci
+                : !isEmptyLoci(directionLoci) ? directionLoci
+                : carbohydrateRepr
         },
         mark: (loci: Loci, action: MarkerAction) => {
             traceRepr.mark(loci, action)
             gapRepr.mark(loci, action)
             blockRepr.mark(loci, action)
             directionRepr.mark(loci, action)
+            carbohydrateRepr.mark(loci, action)
         },
         destroy() {
             traceRepr.destroy()
             gapRepr.destroy()
             blockRepr.destroy()
             directionRepr.destroy()
+            carbohydrateRepr.destroy()
         }
     }
 }

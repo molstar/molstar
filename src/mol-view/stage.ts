@@ -27,8 +27,8 @@ const spacefillProps: SpacefillProps = {
 const ballAndStickProps: BallAndStickProps = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
-    sizeTheme: { name: 'uniform', value: 0.05 },
-    linkRadius: 0.05,
+    sizeTheme: { name: 'uniform', value: 0.15 },
+    linkRadius: 0.15,
     quality: 'auto',
     useFog: false
 }
@@ -78,7 +78,7 @@ export class Stage {
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
-        // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water
+        this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('2np2') // dna
@@ -92,8 +92,10 @@ export class Stage {
         // this.loadPdbid('1xv6') // rna, modified nucleotides
         // this.loadPdbid('3bbm') // rna with linker
         // this.loadPdbid('1gfl') // GFP, flourophore has carbonyl oxygen removed
-        this.loadPdbid('1sfi') // contains cyclic peptid
+        // this.loadPdbid('1sfi') // contains cyclic peptid
         // this.loadPdbid('3sn6') // discontinuous chains
+        // this.loadPdbid('2zex') // small, contains carbohydrate polymer
+        // this.loadPdbid('2b5t') // contains large carbohydrate polymer
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)
@@ -119,10 +121,10 @@ export class Stage {
         console.log(modelEntity.value)
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
 
-        StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: false })
+        StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: true })
         StructureToSpacefill.apply(this.ctx, structureEntity, { ...spacefillProps, visible: false })
         StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: false })
-        StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: true })
+        StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: false })
         StructureToCartoon.apply(this.ctx, structureEntity, { ...cartoonProps, visible: true })
         StructureCenter.apply(this.ctx, structureEntity)
 

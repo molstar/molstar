@@ -33,8 +33,8 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?:
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const { elements, model } = unit
-    const { chemicalComponentMap, modifiedResidues } = unit.model.properties
-    const { chainAtomSegments, residueAtomSegments, residues } = unit.model.atomicHierarchy
+    const { chemicalComponentMap, modifiedResidues } = model.properties
+    const { chainAtomSegments, residueAtomSegments, residues } = model.atomicHierarchy
     const { label_comp_id } = residues
     const pos = unit.conformation.invariantPosition
 
