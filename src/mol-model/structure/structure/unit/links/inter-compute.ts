@@ -139,8 +139,10 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
         }
     }
 
-    addMapEntry(map, unitA.id, new InterUnitBonds.UnitPairBonds(unitA, unitB, bondCount, state.bondedA.array, state.mapAB));
-    addMapEntry(map, unitB.id, new InterUnitBonds.UnitPairBonds(unitB, unitA, bondCount, state.bondedB.array, state.mapBA));
+    if (bondCount) {
+        addMapEntry(map, unitA.id, new InterUnitBonds.UnitPairBonds(unitA, unitB, bondCount, state.bondedA.array, state.mapAB));
+        addMapEntry(map, unitB.id, new InterUnitBonds.UnitPairBonds(unitB, unitA, bondCount, state.bondedB.array, state.mapBA));
+    }
 
     return bondCount;
 }
