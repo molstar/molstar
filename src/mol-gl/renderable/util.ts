@@ -27,12 +27,6 @@ export function createTextureImage (n: number, itemSize: number): TextureImage {
     return { array: new Uint8Array(length), width, height }
 }
 
-export function fillSerial<T extends Helpers.NumberArray> (array: T) {
-    const n = array.length
-    for (let i = 0; i < n; ++i) array[ i ] = i
-    return array
-}
-
 export interface PositionValues {
     aPosition: ValueCell<Float32Array>
     drawCount: ValueCell<number>,

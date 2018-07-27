@@ -11,7 +11,6 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { ValueCell } from 'mol-util';
 
 import Renderer from '../renderer';
-import { fillSerial } from '../renderable/util';
 import { createUniformColor } from 'mol-geo/util/color-data';
 import { createUniformSize } from 'mol-geo/util/size-data';
 import { createContext } from '../webgl/context';
@@ -20,6 +19,7 @@ import { createPointRenderObject } from '../render-object';
 import { PointValues } from '../renderable/point';
 import Scene from '../scene';
 import { createEmptyMarkers } from 'mol-geo/util/marker-data';
+import { fillSerial } from 'mol-util/array';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)

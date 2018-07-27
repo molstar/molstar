@@ -11,7 +11,6 @@ import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../shape/mesh';
 import { VolumeVisual } from '.';
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
-import { fillSerial } from 'mol-gl/renderable/util';
 import { ValueCell, defaults } from 'mol-util';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
@@ -20,6 +19,7 @@ import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
 import { createEmptyMarkers, MarkerAction } from '../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
+import { fillSerial } from 'mol-util/array';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {

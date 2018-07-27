@@ -7,9 +7,9 @@
 import { ValueCell } from 'mol-util/value-cell'
 import { BaseValues } from 'mol-gl/renderable/schema';
 import { MeshValues, RenderableState } from 'mol-gl/renderable';
-import { fillSerial } from 'mol-gl/renderable/util';
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
+import { fillSerial } from 'mol-util/array';
 
 export const DefaultBaseProps = {
     alpha: 1,

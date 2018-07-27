@@ -42,3 +42,9 @@ export function arrayRms(array: Helpers.NumberArray) {
     }
     return Math.sqrt(sumSq / n)
 }
+
+export function fillSerial<T extends Helpers.NumberArray> (array: T) {
+    const n = array.length
+    for (let i = 0; i < n; ++i) array[ i ] = i
+    return array
+}

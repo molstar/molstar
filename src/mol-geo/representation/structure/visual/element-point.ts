@@ -9,7 +9,6 @@ import { ValueCell } from 'mol-util/value-cell'
 import { createPointRenderObject, PointRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
-import { fillSerial } from 'mol-gl/renderable/util';
 
 import { UnitsVisual, DefaultStructureProps } from '..';
 import VertexMap from '../../../shape/vertex-map';
@@ -23,6 +22,7 @@ import { PickingId } from '../../../util/picking';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { fillSerial } from 'mol-util/array';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
