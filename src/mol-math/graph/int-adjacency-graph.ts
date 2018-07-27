@@ -2,6 +2,7 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { arrayPickIndices } from 'mol-data/util';
@@ -14,7 +15,7 @@ import { arrayPickIndices } from 'mol-data/util';
  *
  * Edge properties are indexed same as in the arrays a and b.
  */
-interface IntAdjacencyGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}> {
+export interface IntAdjacencyGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = {}> {
     readonly offset: ArrayLike<number>,
     readonly a: ArrayLike<number>,
     readonly b: ArrayLike<number>,
@@ -42,7 +43,7 @@ interface IntAdjacencyGraph<EdgeProps extends IntAdjacencyGraph.EdgePropsBase = 
     getVertexEdgeCount(i: number): number
 }
 
-namespace IntAdjacencyGraph {
+export namespace IntAdjacencyGraph {
     export type EdgePropsBase = { [name: string]: ArrayLike<any> }
 
     class IntGraphImpl implements IntAdjacencyGraph<any> {
@@ -193,4 +194,20 @@ namespace IntAdjacencyGraph {
     }
 }
 
-export { IntAdjacencyGraph }
+/**
+ * Check if any vertex in `verticesA` is connected to any vertex in `verticesB`
+ * via `depth` hops or intermediate vertices
+ */
+export function areConnected(verticesA: ReadonlyArray<number>, verticesB: ReadonlyArray<number>, graph: IntAdjacencyGraph, depth: number): boolean {
+    const { b, offset } = graph
+    const linkedVectices: number[] = []
+    for (let i = 0, il = verticesA.length; i < il; ++i) {
+        const vi = verticesA[i]
+        for (let j = offset[vi], jl = offset[vi + 1]; j < jl; ++j) {
+            const li = b[j]
+            if (verticesB.includes(li)) return true
+            if (!verticesA.includes(li)) linkedVectices.push(li)
+        }
+    }
+    return depth > 0 ? areConnected(linkedVectices, verticesB, graph, depth - 1) : false
+}
