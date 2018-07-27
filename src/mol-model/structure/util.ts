@@ -8,6 +8,7 @@ import { Model, ResidueIndex, ElementIndex } from './model';
 import { MoleculeType, AtomRole, MoleculeTypeAtomRoleId } from './model/types';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit } from './structure';
+import Matrix from 'mol-math/linear-algebra/matrix/matrix';
 
 export function getMoleculeType(model: Model, rI: ResidueIndex) {
     const compId = model.atomicHierarchy.residues.label_comp_id.value(rI)
@@ -60,4 +61,16 @@ export function getCenterAndRadius(centroid: Vec3, unit: Unit, indices: ArrayLik
     }
     Vec3.scale(centroid, centroid, 1/indices.length)
     return Vec3.distance(centerMin, centroid)
+}
+
+const matrixPos = Vec3.zero()
+export function getPositionMatrix(unit: Unit, indices: ArrayLike<number>) {
+    const pos = unit.conformation.position
+    const mat = Matrix.create(3, indices.length)
+    const { elements } = unit
+    for (let i = 0, il = indices.length; i < il; ++i) {
+        pos(elements[indices[i]], matrixPos)
+        Vec3.toArray(matrixPos, mat.data, i * 3)
+    }
+    return mat
 }

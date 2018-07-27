@@ -132,6 +132,14 @@ namespace Vec3 {
         return out;
     }
 
+    /** Scales b, then subtracts b from a */
+    export function scaleAndSub(out: Vec3, a: Vec3, b: Vec3, scale: number) {
+        out[0] = a[0] - (b[0] * scale);
+        out[1] = a[1] - (b[1] * scale);
+        out[2] = a[2] - (b[2] * scale);
+        return out;
+    }
+
     /**
      * Math.round the components of a Vec3
      */

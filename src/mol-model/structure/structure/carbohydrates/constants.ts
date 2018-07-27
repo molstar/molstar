@@ -175,7 +175,11 @@ const Monosaccharides: SaccharideComponent[] = [
 
 const CommonSaccharideNames: { [k: string]: string[] } = {
     // Hexose
-    Glc: ['GLC', 'BGC'],
+    Glc: [
+        'GLC', 'BGC',
+        'BOG', // via GlyFinder
+        'TRE', // via GlyFinder, disaccharide but homomer
+    ],
     Man: ['MAN', 'BMA'],
     Gal: ['GAL', 'GLA'],
     Gul: ['GUP', 'GL0'],
@@ -192,7 +196,10 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     TalNAc: [],
     IdoNAc: ['HSQ'],
     // Hexosamine
-    GlcN: ['GCS', 'PA1'],
+    GlcN: [
+        'GCS', 'PA1',
+        'IDU', 'SGN', 'SUS', // via GlyFinder
+    ],
     ManN: ['95Z'],
     GalN: ['X6X', '1GN'],
     GulN: [],
@@ -208,7 +215,10 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     AltA: [],
     AllA: [],
     TalA: ['X0X', 'X1X'],
-    IdoA: ['IDR'],
+    IdoA: [
+        'IDR',
+        'IDS', // via GlyFinder
+    ],
     // Deoxyhexose
     Qui: ['G6D'],
     Rha: ['RAM', 'RM4'],

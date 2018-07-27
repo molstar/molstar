@@ -22,20 +22,75 @@ import { createMeshValues, updateMeshValues, updateRenderableState, createRender
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../../util/color-data';
+import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 
 async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const t = Mat4.identity()
     const p = Vec3.zero()
+    const pd = Vec3.zero()
+    const p1 = Vec3.zero()
+    const p2 = Vec3.zero()
     const carbohydrates = structure.carbohydrates
 
-    const linkParams = { radiusTop: 0.2, radiusBottom: 0.2 }
+    function centerAlign(center: Vec3, normal: Vec3, direction: Vec3) {
+        Vec3.add(pd, center, direction)
+        Mat4.targetTo(t, center, pd, normal)
+        Mat4.setTranslation(t, center)
+    }
+
+    const side = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
+    const radius = 1.75
+    const coneParams = { radiusTop: radius, radiusBottom: 0.0, topCap: true }
+
+    const linkParams = { radiusTop: 0.4, radiusBottom: 0.4 }
 
     for (let i = 0, il = carbohydrates.elements.length; i < il; ++i) {
         const c = carbohydrates.elements[i]
-        Mat4.setTranslation(t, c.center)
-        builder.addBox(t, { width: 2, height: 2, depth: 2 })
+        const shapeType = getSaccharideShape(c.component.type)
+        switch (shapeType) {
+            case SaccharideShapes.FilledSphere:
+                builder.addIcosahedron(c.center, radius, 1)
+                break;
+            case SaccharideShapes.FilledCube:
+                centerAlign(c.center, c.normal, c.direction)
+                builder.addBox(t, { width: side, height: side, depth: side })
+                break;
+            case SaccharideShapes.CrossedCube:
+                // TODO split
+                centerAlign(c.center, c.normal, c.direction)
+                builder.addBox(t, { width: side, height: side, depth: side })
+                break;
+            case SaccharideShapes.FilledCone:
+                Vec3.scaleAndAdd(p1, c.center, c.normal, radius)
+                Vec3.scaleAndSub(p2, c.center, c.normal, radius)
+                builder.addCylinder(p1, p2, 1, coneParams)
+                break
+            case SaccharideShapes.DevidedCone:
+                // TODO split
+                Vec3.scaleAndAdd(p1, c.center, c.normal, radius)
+                Vec3.scaleAndSub(p2, c.center, c.normal, radius)
+                builder.addCylinder(p1, p2, 1, coneParams)
+                break
+            case SaccharideShapes.FlatBox:
+                centerAlign(c.center, c.normal, c.direction)
+                builder.addBox(t, { width: side, height: side / 2, depth: side })
+                break
+            case SaccharideShapes.FilledDiamond:
+            case SaccharideShapes.DividedDiamond:
+            case SaccharideShapes.FilledStar:
+            case SaccharideShapes.FlatDiamond:
+            case SaccharideShapes.Pentagon:
+                centerAlign(c.center, c.normal, c.direction)
+                builder.addBox(t, { width: side, height: 0.5, depth: side })
+                break
+            case SaccharideShapes.FlatHexagon:
+            default:
+                centerAlign(c.center, c.normal, c.direction)
+                builder.addBox(t, { width: side, height: 0.1, depth: side })
+                break
+        }
     }
 
     for (let i = 0, il = carbohydrates.links.length; i < il; ++i) {

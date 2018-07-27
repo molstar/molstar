@@ -11,11 +11,12 @@ import Structure from '../structure';
 import { Carbohydrates, CarbohydrateLink, CarbohydrateTerminalLink, CarbohydrateElement } from './data';
 import { SaccharideNameMap, UnknownSaccharideComponent } from './constants';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { getCenterAndRadius, getMoleculeType } from '../../util';
-import { MoleculeType } from '../../model/types';
+import { getMoleculeType, getPositionMatrix } from '../../util';
+import { MoleculeType, ElementSymbol } from '../../model/types';
 import { areConnected } from 'mol-math/graph';
 import { combinations } from 'mol-data/util/combination';
 import { fillSerial } from 'mol-util/array';
+import PrincipalAxes from 'mol-math/linear-algebra/matrix/principal-axes';
 
 function getResidueIndex(elementIndex: number, unit: Unit.Atomic) {
     return unit.model.atomicHierarchy.residueAtomSegments.index[unit.elements[elementIndex]]
@@ -38,6 +39,32 @@ function getRingIndices(unit: Unit.Atomic, rI: ResidueIndex) {
         if (withinIntervalCount === ring.length) sugarRings.push(ring)
     }
     return sugarRings
+}
+
+const C = ElementSymbol('C')
+function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ReadonlyArray<number>, center: Vec3) {
+    let indexC1 = -1, indexC1X = -1, indexC = -1
+    const { elements } = unit
+    const { position } = unit.conformation
+    const { label_atom_id, type_symbol } = unit.model.atomicHierarchy.atoms
+    for (let i = 0, il = indices.length; i < il; ++i) {
+        const ei = elements[indices[i]]
+        const atomId = label_atom_id.value(ei)
+        if (atomId === 'C1') {
+            indexC1 = ei
+            break
+        } else if (indexC1X === -1 && atomId.startsWith('C1')) {
+            indexC1X = ei
+        } else if (indexC === -1 && type_symbol.value(ei) === C) {
+            indexC = ei
+        }
+    }
+    const index = indexC1 !== -1 ? indexC1
+        : indexC1X !== -1 ? indexC1X
+        : indexC !== -1 ? indexC
+        : elements[indices[0]]
+    Vec3.normalize(direction, Vec3.sub(direction, center, position(index, direction)))
+    return direction
 }
 
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
@@ -76,15 +103,15 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
 
                 const sugarRings = getRingIndices(unit, residueIndex)
                 const ringElements: number[] = []
-                console.log('sugarRings', sugarRings)
 
                 for (let j = 0, jl = sugarRings.length; j < jl; ++j) {
-                    const center = Vec3.zero()
-                    const normal = Vec3.zero()
-                    const direction = Vec3.zero()
-                    const elementIndex = elements.length
-                    getCenterAndRadius(center, unit, sugarRings[j])
+                    const pa = new PrincipalAxes(getPositionMatrix(unit, sugarRings[j]))
+                    const center = Vec3.copy(Vec3.zero(), pa.center)
+                    const normal = Vec3.copy(Vec3.zero(), pa.normVecC)
+                    const direction = getDirection(Vec3.zero(), unit, sugarRings[j], center)
+                    Vec3.orthogonalize(direction, normal, direction)
 
+                    const elementIndex = elements.length
                     ringElements.push(elementIndex)
                     elementsMap.set(elementKey(residueIndex, unit.id), elementIndex)
                     elements.push({ center, normal, direction, unit, residueIndex, component: saccharideComp })
