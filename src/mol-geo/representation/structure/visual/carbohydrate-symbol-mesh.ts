@@ -28,7 +28,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
     const t = Mat4.identity()
     const p = Vec3.zero()
-    const { carbohydrates } = structure
+    const carbohydrates = structure.carbohydrates
 
     const linkParams = { radiusTop: 0.2, radiusBottom: 0.2 }
 

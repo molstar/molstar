@@ -77,6 +77,13 @@ export type SaccharideComponent = {
     type: SaccharideType
 }
 
+export const UnknownSaccharideComponent = {
+    abbr: 'Unk',
+    name: 'Unknown',
+    color: SaccharideColors.Secondary,
+    type: SaccharideType.Unknown
+}
+
 const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Glc', name: 'Glucose', color: SaccharideColors.Blue, type: SaccharideType.Hexose },
     { abbr: 'Man', name: 'Mannose', color: SaccharideColors.Green, type: SaccharideType.Hexose },

@@ -147,6 +147,10 @@ export const WaterNames = [
     'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
 ]
 
+export const ExtraSaccharideNames = [
+    'MLR'
+]
+
 export const RnaBaseNames = [ 'A', 'C', 'T', 'G', 'I', 'U' ]
 export const DnaBaseNames = [ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ]
 export const PurinBaseNames = [ 'A', 'G', 'DA', 'DG', 'DI' ]
@@ -166,7 +170,7 @@ export function getMoleculeType(compType: string, compId: string) {
         return MoleculeType.RNA
     } else if (DNAComponentTypeNames.includes(compType)) {
         return MoleculeType.DNA
-    } else if (SaccharideComponentTypeNames.includes(compType)) {
+    } else if (SaccharideComponentTypeNames.includes(compType) || ExtraSaccharideNames.includes(compId)) {
         return MoleculeType.saccharide
     } else if (WaterNames.includes(compId)) {
         return MoleculeType.water

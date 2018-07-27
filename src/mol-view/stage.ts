@@ -78,7 +78,7 @@ export class Stage {
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
-        this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
+        // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('2np2') // dna
@@ -91,10 +91,15 @@ export class Stage {
         // this.loadPdbid('1y26') // rna
         // this.loadPdbid('1xv6') // rna, modified nucleotides
         // this.loadPdbid('3bbm') // rna with linker
+        // this.loadPdbid('1euq') // t-rna
+        // this.loadPdbid('2e2i') // rna, dna, protein
         // this.loadPdbid('1gfl') // GFP, flourophore has carbonyl oxygen removed
         // this.loadPdbid('1sfi') // contains cyclic peptid
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadPdbid('2zex') // small, contains carbohydrate polymer
+        // this.loadPdbid('2gdu') // contains sucrose
+        // this.loadPdbid('2fnc') // contains maltotriose
+        this.loadPdbid('4zs9') // contains raffinose
         // this.loadPdbid('2b5t') // contains large carbohydrate polymer
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)

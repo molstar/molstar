@@ -9,9 +9,13 @@ import { ResidueIndex } from '../../model';
 import { Interval, Segmentation } from 'mol-data/int';
 import Structure from '../structure';
 import { Carbohydrates, CarbohydrateLink, CarbohydrateTerminalLink, CarbohydrateElement } from './data';
-import { SaccharideNameMap } from './constants';
+import { SaccharideNameMap, UnknownSaccharideComponent } from './constants';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { getCenterAndRadius } from '../../util';
+import { getCenterAndRadius, getMoleculeType } from '../../util';
+import { MoleculeType } from '../../model/types';
+import { areConnected } from 'mol-math/graph';
+import { combinations } from 'mol-data/util/combination';
+import { fillSerial } from 'mol-util/array';
 
 function getResidueIndex(elementIndex: number, unit: Unit.Atomic) {
     return unit.model.atomicHierarchy.residueAtomSegments.index[unit.elements[elementIndex]]
@@ -21,17 +25,19 @@ function getRingIndices(unit: Unit.Atomic, rI: ResidueIndex) {
     const { offsets } = unit.model.atomicHierarchy.residueAtomSegments
     const { elements } = unit
     const interval = Interval.ofBounds(offsets[rI], offsets[rI + 1])
-    const rings = unit.rings.byFingerprint.get('C-C-C-C-C-O') || unit.rings.byFingerprint.get('C-C-C-C-O')
-    if (rings) {
-        for (let i = 0, il = rings.length; i < il; ++i) {
-            let withinIntervalCount = 0
-            const ring = unit.rings.all[rings[i]]
-            for (let j = 0, jl = ring.length; j < jl; ++j) {
-                if (Interval.has(interval, elements[ring[j]])) ++withinIntervalCount
-            }
-            if (withinIntervalCount === ring.length) return ring
+    const rings: number[] = []
+    rings.push(...unit.rings.byFingerprint.get('C-C-C-C-C-O') || [])
+    rings.push(...unit.rings.byFingerprint.get('C-C-C-C-O') || [])
+    const sugarRings: ReadonlyArray<number>[] = []
+    for (let i = 0, il = rings.length; i < il; ++i) {
+        let withinIntervalCount = 0
+        const ring = unit.rings.all[rings[i]]
+        for (let j = 0, jl = ring.length; j < jl; ++j) {
+            if (Interval.has(interval, elements[ring[j]])) ++withinIntervalCount
         }
+        if (withinIntervalCount === ring.length) sugarRings.push(ring)
     }
+    return sugarRings
 }
 
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
@@ -45,6 +51,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         return `${residueIndex}|${unitId}`
     }
 
+    // get carbohydrate elements and carbohydrate links induced by intra-residue bonds
     for (let i = 0, il = structure.units.length; i < il; ++i) {
         const unit = structure.units[i]
         if (!Unit.isAtomic(unit)) continue
@@ -62,66 +69,87 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
             while (residueIt.hasNext) {
                 const { index: residueIndex } = residueIt.move();
 
-                const saccharideComp = SaccharideNameMap.get(label_comp_id.value(residueIndex))
-                if (!saccharideComp) continue
+                const saccharideComp = SaccharideNameMap.get(label_comp_id.value(residueIndex)) || UnknownSaccharideComponent
+                if (saccharideComp === UnknownSaccharideComponent) {
+                    if (getMoleculeType(unit.model, residueIndex) !== MoleculeType.saccharide) continue
+                }
 
-                const ringIndices = getRingIndices(unit, residueIndex)
-                if (ringIndices) {
+                const sugarRings = getRingIndices(unit, residueIndex)
+                const ringElements: number[] = []
+                console.log('sugarRings', sugarRings)
+
+                for (let j = 0, jl = sugarRings.length; j < jl; ++j) {
                     const center = Vec3.zero()
                     const normal = Vec3.zero()
                     const direction = Vec3.zero()
-                    const ringRadius = getCenterAndRadius(center, unit, ringIndices)
-                    console.log(ringRadius, center)
+                    const elementIndex = elements.length
+                    getCenterAndRadius(center, unit, sugarRings[j])
 
-                    elementsMap.set(elementKey(residueIndex, unit.id), elements.length)
+                    ringElements.push(elementIndex)
+                    elementsMap.set(elementKey(residueIndex, unit.id), elementIndex)
                     elements.push({ center, normal, direction, unit, residueIndex, component: saccharideComp })
-                } else {
+                }
+
+                // add carbohydrate links induced by intra-residue bonds
+                const ringCombinations = combinations(fillSerial(new Array(sugarRings.length)), 2)
+                for (let j = 0, jl = ringCombinations.length; j < jl; ++j) {
+                    const rc = ringCombinations[j]
+                    if (areConnected(sugarRings[rc[0]], sugarRings[rc[1]], unit.links, 2)) {
+                        links.push({
+                            carbohydrateIndexA: ringElements[rc[0]],
+                            carbohydrateIndexB: ringElements[rc[1]]
+                        })
+                        links.push({
+                            carbohydrateIndexA: ringElements[rc[1]],
+                            carbohydrateIndexB: ringElements[rc[0]]
+                        })
+                    }
+                }
+
+                if (!sugarRings.length) {
                     console.warn('No ring found for carbohydrate')
                 }
             }
         }
     }
 
-    elementsMap.forEach((elementIndex, key) => {
-        const unit = elements[elementIndex].unit
+    // get carbohydrate links induced by inter-unit bonds
+    for (let i = 0, il = structure.units.length; i < il; ++i) {
+        const unit = structure.units[i]
+        if (!Unit.isAtomic(unit)) continue
+
         structure.links.getLinkedUnits(unit).forEach(pairBonds => {
             pairBonds.linkedElementIndices.forEach(indexA => {
                 pairBonds.getBonds(indexA).forEach(bondInfo => {
-                    let { unitA, unitB } = pairBonds
-                    let indexB = bondInfo.indexB
-                    let residueIndexA = getResidueIndex(indexA, unitA)
-                    let residueIndexB = getResidueIndex(indexB, unitB)
-                    let keyA = elementKey(residueIndexA, unitA.id)
-                    let keyB = elementKey(residueIndexB, unitB.id)
-                    if (key === keyB) {
-                        [keyB, keyA] = [keyA, keyB];
-                        [indexB, indexA] = [indexA, indexB];
-                        [unitB, unitA] = [unitA, unitB];
-                    }
-                    const elementIndexB = elementsMap.get(keyB)
-                    if (elementIndexB !== undefined) {
+                    const { unitA, unitB } = pairBonds
+                    const indexB = bondInfo.indexB
+                    const elementIndexA = elementsMap.get(elementKey(getResidueIndex(indexA, unitA), unitA.id))
+                    const elementIndexB = elementsMap.get(elementKey(getResidueIndex(indexB, unitB), unitB.id))
+
+                    if (elementIndexA !== undefined && elementIndexB !== undefined) {
                         links.push({
-                            carbohydrateIndexA: elementIndex,
+                            carbohydrateIndexA: elementIndexA,
                             carbohydrateIndexB: elementIndexB
                         })
-                    } else {
+                    } else if (elementIndexA !== undefined) {
                         terminalLinks.push({
-                            carbohydrateIndex: elementIndex,
+                            carbohydrateIndex: elementIndexA,
                             elementIndex: indexB,
                             elementUnit: unitB,
                             fromCarbohydrate: true
                         })
+                    } else if (elementIndexB !== undefined) {
                         terminalLinks.push({
-                            carbohydrateIndex: elementIndex,
-                            elementIndex: indexB,
-                            elementUnit: unitB,
+                            carbohydrateIndex: elementIndexB,
+                            elementIndex: indexA,
+                            elementUnit: unitA,
                             fromCarbohydrate: false
                         })
                     }
                 })
             })
         })
-    })
+    }
 
     return { links, terminalLinks, elements }
 }
