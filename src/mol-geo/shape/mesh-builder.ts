@@ -17,6 +17,7 @@ import { Mesh } from './mesh';
 import { getNormalMatrix } from '../util';
 import { addSheet } from '../primitive/sheet';
 import { addTube } from '../primitive/tube';
+import { StarProps, Star } from '../primitive/star';
 
 interface Primitive {
     vertices: Float32Array
@@ -35,6 +36,7 @@ export interface MeshBuilder {
     addBox(t: Mat4, props?: BoxProps): void
     addPlane(t: Mat4, props?: PlaneProps): void
     addWedge(t: Mat4, props?: WedgeProps): void
+    addStar(t: Mat4, props?: StarProps): void
     addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
@@ -141,6 +143,10 @@ export namespace MeshBuilder {
             },
             addWedge: (t: Mat4, props?: WedgeProps) => {
                 const { vertices, normals, indices } = Wedge(props)
+                add(t, vertices, normals, indices)
+            },
+            addStar: (t: Mat4, props?: StarProps) => {
+                const { vertices, normals, indices } = Star(props)
                 add(t, vertices, normals, indices)
             },
             addCylinder: (start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) => {

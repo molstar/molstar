@@ -51,7 +51,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
         const shapeType = getSaccharideShape(c.component.type)
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
-                builder.addIcosahedron(c.center, radius, 1)
+                builder.addIcosahedron(c.center, radius, 2)
                 break;
             case SaccharideShapes.FilledCube:
                 centerAlign(c.center, c.normal, c.direction)
@@ -65,6 +65,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
             case SaccharideShapes.FilledCone:
                 Vec3.scaleAndAdd(p1, c.center, c.normal, radius)
                 Vec3.scaleAndSub(p2, c.center, c.normal, radius)
+                // TODO fix cylinder direction flipping code
                 builder.addCylinder(p1, p2, 1, coneParams)
                 break
             case SaccharideShapes.DevidedCone:
@@ -77,9 +78,12 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 centerAlign(c.center, c.normal, c.direction)
                 builder.addBox(t, { width: side, height: side / 2, depth: side })
                 break
+            case SaccharideShapes.FilledStar:
+                centerAlign(c.center, c.normal, c.direction)
+                builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
+                break
             case SaccharideShapes.FilledDiamond:
             case SaccharideShapes.DividedDiamond:
-            case SaccharideShapes.FilledStar:
             case SaccharideShapes.FlatDiamond:
             case SaccharideShapes.Pentagon:
                 centerAlign(c.center, c.normal, c.direction)

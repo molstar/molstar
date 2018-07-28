@@ -454,11 +454,20 @@ namespace Vec3 {
     }
 
     const orthogonalizeTmp = zero();
-    /** Get a vector that is similar to b but orthogonal to a */
+    /** Get a vector that is similar to `b` but orthogonal to `a` */
     export function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
         normalize(orthogonalizeTmp, cross(orthogonalizeTmp, a, b));
         normalize(out, cross(out, orthogonalizeTmp, a));
         return out;
+    }
+
+    const triangleNormalTmpAB = zero();
+    const triangleNormalTmpAC = zero();
+    /** Calculate normal for the triangle defined by `a`, `b` and `c` */
+    export function triangleNormal(out: Vec3, a: Vec3, b: Vec3, c: Vec3) {
+        sub(triangleNormalTmpAB, b, a);
+        sub(triangleNormalTmpAC, c, a);
+        return normalize(out, cross(out, triangleNormalTmpAB, triangleNormalTmpAC));
     }
 
     export function toString(a: Vec3) {
