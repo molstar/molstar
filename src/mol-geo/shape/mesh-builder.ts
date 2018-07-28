@@ -60,14 +60,16 @@ const tmpCylinderCenter = Vec3.zero()
 const tmpCylinderMat = Mat4.zero()
 // const tmpCylinderMatTrans = Mat4.zero()
 const tmpCylinderStart = Vec3.zero()
+const tmpUp = Vec3.zero()
 
 function setCylinderMat(m: Mat4, start: Vec3, dir: Vec3, length: number) {
     Vec3.setMagnitude(tmpCylinderMatDir, dir, length / 2)
     Vec3.add(tmpCylinderCenter, start, tmpCylinderMatDir)
-    // ensure the direction use to create the rotation is always pointing in the same
+    // ensure the direction used to create the rotation is always pointing in the same
     // direction so the triangles of adjacent cylinder will line up
-    if (Vec3.dot(tmpCylinderMatDir, up) < 0) Vec3.scale(tmpCylinderMatDir, tmpCylinderMatDir, -1)
-    Vec3.makeRotation(m, up, tmpCylinderMatDir)
+    Vec3.copy(tmpUp, up)
+    if (Vec3.dot(tmpCylinderMatDir, tmpUp) < 0) Vec3.scale(tmpUp, tmpUp, -1)
+    Vec3.makeRotation(m, tmpUp, tmpCylinderMatDir)
     return Mat4.setTranslation(m, tmpCylinderCenter)
 }
 

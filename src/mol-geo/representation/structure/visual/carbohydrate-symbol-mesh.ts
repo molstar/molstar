@@ -42,7 +42,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
     const side = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
     const radius = 1.75
-    const coneParams = { radiusTop: radius, radiusBottom: 0.0, topCap: true }
+    const coneParams = { radiusTop: 0.0, radiusBottom: radius, bottomCap: true }
 
     const linkParams = { radiusTop: 0.4, radiusBottom: 0.4 }
 
@@ -63,15 +63,14 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 builder.addBox(t, { width: side, height: side, depth: side })
                 break;
             case SaccharideShapes.FilledCone:
-                Vec3.scaleAndAdd(p1, c.center, c.normal, radius)
-                Vec3.scaleAndSub(p2, c.center, c.normal, radius)
-                // TODO fix cylinder direction flipping code
+                Vec3.scaleAndAdd(p1, c.center, c.direction, radius)
+                Vec3.scaleAndSub(p2, c.center, c.direction, radius)
                 builder.addCylinder(p1, p2, 1, coneParams)
                 break
             case SaccharideShapes.DevidedCone:
                 // TODO split
-                Vec3.scaleAndAdd(p1, c.center, c.normal, radius)
-                Vec3.scaleAndSub(p2, c.center, c.normal, radius)
+                Vec3.scaleAndAdd(p1, c.center, c.direction, radius)
+                Vec3.scaleAndSub(p2, c.center, c.direction, radius)
                 builder.addCylinder(p1, p2, 1, coneParams)
                 break
             case SaccharideShapes.FlatBox:
@@ -87,12 +86,12 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
             case SaccharideShapes.FlatDiamond:
             case SaccharideShapes.Pentagon:
                 centerAlign(c.center, c.normal, c.direction)
-                builder.addBox(t, { width: side, height: 0.5, depth: side })
+                builder.addBox(t, { width: side, height: side, depth: 0.5 })
                 break
             case SaccharideShapes.FlatHexagon:
             default:
                 centerAlign(c.center, c.normal, c.direction)
-                builder.addBox(t, { width: side, height: 0.1, depth: side })
+                builder.addBox(t, { width: side, height: side, depth: 0.1 })
                 break
         }
     }

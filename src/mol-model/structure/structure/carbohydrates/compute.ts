@@ -67,6 +67,12 @@ function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ReadonlyArray
     return direction
 }
 
+function getAtomId(unit: Unit.Atomic, index: number) {
+    const { elements } = unit
+    const { label_atom_id } = unit.model.atomicHierarchy.atoms
+    return label_atom_id.value(elements[index])
+}
+
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
     const links: CarbohydrateLink[] = []
     const terminalLinks: CarbohydrateTerminalLink[] = []
@@ -76,6 +82,18 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
 
     function elementKey(residueIndex: number, unitId: number) {
         return `${residueIndex}|${unitId}`
+    }
+
+    function fixLinkDirection(iA: number, iB: number) {
+        Vec3.sub(elements[iA].direction, elements[iB].center, elements[iA].center)
+        Vec3.normalize(elements[iA].direction, elements[iA].direction)
+    }
+
+    const tmpV = Vec3.zero()
+    function fixTerminalLinkDirection(iA: number, indexB: number, unitB: Unit.Atomic) {
+        const pos = unitB.conformation.position
+        Vec3.sub(elements[iA].direction, pos(unitB.elements[indexB], tmpV), elements[iA].center)
+        Vec3.normalize(elements[iA].direction, elements[iA].direction)
     }
 
     // get carbohydrate elements and carbohydrate links induced by intra-residue bonds
@@ -122,6 +140,9 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 for (let j = 0, jl = ringCombinations.length; j < jl; ++j) {
                     const rc = ringCombinations[j]
                     if (areConnected(sugarRings[rc[0]], sugarRings[rc[1]], unit.links, 2)) {
+                        // fix both directions as it is unlcear where the C1 atom is
+                        fixLinkDirection(ringElements[rc[0]], ringElements[rc[1]])
+                        fixLinkDirection(ringElements[rc[1]], ringElements[rc[0]])
                         links.push({
                             carbohydrateIndexA: ringElements[rc[0]],
                             carbohydrateIndexB: ringElements[rc[1]]
@@ -154,11 +175,17 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const elementIndexB = elementsMap.get(elementKey(getResidueIndex(indexB, unitB), unitB.id))
 
                     if (elementIndexA !== undefined && elementIndexB !== undefined) {
+                        if (getAtomId(unitA, indexA).startsWith('C1')) {
+                            fixLinkDirection(elementIndexA, elementIndexB)
+                        }
                         links.push({
                             carbohydrateIndexA: elementIndexA,
                             carbohydrateIndexB: elementIndexB
                         })
                     } else if (elementIndexA !== undefined) {
+                        if (getAtomId(unitA, indexA).startsWith('C1')) {
+                            fixTerminalLinkDirection(elementIndexA, indexB, unitB)
+                        }
                         terminalLinks.push({
                             carbohydrateIndex: elementIndexA,
                             elementIndex: indexB,

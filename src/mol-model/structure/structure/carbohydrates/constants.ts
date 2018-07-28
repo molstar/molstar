@@ -178,7 +178,8 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Glc: [
         'GLC', 'BGC',
         'BOG', // via GlyFinder
-        'TRE', // via GlyFinder, disaccharide but homomer
+        'TRE', // via GlyFinder, di-saccharide but homomer
+        'MLR', // via GlyFinder, tri-saccharide but homomer
     ],
     Man: ['MAN', 'BMA'],
     Gal: ['GAL', 'GLA'],
