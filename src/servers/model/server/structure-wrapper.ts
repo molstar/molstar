@@ -107,7 +107,10 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
     perf.end('createModel');
 
     perf.start('attachProps');
-    await attachModelProperties(models[0]);
+    const modelProps = attachModelProperties(models[0]);
+    for (const p of modelProps) {
+        await tryAttach(key, p);
+    }
     perf.end('attachProps');
 
     const structure = Structure.ofModel(models[0]);
@@ -128,4 +131,12 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
     };
 
     return ret;
+}
+
+async function tryAttach(key: string, promise: Promise<any>) {
+    try {
+        await promise;
+    } catch (e) {
+        ConsoleLogger.errorId(key, 'Custom prop:' + e);
+    }
 }

@@ -11,6 +11,7 @@ import { Segmentation } from 'mol-data/int'
 import { LinearGroupingBuilder } from '../utils/builders';
 import { QueryPredicate, QueryFn, QueryContextView } from '../context';
 
+export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.inputStructure, []);
 export const all: StructureQuery = ctx => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
 
 export interface AtomsQueryParams {

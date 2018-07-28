@@ -6,7 +6,6 @@
 
 import * as express from 'express';
 import Config from '../config';
-import { QueryDefinition, QueryList } from './api';
 import { ConsoleLogger } from 'mol-util/console-logger';
 import { resolveJob } from './query';
 import { JobManager } from './jobs';
@@ -81,24 +80,35 @@ async function processNextJob() {
     }
 }
 
-function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
-    app.get(makePath(':entryId/' + queryName), (req, res) => {
-        ConsoleLogger.log('Server', `Query '${req.params.entryId}/${queryName}'...`);
+// function mapQuery(app: express.Express, queryName: string, queryDefinition: QueryDefinition) {
+//     app.get(makePath(':entryId/' + queryName), (req, res) => {
+//         ConsoleLogger.log('Server', `Query '${req.params.entryId}/${queryName}'...`);
 
-        if (JobManager.size >= Config.maxQueueLength) {
-            res.status(503).send('Too many queries, please try again later.');
-            res.end();
-            return;
-        }
+//         if (JobManager.size >= Config.maxQueueLength) {
+//             res.status(503).send('Too many queries, please try again later.');
+//             res.end();
+//             return;
+//         }
 
-        const jobId = JobManager.add('pdb', req.params.entryId, queryName, req.query);
+//         const jobId = JobManager.add('pdb', req.params.entryId, queryName, req.query);
+//         responseMap.set(jobId, res);
+//         if (JobManager.size === 1) processNextJob();
+//     });
+// }
+
+export function initWebApi(app: express.Express) {
+    app.get(makePath('query'), (req, res) => {
+        const query = /\?(.*)$/.exec(req.url)![1];
+        const args = JSON.parse(decodeURIComponent(query));
+        const name = args.name;
+        const entryId = args.id;
+        const params = args.params || { };
+        const jobId = JobManager.add('pdb', entryId, name, params);
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
     });
-}
 
-export function initWebApi(app: express.Express) {
-    for (const q of QueryList) {
-        mapQuery(app, q.name, q.definition);
-    }
+    // for (const q of QueryList) {
+    //     mapQuery(app, q.name, q.definition);
+    // }
 }

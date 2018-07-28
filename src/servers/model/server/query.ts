@@ -137,7 +137,7 @@ const _model_server_params: CifWriter.Category<Job> = {
     instance(job) {
         const params: string[][] = [];
         for (const k of Object.keys(job.normalizedParams)) {
-            params.push([k, '' + job.normalizedParams[k]]);
+            params.push([k, JSON.stringify(job.normalizedParams[k])]);
         }
         return {
             data: params,

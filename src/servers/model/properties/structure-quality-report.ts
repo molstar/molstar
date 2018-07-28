@@ -46,7 +46,6 @@ const _structure_quality_report_fields: CifField<ResidueIndex, ExportCtx>[] = [
     CifField.int<ResidueIndex, ExportCtx>('auth_seq_id', (i, d) => P.residue.auth_seq_id(d.residues[i])),
     CifField.str<ResidueIndex, ExportCtx>('auth_asym_id', (i, d) => P.chain.auth_asym_id(d.residues[i])),
 
-
     CifField.str<ResidueIndex, ExportCtx>('issues', (i, d) => d.issues.get(d.residueIndex[d.residues[i].element])!.join(','))
 ];
 
@@ -106,7 +105,7 @@ export namespace StructureQualityReport {
         if (model.customProperties.has(Descriptor)) return true;
 
         const id = model.label.toLowerCase();
-        const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`);
+        const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, { timeout: 500 });
         const json = await rawData.json();
         const data = json[id];
         if (!data) return false;

@@ -6,8 +6,14 @@
 
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
+import { none } from './generators';
 
 export function merge(queries: ArrayLike<StructureQuery>): StructureQuery {
+    if (queries.length === 0) {
+        return none;
+    } else if (queries.length === 1) {
+        return queries[0];
+    }
     return ctx => {
         const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
         for (let i = 0; i < queries.length; i++) {
