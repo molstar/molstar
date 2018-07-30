@@ -170,6 +170,7 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
             this.setState({ info })
         })
 
+        // TODO filter only for left button?
         viewer.input.click.subscribe(({x, y}) => {
             const loci = viewer.getLoci(viewer.identify(x, y))
             InteractivityEvents.SelectLoci.dispatch(this.controller.context, loci);

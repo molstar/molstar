@@ -145,6 +145,7 @@ namespace InputObserver {
         const lineHeight = toPixels('ex', element)
 
         let lastTouchDistance = 0
+        const pointerDown = Vec2.zero()
         const pointerStart = Vec2.zero()
         const pointerEnd = Vec2.zero()
         const pointerDelta = Vec2.zero()
@@ -334,6 +335,8 @@ namespace InputObserver {
 
         function onPointerDown (ev: PointerEvent) {
             eventOffset(pointerStart, ev)
+            Vec2.copy(pointerDown, pointerStart)
+
             if (insideBounds(pointerStart)) {
                 dragging = DraggingState.Started
             }
@@ -342,9 +345,8 @@ namespace InputObserver {
         function onPointerUp (ev: PointerEvent) {
             dragging = DraggingState.Stopped
 
-            if (Vec2.distance(pointerEnd, pointerStart) < 4) {
-                eventOffset(pointerEnd, ev)
-
+            eventOffset(pointerEnd, ev);
+            if (Vec2.distance(pointerEnd, pointerDown) < 4) {
                 const { pageX, pageY } = ev
                 const [ x, y ] = pointerEnd
 
