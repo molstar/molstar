@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { QueryPredicate, StructureElement, StructureProperties as Props, Queries } from 'mol-model/structure';
+import { QueryPredicate, StructureElement, StructureProperties as Props } from 'mol-model/structure';
 import { AtomsQueryParams } from 'mol-model/structure/query/queries/generators';
 
 export function getAtomsTests(params: any): Partial<AtomsQueryParams>[] {

@@ -8,6 +8,7 @@ import Unit from '../../unit';
 import { IntraUnitLinks } from '../links/data';
 import { Segmentation } from 'mol-data/int';
 import { LinkType } from '../../../model/types';
+import { StructureElement } from '../../../structure';
 
 export default function computeRings(unit: Unit.Atomic) {
     const size = largestResidue(unit);
@@ -40,7 +41,7 @@ interface State {
 
     currentColor: number,
 
-    rings: number[][],
+    rings: StructureElement.UnitIndex[][],
     bonds: IntraUnitLinks,
     unit: Unit.Atomic
 }
@@ -144,7 +145,7 @@ function addRing(state: State, a: number, b: number) {
     for (let t = 0; t < leftOffset; t++) ring[ringOffset++] = state.startVertex + left[t];
     for (let t = rightOffset - 1; t >= 0; t--) ring[ringOffset++] = state.startVertex + right[t];
 
-    state.rings.push(ring as any as number[]);
+    state.rings.push(ring as any as StructureElement.UnitIndex[]);
 }
 
 function findRings(state: State, from: number) {

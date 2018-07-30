@@ -25,17 +25,28 @@ import { computeCarbohydrates } from './carbohydrates/compute';
 class Structure {
     readonly unitMap: IntMap<Unit>;
     readonly units: ReadonlyArray<Unit>;
-    /** Count of all elements in the structure, i.e. the sum of the elements in the units */
-    readonly elementCount: number;
 
-    private _hashCode = 0;
+    private _props: {
+        lookup3d?: StructureLookup3D,
+        links?: InterUnitBonds,
+        crossLinkRestraints?: CrossLinkRestraints,
+        unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
+        carbohydrates?: Carbohydrates,
+        hashCode: number,
+        elementCount: number
+    } = { hashCode: -1, elementCount: 0 };
 
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
     }
 
+    /** Count of all elements in the structure, i.e. the sum of the elements in the units */
+    get elementCount() {
+        return this._props.elementCount;
+    }
+
     get hashCode() {
-        if (this._hashCode !== 0) return this._hashCode;
+        if (this._props.hashCode !== -1) return this._props.hashCode;
         return this.computeHash();
     }
 
@@ -48,7 +59,8 @@ class Structure {
         }
         hash = (31 * hash + this.elementCount) | 0;
         hash = hash1(hash);
-        this._hashCode = hash;
+        if (hash === -1) hash = 0;
+        this._props.hashCode = hash;
         return hash;
     }
 
@@ -60,39 +72,34 @@ class Structure {
         return this.lookup3d.boundary;
     }
 
-    private _lookup3d?: StructureLookup3D = void 0;
     get lookup3d() {
-        if (this._lookup3d) return this._lookup3d;
-        this._lookup3d = new StructureLookup3D(this);
-        return this._lookup3d;
+        if (this._props.lookup3d) return this._props.lookup3d;
+        this._props.lookup3d = new StructureLookup3D(this);
+        return this._props.lookup3d;
     }
 
-    private _links?: InterUnitBonds = void 0;
     get links() {
-        if (this._links) return this._links;
-        this._links = computeInterUnitBonds(this);
-        return this._links;
+        if (this._props.links) return this._props.links;
+        this._props.links = computeInterUnitBonds(this);
+        return this._props.links;
     }
 
-    private _crossLinkRestraints?: CrossLinkRestraints = void 0;
     get crossLinkRestraints() {
-        if (this._crossLinkRestraints) return this._crossLinkRestraints;
-        this._crossLinkRestraints = extractCrossLinkRestraints(this);
-        return this._crossLinkRestraints;
+        if (this._props.crossLinkRestraints) return this._props.crossLinkRestraints;
+        this._props.crossLinkRestraints = extractCrossLinkRestraints(this);
+        return this._props.crossLinkRestraints;
     }
 
-    private _unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup> = void 0;
     get unitSymmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {
-        if (this._unitSymmetryGroups) return this._unitSymmetryGroups;
-        this._unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
-        return this._unitSymmetryGroups;
+        if (this._props.unitSymmetryGroups) return this._props.unitSymmetryGroups;
+        this._props.unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
+        return this._props.unitSymmetryGroups;
     }
 
-    private _carbohydrates?: Carbohydrates = void 0;
     get carbohydrates(): Carbohydrates {
-        if (this._carbohydrates) return this._carbohydrates;
-        this._carbohydrates = computeCarbohydrates(this);
-        return this._carbohydrates;
+        if (this._props.carbohydrates) return this._props.carbohydrates;
+        this._props.carbohydrates = computeCarbohydrates(this);
+        return this._props.carbohydrates;
     }
 
     constructor(units: ArrayLike<Unit>) {
@@ -110,7 +117,7 @@ class Structure {
         if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap)
         this.unitMap = map;
         this.units = units as ReadonlyArray<Unit>;
-        this.elementCount = elementCount;
+        this._props.elementCount = elementCount;
     }
 }
 

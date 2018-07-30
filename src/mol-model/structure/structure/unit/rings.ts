@@ -6,11 +6,12 @@
 
 import computeRings from './rings/compute'
 import Unit from '../unit';
+import StructureElement from '../element';
 
 interface UnitRings {
     /** Each ring is specified as an array of indices in Unit.elements. */
-    readonly all: ReadonlyArray<ReadonlyArray<number>>,
-    readonly byFingerprint: Map<string, ReadonlyArray<number>>
+    readonly all: ReadonlyArray<ReadonlyArray<StructureElement.UnitIndex>>,
+    readonly byFingerprint: ReadonlyMap<string, ReadonlyArray<number>>
 }
 
 namespace UnitRings {
