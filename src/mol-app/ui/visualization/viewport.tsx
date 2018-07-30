@@ -158,19 +158,21 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
 
         viewer.input.resize.subscribe(() => this.handleResize())
 
-        viewer.input.move.subscribe(({x, y, inside}) => {
-            if (!inside) return
+        // TODO: clear highlight on mouse/touch down?
+
+        viewer.input.move.subscribe(({x, y, inside, buttons}) => {
+            if (!inside || buttons) return
             const p = viewer.identify(x, y)
             const loci = viewer.getLoci(p)
             InteractivityEvents.HighlightLoci.dispatch(this.controller.context, loci);
-            
+
             // TODO use LabelLoci event and make configurable
             const label = labelFirst(loci)
             const info = `Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`
             this.setState({ info })
         })
 
-        // TODO filter only for left button?
+        // TODO filter only for left button/single finger touch?
         viewer.input.click.subscribe(({x, y}) => {
             const loci = viewer.getLoci(viewer.identify(x, y))
             InteractivityEvents.SelectLoci.dispatch(this.controller.context, loci);
