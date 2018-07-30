@@ -90,22 +90,22 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
     const terminalLinks: CarbohydrateTerminalLink[] = []
     const elements: CarbohydrateElement[] = []
 
-    const elementsMap = new Map<string, number>()
+    const elementsWithRingMap = new Map<string, number>()
 
     function elementKey(residueIndex: number, unitId: number) {
         return `${residueIndex}|${unitId}`
     }
 
     function fixLinkDirection(iA: number, iB: number) {
-        Vec3.sub(elements[iA].direction, elements[iB].center, elements[iA].center)
-        Vec3.normalize(elements[iA].direction, elements[iA].direction)
+        Vec3.sub(elements[iA].geometry!.direction, elements[iB].geometry!.center, elements[iA].geometry!.center)
+        Vec3.normalize(elements[iA].geometry!.direction, elements[iA].geometry!.direction)
     }
 
     const tmpV = Vec3.zero()
     function fixTerminalLinkDirection(iA: number, indexB: number, unitB: Unit.Atomic) {
-        const pos = unitB.conformation.position
-        Vec3.sub(elements[iA].direction, pos(unitB.elements[indexB], tmpV), elements[iA].center)
-        Vec3.normalize(elements[iA].direction, elements[iA].direction)
+        const pos = unitB.conformation.position, geo = elements[iA].geometry!;
+        Vec3.sub(geo.direction, pos(unitB.elements[indexB], tmpV), geo.center)
+        Vec3.normalize(geo.direction, geo.direction)
     }
 
     // get carbohydrate elements and carbohydrate links induced by intra-residue bonds
@@ -140,7 +140,10 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 const sugarRings = sugarResidueMap.get(residueIndex);
 
                 if (!sugarRings || !sugarRings.length) {
-                    console.warn(`No ring found for carbohydrate on residue with index ${residueIndex}, unit ${unit.id}. Residue skipped.`);
+                    elements.push({
+                        hasRing: false,
+                        unit, residueIndex, component: saccharideComp
+                    })
                     continue;
                 }
 
@@ -158,8 +161,12 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
 
                     const elementIndex = elements.length
                     ringElements.push(elementIndex)
-                    elementsMap.set(elementKey(residueIndex, unit.id), elementIndex)
-                    elements.push({ center, normal, direction, unit, residueIndex, component: saccharideComp })
+                    elementsWithRingMap.set(elementKey(residueIndex, unit.id), elementIndex)
+                    elements.push({
+                        geometry: { center, normal, direction, },
+                        hasRing: true,
+                        unit, residueIndex, component: saccharideComp
+                    })
                 }
 
                 // add carbohydrate links induced by intra-residue bonds
@@ -195,8 +202,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 pairBonds.getBonds(indexA).forEach(bondInfo => {
                     const { unitA, unitB } = pairBonds
                     const indexB = bondInfo.indexB
-                    const elementIndexA = elementsMap.get(elementKey(getResidueIndex(indexA, unitA), unitA.id))
-                    const elementIndexB = elementsMap.get(elementKey(getResidueIndex(indexB, unitB), unitB.id))
+                    const elementIndexA = elementsWithRingMap.get(elementKey(getResidueIndex(indexA, unitA), unitA.id))
+                    const elementIndexB = elementsWithRingMap.get(elementKey(getResidueIndex(indexB, unitB), unitB.id))
 
                     if (elementIndexA !== undefined && elementIndexB !== undefined) {
                         if (getAtomId(unitA, indexA).startsWith('C1')) {

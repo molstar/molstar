@@ -23,11 +23,11 @@ export interface CarbohydrateTerminalLink {
 }
 
 export interface CarbohydrateElement {
-    readonly center: Vec3,
-    readonly normal: Vec3,
-    readonly direction: Vec3,
-    readonly unit: Unit.Atomic
-    readonly residueIndex: ResidueIndex
+    // geometry is only defined if at least one ring is present.
+    readonly geometry?: { readonly center: Vec3, readonly normal: Vec3, readonly direction: Vec3 },
+    readonly hasRing: boolean,
+    readonly unit: Unit.Atomic,
+    readonly residueIndex: ResidueIndex,
     readonly component: SaccharideComponent
 }
 

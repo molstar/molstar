@@ -47,50 +47,53 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
     const linkParams = { radiusTop: 0.4, radiusBottom: 0.4 }
 
     for (let i = 0, il = carbohydrates.elements.length; i < il; ++i) {
-        const c = carbohydrates.elements[i]
+        const c = carbohydrates.elements[i];
+        if (!c.hasRing) continue;
+
+        const cGeo = c.geometry!
         const shapeType = getSaccharideShape(c.component.type)
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
-                builder.addIcosahedron(c.center, radius, 2)
+                builder.addIcosahedron(cGeo.center, radius, 2)
                 break;
             case SaccharideShapes.FilledCube:
-                centerAlign(c.center, c.normal, c.direction)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 builder.addBox(t, { width: side, height: side, depth: side })
                 break;
             case SaccharideShapes.CrossedCube:
                 // TODO split
-                centerAlign(c.center, c.normal, c.direction)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 builder.addBox(t, { width: side, height: side, depth: side })
                 break;
             case SaccharideShapes.FilledCone:
-                Vec3.scaleAndAdd(p1, c.center, c.direction, radius)
-                Vec3.scaleAndSub(p2, c.center, c.direction, radius)
+                Vec3.scaleAndAdd(p1, cGeo.center, cGeo.direction, radius)
+                Vec3.scaleAndSub(p2, cGeo.center, cGeo.direction, radius)
                 builder.addCylinder(p1, p2, 1, coneParams)
                 break
             case SaccharideShapes.DevidedCone:
                 // TODO split
-                Vec3.scaleAndAdd(p1, c.center, c.direction, radius)
-                Vec3.scaleAndSub(p2, c.center, c.direction, radius)
+                Vec3.scaleAndAdd(p1, cGeo.center, cGeo.direction, radius)
+                Vec3.scaleAndSub(p2, cGeo.center, cGeo.direction, radius)
                 builder.addCylinder(p1, p2, 1, coneParams)
                 break
             case SaccharideShapes.FlatBox:
-                centerAlign(c.center, c.normal, c.direction)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 builder.addBox(t, { width: side, height: side / 2, depth: side })
                 break
             case SaccharideShapes.FilledStar:
-                centerAlign(c.center, c.normal, c.direction)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
                 break
             case SaccharideShapes.FilledDiamond:
             case SaccharideShapes.DividedDiamond:
             case SaccharideShapes.FlatDiamond:
             case SaccharideShapes.Pentagon:
-                centerAlign(c.center, c.normal, c.direction)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 builder.addBox(t, { width: side, height: side, depth: 0.5 })
                 break
             case SaccharideShapes.FlatHexagon:
             default:
-                centerAlign(c.center, c.normal, c.direction)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 builder.addBox(t, { width: side, height: side, depth: 0.1 })
                 break
         }
@@ -98,14 +101,14 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
     for (let i = 0, il = carbohydrates.links.length; i < il; ++i) {
         const l = carbohydrates.links[i]
-        const centerA = carbohydrates.elements[l.carbohydrateIndexA].center
-        const centerB = carbohydrates.elements[l.carbohydrateIndexB].center
+        const centerA = carbohydrates.elements[l.carbohydrateIndexA].geometry!.center
+        const centerB = carbohydrates.elements[l.carbohydrateIndexB].geometry!.center
         builder.addCylinder(centerA, centerB, 0.5, linkParams)
     }
 
     for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
         const tl = carbohydrates.terminalLinks[i]
-        const center = carbohydrates.elements[tl.carbohydrateIndex].center
+        const center = carbohydrates.elements[tl.carbohydrateIndex].geometry!.center
         tl.elementUnit.conformation.position(tl.elementUnit.elements[tl.elementIndex], p)
         if (tl.fromCarbohydrate) {
             builder.addCylinder(center, p, 0.5, linkParams)
