@@ -51,8 +51,6 @@ namespace UnitRings {
             idx++;
         }
 
-        console.log(createIndex(rings));
-
         let _index: UnitRings['index'] | undefined = void 0;
         return {
             all: rings,
