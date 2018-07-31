@@ -41,20 +41,23 @@ namespace UnitRings {
 
     export function create(unit: Unit.Atomic): UnitRings {
         const rings = computeRings(unit);
-        const byFingerprint = new Map<string, Index[]>();
 
-        let idx = 0 as Index;
-        for (const r of rings) {
-            const fp = getRingFingerprint(unit, r);
-            if (byFingerprint.has(fp)) byFingerprint.get(fp)!.push(idx);
-            else byFingerprint.set(fp, [idx]);
-            idx++;
-        }
-
+        let _byFingerprint: Map<string, Index[]> | undefined = void 0;
         let _index: UnitRings['index'] | undefined = void 0;
         return {
             all: rings,
-            byFingerprint,
+            get byFingerprint() {
+                if (_byFingerprint) return _byFingerprint;
+                _byFingerprint = new Map();
+                let idx = 0 as Index;
+                for (const r of rings) {
+                    const fp = getRingFingerprint(unit, r);
+                    if (_byFingerprint.has(fp)) _byFingerprint.get(fp)!.push(idx);
+                    else _byFingerprint.set(fp, [idx]);
+                    idx++;
+                }
+                return _byFingerprint;
+            },
             get index() {
                 if (_index) return _index;
                 _index = createIndex(rings);
