@@ -84,7 +84,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 builder.addBox(t, { width: side, height: side / 2, depth: side })
                 break
             case SaccharideShapes.FilledStar:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
+                centerAlign(cGeo.center, cGeo.direction, cGeo.normal)
                 builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
                 break
             case SaccharideShapes.FilledDiamond:

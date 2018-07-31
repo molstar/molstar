@@ -78,7 +78,7 @@ export class Stage {
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
-        this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
+        // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('2np2') // dna
@@ -99,7 +99,7 @@ export class Stage {
         // this.loadPdbid('2zex') // contains carbohydrate polymer
         // this.loadPdbid('3sgj') // contains carbohydrate polymer
         // this.loadPdbid('3ina') // contains GlcN and IdoA
-        // this.loadPdbid('1umz') // contains Xyl (Xyloglucan)
+        this.loadPdbid('1umz') // contains Xyl (Xyloglucan)
         // this.loadPdbid('1mfb') // contains Abe
         // this.loadPdbid('2gdu') // contains sucrose
         // this.loadPdbid('2fnc') // contains maltotriose
