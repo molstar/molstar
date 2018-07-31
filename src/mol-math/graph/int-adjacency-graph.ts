@@ -6,6 +6,7 @@
  */
 
 import { arrayPickIndices } from 'mol-data/util';
+import { LinkedIndex } from 'mol-data/int';
 
 /**
  * Represent a graph using vertex adjacency list.
@@ -126,6 +127,13 @@ export namespace IntAdjacencyGraph {
             this.curB = ob;
         }
 
+        /** Builds property-less graph */
+        addAllEdges() {
+            for (let i = 0; i < this.edgeCount; i++) {
+                this.addNextEdge();
+            }
+        }
+
         assignProperty<T>(prop: { [i: number]: T }, value: T) {
             prop[this.curA] = value;
             prop[this.curB] = value;
@@ -150,6 +158,12 @@ export namespace IntAdjacencyGraph {
             this.a = new Int32Array(offset);
             this.b = new Int32Array(offset);
         }
+    }
+
+    export function fromVertexPairs(vertexCount: number, xs: number[], ys: number[]) {
+        const graphBuilder = new IntAdjacencyGraph.EdgeBuilder(vertexCount, xs, ys);
+        graphBuilder.addAllEdges();
+        return graphBuilder.createGraph();
     }
 
     export function induceByVertices<P extends IntAdjacencyGraph.EdgePropsBase>(graph: IntAdjacencyGraph<P>, vertexIndices: ArrayLike<number>): IntAdjacencyGraph<P> {
@@ -191,6 +205,52 @@ export namespace IntAdjacencyGraph {
         }
 
         return create(newOffsets, newA, newB, newEdgeCount, newEdgeProps);
+    }
+
+    export function connectedComponents(graph: IntAdjacencyGraph): { componentCount: number, componentIndex: Int32Array } {
+        const vCount = graph.vertexCount;
+
+        if (vCount === 0) return { componentCount: 0, componentIndex: new Int32Array(0) };
+        if (graph.edgeCount === 0) {
+            const componentIndex = new Int32Array(vCount);
+            for (let i = 0, _i = vCount; i < _i; i++) {
+                componentIndex[i] = i;
+            }
+            return { componentCount: vCount, componentIndex };
+        }
+
+        const componentIndex = new Int32Array(vCount);
+        for (let i = 0, _i = vCount; i < _i; i++) componentIndex[i] = -1;
+        let currentComponent = 0;
+        componentIndex[0] = currentComponent;
+
+        const { offset, b: neighbor } = graph;
+        const stack = [0];
+        const list = LinkedIndex(vCount);
+        list.remove(0);
+
+        while (stack.length > 0) {
+            const v = stack.pop()!;
+            const cIdx = componentIndex[v];
+
+            for (let eI = offset[v], _eI = offset[v + 1]; eI < _eI; eI++) {
+                const n = neighbor[eI];
+                if (!list.has(n)) continue;
+                list.remove(n);
+                stack.push(n);
+                componentIndex[n] = cIdx;
+            }
+
+            // check if we visited all vertices.
+            // If not, create a new component and continue.
+            if (stack.length === 0 && list.head >= 0) {
+                stack.push(list.head);
+                componentIndex[list.head] = ++currentComponent;
+                list.remove(list.head);
+            }
+        }
+
+        return { componentCount: vCount, componentIndex };
     }
 }
 
