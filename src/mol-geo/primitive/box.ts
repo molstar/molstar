@@ -7,6 +7,7 @@
 // adapted from three.js, MIT License Copyright 2010-2018 three.js authors
 
 import { Vec3 } from 'mol-math/linear-algebra'
+import { Primitive } from './primitive';
 
 export const DefaultBoxProps = {
     width: 1,
@@ -17,7 +18,7 @@ export type BoxProps = Partial<typeof DefaultBoxProps>
 
 const tmpVector = Vec3.zero();
 
-export function Box(props?: BoxProps) {
+export function Box(props?: BoxProps): Primitive {
     const { width, height, depth } = { ...DefaultBoxProps, ...props }
 
     // buffers

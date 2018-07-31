@@ -28,6 +28,8 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const t = Mat4.identity()
+    const sMat = Mat4.identity()
+    const sVec = Vec3.zero()
     const p = Vec3.zero()
     const pd = Vec3.zero()
     const p1 = Vec3.zero()
@@ -54,11 +56,12 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
         const shapeType = getSaccharideShape(c.component.type)
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
-                builder.addIcosahedron(cGeo.center, radius, 2)
+                builder.addSphere(cGeo.center, radius, 2)
                 break;
             case SaccharideShapes.FilledCube:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 builder.addBox(t, { width: side, height: side, depth: side })
+                builder.addOctahedron(t)
                 break;
             case SaccharideShapes.CrossedCube:
                 // TODO split
@@ -85,7 +88,18 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
                 break
             case SaccharideShapes.FilledDiamond:
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
+                Mat4.fromScaling(sMat, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
+                Mat4.mul(t, t, sMat)
+                builder.addOctahedron(t)
+                break
             case SaccharideShapes.DividedDiamond:
+                // TODO split
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
+                Mat4.fromScaling(sMat, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
+                Mat4.mul(t, t, sMat)
+                builder.addOctahedron(t)
+                break
             case SaccharideShapes.FlatDiamond:
             case SaccharideShapes.Pentagon:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)

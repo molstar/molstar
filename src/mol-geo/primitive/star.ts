@@ -5,6 +5,7 @@
  */
 
 import { Vec3 } from 'mol-math/linear-algebra'
+import { Primitive } from './primitive';
 
 export const DefaultStarProps = {
     pointCount: 5,
@@ -21,7 +22,7 @@ const p1 = Vec3.zero()
 const p2 = Vec3.zero()
 const p3 = Vec3.zero()
 
-export function Star(props?: StarProps) {
+export function Star(props?: StarProps): Primitive {
     const { outerRadius, innerRadius, thickness, pointCount } = { ...DefaultStarProps, ...props }
 
     const triangleCount = pointCount * 2 * 2

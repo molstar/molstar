@@ -1,3 +1,5 @@
+import { Primitive } from './primitive';
+
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -10,7 +12,7 @@ export const DefaultPlaneProps = {
 }
 export type PlaneProps = Partial<typeof DefaultPlaneProps>
 
-export function Plane(props?: PlaneProps) {
+export function Plane(props?: PlaneProps): Primitive {
     const { width, height } = { ...DefaultPlaneProps, ...props }
 
     return {

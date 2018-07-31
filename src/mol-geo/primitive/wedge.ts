@@ -5,6 +5,7 @@
  */
 
 import { Vec3 } from 'mol-math/linear-algebra'
+import { Primitive } from './primitive';
 
 export const DefaultWedgeProps = {
     width: 1,
@@ -31,7 +32,7 @@ const nacdf = Vec3.zero()
 
 const s = Vec3.zero()
 
-export function Wedge(props?: WedgeProps) {
+export function Wedge(props?: WedgeProps): Primitive {
     const { width, height, depth } = { ...DefaultWedgeProps, ...props }
 
     const vertices = new Float32Array(54)

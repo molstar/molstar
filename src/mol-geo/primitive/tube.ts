@@ -18,7 +18,7 @@ const b = Vec3.zero()
 const u = Vec3.zero()
 const v = Vec3.zero()
 
-export function addTube(controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean, state: MeshBuilderState) {
+export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean, state: MeshBuilderState) {
     const { vertices, normals, indices } = state
 
     let vertexCount = vertices.elementCount

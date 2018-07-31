@@ -8,6 +8,7 @@
 
 import { Vec3 } from 'mol-math/linear-algebra'
 import { computeIndexedVertexNormals, appplyRadius } from '../util'
+import { Primitive } from './primitive';
 
 export const DefaultPolyhedronProps = {
     radius: 1,
@@ -15,7 +16,7 @@ export const DefaultPolyhedronProps = {
 }
 export type PolyhedronProps = Partial<typeof DefaultPolyhedronProps>
 
-export function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.NumberArray, props?: PolyhedronProps) {
+export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<number>, props?: PolyhedronProps): Primitive {
     const { radius, detail } = { ...DefaultPolyhedronProps, ...props }
     const builder = createBuilder()
     const { vertices, indices } = builder
@@ -84,20 +85,6 @@ export function Polyhedron(_vertices: Helpers.NumberArray, _indices: Helpers.Num
                 }
             }
         }
-
-        // // construct all of the faces
-        // for (let i = 0; i < cols; ++i) {
-        //     for (let j = 0; j < 2 * (cols - i) - 1; ++j) {
-        //         const k = Math.floor(j / 2)
-        //         if (j % 2 === 0) {
-        //             vertices.push(...v[i][k + 1], ...v[i + 1][k], ...v[i][k])
-        //         } else {
-        //             vertices.push(...v[i][k + 1], ...v[i + 1][k + 1], ...v[i + 1][k])
-        //         }
-        //         const l = vertices.length / 3
-        //         indices.push(l - 3, l - 2, l - 1)
-        //     }
-        // }
 
         // construct all of the faces
         for (let i = 0; i < cols; ++i) {

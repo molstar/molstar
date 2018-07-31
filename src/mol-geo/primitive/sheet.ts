@@ -30,7 +30,7 @@ const p6 = Vec3.zero()
 const p7 = Vec3.zero()
 const p8 = Vec3.zero()
 
-export function addSheet(controlPoints: Helpers.NumberArray, normalVectors: Helpers.NumberArray, binormalVectors: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean, state: MeshBuilderState) {
+export function addSheet(controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean, state: MeshBuilderState) {
     const { vertices, normals, indices } = state
 
     let vertexCount = vertices.elementCount

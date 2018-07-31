@@ -7,6 +7,7 @@
 // adapted from three.js, MIT License Copyright 2010-2018 three.js authors
 
 import { Vec3 } from 'mol-math/linear-algebra'
+import { Primitive } from './primitive';
 
 export const DefaultCylinderProps = {
     radiusTop: 1,
@@ -21,7 +22,7 @@ export const DefaultCylinderProps = {
 }
 export type CylinderProps = Partial<typeof DefaultCylinderProps>
 
-export function Cylinder(props?: CylinderProps) {
+export function Cylinder(props?: CylinderProps): Primitive {
     const { radiusTop, radiusBottom, height, radialSegments, heightSegments, topCap, bottomCap, thetaStart, thetaLength } = { ...DefaultCylinderProps, ...props };
 
     // buffers

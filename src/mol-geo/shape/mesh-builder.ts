@@ -12,18 +12,14 @@ import { Box, BoxProps } from '../primitive/box';
 import { Plane, PlaneProps } from '../primitive/plane';
 import { Wedge, WedgeProps } from '../primitive/wedge';
 import { Cylinder, CylinderProps } from '../primitive/cylinder';
-import { Icosahedron, IcosahedronProps } from '../primitive/icosahedron';
+import { Sphere, SphereProps } from '../primitive/sphere';
 import { Mesh } from './mesh';
 import { getNormalMatrix } from '../util';
 import { addSheet } from '../primitive/sheet';
 import { addTube } from '../primitive/tube';
 import { StarProps, Star } from '../primitive/star';
-
-interface Primitive {
-    vertices: Float32Array
-    normals: Float32Array
-    indices: Uint32Array
-}
+import { Octahedron } from '../primitive/octahedron';
+import { Primitive } from '../primitive/primitive';
 
 export interface MeshBuilderState {
     vertices: ChunkedArray<number, 3>
@@ -32,23 +28,24 @@ export interface MeshBuilderState {
 }
 
 export interface MeshBuilder {
-    add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices?: Uint32Array): void
+    add(t: Mat4, _vertices: ArrayLike<number>, _normals: ArrayLike<number>, _indices?: ArrayLike<number>): void
     addBox(t: Mat4, props?: BoxProps): void
     addPlane(t: Mat4, props?: PlaneProps): void
     addWedge(t: Mat4, props?: WedgeProps): void
     addStar(t: Mat4, props?: StarProps): void
+    addOctahedron(t: Mat4): void
     addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
-    addIcosahedron(center: Vec3, radius: number, detail: number): void
-    addTube(centers: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean): void
-    addSheet(centers: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean): void
+    addSphere(center: Vec3, radius: number, detail: number): void
+    addTube(centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean): void
+    addSheet(centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean): void
     setId(id: number): void
     getMesh(): Mesh
 }
 
 const cylinderMap = new Map<string, Primitive>()
-const icosahedronMap = new Map<string, Primitive>()
+const sphereMap = new Map<string, Primitive>()
 
 const up = Vec3.create(0, 1, 0)
 const tmpV = Vec3.zero()
@@ -83,20 +80,20 @@ function getCylinder(props: CylinderProps) {
     return cylinder
 }
 
-const tmpIcosahedronMat = Mat4.identity()
+const tmpSphereMat = Mat4.identity()
 
-function setIcosahedronMat(m: Mat4, center: Vec3) {
+function setSphereMat(m: Mat4, center: Vec3) {
     return Mat4.setTranslation(m, center)
 }
 
-function getIcosahedron(props: IcosahedronProps) {
+function getSphere(props: SphereProps) {
     const key = JSON.stringify(props)
-    let icosahedron = icosahedronMap.get(key)
-    if (icosahedron === undefined) {
-        icosahedron = Icosahedron(props)
-        icosahedronMap.set(key, icosahedron)
+    let sphere = sphereMap.get(key)
+    if (sphere === undefined) {
+        sphere = Sphere(props)
+        sphereMap.set(key, sphere)
     }
-    return icosahedron
+    return sphere
 }
 
 // TODO cache primitives based on props
@@ -113,7 +110,7 @@ export namespace MeshBuilder {
 
         let currentId = -1
 
-        function add(t: Mat4, _vertices: Float32Array, _normals: Float32Array, _indices: Uint32Array) {
+        function add(t: Mat4, _vertices: ArrayLike<number>, _normals: ArrayLike<number>, _indices: ArrayLike<number>) {
             const { elementCount } = vertices
             const n = getNormalMatrix(tmpMat3, t)
             for (let i = 0, il = _vertices.length; i < il; i += 3) {
@@ -149,6 +146,10 @@ export namespace MeshBuilder {
             },
             addStar: (t: Mat4, props?: StarProps) => {
                 const { vertices, normals, indices } = Star(props)
+                add(t, vertices, normals, indices)
+            },
+            addOctahedron: (t: Mat4) => {
+                const { vertices, normals, indices } = Octahedron()
                 add(t, vertices, normals, indices)
             },
             addCylinder: (start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) => {
@@ -197,16 +198,16 @@ export namespace MeshBuilder {
                     add(tmpCylinderMat, vertices, normals, indices)
                 }
             },
-            addIcosahedron: (center: Vec3, radius: number, detail: number) => {
-                const { vertices, normals, indices } = getIcosahedron({ radius, detail })
-                setIcosahedronMat(tmpIcosahedronMat, center)
-                add(tmpIcosahedronMat, vertices, normals, indices)
+            addSphere: (center: Vec3, radius: number, detail: number) => {
+                const { vertices, normals, indices } = getSphere({ radius, detail })
+                setSphereMat(tmpSphereMat, center)
+                add(tmpSphereMat, vertices, normals, indices)
             },
-            addTube: (centers: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) => {
+            addTube: (centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) => {
                 const addedVertexCount = addTube(centers, normals, binormals, linearSegments, radialSegments, width, height, waveFactor, startCap, endCap, state)
                 for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(ids, currentId);
             },
-            addSheet: (controls: Helpers.NumberArray, normals: Helpers.NumberArray, binormals: Helpers.NumberArray, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) => {
+            addSheet: (controls: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) => {
                 const addedVertexCount = addSheet(controls, normals, binormals, linearSegments, width, height, arrowHeight, startCap, endCap, state)
                 for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(ids, currentId);
             },

@@ -46,7 +46,7 @@ namespace Vec3 {
         return { x: v[0], y: v[1], z: v[2] };
     }
 
-    export function fromArray(v: Vec3, array: Helpers.NumberArray, offset: number) {
+    export function fromArray(v: Vec3, array: ArrayLike<number>, offset: number) {
         v[0] = array[offset + 0]
         v[1] = array[offset + 1]
         v[2] = array[offset + 2]

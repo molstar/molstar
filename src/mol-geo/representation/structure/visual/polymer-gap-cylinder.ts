@@ -46,7 +46,7 @@ async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, mes
         if (centerA.element === centerB.element) {
             builder.setId(centerA.element)
             pos(elements[centerA.element], pA)
-            builder.addIcosahedron(pA, 0.6, 0)
+            builder.addSphere(pA, 0.6, 0)
         } else {
             pos(elements[centerA.element], pA)
             pos(elements[centerB.element], pB)

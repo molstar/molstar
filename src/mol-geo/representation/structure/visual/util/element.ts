@@ -8,7 +8,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit, StructureElement } from 'mol-model/structure';
 import { SizeTheme } from '../../../../theme';
 import { RuntimeContext } from 'mol-task';
-import { icosahedronVertexCount } from '../../../../primitive/icosahedron';
+import { sphereVertexCount } from '../../../../primitive/sphere';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
 import { ValueCell, defaults } from 'mol-util';
@@ -33,7 +33,7 @@ export function getElementRadius(unit: Unit, props: SizeTheme): StructureElement
 export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, radius: StructureElement.Property<number>, detail: number, mesh?: Mesh) {
     const { elements } = unit;
     const elementCount = elements.length;
-    const vertexCount = elementCount * icosahedronVertexCount(detail)
+    const vertexCount = elementCount * sphereVertexCount(detail)
     const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
 
     const v = Vec3.zero()
@@ -46,7 +46,7 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
         pos(elements[i], v)
 
         meshBuilder.setId(i)
-        meshBuilder.addIcosahedron(v, radius(l), detail)
+        meshBuilder.addSphere(v, radius(l), detail)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
