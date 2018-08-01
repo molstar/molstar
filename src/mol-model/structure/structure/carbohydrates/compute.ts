@@ -18,42 +18,11 @@ import Structure from '../structure';
 import Unit from '../unit';
 import { SaccharideNameMap, UnknownSaccharideComponent } from './constants';
 import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink } from './data';
+import { UnitRings, UnitRing } from '../unit/rings';
 
-function getResidueIndex(elementIndex: number, unit: Unit.Atomic) {
-    return unit.model.atomicHierarchy.residueAtomSegments.index[unit.elements[elementIndex]]
-}
+const C = ElementSymbol('C'), O = ElementSymbol('O');
+const SugarRingFps = [UnitRing.elementFingerprint([C, C, C, C, C, O]), UnitRing.elementFingerprint([C, C, C, C, O])]
 
-function sugarResidueIdx(unit: Unit.Atomic, ring: ArrayLike<StructureElement.UnitIndex>): ResidueIndex {
-    const { elements } = unit;
-    const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
-    const idx = residueIndex[elements[ring[0]]];
-    for (let rI = 1, _rI = ring.length; rI < _rI; rI++) {
-        if (idx !== residueIndex[elements[ring[rI]]]) return -1 as ResidueIndex;
-    }
-    return idx;
-}
-
-function addSugarRings(unit: Unit.Atomic, fp: string, sugarResidues: Map<ResidueIndex, number[]>) {
-    const rings = unit.rings;
-    const byFp = rings.byFingerprint.get(fp);
-    if (!byFp) return;
-    for (const r of byFp) {
-        const idx = sugarResidueIdx(unit, rings.all[r]);
-        if (idx >= 0) {
-            if (sugarResidues.has(idx)) sugarResidues.get(idx)!.push(r);
-            else sugarResidues.set(idx, [r]);
-        }
-    }
-}
-
-function getSugarRingIndices(unit: Unit.Atomic) {
-    const sugarResidues = new Map<ResidueIndex, number[]>();
-    addSugarRings(unit, 'C-C-C-C-C-O', sugarResidues);
-    addSugarRings(unit, 'C-C-C-C-O', sugarResidues);
-    return sugarResidues;
-}
-
-const C = ElementSymbol('C')
 function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ArrayLike<StructureElement.UnitIndex>, center: Vec3) {
     let indexC1 = -1, indexC1X = -1, indexC = -1
     const { elements } = unit
@@ -84,6 +53,7 @@ function getAtomId(unit: Unit.Atomic, index: number) {
     const { label_atom_id } = unit.model.atomicHierarchy.atoms
     return label_atom_id.value(elements[index])
 }
+
 
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
     const links: CarbohydrateLink[] = []
@@ -120,7 +90,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         const chainIt = Segmentation.transientSegments(chainAtomSegments, unit.elements)
         const residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements)
 
-        let sugarResidueMap: Map<ResidueIndex, number[]> | undefined = void 0;
+        let sugarResidueMap: Map<ResidueIndex, UnitRings.Index[]> | undefined = void 0;
 
         while (chainIt.hasNext) {
             residueIt.setSegment(chainIt.move());
@@ -134,7 +104,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 }
 
                 if (!sugarResidueMap) {
-                    sugarResidueMap = getSugarRingIndices(unit);
+                    sugarResidueMap = UnitRings.byFingerprintAndResidue(unit.rings, SugarRingFps);
                 }
 
                 const sugarRings = sugarResidueMap.get(residueIndex);
@@ -202,8 +172,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 pairBonds.getBonds(indexA).forEach(bondInfo => {
                     const { unitA, unitB } = pairBonds
                     const indexB = bondInfo.indexB
-                    const elementIndexA = elementsWithRingMap.get(elementKey(getResidueIndex(indexA, unitA), unitA.id))
-                    const elementIndexB = elementsWithRingMap.get(elementKey(getResidueIndex(indexB, unitB), unitB.id))
+                    const elementIndexA = elementsWithRingMap.get(elementKey(unitA.getResidueIndex(indexA), unitA.id))
+                    const elementIndexB = elementsWithRingMap.get(elementKey(unitB.getResidueIndex(indexB), unitB.id))
 
                     if (elementIndexA !== undefined && elementIndexB !== undefined) {
                         if (getAtomId(unitA, indexA).startsWith('C1')) {

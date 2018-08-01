@@ -117,6 +117,10 @@ namespace Unit {
             return this.props.rings.ref;
         }
 
+        getResidueIndex(elementIndex: StructureElement.UnitIndex) {
+            return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
+        }
+
         constructor(id: number, invariantId: number, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;

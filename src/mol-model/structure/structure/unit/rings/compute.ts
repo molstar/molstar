@@ -249,7 +249,7 @@ function buildFinderprint(elements: string[], offset: number) {
 type RingIndex = import('../rings').UnitRings.Index
 type RingComponentIndex = import('../rings').UnitRings.ComponentIndex
 
-export function createIndex(rings: SortedArray<StructureElement.UnitIndex>[]) {
+export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIndex>>) {
     const elementRingIndices: Map<StructureElement.UnitIndex, RingIndex[]> = new Map();
 
     // for each ring atom, assign all rings that it is present in

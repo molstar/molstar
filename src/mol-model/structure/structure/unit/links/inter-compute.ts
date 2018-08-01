@@ -13,6 +13,7 @@ import { InterUnitBonds } from './data';
 import { UniqueArray } from 'mol-data/generic';
 import { SortedArray } from 'mol-data/int';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
+import StructureElement from '../../element';
 
 const MAX_RADIUS = 4;
 
@@ -24,8 +25,8 @@ function addMapEntry<A, B>(map: Map<A, B[]>, a: A, b: B) {
 interface PairState {
     mapAB: Map<number, InterUnitBonds.BondInfo[]>,
     mapBA: Map<number, InterUnitBonds.BondInfo[]>,
-    bondedA: UniqueArray<number, number>,
-    bondedB: UniqueArray<number, number>
+    bondedA: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>,
+    bondedB: UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
 }
 
 function addLink(indexA: number, indexB: number, order: number, flag: LinkType.Flag, state: PairState) {
