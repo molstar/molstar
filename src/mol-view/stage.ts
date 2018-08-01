@@ -98,14 +98,14 @@ export class Stage {
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadPdbid('2zex') // contains carbohydrate polymer
         // this.loadPdbid('3sgj') // contains carbohydrate polymer
-        this.loadPdbid('3ina') // contains GlcN and IdoA
+        // this.loadPdbid('3ina') // contains GlcN and IdoA
         // this.loadPdbid('1umz') // contains Xyl (Xyloglucan)
         // this.loadPdbid('1mfb') // contains Abe
         // this.loadPdbid('2gdu') // contains sucrose
         // this.loadPdbid('2fnc') // contains maltotriose
         // this.loadPdbid('4zs9') // contains raffinose
         // this.loadPdbid('2yft') // contains kestose
-        // this.loadPdbid('2b5t') // contains large carbohydrate polymer
+        this.loadPdbid('2b5t') // contains large carbohydrate polymer
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)

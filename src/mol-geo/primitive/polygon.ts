@@ -12,7 +12,7 @@ export function polygon(sideCount: number, shift: boolean) {
     const points = new Float32Array(sideCount * 2)
     const radius = sideCount <= 4 ? Math.sqrt(2) / 2 : 0.6
 
-    const offset = shift ? 0 : 1
+    const offset = shift ? 1 : 0
 
     for (let i = 0, il = 2 * sideCount; i < il; i += 2) {
         const c = (i + offset) / sideCount * Math.PI

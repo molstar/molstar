@@ -83,44 +83,45 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 break
             case SaccharideShapes.FlatBox:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
                 builder.addBox(t)
                 break
             case SaccharideShapes.FilledStar:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.mul(t, t, Mat4.rotZY90)
                 builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
                 break
             case SaccharideShapes.FilledDiamond:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 builder.addOctahedron(t)
                 break
             case SaccharideShapes.DividedDiamond:
                 // TODO split
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 builder.addOctahedron(t)
                 break
             case SaccharideShapes.FlatDiamond:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side / 2, side / 2))
                 builder.addDiamondPrism(t)
+                break
             case SaccharideShapes.Pentagon:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
                 builder.addPentagonalPrism(t)
                 break
             case SaccharideShapes.FlatHexagon:
             default:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.mul(t, t, Mat4.rotY90)
-                Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
+                Mat4.mul(t, t, Mat4.rotZYZ90)
+                Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side , side / 2))
                 builder.addHexagonalPrism(t)
                 break
         }

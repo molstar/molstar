@@ -78,7 +78,7 @@ export function Wedge() {
 
 let box: Primitive
 export function Box() {
-    if (!box) box = Prism(polygon(4, false))
+    if (!box) box = Prism(polygon(4, true))
     return box
 }
 
@@ -88,14 +88,14 @@ export function DiamondPrism() {
     return diamond
 }
 
-let hexagonalPrism: Primitive
-export function HexagonalPrism() {
-    if (!hexagonalPrism) hexagonalPrism = Prism(polygon(5, false))
-    return hexagonalPrism
-}
-
 let pentagonalPrism: Primitive
 export function PentagonalPrism() {
-    if (!pentagonalPrism) pentagonalPrism = Prism(polygon(6, true))
+    if (!pentagonalPrism) pentagonalPrism = Prism(polygon(5, false))
     return pentagonalPrism
+}
+
+let hexagonalPrism: Primitive
+export function HexagonalPrism() {
+    if (!hexagonalPrism) hexagonalPrism = Prism(polygon(6, true))
+    return hexagonalPrism
 }
