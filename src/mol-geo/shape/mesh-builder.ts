@@ -19,6 +19,7 @@ import { StarProps, Star } from '../primitive/star';
 import { Octahedron } from '../primitive/octahedron';
 import { Primitive } from '../primitive/primitive';
 import { Wedge, Box, DiamondPrism, PentagonalPrism, HexagonalPrism } from '../primitive/prism';
+import { OctagonalPyramide } from '../primitive/pyramid';
 
 export interface MeshBuilderState {
     vertices: ChunkedArray<number, 3>
@@ -34,6 +35,7 @@ export interface MeshBuilder {
     addDiamondPrism(t: Mat4): void
     addPentagonalPrism(t: Mat4): void
     addHexagonalPrism(t: Mat4): void
+    addOctagonalPyramid(t: Mat4): void
     addStar(t: Mat4, props?: StarProps): void
     addOctahedron(t: Mat4): void
     addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
@@ -156,6 +158,10 @@ export namespace MeshBuilder {
             },
             addHexagonalPrism: (t: Mat4) => {
                 const { vertices, normals, indices } = HexagonalPrism()
+                add(t, vertices, normals, indices)
+            },
+            addOctagonalPyramid: (t: Mat4) => {
+                const { vertices, normals, indices } = OctagonalPyramide()
                 add(t, vertices, normals, indices)
             },
             addStar: (t: Mat4, props?: StarProps) => {

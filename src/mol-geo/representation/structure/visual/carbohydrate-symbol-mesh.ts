@@ -28,8 +28,6 @@ const t = Mat4.identity()
 const sVec = Vec3.zero()
 const p = Vec3.zero()
 const pd = Vec3.zero()
-const p1 = Vec3.zero()
-const p2 = Vec3.zero()
 
 async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
@@ -44,7 +42,6 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
     const side = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
     const radius = 1.75
-    const coneParams = { radiusTop: radius, radiusBottom: 0.0, topCap: true }
 
     const linkParams = { radiusTop: 0.4, radiusBottom: 0.4 }
 
@@ -71,15 +68,15 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 builder.addBox(t)
                 break;
             case SaccharideShapes.FilledCone:
-                Vec3.scaleAndSub(p1, cGeo.center, cGeo.direction, radius)
-                Vec3.scaleAndAdd(p2, cGeo.center, cGeo.direction, radius)
-                builder.addCylinder(p1, p2, 1, coneParams)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
+                Mat4.scaleUniformly(t, t, side * 1.2)
+                builder.addOctagonalPyramid(t)
                 break
             case SaccharideShapes.DevidedCone:
                 // TODO split
-                Vec3.scaleAndSub(p1, cGeo.center, cGeo.direction, radius)
-                Vec3.scaleAndAdd(p2, cGeo.center, cGeo.direction, radius)
-                builder.addCylinder(p1, p2, 1, coneParams)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
+                Mat4.scaleUniformly(t, t, side * 1.2)
+                builder.addOctagonalPyramid(t)
                 break
             case SaccharideShapes.FlatBox:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
