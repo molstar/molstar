@@ -6,7 +6,7 @@
  */
 
 import { arrayPickIndices, cantorPairing } from 'mol-data/util';
-import { LinkedIndex } from 'mol-data/int';
+import { LinkedIndex, SortedArray } from 'mol-data/int';
 
 /**
  * Represent a graph using vertex adjacency list.
@@ -281,22 +281,43 @@ export namespace IntAdjacencyGraph {
 
         return { componentCount: vCount, componentIndex };
     }
+
+    /**
+     * Check if any vertex in `verticesA` is connected to any vertex in `verticesB`
+     * via at most `maxDistance` edges.
+     *
+     * Returns true if A and B are intersecting.
+     */
+    export function areVertexSetsConnected(graph: IntAdjacencyGraph, verticesA: SortedArray<number>, verticesB: SortedArray<number>, maxDistance: number): boolean {
+        // check if A and B are intersecting, this handles maxDepth = 0
+        if (SortedArray.areIntersecting(verticesA, verticesB)) return true;
+        if (maxDistance < 1) return false;
+
+        const visited = new Set<number>();
+        for (let i = 0, il = verticesA.length; i < il; ++i) {
+            visited.add(verticesA[i]);
+        }
+
+        return areVertexSetsConnectedImpl(graph, verticesA, verticesB, maxDistance, visited);
+    }
 }
 
-/**
- * Check if any vertex in `verticesA` is connected to any vertex in `verticesB`
- * via `depth` hops or intermediate vertices
- */
-export function areConnected(verticesA: ReadonlyArray<number>, verticesB: ReadonlyArray<number>, graph: IntAdjacencyGraph, depth: number): boolean {
-    const { b, offset } = graph
-    const linkedVectices: number[] = []
-    for (let i = 0, il = verticesA.length; i < il; ++i) {
-        const vi = verticesA[i]
-        for (let j = offset[vi], jl = offset[vi + 1]; j < jl; ++j) {
-            const li = b[j]
-            if (verticesB.includes(li)) return true
-            if (!verticesA.includes(li)) linkedVectices.push(li)
+function areVertexSetsConnectedImpl(graph: IntAdjacencyGraph, frontier: ArrayLike<number>, target: SortedArray<number>, distance: number, visited: Set<number>): boolean {
+    const { b: neighbor, offset } = graph;
+    const newFrontier: number[] = [];
+
+    for (let i = 0, il = frontier.length; i < il; ++i) {
+        const src = frontier[i];
+
+        for (let j = offset[src], jl = offset[src + 1]; j < jl; ++j) {
+            const other = neighbor[j];
+            if (visited.has(other)) continue;
+            if (SortedArray.has(target, other)) return true;
+
+            visited.add(other);
+            newFrontier[newFrontier.length] = other;
         }
     }
-    return depth > 0 ? areConnected(linkedVectices, verticesB, graph, depth - 1) : false
+
+    return distance > 1 ? areVertexSetsConnectedImpl(graph, newFrontier, target, distance - 1, visited) : false;
 }

@@ -7,8 +7,9 @@
 import { computeRings, getFingerprint, createIndex } from './rings/compute'
 import Unit from '../unit';
 import StructureElement from '../element';
+import { SortedArray } from 'mol-data/int';
 
-type UnitRing = ReadonlyArray<StructureElement.UnitIndex>
+type UnitRing = SortedArray<StructureElement.UnitIndex>
 
 interface UnitRings {
     /** Each ring is specified as an array of indices in Unit.elements. */

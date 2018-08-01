@@ -4,12 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation } from 'mol-data/int';
+import { Segmentation, SortedArray } from 'mol-data/int';
 import { IntAdjacencyGraph } from 'mol-math/graph';
 import { LinkType } from '../../../model/types';
 import { StructureElement } from '../../../structure';
 import Unit from '../../unit';
 import { IntraUnitLinks } from '../links/data';
+import { sortArray } from 'mol-data/util';
 
 export function computeRings(unit: Unit.Atomic) {
     const size = largestResidue(unit);
@@ -42,7 +43,7 @@ interface State {
 
     currentColor: number,
 
-    rings: StructureElement.UnitIndex[][],
+    rings: SortedArray<StructureElement.UnitIndex>[],
     bonds: IntraUnitLinks,
     unit: Unit.Atomic
 }
@@ -146,7 +147,8 @@ function addRing(state: State, a: number, b: number) {
     for (let t = 0; t < leftOffset; t++) ring[ringOffset++] = state.startVertex + left[t];
     for (let t = rightOffset - 1; t >= 0; t--) ring[ringOffset++] = state.startVertex + right[t];
 
-    state.rings.push(ring as any as StructureElement.UnitIndex[]);
+    sortArray(ring);
+    state.rings.push(SortedArray.ofSortedArray(ring));
 }
 
 function findRings(state: State, from: number) {
@@ -247,7 +249,7 @@ function buildFinderprint(elements: string[], offset: number) {
 type RingIndex = import('../rings').UnitRings.Index
 type RingComponentIndex = import('../rings').UnitRings.ComponentIndex
 
-export function createIndex(rings: StructureElement.UnitIndex[][]) {
+export function createIndex(rings: SortedArray<StructureElement.UnitIndex>[]) {
     const elementRingIndices: Map<StructureElement.UnitIndex, RingIndex[]> = new Map();
 
     // for each ring atom, assign all rings that it is present in

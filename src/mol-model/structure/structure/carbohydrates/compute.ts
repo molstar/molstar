@@ -6,7 +6,7 @@
 
 import { Segmentation } from 'mol-data/int';
 import { combinations } from 'mol-data/util/combination';
-import { areConnected } from 'mol-math/graph';
+import { IntAdjacencyGraph } from 'mol-math/graph';
 import { Vec3 } from 'mol-math/linear-algebra';
 import PrincipalAxes from 'mol-math/linear-algebra/matrix/principal-axes';
 import { fillSerial } from 'mol-util/array';
@@ -54,7 +54,7 @@ function getSugarRingIndices(unit: Unit.Atomic) {
 }
 
 const C = ElementSymbol('C')
-function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ReadonlyArray<StructureElement.UnitIndex>, center: Vec3) {
+function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ArrayLike<StructureElement.UnitIndex>, center: Vec3) {
     let indexC1 = -1, indexC1X = -1, indexC = -1
     const { elements } = unit
     const { position } = unit.conformation
@@ -73,8 +73,8 @@ function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ReadonlyArray
     }
     const index = indexC1 !== -1 ? indexC1
         : indexC1X !== -1 ? indexC1X
-        : indexC !== -1 ? indexC
-        : elements[indices[0]]
+            : indexC !== -1 ? indexC
+                : elements[indices[0]]
     Vec3.normalize(direction, Vec3.sub(direction, center, position(index, direction)))
     return direction
 }
@@ -163,19 +163,19 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     ringElements.push(elementIndex)
                     elementsWithRingMap.set(elementKey(residueIndex, unit.id), elementIndex)
                     elements.push({
-                        geometry: { center, normal, direction, },
+                        geometry: { center, normal, direction },
                         hasRing: true,
                         unit, residueIndex, component: saccharideComp
                     })
                 }
 
                 // add carbohydrate links induced by intra-residue bonds
-                const ringCombinations = combinations(fillSerial(new Array(sugarRings.length)), 2)
+                const ringCombinations = combinations(fillSerial(new Array(sugarRings.length) as number[]), 2)
                 for (let j = 0, jl = ringCombinations.length; j < jl; ++j) {
                     const rc = ringCombinations[j];
                     const r0 = rings.all[sugarRings[rc[0]]], r1 = rings.all[sugarRings[rc[1]]];
-                    if (areConnected(r0, r1, unit.links, 2)) {
-                        // fix both directions as it is unlcear where the C1 atom is
+                    if (IntAdjacencyGraph.areVertexSetsConnected(unit.links, r0, r1, 2)) {
+                        // fix both directions as it is unclear where the C1 atom is
                         fixLinkDirection(ringElements[rc[0]], ringElements[rc[1]])
                         fixLinkDirection(ringElements[rc[1]], ringElements[rc[0]])
                         links.push({
