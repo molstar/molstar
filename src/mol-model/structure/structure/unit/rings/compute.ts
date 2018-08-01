@@ -4,13 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Unit from '../../unit';
-import { IntraUnitLinks } from '../links/data';
 import { Segmentation } from 'mol-data/int';
+import { IntAdjacencyGraph } from 'mol-math/graph';
 import { LinkType } from '../../../model/types';
 import { StructureElement } from '../../../structure';
-import { sortedCantorPairing } from 'mol-data/util';
-import { IntAdjacencyGraph } from 'mol-math/graph';
+import Unit from '../../unit';
+import { IntraUnitLinks } from '../links/data';
 
 export function computeRings(unit: Unit.Atomic) {
     const size = largestResidue(unit);
@@ -262,9 +261,7 @@ export function createIndex(rings: StructureElement.UnitIndex[][]) {
     }
 
     // create a graph where vertices are rings, edge if two rings share at least one atom
-    const addedEdges = new Set<number>();
-    const xs: RingIndex[] = [], ys: RingIndex[] = [];
-
+    const graph = new IntAdjacencyGraph.UniqueEdgeBuilder(rings.length);
     for (let rI = 0 as RingIndex, _rI = rings.length; rI < _rI; rI++) {
         const r = rings[rI];
 
@@ -278,19 +275,12 @@ export function createIndex(rings: StructureElement.UnitIndex[][]) {
             for (let j = 0, _j = containedRings.length; j < _j; j++) {
                 const rJ = containedRings[j];
                 if (rI >= rJ) continue;
-
-                const edgeIndex = sortedCantorPairing(rI, rJ);
-                if (addedEdges.has(edgeIndex)) continue;
-
-                addedEdges.add(edgeIndex);
-                xs[xs.length] = rI;
-                ys[ys.length] = rJ;
+                graph.addEdge(rI, rJ);
             }
         }
     }
 
-    const graph = IntAdjacencyGraph.fromVertexPairs(rings.length, xs, ys);
-    const components = IntAdjacencyGraph.connectedComponents(graph);
+    const components = IntAdjacencyGraph.connectedComponents(graph.getGraph());
 
     const ringComponentIndex = components.componentIndex as any as RingComponentIndex[];
     const ringComponents: RingIndex[][] = [];

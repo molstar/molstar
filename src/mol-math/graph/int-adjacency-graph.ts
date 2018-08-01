@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { arrayPickIndices } from 'mol-data/util';
+import { arrayPickIndices, cantorPairing } from 'mol-data/util';
 import { LinkedIndex } from 'mol-data/int';
 
 /**
@@ -157,6 +157,35 @@ export namespace IntAdjacencyGraph {
             this.slotCount = offset;
             this.a = new Int32Array(offset);
             this.b = new Int32Array(offset);
+        }
+    }
+
+    export class UniqueEdgeBuilder {
+        private xs: number[] = [];
+        private ys: number[] = [];
+        private included = new Set<number>();
+
+        addEdge(i: number, j: number) {
+            let u = i, v = j;
+            if (i > j) { u = j; v = i; }
+            const id = cantorPairing(u, v);
+            if (this.included.has(id)) return false;
+            this.included.add(id);
+            this.xs[this.xs.length] = u;
+            this.ys[this.ys.length] = v;
+            return true;
+        }
+
+        getGraph(): IntAdjacencyGraph {
+            return fromVertexPairs(this.vertexCount, this.xs, this.ys);
+        }
+
+        // if we cant to add custom props as well
+        getEdgeBuiler() {
+            return new EdgeBuilder(this.vertexCount, this.xs, this.ys);
+        }
+
+        constructor(public vertexCount: number) {
         }
     }
 
