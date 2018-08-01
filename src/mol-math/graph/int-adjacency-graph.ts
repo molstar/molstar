@@ -286,10 +286,10 @@ export namespace IntAdjacencyGraph {
      * Check if any vertex in `verticesA` is connected to any vertex in `verticesB`
      * via at most `maxDistance` edges.
      *
-     * Returns true if A and B are intersecting.
+     * Returns true if verticesA and verticesB are intersecting.
      */
     export function areVertexSetsConnected(graph: IntAdjacencyGraph, verticesA: SortedArray<number>, verticesB: SortedArray<number>, maxDistance: number): boolean {
-        // check if A and B are intersecting, this handles maxDepth = 0
+        // check if A and B are intersecting, this handles maxDistance = 0
         if (SortedArray.areIntersecting(verticesA, verticesB)) return true;
         if (maxDistance < 1) return false;
 
