@@ -28,6 +28,10 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 
 const t = Mat4.identity()
+const sVec = Vec3.zero()
+const n0 = Vec3.zero()
+const n1 = Vec3.zero()
+const upVec = Vec3.zero()
 
 async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
@@ -51,23 +55,27 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
         const tension = (isNucleic || isSheet) ? 0.5 : 0.9
 
-        // console.log('ELEMENT', i)
         interpolateCurveSegment(state, v, tension)
 
         if ((isSheet && !v.secStrucChange) || !isSheet) {
-            const upVec = Vec3.zero()
+
             let width = 0.5, height = 1.2, depth = 0.6
             if (isNucleic) {
-                Vec3.fromArray(upVec, binormalVectors, Math.round(linearSegments / 2) * 3)
+                Vec3.fromArray(n0, binormalVectors, 0)
+                Vec3.fromArray(n1, binormalVectors, 3)
+                Vec3.normalize(upVec, Vec3.add(upVec, n0, n1))
                 depth = 0.9
             } else {
-                Vec3.fromArray(upVec, normalVectors, Math.round(linearSegments / 2) * 3)
+                Vec3.fromArray(n0, normalVectors, 0)
+                Vec3.fromArray(n1, normalVectors, 3)
+                Vec3.normalize(upVec, Vec3.add(upVec, n0, n1))
             }
 
             Mat4.targetTo(t, v.p3, v.p1, upVec)
-            Mat4.mul(t, t, Mat4.rotXY90)
+            Mat4.mul(t, t, Mat4.rotY90)
+            Mat4.scale(t, t, Vec3.set(sVec, height, width, depth))
             Mat4.setTranslation(t, v.p2)
-            builder.addWedge(t, { width, height, depth })
+            builder.addWedge(t)
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

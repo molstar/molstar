@@ -489,6 +489,26 @@ namespace Mat4 {
         return out;
     }
 
+    export function scaleUniformly(out: Mat4, a: Mat4, scale: number) {
+        out[0] = a[0] * scale;
+        out[1] = a[1] * scale;
+        out[2] = a[2] * scale;
+        out[3] = a[3] * scale;
+        out[4] = a[4] * scale;
+        out[5] = a[5] * scale;
+        out[6] = a[6] * scale;
+        out[7] = a[7] * scale;
+        out[8] = a[8] * scale;
+        out[9] = a[9] * scale;
+        out[10] = a[10] * scale;
+        out[11] = a[11] * scale;
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+        return out;
+    }
+
     export function fromScaling(out: Mat4, v: Vec3) {
         out[0] = v[0];
         out[1] = 0;
@@ -501,6 +521,26 @@ namespace Mat4 {
         out[8] = 0;
         out[9] = 0;
         out[10] = v[2];
+        out[11] = 0;
+        out[12] = 0;
+        out[13] = 0;
+        out[14] = 0;
+        out[15] = 1;
+        return out;
+    }
+
+    export function fromUniformScaling(out: Mat4, scale: number) {
+        out[0] = scale;
+        out[1] = 0;
+        out[2] = 0;
+        out[3] = 0;
+        out[4] = 0;
+        out[5] = scale;
+        out[6] = 0;
+        out[7] = 0;
+        out[8] = 0;
+        out[9] = 0;
+        out[10] = scale;
         out[11] = 0;
         out[12] = 0;
         out[13] = 0;

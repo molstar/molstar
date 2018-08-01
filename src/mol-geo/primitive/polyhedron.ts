@@ -29,7 +29,6 @@ export function Polyhedron(_vertices: ArrayLike<number>, _indices: ArrayLike<num
 
     const normals = new Float32Array(vertices.length);
     computeIndexedVertexNormals(vertices, indices, normals)
-    // this.normalizeNormals(); // smooth normals
 
     return {
         vertices: new Float32Array(vertices),

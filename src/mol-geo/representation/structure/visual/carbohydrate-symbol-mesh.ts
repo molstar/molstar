@@ -24,16 +24,16 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../../util/color-data';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 
+const t = Mat4.identity()
+const sVec = Vec3.zero()
+const p = Vec3.zero()
+const pd = Vec3.zero()
+const p1 = Vec3.zero()
+const p2 = Vec3.zero()
+
 async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
-    const t = Mat4.identity()
-    const sMat = Mat4.identity()
-    const sVec = Vec3.zero()
-    const p = Vec3.zero()
-    const pd = Vec3.zero()
-    const p1 = Vec3.zero()
-    const p2 = Vec3.zero()
     const carbohydrates = structure.carbohydrates
 
     function centerAlign(center: Vec3, normal: Vec3, direction: Vec3) {
@@ -44,7 +44,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
     const side = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
     const radius = 1.75
-    const coneParams = { radiusTop: 0.0, radiusBottom: radius, bottomCap: true }
+    const coneParams = { radiusTop: radius, radiusBottom: 0.0, topCap: true }
 
     const linkParams = { radiusTop: 0.4, radiusBottom: 0.4 }
 
@@ -54,61 +54,74 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
         const cGeo = c.geometry!
         const shapeType = getSaccharideShape(c.component.type)
+
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
                 builder.addSphere(cGeo.center, radius, 2)
                 break;
             case SaccharideShapes.FilledCube:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                builder.addBox(t, { width: side, height: side, depth: side })
-                builder.addOctahedron(t)
+                Mat4.scaleUniformly(t, t, side)
+                builder.addBox(t)
                 break;
             case SaccharideShapes.CrossedCube:
                 // TODO split
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                builder.addBox(t, { width: side, height: side, depth: side })
+                Mat4.scaleUniformly(t, t, side)
+                builder.addBox(t)
                 break;
             case SaccharideShapes.FilledCone:
-                Vec3.scaleAndAdd(p1, cGeo.center, cGeo.direction, radius)
-                Vec3.scaleAndSub(p2, cGeo.center, cGeo.direction, radius)
+                Vec3.scaleAndSub(p1, cGeo.center, cGeo.direction, radius)
+                Vec3.scaleAndAdd(p2, cGeo.center, cGeo.direction, radius)
                 builder.addCylinder(p1, p2, 1, coneParams)
                 break
             case SaccharideShapes.DevidedCone:
                 // TODO split
-                Vec3.scaleAndAdd(p1, cGeo.center, cGeo.direction, radius)
-                Vec3.scaleAndSub(p2, cGeo.center, cGeo.direction, radius)
+                Vec3.scaleAndSub(p1, cGeo.center, cGeo.direction, radius)
+                Vec3.scaleAndAdd(p2, cGeo.center, cGeo.direction, radius)
                 builder.addCylinder(p1, p2, 1, coneParams)
                 break
             case SaccharideShapes.FlatBox:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                builder.addBox(t, { width: side, height: side / 2, depth: side })
+                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
+                builder.addBox(t)
                 break
             case SaccharideShapes.FilledStar:
-                centerAlign(cGeo.center, cGeo.direction, cGeo.normal)
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
+                Mat4.mul(t, t, Mat4.rotY90)
                 builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
                 break
             case SaccharideShapes.FilledDiamond:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.fromScaling(sMat, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                Mat4.mul(t, t, sMat)
+                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 builder.addOctahedron(t)
                 break
             case SaccharideShapes.DividedDiamond:
                 // TODO split
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                Mat4.fromScaling(sMat, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                Mat4.mul(t, t, sMat)
+                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 builder.addOctahedron(t)
                 break
             case SaccharideShapes.FlatDiamond:
+                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
+                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.scale(t, t, Vec3.set(sVec, side, side / 2, side / 2))
+                builder.addDiamondPrism(t)
             case SaccharideShapes.Pentagon:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                builder.addBox(t, { width: side, height: side, depth: 0.5 })
+                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
+                builder.addPentagonalPrism(t)
                 break
             case SaccharideShapes.FlatHexagon:
             default:
                 centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
-                builder.addBox(t, { width: side, height: side, depth: 0.1 })
+                Mat4.mul(t, t, Mat4.rotY90)
+                Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
+                builder.addHexagonalPrism(t)
                 break
         }
     }

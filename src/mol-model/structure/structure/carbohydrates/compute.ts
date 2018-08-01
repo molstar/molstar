@@ -206,7 +206,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const elementIndexB = elementsWithRingMap.get(elementKey(getResidueIndex(indexB, unitB), unitB.id))
 
                     if (elementIndexA !== undefined && elementIndexB !== undefined) {
-                        if (getAtomId(unitA, indexA).startsWith('C1')) {
+                        const atomIdA = getAtomId(unitA, indexA)
+                        if (atomIdA.startsWith('O1') || atomIdA.startsWith('C1')) {
                             fixLinkDirection(elementIndexA, elementIndexB)
                         }
                         links.push({
@@ -214,7 +215,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                             carbohydrateIndexB: elementIndexB
                         })
                     } else if (elementIndexA !== undefined) {
-                        if (getAtomId(unitA, indexA).startsWith('C1')) {
+                        const atomIdA = getAtomId(unitA, indexA)
+                        if (atomIdA.startsWith('O1') || atomIdA.startsWith('C1')) {
                             fixTerminalLinkDirection(elementIndexA, indexB, unitB)
                         }
                         terminalLinks.push({

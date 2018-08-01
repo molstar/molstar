@@ -8,9 +8,7 @@ import { ValueCell } from 'mol-util/value-cell'
 import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
 
-import { Box, BoxProps } from '../primitive/box';
 import { Plane, PlaneProps } from '../primitive/plane';
-import { Wedge, WedgeProps } from '../primitive/wedge';
 import { Cylinder, CylinderProps } from '../primitive/cylinder';
 import { Sphere, SphereProps } from '../primitive/sphere';
 import { Mesh } from './mesh';
@@ -20,6 +18,7 @@ import { addTube } from '../primitive/tube';
 import { StarProps, Star } from '../primitive/star';
 import { Octahedron } from '../primitive/octahedron';
 import { Primitive } from '../primitive/primitive';
+import { Wedge, Box, DiamondPrism, PentagonalPrism, HexagonalPrism } from '../primitive/prism';
 
 export interface MeshBuilderState {
     vertices: ChunkedArray<number, 3>
@@ -29,9 +28,12 @@ export interface MeshBuilderState {
 
 export interface MeshBuilder {
     add(t: Mat4, _vertices: ArrayLike<number>, _normals: ArrayLike<number>, _indices?: ArrayLike<number>): void
-    addBox(t: Mat4, props?: BoxProps): void
+    addBox(t: Mat4): void
     addPlane(t: Mat4, props?: PlaneProps): void
-    addWedge(t: Mat4, props?: WedgeProps): void
+    addWedge(t: Mat4): void
+    addDiamondPrism(t: Mat4): void
+    addPentagonalPrism(t: Mat4): void
+    addHexagonalPrism(t: Mat4): void
     addStar(t: Mat4, props?: StarProps): void
     addOctahedron(t: Mat4): void
     addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
@@ -132,16 +134,28 @@ export namespace MeshBuilder {
 
         return {
             add,
-            addBox: (t: Mat4, props?: BoxProps) => {
-                const { vertices, normals, indices } = Box(props)
+            addBox: (t: Mat4) => {
+                const { vertices, normals, indices } = Box()
                 add(t, vertices, normals, indices)
             },
             addPlane: (t: Mat4, props?: PlaneProps) => {
                 const { vertices, normals, indices } = Plane(props)
                 add(t, vertices, normals, indices)
             },
-            addWedge: (t: Mat4, props?: WedgeProps) => {
-                const { vertices, normals, indices } = Wedge(props)
+            addWedge: (t: Mat4) => {
+                const { vertices, normals, indices } = Wedge()
+                add(t, vertices, normals, indices)
+            },
+            addDiamondPrism: (t: Mat4) => {
+                const { vertices, normals, indices } = DiamondPrism()
+                add(t, vertices, normals, indices)
+            },
+            addPentagonalPrism: (t: Mat4) => {
+                const { vertices, normals, indices } = PentagonalPrism()
+                add(t, vertices, normals, indices)
+            },
+            addHexagonalPrism: (t: Mat4) => {
+                const { vertices, normals, indices } = HexagonalPrism()
                 add(t, vertices, normals, indices)
             },
             addStar: (t: Mat4, props?: StarProps) => {
