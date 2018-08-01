@@ -4,13 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Unit from '../../unit';
-import { IntraUnitLinks } from '../links/data';
-import { Segmentation } from 'mol-data/int';
+import { Segmentation, SortedArray } from 'mol-data/int';
+import { IntAdjacencyGraph } from 'mol-math/graph';
 import { LinkType } from '../../../model/types';
 import { StructureElement } from '../../../structure';
+import Unit from '../../unit';
+import { IntraUnitLinks } from '../links/data';
+import { sortArray } from 'mol-data/util';
 
-export default function computeRings(unit: Unit.Atomic) {
+export function computeRings(unit: Unit.Atomic) {
     const size = largestResidue(unit);
     const state = State(unit, size);
 
@@ -41,7 +43,7 @@ interface State {
 
     currentColor: number,
 
-    rings: StructureElement.UnitIndex[][],
+    rings: SortedArray<StructureElement.UnitIndex>[],
     bonds: IntraUnitLinks,
     unit: Unit.Atomic
 }
@@ -145,7 +147,8 @@ function addRing(state: State, a: number, b: number) {
     for (let t = 0; t < leftOffset; t++) ring[ringOffset++] = state.startVertex + left[t];
     for (let t = rightOffset - 1; t >= 0; t--) ring[ringOffset++] = state.startVertex + right[t];
 
-    state.rings.push(ring as any as StructureElement.UnitIndex[]);
+    sortArray(ring);
+    state.rings.push(SortedArray.ofSortedArray(ring));
 }
 
 function findRings(state: State, from: number) {
@@ -176,4 +179,118 @@ function findRings(state: State, from: number) {
             pred[other] = top;
         }
     }
+}
+
+export function getFingerprint(elements: string[]) {
+    const len = elements.length;
+    const reversed: string[] = new Array(len);
+
+    for (let i = 0; i < len; i++) reversed[i] = elements[len - i - 1];
+
+    const rotNormal = getMinimalRotation(elements);
+    const rotReversed = getMinimalRotation(reversed);
+
+    let isNormalSmaller = false;
+
+    for (let i = 0; i < len; i++) {
+        const u = elements[(i + rotNormal) % len], v = reversed[(i + rotReversed) % len];
+        if (u !== v) {
+            isNormalSmaller = u < v;
+            break;
+        }
+    }
+
+    if (isNormalSmaller) return buildFinderprint(elements, rotNormal);
+    return buildFinderprint(reversed, rotReversed);
+}
+
+function getMinimalRotation(elements: string[]) {
+    // adapted from http://en.wikipedia.org/wiki/Lexicographically_minimal_string_rotation
+
+    const len = elements.length;
+    const f = new Int32Array(len * 2);
+    for (let i = 0; i < f.length; i++) f[i] = -1;
+
+    let u = '', v = '', k = 0;
+
+    for (let j = 1; j < f.length; j++) {
+        let i = f[j - k - 1];
+        while (i !== -1) {
+            u = elements[j % len]; v = elements[(k + i + 1) % len];
+            if (u === v) break;
+            if (u < v) k = j - i - 1;
+            i = f[i];
+        }
+
+        if (i === -1) {
+            u = elements[j % len]; v = elements[(k + i + 1) % len];
+            if (u !== v) {
+                if (u < v) k = j;
+                f[j - k] = -1;
+            } else f[j - k] = i + 1;
+        } else f[j - k] = i + 1;
+    }
+
+    return k;
+}
+
+function buildFinderprint(elements: string[], offset: number) {
+    const len = elements.length;
+    const ret: string[] = [];
+    let i;
+    for (i = 0; i < len - 1; i++) {
+        ret.push(elements[(i + offset) % len]);
+        ret.push('-');
+    }
+    ret.push(elements[(i + offset) % len]);
+    return ret.join('');
+}
+
+type RingIndex = import('../rings').UnitRings.Index
+type RingComponentIndex = import('../rings').UnitRings.ComponentIndex
+
+export function createIndex(rings: ArrayLike<SortedArray<StructureElement.UnitIndex>>) {
+    const elementRingIndices: Map<StructureElement.UnitIndex, RingIndex[]> = new Map();
+
+    // for each ring atom, assign all rings that it is present in
+    for (let rI = 0 as RingIndex, _rI = rings.length; rI < _rI; rI++) {
+        const r = rings[rI];
+        for (let i = 0, _i = r.length; i < _i; i++) {
+            const e = r[i];
+            if (elementRingIndices.has(e)) elementRingIndices.get(e)!.push(rI);
+            else elementRingIndices.set(e, [rI]);
+        }
+    }
+
+    // create a graph where vertices are rings, edge if two rings share at least one atom
+    const graph = new IntAdjacencyGraph.UniqueEdgeBuilder(rings.length);
+    for (let rI = 0 as RingIndex, _rI = rings.length; rI < _rI; rI++) {
+        const r = rings[rI];
+
+        for (let i = 0, _i = r.length; i < _i; i++) {
+            const e = r[i];
+
+            const containedRings = elementRingIndices.get(e)!;
+
+            if (containedRings.length === 1) continue;
+
+            for (let j = 0, _j = containedRings.length; j < _j; j++) {
+                const rJ = containedRings[j];
+                if (rI >= rJ) continue;
+                graph.addEdge(rI, rJ);
+            }
+        }
+    }
+
+    const components = IntAdjacencyGraph.connectedComponents(graph.getGraph());
+
+    const ringComponentIndex = components.componentIndex as any as RingComponentIndex[];
+    const ringComponents: RingIndex[][] = [];
+    for (let i = 0; i < components.componentCount; i++) ringComponents[i] = [];
+
+    for (let rI = 0 as RingIndex, _rI = rings.length; rI < _rI; rI++) {
+        ringComponents[ringComponentIndex[rI]].push(rI);
+    }
+
+    return { elementRingIndices, ringComponentIndex, ringComponents };
 }

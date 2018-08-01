@@ -9,11 +9,10 @@ import * as argparse from 'argparse'
 require('util.promisify').shim();
 
 import { CifFrame } from 'mol-io/reader/cif'
-import { Model, Structure, StructureElement, Unit, Format, StructureProperties } from 'mol-model/structure'
+import { Model, Structure, StructureElement, Unit, Format, StructureProperties, UnitRing } from 'mol-model/structure'
 // import { Run, Progress } from 'mol-task'
 import { OrderedSet } from 'mol-data/int';
 import { openCif, downloadCif } from './helpers';
-import { UnitRings } from 'mol-model/structure/structure/unit/rings';
 import { Vec3 } from 'mol-math/linear-algebra';
 
 
@@ -136,7 +135,7 @@ export function printRings(structure: Structure) {
         const { all, byFingerprint } = unit.rings;
         const fps: string[] = [];
         for (let i = 0, _i = Math.min(5, all.length); i < _i; i++) {
-            fps[fps.length] = UnitRings.getRingFingerprint(unit, all[i]);
+            fps[fps.length] = UnitRing.fingerprint(unit, all[i]);
         }
         if (all.length > 5) fps.push('...')
         console.log(`Unit ${unit.id}, ${all.length} ring(s), ${byFingerprint.size} different fingerprint(s).\n  ${fps.join(', ')}`);

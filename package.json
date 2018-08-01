@@ -15,6 +15,7 @@
     "build": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html}\" build/node_modules/ && tsc",
     "watch": "tsc -watch",
     "watch-extra": "cpx \"src/**/*.{vert,frag,glsl,scss,woff,woff2,ttf,otf,eot,svg,html}\" build/node_modules/ --watch",
+    "watch-all-win": "start cmd /K npm run watch & start cmd /K npm run watch-extra & start cmd /K npm run watch-viewer & start http-server -p 1338",
     "test": "jest",
     "build-viewer": "webpack build/node_modules/apps/viewer/index.js --mode development -o build/viewer/index.js",
     "watch-viewer": "webpack build/node_modules/apps/viewer/index.js -w --mode development -o build/viewer/index.js",

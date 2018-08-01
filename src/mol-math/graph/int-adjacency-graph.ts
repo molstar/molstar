@@ -5,7 +5,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { arrayPickIndices } from 'mol-data/util';
+import { arrayPickIndices, cantorPairing } from 'mol-data/util';
+import { LinkedIndex, SortedArray } from 'mol-data/int';
 
 /**
  * Represent a graph using vertex adjacency list.
@@ -126,6 +127,13 @@ export namespace IntAdjacencyGraph {
             this.curB = ob;
         }
 
+        /** Builds property-less graph */
+        addAllEdges() {
+            for (let i = 0; i < this.edgeCount; i++) {
+                this.addNextEdge();
+            }
+        }
+
         assignProperty<T>(prop: { [i: number]: T }, value: T) {
             prop[this.curA] = value;
             prop[this.curB] = value;
@@ -150,6 +158,41 @@ export namespace IntAdjacencyGraph {
             this.a = new Int32Array(offset);
             this.b = new Int32Array(offset);
         }
+    }
+
+    export class UniqueEdgeBuilder {
+        private xs: number[] = [];
+        private ys: number[] = [];
+        private included = new Set<number>();
+
+        addEdge(i: number, j: number) {
+            let u = i, v = j;
+            if (i > j) { u = j; v = i; }
+            const id = cantorPairing(u, v);
+            if (this.included.has(id)) return false;
+            this.included.add(id);
+            this.xs[this.xs.length] = u;
+            this.ys[this.ys.length] = v;
+            return true;
+        }
+
+        getGraph(): IntAdjacencyGraph {
+            return fromVertexPairs(this.vertexCount, this.xs, this.ys);
+        }
+
+        // if we cant to add custom props as well
+        getEdgeBuiler() {
+            return new EdgeBuilder(this.vertexCount, this.xs, this.ys);
+        }
+
+        constructor(public vertexCount: number) {
+        }
+    }
+
+    export function fromVertexPairs(vertexCount: number, xs: number[], ys: number[]) {
+        const graphBuilder = new IntAdjacencyGraph.EdgeBuilder(vertexCount, xs, ys);
+        graphBuilder.addAllEdges();
+        return graphBuilder.createGraph();
     }
 
     export function induceByVertices<P extends IntAdjacencyGraph.EdgePropsBase>(graph: IntAdjacencyGraph<P>, vertexIndices: ArrayLike<number>): IntAdjacencyGraph<P> {
@@ -192,22 +235,89 @@ export namespace IntAdjacencyGraph {
 
         return create(newOffsets, newA, newB, newEdgeCount, newEdgeProps);
     }
+
+    export function connectedComponents(graph: IntAdjacencyGraph): { componentCount: number, componentIndex: Int32Array } {
+        const vCount = graph.vertexCount;
+
+        if (vCount === 0) return { componentCount: 0, componentIndex: new Int32Array(0) };
+        if (graph.edgeCount === 0) {
+            const componentIndex = new Int32Array(vCount);
+            for (let i = 0, _i = vCount; i < _i; i++) {
+                componentIndex[i] = i;
+            }
+            return { componentCount: vCount, componentIndex };
+        }
+
+        const componentIndex = new Int32Array(vCount);
+        for (let i = 0, _i = vCount; i < _i; i++) componentIndex[i] = -1;
+        let currentComponent = 0;
+        componentIndex[0] = currentComponent;
+
+        const { offset, b: neighbor } = graph;
+        const stack = [0];
+        const list = LinkedIndex(vCount);
+        list.remove(0);
+
+        while (stack.length > 0) {
+            const v = stack.pop()!;
+            const cIdx = componentIndex[v];
+
+            for (let eI = offset[v], _eI = offset[v + 1]; eI < _eI; eI++) {
+                const n = neighbor[eI];
+                if (!list.has(n)) continue;
+                list.remove(n);
+                stack.push(n);
+                componentIndex[n] = cIdx;
+            }
+
+            // check if we visited all vertices.
+            // If not, create a new component and continue.
+            if (stack.length === 0 && list.head >= 0) {
+                stack.push(list.head);
+                componentIndex[list.head] = ++currentComponent;
+                list.remove(list.head);
+            }
+        }
+
+        return { componentCount: vCount, componentIndex };
+    }
+
+    /**
+     * Check if any vertex in `verticesA` is connected to any vertex in `verticesB`
+     * via at most `maxDistance` edges.
+     *
+     * Returns true if A and B are intersecting.
+     */
+    export function areVertexSetsConnected(graph: IntAdjacencyGraph, verticesA: SortedArray<number>, verticesB: SortedArray<number>, maxDistance: number): boolean {
+        // check if A and B are intersecting, this handles maxDepth = 0
+        if (SortedArray.areIntersecting(verticesA, verticesB)) return true;
+        if (maxDistance < 1) return false;
+
+        const visited = new Set<number>();
+        for (let i = 0, il = verticesA.length; i < il; ++i) {
+            visited.add(verticesA[i]);
+        }
+
+        return areVertexSetsConnectedImpl(graph, verticesA, verticesB, maxDistance, visited);
+    }
 }
 
-/**
- * Check if any vertex in `verticesA` is connected to any vertex in `verticesB`
- * via `depth` hops or intermediate vertices
- */
-export function areConnected(verticesA: ReadonlyArray<number>, verticesB: ReadonlyArray<number>, graph: IntAdjacencyGraph, depth: number): boolean {
-    const { b, offset } = graph
-    const linkedVectices: number[] = []
-    for (let i = 0, il = verticesA.length; i < il; ++i) {
-        const vi = verticesA[i]
-        for (let j = offset[vi], jl = offset[vi + 1]; j < jl; ++j) {
-            const li = b[j]
-            if (verticesB.includes(li)) return true
-            if (!verticesA.includes(li)) linkedVectices.push(li)
+function areVertexSetsConnectedImpl(graph: IntAdjacencyGraph, frontier: ArrayLike<number>, target: SortedArray<number>, distance: number, visited: Set<number>): boolean {
+    const { b: neighbor, offset } = graph;
+    const newFrontier: number[] = [];
+
+    for (let i = 0, il = frontier.length; i < il; ++i) {
+        const src = frontier[i];
+
+        for (let j = offset[src], jl = offset[src + 1]; j < jl; ++j) {
+            const other = neighbor[j];
+            if (visited.has(other)) continue;
+            if (SortedArray.has(target, other)) return true;
+
+            visited.add(other);
+            newFrontier[newFrontier.length] = other;
         }
     }
-    return depth > 0 ? areConnected(linkedVectices, verticesB, graph, depth - 1) : false
+
+    return distance > 1 ? areVertexSetsConnectedImpl(graph, newFrontier, target, distance - 1, visited) : false;
 }

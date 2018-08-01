@@ -8,6 +8,7 @@
 import { LinkType } from '../../../model/types'
 import { IntAdjacencyGraph } from 'mol-math/graph';
 import Unit from '../../unit';
+import StructureElement from '../../element';
 
 type IntraUnitLinks = IntAdjacencyGraph<{ readonly order: ArrayLike<number>, readonly flags: ArrayLike<LinkType.Flag> }>
 
@@ -76,14 +77,14 @@ namespace InterUnitBonds {
         }
 
         constructor(public unitA: Unit.Atomic, public unitB: Unit.Atomic,
-            public bondCount: number, public linkedElementIndices: ReadonlyArray<number>,
+            public bondCount: number, public linkedElementIndices: ReadonlyArray<StructureElement.UnitIndex>,
             private linkMap: Map<number, BondInfo[]>) {
         }
     }
 
     export interface BondInfo {
         /** indexInto */
-        readonly indexB: number,
+        readonly indexB: StructureElement.UnitIndex,
         readonly order: number,
         readonly flag: LinkType.Flag
     }

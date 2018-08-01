@@ -60,3 +60,11 @@ export function hashString(s: string) {
 export function cantorPairing(a: number, b: number) {
     return (a + b) * (a + b + 1) / 2 + b;
 }
+
+/**
+ * A unique number for each sorted pair of integers
+ * Biggest representable pair is (67108863, 67108863) (limit imposed by Number.MAX_SAFE_INTEGER)
+ */
+export function sortedCantorPairing(a: number, b: number) {
+    return a < b ? cantorPairing(a, b) : cantorPairing(b, a);
+}

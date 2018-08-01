@@ -6,7 +6,7 @@
 
 import { Segmentation } from 'mol-data/int';
 import { combinations } from 'mol-data/util/combination';
-import { areConnected } from 'mol-math/graph';
+import { IntAdjacencyGraph } from 'mol-math/graph';
 import { Vec3 } from 'mol-math/linear-algebra';
 import PrincipalAxes from 'mol-math/linear-algebra/matrix/principal-axes';
 import { fillSerial } from 'mol-util/array';
@@ -18,43 +18,12 @@ import Structure from '../structure';
 import Unit from '../unit';
 import { SaccharideNameMap, UnknownSaccharideComponent } from './constants';
 import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink } from './data';
+import { UnitRings, UnitRing } from '../unit/rings';
 
-function getResidueIndex(elementIndex: number, unit: Unit.Atomic) {
-    return unit.model.atomicHierarchy.residueAtomSegments.index[unit.elements[elementIndex]]
-}
+const C = ElementSymbol('C'), O = ElementSymbol('O');
+const SugarRingFps = [UnitRing.elementFingerprint([C, C, C, C, C, O]), UnitRing.elementFingerprint([C, C, C, C, O])]
 
-function sugarResidueIdx(unit: Unit.Atomic, ring: ArrayLike<StructureElement.UnitIndex>): ResidueIndex {
-    const { elements } = unit;
-    const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index;
-    const idx = residueIndex[elements[ring[0]]];
-    for (let rI = 1, _rI = ring.length; rI < _rI; rI++) {
-        if (idx !== residueIndex[elements[ring[rI]]]) return -1 as ResidueIndex;
-    }
-    return idx;
-}
-
-function addSugarRings(unit: Unit.Atomic, fp: string, sugarResidues: Map<ResidueIndex, number[]>) {
-    const rings = unit.rings;
-    const byFp = rings.byFingerprint.get(fp);
-    if (!byFp) return;
-    for (const r of byFp) {
-        const idx = sugarResidueIdx(unit, rings.all[r]);
-        if (idx >= 0) {
-            if (sugarResidues.has(idx)) sugarResidues.get(idx)!.push(r);
-            else sugarResidues.set(idx, [r]);
-        }
-    }
-}
-
-function getSugarRingIndices(unit: Unit.Atomic) {
-    const sugarResidues = new Map<ResidueIndex, number[]>();
-    addSugarRings(unit, 'C-C-C-C-C-O', sugarResidues);
-    addSugarRings(unit, 'C-C-C-C-O', sugarResidues);
-    return sugarResidues;
-}
-
-const C = ElementSymbol('C')
-function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ReadonlyArray<StructureElement.UnitIndex>, center: Vec3) {
+function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ArrayLike<StructureElement.UnitIndex>, center: Vec3) {
     let indexC1 = -1, indexC1X = -1, indexC = -1
     const { elements } = unit
     const { position } = unit.conformation
@@ -73,8 +42,8 @@ function getDirection(direction: Vec3, unit: Unit.Atomic, indices: ReadonlyArray
     }
     const index = indexC1 !== -1 ? indexC1
         : indexC1X !== -1 ? indexC1X
-        : indexC !== -1 ? indexC
-        : elements[indices[0]]
+            : indexC !== -1 ? indexC
+                : elements[indices[0]]
     Vec3.normalize(direction, Vec3.sub(direction, center, position(index, direction)))
     return direction
 }
@@ -84,6 +53,7 @@ function getAtomId(unit: Unit.Atomic, index: number) {
     const { label_atom_id } = unit.model.atomicHierarchy.atoms
     return label_atom_id.value(elements[index])
 }
+
 
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
     const links: CarbohydrateLink[] = []
@@ -120,7 +90,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         const chainIt = Segmentation.transientSegments(chainAtomSegments, unit.elements)
         const residueIt = Segmentation.transientSegments(residueAtomSegments, unit.elements)
 
-        let sugarResidueMap: Map<ResidueIndex, number[]> | undefined = void 0;
+        let sugarResidueMap: Map<ResidueIndex, UnitRings.Index[]> | undefined = void 0;
 
         while (chainIt.hasNext) {
             residueIt.setSegment(chainIt.move());
@@ -134,7 +104,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 }
 
                 if (!sugarResidueMap) {
-                    sugarResidueMap = getSugarRingIndices(unit);
+                    sugarResidueMap = UnitRings.byFingerprintAndResidue(unit.rings, SugarRingFps);
                 }
 
                 const sugarRings = sugarResidueMap.get(residueIndex);
@@ -163,19 +133,19 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     ringElements.push(elementIndex)
                     elementsWithRingMap.set(elementKey(residueIndex, unit.id), elementIndex)
                     elements.push({
-                        geometry: { center, normal, direction, },
+                        geometry: { center, normal, direction },
                         hasRing: true,
                         unit, residueIndex, component: saccharideComp
                     })
                 }
 
                 // add carbohydrate links induced by intra-residue bonds
-                const ringCombinations = combinations(fillSerial(new Array(sugarRings.length)), 2)
+                const ringCombinations = combinations(fillSerial(new Array(sugarRings.length) as number[]), 2)
                 for (let j = 0, jl = ringCombinations.length; j < jl; ++j) {
                     const rc = ringCombinations[j];
                     const r0 = rings.all[sugarRings[rc[0]]], r1 = rings.all[sugarRings[rc[1]]];
-                    if (areConnected(r0, r1, unit.links, 2)) {
-                        // fix both directions as it is unlcear where the C1 atom is
+                    if (IntAdjacencyGraph.areVertexSetsConnected(unit.links, r0, r1, 2)) {
+                        // fix both directions as it is unclear where the C1 atom is
                         fixLinkDirection(ringElements[rc[0]], ringElements[rc[1]])
                         fixLinkDirection(ringElements[rc[1]], ringElements[rc[0]])
                         links.push({
@@ -202,8 +172,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 pairBonds.getBonds(indexA).forEach(bondInfo => {
                     const { unitA, unitB } = pairBonds
                     const indexB = bondInfo.indexB
-                    const elementIndexA = elementsWithRingMap.get(elementKey(getResidueIndex(indexA, unitA), unitA.id))
-                    const elementIndexB = elementsWithRingMap.get(elementKey(getResidueIndex(indexB, unitB), unitB.id))
+                    const elementIndexA = elementsWithRingMap.get(elementKey(unitA.getResidueIndex(indexA), unitA.id))
+                    const elementIndexB = elementsWithRingMap.get(elementKey(unitB.getResidueIndex(indexB), unitB.id))
 
                     if (elementIndexA !== undefined && elementIndexB !== undefined) {
                         const atomIdA = getAtomId(unitA, indexA)
