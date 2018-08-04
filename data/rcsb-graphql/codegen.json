@@ -1,0 +1,8 @@
+{
+    "flattenTypes": false,
+    "generatorConfig": {
+        "printTime": true,
+        "immutableTypes": true,
+        "resolvers": false
+    }
+}
