@@ -12,4 +12,4 @@ export interface StructureSizeDataProps {
     vertexMap: VertexMap
 }
 
-export { elementSizeData } from './element'
+export { physicalSizeData } from './physical'

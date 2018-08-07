@@ -6,13 +6,13 @@
 
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { arrayFind } from 'mol-data/util'
-import { Query } from '../../query'
+import { StructureQuery } from '../../query'
 import { Model } from '../../model'
 import { Spacegroup } from 'mol-math/geometry';
 
 /** Determine an atom set and a list of operators that should be applied to that set  */
 export interface OperatorGroup {
-    readonly selector: Query,
+    readonly selector: StructureQuery,
     readonly operators: ReadonlyArray<SymmetryOperator>
 }
 
@@ -44,7 +44,11 @@ export namespace Assembly {
 interface ModelSymmetry {
     readonly assemblies: ReadonlyArray<Assembly>,
     readonly spacegroup: Spacegroup,
-    readonly isNonStandardCrytalFrame: boolean
+    readonly isNonStandardCrytalFrame: boolean,
+    readonly ncsOperators?: ReadonlyArray<SymmetryOperator>,
+
+    // optionally cached operators from [-3, -3, -3] to [3, 3, 3]
+    _operators_333?: SymmetryOperator[]
 }
 
 namespace ModelSymmetry {

@@ -5,8 +5,9 @@
  */
 
 import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
+import { EntityIndex } from '../indexing';
 
 export interface Entities {
     data: mmCIF['entity'],
-    getEntityIndex(id: string): number
+    getEntityIndex(id: string): EntityIndex
 }

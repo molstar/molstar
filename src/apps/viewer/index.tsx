@@ -22,6 +22,10 @@ import { EntityTree } from 'mol-app/ui/entity/tree';
 import { EntityTreeController } from 'mol-app/controller/entity/tree';
 import { TransformListController } from 'mol-app/controller/transform/list';
 import { TransformList } from 'mol-app/ui/transform/list';
+import { SequenceView } from 'mol-app/ui/visualization/sequence-view';
+import { InteractivityEvents } from 'mol-app/event/basic';
+import { MarkerAction } from 'mol-geo/util/marker-data';
+import { EveryLoci } from 'mol-model/loci';
 
 const elm = document.getElementById('app')
 if (!elm) throw new Error('Can not find element with id "app".')
@@ -42,6 +46,14 @@ targets[LayoutRegion.Bottom].components.push({
     controller: new LogController(ctx),
     region: LayoutRegion.Bottom,
     view: Log,
+    isStatic: true
+});
+
+targets[LayoutRegion.Top].components.push({
+    key: 'molstar-sequence-view',
+    controller: ctx.components.sequenceView,
+    region: LayoutRegion.Top,
+    view: SequenceView,
     isStatic: true
 });
 
@@ -84,5 +96,18 @@ ctx.layout.setState({
     collapsedControlsLayout: 0
 })
 // ctx.viewport.setState()
+
+ctx.dispatcher.getStream(InteractivityEvents.HighlightLoci).subscribe(event => {
+    ctx.stage.viewer.mark(EveryLoci, MarkerAction.RemoveHighlight)
+    if (event && event.data) {
+        ctx.stage.viewer.mark(event.data, MarkerAction.Highlight)
+    }
+})
+
+ctx.dispatcher.getStream(InteractivityEvents.SelectLoci).subscribe(event => {
+    if (event && event.data) {
+        ctx.stage.viewer.mark(event.data, MarkerAction.ToggleSelect)
+    }
+})
 
 ReactDOM.render(React.createElement(Layout, { controller: ctx.layout }), elm);

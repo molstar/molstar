@@ -7,59 +7,60 @@
 import { Column } from 'mol-data/db'
 import { AtomicHierarchy } from './atomic/hierarchy';
 import { Entities } from './common';
+import { Sequence } from '../../../sequence';
+import { ChainIndex } from '../indexing';
 
-interface Sequence {
-    readonly byEntityKey: { [key: number]: Sequence.Entity }
+interface StructureSequence {
+    readonly sequences: ReadonlyArray<StructureSequence.Entity>,
+    readonly byEntityKey: { [key: number]: StructureSequence.Entity }
 }
 
-// TODO lift to model/sequence/ folder
-// TODO add one letter code sequence string
-// TODO add mapping support to other sequence spaces, e.g. uniprot
-// TODO add sequence kind, e.g. protein, dna, rna (alphabets?)
-// TODO sequence alignment (take NGL code as starting point)
-
-namespace Sequence {
+namespace StructureSequence {
     export interface Entity {
         readonly entityId: string,
-        readonly num: Column<number>
-        // _entity_poly_seq.mon_id
-        readonly compId: Column<string>
+        readonly num: Column<number>,
+        // Corresponds to _entity_poly_seq.mon_id
+        readonly compId: Column<string>,
+        readonly sequence: Sequence
     }
 
-    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy): Sequence {
-        const { label_entity_id } = hierarchy.chains
+    export function fromAtomicHierarchy(entities: Entities, hierarchy: AtomicHierarchy, modResMap?: ReadonlyMap<string, string>): StructureSequence {
         const { label_comp_id, label_seq_id } = hierarchy.residues
-        const { chainSegments, residueSegments } = hierarchy
+        const { chainAtomSegments, residueAtomSegments } = hierarchy
 
-        const byEntityKey: Sequence['byEntityKey'] = {};
+        const byEntityKey: StructureSequence['byEntityKey'] = { };
+        const sequences: StructureSequence.Entity[] = [];
 
-        // TODO get min/max of label_seq_id to handle missing residues at start and in between
-        //   note that this assumes label_seq_id is monotonically increasing
+        for (let cI = 0 as ChainIndex, _cI = hierarchy.chains._rowCount; cI < _cI; cI++) {
+            const entityKey = hierarchy.getEntityKey(cI);
+            // Only for polymers, trying to mirror _entity_poly_seq
+            if (byEntityKey[entityKey] !== void 0 || entities.data.type.value(entityKey) !== 'polymer') continue;
 
-        const chainCount = hierarchy.chains._rowCount
-        for (let i = 0; i < chainCount; ++i) {
-            const entityId = label_entity_id.value(i)
-            const entityIndex = entities.getEntityIndex(entityId)
-            // TODO only for polymers, mirroring _entity_poly_seq, ok???
-            if (entities.data.type.value(i) !== 'polymer') continue
+            let start = cI;
+            cI++;
+            while (cI < _cI && entityKey === hierarchy.getEntityKey(cI) && entities.data.type.value(entityKey) !== 'polymer') {
+                cI++;
+            }
+            cI--;
 
-            const entityKey = hierarchy.entityKey[entityIndex]
-            if (byEntityKey[entityKey] !== undefined) continue
+            const rStart = residueAtomSegments.index[chainAtomSegments.offsets[start]];
+            const rEnd = residueAtomSegments.index[chainAtomSegments.offsets[cI + 1]];
 
-            const start = residueSegments.segmentMap[chainSegments.segments[i]]
-            let end = residueSegments.segmentMap[chainSegments.segments[i + 1]]
-            // TODO better way to handle end???
-            if (end === undefined) end = hierarchy.residues._rowCount
+            const compId = Column.window(label_comp_id, rStart, rEnd);
+            const num = Column.window(label_seq_id, rStart, rEnd);
 
             byEntityKey[entityKey] = {
-                entityId,
-                compId: Column.window(label_comp_id, start, end),
-                num: Column.window(label_seq_id, start, end)
-            }
+                entityId: entities.data.id.value(entityKey),
+                compId,
+                num,
+                sequence: Sequence.ofResidueNames(compId, num, modResMap)
+            };
+
+            sequences.push(byEntityKey[entityKey]);
         }
 
-        return { byEntityKey }
+        return { byEntityKey, sequences };
     }
 }
 
-export default Sequence
+export default StructureSequence

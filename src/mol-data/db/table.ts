@@ -101,6 +101,19 @@ namespace Table {
         return ret as Table<R>;
     }
 
+    export function window<S extends R, R extends Schema>(table: Table<S>, schema: R, start: number, end: number) {
+        if (start === 0 && end === table._rowCount) return table;
+        const ret = Object.create(null);
+        const columns = Object.keys(schema);
+        ret._rowCount = end - start;
+        ret._columns = columns;
+        ret._schema = schema;
+        for (const k of columns) {
+            (ret as any)[k] = Column.window(table[k], start, end);
+        }
+        return ret as Table<R>;
+    }
+
     export function concat<S extends R, R extends Schema>(tables: Table<S>[], schema: R) {
         const ret = Object.create(null);
         const columns = Object.keys(schema);

@@ -5,10 +5,11 @@
  */
 
 import { mmCIF_Database as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
-import Sequence from '../../properties/sequence'
+import StructureSequence from '../../properties/sequence'
 import { Column } from 'mol-data/db';
 import { AtomicHierarchy } from '../../properties/atomic';
 import { Entities } from '../../properties/common';
+import { Sequence } from '../../../../sequence';
 
 // TODO how to handle microheterogeneity
 //    see http://mmcif.wwpdb.org/dictionaries/mmcif_pdbx_v50.dic/Categories/entity_poly_seq.html
@@ -20,12 +21,13 @@ import { Entities } from '../../properties/common';
 // corresponding ATOM_SITE entries should reflect this
 // heterogeneity.
 
-export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHierarchy): Sequence {
-    if (!cif.entity_poly_seq._rowCount) return Sequence.fromAtomicHierarchy(entities, hierarchy);
+export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHierarchy, modResMap: ReadonlyMap<string, string>): StructureSequence {
+    if (!cif.entity_poly_seq._rowCount) return StructureSequence.fromAtomicHierarchy(entities, hierarchy, modResMap);
 
     const { entity_id, num, mon_id } = cif.entity_poly_seq;
 
-    const byEntityKey: Sequence['byEntityKey'] = {};
+    const byEntityKey: StructureSequence['byEntityKey'] = {};
+    const sequences: StructureSequence.Entity[] = [];
     const count = entity_id.rowCount;
 
     let i = 0;
@@ -35,8 +37,19 @@ export function getSequence(cif: mmCIF, entities: Entities, hierarchy: AtomicHie
         i++;
 
         const id = entity_id.value(start);
-        byEntityKey[entities.getEntityIndex(id)] = { entityId: id, compId: Column.window(mon_id, start, i), num: Column.window(num, start, i)  }
+        const _compId = Column.window(mon_id, start, i);
+        const _num = Column.window(num, start, i);
+        const entityKey = entities.getEntityIndex(id);
+
+        byEntityKey[entityKey] = {
+            entityId: id,
+            compId: _compId,
+            num: _num,
+            sequence: Sequence.ofResidueNames(_compId, _num, modResMap)
+        };
+
+        sequences.push(byEntityKey[entityKey]);
     }
 
-    return { byEntityKey };
+    return { byEntityKey, sequences };
 }

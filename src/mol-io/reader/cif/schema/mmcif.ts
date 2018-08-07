@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.293, IHM 0.130.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.296, IHM 0.132.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -21,11 +21,6 @@ const Vector = Schema.Vector;
 const List = Schema.List;
 
 export const mmCIF_Schema = {
-    atom_sites: {
-        entry_id: str,
-        fract_transf_matrix: Matrix(3, 3),
-        fract_transf_vector: Vector(3)
-    },
     atom_site: {
         auth_asym_id: str,
         auth_atom_id: str,
@@ -50,6 +45,11 @@ export const mmCIF_Schema = {
         pdbx_formal_charge: int,
         ihm_model_id: int,
     },
+    atom_sites: {
+        entry_id: str,
+        fract_transf_matrix: Matrix(3, 3),
+        fract_transf_vector: Vector(3),
+    },
     cell: {
         angle_alpha: float,
         angle_beta: float,
@@ -68,7 +68,7 @@ export const mmCIF_Schema = {
         mon_nstd_flag: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
         name: str,
         type: Aliased<'D-peptide linking' | 'L-peptide linking' | 'D-peptide NH3 amino terminus' | 'L-peptide NH3 amino terminus' | 'D-peptide COOH carboxy terminus' | 'L-peptide COOH carboxy terminus' | 'DNA linking' | 'RNA linking' | 'L-RNA linking' | 'L-DNA linking' | 'DNA OH 5 prime terminus' | 'RNA OH 5 prime terminus' | 'DNA OH 3 prime terminus' | 'RNA OH 3 prime terminus' | 'D-saccharide 1,4 and 1,4 linking' | 'L-saccharide 1,4 and 1,4 linking' | 'D-saccharide 1,4 and 1,6 linking' | 'L-saccharide 1,4 and 1,6 linking' | 'L-saccharide' | 'D-saccharide' | 'saccharide' | 'non-polymer' | 'peptide linking' | 'peptide-like' | 'L-gamma-peptide, C-delta linking' | 'D-gamma-peptide, C-delta linking' | 'L-beta-peptide, C-gamma linking' | 'D-beta-peptide, C-gamma linking' | 'other'>(str),
-        pdbx_synonyms: str,
+        pdbx_synonyms: List(';', x => x),
     },
     chem_comp_bond: {
         atom_id_1: str,
@@ -80,22 +80,32 @@ export const mmCIF_Schema = {
         pdbx_aromatic_flag: Aliased<'Y' | 'N'>(str),
     },
     entity: {
+        details: str,
+        formula_weight: float,
         id: str,
         src_method: Aliased<'nat' | 'man' | 'syn'>(str),
         type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
-        details: str,
-        formula_weight: float,
         pdbx_description: str,
         pdbx_number_of_molecules: float,
         pdbx_mutation: str,
         pdbx_fragment: str,
         pdbx_ec: List(',', x => x),
     },
+    entity_poly: {
+        entity_id: str,
+        nstd_linkage: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
+        nstd_monomer: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
+        type: Aliased<'polypeptide(D)' | 'polypeptide(L)' | 'polydeoxyribonucleotide' | 'polyribonucleotide' | 'polysaccharide(D)' | 'polysaccharide(L)' | 'polydeoxyribonucleotide/polyribonucleotide hybrid' | 'cyclic-pseudo-peptide' | 'peptide nucleic acid' | 'other'>(str),
+        pdbx_strand_id: List(',', x => x),
+        pdbx_seq_one_letter_code: str,
+        pdbx_seq_one_letter_code_can: str,
+        pdbx_target_identifier: str,
+    },
     entity_poly_seq: {
         entity_id: str,
-        num: int,
+        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str),
         mon_id: str,
-        hetero: Aliased<'no' | 'n' | 'yes' | 'y'>(str)
+        num: int,
     },
     entry: {
         id: str,
@@ -181,6 +191,13 @@ export const mmCIF_Schema = {
         entry_id: str,
         text: List(',', x => x),
         pdbx_keywords: str,
+    },
+    struct_ncs_oper: {
+        code: Aliased<'given' | 'generate'>(str),
+        details: str,
+        id: str,
+        matrix: Matrix(3, 3),
+        vector: Vector(3),
     },
     struct_sheet_range: {
         beg_label_asym_id: str,
@@ -321,7 +338,7 @@ export const mmCIF_Schema = {
         asym_id: str,
         seq_id_begin: int,
         seq_id_end: int,
-        starting_model_source: Aliased<'comparative model' | 'experimental model' | 'integrative model' | 'other ab initio models'>(str),
+        starting_model_source: Aliased<'comparative model' | 'experimental model' | 'integrative model' | 'ab initio model' | 'other'>(str),
         starting_model_auth_asym_id: str,
         starting_model_sequence_offset: int,
         dataset_list_id: int,
@@ -502,6 +519,7 @@ export const mmCIF_Schema = {
     },
     ihm_predicted_contact_restraint: {
         id: int,
+        group_id: int,
         entity_id_1: str,
         entity_id_2: str,
         asym_id_1: str,
@@ -512,6 +530,7 @@ export const mmCIF_Schema = {
         seq_id_2: int,
         atom_id_1: str,
         atom_id_2: str,
+        distance_lower_limit: float,
         distance_upper_limit: float,
         probability: float,
         restraint_type: Aliased<'lower bound' | 'upper bound' | 'lower and upper bound'>(str),
@@ -544,6 +563,8 @@ export const mmCIF_Schema = {
         comp_id_2: str,
         seq_id_1: int,
         seq_id_2: int,
+        atom_id_1: str,
+        atom_id_2: str,
         restraint_type: Aliased<'harmonic' | 'upper bound' | 'lower bound'>(str),
         conditional_crosslink_flag: Aliased<'ALL' | 'ANY'>(str),
         model_granularity: Aliased<'by-residue' | 'by-feature' | 'by-atom'>(str),

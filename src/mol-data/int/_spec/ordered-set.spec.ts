@@ -25,6 +25,7 @@ describe('ordered set', () => {
     const singleton10 = OrderedSet.ofSingleton(10);
     const range1_4 = OrderedSet.ofRange(1, 4);
     const arr136 = OrderedSet.ofSortedArray([1, 3, 6]);
+    const arr12369 = OrderedSet.ofSortedArray([1, 2, 3, 6, 9]);
 
     const iB = (s: number, e: number) => Interval.ofBounds(s, e);
 
@@ -47,6 +48,17 @@ describe('ordered set', () => {
         expect(OrderedSet.areIntersecting(empty, singleton10)).toBe(false);
         expect(OrderedSet.areIntersecting(empty, range1_4)).toBe(false);
         expect(OrderedSet.areIntersecting(empty, arr136)).toBe(false);
+
+        expect(OrderedSet.areIntersecting(Interval.ofRange(2, 3), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(2, 6), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(2, 8), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(4, 8), arr12369)).toBe(true);
+
+        expect(OrderedSet.areIntersecting(Interval.ofRange(4, 5), arr12369)).toBe(false);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(7, 8), arr12369)).toBe(false);
+
+        expect(OrderedSet.areIntersecting(Interval.ofRange(6, 6), arr12369)).toBe(true);
+        expect(OrderedSet.areIntersecting(Interval.ofRange(3, 4), OrderedSet.ofSortedArray([0, 1, 10]))).toBe(false);
     });
 
     it('isSubset', () => {
@@ -104,6 +116,13 @@ describe('ordered set', () => {
         expect(OrderedSet.findRange(arr136, 2, 7)).toEqual(iB(1, 3));
     })
 
+    it('intersectionSize', () => {
+        expect(OrderedSet.intersectionSize(arr136, range1_4)).toEqual(2);
+        expect(OrderedSet.intersectionSize(arr12369, range1_4)).toEqual(3);
+        expect(OrderedSet.intersectionSize(OrderedSet.ofSortedArray([12, 13, 16]), range1_4)).toEqual(0);
+        expect(OrderedSet.intersectionSize(OrderedSet.ofSortedArray([1, 2, 4]), range1_4)).toEqual(3);
+    })
+
     testEq('union ES', OrderedSet.union(empty, singleton10), [10]);
     testEq('union ER', OrderedSet.union(empty, range1_4), [1, 2, 3, 4]);
     testEq('union EA', OrderedSet.union(empty, arr136), [1, 3, 6]);
@@ -157,4 +176,10 @@ describe('ordered set', () => {
     testEq('subtract AA', OrderedSet.subtract(arr136, arr136), []);
     testEq('subtract AA1', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([2, 3, 4, 6, 7])), [1]);
     testEq('subtract AA2', OrderedSet.subtract(arr136, OrderedSet.ofSortedArray([0, 1, 6])), [3]);
+
+    it('foreach', () => {
+        const int = OrderedSet.ofBounds(1, 3), set = OrderedSet.ofSortedArray([2, 3, 4]);
+        expect(OrderedSet.forEach(int, (v, i, ctx) => ctx[i] = v, [] as number[])).toEqual([1, 2]);
+        expect(OrderedSet.forEach(set, (v, i, ctx) => ctx[i] = v, [] as number[])).toEqual([2, 3, 4]);
+    })
 });

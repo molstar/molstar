@@ -33,7 +33,7 @@ export function download (data: Blob|string, downloadName = 'download') {
         if (data instanceof Blob) {
             // no downloading of blob urls in Safari
             const reader = new FileReader()
-            reader.onloadend = () => open(reader.result)
+            reader.onloadend = () => open(reader.result as string)
             reader.readAsDataURL(data)
         } else {
             open(data)

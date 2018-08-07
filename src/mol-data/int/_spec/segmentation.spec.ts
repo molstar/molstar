@@ -21,12 +21,12 @@ describe('segments', () => {
 
     it('ofOffsetts', () => {
         const p = Segmentation.ofOffsets([10, 12], Interval.ofBounds(10, 14));
-        expect(p.segments).toEqual(new Int32Array([0, 2, 4]))
+        expect(p.offsets).toEqual(new Int32Array([0, 2, 4]))
     });
 
     it('map', () => {
         const segs = Segmentation.create([0, 1, 2]);
-        expect(segs.segmentMap).toEqual(new Int32Array([0, 1]));
+        expect(segs.index).toEqual(new Int32Array([0, 1]));
         expect(Segmentation.getSegment(segs, 0)).toBe(0);
         expect(Segmentation.getSegment(segs, 1)).toBe(1);
     });

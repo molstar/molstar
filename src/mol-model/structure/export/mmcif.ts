@@ -7,83 +7,73 @@
 
 import { CifWriter } from 'mol-io/writer/cif'
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
-import { Structure, Element } from '../structure'
+import { Structure } from '../structure'
 import { Model } from '../model'
-import P from '../query/properties'
+import { _atom_site } from './categories/atom_site';
+import CifCategory = CifWriter.Category
+import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
+import { _pdbx_struct_mod_residue } from './categories/modified-residues';
 
-interface Context {
+export interface CifExportContext {
     structure: Structure,
-    model: Model
+    model: Model,
+    cache: any
 }
 
-import CifField = CifWriter.Field
-import CifCategory = CifWriter.Category
-
-import E = CifWriter.Encodings
-
-const atom_site_fields: CifField<Element.Location>[] = [
-    CifField.str('group_PDB', P.residue.group_PDB),
-    CifField.int('id', P.atom.id, { encoder: E.deltaRLE }),
-    CifField.str('type_symbol', P.atom.type_symbol as any),
-    CifField.str('label_atom_id', P.atom.label_atom_id),
-    CifField.str('label_alt_id', P.atom.label_alt_id),
-
-    CifField.str('label_comp_id', P.residue.label_comp_id),
-    CifField.int('label_seq_id', P.residue.label_seq_id, { encoder: E.deltaRLE }),
-    CifField.str('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code),
-
-    CifField.str('label_asym_id', P.chain.label_asym_id),
-    CifField.str('label_entity_id', P.chain.label_entity_id),
-
-    CifField.float('Cartn_x', P.atom.x, { digitCount: 3, encoder: E.fixedPoint3 }),
-    CifField.float('Cartn_y', P.atom.y, { digitCount: 3, encoder: E.fixedPoint3 }),
-    CifField.float('Cartn_z', P.atom.z, { digitCount: 3, encoder: E.fixedPoint3 }),
-    CifField.float('occupancy', P.atom.occupancy, { digitCount: 2, encoder: E.fixedPoint2 }),
-    CifField.int('pdbx_formal_charge', P.atom.pdbx_formal_charge, { encoder: E.deltaRLE }),
-
-    CifField.str('auth_atom_id', P.atom.auth_atom_id),
-    CifField.str('auth_comp_id', P.residue.auth_comp_id),
-    CifField.int('auth_seq_id', P.residue.auth_seq_id, { encoder: E.deltaRLE }),
-    CifField.str('auth_asym_id', P.chain.auth_asym_id),
-
-    CifField.int('pdbx_PDB_model_num', P.unit.model_num, { encoder: E.deltaRLE }),
-    CifField.str('operator_name', P.unit.operator_name)
-];
-
-function copy_mmCif_cat(name: keyof mmCIF_Schema) {
-    return ({ model }: Context) => {
-        if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
-        const table = model.sourceData.data[name];
-        if (!table || !table._rowCount) return CifCategory.Empty;
-        return CifCategory.ofTable(name, table);
+function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportContext> {
+    return {
+        name,
+        instance({ model }) {
+            if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
+            const table = model.sourceData.data[name];
+            if (!table || !table._rowCount) return CifCategory.Empty;
+            return CifCategory.ofTable(table);
+        }
     };
 }
 
-function _entity({ model, structure }: Context): CifCategory {
-    const keys = Structure.getEntityKeys(structure);
-    return CifCategory.ofTable('entity', model.entities.data, keys);
-}
-
-function _atom_site({ structure }: Context): CifCategory {
-    return {
-        data: void 0,
-        name: 'atom_site',
-        fields: atom_site_fields,
-        rowCount: structure.elementCount,
-        keys: () => structure.elementLocations()
+const _entity: CifCategory<CifExportContext> = {
+    name: 'entity',
+    instance({ structure, model}) {
+        const keys = Structure.getEntityKeys(structure);
+        return CifCategory.ofTable(model.entities.data, keys);
     }
 }
 
 const Categories = [
-    copy_mmCif_cat('entry'),
-    copy_mmCif_cat('exptl'),
-    copy_mmCif_cat('cell'),
-    copy_mmCif_cat('symmetry'),
+    // Basics
+    copy_mmCif_category('entry'),
+    copy_mmCif_category('exptl'),
     _entity,
+
+    // Symmetry
+    copy_mmCif_category('cell'),
+    copy_mmCif_category('symmetry'),
+
+    // Assemblies
+    copy_mmCif_category('pdbx_struct_assembly'),
+    copy_mmCif_category('pdbx_struct_assembly_gen'),
+    copy_mmCif_category('pdbx_struct_oper_list'),
+
+    // Secondary structure
+    _struct_conf,
+    _struct_sheet_range,
+
+    // Sequence
+    copy_mmCif_category('struct_asym'), // TODO: filter only present chains?
+    copy_mmCif_category('entity_poly'),
+    copy_mmCif_category('entity_poly_seq'),
+
+    // Misc
+    // TODO: filter for actual present residues?
+    copy_mmCif_category('chem_comp'),
+    copy_mmCif_category('atom_sites'),
+
+    _pdbx_struct_mod_residue,
+
+    // Atoms
     _atom_site
 ];
-
-mmCIF_Schema
 
 namespace _Filters {
     export const AtomSitePositionsFieldNames = new Set<string>(<(keyof typeof mmCIF_Schema.atom_site)[]>['id', 'Cartn_x', 'Cartn_y', 'Cartn_z']);
@@ -102,10 +92,16 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
 
-    const ctx: Context[] = [{ structure, model }];
+    const ctx: CifExportContext[] = [{ structure, model, cache: Object.create(null) }];
 
     for (const cat of Categories) {
         encoder.writeCategory(cat, ctx);
+    }
+    for (const customProp of model.customProperties.all) {
+        const cats = customProp.cifExport.categories;
+        for (const cat of cats) {
+            encoder.writeCategory(cat, ctx);
+        }
     }
 }
 

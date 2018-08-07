@@ -1,11 +1,13 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Entities } from '../common';
 import { CoarseElementData, CoarsedElementKeys } from '../coarse';
+import { ChainIndex, ElementIndex } from '../../indexing';
 
 function getElementKey(map: Map<string, number>, key: string, counter: { index: number }) {
     if (map.has(key)) return map.get(key)!;
@@ -21,64 +23,67 @@ function getElementSubstructureKeyMap(map: Map<number, Map<string, number>>, key
     return ret;
 }
 
-function createLookUp(entities: Entities, chain: Map<number, Map<string, number>>) {
+function createLookUp(entities: Entities, chain: Map<number, Map<string, number>>, seq: Map<number, Map<number, number>>) {
     const getEntKey = entities.getEntityIndex;
     const findChainKey: CoarsedElementKeys['findChainKey'] = (e, c) => {
-        let eKey = getEntKey(e);
-        if (eKey < 0) return -1;
+        const eKey = getEntKey(e);
+        if (eKey < 0) return -1 as ChainIndex;
         const cm = chain.get(eKey)!;
-        if (!cm.has(c)) return -1;
-        return cm.get(c)!;
+        if (!cm.has(c)) return -1 as ChainIndex;
+        return cm.get(c)! as ChainIndex;
     }
-    return { findChainKey };
-}
-
-function checkMonotonous(xs: ArrayLike<number>) {
-    for (let i = 1, _i = xs.length; i < _i; i++) {
-        if (xs[i] < xs[i - 1]) {
-            return false;
-        }
+    // TODO consider implementing as binary search
+    const findSequenceKey: CoarsedElementKeys['findSequenceKey'] = (e, c, s) => {
+        const eKey = getEntKey(e);
+        if (eKey < 0) return -1 as ElementIndex;
+        const cm = chain.get(eKey);
+        if (cm === undefined) return -1 as ElementIndex
+        const cKey = cm.get(c)
+        if (cKey === undefined) return -1 as ElementIndex
+        const sm = seq.get(cKey)!
+        if (!sm.has(s)) return -1 as ElementIndex;
+        return sm.get(s)! as ElementIndex
     }
-    return true;
+    return { findChainKey, findSequenceKey };
 }
 
 function missingEntity(k: string) {
     throw new Error(`Missing entity entry for entity id '${k}'.`);
 }
 
-function missingModel(k: string) {
-    throw new Error(`Missing entity entry for model id '${k}'.`);
-}
+export function getCoarseKeys(data: CoarseElementData, entities: Entities): CoarsedElementKeys {
+    const { entity_id, asym_id, seq_id_begin, seq_id_end, count, chainElementSegments } = data;
 
-export function getCoarseKeys(data: CoarseElementData, modelIndex: (id: number) => number, entities: Entities): CoarsedElementKeys {
-    const { model_id, entity_id, asym_id, count, chainSegments } = data;
-
+    const seqMaps = new Map<number, Map<number, number>>();
     const chainMaps = new Map<number, Map<string, number>>(), chainCounter = { index: 0 };
+
     const chainKey = new Int32Array(count);
     const entityKey = new Int32Array(count);
-    const modelKey = new Int32Array(count);
 
     for (let i = 0; i < count; i++) {
         entityKey[i] = entities.getEntityIndex(entity_id.value(i));
         if (entityKey[i] < 0) missingEntity(entity_id.value(i));
-        modelKey[i] = modelIndex(model_id.value(i));
-        if (modelKey[i] < 0) missingModel('' + model_id.value(i));
     }
 
-    for (let cI = 0; cI < chainSegments.count; cI++) {
-        const start = chainSegments.segments[cI], end = chainSegments.segments[cI + 1];
+    for (let cI = 0; cI < chainElementSegments.count; cI++) {
+        const start = chainElementSegments.offsets[cI], end = chainElementSegments.offsets[cI + 1];
         const map = getElementSubstructureKeyMap(chainMaps, entityKey[start]);
         const key = getElementKey(map, asym_id.value(start), chainCounter);
         for (let i = start; i < end; i++) chainKey[i] = key;
+
+        // create seq_id map for the ranges defined by seq_id_begin and seq_id_end
+        const seqMap: Map<number, number> = new Map()
+        seqMaps.set(key, seqMap)
+        for (let i = start; i < end; i++) {
+            const seqStart = seq_id_begin.value(i)
+            const seqEnd = seq_id_end.value(i)
+            for (let j = seqStart; j <= seqEnd; j++) {
+                seqMap.set(j, i)
+            }
+        }
     }
 
-    const { findChainKey } = createLookUp(entities, chainMaps);
+    const { findChainKey, findSequenceKey } = createLookUp(entities, chainMaps, seqMaps);
 
-    return {
-        isMonotonous: checkMonotonous(entityKey) && checkMonotonous(chainKey),
-        chainKey: chainKey,
-        entityKey: entityKey,
-        modelKey: modelKey,
-        findChainKey
-    };
+    return { chainKey, entityKey, findSequenceKey, findChainKey };
 }

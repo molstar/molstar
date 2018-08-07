@@ -6,37 +6,60 @@
 
 import UUID from 'mol-util/uuid'
 import Format from './format'
-import Sequence from './properties/sequence'
+import StructureSequence from './properties/sequence'
 import { AtomicHierarchy, AtomicConformation } from './properties/atomic'
 import { ModelSymmetry } from './properties/symmetry'
 import { CoarseHierarchy, CoarseConformation } from './properties/coarse'
 import { Entities } from './properties/common';
+import { CustomProperties } from './properties/custom';
 import { SecondaryStructure } from './properties/seconday-structure';
 
-//import from_gro from './formats/gro'
 import from_mmCIF from './formats/mmcif'
+import { ChemicalComponentMap } from './properties/chemical-component';
 
 /**
  * Interface to the "source data" of the molecule.
  *
  * "Atoms" are integers in the range [0, atomCount).
  */
-interface Model extends Readonly<{
+export interface Model extends Readonly<{
     id: UUID,
     label: string,
 
+    // for IHM, corresponds to ihm_model_list.model_id
     modelNum: number,
 
     sourceData: Format,
 
     symmetry: ModelSymmetry,
     entities: Entities,
-    sequence: Sequence,
+    sequence: StructureSequence,
 
     atomicHierarchy: AtomicHierarchy,
     atomicConformation: AtomicConformation,
 
-    properties: { secondaryStructure: SecondaryStructure },
+    properties: {
+        /** secondary structure provided by the input file */
+        readonly secondaryStructure: SecondaryStructure,
+        /** maps modified residue name to its parent */
+        readonly modifiedResidues: Readonly<{
+            parentId: ReadonlyMap<string, string>,
+            details: ReadonlyMap<string, string>
+        }>,
+        /** maps asym id to unique serial number */
+        readonly asymIdSerialMap: ReadonlyMap<string, number>
+        /** maps residue name to `ChemicalComponent` data */
+        readonly chemicalComponentMap: ChemicalComponentMap
+    },
+
+    customProperties: CustomProperties,
+
+    /**
+     * Not to be accessed directly, each custom property descriptor
+     * defines property accessors that use this field to store the data.
+     */
+    _staticPropertyData: { [name: string]: any },
+    _dynamicPropertyData: { [name: string]: any },
 
     coarseHierarchy: CoarseHierarchy,
     coarseConformation: CoarseConformation
@@ -44,13 +67,11 @@ interface Model extends Readonly<{
 
 } { }
 
-namespace Model {
+export namespace Model {
     export function create(format: Format) {
         switch (format.kind) {
-            //case 'gro': return from_gro(format);
+            // case 'gro': return from_gro(format);
             case 'mmCIF': return from_mmCIF(format);
         }
     }
 }
-
-export default Model

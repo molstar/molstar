@@ -20,9 +20,15 @@ export namespace Viewport {
     export function clone(viewport: Viewport): Viewport {
         return { ...viewport }
     }
-
     export function copy(target: Viewport, source: Viewport): Viewport {
         return Object.assign(target, source)
+    }
+    export function set(viewport: Viewport, x: number, y: number, width: number, height: number): Viewport {
+        viewport.x = x
+        viewport.y = y
+        viewport.width = width
+        viewport.height = height
+        return viewport
     }
 }
 

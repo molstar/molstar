@@ -6,19 +6,20 @@
 
 import { IntMap, SortedArray } from 'mol-data/int';
 import { sortArray } from 'mol-data/util';
-import Element from '../element';
+import StructureElement from '../element';
 import StructureSymmetry from '../symmetry';
 import Unit from '../unit';
 import Structure from '../structure';
+import { ElementIndex } from '../../model';
 
 export class StructureSubsetBuilder {
     private ids: number[] = [];
-    private unitMap = IntMap.Mutable<number[]>();
+    private unitMap = IntMap.Mutable<ElementIndex[]>();
     private parentId = -1;
-    private currentUnit: number[] = [];
+    private currentUnit: ElementIndex[] = [];
     elementCount = 0;
 
-    addToUnit(parentId: number, e: number) {
+    addToUnit(parentId: number, e: ElementIndex) {
         const unit = this.unitMap.get(parentId);
         if (!!unit) { unit[unit.length] = e; }
         else {
@@ -33,7 +34,7 @@ export class StructureSubsetBuilder {
         this.currentUnit = this.currentUnit.length > 0 ? [] : this.currentUnit;
     }
 
-    addElement(e: number) {
+    addElement(e: ElementIndex) {
         this.currentUnit[this.currentUnit.length] = e;
         this.elementCount++;
     }
@@ -45,9 +46,9 @@ export class StructureSubsetBuilder {
         this.parentId = -1;
     }
 
-    setUnit(parentId: number, elements: ArrayLike<number>) {
+    setUnit(parentId: number, elements: ArrayLike<ElementIndex>) {
         this.ids[this.ids.length] = parentId;
-        this.unitMap.set(parentId, elements as number[]);
+        this.unitMap.set(parentId, elements as ElementIndex[]);
         this.elementCount += elements.length;
     }
 
@@ -100,7 +101,7 @@ export class StructureSubsetBuilder {
         return this._getStructure(true);
     }
 
-    setSingletonLocation(location: Element.Location) {
+    setSingletonLocation(location: StructureElement) {
         const id = this.ids[0];
         location.unit = this.parent.unitMap.get(id);
         location.element = this.unitMap.get(id)[0];

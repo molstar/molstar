@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { sortArray, hash3, hash4 } from '../../util'
+import { sortArray, hash3, hash4, createRangeArray } from '../../util'
 import Interval from '../interval'
 
 type Nums = ArrayLike<number>
@@ -71,6 +71,7 @@ export function findPredecessorIndexInInterval(xs: Nums, v: number, bounds: Inte
     const sv = xs[s];
     if (v <= sv) return s;
     if (e > s && v > xs[e - 1]) return e;
+    // do a linear search if there are only 10 or less items remaining
     if (v - sv <= 11) return linearSearchPredInRange(xs, v, s + 1, e);
     return binarySearchPredIndexRange(xs, v, s, e);
 }
@@ -82,6 +83,7 @@ export function findRange(xs: Nums, min: number, max: number) {
 function binarySearchRange(xs: Nums, value: number, start: number, end: number) {
     let min = start, max = end - 1;
     while (min <= max) {
+        // do a linear search if there are only 10 or less items remaining
         if (min + 11 > max) {
             for (let i = min; i <= max; i++) {
                 if (value === xs[i]) return i;
@@ -101,6 +103,7 @@ function binarySearchRange(xs: Nums, value: number, start: number, end: number) 
 function binarySearchPredIndexRange(xs: Nums, value: number, start: number, end: number) {
     let min = start, max = end - 1;
     while (min < max) {
+        // do a linear search if there are only 10 or less items remaining
         if (min + 11 > max) {
             for (let i = min; i <= max; i++) {
                 if (value <= xs[i]) return i;
@@ -158,15 +161,8 @@ export function isSubset(a: Nums, b: Nums) {
 export function union(a: Nums, b: Nums) {
     if (a === b) return a;
 
-    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
-    let i = sI, j = sJ;
-    let commonCount = 0;
-    while (i < endI && j < endJ) {
-        const x = a[i], y = b[j];
-        if (x < y) { i++; }
-        else if (x > y) { j++; }
-        else { i++; j++; commonCount++; }
-    }
+    const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    const commonCount = getCommonCount(a, b, startI, startJ, endI, endJ);
 
     const lenA = a.length, lenB = b.length;
     // A === B || B is subset of A ==> A
@@ -178,12 +174,12 @@ export function union(a: Nums, b: Nums) {
     let offset = 0;
 
     // insert the "prefixes"
-    for (let k = 0; k < sI; k++) indices[offset++] = a[k];
-    for (let k = 0; k < sJ; k++) indices[offset++] = b[k];
+    for (let k = 0; k < startI; k++) indices[offset++] = a[k];
+    for (let k = 0; k < startJ; k++) indices[offset++] = b[k];
 
     // insert the common part
-    i = sI;
-    j = sJ;
+    let i = startI;
+    let j = startJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { indices[offset++] = x; i++; }
@@ -198,11 +194,14 @@ export function union(a: Nums, b: Nums) {
     return ofSortedArray(indices);
 }
 
-export function intersect(a: Nums, b: Nums) {
-    if (a === b) return a;
+export function intersectionSize(a: Nums, b: Nums) {
+    if (a === b) return size(a);
+    const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    return getCommonCount(a, b, startI, startJ, endI, endJ);
+}
 
-    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
-    let i = sI, j = sJ;
+function getCommonCount(a: Nums, b: Nums, startI: number, startJ: number, endI: number, endJ: number) {
+    let i = startI, j = startJ;
     let commonCount = 0;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
@@ -210,6 +209,14 @@ export function intersect(a: Nums, b: Nums) {
         else if (x > y) { j++; }
         else { i++; j++; commonCount++; }
     }
+    return commonCount;
+}
+
+export function intersect(a: Nums, b: Nums) {
+    if (a === b) return a;
+
+    const { startI, startJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    const commonCount = getCommonCount(a, b, startI, startJ, endI, endJ);
 
     const lenA = a.length, lenB = b.length;
     // no common elements
@@ -221,8 +228,8 @@ export function intersect(a: Nums, b: Nums) {
 
     const indices = new Int32Array(commonCount);
     let offset = 0;
-    i = sI;
-    j = sJ;
+    let i = startI;
+    let j = startJ;
     while (i < endI && j < endJ) {
         const x = a[i], y = b[j];
         if (x < y) { i++; }
@@ -287,6 +294,39 @@ export function deduplicate(xs: Nums) {
     }
     ret[o] = xs[xs.length - 1];
     return ret;
+}
+
+export function indicesOf(a: Nums, b: Nums): Nums {
+    if (a === b) return ofSortedArray(createRangeArray(0, a.length - 1));
+
+    const { startI: sI, startJ: sJ, endI, endJ } = getSuitableIntersectionRange(a, b);
+    let i = sI, j = sJ;
+    let commonCount = 0;
+    while (i < endI && j < endJ) {
+        const x = a[i], y = b[j];
+        if (x < y) { i++; }
+        else if (x > y) { j++; }
+        else { i++; j++; commonCount++; }
+    }
+
+    const lenA = a.length;
+    // no common elements
+    if (!commonCount) return Empty;
+    // A is subset of B ==> A
+    if (commonCount === lenA) return ofSortedArray(createRangeArray(0, a.length - 1));
+
+    const indices = new Int32Array(commonCount);
+    let offset = 0;
+    i = sI;
+    j = sJ;
+    while (i < endI && j < endJ) {
+        const x = a[i], y = b[j];
+        if (x < y) { i++; }
+        else if (x > y) { j++; }
+        else { indices[offset++] = i; i++; j++; }
+    }
+
+    return ofSortedArray(indices);
 }
 
 const _maxIntRangeRet = { startI: 0, startJ: 0, endI: 0, endJ: 0 };

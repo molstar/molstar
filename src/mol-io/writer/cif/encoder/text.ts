@@ -11,6 +11,7 @@ import { Column } from 'mol-data/db'
 import StringBuilder from 'mol-util/string-builder'
 import { Category, Field, Encoder } from '../encoder'
 import Writer from '../../writer'
+import { getFieldDigitCount, getIncludedFields } from './util';
 
 export default class TextEncoder implements Encoder<string> {
     private builder = StringBuilder.create();
@@ -32,7 +33,7 @@ export default class TextEncoder implements Encoder<string> {
         StringBuilder.write(this.builder, `data_${(header || '').replace(/[ \n\t]/g, '').toUpperCase()}\n#\n`);
     }
 
-    writeCategory<Ctx>(category: Category.Provider<Ctx>, contexts?: Ctx[]) {
+    writeCategory<Ctx>(category: Category<Ctx>, contexts?: Ctx[]) {
         if (this.encoded) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -41,18 +42,20 @@ export default class TextEncoder implements Encoder<string> {
             throw new Error('No data block created.');
         }
 
-        const categories = !contexts || !contexts.length ? [category(<any>void 0)] : contexts.map(c => category(c));
-        if (!categories.length) return;
-        if (!this.filter.includeCategory(categories[0].name)) return;
+        if (!this.filter.includeCategory(category.name)) return;
 
-        const rowCount = categories.reduce((v, c) => v + c.rowCount, 0);
+        const src = !contexts || !contexts.length ? [category.instance(<any>void 0)] : contexts.map(c => category.instance(c));
+        const instances = src.filter(c => c && c.rowCount > 0);
+        if (!instances.length) return;
+
+        const rowCount = instances.reduce((v, c) => v + c.rowCount, 0);
 
         if (rowCount === 0) return;
 
         if (rowCount === 1) {
-            writeCifSingleRecord(categories[0]!, this.builder, this.filter, this.formatter);
+            writeCifSingleRecord(category, instances[0]!, this.builder, this.filter, this.formatter);
         } else {
-            writeCifLoop(categories, this.builder, this.filter, this.formatter);
+            writeCifLoop(category, instances, this.builder, this.filter, this.formatter);
         }
     }
 
@@ -72,14 +75,14 @@ export default class TextEncoder implements Encoder<string> {
     }
 }
 
-function writeValue(builder: StringBuilder, data: any, key: any, f: Field<any, any>, floatPrecision: number): boolean {
+function writeValue(builder: StringBuilder, data: any, key: any, f: Field<any, any>, floatPrecision: number, index: number): boolean {
     const kind = f.valueKind;
     const p = kind ? kind(key, data) : Column.ValueKind.Present;
     if (p !== Column.ValueKind.Present) {
         if (p === Column.ValueKind.NotPresent) writeNotPresent(builder);
         else writeUnknown(builder);
     } else {
-        const val = f.value(key, data);
+        const val = f.value(key, data, index);
         const t = f.type;
         if (t === Field.Type.Str) {
             if (isMultiline(val as string)) {
@@ -102,62 +105,66 @@ function getFloatPrecisions(categoryName: string, fields: Field[], formatter: Ca
     for (const f of fields) {
         const format = formatter.getFormat(categoryName, f.name);
         if (format && typeof format.digitCount !== 'undefined') ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Math.max(0, Math.min(format.digitCount, 15))) : 0;
-        else ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, Field.getDigitCount(f)) : 0;
+        else ret[ret.length] = f.type === Field.Type.Float ? Math.pow(10, getFieldDigitCount(f)) : 0;
     }
     return ret;
 }
 
-function writeCifSingleRecord(category: Category<any>, builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
-    const fields = category.fields;
-    const data = category.data;
+function writeCifSingleRecord(category: Category, instance: Category.Instance, builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
+    const fields = getIncludedFields(instance);
+    const data = instance.data;
     let width = fields.reduce((w, f) => filter.includeField(category.name, f.name) ? Math.max(w, f.name.length) : 0, 0);
 
     // this means no field from this category is included.
     if (width === 0) return;
     width += category.name.length + 6;
 
-    const it = category.keys ? category.keys() : Iterator.Range(0, category.rowCount - 1);
+    const it = instance.keys ? instance.keys() : Iterator.Range(0, instance.rowCount - 1);
     const key = it.move();
 
-    const precisions = getFloatPrecisions(category.name, category.fields, formatter);
+    const precisions = getFloatPrecisions(category.name, instance.fields, formatter);
 
     for (let _f = 0; _f < fields.length; _f++) {
         const f = fields[_f];
         if (!filter.includeField(category.name, f.name)) continue;
 
         StringBuilder.writePadRight(builder, `_${category.name}.${f.name}`, width);
-        const multiline = writeValue(builder, data, key, f, precisions[_f]);
+        const multiline = writeValue(builder, data, key, f, precisions[_f], 0);
         if (!multiline) StringBuilder.newline(builder);
     }
     StringBuilder.write(builder, '#\n');
 }
 
-function writeCifLoop(categories: Category[], builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
-    const first = categories[0];
-    const fields = filter === Category.DefaultFilter ? first.fields : first.fields.filter(f => filter.includeField(first.name, f.name));
+function writeCifLoop(category: Category, instances: Category.Instance[], builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
+    const fieldSource = getIncludedFields(instances[0]);
+    const fields = filter === Category.DefaultFilter ? fieldSource : fieldSource.filter(f => filter.includeField(category.name, f.name));
     const fieldCount = fields.length;
-    const precisions = getFloatPrecisions(first.name, fields, formatter);
+    if (fieldCount === 0) return;
+
+    const precisions = getFloatPrecisions(category.name, fields, formatter);
 
     writeLine(builder, 'loop_');
     for (let i = 0; i < fieldCount; i++) {
-        writeLine(builder, `_${first.name}.${fields[i].name}`);
+        writeLine(builder, `_${category.name}.${fields[i].name}`);
     }
 
-    for (let _c = 0; _c < categories.length; _c++) {
-        const category = categories[_c];
-        const data = category.data;
+    let index = 0;
+    for (let _c = 0; _c < instances.length; _c++) {
+        const instance = instances[_c];
+        const data = instance.data;
 
-        if (category.rowCount === 0) continue;
+        if (instance.rowCount === 0) continue;
 
-        const it = category.keys ? category.keys() : Iterator.Range(0, category.rowCount - 1);
+        const it = instance.keys ? instance.keys() : Iterator.Range(0, instance.rowCount - 1);
         while (it.hasNext)  {
             const key = it.move();
 
             let multiline = false;
             for (let _f = 0; _f < fieldCount; _f++) {
-                multiline = writeValue(builder, data, key, fields[_f], precisions[_f]);
+                multiline = writeValue(builder, data, key, fields[_f], precisions[_f], index);
             }
             if (!multiline) StringBuilder.newline(builder);
+            index++;
         }
     }
     StringBuilder.write(builder, '#\n');

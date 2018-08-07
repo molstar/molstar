@@ -20,8 +20,10 @@
 import { EPSILON, equalEps } from './common'
 import Vec3 from './vec3';
 import Quat from './quat';
+import { degToRad } from '../../misc';
 
 interface Mat4 extends Array<number> { [d: number]: number, '@type': 'mat4', length: 16 }
+interface ReadonlyMat4 extends Array<number> { readonly [d: number]: number, '@type': 'mat4', length: 16 }
 
 function Mat4() {
     return Mat4.zero();
@@ -355,6 +357,24 @@ namespace Mat4 {
         return out;
     }
 
+    /**
+     * Sets the specified quaternion with values corresponding to the given
+     * axes. Each axis is a vec3 and is expected to be unit length and
+     * perpendicular to all other specified axes.
+     */
+    export function setAxes(out: Mat4, view: Vec3, right: Vec3, up: Vec3) {
+        out[0] = right[0];
+        out[4] = right[1];
+        out[8] = right[2];
+        out[1] = up[0];
+        out[5] = up[1];
+        out[9] = up[2];
+        out[2] = view[0];
+        out[6] = view[1];
+        out[10] = view[2];
+        return out
+    }
+
     export function rotate(out: Mat4, a: Mat4, rad: number, axis: Mat4) {
         let x = axis[0], y = axis[1], z = axis[2],
             len = Math.sqrt(x * x + y * y + z * z),
@@ -469,6 +489,26 @@ namespace Mat4 {
         return out;
     }
 
+    export function scaleUniformly(out: Mat4, a: Mat4, scale: number) {
+        out[0] = a[0] * scale;
+        out[1] = a[1] * scale;
+        out[2] = a[2] * scale;
+        out[3] = a[3] * scale;
+        out[4] = a[4] * scale;
+        out[5] = a[5] * scale;
+        out[6] = a[6] * scale;
+        out[7] = a[7] * scale;
+        out[8] = a[8] * scale;
+        out[9] = a[9] * scale;
+        out[10] = a[10] * scale;
+        out[11] = a[11] * scale;
+        out[12] = a[12];
+        out[13] = a[13];
+        out[14] = a[14];
+        out[15] = a[15];
+        return out;
+    }
+
     export function fromScaling(out: Mat4, v: Vec3) {
         out[0] = v[0];
         out[1] = 0;
@@ -481,6 +521,26 @@ namespace Mat4 {
         out[8] = 0;
         out[9] = 0;
         out[10] = v[2];
+        out[11] = 0;
+        out[12] = 0;
+        out[13] = 0;
+        out[14] = 0;
+        out[15] = 1;
+        return out;
+    }
+
+    export function fromUniformScaling(out: Mat4, scale: number) {
+        out[0] = scale;
+        out[1] = 0;
+        out[2] = 0;
+        out[3] = 0;
+        out[4] = 0;
+        out[5] = scale;
+        out[6] = 0;
+        out[7] = 0;
+        out[8] = 0;
+        out[9] = 0;
+        out[10] = scale;
         out[11] = 0;
         out[12] = 0;
         out[13] = 0;
@@ -748,6 +808,60 @@ namespace Mat4 {
     }
 
     /**
+     * Generates a matrix that makes something look at something else.
+     */
+    export function targetTo(out: Mat4, eye: Vec3, target: Vec3, up: Vec3) {
+        const eyex = eye[0],
+            eyey = eye[1],
+            eyez = eye[2],
+            upx = up[0],
+            upy = up[1],
+            upz = up[2];
+
+        let z0 = eyex - target[0],
+            z1 = eyey - target[1],
+            z2 = eyez - target[2];
+
+        let len = z0*z0 + z1*z1 + z2*z2;
+        if (len > 0) {
+            len = 1 / Math.sqrt(len);
+            z0 *= len;
+            z1 *= len;
+            z2 *= len;
+        }
+
+        let x0 = upy * z2 - upz * z1,
+            x1 = upz * z0 - upx * z2,
+            x2 = upx * z1 - upy * z0;
+
+        len = x0*x0 + x1*x1 + x2*x2;
+        if (len > 0) {
+            len = 1 / Math.sqrt(len);
+            x0 *= len;
+            x1 *= len;
+            x2 *= len;
+        }
+
+        out[0] = x0;
+        out[1] = x1;
+        out[2] = x2;
+        out[3] = 0;
+        out[4] = z1 * x2 - z2 * x1;
+        out[5] = z2 * x0 - z0 * x2;
+        out[6] = z0 * x1 - z1 * x0;
+        out[7] = 0;
+        out[8] = z0;
+        out[9] = z1;
+        out[10] = z2;
+        out[11] = 0;
+        out[12] = eyex;
+        out[13] = eyey;
+        out[14] = eyez;
+        out[15] = 1;
+        return out;
+    }
+
+    /**
      * Perm is 0-indexed permutation
      */
     export function fromPermutation(out: Mat4, perm: number[]) {
@@ -758,6 +872,19 @@ namespace Mat4 {
         }
         return out;
     }
+
+    /** Rotation matrix for 90deg rotation around x-axis */
+    export const rotX90: ReadonlyMat4 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(1, 0, 0))
+    /** Rotation matrix for 90deg rotation around y-axis */
+    export const rotY90: ReadonlyMat4 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(0, 1, 0))
+    /** Rotation matrix for 90deg rotation around z-axis */
+    export const rotZ90: ReadonlyMat4 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(0, 0, 1))
+    /** Rotation matrix for 90deg rotation around first x-axis and then y-axis */
+    export const rotXY90: ReadonlyMat4 = Mat4.mul(Mat4.identity(), rotX90, rotY90)
+    /** Rotation matrix for 90deg rotation around first z-axis and then y-axis */
+    export const rotZY90: ReadonlyMat4 = Mat4.mul(Mat4.identity(), rotZ90, rotY90)
+    /** Rotation matrix for 90deg rotation around first z-axis and then y-axis and then z-axis */
+    export const rotZYZ90: ReadonlyMat4 = Mat4.mul(Mat4.identity(), rotZY90, rotZ90)
 }
 
 export default Mat4

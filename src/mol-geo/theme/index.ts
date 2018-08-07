@@ -5,6 +5,8 @@
  */
 
 import { Color } from 'mol-util/color';
+// import { Loci } from 'mol-model/loci';
+// import { Structure } from 'mol-model/structure';
 
 export interface UniformColorTheme {
     name: 'uniform'
@@ -16,6 +18,22 @@ export interface ScaleColorTheme {
     domain?: [number, number]
 }
 
+// interface StructureColorProvider {
+//     uniform(): Color
+//     instance(instanceIdx: number): Color
+//     element(elementIdx: number): Color
+//     elementInstance(elementIdx: number, instanceIdx: number): Color
+
+//     lociColor(loci: Loci): Color
+// }
+
+// export namespace ColorProvider {
+//     export function fromLociColor(lociColor: (loci: Loci) => Color) {
+
+//         return
+//     }
+// }
+
 export type ColorTheme = UniformColorTheme | ScaleColorTheme
 
 export interface UniformSizeTheme {
@@ -24,7 +42,8 @@ export interface UniformSizeTheme {
 }
 
 export interface ScaleSizeTheme {
-    name: 'vdw'
+    name: 'physical' // van-der-Waals for atoms, given radius for coarse spheres
+    factor?: number // scaling factor
 }
 
 export type SizeTheme = UniformSizeTheme | ScaleSizeTheme

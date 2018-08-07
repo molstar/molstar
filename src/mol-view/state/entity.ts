@@ -8,11 +8,15 @@ import { readFileAs, readUrlAs } from 'mol-util/read'
 import { idFactory } from 'mol-util/id-factory'
 import { StateContext } from './context';
 import { getFileInfo } from 'mol-util/file-info';
-import { CifFile } from 'mol-io/reader/cif';
+import { CifFile, CifFrame } from 'mol-io/reader/cif';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { Model, Structure } from 'mol-model/structure';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
+import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-stick';
+import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
+import { CartoonProps } from 'mol-geo/representation/structure/cartoon';
+import { BackboneProps } from 'mol-geo/representation/structure/backbone';
 
 const getNextId = idFactory(1)
 
@@ -93,10 +97,10 @@ export namespace CifEntity {
     }
 }
 
-export type MmcifEntity = StateEntity<mmCIF_Database, 'mmcif'>
+export type MmcifEntity = StateEntity<{ db: mmCIF_Database, frame: CifFrame }, 'mmcif'>
 export namespace MmcifEntity {
-    export function ofMmcifDb(ctx: StateContext, db: mmCIF_Database): MmcifEntity {
-        return StateEntity.create(ctx, 'mmcif', db)
+    export function ofMmcifDb(ctx: StateContext, mmCif: { db: mmCIF_Database, frame: CifFrame }): MmcifEntity {
+        return StateEntity.create(ctx, 'mmcif', mmCif)
     }
 }
 
@@ -118,5 +122,33 @@ export type SpacefillEntity = StateEntity<StructureRepresentation<SpacefillProps
 export namespace SpacefillEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<SpacefillProps>): SpacefillEntity {
         return StateEntity.create(ctx, 'spacefill', repr )
+    }
+}
+
+export type BallAndStickEntity = StateEntity<StructureRepresentation<BallAndStickProps>, 'ballandstick'>
+export namespace BallAndStickEntity {
+    export function ofRepr(ctx: StateContext, repr: StructureRepresentation<BallAndStickProps>): BallAndStickEntity {
+        return StateEntity.create(ctx, 'ballandstick', repr )
+    }
+}
+
+export type DistanceRestraintEntity = StateEntity<StructureRepresentation<DistanceRestraintProps>, 'distancerestraint'>
+export namespace DistanceRestraintEntity {
+    export function ofRepr(ctx: StateContext, repr: StructureRepresentation<DistanceRestraintProps>): DistanceRestraintEntity {
+        return StateEntity.create(ctx, 'distancerestraint', repr )
+    }
+}
+
+export type BackboneEntity = StateEntity<StructureRepresentation<BackboneProps>, 'backbone'>
+export namespace BackboneEntity {
+    export function ofRepr(ctx: StateContext, repr: StructureRepresentation<BackboneProps>): BackboneEntity {
+        return StateEntity.create(ctx, 'backbone', repr )
+    }
+}
+
+export type CartoonEntity = StateEntity<StructureRepresentation<CartoonProps>, 'cartoon'>
+export namespace CartoonEntity {
+    export function ofRepr(ctx: StateContext, repr: StructureRepresentation<CartoonProps>): CartoonEntity {
+        return StateEntity.create(ctx, 'cartoon', repr )
     }
 }

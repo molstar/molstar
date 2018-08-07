@@ -22,6 +22,8 @@ import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
+import { MarkerAction } from 'mol-geo/util/marker-data';
+import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -38,7 +40,9 @@ interface Viewer {
     requestDraw: () => void
     animate: () => void
     pick: () => void
-    identify: (x: number, y: number) => void
+    identify: (x: number, y: number) => PickingId
+    mark: (loci: Loci, action: MarkerAction) => void
+    getLoci: (pickingId: PickingId) => Loci
 
     reprCount: BehaviorSubject<number>
     identified: BehaviorSubject<string>
@@ -73,32 +77,14 @@ namespace Viewer {
 
         const startTime = performance.now()
         const didDraw = new BehaviorSubject(0)
-
         const input = InputObserver.create(canvas)
-        input.resize.subscribe(handleResize)
-        input.move.subscribe(({x, y}) => {
-            const p = identify(x, y)
-            let label = ''
-            reprMap.forEach((roSet, repr) => {
-                const info = repr.getLabel(p)
-                if (info) label = info.label
-                repr.update({ hoverSelection: p }).run().then(() => {
-                    scene.update()
-                    requestDraw()
-                })
-            })
-            identified.next(`Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`)
-        })
 
         const camera = PerspectiveCamera.create({
             near: 0.1,
             far: 10000,
             position: Vec3.create(0, 0, 50)
         })
-
-        const controls = TrackballControls.create(input, camera, {
-
-        })
+        // camera.lookAt(Vec3.create(0, 0, 0))
 
         const gl = getWebGLContext(canvas, {
             alpha: false,
@@ -112,7 +98,10 @@ namespace Viewer {
         const ctx = createContext(gl)
 
         const scene = Scene.create(ctx)
-        const renderer = Renderer.create(ctx, camera)
+        // const controls = TrackballControls.create(input, scene, {})
+        const controls = TrackballControls.create(input, camera, {})
+        // const renderer = Renderer.create(ctx, camera, { clearColor: 0xFFFFFF })
+        const renderer = Renderer.create(ctx, camera, { clearColor: 0x000000 })
 
         const pickScale = 1 / 4
         const pickWidth = Math.round(canvas.width * pickScale)
@@ -124,13 +113,71 @@ namespace Viewer {
         let pickDirty = true
         let drawPending = false
         const prevProjectionView = Mat4.zero()
+        const prevSceneView = Mat4.zero()
+
+        function getLoci(pickingId: PickingId) {
+            let loci: Loci = EmptyLoci
+            reprMap.forEach((_, repr) => {
+                const _loci = repr.getLoci(pickingId)
+                if (!isEmptyLoci(_loci)) {
+                    if (!isEmptyLoci(loci)) console.warn('found another loci')
+                    loci = _loci
+                }
+            })
+            return loci
+        }
+
+        function mark(loci: Loci, action: MarkerAction) {
+            reprMap.forEach((roSet, repr) => repr.mark(loci, action))
+            scene.update()
+            requestDraw()
+        }
+
+        let nearPlaneDelta = 0
+        function computeNearDistance() {
+            const focusRadius = scene.boundingSphere.radius
+            let dist = Vec3.distance(controls.target, camera.position)
+            if (dist > focusRadius) return dist - focusRadius
+            return 0
+        }
 
         function render(variant: RenderVariant, force?: boolean) {
+            // const p = scene.boundingSphere.center
+            // console.log(p[0], p[1], p[2])
+            // Vec3.set(controls.target, p[0], p[1], p[2])
+
+            const focusRadius = scene.boundingSphere.radius
+            const targetDistance = Vec3.distance(controls.target, camera.position)
+            // console.log(targetDistance, controls.target, camera.position)
+            let near = computeNearDistance() + nearPlaneDelta
+            camera.near = Math.max(0.01, Math.min(near, targetDistance - 0.5))
+
+            let fogNear = targetDistance - camera.near + 1 * focusRadius - nearPlaneDelta;
+            let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta;
+
+            //console.log(fogNear, fogFar);
+            camera.fogNear = Math.max(fogNear, 0.1);
+            camera.fogFar = Math.max(fogFar, 0.2);
+
+            // console.log(camera.fogNear, camera.fogFar, targetDistance)
+
+            switch (variant) {
+                case 'pickObject': objectPickTarget.bind(); break;
+                case 'pickInstance': instancePickTarget.bind(); break;
+                case 'pickElement': elementPickTarget.bind(); break;
+                case 'draw':
+                    ctx.unbindFramebuffer();
+                    renderer.setViewport(0, 0, canvas.width, canvas.height);
+                    break;
+            }
             let didRender = false
             controls.update()
             camera.update()
-            if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value)) {
+            scene.update()
+            if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value) || !Mat4.areEqual(scene.view, prevSceneView, EPSILON.Value)) {
+                // console.log('foo', force, prevSceneView, scene.view)
                 Mat4.copy(prevProjectionView, camera.projectionView)
+                Mat4.copy(prevSceneView, scene.view)
                 renderer.render(scene, variant)
                 if (variant === 'draw') {
                     pickDirty = true
@@ -142,9 +189,6 @@ namespace Viewer {
         }
 
         function draw(force?: boolean) {
-            ctx.unbindFramebuffer()
-            const viewport = { x: 0, y: 0, width: canvas.width, height: canvas.height }
-            renderer.setViewport(viewport)
             if (render('draw', force)) {
                 didDraw.next(performance.now() - startTime)
             }
@@ -163,13 +207,8 @@ namespace Viewer {
         }
 
         function pick() {
-            objectPickTarget.bind()
             render('pickObject', pickDirty)
-
-            instancePickTarget.bind()
             render('pickInstance', pickDirty)
-
-            elementPickTarget.bind()
             render('pickElement', pickDirty)
 
             pickDirty = false
@@ -248,6 +287,8 @@ namespace Viewer {
             animate,
             pick,
             identify,
+            mark,
+            getLoci,
 
             handleResize,
             resetCamera: () => {
@@ -284,10 +325,9 @@ namespace Viewer {
 
         function handleResize() {
             resizeCanvas(canvas, container)
-            const viewport = { x: 0, y: 0, width: canvas.width, height: canvas.height }
-            renderer.setViewport(viewport)
-            Viewport.copy(camera.viewport, viewport)
-            Viewport.copy(controls.viewport, viewport)
+            renderer.setViewport(0, 0, canvas.width, canvas.height)
+            Viewport.set(camera.viewport, 0, 0, canvas.width, canvas.height)
+            Viewport.set(controls.viewport, 0, 0, canvas.width, canvas.height)
 
             const pickWidth = Math.round(canvas.width * pickScale)
             const pickHeight = Math.round(canvas.height * pickScale)

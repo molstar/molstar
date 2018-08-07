@@ -5,92 +5,36 @@
  */
 
 import { Column, Table } from 'mol-data/db';
-import { Interval, Segmentation } from 'mol-data/int';
-import { Spacegroup, SpacegroupCell } from 'mol-math/geometry';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
+import { Spacegroup, SpacegroupCell, SymmetryOperator } from 'mol-math/geometry';
+import { Tensor, Vec3 } from 'mol-math/linear-algebra';
+import { Task, RuntimeContext } from 'mol-task';
 import UUID from 'mol-util/uuid';
 import Format from '../format';
-import Model from '../model';
-import { AtomicConformation, AtomicData, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../properties/atomic';
+import { Model } from '../model';
 import { Entities } from '../properties/common';
+import { CustomProperties } from '../properties/custom';
 import { ModelSymmetry } from '../properties/symmetry';
-import { getAtomicKeys } from '../properties/utils/atomic-keys';
-import { ElementSymbol } from '../types';
 import { createAssemblies } from './mmcif/assembly';
-import { getIHMCoarse } from './mmcif/ihm';
+import { getAtomicHierarchyAndConformation } from './mmcif/atomic';
+import { ComponentBond } from './mmcif/bonds';
+import { getIHMCoarse, EmptyIHMCoarse, IHMData } from './mmcif/ihm';
+import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 import { getSequence } from './mmcif/sequence';
+import { sortAtomSite } from './mmcif/sort';
+import { StructConn } from './mmcif/bonds/struct_conn';
+import { ChemicalComponent, ChemicalComponentMap } from '../properties/chemical-component';
+import { ComponentType, getMoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
-import { Task } from 'mol-task';
-import { getSecondaryStructureMmCif } from './mmcif/secondary-structure';
 
-function findModelBounds({ data }: mmCIF_Format, startIndex: number) {
-    const num = data.atom_site.pdbx_PDB_model_num;
-    const atomCount = num.rowCount;
-    if (!num.isDefined) return Interval.ofBounds(startIndex, atomCount);
-    let endIndex = startIndex + 1;
-    while (endIndex < atomCount && num.areValuesEqual(startIndex, endIndex)) endIndex++;
-    return Interval.ofBounds(startIndex, endIndex);
-}
-
-function findHierarchyOffsets({ data }: mmCIF_Format, bounds: Interval) {
-    if (Interval.size(bounds) === 0) return { residues: [], chains: [] };
-
-    const start = Interval.start(bounds), end = Interval.end(bounds);
-    const residues = [start], chains = [start];
-
-    const { label_entity_id, auth_asym_id, auth_seq_id, pdbx_PDB_ins_code, label_comp_id } = data.atom_site;
-
-    for (let i = start + 1; i < end; i++) {
-        const newChain = !label_entity_id.areValuesEqual(i - 1, i) || !auth_asym_id.areValuesEqual(i - 1, i);
-        const newResidue = newChain
-            || !auth_seq_id.areValuesEqual(i - 1, i)
-            || !pdbx_PDB_ins_code.areValuesEqual(i - 1, i)
-            || !label_comp_id.areValuesEqual(i - 1, i);
-
-        if (newResidue) residues[residues.length] = i;
-        if (newChain) chains[chains.length] = i;
-    }
-    return { residues, chains };
-}
-
-function createHierarchyData({ data }: mmCIF_Format, bounds: Interval, offsets: { residues: ArrayLike<number>, chains: ArrayLike<number> }): AtomicData {
-    const { atom_site } = data;
-    const start = Interval.start(bounds), end = Interval.end(bounds);
-    const atoms = Table.ofColumns(AtomsSchema, {
-        type_symbol: Column.ofArray({ array: Column.mapToArray(Column.window(atom_site.type_symbol, start, end), ElementSymbol), schema: Column.Schema.Aliased<ElementSymbol>(Column.Schema.str) }),
-        label_atom_id: Column.window(atom_site.label_atom_id, start, end),
-        auth_atom_id: Column.window(atom_site.auth_atom_id, start, end),
-        label_alt_id: Column.window(atom_site.label_alt_id, start, end),
-        pdbx_formal_charge: Column.window(atom_site.pdbx_formal_charge, start, end)
-    });
-    const residues = Table.view(atom_site, ResiduesSchema, offsets.residues);
-    // Optimize the numeric columns
-    Table.columnToArray(residues, 'label_seq_id', Int32Array);
-    Table.columnToArray(residues, 'auth_seq_id', Int32Array);
-    const chains = Table.view(atom_site, ChainsSchema, offsets.chains);
-    return { atoms, residues, chains };
-}
-
-function getConformation({ data }: mmCIF_Format, bounds: Interval): AtomicConformation {
-    const start = Interval.start(bounds), end = Interval.end(bounds);
-    const { atom_site } = data;
-    return {
-        id: UUID.create(),
-        atomId: Column.window(atom_site.id, start, end),
-        occupancy: Column.window(atom_site.occupancy, start, end),
-        B_iso_or_equiv: Column.window(atom_site.B_iso_or_equiv, start, end),
-        x: atom_site.Cartn_x.toArray({ array: Float32Array, start, end }),
-        y: atom_site.Cartn_y.toArray({ array: Float32Array, start, end }),
-        z: atom_site.Cartn_z.toArray({ array: Float32Array, start, end }),
-    }
-}
+type AtomSite = mmCIF_Database['atom_site']
 
 function getSymmetry(format: mmCIF_Format): ModelSymmetry {
     const assemblies = createAssemblies(format);
     const spacegroup = getSpacegroup(format);
     const isNonStandardCrytalFrame = checkNonStandardCrystalFrame(format, spacegroup);
-    return { assemblies, spacegroup, isNonStandardCrytalFrame };
+    return { assemblies, spacegroup, isNonStandardCrytalFrame, ncsOperators: getNcsOperators(format) };
 }
 
 function checkNonStandardCrystalFrame(format: mmCIF_Format, spacegroup: Spacegroup) {
@@ -111,37 +55,96 @@ function getSpacegroup(format: mmCIF_Format): Spacegroup {
     return Spacegroup.create(spaceCell);
 }
 
-function isHierarchyDataEqual(a: AtomicData, b: AtomicData) {
-    // need to cast because of how TS handles type resolution for interfaces https://github.com/Microsoft/TypeScript/issues/15300
-    return Table.areEqual(a.chains as Table<ChainsSchema>, b.chains as Table<ChainsSchema>)
-        && Table.areEqual(a.residues as Table<ResiduesSchema>, b.residues as Table<ResiduesSchema>)
-        && Table.areEqual(a.atoms as Table<AtomsSchema>, b.atoms as Table<AtomsSchema>)
+function getNcsOperators(format: mmCIF_Format) {
+    const { struct_ncs_oper } = format.data;
+    if (struct_ncs_oper._rowCount === 0) return void 0;
+    const { id, matrix, vector } = struct_ncs_oper;
+
+    const matrixSpace = mmCIF_Schema.struct_ncs_oper.matrix.space, vectorSpace = mmCIF_Schema.struct_ncs_oper.vector.space;
+
+    const opers: SymmetryOperator[] = [];
+    for (let i = 0; i < struct_ncs_oper._rowCount; i++) {
+        const m = Tensor.toMat3(matrixSpace, matrix.value(i));
+        const v = Tensor.toVec3(vectorSpace, vector.value(i));
+        opers[i] = SymmetryOperator.ofRotationAndOffset(`ncs_${id.value(i)}`, m, v);
+    }
+    return opers;
+}
+function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['modifiedResidues'] {
+    const data = format.data.pdbx_struct_mod_residue;
+    const parentId = new Map<string, string>();
+    const details = new Map<string, string>();
+    const comp_id = data.label_comp_id.isDefined ? data.label_comp_id : data.auth_comp_id;
+    const parent_id = data.parent_comp_id, details_data = data.details;
+
+    for (let i = 0; i < data._rowCount; i++) {
+        const id = comp_id.value(i);
+        parentId.set(id, parent_id.value(i));
+        details.set(id, details_data.value(i));
+    }
+
+    return { parentId, details };
 }
 
-function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): Model {
-    const hierarchyOffsets = findHierarchyOffsets(format, bounds);
-    const hierarchyData = createHierarchyData(format, bounds, hierarchyOffsets);
+function getAsymIdSerialMap(format: mmCIF_Format): ReadonlyMap<string, number> {
+    const data = format.data.struct_asym;
+    const map = new Map<string, number>();
+    let serial = 0
 
-    if (previous && isHierarchyDataEqual(previous.atomicHierarchy, hierarchyData)) {
-        return {
-            ...previous,
-            atomicConformation: getConformation(format, bounds)
-        };
+    const id = data.id
+    const count = data._rowCount
+    for (let i = 0; i < count; ++i) {
+        const _id = id.value(i)
+        if (!map.has(_id)) {
+            map.set(_id, serial)
+            serial += 1
+        }
     }
 
-    const hierarchySegments: AtomicSegments = {
-        residueSegments: Segmentation.ofOffsets(hierarchyOffsets.residues, bounds),
-        chainSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, bounds),
+    return map;
+}
+
+function getChemicalComponentMap(format: mmCIF_Format): ChemicalComponentMap {
+    const map = new Map<string, ChemicalComponent>();
+    const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
+    for (let i = 0, il = id.rowCount; i < il; ++i) {
+        const _id = id.value(i)
+        const _type = type.value(i)
+        const cc: ChemicalComponent = {
+            id: _id,
+            type: ComponentType[_type],
+            moleculeType: getMoleculeType(_type, _id),
+            name: name.value(i),
+            synonyms: pdbx_synonyms.value(i),
+            formula: formula.value(i),
+            formulaWeight: formula_weight.value(i),
+        }
+        map.set(_id, cc)
+    }
+    return map
+}
+
+export interface FormatData {
+    modifiedResidues: Model['properties']['modifiedResidues']
+    asymIdSerialMap: Model['properties']['asymIdSerialMap']
+    chemicalComponentMap: Model['properties']['chemicalComponentMap']
+}
+
+function getFormatData(format: mmCIF_Format): FormatData {
+    return {
+        modifiedResidues: getModifiedResidueNameMap(format),
+        asymIdSerialMap: getAsymIdSerialMap(format),
+        chemicalComponentMap: getChemicalComponentMap(format)
+    }
+}
+
+function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, formatData: FormatData, previous?: Model): Model {
+    const atomic = getAtomicHierarchyAndConformation(format, atom_site, entities, formatData, previous);
+    if (previous && atomic.sameAsPrevious) {
+        return { ...previous, atomicConformation: atomic.conformation };
     }
 
-    const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
-
-    const hierarchyKeys = getAtomicKeys(hierarchyData, entities, hierarchySegments);
-
-    const atomicHierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments };
-
-    const coarse = getIHMCoarse(format.data, entities);
-
+    const coarse = EmptyIHMCoarse;
     const label = format.data.entry.id.valueKind(0) === Column.ValueKind.Present
         ? format.data.entry.id.value(0)
         : format.data._name;
@@ -150,40 +153,129 @@ function createModel(format: mmCIF_Format, bounds: Interval, previous?: Model): 
         id: UUID.create(),
         label,
         sourceData: format,
-        modelNum: format.data.atom_site.pdbx_PDB_model_num.value(Interval.start(bounds)),
+        modelNum: atom_site.pdbx_PDB_model_num.value(0),
         entities,
-        atomicHierarchy,
-        sequence: getSequence(format.data, entities, atomicHierarchy),
-        atomicConformation: getConformation(format, bounds),
+        symmetry: getSymmetry(format),
+        sequence: getSequence(format.data, entities, atomic.hierarchy, formatData.modifiedResidues.parentId),
+        atomicHierarchy: atomic.hierarchy,
+        atomicConformation: atomic.conformation,
         coarseHierarchy: coarse.hierarchy,
         coarseConformation: coarse.conformation,
         properties: {
-            secondaryStructure: getSecondaryStructureMmCif(format.data, atomicHierarchy)
+            secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
+            ...formatData
         },
-        symmetry: getSymmetry(format)
+        customProperties: new CustomProperties(),
+        _staticPropertyData: Object.create(null),
+        _dynamicPropertyData: Object.create(null)
     };
 }
 
+function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatData): Model {
+    const atomic = getAtomicHierarchyAndConformation(format, data.atom_site, data.entities, formatData);
+    const coarse = getIHMCoarse(data, formatData);
+
+    return {
+        id: UUID.create(),
+        label: data.model_name,
+        sourceData: format,
+        modelNum: data.model_id,
+        entities: data.entities,
+        symmetry: getSymmetry(format),
+        sequence: getSequence(format.data, data.entities, atomic.hierarchy, formatData.modifiedResidues.parentId),
+        atomicHierarchy: atomic.hierarchy,
+        atomicConformation: atomic.conformation,
+        coarseHierarchy: coarse.hierarchy,
+        coarseConformation: coarse.conformation,
+        properties: {
+            secondaryStructure: getSecondaryStructureMmCif(format.data, atomic.hierarchy),
+            ...formatData
+        },
+        customProperties: new CustomProperties(),
+        _staticPropertyData: Object.create(null),
+        _dynamicPropertyData: Object.create(null)
+    };
+}
+
+function attachProps(model: Model) {
+    ComponentBond.attachFromMmCif(model);
+    StructConn.attachFromMmCif(model);
+}
+
+function findModelEnd(num: Column<number>, startIndex: number) {
+    const rowCount = num.rowCount;
+    if (!num.isDefined) return rowCount;
+    let endIndex = startIndex + 1;
+    while (endIndex < rowCount && num.areValuesEqual(startIndex, endIndex)) endIndex++;
+    return endIndex;
+}
+
+async function readStandard(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
+    const atomCount = format.data.atom_site._rowCount;
+    const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
+
+    const models: Model[] = [];
+    let modelStart = 0;
+    while (modelStart < atomCount) {
+        const modelEnd = findModelEnd(format.data.atom_site.pdbx_PDB_model_num, modelStart);
+        const atom_site = await sortAtomSite(ctx, format.data.atom_site, modelStart, modelEnd);
+        const model = createStandardModel(format, atom_site, entities, formatData, models.length > 0 ? models[models.length - 1] : void 0);
+        attachProps(model);
+        models.push(model);
+        modelStart = modelEnd;
+    }
+    return models;
+}
+
+function splitTable<T extends Table<any>>(table: T, col: Column<number>) {
+    const ret = new Map<number, T>()
+    const rowCount = table._rowCount;
+    let modelStart = 0;
+    while (modelStart < rowCount) {
+        const modelEnd = findModelEnd(col, modelStart);
+        const id = col.value(modelStart);
+        const window = Table.window(table, table._schema, modelStart, modelEnd) as T;
+        ret.set(id, window);
+        modelStart = modelEnd;
+    }
+    return ret;
+}
+
+async function readIHM(ctx: RuntimeContext, format: mmCIF_Format, formatData: FormatData) {
+    const { ihm_model_list } = format.data;
+    const entities: Entities = { data: format.data.entity, getEntityIndex: Column.createIndexer(format.data.entity.id) };
+
+    // TODO: will IHM require sorting or will we trust it?
+    const atom_sites = splitTable(format.data.atom_site, format.data.atom_site.ihm_model_id);
+    const sphere_sites = splitTable(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site.model_id);
+    const gauss_sites = splitTable(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site.model_id);
+
+    const models: Model[] = [];
+
+    const { model_id, model_name } = ihm_model_list;
+    for (let i = 0; i < ihm_model_list._rowCount; i++) {
+        const id = model_id.value(i);
+        const data: IHMData = {
+            model_id: id,
+            model_name: model_name.value(i),
+            entities: entities,
+            atom_site: atom_sites.has(id) ? atom_sites.get(id)! : Table.window(format.data.atom_site, format.data.atom_site._schema, 0, 0),
+            ihm_sphere_obj_site: sphere_sites.has(id) ? sphere_sites.get(id)! : Table.window(format.data.ihm_sphere_obj_site, format.data.ihm_sphere_obj_site._schema, 0, 0),
+            ihm_gaussian_obj_site: gauss_sites.has(id) ? gauss_sites.get(id)! : Table.window(format.data.ihm_gaussian_obj_site, format.data.ihm_gaussian_obj_site._schema, 0, 0)
+        };
+        const model = createModelIHM(format, data, formatData);
+        attachProps(model);
+        models.push(model);
+    }
+
+    return models;
+}
+
 function buildModels(format: mmCIF_Format): Task<ReadonlyArray<Model>> {
+    const formatData = getFormatData(format)
     return Task.create('Create mmCIF Model', async ctx => {
-        const atomCount = format.data.atom_site._rowCount;
         const isIHM = format.data.ihm_model_list._rowCount > 0;
-
-        if (atomCount === 0) {
-            return isIHM
-                ? [createModel(format, Interval.Empty, void 0)]
-                : [];
-        }
-
-        const models: Model[] = [];
-        let modelStart = 0;
-        while (modelStart < atomCount) {
-            const bounds = findModelBounds(format, modelStart);
-            const model = createModel(format, bounds, models.length > 0 ? models[models.length - 1] : void 0);
-            models.push(model);
-            modelStart = Interval.end(bounds);
-        }
-        return models;
+        return isIHM ? await readIHM(ctx, format, formatData) : await readStandard(ctx, format, formatData);
     });
 }
 

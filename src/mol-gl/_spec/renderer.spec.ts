@@ -11,7 +11,6 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { ValueCell } from 'mol-util';
 
 import Renderer from '../renderer';
-import { fillSerial } from '../renderable/util';
 import { createUniformColor } from 'mol-geo/util/color-data';
 import { createUniformSize } from 'mol-geo/util/size-data';
 import { createContext } from '../webgl/context';
@@ -19,7 +18,8 @@ import { RenderableState } from '../renderable';
 import { createPointRenderObject } from '../render-object';
 import { PointValues } from '../renderable/point';
 import Scene from '../scene';
-import { createEmptyFlags } from 'mol-geo/representation/structure/utils';
+import { createEmptyMarkers } from 'mol-geo/util/marker-data';
+import { fillSerial } from 'mol-util/array';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -49,7 +49,7 @@ function createPoints() {
     const aInstanceId = ValueCell.create(fillSerial(new Float32Array(1)))
     const color = createUniformColor({ value: 0xFF0000 })
     const size = createUniformSize({ value: 1 })
-    const flag = createEmptyFlags()
+    const marker = createEmptyMarkers()
 
     const aTransform = ValueCell.create(new Float32Array(16))
     const m4 = Mat4.identity()
@@ -61,7 +61,7 @@ function createPoints() {
         aTransform,
         aInstanceId,
         ...color,
-        ...flag,
+        ...marker,
         ...size,
 
         uAlpha: ValueCell.create(1.0),
@@ -71,7 +71,8 @@ function createPoints() {
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
 
-        dPointSizeAttenuation: ValueCell.create(true)
+        dPointSizeAttenuation: ValueCell.create(true),
+        dUseFog: ValueCell.create(true),
     }
     const state: RenderableState = {
         visible: true,
@@ -96,7 +97,7 @@ describe('renderer', () => {
         expect(ctx.programCache.count).toBe(0);
         expect(ctx.shaderCache.count).toBe(0);
 
-        renderer.setViewport({ x: 0, y: 0, width: 64, height: 48 })
+        renderer.setViewport(0, 0, 64, 48)
         expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[2]).toBe(64)
         expect(ctx.gl.getParameter(ctx.gl.VIEWPORT)[3]).toBe(48)
     })

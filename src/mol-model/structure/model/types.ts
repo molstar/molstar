@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  * @author David Sehnal <david.sehnal@gmail.com>
@@ -25,67 +25,203 @@ const _esCache = (function () {
     }
     return cache;
 }());
-export interface ElementSymbol extends String { '@type': 'element-symbol' }
+export type ElementSymbol = string & { '@type': 'element-symbol' }
 export function ElementSymbol(s: string): ElementSymbol {
     return _esCache[s] || s.toUpperCase();
 }
 
+/** Entity types as defined in the mmCIF dictionary */
 export const enum EntityType {
-    Unknown = 'unknown',
-    Polymer = 'polymer',
-    NonPolymer = 'non-polymer',
-    Macrolide = 'macrolide',
-    Water = 'water'
+    'unknown', 'polymer', 'non-polymer', 'macrolide', 'water'
 }
 
 export const enum MoleculeType {
-    Unknown,
-    Water,
-    Ion,
-    Protein,
+    /** the molecule type is not known */
+    unknown,
+    /** a known, but here not listed molecule type */
+    other,
+    /** water molecule */
+    water,
+    /** small ionic molecule */
+    ion,
+    /** protein, e.g. component type included in `ProteinComponentTypeNames` */
+    protein,
+    /** RNA, e.g. component type included in `RNAComponentTypeNames` */
     RNA,
+    /** DNA, e.g. component type included in `DNAComponentTypeNames` */
     DNA,
-    Saccharide
+    /** sacharide, e.g. component type included in `SaccharideComponentTypeNames` */
+    saccharide
 }
 
-export const enum BackboneType {
-    Unknown,
-    Protein,
-    RNA,
-    DNA,
-    CgProtein,
-    CgRNA,
-    CgDNA
+const AtomRole = {
+    trace: '', direction: '', backboneStart: '', backboneEnd: ''
+}
+export type AtomRole = keyof typeof AtomRole
+
+export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: string } } = {
+    [MoleculeType.protein]: {
+        trace: 'CA', // TODO 'BB'
+        direction: 'O', // TODO 'OC1', 'O1', 'OX1', 'OXT'
+        backboneStart: 'N',
+        backboneEnd: 'C'
+    },
+    [MoleculeType.RNA]: {
+        trace: 'C4\'', // TODO 'C4*'
+        direction: 'C3\'', // 'C3*'
+        backboneStart: 'P',
+        backboneEnd: 'O3\'' // TODO 'O3*'
+    },
+    [MoleculeType.DNA]: {
+        trace: 'C3\'', // TODO 'C3*'
+        direction: 'C1\'', // TODO 'C1*'
+        backboneStart: 'P',
+        backboneEnd: 'O3\'' // TODO 'O3*'
+    }
 }
 
-const _chemCompNonPolymer = ['NON-POLYMER'];
-const _chemCompOther = ['OTHER'];
-const _chemCompSaccharide = [
-    'D-SACCHARIDE', 'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'D-SACCHARIDE 1,4 AND 1,6 LINKING',
-    'L-SACCHARIDE', 'L-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING',
-    'SACCHARIDE'
-];
+export const ProteinBackboneAtoms = [
+    'CA', 'C', 'N', 'O',
+    'O1', 'O2', 'OC1', 'OC2', 'OX1', 'OXT',
+    'H', 'H1', 'H2', 'H3', 'HA', 'HN',
+    'BB'
+]
 
-export const ChemComp = {
-    Protein: [
-        'D-BETA-PEPTIDE, C-GAMMA LINKING', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
-        'D-PEPTIDE COOH CARBOXY TERMINUS', 'D-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE LINKING',
-        'L-BETA-PEPTIDE, C-GAMMA LINKING', 'L-GAMMA-PEPTIDE, C-DELTA LINKING',
-        'L-PEPTIDE COOH CARBOXY TERMINUS', 'L-PEPTIDE NH3 AMINO TERMINUS', 'L-PEPTIDE LINKING',
-        'PEPTIDE LINKING', 'PEPTIDE-LIKE'
-    ],
-    RNA: [
-        'RNA OH 3 PRIME TERMINUS', 'RNA OH 5 PRIME TERMINUS', 'RNA LINKING'
-    ],
-    DNA: [
-        'DNA OH 3 PRIME TERMINUS', 'DNA OH 5 PRIME TERMINUS', 'DNA LINKING',
-        'L-DNA LINKING', 'L-RNA LINKING'
-    ],
-    Saccharide: _chemCompSaccharide,
-    Other: _chemCompOther,
-    NonPolymer: _chemCompNonPolymer,
-    Hetero: _chemCompNonPolymer.concat(_chemCompOther, _chemCompSaccharide)
+export const NucleicBackboneAtoms = [
+    'P', 'OP1', 'OP2',
+    'O2\'', 'O3\'', 'O4\'', 'O5\'', 'C1\'', 'C2\'', 'C3\'', 'C4\'', 'C5\'',
+    'O2*', 'O3*', 'O4*', 'O5*', 'C1*', 'C2*', 'C3*', 'C4*', 'C5*'
+]
+
+/** Chemical component types as defined in the mmCIF CCD */
+export enum ComponentType {
+    // protein
+    'D-peptide linking', 'L-peptide linking', 'D-peptide NH3 amino terminus',
+    'L-peptide NH3 amino terminus', 'D-peptide COOH carboxy terminus',
+    'L-peptide COOH carboxy terminus', 'peptide linking', 'peptide-like',
+    'L-gamma-peptide, C-delta linking', 'D-gamma-peptide, C-delta linking',
+    'L-beta-peptide, C-gamma linking', 'D-beta-peptide, C-gamma linking',
+
+    // DNA
+    'DNA linking', 'L-DNA linking', 'DNA OH 5 prime terminus', 'DNA OH 3 prime terminus',
+
+    // RNA
+    'RNA linking', 'L-RNA linking', 'RNA OH 5 prime terminus', 'RNA OH 3 prime terminus',
+
+    // sacharide
+    'D-saccharide 1,4 and 1,4 linking', 'L-saccharide 1,4 and 1,4 linking',
+    'D-saccharide 1,4 and 1,6 linking', 'L-saccharide 1,4 and 1,6 linking', 'L-saccharide',
+    'D-saccharide', 'saccharide',
+
+    'non-polymer', 'other'
 }
+
+/** Chemical component type names for protein */
+export const ProteinComponentTypeNames = [
+    'D-PEPTIDE LINKING', 'L-PEPTIDE LINKING', 'D-PEPTIDE NH3 AMINO TERMINUS',
+    'L-PEPTIDE NH3 AMINO TERMINUS', 'D-PEPTIDE COOH CARBOXY TERMINUS',
+    'L-PEPTIDE COOH CARBOXY TERMINUS', 'PEPTIDE LINKING', 'PEPTIDE-LIKE',
+    'L-GAMMA-PEPTIDE, C-DELTA LINKING', 'D-GAMMA-PEPTIDE, C-DELTA LINKING',
+    'L-BETA-PEPTIDE, C-GAMMA LINKING', 'D-BETA-PEPTIDE, C-GAMMA LINKING',
+]
+
+/** Chemical component type names for DNA */
+export const DNAComponentTypeNames = [
+    'DNA LINKING', 'L-DNA LINKING', 'DNA OH 5 PRIME TERMINUS', 'DNA OH 3 PRIME TERMINUS',
+]
+
+/** Chemical component type names for RNA */
+export const RNAComponentTypeNames = [
+    'RNA LINKING', 'L-RNA LINKING', 'RNA OH 5 PRIME TERMINUS', 'RNA OH 3 PRIME TERMINUS',
+]
+
+/** Chemical component type names for saccharide */
+export const SaccharideComponentTypeNames = [
+    'D-SACCHARIDE 1,4 AND 1,4 LINKING', 'L-SACCHARIDE 1,4 AND 1,4 LINKING',
+    'D-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE 1,4 AND 1,6 LINKING', 'L-SACCHARIDE',
+    'D-SACCHARIDE', 'SACCHARIDE',
+]
+
+/** Common names for water molecules */
+export const WaterNames = [
+    'SOL', 'WAT', 'HOH', 'H2O', 'W', 'DOD', 'D3O', 'TIP3', 'TIP4', 'SPC'
+]
+
+export const ExtraSaccharideNames = [
+    'MLR'
+]
+
+export const RnaBaseNames = [ 'A', 'C', 'T', 'G', 'I', 'U' ]
+export const DnaBaseNames = [ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ]
+export const PurinBaseNames = [ 'A', 'G', 'DA', 'DG', 'DI' ]
+export const PyrimidineBaseNames = [ 'C', 'T', 'U', 'DC', 'DT', 'DU' ]
+export const BaseNames = RnaBaseNames.concat(DnaBaseNames)
+
+export const isPurinBase = (compId: string) => PurinBaseNames.includes(compId.toUpperCase())
+export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.includes(compId.toUpperCase())
+
+/** get the molecule type from component type and id */
+export function getMoleculeType(compType: string, compId: string) {
+    compType = compType.toUpperCase()
+    compId = compId.toUpperCase()
+    if (ProteinComponentTypeNames.includes(compType)) {
+        return MoleculeType.protein
+    } else if (RNAComponentTypeNames.includes(compType)) {
+        return MoleculeType.RNA
+    } else if (DNAComponentTypeNames.includes(compType)) {
+        return MoleculeType.DNA
+    } else if (SaccharideComponentTypeNames.includes(compType) || ExtraSaccharideNames.includes(compId)) {
+        return MoleculeType.saccharide
+    } else if (WaterNames.includes(compId)) {
+        return MoleculeType.water
+    } else if (IonNames.includes(compId)) {
+        return MoleculeType.ion
+    } else {
+        return MoleculeType.unknown
+    }
+}
+
+export function isPolymer(moleculeType: MoleculeType) {
+    return moleculeType === MoleculeType.protein || moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA
+}
+
+export function isNucleic(moleculeType: MoleculeType) {
+    return moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA
+}
+
+/**
+ * all chemical components with the word "ion" in their name, Sep 2016
+ *
+ * SET SESSION group_concat_max_len = 1000000;
+ * SELECT GROUP_CONCAT(id_ ORDER BY id_ ASC SEPARATOR '", "') from
+ * (
+ *     SELECT count(obj_id) as c, id_
+ *     FROM pdb.chem_comp WHERE name LIKE "% ION%"
+ *     GROUP BY id_
+ * ) AS t1;
+ */
+export const IonNames = [
+  '118', '119', '1AL', '1CU', '2FK', '2HP', '2OF', '3CO',
+  '3MT', '3NI', '3OF', '3P8', '4MO', '4PU', '543', '6MO', 'ACT', 'AG', 'AL',
+  'ALF', 'AM', 'ATH', 'AU', 'AU3', 'AUC', 'AZI', 'BA', 'BCT', 'BEF', 'BF4', 'BO4',
+  'BR', 'BS3', 'BSY', 'CA', 'CAC', 'CD', 'CD1', 'CD3', 'CD5', 'CE', 'CHT', 'CL',
+  'CO', 'CO3', 'CO5', 'CON', 'CR', 'CS', 'CSB', 'CU', 'CU1', 'CU3', 'CUA', 'CUZ',
+  'CYN', 'DME', 'DMI', 'DSC', 'DTI', 'DY', 'E4N', 'EDR', 'EMC', 'ER3', 'EU',
+  'EU3', 'F', 'FE', 'FE2', 'FPO', 'GA', 'GD3', 'GEP', 'HAI', 'HG', 'HGC', 'IN',
+  'IOD', 'IR', 'IR3', 'IRI', 'IUM', 'K', 'KO4', 'LA', 'LCO', 'LCP', 'LI', 'LU',
+  'MAC', 'MG', 'MH2', 'MH3', 'MLI', 'MLT', 'MMC', 'MN', 'MN3', 'MN5', 'MN6',
+  'MO1', 'MO2', 'MO3', 'MO4', 'MO5', 'MO6', 'MOO', 'MOS', 'MOW', 'MW1', 'MW2',
+  'MW3', 'NA', 'NA2', 'NA5', 'NA6', 'NAO', 'NAW', 'NCO', 'NET', 'NH4', 'NI',
+  'NI1', 'NI2', 'NI3', 'NO2', 'NO3', 'NRU', 'O4M', 'OAA', 'OC1', 'OC2', 'OC3',
+  'OC4', 'OC5', 'OC6', 'OC7', 'OC8', 'OCL', 'OCM', 'OCN', 'OCO', 'OF1', 'OF2',
+  'OF3', 'OH', 'OS', 'OS4', 'OXL', 'PB', 'PBM', 'PD', 'PDV', 'PER', 'PI', 'PO3',
+  'PO4', 'PR', 'PT', 'PT4', 'PTN', 'RB', 'RH3', 'RHD', 'RU', 'SB', 'SCN', 'SE4',
+  'SEK', 'SM', 'SMO', 'SO3', 'SO4', 'SR', 'T1A', 'TB', 'TBA', 'TCN', 'TEA', 'TH',
+  'THE', 'TL', 'TMA', 'TRA', 'UNX', 'V', 'VN3', 'VO4', 'W', 'WO5', 'Y1', 'YB',
+  'YB2', 'YH', 'YT3', 'ZCM', 'ZN', 'ZN2', 'ZN3', 'ZNO', 'ZO3',
+    // additional ion names
+  'OHX'
+]
 
 export interface SecondaryStructureType extends BitFlags<SecondaryStructureType.Flag> { }
 export namespace SecondaryStructureType {
@@ -340,9 +476,9 @@ export const VdwRadii = {
 }
 export const DefaultVdwRadius = 2.0
 
-export interface BondType extends BitFlags<BondType.Flag> { }
-export namespace BondType {
-    export const is: (b: BondType, f: Flag) => boolean = BitFlags.has
+export interface LinkType extends BitFlags<LinkType.Flag> { }
+export namespace LinkType {
+    export const is: (b: LinkType, f: Flag) => boolean = BitFlags.has
     export const enum Flag {
         None                 = 0x0,
         Covalent             = 0x1,
@@ -353,5 +489,9 @@ export namespace BondType {
         Aromatic             = 0x20,
         Computed             = 0x40
         // currently at most 16 flags are supported!!
+    }
+
+    export function isCovalent(flags: LinkType.Flag) {
+        return (flags & LinkType.Flag.Covalent) !== 0;
     }
 }

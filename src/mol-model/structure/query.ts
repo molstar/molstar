@@ -4,18 +4,19 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Selection from './query/selection'
-import Query from './query/query'
-import * as generators from './query/generators'
-import * as modifiers from './query/modifiers'
-import props from './query/properties'
+import { StructureSelection } from './query/selection'
+import { StructureQuery } from './query/query'
+export * from './query/context'
+import * as generators from './query/queries/generators'
+import * as modifiers from './query/queries/modifiers'
+import * as combinators from './query/queries/combinators'
 import pred from './query/predicates'
 
 export const Queries = {
     generators,
     modifiers,
-    props,
+    combinators,
     pred
 }
 
-export { Selection, Query }
+export { StructureSelection, StructureQuery }

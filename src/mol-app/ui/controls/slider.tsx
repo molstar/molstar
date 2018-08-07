@@ -206,6 +206,12 @@ export class SliderBase extends React.Component<SliderBaseProps, SliderBaseState
     private sliderElement: HTMLElement | undefined = void 0;
     private handleElements: (HTMLElement | undefined)[] = [];
 
+    state: SliderBaseState = {
+        handle: null,
+        recent: 0,
+        bounds: [0, 0],
+    };
+
     constructor(props: SliderBaseProps) {
         super(props);
 

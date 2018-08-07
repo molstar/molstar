@@ -4,64 +4,68 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Queries, Element } from 'mol-model/structure';
+import { Unit, StructureProperties, StructureElement } from 'mol-model/structure';
 
 import { StructureColorDataProps } from '.';
-import { createAttributeOrElementColor, ColorData } from '../../../util/color-data';
+import { ColorData, createElementColor, createUniformColor } from '../../../util/color-data';
 import { ColorScale } from 'mol-util/color';
-import { Column } from 'mol-data/db';
 
-function createChainIdMap(unit: Unit) {
-    const map = new Map<string, number>()
-    let index = 0
-
-    let count: number
-    let asym_id: Column<string>
-    if (Unit.isAtomic(unit)) {
-        asym_id = unit.model.atomicHierarchy.chains.label_asym_id
-        count = unit.model.atomicHierarchy.chains._rowCount
-    } else if (Unit.isCoarse(unit)) {
-        asym_id = unit.coarseElements.asym_id
-        count = unit.coarseElements.count
-    } else {
-        console.warn('Unknown unit type')
-        return { map, count: index }
+function getAsymId(unit: Unit): StructureElement.Property<string> {
+    switch (unit.kind) {
+        case Unit.Kind.Atomic:
+            return StructureProperties.chain.label_asym_id
+        case Unit.Kind.Spheres:
+        case Unit.Kind.Gaussians:
+            return StructureProperties.coarse.asym_id
     }
-
-    for (let i = 0; i < count; ++i) {
-        const chainId = asym_id.value(i)
-        if (map.get(chainId) === undefined) {
-            map.set(chainId, index)
-            index += 1
-        }
-    }
-    return { map, count: index }
+    throw new Error('unhandled unit kind')
 }
 
-export function chainIdColorData(props: StructureColorDataProps, colorData?: ColorData) {
-    const { group: { units, elements }, vertexMap } = props
+export function chainIdColorData(props: StructureColorDataProps, locationFn: (l: StructureElement, renderElementIdx: number) => void, colorData?: ColorData) {
+    const { group: { units }, elementCount } = props
     const unit = units[0]
 
-    const { map, count } = createChainIdMap(unit)
+    const map = unit.model.properties.asymIdSerialMap
+    const count = map.size
 
     const domain = [ 0, count - 1 ]
     const scale = ColorScale.create({ domain })
+    const asym_id = getAsymId(unit)
 
-    let asym_id: Element.Property<string>
-    if (Unit.isAtomic(unit)) {
-        asym_id = Queries.props.chain.label_asym_id
-    } else if (Unit.isCoarse(unit)) {
-        asym_id = Queries.props.coarse.asym_id
-    }
-
-    const l = Element.Location()
+    const l = StructureElement.create()
     l.unit = unit
 
-    return createAttributeOrElementColor(vertexMap, {
-        colorFn: (elementIdx: number) => {
-            l.element = elements[elementIdx]
+    return createElementColor({
+        colorFn: (renderElementIdx: number) => {
+            locationFn(l, renderElementIdx)
             return scale.color(map.get(asym_id(l)) || 0)
         },
-        vertexMap
+        elementCount
     }, colorData)
+}
+
+export function chainIdElementColorData(props: StructureColorDataProps, colorData?: ColorData) {
+    const elements = props.group.units[0].elements
+    function locationFn(l: StructureElement, renderElementIdx: number) {
+        l.element = elements[renderElementIdx]
+    }
+    return chainIdColorData(props, locationFn, colorData)
+}
+
+export function chainIdLinkColorData(props: StructureColorDataProps, colorData?: ColorData): ColorData {
+    const unit = props.group.units[0]
+    const elements = unit.elements
+    let locationFn: (l: StructureElement, renderElementIdx: number) => void
+    switch (unit.kind) {
+        case Unit.Kind.Atomic:
+            const { a } = unit.links
+            locationFn = (l: StructureElement, renderElementIdx: number) => {
+                l.element = elements[a[renderElementIdx]]
+            }
+            return chainIdColorData(props, locationFn, colorData)
+        case Unit.Kind.Spheres:
+        case Unit.Kind.Gaussians:
+            // no chainId link color for coarse units, return uniform grey color
+            return createUniformColor({ value: 0xCCCCCC }, colorData)
+    }
 }

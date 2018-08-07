@@ -4,33 +4,35 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Element } from '../structure'
-import P from './properties'
+import { QueryFn, QueryPredicate, QueryContextView } from './context';
 
 namespace Predicates {
     export interface SetLike<A> { has(v: A): boolean }
     function isSetLike<A>(x: any): x is SetLike<A> { return !!x && !!x.has }
 
-    export function eq<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) === value; }
-    export function lt<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) < value; }
-    export function lte<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) <= value; }
-    export function gt<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) > value; }
-    export function gte<A>(p: Element.Property<A>, value: A): Element.Predicate { return l => p(l) >= value; }
+    export function eq<A>(p: QueryFn<A>, value: A): QueryPredicate { return l => p(l) === value; }
+    export function lt<A>(p: QueryFn<A>, value: A): QueryPredicate { return l => p(l) < value; }
+    export function lte<A>(p: QueryFn<A>, value: A): QueryPredicate { return l => p(l) <= value; }
+    export function gt<A>(p: QueryFn<A>, value: A): QueryPredicate { return l => p(l) > value; }
+    export function gte<A>(p: QueryFn<A>, value: A): QueryPredicate { return l => p(l) >= value; }
 
-    export function inSet<A>(p: Element.Property<A>, values: SetLike<A> | ArrayLike<A>): Element.Predicate {
+    function _true(ctx: QueryContextView) { return true; }
+    function _false(ctx: QueryContextView) { return false; }
+
+    export function inSet<A>(p: QueryFn<A>, values: SetLike<A> | ArrayLike<A>): QueryPredicate {
         if (isSetLike(values)) {
             return l => values.has(p(l));
         } else {
-            if (values.length === 0) return P.constant.false;
+            if (values.length === 0) return _false;
             const set = new Set<A>();
             for (let i = 0; i < values.length; i++) set.add(values[i]);
             return l => set.has(p(l));
         }
     }
 
-    export function and(...ps: Element.Predicate[]): Element.Predicate {
+    export function and(...ps: QueryPredicate[]): QueryPredicate {
         switch (ps.length) {
-            case 0: return P.constant.true;
+            case 0: return _true;
             case 1: return ps[0];
             case 2: {
                 const a = ps[0], b = ps[1];
@@ -62,9 +64,9 @@ namespace Predicates {
         }
     }
 
-    export function or(...ps: Element.Predicate[]): Element.Predicate {
+    export function or(...ps: QueryPredicate[]): QueryPredicate {
         switch (ps.length) {
-            case 0: return P.constant.false;
+            case 0: return _false;
             case 1: return ps[0];
             case 2: {
                 const a = ps[0], b = ps[1];

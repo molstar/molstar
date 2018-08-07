@@ -103,6 +103,15 @@ namespace Column {
         return lambdaColumn(spec);
     }
 
+    /** values [min, max] (i.e. include both values) */
+    export function range(min: number, max: number): Column<number> {
+        return ofLambda({
+            value: i => i + min,
+            rowCount: Math.max(max - min + 1, 0),
+            schema: Schema.int
+        });
+    }
+
     export function ofArray<T extends Column.Schema>(spec: Column.ArraySpec<T>): Column<T['T']> {
         return arrayColumn(spec);
     }
@@ -132,8 +141,8 @@ namespace Column {
         return createFirstIndexMapOfColumn(column);
     }
 
-    export function createIndexer<T>(column: Column<T>) {
-        return createIndexerOfColumn(column);
+    export function createIndexer<T, R extends number = number>(column: Column<T>) {
+        return createIndexerOfColumn(column) as ((e: T) => R);
     }
 
     export function mapToArray<T, S>(column: Column<T>, f: (v: T) => S, ctor?: ArrayCtor<S>): ArrayLike<S> {
@@ -261,6 +270,7 @@ function arrayColumn<T extends Column.Schema>({ array, schema, valueKind }: Colu
 
 function windowColumn<T>(column: Column<T>, start: number, end: number) {
     if (!column.isDefined) return Column.Undefined(end - start, column.schema);
+    if (start === 0 && end === column.rowCount) return column;
     if (!!column['@array'] && ColumnHelpers.isTypedArray(column['@array'])) return windowTyped(column, start, end);
     return windowFull(column, start, end);
 }

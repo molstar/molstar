@@ -18,7 +18,8 @@
  */
 
 import Mat4 from './mat4';
-import { Quat, Mat3 } from '../3d';
+import { Quat, Mat3, EPSILON } from '../3d';
+import { spline as _spline, clamp } from '../../interpolate'
 
 interface Vec3 extends Array<number> { [d: number]: number, '@type': 'vec3', length: 3 }
 
@@ -45,7 +46,7 @@ namespace Vec3 {
         return { x: v[0], y: v[1], z: v[2] };
     }
 
-    export function fromArray(v: Vec3, array: Helpers.NumberArray, offset: number) {
+    export function fromArray(v: Vec3, array: ArrayLike<number>, offset: number) {
         v[0] = array[offset + 0]
         v[1] = array[offset + 1]
         v[2] = array[offset + 2]
@@ -123,10 +124,19 @@ namespace Vec3 {
         return out;
     }
 
+    /** Scales b, then adds a and b together */
     export function scaleAndAdd(out: Vec3, a: Vec3, b: Vec3, scale: number) {
         out[0] = a[0] + (b[0] * scale);
         out[1] = a[1] + (b[1] * scale);
         out[2] = a[2] + (b[2] * scale);
+        return out;
+    }
+
+    /** Scales b, then subtracts b from a */
+    export function scaleAndSub(out: Vec3, a: Vec3, b: Vec3, scale: number) {
+        out[0] = a[0] - (b[0] * scale);
+        out[1] = a[1] - (b[1] * scale);
+        out[2] = a[2] - (b[2] * scale);
         return out;
     }
 
@@ -160,6 +170,26 @@ namespace Vec3 {
         return out;
     }
 
+    /**
+     * Returns the minimum of two Vec3's
+     */
+    export function min(out: Vec3, a: Vec3, b: Vec3) {
+        out[0] = Math.min(a[0], b[0]);
+        out[1] = Math.min(a[1], b[1]);
+        out[2] = Math.min(a[2], b[2]);
+        return out;
+    }
+
+    /**
+     * Returns the maximum of two Vec3's
+     */
+    export function max(out: Vec3, a: Vec3, b: Vec3) {
+        out[0] = Math.max(a[0], b[0]);
+        out[1] = Math.max(a[1], b[1]);
+        out[2] = Math.max(a[2], b[2]);
+        return out;
+    }
+
     export function distance(a: Vec3, b: Vec3) {
         const x = b[0] - a[0],
             y = b[1] - a[1],
@@ -190,6 +220,16 @@ namespace Vec3 {
 
     export function setMagnitude(out: Vec3, a: Vec3, l: number) {
         return Vec3.scale(out, Vec3.normalize(out, a), l)
+    }
+
+    /**
+     * Negates the components of a vec3
+     */
+    export function negate(out: Vec3, a: Vec3) {
+        out[0] = -a[0];
+        out[1] = -a[1];
+        out[2] = -a[2];
+        return out;
     }
 
     /**
@@ -243,6 +283,15 @@ namespace Vec3 {
         return out;
     }
 
+    const slerpRelVec = Vec3.zero()
+    export function slerp(out: Vec3, a: Vec3, b: Vec3, t: number) {
+        const dot = clamp(Vec3.dot(a, b), -1, 1);
+        const theta = Math.acos(dot) * t;
+        Vec3.scaleAndAdd(slerpRelVec, b, a, -dot);
+        Vec3.normalize(slerpRelVec, slerpRelVec);
+        return Vec3.add(out, Vec3.scale(out, a, Math.cos(theta)), Vec3.scale(slerpRelVec, slerpRelVec, Math.sin(theta)));
+    }
+
     /**
      * Performs a hermite interpolation with two control points
      */
@@ -275,6 +324,17 @@ namespace Vec3 {
         out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
         out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
         out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+
+        return out;
+    }
+
+    /**
+     * Performs a spline interpolation with two control points and a tension parameter
+     */
+    export function spline(out: Vec3, a: Vec3, b: Vec3, c: Vec3, d: Vec3, t: number, tension: number) {
+        out[0] = _spline(a[0], b[0], c[0], d[0], t, tension);
+        out[1] = _spline(a[1], b[1], c[1], d[1], t, tension);
+        out[2] = _spline(a[2], b[2], c[2], d[2], t, tension);
 
         return out;
     }
@@ -356,6 +416,24 @@ namespace Vec3 {
         }
     }
 
+    /**
+     * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
+     */
+    export function exactEquals(a: Vec3, b: Vec3) {
+        return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+    }
+
+    /**
+     * Returns whether or not the vectors have approximately the same elements in the same position.
+     */
+    export function equals(a: Vec3, b: Vec3) {
+        const a0 = a[0], a1 = a[1], a2 = a[2];
+        const b0 = b[0], b1 = b[1], b2 = b[2];
+        return (Math.abs(a0 - b0) <= EPSILON.Value * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= EPSILON.Value * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+                Math.abs(a2 - b2) <= EPSILON.Value * Math.max(1.0, Math.abs(a2), Math.abs(b2)));
+    }
+
     const rotTemp = zero();
     export function makeRotation(mat: Mat4, a: Vec3, b: Vec3): Mat4 {
         const by = angle(a, b);
@@ -365,7 +443,35 @@ namespace Vec3 {
     }
 
     export function isZero(v: Vec3) {
-        return v[0] === 0 && v[1] === 0 && v[2] === 0
+        return v[0] === 0 && v[1] === 0 && v[2] === 0;
+    }
+
+    export function projectPointOnVector(out: Vec3, point: Vec3, vector: Vec3, origin: Vec3) {
+        // point.sub(origin).projectOnVector(vector).add(origin)
+        sub(out, copy(out, point), origin)
+        const scalar = dot(vector, out) / squaredMagnitude(vector);
+        return add(out, scale(out, copy(out, vector), scalar), origin);
+    }
+
+    const orthogonalizeTmp = zero();
+    /** Get a vector that is similar to `b` but orthogonal to `a` */
+    export function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
+        normalize(orthogonalizeTmp, cross(orthogonalizeTmp, a, b));
+        normalize(out, cross(out, orthogonalizeTmp, a));
+        return out;
+    }
+
+    const triangleNormalTmpAB = zero();
+    const triangleNormalTmpAC = zero();
+    /** Calculate normal for the triangle defined by `a`, `b` and `c` */
+    export function triangleNormal(out: Vec3, a: Vec3, b: Vec3, c: Vec3) {
+        sub(triangleNormalTmpAB, b, a);
+        sub(triangleNormalTmpAC, c, a);
+        return normalize(out, cross(out, triangleNormalTmpAB, triangleNormalTmpAC));
+    }
+
+    export function toString(a: Vec3) {
+        return `[${a[0]} ${a[1]} ${a[2]}]`;
     }
 }
 

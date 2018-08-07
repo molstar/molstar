@@ -73,4 +73,10 @@ describe('interval', () => {
     test('predIndexInt3', Interval.findPredecessorIndexInInterval(Interval.ofRange(3, 10), 5, Interval.ofRange(2, 6)), 2);
 
     testI('findRange', Interval.findRange(r05, 2, 3), Interval.ofRange(2, 3));
+
+    test('intersectionSize1', Interval.intersectionSize(Interval.ofRange(0, 5), Interval.ofRange(0, 5)), 6);
+    test('intersectionSize2', Interval.intersectionSize(Interval.ofRange(0, 5), Interval.ofRange(1, 2)), 2);
+    test('intersectionSize3', Interval.intersectionSize(Interval.ofRange(1, 2), Interval.ofRange(0, 5)), 2);
+    test('intersectionSize4', Interval.intersectionSize(Interval.ofRange(0, 5), Interval.ofRange(3, 8)), 3);
+    test('intersectionSize5', Interval.intersectionSize(Interval.ofRange(0, 5), Interval.ofRange(6, 8)), 0);
 });

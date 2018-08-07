@@ -133,9 +133,9 @@ function abortTree(root: Progress.Node) {
     for (const c of root.children) abortTree(c);
 }
 
-function shouldNotify(info: ProgressInfo, time: number) {
-    return time - info.lastNotified > info.updateRateMs;
-}
+// function shouldNotify(info: ProgressInfo, time: number) {
+//     return time - info.lastNotified > info.updateRateMs;
+// }
 
 function notifyObserver(info: ProgressInfo, time: number) {
     info.lastNotified = time;
@@ -174,6 +174,7 @@ class ObservableRuntimeContext implements RuntimeContext {
         const progress = this.node.progress;
         if (typeof update === 'string') {
             progress.message = update;
+            progress.isIndeterminate = true;
         } else {
             if (typeof update.canAbort !== 'undefined') progress.canAbort = update.canAbort;
             if (typeof update.message !== 'undefined') progress.message = update.message;
@@ -193,7 +194,8 @@ class ObservableRuntimeContext implements RuntimeContext {
         this.lastUpdatedTime = now();
         this.updateProgress(progress);
 
-        if (!!dontNotify || !shouldNotify(this.info, this.lastUpdatedTime)) return;
+        // TODO: do the shouldNotify check here?
+        if (!!dontNotify /*|| !shouldNotify(this.info, this.lastUpdatedTime)*/) return;
 
         notifyObserver(this.info, this.lastUpdatedTime);
 

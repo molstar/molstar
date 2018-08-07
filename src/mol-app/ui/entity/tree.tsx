@@ -13,13 +13,13 @@ import { View } from '../view';
 import { EntityTreeController } from '../../controller/entity/tree';
 import { Controller } from '../../controller/controller';
 import { AnyEntity, RootEntity } from 'mol-view/state/entity';
-import { AnyTransform, SpacefillUpdate, UrlToData, DataToCif, FileToData, CifToMmcif, MmcifToModel, ModelToStructure, StructureToSpacefill, MmcifFileToSpacefill, StructureCenter } from 'mol-view/state/transform';
+import { AnyTransform, SpacefillUpdate, UrlToData, DataToCif, FileToData, CifToMmcif, MmcifToModel, ModelToStructure, StructureToSpacefill, MmcifFileToSpacefill, StructureCenter, StructureToBallAndStick, DistanceRestraintUpdate, CartoonUpdate, BallAndStickUpdate, BackboneUpdate, MmcifUrlToSpacefill } from 'mol-view/state/transform';
 
 function getTransforms(entity: AnyEntity): AnyTransform[] {
     const transforms: AnyTransform[] = []
     switch (entity.kind) {
         case 'root':
-            transforms.push(MmcifFileToSpacefill)
+            transforms.push(MmcifFileToSpacefill, MmcifUrlToSpacefill)
             break;
         case 'url':
             transforms.push(UrlToData)
@@ -40,10 +40,22 @@ function getTransforms(entity: AnyEntity): AnyTransform[] {
             transforms.push(ModelToStructure)
             break;
         case 'structure':
-            transforms.push(StructureToSpacefill, StructureCenter)
+            transforms.push(StructureToSpacefill, StructureToBallAndStick, StructureCenter)
             break;
         case 'spacefill':
             transforms.push(SpacefillUpdate)
+            break;
+        case 'ballandstick':
+            transforms.push(BallAndStickUpdate)
+            break;
+        case 'distancerestraint':
+            transforms.push(DistanceRestraintUpdate)
+            break;
+        case 'backbone':
+            transforms.push(BackboneUpdate)
+            break;
+        case 'cartoon':
+            transforms.push(CartoonUpdate)
             break;
     }
     return transforms

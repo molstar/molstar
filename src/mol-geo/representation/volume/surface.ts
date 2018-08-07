@@ -6,19 +6,20 @@
  */
 
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
-import { Task } from 'mol-task'
+import { Task, RuntimeContext } from 'mol-task'
 import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../shape/mesh';
-import { VolumeElementRepresentation } from '.';
-import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
-import { fillSerial } from 'mol-gl/renderable/util';
+import { VolumeVisual } from '.';
+import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { ValueCell, defaults } from 'mol-util';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { createUniformColor } from '../../util/color-data';
 import { getMeshData } from '../../util/mesh-data';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
-import { createEmptyFlags } from '../structure/utils';
+import { createEmptyMarkers, MarkerAction } from '../../util/marker-data';
+import { Loci, EmptyLoci } from 'mol-model/loci';
+import { fillSerial } from 'mol-util/array';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -44,68 +45,70 @@ export const DefaultSurfaceProps = {
     flatShaded: true,
     flipSided: true,
     doubleSided: true,
-    depthMask: true
+    depthMask: true,
+    useFog: true
 }
 export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
 
-export default function Surface(): VolumeElementRepresentation<SurfaceProps> {
-    const renderObjects: RenderObject[] = []
-    let surface: MeshRenderObject
+export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
+    let renderObject: MeshRenderObject
     let curProps = DefaultSurfaceProps
 
     return {
-        renderObjects,
-        create(volume: VolumeData, props: SurfaceProps = {}) {
-            return Task.create('Point.create', async ctx => {
-                renderObjects.length = 0 // clear
-                props = { ...DefaultSurfaceProps, ...props }
+        get renderObject () { return renderObject },
+        async create(ctx: RuntimeContext, volume: VolumeData, props: SurfaceProps = {}) {
+            props = { ...DefaultSurfaceProps, ...props }
 
-                const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
-                if (!props.flatShaded) {
-                    Mesh.computeNormalsImmediate(mesh)
-                }
+            const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
+            if (!props.flatShaded) {
+                Mesh.computeNormalsImmediate(mesh)
+            }
 
-                const instanceCount = 1
-                const color = createUniformColor({ value: 0x7ec0ee })
-                const flag = createEmptyFlags()
+            const instanceCount = 1
+            const color = createUniformColor({ value: 0x7ec0ee })
+            const marker = createEmptyMarkers()
 
-                const values: MeshValues = {
-                    ...getMeshData(mesh),
-                    aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
-                    aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
-                    ...color,
-                    ...flag,
+            const values: MeshValues = {
+                ...getMeshData(mesh),
+                aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
+                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                ...color,
+                ...marker,
 
-                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uInstanceCount: ValueCell.create(instanceCount),
-                    uElementCount: ValueCell.create(mesh.triangleCount),
+                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                uInstanceCount: ValueCell.create(instanceCount),
+                uElementCount: ValueCell.create(mesh.triangleCount),
 
-                    elements: mesh.indexBuffer,
+                elements: mesh.indexBuffer,
 
-                    drawCount: ValueCell.create(mesh.triangleCount * 3),
-                    instanceCount: ValueCell.create(instanceCount),
+                drawCount: ValueCell.create(mesh.triangleCount * 3),
+                instanceCount: ValueCell.create(instanceCount),
 
-                    dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                    dFlatShaded: ValueCell.create(defaults(props.flatShaded, true)),
-                    dFlipSided: ValueCell.create(false),
-                }
-                const state: RenderableState = {
-                    depthMask: defaults(props.depthMask, true),
-                    visible: defaults(props.visible, true)
-                }
+                dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
+                dFlatShaded: ValueCell.create(defaults(props.flatShaded, true)),
+                dFlipSided: ValueCell.create(false),
+                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+            }
+            const state: RenderableState = {
+                depthMask: defaults(props.depthMask, true),
+                visible: defaults(props.visible, true)
+            }
 
-                surface = createMeshRenderObject(values, state)
-                renderObjects.push(surface)
-            })
+            renderObject = createMeshRenderObject(values, state)
         },
-        update(props: SurfaceProps) {
-            return Task.create('Surface.update', async ctx => {
-                // TODO
-                return false
-            })
+        async update(ctx: RuntimeContext, props: SurfaceProps) {
+            // TODO
+            return false
         },
-        getLabel(pickingId: PickingId) {
-            return null
+        getLoci(pickingId: PickingId) {
+            // TODO
+            return EmptyLoci
+        },
+        mark(loci: Loci, action: MarkerAction) {
+            // TODO
+        },
+        destroy() {
+            // TODO
         }
     }
 }

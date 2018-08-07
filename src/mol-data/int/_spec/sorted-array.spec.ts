@@ -59,6 +59,12 @@ describe('sortedArray', () => {
         compareArrays(SortedArray.deduplicate(SortedArray.ofSortedArray([1, 2, 3])), [1, 2, 3]);
     });
 
+    it('indicesOf', () => {
+        compareArrays(SortedArray.indicesOf(SortedArray.ofSortedArray([10, 11, 12]), SortedArray.ofSortedArray([10, 12, 14])), [0, 2]);
+    })
+
+    test('intersectionSize', SortedArray.intersectionSize(a1234, a2468), 2);
+
     // console.log(Interval.findPredecessorIndexInInterval(Interval.ofBounds(0, 3), 2, Interval.ofBounds(0, 3)))
     // console.log(SortedArray.findPredecessorIndexInInterval(SortedArray.ofSortedArray([0, 1, 2]), 2, Interval.ofBounds(0, 3)))
 });

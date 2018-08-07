@@ -7,9 +7,12 @@
 import { AtomicData, AtomicSegments, AtomicKeys } from '../atomic'
 import { Interval, Segmentation } from 'mol-data/int'
 import { Entities } from '../common'
+import { ChainIndex, ResidueIndex, EntityIndex } from '../../indexing';
 
 function getResidueId(comp_id: string, seq_id: number, ins_code: string) {
-    return `${comp_id} ${seq_id} ${ins_code}`;
+    // TODO: add new index that support comp_id again?
+    return `${seq_id} ${ins_code}`;
+    //return `${comp_id} ${seq_id} ${ins_code}`;
 }
 
 function getElementKey(map: Map<string, number>, key: string, counter: { index: number }) {
@@ -30,31 +33,22 @@ function createLookUp(entities: Entities, chain: Map<number, Map<string, number>
     const getEntKey = entities.getEntityIndex;
     const findChainKey: AtomicKeys['findChainKey'] = (e, c) => {
         let eKey = getEntKey(e);
-        if (eKey < 0) return -1;
+        if (eKey < 0) return -1 as ChainIndex;
         const cm = chain.get(eKey)!;
-        if (!cm.has(c)) return -1;
-        return cm.get(c)!;
+        if (!cm.has(c)) return -1 as ChainIndex;
+        return cm.get(c)! as ChainIndex;
     }
     const findResidueKey: AtomicKeys['findResidueKey'] = (e, c, name, seq, ins) => {
         let eKey = getEntKey(e);
-        if (eKey < 0) return -1;
+        if (eKey < 0) return -1 as ResidueIndex;
         const cm = chain.get(eKey)!;
-        if (!cm.has(c)) return -1;
+        if (!cm.has(c)) return -1 as ResidueIndex;
         const rm = residue.get(cm.get(c)!)!
         const id = getResidueId(name, seq, ins);
-        if (!rm.has(id)) return -1;
-        return rm.get(id)!;
+        if (!rm.has(id)) return -1 as ResidueIndex;
+        return rm.get(id)! as ResidueIndex;
     }
     return { findChainKey, findResidueKey };
-}
-
-function checkMonotonous(xs: ArrayLike<number>) {
-    for (let i = 1, _i = xs.length; i < _i; i++) {
-        if (xs[i] < xs[i - 1]) {
-            return false;
-        }
-    }
-    return true;
 }
 
 function missingEntity(k: string) {
@@ -76,9 +70,7 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
 
     const atomSet = Interval.ofBounds(0, data.atoms._rowCount);
 
-    let isMonotonous = true;
-
-    const chainsIt = Segmentation.transientSegments(segments.chainSegments, atomSet);
+    const chainsIt = Segmentation.transientSegments(segments.chainAtomSegments, atomSet);
     while (chainsIt.hasNext) {
         const chainSegment = chainsIt.move();
         const cI = chainSegment.index;
@@ -92,14 +84,10 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
         entityKey[cI] = eKey;
 
         const residueMap = getElementSubstructureKeyMap(residueMaps, cKey);
-        const residuesIt = Segmentation.transientSegments(segments.residueSegments, atomSet, chainSegment);
-        let last_seq_id = Number.NEGATIVE_INFINITY;
+        const residuesIt = Segmentation.transientSegments(segments.residueAtomSegments, atomSet, chainSegment);
         while (residuesIt.hasNext) {
             const residueSegment = residuesIt.move();
             const rI = residueSegment.index;
-            const seq_id = auth_seq_id.value(rI);
-            if (seq_id < last_seq_id) isMonotonous = false;
-            last_seq_id = seq_id;
             const residueId = getResidueId(label_comp_id.value(rI), auth_seq_id.value(rI), pdbx_PDB_ins_code.value(rI));
             residueKey[rI] = getElementKey(residueMap, residueId, residueCounter);
         }
@@ -107,12 +95,5 @@ export function getAtomicKeys(data: AtomicData, entities: Entities, segments: At
 
     const { findChainKey, findResidueKey } = createLookUp(entities, chainMaps, residueMaps);
 
-    return {
-        isMonotonous: isMonotonous && checkMonotonous(entityKey) && checkMonotonous(chainKey) && checkMonotonous(residueKey),
-        residueKey: residueKey,
-        chainKey: chainKey,
-        entityKey: entityKey,
-        findChainKey,
-        findResidueKey
-    };
+    return { getEntityKey: cI => entityKey[cI] as EntityIndex, findChainKey, findResidueKey };
 }

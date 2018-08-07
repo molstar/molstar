@@ -5,39 +5,42 @@
  */
 
 import Structure from '../structure'
-import Element from '../element'
 import { Lookup3D, GridLookup3D, Result, Box3D, Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { computeStructureBoundary } from './boundary';
 import { OrderedSet } from 'mol-data/int';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
 
-export class StructureLookup3D implements Lookup3D<Element> {
+export class StructureLookup3D {
     private unitLookup: Lookup3D;
-    private result = Result.create<Element>();
     private pivot = Vec3.zero();
 
-    find(x: number, y: number, z: number, radius: number): Result<Element> {
-        Result.reset(this.result);
-        const { units } = this.structure;
-        const closeUnits = this.unitLookup.find(x, y, z, radius);
-        if (closeUnits.count === 0) return this.result;
-
-        for (let t = 0, _t = closeUnits.count; t < _t; t++) {
-            const unit = units[closeUnits.indices[t]];
-            Vec3.set(this.pivot, x, y, z);
-            if (!unit.conformation.operator.isIdentity) {
-                Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
-            }
-            const unitLookup = unit.lookup3d;
-            const groupResult = unitLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius);
-            for (let j = 0, _j = groupResult.count; j < _j; j++) {
-                Result.add(this.result, Element.create(unit.id, groupResult.indices[j]), groupResult.squaredDistances[j]);
-            }
-        }
-
-        return this.result;
+    findUnitIndices(x: number, y: number, z: number, radius: number): Result<number> {
+        return this.unitLookup.find(x, y, z, radius);
     }
+
+    // TODO: find another efficient way how to implement this instead of using "tuple".
+    // find(x: number, y: number, z: number, radius: number): Result<Element.Packed> {
+    //     Result.reset(this.result);
+    //     const { units } = this.structure;
+    //     const closeUnits = this.unitLookup.find(x, y, z, radius);
+    //     if (closeUnits.count === 0) return this.result;
+
+    //     for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+    //         const unit = units[closeUnits.indices[t]];
+    //         Vec3.set(this.pivot, x, y, z);
+    //         if (!unit.conformation.operator.isIdentity) {
+    //             Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+    //         }
+    //         const unitLookup = unit.lookup3d;
+    //         const groupResult = unitLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], radius);
+    //         for (let j = 0, _j = groupResult.count; j < _j; j++) {
+    //             Result.add(this.result, Element.Packed.create(unit.id, groupResult.indices[j]), groupResult.squaredDistances[j]);
+    //         }
+    //     }
+
+    //     return this.result;
+    // }
 
     findIntoBuilder(x: number, y: number, z: number, radius: number, builder: StructureUniqueSubsetBuilder) {
         const { units } = this.structure;

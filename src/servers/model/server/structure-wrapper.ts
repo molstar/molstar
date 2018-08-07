@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, Model } from 'mol-model/structure';
+import { Structure, Model, Format } from 'mol-model/structure';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { Cache } from './cache';
 import Config from '../config';
@@ -12,6 +12,9 @@ import CIF from 'mol-io/reader/cif'
 import * as util from 'util'
 import * as fs from 'fs'
 import * as zlib from 'zlib'
+import { Job } from './jobs';
+import { ConsoleLogger } from 'mol-util/console-logger';
+import { attachModelProperties } from '../properties';
 
 require('util.promisify').shim();
 
@@ -25,6 +28,7 @@ export interface StructureInfo {
     readTime: number;
     parseTime: number;
     createModelTime: number;
+    attachPropsTime: number;
 
     sourceId: string,
     entryId: string
@@ -38,13 +42,12 @@ export class StructureWrapper {
     structure: Structure;
 }
 
-export async function getStructure(sourceId: '_local_' | string, entryId: string): Promise<StructureWrapper> {
-    const key = `${sourceId}/${entryId}`;
+export async function getStructure(job: Job): Promise<StructureWrapper> {
     if (Config.cacheParams.useCache) {
-        const ret = StructureCache.get(key);
+        const ret = StructureCache.get(job.key);
         if (ret) return ret;
     }
-    const ret = await readStructure(key, sourceId, entryId);
+    const ret = await readStructure(job.key, job.sourceId, job.entryId);
     if (Config.cacheParams.useCache) {
         StructureCache.add(ret);
     }
@@ -83,17 +86,32 @@ async function parseCif(data: string|Uint8Array) {
 
 async function readStructure(key: string, sourceId: string, entryId: string) {
     const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
-    if (!filename) throw new Error(`Entry '${key}' not found.`);
+    if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
+    if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
 
     perf.start('read');
-    const data = await readFile(filename);
+    let data;
+    try {
+        data = await readFile(filename);
+    } catch (e) {
+        ConsoleLogger.error(key, '' + e);
+        throw new Error(`Could not read the file for '${key}' from disk.`);
+    }
+
     perf.end('read');
     perf.start('parse');
-    const mmcif = CIF.schema.mmCIF((await parseCif(data)).blocks[0]);
+    const frame = (await parseCif(data)).blocks[0];
     perf.end('parse');
     perf.start('createModel');
-    const models = await Model.create({ kind: 'mmCIF', data: mmcif }).run();
+    const models = await Model.create(Format.mmCIF(frame)).run();
     perf.end('createModel');
+
+    perf.start('attachProps');
+    const modelProps = attachModelProperties(models[0]);
+    for (const p of modelProps) {
+        await tryAttach(key, p);
+    }
+    perf.end('attachProps');
 
     const structure = Structure.ofModel(models[0]);
 
@@ -103,6 +121,7 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
             readTime: perf.time('read'),
             parseTime: perf.time('parse'),
             createModelTime: perf.time('createModel'),
+            attachPropsTime: perf.time('attachProps'),
             sourceId,
             entryId
         },
@@ -112,4 +131,12 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
     };
 
     return ret;
+}
+
+async function tryAttach(key: string, promise: Promise<any>) {
+    try {
+        await promise;
+    } catch (e) {
+        ConsoleLogger.errorId(key, 'Custom prop:' + e);
+    }
 }

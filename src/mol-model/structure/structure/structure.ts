@@ -7,28 +7,46 @@
 import { IntMap, SortedArray, Iterator, Segmentation } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
-import { Model } from '../model'
+import { Model, ElementIndex } from '../model'
 import { sort, arraySwap, hash1, sortArray } from 'mol-data/util';
-import Element from './element'
+import StructureElement from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
-import { Queries } from '../query';
+import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
+import { CrossLinkRestraints, extractCrossLinkRestraints } from './unit/pair-restraints';
+import StructureSymmetry from './symmetry';
+import StructureProperties from './properties';
+import { ResidueIndex } from '../model/indexing';
+import { Carbohydrates } from './carbohydrates/data';
+import { computeCarbohydrates } from './carbohydrates/compute';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
     readonly units: ReadonlyArray<Unit>;
-    readonly elementCount: number;
 
-    private _hashCode = 0;
+    private _props: {
+        lookup3d?: StructureLookup3D,
+        links?: InterUnitBonds,
+        crossLinkRestraints?: CrossLinkRestraints,
+        unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
+        carbohydrates?: Carbohydrates,
+        hashCode: number,
+        elementCount: number
+    } = { hashCode: -1, elementCount: 0 };
 
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
     }
 
+    /** Count of all elements in the structure, i.e. the sum of the elements in the units */
+    get elementCount() {
+        return this._props.elementCount;
+    }
+
     get hashCode() {
-        if (this._hashCode !== 0) return this._hashCode;
+        if (this._props.hashCode !== -1) return this._props.hashCode;
         return this.computeHash();
     }
 
@@ -41,11 +59,12 @@ class Structure {
         }
         hash = (31 * hash + this.elementCount) | 0;
         hash = hash1(hash);
-        this._hashCode = hash;
+        if (hash === -1) hash = 0;
+        this._props.hashCode = hash;
         return hash;
     }
 
-    elementLocations(): Iterator<Element.Location> {
+    elementLocations(): Iterator<StructureElement> {
         return new Structure.ElementLocationIterator(this);
     }
 
@@ -53,11 +72,34 @@ class Structure {
         return this.lookup3d.boundary;
     }
 
-    private _lookup3d?: StructureLookup3D = void 0;
     get lookup3d() {
-        if (this._lookup3d) return this._lookup3d;
-        this._lookup3d = new StructureLookup3D(this);
-        return this._lookup3d;
+        if (this._props.lookup3d) return this._props.lookup3d;
+        this._props.lookup3d = new StructureLookup3D(this);
+        return this._props.lookup3d;
+    }
+
+    get links() {
+        if (this._props.links) return this._props.links;
+        this._props.links = computeInterUnitBonds(this);
+        return this._props.links;
+    }
+
+    get crossLinkRestraints() {
+        if (this._props.crossLinkRestraints) return this._props.crossLinkRestraints;
+        this._props.crossLinkRestraints = extractCrossLinkRestraints(this);
+        return this._props.crossLinkRestraints;
+    }
+
+    get unitSymmetryGroups(): ReadonlyArray<Unit.SymmetryGroup> {
+        if (this._props.unitSymmetryGroups) return this._props.unitSymmetryGroups;
+        this._props.unitSymmetryGroups = StructureSymmetry.computeTransformGroups(this);
+        return this._props.unitSymmetryGroups;
+    }
+
+    get carbohydrates(): Carbohydrates {
+        if (this._props.carbohydrates) return this._props.carbohydrates;
+        this._props.carbohydrates = computeCarbohydrates(this);
+        return this._props.carbohydrates;
     }
 
     constructor(units: ArrayLike<Unit>) {
@@ -75,7 +117,7 @@ class Structure {
         if (!isSorted) sort(units, 0, units.length, cmpUnits, arraySwap)
         this.unitMap = map;
         this.units = units as ReadonlyArray<Unit>;
-        this.elementCount = elementCount;
+        this._props.elementCount = elementCount;
     }
 }
 
@@ -86,12 +128,27 @@ namespace Structure {
 
     export function create(units: ReadonlyArray<Unit>): Structure { return new Structure(units); }
 
+    /**
+     * Construct a Structure from a model.
+     *
+     * Generally, a single unit corresponds to a single chain, with the exception
+     * of consecutive "single atom chains".
+     */
     export function ofModel(model: Model): Structure {
-        const chains = model.atomicHierarchy.chainSegments;
+        const chains = model.atomicHierarchy.chainAtomSegments;
         const builder = new StructureBuilder();
 
         for (let c = 0; c < chains.count; c++) {
-            const elements = SortedArray.ofBounds(chains.segments[c], chains.segments[c + 1]);
+            const start = chains.offsets[c];
+
+            // merge all consecutive "single atom chains"
+            while (c + 1 < chains.count
+                && chains.offsets[c + 1] - chains.offsets[c] === 1
+                && chains.offsets[c + 2] - chains.offsets[c + 1] === 1) {
+                c++;
+            }
+
+            const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
             builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
         }
 
@@ -109,9 +166,9 @@ namespace Structure {
     }
 
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {
-        const { chainSegments } = elements;
-        for (let cI = 0; cI < chainSegments.count; cI++) {
-            const elements = SortedArray.ofBounds(chainSegments.segments[cI], chainSegments.segments[cI + 1]);
+        const { chainElementSegments } = elements;
+        for (let cI = 0; cI < chainElementSegments.count; cI++) {
+            const elements = SortedArray.ofBounds<ElementIndex>(chainElementSegments.offsets[cI], chainElementSegments.offsets[cI + 1]);
             builder.addUnit(kind, model, SymmetryOperator.Default, elements);
         }
     }
@@ -119,7 +176,7 @@ namespace Structure {
     export class StructureBuilder {
         private units: Unit[] = [];
 
-        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: SortedArray): Unit {
+        addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
             const unit = Unit.create(this.units.length, kind, model, operator, elements);
             this.units.push(unit);
             return unit;
@@ -171,15 +228,15 @@ namespace Structure {
         return true;
     }
 
-    export class ElementLocationIterator implements Iterator<Element.Location> {
-        private current = Element.Location();
+    export class ElementLocationIterator implements Iterator<StructureElement> {
+        private current = StructureElement.create();
         private unitIndex = 0;
-        private elements: SortedArray;
+        private elements: StructureElement.Set;
         private maxIdx = 0;
         private idx = -1;
 
         hasNext: boolean;
-        move(): Element.Location {
+        move(): StructureElement {
             this.advance();
             this.current.element = this.elements[this.idx];
             return this.current;
@@ -217,16 +274,16 @@ namespace Structure {
 
     export function getEntityKeys(structure: Structure) {
         const { units } = structure;
-        const l = Element.Location();
+        const l = StructureElement.create();
         const keys = UniqueArray.create<number, number>();
 
         for (const unit of units) {
-            const prop = unit.kind === Unit.Kind.Atomic ? Queries.props.entity.key : Queries.props.coarse.entityKey;
+            const prop = unit.kind === Unit.Kind.Atomic ? StructureProperties.entity.key : StructureProperties.coarse.entityKey;
 
             l.unit = unit;
             const elements = unit.elements;
 
-            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainSegments, elements);
+            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
             while (chainsIt.hasNext) {
                 const chainSegment = chainsIt.move();
                 l.element = elements[chainSegment.start];
@@ -237,6 +294,25 @@ namespace Structure {
 
         sortArray(keys.array);
         return keys.array;
+    }
+
+    export function getUniqueAtomicResidueIndices(structure: Structure, model: Model): ReadonlyArray<ResidueIndex> {
+        const uniqueResidues = UniqueArray.create<ResidueIndex, ResidueIndex>();
+        const unitGroups = structure.unitSymmetryGroups;
+        for (const unitGroup of unitGroups) {
+            const unit = unitGroup.units[0];
+            if (unit.model !== model || !Unit.isAtomic(unit)) {
+                continue;
+            }
+
+            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
+            while (residues.hasNext) {
+                const seg = residues.move();
+                UniqueArray.add(uniqueResidues, seg.index, seg.index);
+            }
+        }
+        sortArray(uniqueResidues.array);
+        return uniqueResidues.array;
     }
 }
 

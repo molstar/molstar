@@ -11,6 +11,7 @@ import { Dispatcher } from '../service/dispatcher'
 import { LayoutState } from '../controller/layout';
 import { ViewportOptions } from '../controller/visualization/viewport';
 import { Job } from '../service/job';
+import { Loci } from 'mol-model/loci';
 
 const Lane = Dispatcher.Lane;
 
@@ -30,4 +31,10 @@ export namespace JobEvents {
 export namespace LayoutEvents {
     export const SetState = Event.create<Partial<LayoutState>>('lm.cmd.Layout.SetState', Lane.Slow);
     export const SetViewportOptions = Event.create<ViewportOptions>('bs.cmd.Layout.SetViewportOptions', Lane.Slow);
+}
+
+export namespace InteractivityEvents {
+    export const HighlightLoci = Event.create<Loci>('bs.Interactivity.HighlightLoci', Lane.Slow);
+    export const SelectLoci = Event.create<Loci>('bs.Interactivity.SelectLoci', Lane.Slow);
+    export const LabelLoci = Event.create<Loci>('bs.Interactivity.LabelLoci', Lane.Slow);
 }

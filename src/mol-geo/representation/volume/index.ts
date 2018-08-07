@@ -6,41 +6,49 @@
 
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { RepresentationProps, Representation } from '..';
+import { RepresentationProps, Representation, Visual } from '..';
 import { VolumeData } from 'mol-model/volume';
-import { PickingId, PickingInfo } from '../../util/picking';
+import { PickingId } from '../../util/picking';
+import { Loci, EmptyLoci } from 'mol-model/loci';
+import { MarkerAction } from '../../util/marker-data';
 
-export interface VolumeElementRepresentation<P> {
-    renderObjects: ReadonlyArray<RenderObject>
-    create: (volumeData: VolumeData, props: P) => Task<void>
-    update: (props: P) => Task<boolean>
-    getLabel: (pickingId: PickingId) => PickingInfo | null
-}
+export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 
-export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> {
-    renderObjects: ReadonlyArray<RenderObject>
-    create: (volumeData: VolumeData, props?: P) => Task<void>
-    update: (props: P) => Task<void>
-    getLabel: (pickingId: PickingId) => PickingInfo | null
-}
+export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
 
-export function VolumeRepresentation<P>(reprCtor: () => VolumeElementRepresentation<P>): VolumeRepresentation<P> {
+export function VolumeRepresentation<P>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     const renderObjects: RenderObject[] = []
+    let _volumeData: VolumeData
+    let _props: P
+
+    function create(volumeData: VolumeData, props: P = {} as P) {
+        _props = props
+        return Task.create('VolumeRepresentation.create', async ctx => {
+            _volumeData = volumeData
+            const visual = visualCtor(_volumeData)
+            await visual.create(ctx, _volumeData, props)
+            renderObjects.push(visual.renderObject)
+        });
+    }
+
+    function update(props: P) {
+        return Task.create('VolumeRepresentation.update', async ctx => {})
+    }
 
     return {
-        renderObjects,
-        create(volumeData: VolumeData, props: P = {} as P) {
-            return Task.create('VolumeRepresentation.create', async ctx => {
-                const repr = reprCtor()
-                await repr.create(volumeData, props).runAsChild(ctx, { message: 'Building volume representation...', current: 0, max: 1 });
-                renderObjects.push(...repr.renderObjects)
-            });
+        get renderObjects () { return renderObjects },
+        get props () { return _props },
+        create,
+        update,
+        getLoci(pickingId: PickingId) {
+            // TODO
+            return EmptyLoci
         },
-        update(props: P) {
-            return Task.create('VolumeRepresentation.update', async ctx => {})
+        mark(loci: Loci, action: MarkerAction) {
+            // TODO
         },
-        getLabel(pickingId: PickingId) {
-            return null
+        destroy() {
+            // TODO
         }
     }
 }

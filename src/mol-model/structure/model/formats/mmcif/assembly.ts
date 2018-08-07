@@ -8,9 +8,10 @@ import { Mat4, Tensor } from 'mol-math/linear-algebra'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import Format from '../../format'
 import { Assembly, OperatorGroup, OperatorGroups } from '../../properties/symmetry'
-import { Queries as Q, Query } from '../../../query'
+import { Queries as Q } from '../../../query'
 
 import mmCIF_Format = Format.mmCIF
+import { StructureProperties } from '../../../structure';
 
 export function createAssemblies(format: mmCIF_Format): ReadonlyArray<Assembly> {
     const { pdbx_struct_assembly } = format.data;
@@ -57,10 +58,10 @@ function operatorGroupsProvider(generators: Generator[], matrices: Matrices): ()
             const operatorList = parseOperatorList(gen.expression);
             const operatorNames = expandOperators(operatorList);
             const operators = getAssemblyOperators(matrices, operatorNames, operatorOffset);
-            const selector = Query(Q.generators.atoms({ chainTest: Q.pred.and(
-                Q.pred.eq(Q.props.unit.operator_name, SymmetryOperator.DefaultName),
-                Q.pred.inSet(Q.props.chain.label_asym_id, gen.asymIds)
-            )}));
+            const selector = Q.generators.atoms({ chainTest: Q.pred.and(
+                Q.pred.eq(ctx => StructureProperties.unit.operator_name(ctx.element), SymmetryOperator.DefaultName),
+                Q.pred.inSet(ctx => StructureProperties.chain.label_asym_id(ctx.element), gen.asymIds)
+            )});
             groups[groups.length] = { selector, operators };
             operatorOffset += operators.length;
         }

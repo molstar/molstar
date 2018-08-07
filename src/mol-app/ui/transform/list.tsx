@@ -14,13 +14,20 @@ import { Controller } from '../../controller/controller';
 import { TransformListController } from '../../controller/transform/list';
 import { AnyTransform } from 'mol-view/state/transform';
 import { Spacefill } from './spacefill';
+import { BallAndStick } from './ball-and-stick';
 import { AnyEntity } from 'mol-view/state/entity';
 import { FileLoader } from './file-loader';
 import { ModelToStructure } from './model';
 import { StructureCenter } from './structure';
+import { Cartoon } from './cartoon';
+import { DistanceRestraint } from './distance-restraint';
+import { Backbone } from './backbone';
+import { UrlLoader } from './url-loader';
 
 function getTransformComponent(controller: TransformListController, entity: AnyEntity, transform: AnyTransform) {
     switch (transform.kind) {
+        case 'url-to-spacefill':
+            return <UrlLoader controller={controller} ctx={controller.context.stage.ctx}></UrlLoader>
         case 'file-to-spacefill':
             return <FileLoader controller={controller} ctx={controller.context.stage.ctx}></FileLoader>
         case 'model-to-structure':
@@ -29,6 +36,14 @@ function getTransformComponent(controller: TransformListController, entity: AnyE
             return <StructureCenter controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></StructureCenter>
         case 'spacefill-update':
             return <Spacefill controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Spacefill>
+        case 'ballandstick-update':
+            return <BallAndStick controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></BallAndStick>
+        case 'distancerestraint-update':
+            return <DistanceRestraint controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></DistanceRestraint>
+        case 'backbone-update':
+            return <Backbone controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Backbone>
+        case 'cartoon-update':
+            return <Cartoon controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Cartoon>
     }
     return <Transform controller={controller} entity={entity} transform={transform}></Transform>
 }

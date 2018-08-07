@@ -1,5 +1,6 @@
 [![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](./LICENSE)
-[![Build Status](https://travis-ci.org/mol-star/mol-star-proto.svg?branch=master)](https://travis-ci.org/mol-star/mol-star-proto)
+[![Build Status](https://travis-ci.org/molstar/molstar-proto.svg?branch=master)](https://travis-ci.org/mol-star/mol-star-proto)
+[![Gitter](https://badges.gitter.im/molstar/Lobby.svg)](https://gitter.im/molstar/Lobby)
 
 # Mol*
 
@@ -51,19 +52,40 @@ This project builds on experience from previous solutions:
     npm run watch-extra
 
 ### Build/watch mol-viewer
-Build:
+**Build**
 
     npm run build
     npm run build-viewer
 
-Watch:
+**Watch**
 
     npm run watch
     npm run watch-extra
     npm run watch-viewer
+
+**Run**
+
+If not installed previously:
+
+    npm install -g http-server
+
+...or a similar solution.
+
+From the root of the project:
+
+    http-server -p PORT-NUMBER
+
+and navigate to `build/viewer`
+
+
+
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.
 
 ## Roadmap
 Continually develop this prototype project. As individual modules become stable, make them into standalone libraries.
+
+## Funding
+Funding sources include but are not limted to:
+* [RCSB PDB](https://www.rcsb.org) funding by a grant [DBI-1338415; PI: SK Burley] from the NSF, the NIH, and the US DoE

@@ -36,7 +36,7 @@ const float albedo = 0.95;
 
 void main() {
     // material color
-    #pragma glslify: import('./chunks/color-assign-material.glsl')
+    #pragma glslify: import('./chunks/assign-material-color.glsl')
 
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_elementPicking)
         // gl_FragColor = vec4(material.r, material.g, material.a, 1.0);
@@ -76,8 +76,7 @@ void main() {
         gl_FragColor.rgb = finalColor;
         gl_FragColor.a = uAlpha;
 
-        if (vFlag == 1.0) {
-            gl_FragColor.rgb = mix(vec3(1.0, 0.4, 0.6), gl_FragColor.rgb, 0.3);
-        }
+        #pragma glslify: import('./chunks/apply-marker-color.glsl')
+        #pragma glslify: import('./chunks/apply-fog.glsl')
     #endif
 }

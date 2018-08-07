@@ -5,14 +5,13 @@
  */
 
 import { Unit } from 'mol-model/structure';
-import VertexMap from '../../../shape/vertex-map';
 
 export interface StructureColorDataProps {
     group: Unit.SymmetryGroup,
-    vertexMap: VertexMap
+    elementCount: number
 }
 
 export { elementIndexColorData } from './element-index'
-export { chainIdColorData } from './chain-id'
+export { chainIdElementColorData } from './chain-id'
 export { elementSymbolColorData } from './element-symbol'
 export { instanceIndexColorData } from './instance-index'

@@ -29,6 +29,8 @@ export function indexOf(set: OrderedSetImpl, x: number) { return I.is(set) ? I.i
 export function getAt(set: OrderedSetImpl, i: number) { return I.is(set) ? I.getAt(set, i) : set[i]; }
 export function min(set: OrderedSetImpl) { return I.is(set) ? I.min(set) : S.min(set); }
 export function max(set: OrderedSetImpl) { return I.is(set) ? I.max(set) : S.max(set); }
+export function start(set: OrderedSetImpl) { return I.is(set) ? I.start(set) : S.start(set); }
+export function end(set: OrderedSetImpl) { return I.is(set) ? I.end(set) : S.end(set); }
 
 export function hashCode(set: OrderedSetImpl) { return I.is(set) ? I.hashCode(set) : S.hashCode(set); }
 // TODO: possibly add more hash functions to allow for multilevel hashing.
@@ -70,6 +72,14 @@ export function findRange(set: OrderedSetImpl, min: number, max: number) {
     return I.is(set) ? I.findRange(set, min, max) : S.findRange(set, min, max);
 }
 
+export function intersectionSize(a: OrderedSetImpl, b: OrderedSetImpl): number {
+    if (I.is(a)) {
+        if (I.is(b)) return I.intersectionSize(a, b);
+        return intersectionSizeSI(b, a);
+    } else if (I.is(b)) return intersectionSizeSI(a, b);
+    return S.intersectionSize(a, b);
+}
+
 export function union(a: OrderedSetImpl, b: OrderedSetImpl) {
     if (I.is(a)) {
         if (I.is(b)) return unionII(a, b);
@@ -97,7 +107,7 @@ export function subtract(a: OrderedSetImpl, b: OrderedSetImpl) {
 function areEqualIS(a: I, b: S) { return I.size(a) === S.size(b) && I.start(a) === S.start(b) && I.end(a) === S.end(b); }
 
 function areIntersectingSI(a: S, b: I) {
-    return areRangesIntersecting(a, b);
+    return a.length !== 0 && I.size(S.findRange(a, I.min(b), I.max(b))) !== 0;
 }
 
 function isSubsetSI(a: S, b: I) {
@@ -161,6 +171,12 @@ function unionSI(a: S, b: I) {
     for (let i = end, _i = a.length; i < _i; i++) indices[offset] = a[i];
 
     return ofSortedArray(indices);
+}
+
+function intersectionSizeSI(a: S, b: I): number {
+    if (!I.size(b)) return 0;
+    const r = S.findRange(a, I.min(b), I.max(b));
+    return I.end(r) - I.start(r);
 }
 
 function intersectSI(a: S, b: I) {
@@ -253,4 +269,18 @@ function subtractIS(a: I, b: S) {
     }
     for (let i = last + 1; i <= max; i++) ret[offset++] = i;
     return ofSortedArray(ret);
+}
+
+export function forEach(set: OrderedSetImpl, f: (value: number, i: number, ctx: any) => void, ctx: any) {
+    if (I.is(set)) {
+        const start = I.min(set);
+        for (let i = start, _i = I.max(set); i <= _i; i++) {
+            f(i, i - start, ctx);
+        }
+    } else {
+        for (let i = 0, _i = set.length; i < _i; i++) {
+            f(set[i], i, ctx);
+        }
+    }
+    return ctx;
 }

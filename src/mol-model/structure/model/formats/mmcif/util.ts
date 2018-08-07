@@ -4,7 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Model from '../../model'
+import { Model } from '../../model'
+import { ElementIndex } from '../../indexing';
 
 export function findEntityIdByAsymId(model: Model, asymId: string) {
     if (model.sourceData.kind !== 'mmCIF') return ''
@@ -15,12 +16,11 @@ export function findEntityIdByAsymId(model: Model, asymId: string) {
     return ''
 }
 
-export function findAtomIndexByLabelName(model: Model, residueIndex: number, atomName: string, altLoc: string | null) {
-    const { segmentMap, segments } = model.atomicHierarchy.residueSegments
-    const idx = segmentMap[residueIndex]
+export function findAtomIndexByLabelName(model: Model, residueIndex: number, atomName: string, altLoc: string | null): ElementIndex {
+    const { offsets } = model.atomicHierarchy.residueAtomSegments;
     const { label_atom_id, label_alt_id } = model.atomicHierarchy.atoms;
-    for (let i = segments[idx], n = segments[idx + 1]; i <= n; ++i) {
-        if (label_atom_id.value(i) === atomName && (!altLoc || label_alt_id.value(i) === altLoc)) return i;
+    for (let i = offsets[residueIndex], n = offsets[residueIndex + 1]; i < n; ++i) {
+        if (label_atom_id.value(i) === atomName && (!altLoc || label_alt_id.value(i) === altLoc)) return i as ElementIndex;
     }
-    return -1;
+    return -1 as ElementIndex;
 }

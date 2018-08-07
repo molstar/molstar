@@ -22,6 +22,12 @@ export class ImageCanvas extends React.Component<{ imageData: ImageData, aspectR
     private canvas: HTMLCanvasElement | null = null;
     private ctx: CanvasRenderingContext2D | null = null;
 
+    state = {
+        imageData: new ImageData(1, 1),
+        width: 1,
+        height: 1
+    }
+
     updateStateFromProps() {
         this.setState({
             imageData: this.props.imageData,

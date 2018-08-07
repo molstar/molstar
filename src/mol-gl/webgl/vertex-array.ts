@@ -14,8 +14,8 @@ export function createVertexArray(ctx: Context, program: Program, attributeBuffe
     if (oesVertexArrayObject) {
         vertexArray = oesVertexArrayObject.createVertexArrayOES()
         oesVertexArrayObject.bindVertexArrayOES(vertexArray)
-        program.bindAttributes(attributeBuffers)
         if (elementsBuffer) elementsBuffer.bind()
+        program.bindAttributes(attributeBuffers)
         ctx.vaoCount += 1
         oesVertexArrayObject.bindVertexArrayOES(null!)
     }

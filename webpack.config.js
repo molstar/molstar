@@ -1,6 +1,6 @@
 const path = require('path');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 module.exports = {
     module: {
         rules: [
@@ -25,10 +25,7 @@ module.exports = {
             },
             {
                 test:/\.(s*)css$/,
-                use: ExtractTextPlugin.extract({
-                    fallback:'style-loader',
-                    use:['css-loader', 'resolve-url-loader', 'sass-loader'],
-                })
+                use: [ MiniCssExtractPlugin.loader, 'css-loader', 'resolve-url-loader', 'sass-loader' ]
             }
         ]
     },
@@ -42,6 +39,6 @@ module.exports = {
                 './build/node_modules/**/*.html'
             ],
         }),
-        new ExtractTextPlugin({ filename:'app.css' }),
+        new MiniCssExtractPlugin({ filename: "app.css" })
     ],
 }

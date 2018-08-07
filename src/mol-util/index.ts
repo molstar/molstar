@@ -94,7 +94,7 @@ export function shallowEqual<T>(a: T, b: T) {
 }
 
 /** Returns `value` if not `undefined`, otherwise returns `defaultValue` */
-export function defaults(value: any, defaultValue: any) {
+export function defaults<T>(value: T | undefined, defaultValue: T): T {
     return value !== undefined ? value : defaultValue
 }
 

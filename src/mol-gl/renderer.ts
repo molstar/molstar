@@ -14,7 +14,7 @@ import { Mat4, Vec3 } from 'mol-math/linear-algebra';
 import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
-import { RenderableValues, GlobalUniformValues } from './renderable/schema';
+import { RenderableValues, GlobalUniformValues, BaseValues } from './renderable/schema';
 import { RenderVariant } from './webgl/render-item';
 
 export interface RendererStats {
@@ -29,13 +29,12 @@ export interface RendererStats {
 }
 
 interface Renderer {
-    render: (scene: Scene, variant: RenderVariant) => void
+    readonly stats: RendererStats
 
-    setViewport: (viewport: Viewport) => void
+    render: (scene: Scene, variant: RenderVariant) => void
+    setViewport: (x: number, y: number, width: number, height: number) => void
     setClearColor: (color: Color) => void
     getImageData: () => ImageData
-
-    stats: RendererStats
     dispose: () => void
 }
 
@@ -50,12 +49,14 @@ namespace Renderer {
         const { gl } = ctx
         let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
 
-        const model = Mat4.identity()
         const viewport = Viewport.clone(_viewport)
 
         // const lightPosition = Vec3.create(0, 0, -100)
         const lightColor = Vec3.create(1.0, 1.0, 1.0)
         const lightAmbient = Vec3.create(0.5, 0.5, 0.5)
+        const highlightColor = Vec3.create(1.0, 0.4, 0.6)
+        const selectColor = Vec3.create(0.2, 1.0, 0.1)
+        const fogColor = Vec3.create(0.0, 0.0, 0.0)
 
         function setClearColor(color: Color) {
             const [ r, g, b ] = Color.toRgbNormalized(color)
@@ -64,7 +65,7 @@ namespace Renderer {
         setClearColor(clearColor)
 
         const globalUniforms: GlobalUniformValues = {
-            uModel: ValueCell.create(Mat4.clone(model)),
+            uModel: ValueCell.create(Mat4.identity()),
             uView: ValueCell.create(Mat4.clone(camera.view)),
             uProjection: ValueCell.create(Mat4.clone(camera.projection)),
 
@@ -72,11 +73,18 @@ namespace Renderer {
             uViewportHeight: ValueCell.create(viewport.height),
 
             uLightColor: ValueCell.create(Vec3.clone(lightColor)),
-            uLightAmbient: ValueCell.create(Vec3.clone(lightAmbient))
+            uLightAmbient: ValueCell.create(Vec3.clone(lightAmbient)),
+
+            uHighlightColor: ValueCell.create(Vec3.clone(highlightColor)),
+            uSelectColor: ValueCell.create(Vec3.clone(selectColor)),
+
+            uFogNear: ValueCell.create(camera.near),
+            uFogFar: ValueCell.create(camera.far / 50),
+            uFogColor: ValueCell.create(Vec3.clone(fogColor)),
         }
 
         let currentProgramId = -1
-        const renderObject = (r: Renderable<RenderableValues>, variant: RenderVariant) => {
+        const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
             const program = r.getProgram(variant)
             if (r.state.visible) {
                 if (currentProgramId !== program.id) {
@@ -105,8 +113,12 @@ namespace Renderer {
         }
 
         const render = (scene: Scene, variant: RenderVariant) => {
+            ValueCell.update(globalUniforms.uModel, scene.view)
             ValueCell.update(globalUniforms.uView, camera.view)
             ValueCell.update(globalUniforms.uProjection, camera.projection)
+
+            ValueCell.update(globalUniforms.uFogFar, camera.fogFar)
+            ValueCell.update(globalUniforms.uFogNear, camera.fogNear)
 
             currentProgramId = -1
 
@@ -128,10 +140,10 @@ namespace Renderer {
             render,
 
             setClearColor,
-            setViewport: (newViewport: Viewport) => {
-                Viewport.copy(viewport, newViewport)
-                gl.viewport(viewport.x, viewport.y, viewport.width, viewport.height)
-                ValueCell.update(globalUniforms.uViewportHeight, viewport.height)
+            setViewport: (x: number, y: number, width: number, height: number) => {
+                Viewport.set(viewport, x, y, width, height)
+                gl.viewport(x, y, width, height)
+                ValueCell.update(globalUniforms.uViewportHeight, height)
             },
             getImageData: () => {
                 const { width, height } = viewport
