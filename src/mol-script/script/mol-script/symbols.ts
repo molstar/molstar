@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Symbol, Arguments, Argument } from '../../symbol'
-import B from '../../builder'
+import { Symbol, Arguments, Argument } from '../../language/symbol'
+import B from '../../language/builder'
 import * as M from './macro'
-import MolScript from '../../symbol-table'
-import Type from '../../type'
-import * as Struct from '../../symbol-table/structure-query'
-import Expression from '../../expression'
+import MolScript from '../../language/symbol-table'
+import Type from '../../language/type'
+import * as Struct from '../../language/symbol-table/structure-query'
+import Expression from '../../language/expression'
 import { UniqueArray } from 'mol-data/generic'
 
 export type MolScriptSymbol =

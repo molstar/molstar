@@ -6,7 +6,7 @@
 
 import Environment from './environment'
 import RuntimeExpression from './expression'
-import Expression from '../expression';
+import Expression from '../language/expression';
 
 type SymbolRuntime = SymbolRuntime.Dynamic | SymbolRuntime.Static
 

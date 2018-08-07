@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import B from '../../builder'
+import B from '../../language/builder'
 
 export function getPositionalArgs(args: any) {
     return Object.keys(args)

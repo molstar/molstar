@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Symbol } from '../symbol'
+import { Symbol } from '../language/symbol'
 import { SymbolRuntime } from './symbol'
 import { Macro } from './macro';
-import Expression from '../expression';
+import Expression from '../language/expression';
 
 class Environment {
     readonly runtimeTable: SymbolRuntime.Table;
