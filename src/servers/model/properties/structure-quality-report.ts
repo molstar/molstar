@@ -105,7 +105,7 @@ export namespace StructureQualityReport {
         if (model.customProperties.has(Descriptor)) return true;
 
         const id = model.label.toLowerCase();
-        const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, { timeout: 500 });
+        const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, { timeout: 1500 });
         const json = await rawData.json();
         const data = json[id];
         if (!data) return false;
