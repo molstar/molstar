@@ -50,7 +50,7 @@ export namespace Arguments {
 
 export type ExpressionArguments<T> = { [P in keyof T]?: Expression } | { [index: number]: Expression }
 
-export interface Symbol<A extends Arguments = Arguments, T extends Type = Type> {
+export interface MSymbol<A extends Arguments = Arguments, T extends Type = Type> {
     (args?: ExpressionArguments<A['@type']>): Expression,
     info: {
         namespace: string,
@@ -62,8 +62,8 @@ export interface Symbol<A extends Arguments = Arguments, T extends Type = Type> 
     id: string,
 }
 
-export function Symbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
-    const symbol: Symbol<A, T> = function(args: ExpressionArguments<A['@type']>) {
+export function MSymbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
+    const symbol: MSymbol<A, T> = function(args: ExpressionArguments<A['@type']>) {
         return Expression.Apply(Expression.Symbol(symbol.id), args as any);
     } as any;
     symbol.info = { namespace: '', name, description };
@@ -73,10 +73,10 @@ export function Symbol<A extends Arguments, T extends Type>(name: string, args: 
     return symbol;
 }
 
-export function isSymbol(x: any): x is Symbol {
-    const s = x as Symbol;
+export function isSymbol(x: any): x is MSymbol {
+    const s = x as MSymbol;
     return typeof s === 'function' && !!s.info && !!s.args && typeof s.info.namespace === 'string' && !!s.type;
 }
 
-export type SymbolMap = { [id: string]: Symbol | undefined }
+export type SymbolMap = { [id: string]: MSymbol | undefined }
 

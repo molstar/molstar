@@ -5,7 +5,7 @@
  */
 
 import Expression from './expression'
-import { Symbol } from './symbol'
+import { MSymbol } from './symbol'
 import SymbolTable from './symbol-table'
 
 namespace Builder {
@@ -22,13 +22,13 @@ namespace Builder {
     const _acp = struct.atomProperty.core, _ammp = struct.atomProperty.macromolecular, _atp = struct.atomProperty.topology;
 
     // atom core property
-    export function acp(p: keyof typeof _acp) { return (_acp[p] as Symbol<any>)() };
+    export function acp(p: keyof typeof _acp) { return (_acp[p] as MSymbol<any>)() };
 
     // atom topology property
-    export function atp(p: keyof typeof _atp) { return (_atp[p] as Symbol<any>)() };
+    export function atp(p: keyof typeof _atp) { return (_atp[p] as MSymbol<any>)() };
 
     // atom macromolecular property
-    export function ammp(p: keyof typeof _ammp) { return (_ammp[p] as Symbol<any>)() };
+    export function ammp(p: keyof typeof _ammp) { return (_ammp[p] as MSymbol<any>)() };
 
     // atom property sets
     const _aps = struct.atomSet.propertySet

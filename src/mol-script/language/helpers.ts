@@ -5,18 +5,18 @@
  */
 
 import Type from './type'
-import { Symbol, Arguments, isSymbol } from './symbol'
+import { MSymbol, Arguments, isSymbol } from './symbol'
 
 export function symbol<A extends Arguments, T extends Type<S>, S>(args: A, type: T, description?: string) {
-    return Symbol('', args, type, description);
+    return MSymbol('', args, type, description);
 }
 
 export function normalizeTable(table: any) {
     _normalizeTable('', '', table);
 }
 
-export function symbolList(table: any): Symbol[] {
-    const list: Symbol[] = [];
+export function symbolList(table: any): MSymbol[] {
+    const list: MSymbol[] = [];
     _symbolList(table, list);
     return list;
 }
@@ -42,7 +42,7 @@ function _normalizeTable(namespace: string, key: string, obj: any) {
     }
 }
 
-function _symbolList(obj: any, list: Symbol[]) {
+function _symbolList(obj: any, list: MSymbol[]) {
     if (isSymbol(obj)) {
         list.push(obj);
         return;

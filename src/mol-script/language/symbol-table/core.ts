@@ -5,7 +5,7 @@
  */
 
 import Type from '../type'
-import { Symbol, Arguments, Argument } from '../symbol'
+import { MSymbol, Arguments, Argument } from '../symbol'
 import { symbol, normalizeTable, symbolList } from '../helpers'
 
 export namespace Types {
@@ -174,7 +174,7 @@ normalizeTable(table);
 export const SymbolList = symbolList(table);
 
 export const SymbolMap = (function() {
-    const map: { [id: string]: Symbol | undefined } = Object.create(null);
+    const map: { [id: string]: MSymbol | undefined } = Object.create(null);
     for (const s of SymbolList) map[s.id] = s;
     return map;
 })();

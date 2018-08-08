@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Symbol } from '../language/symbol'
+import { MSymbol } from '../language/symbol'
 import { SymbolRuntime } from './symbol'
 import { Macro } from './macro';
 import Expression from '../language/expression';
@@ -25,11 +25,11 @@ class Environment {
         this.macroTable.delete(name);
     }
 
-    addSymbolRuntime(symbol: Symbol, runtime: SymbolRuntime) {
+    addSymbolRuntime(symbol: MSymbol, runtime: SymbolRuntime) {
         this.runtimeTable.set(symbol.id, runtime);
     }
 
-    removeSymbolRuntime(symbol: Symbol) {
+    removeSymbolRuntime(symbol: MSymbol) {
         this.runtimeTable.delete(symbol.id);
     }
 }
