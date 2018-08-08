@@ -41,6 +41,15 @@ function binRel<A extends Type, T extends Type>(src: A, target: T, description?:
     }), target, description);
 }
 
+export const TTargs = Arguments.Dictionary({
+    0: Argument(Type.Num),
+    1: Argument(Type.Num)
+})
+
+const XX = { test: Argument(Type.Str) };
+const t: Arguments.PropTypes<typeof XX> = 0 as any;
+t.test
+
 const type = {
     '@header': 'Types',
     bool: symbol(Arguments.Dictionary({ 0: Argument(Type.AnyValue) }), Type.Bool, 'Convert a value to boolean.'),

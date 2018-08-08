@@ -6,9 +6,9 @@
 
 import Expression from './expression'
 import { MSymbol } from './symbol'
-import SymbolTable from './symbol-table'
+import { MolScriptSymbolTable as SymbolTable } from './symbol-table'
 
-namespace Builder {
+export namespace MolScriptBuilder {
     export const core = SymbolTable.core;
     export const struct = SymbolTable.structureQuery;
 
@@ -36,5 +36,3 @@ namespace Builder {
     export function atpSet(p: keyof typeof _atp) { return _aps([ atp(p) ]) };
     export function ammpSet(p: keyof typeof _ammp) { return _aps([ ammp(p) ]) };
 }
-
-export default Builder

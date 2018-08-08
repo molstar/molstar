@@ -9,11 +9,11 @@ import structureQuery from './symbol-table/structure-query'
 import { normalizeTable, symbolList } from './helpers'
 import { MSymbol } from './symbol'
 
-const table = { core, structureQuery };
+const MolScriptSymbolTable = { core, structureQuery };
 
-normalizeTable(table);
+normalizeTable(MolScriptSymbolTable);
 
-export const SymbolList = symbolList(table);
+export const SymbolList = symbolList(MolScriptSymbolTable);
 
 export const SymbolMap = (function() {
     const map: { [id: string]: MSymbol | undefined } = Object.create(null);
@@ -21,4 +21,4 @@ export const SymbolMap = (function() {
     return map;
 })();
 
-export default table
+export { MolScriptSymbolTable }

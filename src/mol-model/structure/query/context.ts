@@ -58,5 +58,5 @@ export class QueryContext implements QueryContextView {
     }
 }
 
-export interface QueryPredicate { (ctx: QueryContextView): boolean }
-export interface QueryFn<T = any> { (ctx: QueryContextView): T }
+export interface QueryPredicate { (ctx: QueryContext): boolean }
+export interface QueryFn<T = any> { (ctx: QueryContext): T }

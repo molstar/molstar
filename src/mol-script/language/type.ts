@@ -9,7 +9,7 @@ type Type<T = any> =
     | Type.Container<T> | Type.Union<T> | Type.OneOf<T>
 
 namespace Type {
-    export interface Any { kind: 'any',  '@type': any }
+    export interface Any { kind: 'any', '@type': any }
     export interface Variable<T> { kind: 'variable', name: string, type: Type, isConstraint: boolean, '@type': any }
     export interface AnyValue { kind: 'any-value', '@type': any }
     export interface Value<T> { kind: 'value', namespace: string, name: string, parent?: Value<any>, '@type': T }

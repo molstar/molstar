@@ -31,7 +31,8 @@ export namespace Arguments {
         map: { [P in keyof T]: Argument<T[P]> },
         '@type': T
     }
-    export function Dictionary<Map extends { [key: string]: Argument<any> }>(map: Map): Arguments<{ [P in keyof Map]: Map[P]['type']['@type'] }> {
+    export type PropTypes<Map extends { [key: string]: Argument<any>  }> = { [P in keyof Map]: Map[P]['type']['@type'] }
+    export function Dictionary<Map extends { [key: string]: Argument<any> }>(map: Map): Arguments<PropTypes<Map>> {
         return { kind: 'dictionary', map, '@type': 0 as any };
     }
 
