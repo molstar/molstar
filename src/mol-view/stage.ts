@@ -110,7 +110,8 @@ export class Stage {
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)
-        // this.loadPdbid('1zag') // temp
+        // this.loadPdbid('5u0q') // mixed dna/rna in same polymer
+        // this.loadPdbid('5u0q') // temp
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok
@@ -154,8 +155,8 @@ export class Stage {
     }
 
     loadPdbid (pdbid: string) {
-        return this.loadMmcifUrl(`http://www.ebi.ac.uk/pdbe/static/entry/${pdbid}_updated.cif`)
-        // return this.loadMmcifUrl(`https://files.rcsb.org/download/${pdbid}.cif`)
+        // return this.loadMmcifUrl(`http://www.ebi.ac.uk/pdbe/static/entry/${pdbid}_updated.cif`)
+        return this.loadMmcifUrl(`https://files.rcsb.org/download/${pdbid}.cif`)
     }
 
     dispose () {

@@ -105,7 +105,7 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?:
             }
 
             if (i % 10000 === 0 && ctx.shouldUpdate) {
-                await ctx.update({ message: 'Gap mesh', current: i });
+                await ctx.update({ message: 'Nucleotide block mesh', current: i });
             }
             ++i
         }

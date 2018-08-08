@@ -16,6 +16,7 @@ import { ColorTheme, SizeTheme } from '../../../../theme';
 import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../../../theme/structure/color';
 import { ValueCell, defaults } from 'mol-util';
 import { LocationIterator } from './location-iterator';
+import { carbohydrateSymbolColorData } from '../../../../theme/structure/color/carbohydrate-symbol';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
     const unitCount = units.length
@@ -37,6 +38,8 @@ export function createColors(locationIt: LocationIterator, props: ColorTheme, co
     switch (props.name) {
         case 'atom-index':
             return elementIndexColorData(locationIt, colorData)
+        case 'carbohydrate-symbol':
+            return carbohydrateSymbolColorData(locationIt, colorData)
         case 'chain-id':
             return chainIdColorData(locationIt, colorData)
         case 'element-symbol':

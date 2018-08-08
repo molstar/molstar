@@ -5,8 +5,6 @@
  */
 
 import { Color } from 'mol-util/color';
-// import { Loci } from 'mol-model/loci';
-// import { Structure } from 'mol-model/structure';
 
 export interface UniformColorTheme {
     name: 'uniform'
@@ -14,27 +12,15 @@ export interface UniformColorTheme {
 }
 
 export interface ScaleColorTheme {
-    name:  'atom-index' | 'chain-id' | 'element-symbol' | 'instance-index'
+    name:  'atom-index' | 'chain-id'| 'instance-index'
     domain?: [number, number]
 }
 
-// interface StructureColorProvider {
-//     uniform(): Color
-//     instance(instanceIdx: number): Color
-//     element(elementIdx: number): Color
-//     elementInstance(elementIdx: number, instanceIdx: number): Color
+export interface TableColorTheme {
+    name:  'carbohydrate-symbol' | 'element-symbol'
+}
 
-//     lociColor(loci: Loci): Color
-// }
-
-// export namespace ColorProvider {
-//     export function fromLociColor(lociColor: (loci: Loci) => Color) {
-
-//         return
-//     }
-// }
-
-export type ColorTheme = UniformColorTheme | ScaleColorTheme
+export type ColorTheme = UniformColorTheme | ScaleColorTheme | TableColorTheme
 
 export interface UniformSizeTheme {
     name: 'uniform',

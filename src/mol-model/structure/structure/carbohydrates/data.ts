@@ -6,7 +6,7 @@
 
 import Unit from '../unit';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { ResidueIndex } from '../../model';
+import { ResidueIndex, ElementIndex } from '../../model';
 import { SaccharideComponent } from './constants';
 
 export interface CarbohydrateLink {
@@ -23,16 +23,24 @@ export interface CarbohydrateTerminalLink {
 }
 
 export interface CarbohydrateElement {
-    // geometry is only defined if at least one ring is present.
-    readonly geometry?: { readonly center: Vec3, readonly normal: Vec3, readonly direction: Vec3 },
-    readonly hasRing: boolean,
+    readonly geometry: { readonly center: Vec3, readonly normal: Vec3, readonly direction: Vec3 },
+    readonly anomericCarbon: ElementIndex,
     readonly unit: Unit.Atomic,
     readonly residueIndex: ResidueIndex,
-    readonly component: SaccharideComponent
+    readonly component: SaccharideComponent,
+}
+
+// partial carbohydrate with no ring present
+export interface PartialCarbohydrateElement {
+    readonly unit: Unit.Atomic,
+    readonly residueIndex: ResidueIndex,
+    readonly component: SaccharideComponent,
 }
 
 export interface Carbohydrates {
     links: ReadonlyArray<CarbohydrateLink>
     terminalLinks: ReadonlyArray<CarbohydrateTerminalLink>
     elements: ReadonlyArray<CarbohydrateElement>
+    partialElements: ReadonlyArray<PartialCarbohydrateElement>
+    byUnitAndElement: (unit: Unit, element: ElementIndex) => number | undefined
 }

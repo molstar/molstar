@@ -18,7 +18,7 @@ import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
 import { SaccharideNameMap, UnknownSaccharideComponent } from './constants';
-import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink } from './data';
+import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink, PartialCarbohydrateElement } from './data';
 import { UnitRings, UnitRing } from '../unit/rings';
 import { ElementIndex } from '../../model/indexing';
 
@@ -49,7 +49,7 @@ function getAnomericCarbon(unit: Unit.Atomic, ringAtoms: ArrayLike<StructureElem
             // possibly an anomeric carbon if this is a mono-saccharide without a glycosidic bond
             indexHasOxygenAndCarbon = ei
         } else if (label_atom_id.value(ei).startsWith('C1')) {
-            // likely the anomeric carbon as it is name C1 by convention
+            // likely the anomeric carbon as it is named C1 by convention
             indexHasC1Name = ei
         } else {
             // use any carbon as a fallback
@@ -122,6 +122,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
     const links: CarbohydrateLink[] = []
     const terminalLinks: CarbohydrateTerminalLink[] = []
     const elements: CarbohydrateElement[] = []
+    const partialElements: PartialCarbohydrateElement[] = []
 
     const elementsWithRingMap = new Map<string, number>()
 
@@ -173,10 +174,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 const sugarRings = filterFusedRings(unit.rings, sugarResidueMap.get(residueIndex));
 
                 if (!sugarRings || !sugarRings.length) {
-                    elements.push({
-                        hasRing: false,
-                        unit, residueIndex, component: saccharideComp
-                    })
+                    partialElements.push({ unit, residueIndex, component: saccharideComp })
                     continue;
                 }
 
@@ -199,8 +197,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     elementsWithRingMap.set(elementKey(residueIndex, unit.id, altId), elementIndex)
                     elements.push({
                         geometry: { center, normal, direction },
-                        hasRing: true,
-                        unit, residueIndex, component: saccharideComp
+                        component: saccharideComp,
+                        unit, residueIndex, anomericCarbon
                     })
                 }
 
@@ -279,5 +277,20 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         })
     }
 
-    return { links, terminalLinks, elements }
+    // build lookup map
+    const map = new Map<string, number>()
+    for (let i = 0, il = elements.length; i < il; ++i) {
+        const { unit, anomericCarbon } = elements[i]
+        map.set(key(unit, anomericCarbon), i)
+    }
+
+    function key(unit: Unit, anomericCarbon: ElementIndex) {
+        return `${unit.id}|${anomericCarbon}`
+    }
+
+    function byUnitAndElement(unit: Unit, anomericCarbon: ElementIndex) {
+        return map.get(key(unit, anomericCarbon))
+    }
+
+    return { links, terminalLinks, elements, partialElements, byUnitAndElement }
 }
