@@ -6,14 +6,22 @@
 
 import { CifWriter } from 'mol-io/writer/cif'
 import { CifExportContext } from '../../../export/mmcif';
+import { QuerySymbolRuntime } from 'mol-script/runtime/query/compiler';
 
-interface ModelPropertyDescriptor {
+interface ModelPropertyDescriptor<Symbols extends { [name: string]: QuerySymbolRuntime } = { }> {
     readonly isStatic: boolean,
     readonly name: string,
 
     cifExport: {
         categories: CifWriter.Category<CifExportContext>[]
-    }
+    },
+
+    // TODO: add aliases when lisp-like mol-script is done
+    symbols?: Symbols
+}
+
+function ModelPropertyDescriptor<Desc extends ModelPropertyDescriptor>(desc: Desc) {
+    return desc;
 }
 
 export { ModelPropertyDescriptor }

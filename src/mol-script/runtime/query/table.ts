@@ -30,6 +30,10 @@ const symbols = [
     C(MolScript.core.rel.lte, (ctx, v) => v[0](ctx) <= v[1](ctx)),
     C(MolScript.core.rel.gr, (ctx, v) => v[0](ctx) > v[1](ctx)),
     C(MolScript.core.rel.gre, (ctx, v) => v[0](ctx) >= v[1](ctx)),
+    C(MolScript.core.rel.inRange, (ctx, v) => {
+        const x = v[0](ctx);
+        return x >= v[1](ctx) && x <= v[2](ctx);
+    }),
 
     // ============= TYPES ================
     C(MolScript.structureQuery.type.elementSymbol, (ctx, v) => ElementSymbol(v[0](ctx))),
@@ -46,16 +50,6 @@ const symbols = [
     // ============= ATOM PROPERTIES ================
     D(MolScript.structureQuery.atomProperty.macromolecular.label_comp_id, (ctx, _) => StructureProperties.residue.label_comp_id(ctx.element)),
     D(MolScript.structureQuery.atomProperty.core.elementSymbol, (ctx, _) => StructureProperties.atom.type_symbol(ctx.element))
-
-    // Symbol(MolQL.core.rel.neq, staticAttr)((env, v) => v[0](env) !== v[1](env)),
-    // Symbol(MolQL.core.rel.lt, staticAttr)((env, v) => v[0](env) < v[1](env)),
-    // Symbol(MolQL.core.rel.lte, staticAttr)((env, v) => v[0](env) <= v[1](env)),
-    // Symbol(MolQL.core.rel.gr, staticAttr)((env, v) => v[0](env) > v[1](env)),
-    // Symbol(MolQL.core.rel.gre, staticAttr)((env, v) => v[0](env) >= v[1](env)),
-    // Symbol(MolQL.core.rel.inRange, staticAttr)((env, v) => {
-    //     const x = v[0](env);
-    //     return x >= v[1](env) && x <= v[2](env)
-    // }),
 ];
 
 (function () {

@@ -5,7 +5,7 @@
  */
 
 import Expression from '../../language/expression';
-import { QueryContext, QueryFn, Structure } from 'mol-model/structure';
+import { QueryContext, QueryFn, Structure, ModelPropertyDescriptor } from 'mol-model/structure';
 import { MSymbol } from '../../language/symbol';
 
 export class QueryRuntimeTable {
@@ -13,6 +13,14 @@ export class QueryRuntimeTable {
 
     addSymbol(runtime: QuerySymbolRuntime) {
         this.map.set(runtime.symbol.id, runtime);
+    }
+
+    addCustomProp(desc: ModelPropertyDescriptor) {
+        if (!desc.symbols) return;
+
+        for (const k of Object.keys(desc.symbols)) {
+            this.addSymbol((desc.symbols as any)[k]);
+        }
     }
 
     getRuntime(id: string) {

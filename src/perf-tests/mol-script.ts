@@ -1,7 +1,9 @@
 import { MolScriptBuilder } from 'mol-script/language/builder';
-import { compile } from 'mol-script/runtime/query/compiler';
-import { QueryContext, Structure, StructureQuery } from 'mol-model/structure';
+import { compile, QuerySymbolRuntime, DefaultQueryRuntimeTable } from 'mol-script/runtime/query/compiler';
+import { QueryContext, Structure, StructureQuery, ModelPropertyDescriptor } from 'mol-model/structure';
 import { readCifFile, getModelsAndStructure } from '../apps/structure-info/model';
+import { CustomPropSymbol } from 'mol-script/language/symbol';
+import Type from 'mol-script/language/type';
 
 // import Examples from 'mol-script/script/mol-script/examples'
 // import { parseMolScript } from 'mol-script/script/mol-script/parser'
@@ -27,6 +29,21 @@ const compiled = compile<number>(expr);
 const result = compiled(new QueryContext(Structure.Empty));
 console.log(result);
 
+const CustomProp = ModelPropertyDescriptor({
+    name: 'test_prop',
+    isStatic: true,
+    cifExport: { categories: [ ]},
+    symbols: {
+        residueIndex: QuerySymbolRuntime.Dynamic(CustomPropSymbol('custom.test-prop', 'residue-index', Type.Num), ctx => {
+            const e = ctx.element;
+            //console.log(e.element, e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element])
+            return e.unit.model.atomicHierarchy.residueAtomSegments.index[e.element];
+        })
+    }
+});
+
+DefaultQueryRuntimeTable.addCustomProp(CustomProp);
+
 async function testQ() {
     const frame = await readCifFile('e:/test/quick/1cbs_updated.cif');
     const { structure } = await getModelsAndStructure(frame);
@@ -36,10 +53,11 @@ async function testQ() {
             MolScriptBuilder.struct.atomProperty.core.elementSymbol(),
             MolScriptBuilder.es('C')
         ]),
-        'residue-test': MolScriptBuilder.core.rel.eq([
-            MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
-            'REA'
-        ])
+        // 'residue-test': MolScriptBuilder.core.rel.eq([
+        //     MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
+        //     'REA'
+        // ])
+        'residue-test': MolScriptBuilder.core.rel.inRange([CustomProp.symbols.residueIndex.symbol(), 1, 5])
     });
 
     const compiled = compile<StructureQuery>(expr);
