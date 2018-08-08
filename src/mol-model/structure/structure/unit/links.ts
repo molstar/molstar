@@ -1,10 +1,11 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from '../../structure'
+import { Unit, StructureElement } from '../../structure'
 
 export * from './links/data'
 export * from './links/intra-compute'
@@ -12,12 +13,21 @@ export * from './links/inter-compute'
 
 namespace Link {
     export interface Location {
-        readonly aUnit: Unit,
+        readonly kind: 'link-location',
+        aUnit: Unit,
         /** Index into aUnit.elements */
-        readonly aIndex: number,
-        readonly bUnit: Unit,
+        aIndex: StructureElement.UnitIndex,
+        bUnit: Unit,
         /** Index into bUnit.elements */
-        readonly bIndex: number,
+        bIndex: StructureElement.UnitIndex,
+    }
+
+    export function Location(aUnit?: Unit, aIndex?: StructureElement.UnitIndex, bUnit?: Unit, bIndex?: StructureElement.UnitIndex): Location {
+        return { kind: 'link-location', aUnit: aUnit as any, aIndex: aIndex as any, bUnit: bUnit as any, bIndex: bIndex as any };
+    }
+
+    export function isLocation(x: any): x is Location {
+        return !!x && x.kind === 'link-location';
     }
 
     export interface Loci {

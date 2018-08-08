@@ -25,6 +25,7 @@ import { createMeshValues, updateMeshValues, updateRenderableState, createRender
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment } from './util/polymer';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
+import { StructureElementIterator } from './util/location-iterator';
 
 // TODO handle polymer ends properly
 
@@ -111,7 +112,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
                 : Mesh.createEmpty(mesh)
 
             const transforms = createTransforms(group)
-            const color = createColors(group, elementCount, colorTheme)
+            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -147,9 +148,8 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
             }
 
             if (updateColor) {
-                const elementCount = currentGroup.elements.length
                 if (ctx.shouldUpdate) await ctx.update('Computing trace colors');
-                createColors(currentGroup, elementCount, newProps.colorTheme, renderObject.values)
+                createColors(StructureElementIterator.fromGroup(currentGroup), newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)

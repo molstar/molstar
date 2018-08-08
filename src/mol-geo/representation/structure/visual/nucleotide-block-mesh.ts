@@ -26,6 +26,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation, SortedArray } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
+import { StructureElementIterator } from './util/location-iterator';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -145,7 +146,7 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
             // console.log(mesh)
 
             const transforms = createTransforms(group)
-            const color = createColors(group, elementCount, colorTheme)
+            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -182,9 +183,8 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
             }
 
             if (updateColor) {
-                const elementCount = currentGroup.elements.length
                 if (ctx.shouldUpdate) await ctx.update('Computing nucleotide block colors');
-                createColors(currentGroup, elementCount, newProps.colorTheme, renderObject.values)
+                createColors(StructureElementIterator.fromGroup(currentGroup), newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)

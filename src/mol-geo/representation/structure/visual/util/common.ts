@@ -13,8 +13,9 @@ import { createUniformSize, SizeData } from '../../../../util/size-data';
 import { physicalSizeData } from '../../../../theme/structure/size/physical';
 import VertexMap from '../../../../shape/vertex-map';
 import { ColorTheme, SizeTheme } from '../../../../theme';
-import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdElementColorData } from '../../../../theme/structure/color';
+import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../../../theme/structure/color';
 import { ValueCell, defaults } from 'mol-util';
+import { LocationIterator } from './location-iterator';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
     const unitCount = units.length
@@ -32,18 +33,18 @@ export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
     return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
 }
 
-export function createColors(group: Unit.SymmetryGroup, elementCount: number, props: ColorTheme, colorData?: ColorData) {
+export function createColors(locationIt: LocationIterator, props: ColorTheme, colorData?: ColorData) {
     switch (props.name) {
         case 'atom-index':
-            return elementIndexColorData({ group, elementCount }, colorData)
+            return elementIndexColorData(locationIt, colorData)
         case 'chain-id':
-            return chainIdElementColorData({ group, elementCount }, colorData)
+            return chainIdColorData(locationIt, colorData)
         case 'element-symbol':
-            return elementSymbolColorData({ group, elementCount }, colorData)
+            return elementSymbolColorData(locationIt, colorData)
         case 'instance-index':
-            return instanceIndexColorData({ group, elementCount }, colorData)
+            return instanceIndexColorData(locationIt, colorData)
         case 'uniform':
-            return createUniformColor(props, colorData)
+            return createUniformColor(locationIt, () => props.value, colorData)
     }
 }
 

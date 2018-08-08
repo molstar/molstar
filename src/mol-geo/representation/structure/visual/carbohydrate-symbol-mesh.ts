@@ -21,7 +21,7 @@ import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../../util/color-data';
+import { createValueColor } from '../../../util/color-data';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 
 const t = Mat4.identity()
@@ -173,7 +173,7 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
             // console.log(mesh)
 
             const transforms = createIdentityTransform()
-            const color = createUniformColor({ value: 0x999911 }) // TODO
+            const color = createValueColor(0x999911) // TODO
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }

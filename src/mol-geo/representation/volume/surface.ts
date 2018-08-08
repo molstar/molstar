@@ -13,7 +13,7 @@ import { VolumeVisual } from '.';
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { ValueCell, defaults } from 'mol-util';
 import { Mat4 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../util/color-data';
+import { createValueColor } from '../../util/color-data';
 import { getMeshData } from '../../util/mesh-data';
 import { RenderableState, MeshValues } from 'mol-gl/renderable';
 import { PickingId } from '../../util/picking';
@@ -65,7 +65,7 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
             }
 
             const instanceCount = 1
-            const color = createUniformColor({ value: 0x7ec0ee })
+            const color = createValueColor(0x7ec0ee)
             const marker = createEmptyMarkers()
 
             const values: MeshValues = {

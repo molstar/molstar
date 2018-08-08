@@ -22,6 +22,7 @@ import { createMarkers, MarkerAction } from '../../../util/marker-data';
 import { Loci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
+import { StructureElementIterator } from './util/location-iterator';
 
 export const DefaultElementSphereProps = {
     ...DefaultMeshProps,
@@ -55,7 +56,7 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
                 : Mesh.createEmpty(mesh)
 
             const transforms = createTransforms(group)
-            const color = createColors(group, elementCount, colorTheme)
+            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -92,9 +93,7 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
             }
 
             if (updateColor) {
-                const elementCount = currentGroup.elements.length
-                if (ctx.shouldUpdate) await ctx.update('Computing sphere colors');
-                createColors(currentGroup, elementCount, newProps.colorTheme, renderObject.values)
+                createColors(StructureElementIterator.fromGroup(currentGroup), newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)

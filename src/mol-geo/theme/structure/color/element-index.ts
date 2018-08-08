@@ -5,18 +5,17 @@
  */
 
 import { ColorScale } from 'mol-util/color';
-import { StructureColorDataProps } from '.';
 import { createElementInstanceColor, ColorData } from '../../../util/color-data';
+import { LocationIterator, LocationValue } from '../../../representation/structure/visual/util/location-iterator';
 
-export function elementIndexColorData(props: StructureColorDataProps, colorData?: ColorData) {
-    const { group: { units }, elementCount } = props
-    const instanceCount = units.length
+export function elementIndexColorData(locationIt: LocationIterator, colorData?: ColorData) {
+    const { elementCount, instanceCount } = locationIt
 
     const domain = [ 0, instanceCount * elementCount - 1 ]
     const scale = ColorScale.create({ domain })
-    return createElementInstanceColor({
-        colorFn: (instanceIdx, elementIdx) => scale.color(instanceIdx * elementCount + elementIdx),
-        instanceCount,
-        elementCount
-    }, colorData)
+    return createElementInstanceColor(
+        locationIt,
+        (value: LocationValue) => scale.color(value.instanceIndex * elementCount + value.elementIndex),
+        colorData
+    )
 }

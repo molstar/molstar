@@ -23,6 +23,7 @@ import { Loci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
+import { StructureElementIterator } from './util/location-iterator';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
@@ -78,7 +79,7 @@ export default function PointVisual(): UnitsVisual<PointProps> {
 
             const vertices = createPointVertices(_units[0])
             const transforms = createTransforms(group)
-            const color = createColors(group, elementCount, colorTheme)
+            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
             const size = createSizes(group, vertexMap, sizeTheme)
             const marker = createMarkers(instanceCount * elementCount)
 

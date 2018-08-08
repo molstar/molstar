@@ -11,7 +11,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { ValueCell } from 'mol-util';
 
 import Renderer from '../renderer';
-import { createUniformColor } from 'mol-geo/util/color-data';
+import { createValueColor } from 'mol-geo/util/color-data';
 import { createUniformSize } from 'mol-geo/util/size-data';
 import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
@@ -47,7 +47,7 @@ function createPoints() {
     const aPosition = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
     const aElementId = ValueCell.create(fillSerial(new Float32Array(3)))
     const aInstanceId = ValueCell.create(fillSerial(new Float32Array(1)))
-    const color = createUniformColor({ value: 0xFF0000 })
+    const color = createValueColor(0xFF0000)
     const size = createUniformSize({ value: 1 })
     const marker = createEmptyMarkers()
 

@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Link, Structure } from 'mol-model/structure';
+import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, StructureVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
@@ -16,13 +16,13 @@ import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../../util/color-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
-import { createIdentityTransform } from './util/common';
+import { createIdentityTransform, createColors } from './util/common';
 import { updateMeshValues, updateRenderableState, createMeshValues, createRenderableState } from '../../util';
-// import { chainIdLinkColorData } from '../../../theme/structure/color/chain-id';
+import { LinkIterator } from './util/location-iterator';
+import { deepEqual } from 'mol-util';
 
 async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links
@@ -65,13 +65,14 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
             currentProps = Object.assign({}, DefaultInterUnitLinkProps, props)
             currentStructure = structure
 
+            const { colorTheme } = { ...DefaultInterUnitLinkProps, ...props }
             const elementCount = structure.links.bondCount
             const instanceCount = 1
 
             mesh = await createInterUnitLinkCylinderMesh(ctx, structure, currentProps)
 
             const transforms = createIdentityTransform()
-            const color = createUniformColor({ value: 0x999911 }) // TODO
+            const color = createColors(LinkIterator.fromStructure(structure), colorTheme) // TODO
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -93,12 +94,23 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
 
             if (!renderObject) return false
 
+            let updateColor = false
+
             // TODO create in-place
             if (currentProps.radialSegments !== newProps.radialSegments) return false
+
+            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
+                updateColor = true
+            }
+
+            if (updateColor) {
+                createColors(LinkIterator.fromStructure(currentStructure), newProps.colorTheme, renderObject.values)
+            }
 
             updateMeshValues(renderObject.values, newProps)
             updateRenderableState(renderObject.state, newProps)
 
+            currentProps = newProps
             return false
         },
         getLoci(pickingId: PickingId) {
@@ -117,12 +129,12 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, elementId } = pickingId
     if (id === objectId) {
         const bond = structure.links.bonds[elementId]
-        return Link.Loci([{
-            aUnit: bond.unitA,
-            aIndex: bond.indexA,
-            bUnit: bond.unitB,
-            bIndex: bond.indexB
-        }])
+        return Link.Loci([
+            Link.Location(
+                bond.unitA, bond.indexA as StructureElement.UnitIndex,
+                bond.unitB, bond.indexB as StructureElement.UnitIndex
+            )
+        ])
     }
     return EmptyLoci
 }

@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, StructureElement } from 'mol-model/structure';
+import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/structure';
 
-import { StructureColorDataProps } from '.';
-import { ColorData, createElementColor, createUniformColor } from '../../../util/color-data';
-import { ColorScale } from 'mol-util/color';
+import { ColorData, createElementColor } from '../../../util/color-data';
+import { ColorScale, Color } from 'mol-util/color';
+import { LocationIterator, LocationValue } from '../../../representation/structure/visual/util/location-iterator';
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -18,54 +18,28 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
         case Unit.Kind.Gaussians:
             return StructureProperties.coarse.asym_id
     }
-    throw new Error('unhandled unit kind')
 }
 
-export function chainIdColorData(props: StructureColorDataProps, locationFn: (l: StructureElement, renderElementIdx: number) => void, colorData?: ColorData) {
-    const { group: { units }, elementCount } = props
-    const unit = units[0]
-
-    const map = unit.model.properties.asymIdSerialMap
-    const count = map.size
-
-    const domain = [ 0, count - 1 ]
-    const scale = ColorScale.create({ domain })
-    const asym_id = getAsymId(unit)
-
+export function chainIdColorData(locationIt: LocationIterator, colorData?: ColorData) {
     const l = StructureElement.create()
-    l.unit = unit
 
-    return createElementColor({
-        colorFn: (renderElementIdx: number) => {
-            locationFn(l, renderElementIdx)
+    function colorFn(locationValue: LocationValue): Color {
+        const { location } = locationValue
+        if (StructureElement.isLocation(location)) {
+            const map = location.unit.model.properties.asymIdSerialMap
+            const scale = ColorScale.create({ domain: [ 0, map.size - 1 ] })
+            const asym_id = getAsymId(location.unit)
+            return scale.color(map.get(asym_id(location)) || 0)
+        } else if (Link.isLocation(location)) {
+            const map = location.aUnit.model.properties.asymIdSerialMap
+            const scale = ColorScale.create({ domain: [ 0, map.size - 1 ] })
+            const asym_id = getAsymId(location.aUnit)
+            l.unit = location.aUnit
+            l.element = location.aUnit.elements[location.aIndex]
             return scale.color(map.get(asym_id(l)) || 0)
-        },
-        elementCount
-    }, colorData)
-}
-
-export function chainIdElementColorData(props: StructureColorDataProps, colorData?: ColorData) {
-    const elements = props.group.units[0].elements
-    function locationFn(l: StructureElement, renderElementIdx: number) {
-        l.element = elements[renderElementIdx]
+        }
+        return 0
     }
-    return chainIdColorData(props, locationFn, colorData)
-}
 
-export function chainIdLinkColorData(props: StructureColorDataProps, colorData?: ColorData): ColorData {
-    const unit = props.group.units[0]
-    const elements = unit.elements
-    let locationFn: (l: StructureElement, renderElementIdx: number) => void
-    switch (unit.kind) {
-        case Unit.Kind.Atomic:
-            const { a } = unit.links
-            locationFn = (l: StructureElement, renderElementIdx: number) => {
-                l.element = elements[a[renderElementIdx]]
-            }
-            return chainIdColorData(props, locationFn, colorData)
-        case Unit.Kind.Spheres:
-        case Unit.Kind.Gaussians:
-            // no chainId link color for coarse units, return uniform grey color
-            return createUniformColor({ value: 0xCCCCCC }, colorData)
-    }
+    return createElementColor(locationIt, colorFn, colorData)
 }

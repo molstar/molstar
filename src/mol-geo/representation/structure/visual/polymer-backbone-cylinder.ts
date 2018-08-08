@@ -24,6 +24,7 @@ import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { StructureElementIterator } from './util/location-iterator';
 
 async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
@@ -91,7 +92,7 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
             // console.log(mesh)
 
             const transforms = createTransforms(group)
-            const color = createColors(group, elementCount, colorTheme)
+            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -128,9 +129,8 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
             }
 
             if (updateColor) {
-                const elementCount = currentGroup.elements.length
                 if (ctx.shouldUpdate) await ctx.update('Computing trace colors');
-                createColors(currentGroup, elementCount, newProps.colorTheme, renderObject.values)
+                createColors(StructureElementIterator.fromGroup(currentGroup), newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)

@@ -12,6 +12,6 @@ export interface StructureColorDataProps {
 }
 
 export { elementIndexColorData } from './element-index'
-export { chainIdElementColorData } from './chain-id'
+export { chainIdColorData } from './chain-id'
 export { elementSymbolColorData } from './element-symbol'
 export { instanceIndexColorData } from './instance-index'

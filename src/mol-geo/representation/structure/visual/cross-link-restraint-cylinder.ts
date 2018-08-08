@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Link, Structure } from 'mol-model/structure';
+import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, StructureVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
@@ -16,7 +16,7 @@ import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../../util/color-data';
+import { createValueColor } from '../../../util/color-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
@@ -74,7 +74,7 @@ export function CrossLinkRestraintVisual(): StructureVisual<CrossLinkRestraintPr
             mesh = await createCrossLinkRestraintCylinderMesh(ctx, structure, currentProps)
 
             const transforms = createIdentityTransform()
-            const color = createUniformColor({ value: 0x119911 }) // TODO
+            const color = createValueColor(0x119911) // TODO
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -121,12 +121,12 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     if (id === objectId) {
         const pair = structure.crossLinkRestraints.pairs[elementId]
         if (pair) {
-            return Link.Loci([{
-                aUnit: pair.unitA,
-                aIndex: pair.indexA,
-                bUnit: pair.unitB,
-                bIndex: pair.indexB
-            }])
+            return Link.Loci([
+                Link.Location(
+                    pair.unitA, pair.indexA as StructureElement.UnitIndex,
+                    pair.unitB, pair.indexB as StructureElement.UnitIndex
+                )
+            ])
         }
     }
     return EmptyLoci
