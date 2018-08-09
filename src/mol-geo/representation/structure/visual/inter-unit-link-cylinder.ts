@@ -144,13 +144,13 @@ function markLink(loci: Loci, action: MarkerAction, structure: Structure, values
 
     const links = structure.links
     const elementCount = links.bondCount
-    const instanceCount = 1
 
     let changed = false
     const array = tMarker.ref.value.array
     if (isEveryLoci(loci)) {
-        applyMarkerAction(array, 0, elementCount * instanceCount, action)
-        changed = true
+        if (applyMarkerAction(array, 0, elementCount, action)) {
+            changed = true
+        }
     } else if (Link.isLoci(loci)) {
         for (const b of loci.links) {
             const _idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)

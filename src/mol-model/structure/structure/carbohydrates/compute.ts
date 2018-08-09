@@ -126,7 +126,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
 
     const elementsWithRingMap = new Map<string, number>()
 
-    function elementKey(residueIndex: number, unitId: number, altId: string) {
+    function ringElementKey(residueIndex: number, unitId: number, altId: string) {
         return `${residueIndex}|${unitId}|${altId}`
     }
 
@@ -194,7 +194,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const altId = getRingAltId(unit, ringAtoms)
                     const elementIndex = elements.length
                     ringElements.push(elementIndex)
-                    elementsWithRingMap.set(elementKey(residueIndex, unit.id, altId), elementIndex)
+                    elementsWithRingMap.set(ringElementKey(residueIndex, unit.id, altId), elementIndex)
                     elements.push({
                         geometry: { center, normal, direction },
                         component: saccharideComp,
@@ -227,8 +227,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         }
     }
 
-    function getElementIndex(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-        return elementsWithRingMap.get(elementKey(unit.getResidueIndex(index), unit.id, getAltId(unit, index)))
+    function getRingElementIndex(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+        return elementsWithRingMap.get(ringElementKey(unit.getResidueIndex(index), unit.id, getAltId(unit, index)))
     }
 
     // get carbohydrate links induced by inter-unit bonds
@@ -241,32 +241,32 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 pairBonds.getBonds(indexA).forEach(bondInfo => {
                     const { unitA, unitB } = pairBonds
                     const indexB = bondInfo.indexB
-                    const elementIndexA = getElementIndex(unitA, indexA)
-                    const elementIndexB = getElementIndex(unitB, indexB)
+                    const ringElementIndexA = getRingElementIndex(unitA, indexA)
+                    const ringElementIndexB = getRingElementIndex(unitB, indexB)
 
-                    if (elementIndexA !== undefined && elementIndexB !== undefined) {
+                    if (ringElementIndexA !== undefined && ringElementIndexB !== undefined) {
                         const atomIdA = getAtomId(unitA, indexA)
                         if (atomIdA.startsWith('O1') || atomIdA.startsWith('C1')) {
-                            fixLinkDirection(elementIndexA, elementIndexB)
+                            fixLinkDirection(ringElementIndexA, ringElementIndexB)
                         }
                         links.push({
-                            carbohydrateIndexA: elementIndexA,
-                            carbohydrateIndexB: elementIndexB
+                            carbohydrateIndexA: ringElementIndexA,
+                            carbohydrateIndexB: ringElementIndexB
                         })
-                    } else if (elementIndexA !== undefined) {
+                    } else if (ringElementIndexA !== undefined) {
                         const atomIdA = getAtomId(unitA, indexA)
                         if (atomIdA.startsWith('O1') || atomIdA.startsWith('C1')) {
-                            fixTerminalLinkDirection(elementIndexA, indexB, unitB)
+                            fixTerminalLinkDirection(ringElementIndexA, indexB, unitB)
                         }
                         terminalLinks.push({
-                            carbohydrateIndex: elementIndexA,
+                            carbohydrateIndex: ringElementIndexA,
                             elementIndex: indexB,
                             elementUnit: unitB,
                             fromCarbohydrate: true
                         })
-                    } else if (elementIndexB !== undefined) {
+                    } else if (ringElementIndexB !== undefined) {
                         terminalLinks.push({
-                            carbohydrateIndex: elementIndexB,
+                            carbohydrateIndex: ringElementIndexB,
                             elementIndex: indexA,
                             elementUnit: unitA,
                             fromCarbohydrate: false
@@ -277,20 +277,43 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         })
     }
 
-    // build lookup map
-    const map = new Map<string, number>()
-    for (let i = 0, il = elements.length; i < il; ++i) {
-        const { unit, anomericCarbon } = elements[i]
-        map.set(key(unit, anomericCarbon), i)
-    }
+    return { links, terminalLinks, elements, partialElements, ...buildLookups(elements, links) }
+}
 
-    function key(unit: Unit, anomericCarbon: ElementIndex) {
+function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[]) {
+    // element lookup
+
+    function elementKey(unit: Unit, anomericCarbon: ElementIndex) {
         return `${unit.id}|${anomericCarbon}`
     }
 
-    function byUnitAndElement(unit: Unit, anomericCarbon: ElementIndex) {
-        return map.get(key(unit, anomericCarbon))
+    const elementMap = new Map<string, number>()
+    for (let i = 0, il = elements.length; i < il; ++i) {
+        const { unit, anomericCarbon } = elements[i]
+        elementMap.set(elementKey(unit, anomericCarbon), i)
     }
 
-    return { links, terminalLinks, elements, partialElements, byUnitAndElement }
+    function getElementIndex(unit: Unit, anomericCarbon: ElementIndex) {
+        return elementMap.get(elementKey(unit, anomericCarbon))
+    }
+
+    // link lookup
+
+    function linkKey(unitA: Unit, anomericCarbonA: ElementIndex, unitB: Unit, anomericCarbonB: ElementIndex) {
+        return `${unitA.id}|${anomericCarbonA}|${unitB.id}|${anomericCarbonB}`
+    }
+
+    const linkMap = new Map<string, number>()
+    for (let i = 0, il = links.length; i < il; ++i) {
+        const l = links[i]
+        const { unit: unitA, anomericCarbon: anomericCarbonA } = elements[l.carbohydrateIndexA]
+        const { unit: unitB, anomericCarbon: anomericCarbonB } = elements[l.carbohydrateIndexB]
+        linkMap.set(linkKey(unitA, anomericCarbonA, unitB, anomericCarbonB), i)
+    }
+
+    function getLinkIndex(unitA: Unit, anomericCarbonA: ElementIndex, unitB: Unit, anomericCarbonB: ElementIndex) {
+        return linkMap.get(linkKey(unitA, anomericCarbonA, unitB, anomericCarbonB))
+    }
+
+    return { getElementIndex, getLinkIndex }
 }

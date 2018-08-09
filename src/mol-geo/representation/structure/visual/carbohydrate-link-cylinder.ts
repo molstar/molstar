@@ -15,14 +15,13 @@ import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { createMarkers, MarkerAction, MarkerData } from '../../../util/marker-data';
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { createMarkers, MarkerAction, MarkerData, applyMarkerAction } from '../../../util/marker-data';
+import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { deepEqual } from 'mol-util';
 import { LocationIterator } from './util/location-iterator';
-import { createValueColor } from '../../../util/color-data';
 import { createLinkCylinderMesh, DefaultLinkCylinderProps, LinkCylinderProps } from './util/link';
 import { OrderedSet } from 'mol-data/int';
 
@@ -86,7 +85,7 @@ export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps>
             // console.log(mesh)
 
             const transforms = createIdentityTransform()
-            const color = createValueColor(0x119911)//createColors(colorTheme)
+            const color = createColors(createCarbohydrateLinkIterator(structure), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -97,8 +96,7 @@ export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps>
                 ...marker,
                 aTransform: transforms,
                 elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-                aColor: ValueCell.create(new Float32Array(mesh.vertexCount * 3))
+                ...createMeshValues(currentProps, counts)
             }
             const state = createRenderableState(currentProps)
 
@@ -111,13 +109,13 @@ export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps>
 
             let updateColor = false
 
-            // if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-            //     updateColor = true
-            // }
+            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
+                updateColor = true
+            }
 
-            // if (updateColor) {
-            //     createColors(LinkIterator.fromGroup(currentGroup), newProps.colorTheme, renderObject.values)
-            // }
+            if (updateColor) {
+                createColors(createCarbohydrateLinkIterator(currentStructure), newProps.colorTheme, renderObject.values)
+            }
 
             updateMeshValues(renderObject.values, newProps)
             updateRenderableState(renderObject.state, newProps)
@@ -129,13 +127,32 @@ export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps>
             return getLinkLoci(pickingId, currentStructure, renderObject.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            // TODO
-            // markLink(loci, action, currentStructure, renderObject.values)
+            markLink(loci, action, currentStructure, renderObject.values)
         },
         destroy() {
             // TODO
         }
     }
+}
+
+function createCarbohydrateLinkIterator(structure: Structure): LocationIterator {
+    const { elements, links } = structure.carbohydrates
+    const elementCount = links.length
+    const instanceCount = 1
+    const location = Link.Location()
+    const getLocation = (elementIndex: number, instanceIndex: number) => {
+        const link = links[elementIndex]
+        const carbA = elements[link.carbohydrateIndexA]
+        const carbB = elements[link.carbohydrateIndexB]
+        const indexA = OrderedSet.findPredecessorIndex(carbA.unit.elements, carbA.anomericCarbon)
+        const indexB = OrderedSet.findPredecessorIndex(carbB.unit.elements, carbB.anomericCarbon)
+        location.aUnit = carbA.unit
+        location.aIndex = indexA as StructureElement.UnitIndex
+        location.bUnit = carbB.unit
+        location.bIndex = indexB as StructureElement.UnitIndex
+        return location
+    }
+    return LocationIterator(elementCount, instanceCount, getLocation)
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
@@ -157,33 +174,31 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-// TODO
-// function markLink(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
-//     const tMarker = values.tMarker
+function markLink(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
+    const tMarker = values.tMarker
 
-//     const links = structure.links
-//     const elementCount = links.bondCount
-//     const instanceCount = 1
+    const { getLinkIndex } = structure.carbohydrates
+    const elementCount = structure.carbohydrates.elements.length
 
-//     let changed = false
-//     const array = tMarker.ref.value.array
-//     if (isEveryLoci(loci)) {
-//         applyMarkerAction(array, 0, elementCount * instanceCount, action)
-//         changed = true
-//     } else if (Link.isLoci(loci)) {
-//         for (const b of loci.links) {
-//             const _idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
-//             if (_idx !== -1) {
-//                 const idx = _idx
-//                 if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-//                     changed = true
-//                 }
-//             }
-//         }
-//     } else {
-//         return
-//     }
-//     if (changed) {
-//         ValueCell.update(tMarker, tMarker.ref.value)
-//     }
-// }
+    let changed = false
+    const array = tMarker.ref.value.array
+    if (isEveryLoci(loci)) {
+        if (applyMarkerAction(array, 0, elementCount, action)) {
+            changed = true
+        }
+    } else if (Link.isLoci(loci)) {
+        for (const l of loci.links) {
+            const idx = getLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
+            if (idx !== undefined) {
+                if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
+                    changed = true
+                }
+            }
+        }
+    } else {
+        return
+    }
+    if (changed) {
+        ValueCell.update(tMarker, tMarker.ref.value)
+    }
+}

@@ -141,7 +141,7 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
             mesh = await createCarbohydrateSymbolMesh(ctx, currentStructure, mesh)
 
             const transforms = createIdentityTransform()
-            const color = createColors(createCarbohydrateIterator(structure), colorTheme)
+            const color = createColors(createCarbohydrateElementIterator(structure), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -152,8 +152,7 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
                 ...marker,
                 aTransform: transforms,
                 elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-                aColor: ValueCell.create(new Float32Array(mesh.vertexCount * 3))
+                ...createMeshValues(currentProps, counts)
             }
             const state = createRenderableState(currentProps)
 
@@ -171,7 +170,7 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
             }
 
             if (updateColor) {
-                createColors(createCarbohydrateIterator(currentStructure), newProps.colorTheme, renderObject.values)
+                createColors(createCarbohydrateElementIterator(currentStructure), newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)
@@ -192,13 +191,13 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
     }
 }
 
-function createCarbohydrateIterator(structure: Structure): LocationIterator {
-    const carbs = structure.carbohydrates.elements
-    const elementCount = carbs.length
+function createCarbohydrateElementIterator(structure: Structure): LocationIterator {
+    const carbElements = structure.carbohydrates.elements
+    const elementCount = carbElements.length
     const instanceCount = 1
     const location = StructureElement.create()
     const getLocation = (elementIndex: number, instanceIndex: number) => {
-        const carb = carbs[elementIndex]
+        const carb = carbElements[elementIndex]
         location.unit = carb.unit
         location.element = carb.anomericCarbon
         return location
@@ -221,7 +220,7 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
 function markCarbohydrate(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
     const tMarker = values.tMarker
 
-    const { byUnitAndElement } = structure.carbohydrates
+    const { getElementIndex } = structure.carbohydrates
     const elementCount = structure.carbohydrates.elements.length
 
     let changed = false
@@ -233,7 +232,7 @@ function markCarbohydrate(loci: Loci, action: MarkerAction, structure: Structure
     } else if (StructureElement.isLoci(loci)) {
         for (const e of loci.elements) {
             OrderedSet.forEach(e.indices, index => {
-                const idx = byUnitAndElement(e.unit, e.unit.elements[index])
+                const idx = getElementIndex(e.unit, e.unit.elements[index])
                 if (idx !== undefined) {
                     if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
                         changed = true
