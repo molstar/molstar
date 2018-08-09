@@ -134,8 +134,8 @@ function _compile(ctx: QueryCompilerCtx, expression: Expression): CompiledQueryF
     }
 
     if (Expression.isSymbol(expression)) {
-        // TODO: is this ok in case of constants?
-        throw new Error('Cannot compile a symbol that is not applied.');
+        // TODO: check for "nullary symbols" and automatically apply them?
+        return CompiledQueryFn.Const(expression.name);
     }
 
     if (!Expression.isSymbol(expression.head)) {

@@ -4,24 +4,25 @@ import { QueryContext, Structure, StructureQuery, ModelPropertyDescriptor } from
 import { readCifFile, getModelsAndStructure } from '../apps/structure-info/model';
 import { CustomPropSymbol } from 'mol-script/language/symbol';
 import Type from 'mol-script/language/type';
+import { parseMolScript } from 'mol-script/language/parser';
+import * as util from 'util'
 
 // import Examples from 'mol-script/script/mol-script/examples'
 // import { parseMolScript } from 'mol-script/script/mol-script/parser'
-// import * as util from 'util'
 // //import { compileAST } from 'mol-script/script/mol-script/compile';
 
 // for (const e of Examples) {
 //     const expr = parseMolScript(e.value)[0];
 //     console.log(e.name, util.inspect(expr, true, 10, true));
 // }
-// const exprs = parseMolScript(`(sel.atom.atom-groups
-//     :residue-test (= atom.auth_comp_id ALA)
-//     ;; ho ho ho
-//     :atom-test (set.has { _C _N } atom.el)) ; comm
-//     ;; this is a comment
-//     ((hi) (ho))`);
+const exprs = parseMolScript(`(sel.atom.atom-groups
+    :residue-test (= atom.auth_comp_id ALA)
+    ;; ho ho ho
+    :atom-test (set.has { _C _N } atom.el)) ; comm
+    ;; this is a comment
+    ((hi) (ho))`);
 
-// console.log(util.inspect(exprs, true, 10, true));
+console.log(util.inspect(exprs, true, 10, true));
 // //console.log(expr);
 
 const expr = MolScriptBuilder.core.math.add([1, 2, 3]);
@@ -44,7 +45,7 @@ const CustomProp = ModelPropertyDescriptor({
 
 DefaultQueryRuntimeTable.addCustomProp(CustomProp);
 
-async function testQ() {
+export async function testQ() {
     const frame = await readCifFile('e:/test/quick/1cbs_updated.cif');
     const { structure } = await getModelsAndStructure(frame);
 
@@ -66,4 +67,4 @@ async function testQ() {
     console.log(result);
 }
 
-testQ();
+// testQ();
