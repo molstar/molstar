@@ -134,8 +134,10 @@ function _compile(ctx: QueryCompilerCtx, expression: Expression): CompiledQueryF
     }
 
     if (Expression.isSymbol(expression)) {
-        // TODO: check for "nullary symbols" and automatically apply them?
-        return CompiledQueryFn.Const(expression.name);
+        const runtime = ctx.table.getRuntime(expression.name);
+        if (!runtime) return CompiledQueryFn.Const(expression.name);
+
+        return runtime.compile(ctx);
     }
 
     if (!Expression.isSymbol(expression.head)) {
@@ -143,7 +145,6 @@ function _compile(ctx: QueryCompilerCtx, expression: Expression): CompiledQueryF
     }
 
     const compiler = ctx.table.getRuntime(expression.head.name);
-
     if (!compiler) {
         throw new Error(`Symbol '${expression.head.name}' is not implemented.`);
     }

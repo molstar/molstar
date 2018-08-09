@@ -8,12 +8,6 @@ import Expression from './expression'
 
 const { isLiteral, isSymbol, isArgumentsArray } = Expression;
 
-export default function format(e: Expression) {
-    const writer = new Writer();
-    _format(e, writer);
-    return writer.getStr();
-}
-
 class Writer {
     private value: string[] = [];
     private currentLineLength = 0;
@@ -128,4 +122,10 @@ function _format(e: Expression, writer: Writer) {
         _format(e.args[a], writer);
     }
     writer.pop();
+}
+
+export function formatMolScript(e: Expression) {
+    const writer = new Writer();
+    _format(e, writer);
+    return writer.getStr();
 }

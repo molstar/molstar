@@ -20,7 +20,7 @@ namespace Expression {
 
     export function isArgumentsArray(e?: Arguments): e is Expression[] { return !!e && Array.isArray(e); }
     export function isArgumentsMap(e?: Arguments): e is { [name: string]: Expression } { return !!e && !Array.isArray(e); }
-    export function isLiteral(e: Expression): e is Expression.Literal { return !isApply(e); }
+    export function isLiteral(e: Expression): e is Expression.Literal { return !isApply(e) && !isSymbol(e); }
     export function isApply(e: Expression): e is Expression.Apply { return !!e && !!(e as Expression.Apply).head && typeof e === 'object'; }
     export function isSymbol(e: Expression): e is Expression.Symbol { return !!e && typeof (e as any).name === 'string' }
 }

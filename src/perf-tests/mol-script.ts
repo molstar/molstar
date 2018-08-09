@@ -6,6 +6,8 @@ import { CustomPropSymbol } from 'mol-script/language/symbol';
 import Type from 'mol-script/language/type';
 import { parseMolScript } from 'mol-script/language/parser';
 import * as util from 'util'
+import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
+import { formatMolScript } from 'mol-script/language/expression-formatter';
 
 // import Examples from 'mol-script/script/mol-script/examples'
 // import { parseMolScript } from 'mol-script/script/mol-script/parser'
@@ -15,14 +17,25 @@ import * as util from 'util'
 //     const expr = parseMolScript(e.value)[0];
 //     console.log(e.name, util.inspect(expr, true, 10, true));
 // }
-const exprs = parseMolScript(`(sel.atom.atom-groups
-    :residue-test (= atom.auth_comp_id ALA)
-    ;; ho ho ho
-    :atom-test (set.has { _C _N } atom.el)) ; comm
-    ;; this is a comment
-    ((hi) (ho))`);
+// const exprs = parseMolScript(`(sel.atom.atom-groups
+//     :residue-test (= atom.auth_comp_id ALA)
+//     ;; ho ho ho
+//     :atom-test (set.has { _C _N } atom.el)) ; comm
+//     ;; this is a comment
+//     ((hi) (ho))`);
 
-console.log(util.inspect(exprs, true, 10, true));
+const exprs = parseMolScript(`(sel.atom.atom-groups
+    :residue-test (= atom.label_comp_id REA)
+    :atom-test (= atom.el _C))`);
+
+const tsp = transpileMolScript(exprs[0]);
+
+//console.log(util.inspect(exprs, true, 10, true));
+
+console.log(util.inspect(tsp, true, 10, true));
+
+console.log(formatMolScript);
+console.log(formatMolScript(tsp));
 // //console.log(expr);
 
 const expr = MolScriptBuilder.core.math.add([1, 2, 3]);
@@ -49,7 +62,7 @@ export async function testQ() {
     const frame = await readCifFile('e:/test/quick/1cbs_updated.cif');
     const { structure } = await getModelsAndStructure(frame);
 
-    const expr = MolScriptBuilder.struct.generator.atomGroups({
+    let expr = MolScriptBuilder.struct.generator.atomGroups({
         'atom-test': MolScriptBuilder.core.rel.eq([
             MolScriptBuilder.struct.atomProperty.core.elementSymbol(),
             MolScriptBuilder.es('C')
@@ -61,10 +74,12 @@ export async function testQ() {
         'residue-test': MolScriptBuilder.core.rel.inRange([CustomProp.symbols.residueIndex.symbol(), 1, 5])
     });
 
+    expr = tsp;
+
     const compiled = compile<StructureQuery>(expr);
     const result = compiled(new QueryContext(structure));
 
     console.log(result);
 }
 
-// testQ();
+testQ();
