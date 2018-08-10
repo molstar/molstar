@@ -9,12 +9,12 @@ import { StateContext } from './state/context';
 import { Progress } from 'mol-task';
 import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone, StructureCenter, StructureToCarbohydrate } from './state/transform';
 import { UrlEntity } from './state/entity';
-import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
+import { SpacefillProps } from 'mol-geo/representation/structure/representation/spacefill';
 import { Context } from 'mol-app/context/context';
-import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-stick';
-import { CartoonProps } from 'mol-geo/representation/structure/cartoon';
-import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
-import { BackboneProps } from 'mol-geo/representation/structure/backbone';
+import { BallAndStickProps } from 'mol-geo/representation/structure/representation/ball-and-stick';
+import { CartoonProps } from 'mol-geo/representation/structure/representation/cartoon';
+import { DistanceRestraintProps } from 'mol-geo/representation/structure/representation/distance-restraint';
+import { BackboneProps } from 'mol-geo/representation/structure/representation/backbone';
 // import { Queries as Q, StructureProperties as SP, Query, Selection } from 'mol-model/structure';
 
 const spacefillProps: SpacefillProps = {

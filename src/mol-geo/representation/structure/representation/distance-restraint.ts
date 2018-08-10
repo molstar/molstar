@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureRepresentation } from '.';
-import { PickingId } from '../../util/picking';
+import { ComplexRepresentation, StructureRepresentation } from '..';
+import { PickingId } from '../../../util/picking';
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
-import { SizeTheme } from '../../theme';
-import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from './visual/cross-link-restraint-cylinder';
+import { MarkerAction } from '../../../util/marker-data';
+import { SizeTheme } from '../../../theme';
+import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from '../visual/cross-link-restraint-cylinder';
 
 export const DefaultDistanceRestraintProps = {
     ...DefaultCrossLinkRestraintProps,
@@ -21,7 +21,7 @@ export const DefaultDistanceRestraintProps = {
 export type DistanceRestraintProps = Partial<typeof DefaultDistanceRestraintProps>
 
 export function DistanceRestraintRepresentation(): StructureRepresentation<DistanceRestraintProps> {
-    const crossLinkRepr = StructureRepresentation(CrossLinkRestraintVisual)
+    const crossLinkRepr = ComplexRepresentation(CrossLinkRestraintVisual)
 
     return {
         get renderObjects() {

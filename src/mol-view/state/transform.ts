@@ -10,12 +10,12 @@ import { Model, Structure, Format } from 'mol-model/structure';
 
 import { StateContext } from './context';
 import StructureSymmetry from 'mol-model/structure/structure/symmetry';
-import { SpacefillProps, SpacefillRepresentation } from 'mol-geo/representation/structure/spacefill';
-import { BallAndStickProps, BallAndStickRepresentation } from 'mol-geo/representation/structure/ball-and-stick';
-import { DistanceRestraintRepresentation, DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
-import { CartoonRepresentation, CartoonProps } from 'mol-geo/representation/structure/cartoon';
-import { BackboneProps, BackboneRepresentation } from 'mol-geo/representation/structure/backbone';
-import { CarbohydrateProps, CarbohydrateRepresentation } from 'mol-geo/representation/structure/carbohydrate';
+import { SpacefillProps, SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
+import { BallAndStickProps, BallAndStickRepresentation } from 'mol-geo/representation/structure/representation/ball-and-stick';
+import { DistanceRestraintRepresentation, DistanceRestraintProps } from 'mol-geo/representation/structure/representation/distance-restraint';
+import { CartoonRepresentation, CartoonProps } from 'mol-geo/representation/structure/representation/cartoon';
+import { BackboneProps, BackboneRepresentation } from 'mol-geo/representation/structure/representation/backbone';
+import { CarbohydrateProps, CarbohydrateRepresentation } from 'mol-geo/representation/structure/representation/carbohydrate';
 
 type transformer<I extends AnyEntity, O extends AnyEntity, P extends {}> = (ctx: StateContext, inputEntity: I, props?: P) => Promise<O>
 

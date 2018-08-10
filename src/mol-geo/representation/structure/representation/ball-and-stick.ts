@@ -4,16 +4,16 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureRepresentation, StructureUnitsRepresentation } from '.';
-import { ElementSphereVisual, DefaultElementSphereProps } from './visual/element-sphere';
-import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from './visual/intra-unit-link-cylinder';
-import { PickingId } from '../../util/picking';
+import { ComplexRepresentation, StructureRepresentation, UnitsRepresentation } from '..';
+import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
+import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from '../visual/intra-unit-link-cylinder';
+import { PickingId } from '../../../util/picking';
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
-import { SizeTheme } from '../../theme';
-import { InterUnitLinkVisual } from './visual/inter-unit-link-cylinder';
+import { MarkerAction } from '../../../util/marker-data';
+import { SizeTheme } from '../../../theme';
+import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
 
 export const DefaultBallAndStickProps = {
     ...DefaultElementSphereProps,
@@ -25,9 +25,9 @@ export const DefaultBallAndStickProps = {
 export type BallAndStickProps = Partial<typeof DefaultBallAndStickProps>
 
 export function BallAndStickRepresentation(): StructureRepresentation<BallAndStickProps> {
-    const elmementRepr = StructureUnitsRepresentation(ElementSphereVisual)
-    const intraLinkRepr = StructureUnitsRepresentation(IntraUnitLinkVisual)
-    const interLinkRepr = StructureRepresentation(InterUnitLinkVisual)
+    const elmementRepr = UnitsRepresentation(ElementSphereVisual)
+    const intraLinkRepr = UnitsRepresentation(IntraUnitLinkVisual)
+    const interLinkRepr = ComplexRepresentation(InterUnitLinkVisual)
 
     return {
         get renderObjects() {

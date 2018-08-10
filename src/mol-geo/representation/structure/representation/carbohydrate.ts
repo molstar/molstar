@@ -4,14 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureRepresentation } from '.';
-import { PickingId } from '../../util/picking';
+import { ComplexRepresentation, StructureRepresentation } from '..';
+import { PickingId } from '../../../util/picking';
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
-import { CarbohydrateSymbolVisual, DefaultCarbohydrateSymbolProps } from './visual/carbohydrate-symbol-mesh';
-import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from './visual/carbohydrate-link-cylinder';
+import { MarkerAction } from '../../../util/marker-data';
+import { CarbohydrateSymbolVisual, DefaultCarbohydrateSymbolProps } from '../visual/carbohydrate-symbol-mesh';
+import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from '../visual/carbohydrate-link-cylinder';
 
 export const DefaultCartoonProps = {
     ...DefaultCarbohydrateSymbolProps,
@@ -20,8 +20,8 @@ export const DefaultCartoonProps = {
 export type CarbohydrateProps = Partial<typeof DefaultCartoonProps>
 
 export function CarbohydrateRepresentation(): StructureRepresentation<CarbohydrateProps> {
-    const carbohydrateSymbolRepr = StructureRepresentation(CarbohydrateSymbolVisual)
-    const carbohydrateLinkRepr = StructureRepresentation(CarbohydrateLinkVisual)
+    const carbohydrateSymbolRepr = ComplexRepresentation(CarbohydrateSymbolVisual)
+    const carbohydrateLinkRepr = ComplexRepresentation(CarbohydrateLinkVisual)
 
     return {
         get renderObjects() {

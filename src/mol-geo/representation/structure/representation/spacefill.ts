@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureUnitsRepresentation } from '.';
-import { ElementSphereVisual, DefaultElementSphereProps } from './visual/element-sphere';
+import { UnitsRepresentation } from '..';
+import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
 
 export const DefaultSpacefillProps = {
     ...DefaultElementSphereProps,
@@ -13,5 +13,5 @@ export const DefaultSpacefillProps = {
 export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
 
 export function SpacefillRepresentation() {
-    return StructureUnitsRepresentation(ElementSphereVisual)
+    return UnitsRepresentation(ElementSphereVisual)
 }

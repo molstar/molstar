@@ -8,7 +8,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Structure, Link, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, StructureVisual } from '..';
+import { DefaultStructureProps, ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { createColors, createStructureMeshRenderObject } from './util/common';
 import { Mesh } from '../../../shape/mesh';
@@ -63,7 +63,7 @@ export const DefaultCarbohydrateLinkProps = {
 }
 export type CarbohydrateLinkProps = Partial<typeof DefaultCarbohydrateLinkProps>
 
-export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps> {
+export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {
     let renderObject: MeshRenderObject
     let currentProps: typeof DefaultCarbohydrateLinkProps
     let mesh: Mesh

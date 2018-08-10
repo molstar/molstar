@@ -4,13 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureRepresentation, StructureUnitsRepresentation } from '.';
-import { PickingId } from '../../util/picking';
+import { StructureRepresentation, UnitsRepresentation } from '..';
+import { PickingId } from '../../../util/picking';
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
-import { PolymerBackboneVisual, DefaultPolymerBackboneProps } from './visual/polymer-backbone-cylinder';
+import { MarkerAction } from '../../../util/marker-data';
+import { PolymerBackboneVisual, DefaultPolymerBackboneProps } from '../visual/polymer-backbone-cylinder';
 
 export const DefaultBackboneProps = {
     ...DefaultPolymerBackboneProps
@@ -18,7 +18,7 @@ export const DefaultBackboneProps = {
 export type BackboneProps = Partial<typeof DefaultBackboneProps>
 
 export function BackboneRepresentation(): StructureRepresentation<BackboneProps> {
-    const traceRepr = StructureUnitsRepresentation(PolymerBackboneVisual)
+    const traceRepr = UnitsRepresentation(PolymerBackboneVisual)
 
     return {
         get renderObjects() {

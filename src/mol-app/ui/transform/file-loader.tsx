@@ -11,10 +11,10 @@ import { TransformListController } from '../../controller/transform/list';
 import { FileEntity } from 'mol-view/state/entity';
 import { MmcifFileToModel, ModelToStructure, StructureToBallAndStick, StructureToSpacefill, StructureToDistanceRestraint, StructureToBackbone } from 'mol-view/state/transform';
 import { StateContext } from 'mol-view/state/context';
-import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
-import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-stick';
-import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
-import { BackboneProps } from 'mol-geo/representation/structure/backbone';
+import { SpacefillProps } from 'mol-geo/representation/structure/representation/spacefill';
+import { BallAndStickProps } from 'mol-geo/representation/structure/representation/ball-and-stick';
+import { DistanceRestraintProps } from 'mol-geo/representation/structure/representation/distance-restraint';
+import { BackboneProps } from 'mol-geo/representation/structure/representation/backbone';
 
 const spacefillProps: SpacefillProps = {
     doubleSided: true,

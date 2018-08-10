@@ -8,7 +8,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { MeshRenderObject } from 'mol-gl/render-object'
 import { Link, Structure, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, StructureVisual } from '..';
+import { DefaultStructureProps, ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
 import { Mesh } from '../../../shape/mesh';
@@ -51,7 +51,7 @@ export const DefaultInterUnitLinkProps = {
 }
 export type InterUnitLinkProps = Partial<typeof DefaultInterUnitLinkProps>
 
-export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
+export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {
     let renderObject: MeshRenderObject
     let currentProps: typeof DefaultInterUnitLinkProps
     let mesh: Mesh

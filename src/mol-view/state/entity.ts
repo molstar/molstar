@@ -12,12 +12,12 @@ import { CifFile, CifFrame } from 'mol-io/reader/cif';
 import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
 import { Model, Structure } from 'mol-model/structure';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
-import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
-import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-stick';
-import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
-import { CartoonProps } from 'mol-geo/representation/structure/cartoon';
-import { BackboneProps } from 'mol-geo/representation/structure/backbone';
-import { CarbohydrateProps } from 'mol-geo/representation/structure/carbohydrate';
+import { SpacefillProps } from 'mol-geo/representation/structure/representation/spacefill';
+import { BallAndStickProps } from 'mol-geo/representation/structure/representation/ball-and-stick';
+import { DistanceRestraintProps } from 'mol-geo/representation/structure/representation/distance-restraint';
+import { CartoonProps } from 'mol-geo/representation/structure/representation/cartoon';
+import { BackboneProps } from 'mol-geo/representation/structure/representation/backbone';
+import { CarbohydrateProps } from 'mol-geo/representation/structure/representation/carbohydrate';
 
 const getNextId = idFactory(1)
 

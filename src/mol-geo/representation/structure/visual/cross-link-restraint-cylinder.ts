@@ -8,7 +8,7 @@ import { ValueCell } from 'mol-util/value-cell'
 
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
 import { Link, Structure, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, StructureVisual } from '..';
+import { DefaultStructureProps, ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
 import { MeshValues } from 'mol-gl/renderable';
@@ -56,7 +56,7 @@ export const DefaultCrossLinkRestraintProps = {
 }
 export type CrossLinkRestraintProps = Partial<typeof DefaultCrossLinkRestraintProps>
 
-export function CrossLinkRestraintVisual(): StructureVisual<CrossLinkRestraintProps> {
+export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {
     let renderObject: MeshRenderObject
     let currentProps: typeof DefaultCrossLinkRestraintProps
     let mesh: Mesh
