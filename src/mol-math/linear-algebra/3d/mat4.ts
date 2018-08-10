@@ -893,6 +893,8 @@ namespace Mat4 {
     export const rotZYZ90: ReadonlyMat4 = Mat4.mul(Mat4.identity(), rotZY90, rotZ90)
     /** Rotation matrix for 90deg around first z-axis and then 180deg around x-axis */
     export const rotZ90X180: ReadonlyMat4 = Mat4.mul(Mat4.identity(), rotZ90, rotX180)
+    /** Rotation matrix for 90deg around first y-axis and then 180deg around z-axis */
+    export const rotY90Z180: ReadonlyMat4 = Mat4.mul(Mat4.identity(), rotY90, rotZ180)
 }
 
 export default Mat4

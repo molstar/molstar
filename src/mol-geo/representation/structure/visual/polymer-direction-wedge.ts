@@ -73,7 +73,7 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
             }
 
             Mat4.targetTo(t, v.p3, v.p1, upVec)
-            Mat4.mul(t, t, Mat4.rotY90)
+            Mat4.mul(t, t, Mat4.rotY90Z180)
             Mat4.scale(t, t, Vec3.set(sVec, height, width, depth))
             Mat4.setTranslation(t, v.p2)
             builder.addWedge(t)
