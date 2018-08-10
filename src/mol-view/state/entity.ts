@@ -17,6 +17,7 @@ import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-sti
 import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
 import { CartoonProps } from 'mol-geo/representation/structure/cartoon';
 import { BackboneProps } from 'mol-geo/representation/structure/backbone';
+import { CarbohydrateProps } from 'mol-geo/representation/structure/carbohydrate';
 
 const getNextId = idFactory(1)
 
@@ -150,5 +151,12 @@ export type CartoonEntity = StateEntity<StructureRepresentation<CartoonProps>, '
 export namespace CartoonEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<CartoonProps>): CartoonEntity {
         return StateEntity.create(ctx, 'cartoon', repr )
+    }
+}
+
+export type CarbohydrateEntity = StateEntity<StructureRepresentation<CarbohydrateProps>, 'carbohydrate'>
+export namespace CarbohydrateEntity {
+    export function ofRepr(ctx: StateContext, repr: StructureRepresentation<CarbohydrateProps>): CarbohydrateEntity {
+        return StateEntity.create(ctx, 'carbohydrate', repr )
     }
 }

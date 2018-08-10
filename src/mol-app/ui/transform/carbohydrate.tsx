@@ -12,8 +12,8 @@ import * as React from 'react'
 import { View } from '../view';
 import { Controller } from '../../controller/controller';
 import { Toggle } from '../controls/common';
-import { SpacefillEntity } from 'mol-view/state/entity';
-import { SpacefillUpdate } from 'mol-view/state/transform'
+import { CarbohydrateEntity } from 'mol-view/state/entity';
+import { CarbohydrateUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
 import { ColorTheme, SizeTheme, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
@@ -21,7 +21,7 @@ import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
 import { Unit } from 'mol-model/structure';
 
-interface SpacefillState {
+interface CarbohydrateState {
     doubleSided: boolean
     flipSided: boolean
     flatShaded: boolean
@@ -35,9 +35,13 @@ interface SpacefillState {
     useFog: boolean
     quality: VisualQuality
     unitKinds: Unit.Kind[]
+    linkScale: number
+    linkSpacing: number
+    linkRadius: number
+    radialSegments: number
 }
 
-export class Spacefill extends View<Controller<any>, SpacefillState, { transform: SpacefillUpdate, entity: SpacefillEntity, ctx: StateContext }> {
+export class Carbohydrate extends View<Controller<any>, CarbohydrateState, { transform: CarbohydrateUpdate, entity: CarbohydrateEntity, ctx: StateContext }> {
     state = {
         doubleSided: true,
         flipSided: false,
@@ -51,14 +55,18 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
         depthMask: true,
         useFog: true,
         quality: 'auto' as VisualQuality,
-        unitKinds: [] as Unit.Kind[]
+        unitKinds: [] as Unit.Kind[],
+        linkScale: 0.4,
+        linkSpacing: 1,
+        linkRadius: 0.25,
+        radialSegments: 16
     }
 
     componentWillMount() {
         this.setState({ ...this.state, ...this.props.entity.value.props })
     }
 
-    update(state?: Partial<SpacefillState>) {
+    update(state?: Partial<CarbohydrateState>) {
         console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }

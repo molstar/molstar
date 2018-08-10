@@ -47,7 +47,7 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
         },
         create: (structure: Structure, props: CartoonProps = {} as CartoonProps) => {
             const p = Object.assign({}, DefaultCartoonProps, props)
-            return Task.create('CartoonRepresentation', async ctx => {
+            return Task.create('Creating CartoonRepresentation', async ctx => {
                 await traceRepr.create(structure, p).runInContext(ctx)
                 await gapRepr.create(structure, p).runInContext(ctx)
                 await blockRepr.create(structure, p).runInContext(ctx)

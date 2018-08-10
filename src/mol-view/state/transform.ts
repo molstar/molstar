@@ -5,7 +5,7 @@
  */
 
 import CIF from 'mol-io/reader/cif'
-import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BallAndStickEntity, DistanceRestraintEntity, CartoonEntity, BackboneEntity } from './entity';
+import { FileEntity, DataEntity, UrlEntity, CifEntity, MmcifEntity, ModelEntity, StructureEntity, SpacefillEntity, AnyEntity, NullEntity, BallAndStickEntity, DistanceRestraintEntity, CartoonEntity, BackboneEntity, CarbohydrateEntity } from './entity';
 import { Model, Structure, Format } from 'mol-model/structure';
 
 import { StateContext } from './context';
@@ -15,6 +15,7 @@ import { BallAndStickProps, BallAndStickRepresentation } from 'mol-geo/represent
 import { DistanceRestraintRepresentation, DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
 import { CartoonRepresentation, CartoonProps } from 'mol-geo/representation/structure/cartoon';
 import { BackboneProps, BackboneRepresentation } from 'mol-geo/representation/structure/backbone';
+import { CarbohydrateProps, CarbohydrateRepresentation } from 'mol-geo/representation/structure/carbohydrate';
 
 type transformer<I extends AnyEntity, O extends AnyEntity, P extends {}> = (ctx: StateContext, inputEntity: I, props?: P) => Promise<O>
 
@@ -126,27 +127,39 @@ export const StructureToDistanceRestraint: StructureToDistanceRestraint = StateT
         console.log('stats', ctx.viewer.stats)
         return DistanceRestraintEntity.ofRepr(ctx, distanceRestraintRepr)
     })
+
 export type StructureToBackbone = StateTransform<StructureEntity, BackboneEntity, BackboneProps>
 export const StructureToBackbone: StructureToBackbone = StateTransform.create('structure', 'backbone', 'structure-to-backbone',
-            async function (ctx: StateContext, structureEntity: StructureEntity, props: BackboneProps = {}) {
-                const backboneRepr = BackboneRepresentation()
-                await backboneRepr.create(structureEntity.value, props).run(ctx.log)
-                ctx.viewer.add(backboneRepr)
-                ctx.viewer.requestDraw()
-                console.log('stats', ctx.viewer.stats)
-                return BackboneEntity.ofRepr(ctx, backboneRepr)
-            })
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: BackboneProps = {}) {
+        const backboneRepr = BackboneRepresentation()
+        await backboneRepr.create(structureEntity.value, props).run(ctx.log)
+        ctx.viewer.add(backboneRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return BackboneEntity.ofRepr(ctx, backboneRepr)
+    })
 
 export type StructureToCartoon = StateTransform<StructureEntity, CartoonEntity, CartoonProps>
 export const StructureToCartoon: StructureToCartoon = StateTransform.create('structure', 'cartoon', 'structure-to-cartoon',
-        async function (ctx: StateContext, structureEntity: StructureEntity, props: CartoonProps = {}) {
-            const cartoonRepr = CartoonRepresentation()
-            await cartoonRepr.create(structureEntity.value, props).run(ctx.log)
-            ctx.viewer.add(cartoonRepr)
-            ctx.viewer.requestDraw()
-            console.log('stats', ctx.viewer.stats)
-            return CartoonEntity.ofRepr(ctx, cartoonRepr)
-        })
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: CartoonProps = {}) {
+        const cartoonRepr = CartoonRepresentation()
+        await cartoonRepr.create(structureEntity.value, props).run(ctx.log)
+        ctx.viewer.add(cartoonRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return CartoonEntity.ofRepr(ctx, cartoonRepr)
+    })
+
+export type StructureToCarbohydrate = StateTransform<StructureEntity, CarbohydrateEntity, CarbohydrateProps>
+export const StructureToCarbohydrate: StructureToCarbohydrate = StateTransform.create('structure', 'carbohydrate', 'structure-to-cartoon',
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: CarbohydrateProps = {}) {
+        const carbohydrateRepr = CarbohydrateRepresentation()
+        await carbohydrateRepr.create(structureEntity.value, props).run(ctx.log)
+        ctx.viewer.add(carbohydrateRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return CarbohydrateEntity.ofRepr(ctx, carbohydrateRepr)
+    })
 
 export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, SpacefillProps>
 export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill', 'null', 'spacefill-update',
@@ -183,25 +196,36 @@ export const DistanceRestraintUpdate: DistanceRestraintUpdate = StateTransform.c
 
 export type BackboneUpdate = StateTransform<BackboneEntity, NullEntity, BackboneProps>
 export const BackboneUpdate: BackboneUpdate = StateTransform.create('backbone', 'null', 'backbone-update',
-            async function (ctx: StateContext, backboneEntity: BackboneEntity, props: BackboneProps = {}) {
-                const backboneRepr = backboneEntity.value
-                await backboneRepr.update(props).run(ctx.log)
-                ctx.viewer.add(backboneRepr)
-                ctx.viewer.requestDraw()
-                console.log('stats', ctx.viewer.stats)
-                return NullEntity
-            })
+    async function (ctx: StateContext, backboneEntity: BackboneEntity, props: BackboneProps = {}) {
+        const backboneRepr = backboneEntity.value
+        await backboneRepr.update(props).run(ctx.log)
+        ctx.viewer.add(backboneRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return NullEntity
+    })
 
 export type CartoonUpdate = StateTransform<CartoonEntity, NullEntity, CartoonProps>
 export const CartoonUpdate: CartoonUpdate = StateTransform.create('cartoon', 'null', 'cartoon-update',
-        async function (ctx: StateContext, cartoonEntity: CartoonEntity, props: CartoonProps = {}) {
-            const cartoonRepr = cartoonEntity.value
-            await cartoonRepr.update(props).run(ctx.log)
-            ctx.viewer.add(cartoonRepr)
-            ctx.viewer.requestDraw()
-            console.log('stats', ctx.viewer.stats)
-            return NullEntity
-        })
+    async function (ctx: StateContext, cartoonEntity: CartoonEntity, props: CartoonProps = {}) {
+        const cartoonRepr = cartoonEntity.value
+        await cartoonRepr.update(props).run(ctx.log)
+        ctx.viewer.add(cartoonRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return NullEntity
+    })
+
+export type CarbohydrateUpdate = StateTransform<CarbohydrateEntity, NullEntity, CarbohydrateProps>
+export const CarbohydrateUpdate: CarbohydrateUpdate = StateTransform.create('carbohydrate', 'null', 'carbohydrate-update',
+    async function (ctx: StateContext, carbohydrateEntity: CarbohydrateEntity, props: CarbohydrateProps = {}) {
+        const carbohydrateRepr = carbohydrateEntity.value
+        await carbohydrateRepr.update(props).run(ctx.log)
+        ctx.viewer.add(carbohydrateRepr)
+        ctx.viewer.requestDraw()
+        console.log('stats', ctx.viewer.stats)
+        return NullEntity
+    })
 
 // composed
 

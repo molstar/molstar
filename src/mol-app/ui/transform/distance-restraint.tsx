@@ -21,16 +21,6 @@ import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
 import { Unit } from 'mol-model/structure';
 
-export const ColorThemeInfo = {
-    'atom-index': {},
-    'carbohydrate-symbol': {},
-    'chain-id': {},
-    'element-symbol': {},
-    'instance-index': {},
-    'uniform': {}
-}
-export type ColorThemeInfo = keyof typeof ColorThemeInfo
-
 interface DistanceRestraintState {
     doubleSided: boolean
     flipSided: boolean

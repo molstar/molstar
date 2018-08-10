@@ -7,7 +7,7 @@
 import Viewer from './viewer'
 import { StateContext } from './state/context';
 import { Progress } from 'mol-task';
-import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone, StructureCenter } from './state/transform';
+import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone, StructureCenter, StructureToCarbohydrate } from './state/transform';
 import { UrlEntity } from './state/entity';
 import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
 import { Context } from 'mol-app/context/context';
@@ -53,6 +53,14 @@ const backboneProps: BackboneProps = {
 const cartoonProps: CartoonProps = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
+    // colorTheme: { name: 'uniform', value: 0x2200CC },
+    quality: 'auto',
+    useFog: false
+}
+
+const carbohydrateProps: CartoonProps = {
+    doubleSided: true,
+    colorTheme: { name: 'carbohydrate-symbol' },
     // colorTheme: { name: 'uniform', value: 0x2200CC },
     quality: 'auto',
     useFog: false
@@ -139,6 +147,7 @@ export class Stage {
         StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: false })
         StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: false })
         StructureToCartoon.apply(this.ctx, structureEntity, { ...cartoonProps, visible: true })
+        StructureToCarbohydrate.apply(this.ctx, structureEntity, { ...carbohydrateProps, visible: true })
         StructureCenter.apply(this.ctx, structureEntity)
 
         this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
