@@ -12,8 +12,7 @@ export const enum SaccharideShapes {
     FlatBox, FilledStar, FilledDiamond, FlatDiamond, FlatHexagon, Pentagon
 }
 
-// TODO move to theme
-const enum SaccharideColors {
+export const enum SaccharideColors {
     Blue = 0x0090bc,
     Green =	0x00a651,
     Yellow = 0xffd400,

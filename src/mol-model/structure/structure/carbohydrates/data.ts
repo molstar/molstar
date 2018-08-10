@@ -44,4 +44,5 @@ export interface Carbohydrates {
     partialElements: ReadonlyArray<PartialCarbohydrateElement>
     getElementIndex: (unit: Unit, anomericCarbon: ElementIndex) => number | undefined
     getLinkIndex: (unitA: Unit, anomericCarbonA: ElementIndex, unitB: Unit, anomericCarbonB: ElementIndex) => number | undefined
+    getAnomericCarbon: (unit: Unit, residueIndex: ResidueIndex) => ElementIndex | undefined
 }

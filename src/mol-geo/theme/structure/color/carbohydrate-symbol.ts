@@ -4,41 +4,47 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/structure';
+import { StructureElement, Link, ElementIndex, Unit } from 'mol-model/structure';
 
 import { ColorData, createElementColor } from '../../../util/color-data';
-import { ColorScale, Color } from 'mol-util/color';
+import { Color } from 'mol-util/color';
 import { LocationIterator, LocationValue } from '../../../representation/structure/visual/util/location-iterator';
+import { ColorTheme } from '../..';
+import { SaccharideColors } from 'mol-model/structure/structure/carbohydrates/constants';
 
-function getAsymId(unit: Unit): StructureElement.Property<string> {
-    switch (unit.kind) {
-        case Unit.Kind.Atomic:
-            return StructureProperties.chain.label_asym_id
-        case Unit.Kind.Spheres:
-        case Unit.Kind.Gaussians:
-            return StructureProperties.coarse.asym_id
-    }
-}
+const DefaultColor = 0xCCCCCC;
 
-export function carbohydrateSymbolColorData(locationIt: LocationIterator, colorData?: ColorData) {
-    const l = StructureElement.create()
+export function carbohydrateSymbolColorData(locationIt: LocationIterator, props: ColorTheme, colorData?: ColorData) {
+    let colorFn: (locationValue: LocationValue) => Color
 
-    function colorFn(locationValue: LocationValue): Color {
-        const { location } = locationValue
-        if (StructureElement.isLocation(location)) {
-            const map = location.unit.model.properties.asymIdSerialMap
-            const scale = ColorScale.create({ domain: [ 0, map.size - 1 ] })
-            const asym_id = getAsymId(location.unit)
-            return scale.color(map.get(asym_id(location)) || 0)
-        } else if (Link.isLocation(location)) {
-            const map = location.aUnit.model.properties.asymIdSerialMap
-            const scale = ColorScale.create({ domain: [ 0, map.size - 1 ] })
-            const asym_id = getAsymId(location.aUnit)
-            l.unit = location.aUnit
-            l.element = location.aUnit.elements[location.aIndex]
-            return scale.color(map.get(asym_id(l)) || 0)
+    if (props.structure) {
+        const { elements, getElementIndex, getAnomericCarbon } = props.structure.carbohydrates
+
+        const getColor = (unit: Unit, index: ElementIndex) => {
+            const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index[index]
+            const anomericCarbon = getAnomericCarbon(unit, residueIndex)
+            if (anomericCarbon !== undefined) {
+                const idx = getElementIndex(unit, anomericCarbon)
+                if (idx !== undefined) return elements[idx].component.color
+            }
+            return DefaultColor
         }
-        return 0
+
+        colorFn = (locationValue: LocationValue) => {
+            const { location: l } = locationValue
+            if (locationValue.isSecondary) {
+                return SaccharideColors.Secondary
+            } else {
+                if (StructureElement.isLocation(l)) {
+                    return getColor(l.unit, l.element)
+                } else if (Link.isLocation(l)) {
+                    return getColor(l.aUnit, l.aUnit.elements[l.aIndex])
+                }
+            }
+            return DefaultColor
+        }
+    } else {
+        colorFn = () => DefaultColor
     }
 
     return createElementColor(locationIt, colorFn, colorData)

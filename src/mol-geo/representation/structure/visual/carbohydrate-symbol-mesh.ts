@@ -47,7 +47,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
         Mat4.targetTo(t, center, pd, normal)
         Mat4.setTranslation(t, center)
 
-        builder.setId(i)
+        builder.setId(i * 2)
 
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
@@ -58,18 +58,22 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 builder.addBox(t)
                 break;
             case SaccharideShapes.CrossedCube:
-                // TODO split
                 Mat4.scaleUniformly(t, t, side)
-                builder.addBox(t)
+                builder.addPerforatedBox(t)
+                Mat4.mul(t, t, Mat4.rotZ90X180)
+                builder.setId(i * 2 + 1)
+                builder.addPerforatedBox(t)
                 break;
             case SaccharideShapes.FilledCone:
                 Mat4.scaleUniformly(t, t, side * 1.2)
                 builder.addOctagonalPyramid(t)
                 break
             case SaccharideShapes.DevidedCone:
-                // TODO split
                 Mat4.scaleUniformly(t, t, side * 1.2)
-                builder.addOctagonalPyramid(t)
+                builder.addPerforatedOctagonalPyramid(t)
+                Mat4.mul(t, t, Mat4.rotZ90)
+                builder.setId(i * 2 + 1)
+                builder.addPerforatedOctagonalPyramid(t)
                 break
             case SaccharideShapes.FlatBox:
                 Mat4.mul(t, t, Mat4.rotZY90)
@@ -86,10 +90,12 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 builder.addOctahedron(t)
                 break
             case SaccharideShapes.DividedDiamond:
-                // TODO split
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                builder.addOctahedron(t)
+                builder.addPerforatedOctahedron(t)
+                Mat4.mul(t, t, Mat4.rotY90)
+                builder.setId(i * 2 + 1)
+                builder.addPerforatedOctahedron(t)
                 break
             case SaccharideShapes.FlatDiamond:
                 Mat4.mul(t, t, Mat4.rotZY90)
@@ -141,7 +147,7 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
             mesh = await createCarbohydrateSymbolMesh(ctx, currentStructure, mesh)
 
             const transforms = createIdentityTransform()
-            const color = createColors(createCarbohydrateElementIterator(structure), colorTheme)
+            const color = createColors(CarbohydrateElementIterator(structure), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -170,7 +176,7 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
             }
 
             if (updateColor) {
-                createColors(createCarbohydrateElementIterator(currentStructure), newProps.colorTheme, renderObject.values)
+                createColors(CarbohydrateElementIterator(currentStructure), newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)
@@ -191,24 +197,27 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
     }
 }
 
-function createCarbohydrateElementIterator(structure: Structure): LocationIterator {
+function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     const carbElements = structure.carbohydrates.elements
-    const elementCount = carbElements.length
+    const elementCount = carbElements.length * 2
     const instanceCount = 1
     const location = StructureElement.create()
-    const getLocation = (elementIndex: number, instanceIndex: number) => {
-        const carb = carbElements[elementIndex]
+    function getLocation (elementIndex: number, instanceIndex: number) {
+        const carb = carbElements[Math.floor(elementIndex / 2)]
         location.unit = carb.unit
         location.element = carb.anomericCarbon
         return location
     }
-    return LocationIterator(elementCount, instanceCount, getLocation)
+    function isSecondary (elementIndex: number, instanceIndex: number) {
+        return (elementIndex % 2) === 1
+    }
+    return LocationIterator(elementCount, instanceCount, getLocation, isSecondary)
 }
 
 function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, elementId } = pickingId
     if (id === objectId) {
-        const carb = structure.carbohydrates.elements[elementId]
+        const carb = structure.carbohydrates.elements[Math.floor(elementId / 2)]
         const { unit } = carb
         const index = OrderedSet.findPredecessorIndex(unit.elements, carb.anomericCarbon)
         const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
@@ -221,7 +230,7 @@ function markCarbohydrate(loci: Loci, action: MarkerAction, structure: Structure
     const tMarker = values.tMarker
 
     const { getElementIndex } = structure.carbohydrates
-    const elementCount = structure.carbohydrates.elements.length
+    const elementCount = structure.carbohydrates.elements.length * 2
 
     let changed = false
     const array = tMarker.ref.value.array
@@ -234,7 +243,7 @@ function markCarbohydrate(loci: Loci, action: MarkerAction, structure: Structure
             OrderedSet.forEach(e.indices, index => {
                 const idx = getElementIndex(e.unit, e.unit.elements[index])
                 if (idx !== undefined) {
-                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
+                    if (applyMarkerAction(array, idx * 2, idx * 2 + 2, action) && !changed) {
                         changed = true
                     }
                 }

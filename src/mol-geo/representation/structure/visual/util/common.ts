@@ -39,7 +39,7 @@ export function createColors(locationIt: LocationIterator, props: ColorTheme, co
         case 'atom-index':
             return elementIndexColorData(locationIt, colorData)
         case 'carbohydrate-symbol':
-            return carbohydrateSymbolColorData(locationIt, colorData)
+            return carbohydrateSymbolColorData(locationIt, props, colorData)
         case 'chain-id':
             return chainIdColorData(locationIt, colorData)
         case 'element-symbol':
@@ -47,7 +47,7 @@ export function createColors(locationIt: LocationIterator, props: ColorTheme, co
         case 'instance-index':
             return instanceIndexColorData(locationIt, colorData)
         case 'uniform':
-            return createUniformColor(locationIt, () => props.value, colorData)
+            return createUniformColor(locationIt, () => props.value || 0x000000, colorData)
     }
 }
 

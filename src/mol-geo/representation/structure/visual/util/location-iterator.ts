@@ -13,13 +13,15 @@ export interface LocationValue {
     index: number
     elementIndex: number
     instanceIndex: number
+    isSecondary: boolean
 }
 
-export const NullLocationValue = {
+export const NullLocationValue: LocationValue = {
     location: NullLocation,
     index: 0,
     elementIndex: 0,
-    instanceIndex: 0
+    instanceIndex: 0,
+    isSecondary: false
 }
 
 export interface LocationIterator extends Iterator<LocationValue> {
@@ -32,13 +34,15 @@ export interface LocationIterator extends Iterator<LocationValue> {
 }
 
 type LocationGetter = (elementIndex: number, instanceIndex: number) => Location
+type IsSecondaryGetter = (elementIndex: number, instanceIndex: number) => boolean
 
-export function LocationIterator(elementCount: number, instanceCount: number, getLocation: LocationGetter): LocationIterator {
-    const value = {
+export function LocationIterator(elementCount: number, instanceCount: number, getLocation: LocationGetter, isSecondary: IsSecondaryGetter = () => false): LocationIterator {
+    const value: LocationValue = {
         location: NullLocation as Location,
         index: 0,
         elementIndex: 0,
-        instanceIndex: 0
+        instanceIndex: 0,
+        isSecondary: false
     }
 
     let hasNext = value.elementIndex < elementCount
@@ -57,6 +61,7 @@ export function LocationIterator(elementCount: number, instanceCount: number, ge
                 value.instanceIndex = instanceIndex
                 value.index = instanceIndex * elementCount + elementIndex
                 value.location = getLocation(elementIndex, instanceIndex)
+                value.isSecondary = isSecondary(elementIndex, instanceIndex)
                 ++elementIndex
                 if (elementIndex === elementCount) {
                     ++instanceIndex

@@ -5,22 +5,25 @@
  */
 
 import { Color } from 'mol-util/color';
+import { Structure } from 'mol-model/structure';
 
-export interface UniformColorTheme {
-    name: 'uniform'
-    value: Color
-}
-
-export interface ScaleColorTheme {
-    name:  'atom-index' | 'chain-id'| 'instance-index'
+export interface ColorTheme {
+    name: 'atom-index' | 'chain-id'| 'instance-index' | 'uniform' | 'carbohydrate-symbol' | 'element-symbol'
     domain?: [number, number]
+    value?: Color
+    structure?: Structure
 }
 
-export interface TableColorTheme {
-    name:  'carbohydrate-symbol' | 'element-symbol'
+export const ColorThemeInfo = {
+    'atom-index': {},
+    'carbohydrate-symbol': {},
+    'chain-id': {},
+    'element-symbol': {},
+    'instance-index': {},
+    'uniform': {}
 }
-
-export type ColorTheme = UniformColorTheme | ScaleColorTheme | TableColorTheme
+export type ColorThemeName = keyof typeof ColorThemeInfo
+export const ColorThemeNames = Object.keys(ColorThemeInfo)
 
 export interface UniformSizeTheme {
     name: 'uniform',

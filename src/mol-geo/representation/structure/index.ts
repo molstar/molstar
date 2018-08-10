@@ -35,6 +35,7 @@ export function StructureRepresentation<P extends StructureProps>(visualCtor: ()
 
     function create(structure: Structure, props: P = {} as P) {
         _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
+        _props.colorTheme!.structure = structure
 
         return Task.create('Creating StructureRepresentation', async ctx => {
             if (!_structure) {
@@ -56,6 +57,7 @@ export function StructureRepresentation<P extends StructureProps>(visualCtor: ()
     function update(props: P) {
         return Task.create('Updating StructureRepresentation', async ctx => {
             _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
+            _props.colorTheme!.structure = _structure
 
             if (!await visual.update(ctx, _props)) {
                 await visual.create(ctx, _structure, _props)
@@ -98,6 +100,7 @@ export function StructureUnitsRepresentation<P extends StructureProps>(visualCto
 
     function create(structure: Structure, props: P = {} as P) {
         _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
+        _props.colorTheme!.structure = structure
 
         return Task.create('Creating StructureRepresentation', async ctx => {
             if (!_structure) {
@@ -151,6 +154,7 @@ export function StructureUnitsRepresentation<P extends StructureProps>(visualCto
     function update(props: P) {
         return Task.create('Updating StructureRepresentation', async ctx => {
             _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
+            _props.colorTheme!.structure = _structure
 
             visuals.forEach(async ({ visual, group }) => {
                 if (!await visual.update(ctx, _props)) {

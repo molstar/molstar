@@ -15,7 +15,7 @@ import { Toggle } from '../controls/common';
 import { SpacefillEntity } from 'mol-view/state/entity';
 import { SpacefillUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorTheme, SizeTheme } from 'mol-geo/theme';
+import { ColorTheme, SizeTheme, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
@@ -23,6 +23,7 @@ import { Unit } from 'mol-model/structure';
 
 export const ColorThemeInfo = {
     'atom-index': {},
+    'carbohydrate-symbol': {},
     'chain-id': {},
     'element-symbol': {},
     'instance-index': {},
@@ -86,7 +87,7 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
             return <option key={value} value={value}>{value.toString()}</option>
         })
 
-        const colorThemeOptions = Object.keys(ColorThemeInfo).map((name, idx) => {
+        const colorThemeOptions = ColorThemeNames.map((name, idx) => {
             return <option key={name} value={name}>{name}</option>
         })
 
@@ -137,19 +138,12 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                                     className='molstar-form-control'
                                     value={this.state.colorTheme.name}
                                     onChange={(e) => {
-                                        const colorThemeName = e.target.value as ColorThemeInfo
-                                        if (colorThemeName === 'uniform') {
-                                            this.update({
-                                                colorTheme: {
-                                                    name: colorThemeName,
-                                                    value: this.state.colorValue
-                                                }
-                                            })
-                                        } else {
-                                            this.update({
-                                                colorTheme: { name: colorThemeName }
-                                            })
-                                        }
+                                        this.update({
+                                            colorTheme: {
+                                                name: e.target.value as ColorThemeName,
+                                                value: this.state.colorValue
+                                            }
+                                        })
                                     }}
                                 >
                                     {colorThemeOptions}

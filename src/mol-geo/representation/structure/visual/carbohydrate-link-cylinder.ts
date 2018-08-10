@@ -78,14 +78,13 @@ export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps>
             currentStructure = structure
 
             const { colorTheme } = { ...DefaultCarbohydrateLinkProps, ...props }
+            const elementCount = structure.carbohydrates.links.length
             const instanceCount = 1
-            const elementCount = currentStructure.elementCount
 
             mesh = await createCarbohydrateLinkCylinderMesh(ctx, currentStructure, currentProps, mesh)
-            // console.log(mesh)
 
             const transforms = createIdentityTransform()
-            const color = createColors(createCarbohydrateLinkIterator(structure), colorTheme)
+            const color = createColors(CarbohydrateLinkIterator(structure), colorTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
@@ -114,7 +113,7 @@ export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps>
             }
 
             if (updateColor) {
-                createColors(createCarbohydrateLinkIterator(currentStructure), newProps.colorTheme, renderObject.values)
+                createColors(CarbohydrateLinkIterator(currentStructure), newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)
@@ -135,7 +134,7 @@ export function CarbohydrateLinkVisual(): StructureVisual<CarbohydrateLinkProps>
     }
 }
 
-function createCarbohydrateLinkIterator(structure: Structure): LocationIterator {
+function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
     const { elements, links } = structure.carbohydrates
     const elementCount = links.length
     const instanceCount = 1
@@ -178,7 +177,7 @@ function markLink(loci: Loci, action: MarkerAction, structure: Structure, values
     const tMarker = values.tMarker
 
     const { getLinkIndex } = structure.carbohydrates
-    const elementCount = structure.carbohydrates.elements.length
+    const elementCount = structure.carbohydrates.links.length
 
     let changed = false
     const array = tMarker.ref.value.array
