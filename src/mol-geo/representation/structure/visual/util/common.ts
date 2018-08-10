@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { Mat4 } from 'mol-math/linear-algebra'
 
 import { createUniformColor, ColorData } from '../../../../util/color-data';
@@ -17,6 +17,13 @@ import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, 
 import { ValueCell, defaults } from 'mol-util';
 import { LocationIterator } from './location-iterator';
 import { carbohydrateSymbolColorData } from '../../../../theme/structure/color/carbohydrate-symbol';
+import { Mesh } from '../../../../shape/mesh';
+import { MeshValues } from 'mol-gl/renderable';
+import { getMeshData } from '../../../../util/mesh-data';
+import { MeshProps, createMeshValues, createRenderableState } from '../../../util';
+import { StructureProps } from '../..';
+import { createMarkers } from '../../../../util/marker-data';
+import { createMeshRenderObject } from 'mol-gl/render-object';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
     const unitCount = units.length
@@ -51,18 +58,6 @@ export function createColors(locationIt: LocationIterator, props: ColorTheme, co
     }
 }
 
-// export function createLinkColors(group: Unit.SymmetryGroup, props: ColorTheme, colorData?: ColorData): ColorData {
-//     switch (props.name) {
-//         case 'atom-index':
-//         case 'chain-id':
-//         case 'element-symbol':
-//         case 'instance-index':
-//             return chainIdLinkColorData({ group, vertexMap }, colorData)
-//         case 'uniform':
-//             return createUniformColor(props, colorData)
-//     }
-// }
-
 export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: SizeTheme): SizeData {
     switch (props.name) {
         case 'uniform':
@@ -70,4 +65,45 @@ export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, pro
         case 'physical':
             return physicalSizeData(defaults(props.factor, 1), { group, vertexMap })
     }
+}
+
+type StructureMeshProps = Required<MeshProps & StructureProps>
+
+function _createMeshValues(transforms: ValueCell<Float32Array>, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+    const { instanceCount, elementCount } = locationIt
+    const color = createColors(locationIt, props.colorTheme)
+    const marker = createMarkers(instanceCount * elementCount)
+
+    const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
+
+    return {
+        ...getMeshData(mesh),
+        ...color,
+        ...marker,
+        aTransform: transforms,
+        elements: mesh.indexBuffer,
+        ...createMeshValues(props, counts)
+    }
+}
+
+export function createStructureMeshValues(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+    const transforms = createIdentityTransform()
+    return _createMeshValues(transforms, mesh, locationIt, props)
+}
+
+export function createUnitsMeshValues(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+    const transforms = createTransforms(group)
+    return _createMeshValues(transforms, mesh, locationIt, props)
+}
+
+export function createStructureMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+    const values = createStructureMeshValues(structure, mesh, locationIt, props)
+    const state = createRenderableState(props)
+    return createMeshRenderObject(values, state)
+}
+
+export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+    const values = createUnitsMeshValues(group, mesh, locationIt, props)
+    const state = createRenderableState(props)
+    return createMeshRenderObject(values, state)
 }

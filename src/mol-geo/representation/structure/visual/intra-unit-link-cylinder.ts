@@ -7,22 +7,20 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Link, StructureElement } from 'mol-model/structure';
 import { UnitsVisual, DefaultStructureProps } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 // import { createUniformColor } from '../../../util/color-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
+import { MarkerAction, applyMarkerAction, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
-import { createTransforms, createColors } from './util/common';
-import { createMeshValues, createRenderableState, updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
+import { createColors, createUnitsMeshRenderObject } from './util/common';
+import { updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
 import { LinkIterator } from './util/location-iterator';
 import { deepEqual } from 'mol-util';
 
@@ -83,30 +81,11 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
             currentProps = Object.assign({}, DefaultIntraUnitLinkProps, props)
             currentGroup = group
 
-            const { colorTheme } = { ...DefaultIntraUnitLinkProps, ...props }
             const unit = group.units[0]
-            const elementCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
-            const instanceCount = group.units.length
-
             mesh = await createIntraUnitLinkCylinderMesh(ctx, unit, currentProps)
 
-            const transforms = createTransforms(group)
-            const color = createColors(LinkIterator.fromGroup(currentGroup), colorTheme)
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
+            const locationIt = LinkIterator.fromGroup(group)
+            renderObject = createUnitsMeshRenderObject(group, mesh, locationIt, currentProps)
         },
         async update(ctx: RuntimeContext, props: IntraUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)

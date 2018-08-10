@@ -6,21 +6,19 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { MeshRenderObject } from 'mol-gl/render-object'
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, StructureVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
+import { MarkerAction, applyMarkerAction, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
-import { createIdentityTransform, createColors } from './util/common';
-import { updateMeshValues, updateRenderableState, createMeshValues, createRenderableState } from '../../util';
+import { createColors, createStructureMeshRenderObject } from './util/common';
+import { updateMeshValues, updateRenderableState } from '../../util';
 import { LinkIterator } from './util/location-iterator';
 import { deepEqual } from 'mol-util';
 
@@ -65,29 +63,10 @@ export function InterUnitLinkVisual(): StructureVisual<InterUnitLinkProps> {
             currentProps = Object.assign({}, DefaultInterUnitLinkProps, props)
             currentStructure = structure
 
-            const { colorTheme } = { ...DefaultInterUnitLinkProps, ...props }
-            const elementCount = structure.links.bondCount
-            const instanceCount = 1
-
             mesh = await createInterUnitLinkCylinderMesh(ctx, structure, currentProps)
 
-            const transforms = createIdentityTransform()
-            const color = createColors(LinkIterator.fromStructure(structure), colorTheme) // TODO
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
+            const locationIt = LinkIterator.fromStructure(structure)
+            renderObject = createStructureMeshRenderObject(structure, mesh, locationIt, currentProps)
         },
         async update(ctx: RuntimeContext, props: InterUnitLinkProps) {
             const newProps = Object.assign({}, currentProps, props)

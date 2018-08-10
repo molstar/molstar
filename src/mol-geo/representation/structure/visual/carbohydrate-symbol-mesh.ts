@@ -6,19 +6,17 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, StructureVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { createIdentityTransform, createColors } from './util/common';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
+import { createColors, createStructureMeshRenderObject } from './util/common';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { createMarkers, MarkerAction, MarkerData, applyMarkerAction } from '../../../util/marker-data';
+import { MarkerAction, MarkerData, applyMarkerAction } from '../../../util/marker-data';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
-import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
+import { updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
@@ -140,29 +138,10 @@ export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolPr
             currentProps = Object.assign({}, DefaultCarbohydrateSymbolProps, props)
             currentStructure = structure
 
-            const { colorTheme } = { ...DefaultCarbohydrateSymbolProps, ...props }
-            const instanceCount = 1
-            const elementCount = currentStructure.elementCount
-
             mesh = await createCarbohydrateSymbolMesh(ctx, currentStructure, mesh)
 
-            const transforms = createIdentityTransform()
-            const color = createColors(CarbohydrateElementIterator(structure), colorTheme)
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts)
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
+            const locationIt = CarbohydrateElementIterator(structure)
+            renderObject = createStructureMeshRenderObject(structure, mesh, locationIt, currentProps)
         },
         async update(ctx: RuntimeContext, props: CarbohydrateSymbolProps) {
             const newProps = Object.assign({}, currentProps, props)

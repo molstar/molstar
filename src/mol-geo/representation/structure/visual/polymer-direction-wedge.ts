@@ -6,22 +6,20 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { createTransforms, createColors } from './util/common';
+import { createColors, createUnitsMeshRenderObject } from './util/common';
 import { markElement } from './util/element';
 import { deepEqual } from 'mol-util';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { OrderedSet } from 'mol-data/int';
-import { createMarkers, MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
-import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
+import { updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -109,32 +107,15 @@ export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {
             currentProps = Object.assign({}, DefaultPolymerDirectionProps, props)
             currentGroup = group
 
-            const { colorTheme, unitKinds } = { ...DefaultPolymerDirectionProps, ...props }
-            const instanceCount = group.units.length
-            const elementCount = group.elements.length
+            const { unitKinds } = { ...DefaultPolymerDirectionProps, ...props }
             const unit = group.units[0]
 
             mesh = unitKinds.includes(unit.kind)
                 ? await createPolymerDirectionWedgeMesh(ctx, unit, mesh)
                 : Mesh.createEmpty(mesh)
 
-            const transforms = createTransforms(group)
-            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
+            const locationIt = StructureElementIterator.fromGroup(group)
+            renderObject = createUnitsMeshRenderObject(group, mesh, locationIt, currentProps)
         },
         async update(ctx: RuntimeContext, props: PolymerDirectionProps) {
             const newProps = Object.assign({}, currentProps, props)

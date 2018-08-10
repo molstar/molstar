@@ -7,21 +7,19 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { createTransforms, createColors } from './util/common';
+import { createColors, createUnitsMeshRenderObject } from './util/common';
 import { createElementSphereMesh, markElement, getElementRadius, getElementLoci } from './util/element';
 import { deepEqual } from 'mol-util';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { createMarkers, MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../util/marker-data';
 import { Loci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
-import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
+import { updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
 import { StructureElementIterator } from './util/location-iterator';
 
 export const DefaultElementSphereProps = {
@@ -45,9 +43,7 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
             currentProps = Object.assign({}, DefaultElementSphereProps, props)
             currentGroup = group
 
-            const { detail, colorTheme, sizeTheme, unitKinds } = { ...DefaultElementSphereProps, ...props }
-            const instanceCount = group.units.length
-            const elementCount = group.elements.length
+            const { detail, sizeTheme, unitKinds } = { ...DefaultElementSphereProps, ...props }
             const unit = group.units[0]
 
             const radius = getElementRadius(unit, sizeTheme)
@@ -55,23 +51,8 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
                 ? await createElementSphereMesh(ctx, unit, radius, detail, mesh)
                 : Mesh.createEmpty(mesh)
 
-            const transforms = createTransforms(group)
-            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
+            const locationIt = StructureElementIterator.fromGroup(group)
+            renderObject = createUnitsMeshRenderObject(group, mesh, locationIt, currentProps)
         },
         async update(ctx: RuntimeContext, props: ElementSphereProps) {
             const newProps = Object.assign({}, currentProps, props)

@@ -6,20 +6,18 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
+import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
 import { DefaultStructureProps, UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { createTransforms, createColors } from './util/common';
+import { createColors, createUnitsMeshRenderObject } from './util/common';
 import { deepEqual } from 'mol-util';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { createMarkers, MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../util/marker-data';
 import { Loci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
-import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
+import { updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getElementLoci, markElement } from './util/element';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -135,34 +133,15 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
             currentProps = Object.assign({}, DefaultNucleotideBlockProps, props)
             currentGroup = group
 
-            const { colorTheme, unitKinds } = { ...DefaultNucleotideBlockProps, ...props }
-            const instanceCount = group.units.length
-            const elementCount = group.elements.length
+            const { unitKinds } = { ...DefaultNucleotideBlockProps, ...props }
             const unit = group.units[0]
 
             mesh = unitKinds.includes(unit.kind)
                 ? await createNucleotideBlockMesh(ctx, unit, mesh)
                 : Mesh.createEmpty(mesh)
-            // console.log(mesh)
 
-            const transforms = createTransforms(group)
-            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-                aColor: ValueCell.create(new Float32Array(mesh.vertexCount * 3))
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
+            const locationIt = StructureElementIterator.fromGroup(group)
+            renderObject = createUnitsMeshRenderObject(group, mesh, locationIt, currentProps)
         },
         async update(ctx: RuntimeContext, props: NucleotideBlockProps) {
             const newProps = Object.assign({}, currentProps, props)
