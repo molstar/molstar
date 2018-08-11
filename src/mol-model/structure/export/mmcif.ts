@@ -88,7 +88,7 @@ export const mmCIF_Export_Filters = {
 
 /** Doesn't start a data block */
 export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: Structure) {
-    const models = Structure.getModels(structure);
+    const models = structure.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
 

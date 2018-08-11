@@ -30,7 +30,7 @@
 //         }
 
 //         const head = subst(table, expr.head, argIndex, args);
-//         const headChanged = head === expr.head;
+//         const headChanged = head !== expr.head;
 //         if (!expr.args) {
 //             return headChanged ? Expression.Apply(head) : expr;
 //         }

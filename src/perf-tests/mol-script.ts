@@ -8,6 +8,8 @@ import { parseMolScript } from 'mol-script/language/parser';
 import * as util from 'util'
 import { transpileMolScript } from 'mol-script/script/mol-script/symbols';
 import { formatMolScript } from 'mol-script/language/expression-formatter';
+import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-report';
+import fetch from 'node-fetch'; 
 
 // import Examples from 'mol-script/script/mol-script/examples'
 // import { parseMolScript } from 'mol-script/script/mol-script/parser'
@@ -24,8 +26,9 @@ import { formatMolScript } from 'mol-script/language/expression-formatter';
 //     ;; this is a comment
 //     ((hi) (ho))`);
 
+//;; :residue-test (= atom.label_comp_id REA)
 const exprs = parseMolScript(`(sel.atom.atom-groups
-    :residue-test (= atom.label_comp_id REA)
+    :residue-test (> pdbe.structure-quality.issue-count 0)
     :atom-test (= atom.el _C))`);
 
 const tsp = transpileMolScript(exprs[0]);
@@ -58,9 +61,18 @@ const CustomProp = ModelPropertyDescriptor({
 
 DefaultQueryRuntimeTable.addCustomProp(CustomProp);
 
+DefaultQueryRuntimeTable.addCustomProp(StructureQualityReport.Descriptor);
+
 export async function testQ() {
     const frame = await readCifFile('e:/test/quick/1cbs_updated.cif');
     const { structure } = await getModelsAndStructure(frame);
+
+    await StructureQualityReport.attachFromCifOrApi(structure.models[0], {
+        PDBe_apiSourceJson: async model => {
+            const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, { timeout: 1500 });
+            return await rawData.json();
+        }
+    })
 
     let expr = MolScriptBuilder.struct.generator.atomGroups({
         'atom-test': MolScriptBuilder.core.rel.eq([

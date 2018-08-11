@@ -6,7 +6,7 @@
 
 import { now } from 'mol-task'
 
-interface UUID extends String { '@type': 'uuid' }
+type UUID = string & { '@type': 'uuid' }
 
 namespace UUID {
     export function create(): UUID {

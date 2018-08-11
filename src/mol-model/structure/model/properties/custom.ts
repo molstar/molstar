@@ -6,3 +6,4 @@
 
 export * from './custom/descriptor'
 export * from './custom/collection'
+export * from './custom/residue'

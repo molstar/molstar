@@ -301,7 +301,7 @@ function substSymbols(expr: Expression): Expression {
     }
 
     const head = substSymbols(expr.head);
-    const headChanged = head === expr.head;
+    const headChanged = head !== expr.head;
     if (!expr.args) {
         return headChanged ? Expression.Apply(head) : expr;
     }

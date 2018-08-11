@@ -4,16 +4,21 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif';
-import { Model, ModelPropertyDescriptor, ResidueIndex, Structure, StructureElement, Unit } from 'mol-model/structure';
+import { Model, ModelPropertyDescriptor, ResidueIndex, Unit, ResidueCustomProperty } from 'mol-model/structure';
 import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
 import CifField = CifWriter.Field;
 import { mmCIF_residueId_schema } from 'mol-io/reader/cif/schema/mmcif-extras';
 import { Column, Table } from 'mol-data/db';
 import { toTable } from 'mol-io/reader/cif/schema';
+import { StructureElement } from 'mol-model/structure/structure';
 
-type IssueMap = Map<ResidueIndex, string[]>
+
+import { QuerySymbolRuntime } from 'mol-script/runtime/query/compiler';
+import { CustomPropSymbol } from 'mol-script/language/symbol';
+import Type from 'mol-script/language/type';
+
+type IssueMap = ResidueCustomProperty<string[]>
 
 const _Descriptor: ModelPropertyDescriptor = {
     isStatic: true,
@@ -30,54 +35,26 @@ const _Descriptor: ModelPropertyDescriptor = {
             instance(ctx) {
                 const issues = StructureQualityReport.get(ctx.model);
                 if (!issues) return CifWriter.Category.Empty;
-
-                const residues = getResidueLoci(ctx.structure, issues);
-                return {
-                    fields: _structure_quality_report_issues_fields,
-                    data: <ExportCtx>{ model: ctx.model, residues, residueIndex: ctx.model.atomicHierarchy.residueAtomSegments.index, issues },
-                    rowCount: residues.length
-                };
+                return ResidueCustomProperty.createCifCategory(ctx, issues, _structure_quality_report_issues_fields);
             }
         }]
+    },
+    symbols: {
+        issueCount: QuerySymbolRuntime.Dynamic(CustomPropSymbol('pdbe', 'structure-quality.issue-count', Type.Num),
+            ctx => StructureQualityReport.getIssues(ctx.element).length)
     }
 }
 
-type ExportCtx = { model: Model, residueIndex: ArrayLike<ResidueIndex>, residues: StructureElement[], issues: IssueMap };
-
-const _structure_quality_report_issues_fields: CifField<ResidueIndex, ExportCtx>[] = [
+type ExportCtx = ResidueCustomProperty.ExportCtx<string[]>
+const _structure_quality_report_issues_fields: CifField<number, ExportCtx>[] = [
     CifField.index('id'),
-    ...residueIdFields<ResidueIndex, ExportCtx>((k, d) => d.residues[k]),
-    CifField.str<ResidueIndex, ExportCtx>('issues', (i, d) => d.issues.get(d.residueIndex[d.residues[i].element])!.join(','))
+    ...residueIdFields<number, ExportCtx>((i, d) => d.elements[i]),
+    CifField.str<number, ExportCtx>('issues', (i, d) => d.property(i).join(','))
 ];
 
 const _structure_quality_report_fields: CifField<ResidueIndex, ExportCtx>[] = [
     CifField.str('updated_datetime_utc', () => `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`)
 ];
-
-function getResidueLoci(structure: Structure, issues: IssueMap) {
-    const seenResidues = new Set<ResidueIndex>();
-    const unitGroups = structure.unitSymmetryGroups;
-    const loci: StructureElement[] = [];
-
-    for (const unitGroup of unitGroups) {
-        const unit = unitGroup.units[0];
-        if (!Unit.isAtomic(unit)) {
-            continue;
-        }
-
-        const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
-        while (residues.hasNext) {
-            const seg = residues.move();
-            if (!issues.has(seg.index) || seenResidues.has(seg.index)) continue;
-
-            seenResidues.add(seg.index);
-            loci[loci.length] = StructureElement.create(unit, unit.elements[seg.start]);
-        }
-    }
-
-    loci.sort((x, y) => x.element - y.element);
-    return loci;
-}
 
 function createIssueMapFromJson(modelData: Model, data: any): IssueMap | undefined {
     const ret = new Map<ResidueIndex, string[]>();
@@ -100,7 +77,7 @@ function createIssueMapFromJson(modelData: Model, data: any): IssueMap | undefin
         }
     }
 
-    return ret;
+    return ResidueCustomProperty.fromMap(ret, Unit.Kind.Atomic);
 }
 
 function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issues>): IssueMap | undefined {
@@ -112,7 +89,7 @@ function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQua
         ret.set(idx, issues.value(i));
     }
 
-    return ret;
+    return ResidueCustomProperty.fromMap(ret, Unit.Kind.Atomic);
 }
 
 export namespace StructureQualityReport {
@@ -157,5 +134,14 @@ export namespace StructureQualityReport {
 
     export function get(model: Model): IssueMap | undefined {
         return model._staticPropertyData.__StructureQualityReport__;
+    }
+
+    const _emptyArray: string[] = [];
+    export function getIssues(e: StructureElement) {
+        if (!Unit.isAtomic(e.unit)) return _emptyArray;
+        const issues = StructureQualityReport.get(e.unit.model);
+        if (!issues) return _emptyArray;
+        const rI = e.unit.residueIndex[e.element];
+        return issues.has(rI) ? issues.get(rI)! : _emptyArray;
     }
 }
