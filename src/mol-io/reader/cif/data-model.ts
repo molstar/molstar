@@ -7,6 +7,7 @@
 
 import { Column } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
+import { getNumberType, NumberType } from '../common/text/number-parser';
 
 export interface CifFile {
     readonly name?: string,
@@ -108,4 +109,20 @@ export function getTensor(category: CifCategory, field: string, space: Tensor.Sp
         }
     } else throw new Error('Tensors with rank > 3 or rank 0 are currently not supported.');
     return ret;
+}
+
+export function getCifFieldType(field: CifField): Column.Schema.Int | Column.Schema.Float | Column.Schema.Str {
+    let floatCount = 0, hasString = false;
+    for (let i = 0, _i = field.rowCount; i < _i; i++) {
+        const k = field.valueKind(i);
+        if (k !== Column.ValueKind.Present) continue
+        const type = getNumberType(field.str(i));
+        if (type === NumberType.Int) continue;
+        else if (type === NumberType.Float) floatCount++;
+        else { hasString = true; break; }
+    }
+
+    if (hasString) return Column.Schema.str;
+    if (floatCount > 0) return Column.Schema.float;
+    return Column.Schema.int;
 }
