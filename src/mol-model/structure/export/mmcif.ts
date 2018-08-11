@@ -98,6 +98,8 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
         encoder.writeCategory(cat, ctx);
     }
     for (const customProp of model.customProperties.all) {
+        if (!customProp.cifExport || customProp.cifExport.categories.length === 0) continue;
+
         const prefix = customProp.cifExport.prefix;
         const cats = customProp.cifExport.categories;
         for (const cat of cats) {

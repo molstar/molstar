@@ -12,7 +12,7 @@ interface ModelPropertyDescriptor<Symbols extends { [name: string]: QuerySymbolR
     readonly isStatic: boolean,
     readonly name: string,
 
-    cifExport: {
+    cifExport?: {
         // Prefix enforced during export.
         prefix: string,
         categories: CifWriter.Category<CifExportContext>[]

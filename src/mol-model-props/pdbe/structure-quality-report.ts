@@ -20,7 +20,7 @@ import Type from 'mol-script/language/type';
 
 type IssueMap = ResidueCustomProperty<string[]>
 
-const _Descriptor: ModelPropertyDescriptor = {
+const _Descriptor = ModelPropertyDescriptor({
     isStatic: true,
     name: 'structure_quality_report',
     cifExport: {
@@ -41,9 +41,10 @@ const _Descriptor: ModelPropertyDescriptor = {
     },
     symbols: {
         issueCount: QuerySymbolRuntime.Dynamic(CustomPropSymbol('pdbe', 'structure-quality.issue-count', Type.Num),
-            ctx => StructureQualityReport.getIssues(ctx.element).length)
+            ctx => StructureQualityReport.getIssues(ctx.element).length),
+        // TODO: add (hasIssue :: IssueType(extends string) -> boolean) symbol
     }
-}
+})
 
 type ExportCtx = ResidueCustomProperty.ExportCtx<string[]>
 const _structure_quality_report_issues_fields: CifField<number, ExportCtx>[] = [
