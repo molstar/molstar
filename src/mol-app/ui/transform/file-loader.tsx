@@ -16,14 +16,14 @@ import { BallAndStickProps } from 'mol-geo/representation/structure/representati
 import { DistanceRestraintProps } from 'mol-geo/representation/structure/representation/distance-restraint';
 import { BackboneProps } from 'mol-geo/representation/structure/representation/backbone';
 
-const spacefillProps: SpacefillProps = {
+const spacefillProps: Partial<SpacefillProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     quality: 'auto',
     useFog: false
 }
 
-const ballAndStickProps: BallAndStickProps = {
+const ballAndStickProps: Partial<BallAndStickProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     sizeTheme: { name: 'uniform', value: 0.05 },
@@ -32,7 +32,7 @@ const ballAndStickProps: BallAndStickProps = {
     useFog: false
 }
 
-const distanceRestraintProps: DistanceRestraintProps = {
+const distanceRestraintProps: Partial<DistanceRestraintProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     linkRadius: 0.5,
@@ -40,7 +40,7 @@ const distanceRestraintProps: DistanceRestraintProps = {
     useFog: false
 }
 
-const backboneProps: BackboneProps = {
+const backboneProps: Partial<BackboneProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     quality: 'auto',

@@ -8,9 +8,9 @@ import { UnitsRepresentation } from '..';
 import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
 
 export const DefaultSpacefillProps = {
-    ...DefaultElementSphereProps,
+    ...DefaultElementSphereProps
 }
-export type SpacefillProps = Partial<typeof DefaultSpacefillProps>
+export type SpacefillProps = typeof DefaultSpacefillProps
 
 export function SpacefillRepresentation() {
     return UnitsRepresentation(ElementSphereVisual)

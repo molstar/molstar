@@ -95,9 +95,9 @@ export const StructureCenter: StructureCenter = StateTransform.create('structure
         return NullEntity
     })
 
-export type StructureToSpacefill = StateTransform<StructureEntity, SpacefillEntity, SpacefillProps>
+export type StructureToSpacefill = StateTransform<StructureEntity, SpacefillEntity, Partial<SpacefillProps>>
 export const StructureToSpacefill: StructureToSpacefill = StateTransform.create('structure', 'spacefill', 'structure-to-spacefill',
-    async function (ctx: StateContext, structureEntity: StructureEntity, props: SpacefillProps = {}) {
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<SpacefillProps> = {}) {
         const spacefillRepr = SpacefillRepresentation()
         await spacefillRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
@@ -106,9 +106,9 @@ export const StructureToSpacefill: StructureToSpacefill = StateTransform.create(
         return SpacefillEntity.ofRepr(ctx, spacefillRepr)
     })
 
-export type StructureToBallAndStick = StateTransform<StructureEntity, BallAndStickEntity, BallAndStickProps>
+export type StructureToBallAndStick = StateTransform<StructureEntity, BallAndStickEntity, Partial<BallAndStickProps>>
 export const StructureToBallAndStick: StructureToBallAndStick = StateTransform.create('structure', 'ballandstick', 'structure-to-ballandstick',
-    async function (ctx: StateContext, structureEntity: StructureEntity, props: BallAndStickProps = {}) {
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<BallAndStickProps> = {}) {
         const ballAndStickRepr = BallAndStickRepresentation()
         await ballAndStickRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(ballAndStickRepr)
@@ -117,9 +117,9 @@ export const StructureToBallAndStick: StructureToBallAndStick = StateTransform.c
         return BallAndStickEntity.ofRepr(ctx, ballAndStickRepr)
     })
 
-export type StructureToDistanceRestraint = StateTransform<StructureEntity, DistanceRestraintEntity, DistanceRestraintProps>
+export type StructureToDistanceRestraint = StateTransform<StructureEntity, DistanceRestraintEntity, Partial<DistanceRestraintProps>>
 export const StructureToDistanceRestraint: StructureToDistanceRestraint = StateTransform.create('structure', 'distancerestraint', 'structure-to-distancerestraint',
-    async function (ctx: StateContext, structureEntity: StructureEntity, props: DistanceRestraintProps = {}) {
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<DistanceRestraintProps> = {}) {
         const distanceRestraintRepr = DistanceRestraintRepresentation()
         await distanceRestraintRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(distanceRestraintRepr)
@@ -128,9 +128,9 @@ export const StructureToDistanceRestraint: StructureToDistanceRestraint = StateT
         return DistanceRestraintEntity.ofRepr(ctx, distanceRestraintRepr)
     })
 
-export type StructureToBackbone = StateTransform<StructureEntity, BackboneEntity, BackboneProps>
+export type StructureToBackbone = StateTransform<StructureEntity, BackboneEntity, Partial<BackboneProps>>
 export const StructureToBackbone: StructureToBackbone = StateTransform.create('structure', 'backbone', 'structure-to-backbone',
-    async function (ctx: StateContext, structureEntity: StructureEntity, props: BackboneProps = {}) {
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<BackboneProps> = {}) {
         const backboneRepr = BackboneRepresentation()
         await backboneRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(backboneRepr)
@@ -139,9 +139,9 @@ export const StructureToBackbone: StructureToBackbone = StateTransform.create('s
         return BackboneEntity.ofRepr(ctx, backboneRepr)
     })
 
-export type StructureToCartoon = StateTransform<StructureEntity, CartoonEntity, CartoonProps>
+export type StructureToCartoon = StateTransform<StructureEntity, CartoonEntity, Partial<CartoonProps>>
 export const StructureToCartoon: StructureToCartoon = StateTransform.create('structure', 'cartoon', 'structure-to-cartoon',
-    async function (ctx: StateContext, structureEntity: StructureEntity, props: CartoonProps = {}) {
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<CartoonProps> = {}) {
         const cartoonRepr = CartoonRepresentation()
         await cartoonRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(cartoonRepr)
@@ -150,9 +150,9 @@ export const StructureToCartoon: StructureToCartoon = StateTransform.create('str
         return CartoonEntity.ofRepr(ctx, cartoonRepr)
     })
 
-export type StructureToCarbohydrate = StateTransform<StructureEntity, CarbohydrateEntity, CarbohydrateProps>
+export type StructureToCarbohydrate = StateTransform<StructureEntity, CarbohydrateEntity, Partial<CarbohydrateProps>>
 export const StructureToCarbohydrate: StructureToCarbohydrate = StateTransform.create('structure', 'carbohydrate', 'structure-to-cartoon',
-    async function (ctx: StateContext, structureEntity: StructureEntity, props: CarbohydrateProps = {}) {
+    async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<CarbohydrateProps> = {}) {
         const carbohydrateRepr = CarbohydrateRepresentation()
         await carbohydrateRepr.create(structureEntity.value, props).run(ctx.log)
         ctx.viewer.add(carbohydrateRepr)
@@ -161,9 +161,9 @@ export const StructureToCarbohydrate: StructureToCarbohydrate = StateTransform.c
         return CarbohydrateEntity.ofRepr(ctx, carbohydrateRepr)
     })
 
-export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, SpacefillProps>
+export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, Partial<SpacefillProps>>
 export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill', 'null', 'spacefill-update',
-    async function (ctx: StateContext, spacefillEntity: SpacefillEntity, props: SpacefillProps = {}) {
+    async function (ctx: StateContext, spacefillEntity: SpacefillEntity, props: Partial<SpacefillProps> = {}) {
         const spacefillRepr = spacefillEntity.value
         await spacefillRepr.update(props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
@@ -172,9 +172,9 @@ export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill
         return NullEntity
     })
 
-export type BallAndStickUpdate = StateTransform<BallAndStickEntity, NullEntity, BallAndStickProps>
+export type BallAndStickUpdate = StateTransform<BallAndStickEntity, NullEntity, Partial<BallAndStickProps>>
 export const BallAndStickUpdate: BallAndStickUpdate = StateTransform.create('ballandstick', 'null', 'ballandstick-update',
-    async function (ctx: StateContext, ballAndStickEntity: BallAndStickEntity, props: BallAndStickProps = {}) {
+    async function (ctx: StateContext, ballAndStickEntity: BallAndStickEntity, props: Partial<BallAndStickProps> = {}) {
         const ballAndStickRepr = ballAndStickEntity.value
         await ballAndStickRepr.update(props).run(ctx.log)
         ctx.viewer.add(ballAndStickRepr)
@@ -183,9 +183,9 @@ export const BallAndStickUpdate: BallAndStickUpdate = StateTransform.create('bal
         return NullEntity
     })
 
-export type DistanceRestraintUpdate = StateTransform<DistanceRestraintEntity, NullEntity, DistanceRestraintProps>
+export type DistanceRestraintUpdate = StateTransform<DistanceRestraintEntity, NullEntity, Partial<DistanceRestraintProps>>
 export const DistanceRestraintUpdate: DistanceRestraintUpdate = StateTransform.create('distancerestraint', 'null', 'distancerestraint-update',
-    async function (ctx: StateContext, distanceRestraintEntity: DistanceRestraintEntity, props: DistanceRestraintProps = {}) {
+    async function (ctx: StateContext, distanceRestraintEntity: DistanceRestraintEntity, props: Partial<DistanceRestraintProps> = {}) {
         const distanceRestraintRepr = distanceRestraintEntity.value
         await distanceRestraintRepr.update(props).run(ctx.log)
         ctx.viewer.add(distanceRestraintRepr)
@@ -194,9 +194,9 @@ export const DistanceRestraintUpdate: DistanceRestraintUpdate = StateTransform.c
         return NullEntity
     })
 
-export type BackboneUpdate = StateTransform<BackboneEntity, NullEntity, BackboneProps>
+export type BackboneUpdate = StateTransform<BackboneEntity, NullEntity, Partial<BackboneProps>>
 export const BackboneUpdate: BackboneUpdate = StateTransform.create('backbone', 'null', 'backbone-update',
-    async function (ctx: StateContext, backboneEntity: BackboneEntity, props: BackboneProps = {}) {
+    async function (ctx: StateContext, backboneEntity: BackboneEntity, props: Partial<BackboneProps> = {}) {
         const backboneRepr = backboneEntity.value
         await backboneRepr.update(props).run(ctx.log)
         ctx.viewer.add(backboneRepr)
@@ -205,9 +205,9 @@ export const BackboneUpdate: BackboneUpdate = StateTransform.create('backbone', 
         return NullEntity
     })
 
-export type CartoonUpdate = StateTransform<CartoonEntity, NullEntity, CartoonProps>
+export type CartoonUpdate = StateTransform<CartoonEntity, NullEntity, Partial<CartoonProps>>
 export const CartoonUpdate: CartoonUpdate = StateTransform.create('cartoon', 'null', 'cartoon-update',
-    async function (ctx: StateContext, cartoonEntity: CartoonEntity, props: CartoonProps = {}) {
+    async function (ctx: StateContext, cartoonEntity: CartoonEntity, props: Partial<CartoonProps> = {}) {
         const cartoonRepr = cartoonEntity.value
         await cartoonRepr.update(props).run(ctx.log)
         ctx.viewer.add(cartoonRepr)
@@ -216,9 +216,9 @@ export const CartoonUpdate: CartoonUpdate = StateTransform.create('cartoon', 'nu
         return NullEntity
     })
 
-export type CarbohydrateUpdate = StateTransform<CarbohydrateEntity, NullEntity, CarbohydrateProps>
+export type CarbohydrateUpdate = StateTransform<CarbohydrateEntity, NullEntity, Partial<CarbohydrateProps>>
 export const CarbohydrateUpdate: CarbohydrateUpdate = StateTransform.create('carbohydrate', 'null', 'carbohydrate-update',
-    async function (ctx: StateContext, carbohydrateEntity: CarbohydrateEntity, props: CarbohydrateProps = {}) {
+    async function (ctx: StateContext, carbohydrateEntity: CarbohydrateEntity, props: Partial<CarbohydrateProps> = {}) {
         const carbohydrateRepr = carbohydrateEntity.value
         await carbohydrateRepr.update(props).run(ctx.log)
         ctx.viewer.add(carbohydrateRepr)
@@ -251,24 +251,24 @@ export const DataToModel: DataToModel = StateTransform.create('data', 'model', '
         return MmcifToModel.apply(ctx, mmcifEntity)
     })
 
-export type ModelToSpacefill = StateTransform<ModelEntity, SpacefillEntity, SpacefillProps>
+export type ModelToSpacefill = StateTransform<ModelEntity, SpacefillEntity, Partial<SpacefillProps>>
 export const ModelToSpacefill: ModelToSpacefill = StateTransform.create('model', 'spacefill', 'model-to-spacefill',
-    async function (ctx: StateContext, modelEntity: ModelEntity, props: SpacefillProps = {}) {
+    async function (ctx: StateContext, modelEntity: ModelEntity, props: Partial<SpacefillProps> = {}) {
         const structureEntity = await ModelToStructure.apply(ctx, modelEntity)
         // StructureToBond.apply(ctx, structureEntity, props)
         return StructureToSpacefill.apply(ctx, structureEntity, props)
     })
 
-export type MmcifUrlToSpacefill = StateTransform<UrlEntity, SpacefillEntity, SpacefillProps>
+export type MmcifUrlToSpacefill = StateTransform<UrlEntity, SpacefillEntity, Partial<SpacefillProps>>
 export const MmcifUrlToSpacefill: MmcifUrlToSpacefill = StateTransform.create('url', 'spacefill', 'url-to-spacefill',
-    async function (ctx: StateContext, urlEntity: UrlEntity, props: SpacefillProps = {}) {
+    async function (ctx: StateContext, urlEntity: UrlEntity, props: Partial<SpacefillProps> = {}) {
         const modelEntity = await MmcifUrlToModel.apply(ctx, urlEntity)
         return ModelToSpacefill.apply(ctx, modelEntity, props)
     })
 
-export type MmcifFileToSpacefill = StateTransform<FileEntity, SpacefillEntity, SpacefillProps>
+export type MmcifFileToSpacefill = StateTransform<FileEntity, SpacefillEntity, Partial<SpacefillProps>>
 export const MmcifFileToSpacefill: MmcifFileToSpacefill = StateTransform.create('file', 'spacefill', 'file-to-spacefill',
-    async function (ctx: StateContext, fileEntity: FileEntity, props: SpacefillProps = {}) {
+    async function (ctx: StateContext, fileEntity: FileEntity, props: Partial<SpacefillProps> = {}) {
         const modelEntity = await MmcifFileToModel.apply(ctx, fileEntity)
         return ModelToSpacefill.apply(ctx, modelEntity, props)
     })

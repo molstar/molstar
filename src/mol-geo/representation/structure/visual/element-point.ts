@@ -130,10 +130,10 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             return false
         },
         getLoci(pickingId: PickingId) {
-            return getElementLoci(renderObject.id, currentGroup, pickingId)
+            return getElementLoci(pickingId, currentGroup, renderObject.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            markElement(renderObject.values.tMarker, currentGroup, loci, action)
+            markElement(loci, action, currentGroup, renderObject.values)
         },
         destroy() {
             // TODO

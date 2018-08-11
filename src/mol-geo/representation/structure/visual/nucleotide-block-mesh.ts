@@ -4,20 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
-import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
-import { DefaultStructureProps, UnitsVisual } from '..';
+import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { createColors, createUnitsMeshRenderObject } from './util/common';
-import { deepEqual } from 'mol-util';
 import { Mesh } from '../../../shape/mesh';
-import { PickingId } from '../../../util/picking';
-import { MarkerAction } from '../../../util/marker-data';
-import { Loci } from 'mol-model/loci';
-import { SizeTheme } from '../../../theme';
-import { updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { getElementLoci, markElement } from './util/element';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -25,6 +15,7 @@ import { Segmentation, SortedArray } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { StructureElementIterator } from './util/location-iterator';
+import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -39,7 +30,7 @@ const center = Vec3.zero()
 const t = Mat4.identity()
 const sVec = Vec3.zero()
 
-async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?: Mesh) {
+async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const builder = MeshBuilder.create(256, 128, mesh)
@@ -113,73 +104,16 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, mesh?:
 }
 
 export const DefaultNucleotideBlockProps = {
-    ...DefaultMeshProps,
-    ...DefaultStructureProps,
-    sizeTheme: { name: 'physical', factor: 1 } as SizeTheme,
-    detail: 0,
-    unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
+    ...DefaultUnitsMeshProps
 }
-export type NucleotideBlockProps = Partial<typeof DefaultNucleotideBlockProps>
+export type NucleotideBlockProps = typeof DefaultNucleotideBlockProps
 
 export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
-    let renderObject: MeshRenderObject
-    let currentProps: typeof DefaultNucleotideBlockProps
-    let mesh: Mesh
-    let currentGroup: Unit.SymmetryGroup
-
-    return {
-        get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: NucleotideBlockProps = {}) {
-            currentProps = Object.assign({}, DefaultNucleotideBlockProps, props)
-            currentGroup = group
-
-            const { unitKinds } = { ...DefaultNucleotideBlockProps, ...props }
-            const unit = group.units[0]
-
-            mesh = unitKinds.includes(unit.kind)
-                ? await createNucleotideBlockMesh(ctx, unit, mesh)
-                : Mesh.createEmpty(mesh)
-
-            const locationIt = StructureElementIterator.fromGroup(group)
-            renderObject = createUnitsMeshRenderObject(group, mesh, locationIt, currentProps)
-        },
-        async update(ctx: RuntimeContext, props: NucleotideBlockProps) {
-            const newProps = Object.assign({}, currentProps, props)
-
-            if (!renderObject) return false
-
-            let updateColor = false
-
-            if (newProps.detail !== currentProps.detail) {
-                const unit = currentGroup.units[0]
-                mesh = await createNucleotideBlockMesh(ctx, unit, mesh)
-                ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
-                updateColor = true
-            }
-
-            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-                updateColor = true
-            }
-
-            if (updateColor) {
-                if (ctx.shouldUpdate) await ctx.update('Computing nucleotide block colors');
-                createColors(StructureElementIterator.fromGroup(currentGroup), newProps.colorTheme, renderObject.values)
-            }
-
-            updateMeshValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
-
-            currentProps = newProps
-            return true
-        },
-        getLoci(pickingId: PickingId) {
-            return getElementLoci(renderObject.id, currentGroup, pickingId)
-        },
-        mark(loci: Loci, action: MarkerAction) {
-            markElement(renderObject.values.tMarker, currentGroup, loci, action)
-        },
-        destroy() {
-            // TODO
-        }
-    }
+    return UnitsMeshVisual<NucleotideBlockProps>({
+        defaultProps: DefaultNucleotideBlockProps,
+        createMesh: createNucleotideBlockMesh,
+        createLocationIterator: StructureElementIterator.fromGroup,
+        getLoci: getElementLoci,
+        mark: markElement
+    })
 }

@@ -17,14 +17,14 @@ import { DistanceRestraintProps } from 'mol-geo/representation/structure/represe
 import { BackboneProps } from 'mol-geo/representation/structure/representation/backbone';
 // import { Queries as Q, StructureProperties as SP, Query, Selection } from 'mol-model/structure';
 
-const spacefillProps: SpacefillProps = {
+const spacefillProps: Partial<SpacefillProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     quality: 'auto',
     useFog: false
 }
 
-const ballAndStickProps: BallAndStickProps = {
+const ballAndStickProps: Partial<BallAndStickProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     sizeTheme: { name: 'uniform', value: 0.15 },
@@ -33,7 +33,7 @@ const ballAndStickProps: BallAndStickProps = {
     useFog: false
 }
 
-const distanceRestraintProps: DistanceRestraintProps = {
+const distanceRestraintProps: Partial<DistanceRestraintProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     linkRadius: 0.5,
@@ -41,7 +41,7 @@ const distanceRestraintProps: DistanceRestraintProps = {
     useFog: false
 }
 
-const backboneProps: BackboneProps = {
+const backboneProps: Partial<BackboneProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     // colorTheme: { name: 'uniform', value: 0xFF0000 },
@@ -50,7 +50,7 @@ const backboneProps: BackboneProps = {
     alpha: 0.5
 }
 
-const cartoonProps: CartoonProps = {
+const cartoonProps: Partial<CartoonProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     // colorTheme: { name: 'uniform', value: 0x2200CC },
@@ -58,7 +58,7 @@ const cartoonProps: CartoonProps = {
     useFog: false
 }
 
-const carbohydrateProps: CartoonProps = {
+const carbohydrateProps: Partial<CartoonProps> = {
     doubleSided: true,
     colorTheme: { name: 'carbohydrate-symbol' },
     // colorTheme: { name: 'uniform', value: 0x2200CC },

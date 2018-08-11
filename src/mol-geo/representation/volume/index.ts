@@ -11,18 +11,24 @@ import { VolumeData } from 'mol-model/volume';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
+import { DefaultBaseProps } from '../util';
 
 export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 
 export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
 
-export function VolumeRepresentation<P>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
+export const DefaultVolumeProps = {
+    ...DefaultBaseProps
+}
+export type VolumeProps = typeof DefaultVolumeProps
+
+export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     const renderObjects: RenderObject[] = []
     let _volumeData: VolumeData
     let _props: P
 
-    function create(volumeData: VolumeData, props: P = {} as P) {
-        _props = props
+    function create(volumeData: VolumeData, props: Partial<P> = {}) {
+        _props = Object.assign({}, DefaultVolumeProps, _props, props)
         return Task.create('VolumeRepresentation.create', async ctx => {
             _volumeData = volumeData
             const visual = visualCtor(_volumeData)
@@ -31,7 +37,7 @@ export function VolumeRepresentation<P>(visualCtor: (volumeData: VolumeData) => 
         });
     }
 
-    function update(props: P) {
+    function update(props: Partial<P>) {
         return Task.create('VolumeRepresentation.update', async ctx => {})
     }
 

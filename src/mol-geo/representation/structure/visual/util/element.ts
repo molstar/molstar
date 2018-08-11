@@ -12,9 +12,8 @@ import { sphereVertexCount } from '../../../../primitive/sphere';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
 import { ValueCell, defaults } from 'mol-util';
-import { TextureImage } from 'mol-gl/renderable/util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction } from '../../../../util/marker-data';
+import { MarkerAction, applyMarkerAction, MarkerData } from '../../../../util/marker-data';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { getPhysicalRadius } from '../../../../theme/structure/size/physical';
 import { PickingId } from '../../../../util/picking';
@@ -30,8 +29,16 @@ export function getElementRadius(unit: Unit, props: SizeTheme): StructureElement
     }
 }
 
-export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, radius: StructureElement.Property<number>, detail: number, mesh?: Mesh) {
+export interface ElementSphereMeshProps {
+    sizeTheme: SizeTheme,
+    detail: number,
+}
+
+export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, props: ElementSphereMeshProps, mesh?: Mesh) {
+    const { detail, sizeTheme } = props
+
     const { elements } = unit;
+    const radius = getElementRadius(unit, sizeTheme)
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail)
     const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
@@ -56,10 +63,13 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
     return meshBuilder.getMesh()
 }
 
-export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.SymmetryGroup, loci: Loci, action: MarkerAction) {
-    let changed = false
+export function markElement(loci: Loci, action: MarkerAction, group: Unit.SymmetryGroup, values: MarkerData) {
+    const tMarker = values.tMarker
+
     const elementCount = group.elements.length
     const instanceCount = group.units.length
+
+    let changed = false
     const array = tMarker.ref.value.array
     if (isEveryLoci(loci)) {
         applyMarkerAction(array, 0, elementCount * instanceCount, action)
@@ -92,7 +102,7 @@ export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.Symmet
     }
 }
 
-export function getElementLoci(id: number, group: Unit.SymmetryGroup, pickingId: PickingId) {
+export function getElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
     const { objectId, instanceId, elementId } = pickingId
     if (id === objectId) {
         const unit = group.units[instanceId]

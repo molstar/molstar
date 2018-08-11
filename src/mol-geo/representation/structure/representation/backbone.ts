@@ -15,11 +15,12 @@ import { PolymerBackboneVisual, DefaultPolymerBackboneProps } from '../visual/po
 export const DefaultBackboneProps = {
     ...DefaultPolymerBackboneProps
 }
-export type BackboneProps = Partial<typeof DefaultBackboneProps>
+export type BackboneProps = typeof DefaultBackboneProps
 
 export function BackboneRepresentation(): StructureRepresentation<BackboneProps> {
     const traceRepr = UnitsRepresentation(PolymerBackboneVisual)
 
+    let currentProps: BackboneProps
     return {
         get renderObjects() {
             return [ ...traceRepr.renderObjects ]
@@ -27,16 +28,16 @@ export function BackboneRepresentation(): StructureRepresentation<BackboneProps>
         get props() {
             return { ...traceRepr.props }
         },
-        create: (structure: Structure, props: BackboneProps = {} as BackboneProps) => {
-            const p = Object.assign({}, DefaultBackboneProps, props)
+        create: (structure: Structure, props: Partial<BackboneProps> = {}) => {
+            currentProps = Object.assign({}, DefaultBackboneProps, props)
             return Task.create('BackboneRepresentation', async ctx => {
-                await traceRepr.create(structure, p).runInContext(ctx)
+                await traceRepr.create(structure, currentProps).runInContext(ctx)
             })
         },
-        update: (props: BackboneProps) => {
-            const p = Object.assign({}, props)
+        update: (props: Partial<BackboneProps>) => {
+            currentProps = Object.assign(currentProps, props)
             return Task.create('Updating BackboneRepresentation', async ctx => {
-                await traceRepr.update(p).runInContext(ctx)
+                await traceRepr.update(currentProps).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

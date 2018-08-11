@@ -86,7 +86,7 @@ function _createMeshValues(transforms: ValueCell<Float32Array>, mesh: Mesh, loca
     }
 }
 
-export function createStructureMeshValues(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+export function createComplexMeshValues(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
     const transforms = createIdentityTransform()
     return _createMeshValues(transforms, mesh, locationIt, props)
 }
@@ -96,8 +96,8 @@ export function createUnitsMeshValues(group: Unit.SymmetryGroup, mesh: Mesh, loc
     return _createMeshValues(transforms, mesh, locationIt, props)
 }
 
-export function createStructureMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
-    const values = createStructureMeshValues(structure, mesh, locationIt, props)
+export function createComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+    const values = createComplexMeshValues(structure, mesh, locationIt, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
@@ -106,4 +106,9 @@ export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mes
     const values = createUnitsMeshValues(group, mesh, locationIt, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
+}
+
+export function updateComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+    const transforms = createIdentityTransform()
+    return _createMeshValues(transforms, mesh, locationIt, props)
 }

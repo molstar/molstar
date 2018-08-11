@@ -122,41 +122,41 @@ export namespace StructureEntity {
 export type SpacefillEntity = StateEntity<StructureRepresentation<SpacefillProps>, 'spacefill'>
 export namespace SpacefillEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<SpacefillProps>): SpacefillEntity {
-        return StateEntity.create(ctx, 'spacefill', repr )
+        return StateEntity.create(ctx, 'spacefill', repr)
     }
 }
 
 export type BallAndStickEntity = StateEntity<StructureRepresentation<BallAndStickProps>, 'ballandstick'>
 export namespace BallAndStickEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<BallAndStickProps>): BallAndStickEntity {
-        return StateEntity.create(ctx, 'ballandstick', repr )
+        return StateEntity.create(ctx, 'ballandstick', repr)
     }
 }
 
 export type DistanceRestraintEntity = StateEntity<StructureRepresentation<DistanceRestraintProps>, 'distancerestraint'>
 export namespace DistanceRestraintEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<DistanceRestraintProps>): DistanceRestraintEntity {
-        return StateEntity.create(ctx, 'distancerestraint', repr )
+        return StateEntity.create(ctx, 'distancerestraint', repr)
     }
 }
 
 export type BackboneEntity = StateEntity<StructureRepresentation<BackboneProps>, 'backbone'>
 export namespace BackboneEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<BackboneProps>): BackboneEntity {
-        return StateEntity.create(ctx, 'backbone', repr )
+        return StateEntity.create(ctx, 'backbone', repr)
     }
 }
 
 export type CartoonEntity = StateEntity<StructureRepresentation<CartoonProps>, 'cartoon'>
 export namespace CartoonEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<CartoonProps>): CartoonEntity {
-        return StateEntity.create(ctx, 'cartoon', repr )
+        return StateEntity.create(ctx, 'cartoon', repr)
     }
 }
 
 export type CarbohydrateEntity = StateEntity<StructureRepresentation<CarbohydrateProps>, 'carbohydrate'>
 export namespace CarbohydrateEntity {
     export function ofRepr(ctx: StateContext, repr: StructureRepresentation<CarbohydrateProps>): CarbohydrateEntity {
-        return StateEntity.create(ctx, 'carbohydrate', repr )
+        return StateEntity.create(ctx, 'carbohydrate', repr)
     }
 }

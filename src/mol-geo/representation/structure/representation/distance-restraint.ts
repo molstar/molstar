@@ -15,14 +15,14 @@ import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from '../vis
 
 export const DefaultDistanceRestraintProps = {
     ...DefaultCrossLinkRestraintProps,
-
     sizeTheme: { name: 'uniform', value: 0.25 } as SizeTheme,
 }
-export type DistanceRestraintProps = Partial<typeof DefaultDistanceRestraintProps>
+export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 
 export function DistanceRestraintRepresentation(): StructureRepresentation<DistanceRestraintProps> {
     const crossLinkRepr = ComplexRepresentation(CrossLinkRestraintVisual)
 
+    let currentProps: DistanceRestraintProps
     return {
         get renderObjects() {
             return [ ...crossLinkRepr.renderObjects ]
@@ -30,16 +30,16 @@ export function DistanceRestraintRepresentation(): StructureRepresentation<Dista
         get props() {
             return { ...crossLinkRepr.props }
         },
-        create: (structure: Structure, props: DistanceRestraintProps = {} as DistanceRestraintProps) => {
-            const p = Object.assign({}, DefaultDistanceRestraintProps, props)
+        create: (structure: Structure, props: Partial<DistanceRestraintProps> = {}) => {
+            currentProps = Object.assign({}, DefaultDistanceRestraintProps, props)
             return Task.create('DistanceRestraintRepresentation', async ctx => {
-                await crossLinkRepr.create(structure, p).runInContext(ctx)
+                await crossLinkRepr.create(structure, currentProps).runInContext(ctx)
             })
         },
-        update: (props: DistanceRestraintProps) => {
-            const p = Object.assign({}, props)
+        update: (props: Partial<DistanceRestraintProps>) => {
+            currentProps = Object.assign(currentProps, props)
             return Task.create('Updating DistanceRestraintRepresentation', async ctx => {
-                await crossLinkRepr.update(p).runInContext(ctx)
+                await crossLinkRepr.update(currentProps).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

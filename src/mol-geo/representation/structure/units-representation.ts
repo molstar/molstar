@@ -23,11 +23,11 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
-    let _props: Required<P>
+    let _props: P
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
-    function create(structure: Structure, props: P = {} as P) {
+    function create(structure: Structure, props: Partial<P> = {}) {
         _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
         _props.colorTheme!.structure = structure
 
@@ -80,7 +80,7 @@ export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => 
         });
     }
 
-    function update(props: P) {
+    function update(props: Partial<P>) {
         return Task.create('Updating StructureRepresentation', async ctx => {
             _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
             _props.colorTheme!.structure = _structure

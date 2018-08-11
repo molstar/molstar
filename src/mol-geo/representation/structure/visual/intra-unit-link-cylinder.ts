@@ -7,22 +7,18 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 
-import { MeshRenderObject } from 'mol-gl/render-object'
 import { Unit, Link, StructureElement } from 'mol-model/structure';
-import { UnitsVisual, DefaultStructureProps } from '..';
+import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh } from './util/link';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-// import { createUniformColor } from '../../../util/color-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, MarkerData } from '../../../util/marker-data';
 import { SizeTheme } from '../../../theme';
-import { createColors, createUnitsMeshRenderObject } from './util/common';
-import { updateMeshValues, updateRenderableState, DefaultMeshProps } from '../../util';
 import { LinkIterator } from './util/location-iterator';
-import { deepEqual } from 'mol-util';
+import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 
 async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -62,65 +58,20 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
 }
 
 export const DefaultIntraUnitLinkProps = {
-    ...DefaultMeshProps,
-    ...DefaultStructureProps,
+    ...DefaultUnitsMeshProps,
     ...DefaultLinkCylinderProps,
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeTheme,
 }
-export type IntraUnitLinkProps = Partial<typeof DefaultIntraUnitLinkProps>
+export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
 
 export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
-    let renderObject: MeshRenderObject
-    let currentProps: typeof DefaultIntraUnitLinkProps
-    let mesh: Mesh
-    let currentGroup: Unit.SymmetryGroup
-
-    return {
-        get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: IntraUnitLinkProps = {}) {
-            currentProps = Object.assign({}, DefaultIntraUnitLinkProps, props)
-            currentGroup = group
-
-            const unit = group.units[0]
-            mesh = await createIntraUnitLinkCylinderMesh(ctx, unit, currentProps)
-
-            const locationIt = LinkIterator.fromGroup(group)
-            renderObject = createUnitsMeshRenderObject(group, mesh, locationIt, currentProps)
-        },
-        async update(ctx: RuntimeContext, props: IntraUnitLinkProps) {
-            const newProps = Object.assign({}, currentProps, props)
-
-            if (!renderObject) return false
-
-            let updateColor = false
-
-            // TODO create in-place
-            if (currentProps.radialSegments !== newProps.radialSegments) return false
-
-            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-                updateColor = true
-            }
-
-            if (updateColor) {
-                createColors(LinkIterator.fromGroup(currentGroup), newProps.colorTheme, renderObject.values)
-            }
-
-            updateMeshValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
-
-            currentProps = newProps
-            return true
-        },
-        getLoci(pickingId: PickingId) {
-            return getLinkLoci(pickingId, currentGroup, renderObject.id)
-        },
-        mark(loci: Loci, action: MarkerAction) {
-            markLink(loci, action, currentGroup, renderObject.values)
-        },
-        destroy() {
-            // TODO
-        }
-    }
+    return UnitsMeshVisual<IntraUnitLinkProps>({
+        defaultProps: DefaultIntraUnitLinkProps,
+        createMesh: createIntraUnitLinkCylinderMesh,
+        createLocationIterator: LinkIterator.fromGroup,
+        getLoci: getLinkLoci,
+        mark: markLink
+    })
 }
 
 function getLinkLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {

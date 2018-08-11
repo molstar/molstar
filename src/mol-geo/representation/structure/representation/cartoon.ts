@@ -21,7 +21,7 @@ export const DefaultCartoonProps = {
     ...DefaultNucleotideBlockProps,
     ...DefaultPolymerDirectionProps
 }
-export type CartoonProps = Partial<typeof DefaultCartoonProps>
+export type CartoonProps = typeof DefaultCartoonProps
 
 export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
     const traceRepr = UnitsRepresentation(PolymerTraceVisual)
@@ -29,6 +29,7 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
     const blockRepr = UnitsRepresentation(NucleotideBlockVisual)
     const directionRepr = UnitsRepresentation(PolymerDirectionVisual)
 
+    let currentProps: CartoonProps
     return {
         get renderObjects() {
             return [ ...traceRepr.renderObjects, ...gapRepr.renderObjects,
@@ -37,22 +38,22 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
         get props() {
             return { ...traceRepr.props, ...gapRepr.props, ...blockRepr.props }
         },
-        create: (structure: Structure, props: CartoonProps = {} as CartoonProps) => {
-            const p = Object.assign({}, DefaultCartoonProps, props)
+        create: (structure: Structure, props: Partial<CartoonProps> = {}) => {
+            currentProps = Object.assign({}, DefaultCartoonProps, props)
             return Task.create('Creating CartoonRepresentation', async ctx => {
-                await traceRepr.create(structure, p).runInContext(ctx)
-                await gapRepr.create(structure, p).runInContext(ctx)
-                await blockRepr.create(structure, p).runInContext(ctx)
-                await directionRepr.create(structure, p).runInContext(ctx)
+                await traceRepr.create(structure, currentProps).runInContext(ctx)
+                await gapRepr.create(structure, currentProps).runInContext(ctx)
+                await blockRepr.create(structure, currentProps).runInContext(ctx)
+                await directionRepr.create(structure, currentProps).runInContext(ctx)
             })
         },
-        update: (props: CartoonProps) => {
-            const p = Object.assign({}, props)
+        update: (props: Partial<CartoonProps>) => {
+            currentProps = Object.assign(currentProps, props)
             return Task.create('Updating CartoonRepresentation', async ctx => {
-                await traceRepr.update(p).runInContext(ctx)
-                await gapRepr.update(p).runInContext(ctx)
-                await blockRepr.update(p).runInContext(ctx)
-                await directionRepr.update(p).runInContext(ctx)
+                await traceRepr.update(currentProps).runInContext(ctx)
+                await gapRepr.update(currentProps).runInContext(ctx)
+                await blockRepr.update(currentProps).runInContext(ctx)
+                await directionRepr.update(currentProps).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

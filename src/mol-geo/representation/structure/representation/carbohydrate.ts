@@ -17,12 +17,13 @@ export const DefaultCartoonProps = {
     ...DefaultCarbohydrateSymbolProps,
     ...DefaultCarbohydrateLinkProps
 }
-export type CarbohydrateProps = Partial<typeof DefaultCartoonProps>
+export type CarbohydrateProps = typeof DefaultCartoonProps
 
 export function CarbohydrateRepresentation(): StructureRepresentation<CarbohydrateProps> {
     const carbohydrateSymbolRepr = ComplexRepresentation(CarbohydrateSymbolVisual)
     const carbohydrateLinkRepr = ComplexRepresentation(CarbohydrateLinkVisual)
 
+    let currentProps: CarbohydrateProps
     return {
         get renderObjects() {
             return [ ...carbohydrateSymbolRepr.renderObjects, ...carbohydrateLinkRepr.renderObjects ]
@@ -30,18 +31,18 @@ export function CarbohydrateRepresentation(): StructureRepresentation<Carbohydra
         get props() {
             return { ...carbohydrateSymbolRepr.props, ...carbohydrateLinkRepr.props }
         },
-        create: (structure: Structure, props: CarbohydrateProps = {} as CarbohydrateProps) => {
-            const p = Object.assign({}, DefaultCartoonProps, props)
+        create: (structure: Structure, props: Partial<CarbohydrateProps> = {} as CarbohydrateProps) => {
+            currentProps = Object.assign({}, DefaultCartoonProps, props)
             return Task.create('Creating CarbohydrateRepresentation', async ctx => {
-                await carbohydrateSymbolRepr.create(structure, p).runInContext(ctx)
-                await carbohydrateLinkRepr.create(structure, p).runInContext(ctx)
+                await carbohydrateSymbolRepr.create(structure, currentProps).runInContext(ctx)
+                await carbohydrateLinkRepr.create(structure, currentProps).runInContext(ctx)
             })
         },
-        update: (props: CarbohydrateProps) => {
-            const p = Object.assign({}, props)
+        update: (props: Partial<CarbohydrateProps>) => {
+            currentProps = Object.assign(currentProps, props)
             return Task.create('Updating CarbohydrateRepresentation', async ctx => {
-                await carbohydrateSymbolRepr.update(p).runInContext(ctx)
-                await carbohydrateLinkRepr.update(p).runInContext(ctx)
+                await carbohydrateSymbolRepr.update(currentProps).runInContext(ctx)
+                await carbohydrateLinkRepr.update(currentProps).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
