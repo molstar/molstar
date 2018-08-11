@@ -12,15 +12,21 @@ import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import E = CifWriter.Encodings
 
-const atom_site_fields: CifField<StructureElement>[] = [
+const atom_site_fields: CifField<StructureElement, Structure>[] = [
     CifField.str('group_PDB', P.residue.group_PDB),
     CifField.index('id'),
     CifField.str('type_symbol', P.atom.type_symbol as any),
     CifField.str('label_atom_id', P.atom.label_atom_id),
-    CifField.str('label_alt_id', P.atom.label_alt_id),
 
     CifField.str('label_comp_id', P.residue.label_comp_id),
-    CifField.int('label_seq_id', P.residue.label_seq_id, { encoder: E.deltaRLE }),
+    CifField.int('label_seq_id', P.residue.label_seq_id, {
+        encoder: E.deltaRLE,
+        valueKind: (k, d) => {
+            const m = k.unit.model;
+            return m.atomicHierarchy.residues.label_seq_id.valueKind(m.atomicHierarchy.residueAtomSegments.index[k.element]);
+        }
+    }),
+    CifField.str('label_alt_id', P.atom.label_alt_id),
     CifField.str('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code),
 
     CifField.str('label_asym_id', P.chain.label_asym_id),

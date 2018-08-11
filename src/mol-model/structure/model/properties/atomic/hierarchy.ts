@@ -29,7 +29,7 @@ export const ResiduesSchema = {
     auth_comp_id: mmCIF.atom_site.auth_comp_id,
     label_seq_id: mmCIF.atom_site.label_seq_id,
     auth_seq_id: mmCIF.atom_site.auth_seq_id,
-    pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code
+    pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code,
 };
 export type ResiduesSchema = typeof ResiduesSchema
 export interface Residues extends Table<ResiduesSchema> { }
