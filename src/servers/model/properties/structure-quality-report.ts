@@ -4,11 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ResidueIndex, ModelPropertyDescriptor, Model, Structure, Unit, StructureElement, StructureProperties as P  } from 'mol-model/structure';
+import { ResidueIndex, ModelPropertyDescriptor, Model, Structure, Unit, StructureElement } from 'mol-model/structure';
 import fetch from 'node-fetch';
 import { CifWriter } from 'mol-io/writer/cif';
 import CifField = CifWriter.Field;
 import { Segmentation } from 'mol-data/int';
+import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
 
 type IssueMap = Map<ResidueIndex, string[]>
 
@@ -16,8 +17,9 @@ const _Descriptor: ModelPropertyDescriptor = {
     isStatic: true,
     name: 'structure_quality_report',
     cifExport: {
+        prefix: 'pdbe',
         categories: [{
-            name: 'structure_quality_report',
+            name: 'pdbe_structure_quality_report',
             instance(ctx) {
                 const issues = StructureQualityReport.get(ctx.model);
                 if (!issues) return CifWriter.Category.Empty;
@@ -36,16 +38,8 @@ const _Descriptor: ModelPropertyDescriptor = {
 type ExportCtx = { model: Model, residueIndex: ArrayLike<ResidueIndex>, residues: StructureElement[], issues: IssueMap };
 
 const _structure_quality_report_fields: CifField<ResidueIndex, ExportCtx>[] = [
-    CifField.str<ResidueIndex, ExportCtx>('label_comp_id', (i, d) => P.residue.label_comp_id(d.residues[i])),
-    CifField.int<ResidueIndex, ExportCtx>('label_seq_id', (i, d) => P.residue.label_seq_id(d.residues[i])),
-    CifField.str<ResidueIndex, ExportCtx>('pdbx_PDB_ins_code', (i, d) => P.residue.pdbx_PDB_ins_code(d.residues[i])),
-    CifField.str<ResidueIndex, ExportCtx>('label_asym_id', (i, d) => P.chain.label_asym_id(d.residues[i])),
-    CifField.str<ResidueIndex, ExportCtx>('label_entity_id', (i, d) => P.entity.id(d.residues[i])),
-
-    CifField.str<ResidueIndex, ExportCtx>('auth_comp_id', (i, d) => P.residue.auth_comp_id(d.residues[i])),
-    CifField.int<ResidueIndex, ExportCtx>('auth_seq_id', (i, d) => P.residue.auth_seq_id(d.residues[i])),
-    CifField.str<ResidueIndex, ExportCtx>('auth_asym_id', (i, d) => P.chain.auth_asym_id(d.residues[i])),
-
+    CifField.index('id'),
+    ...residueIdFields<ResidueIndex, ExportCtx>((k, d) => d.residues[k]),
     CifField.str<ResidueIndex, ExportCtx>('issues', (i, d) => d.issues.get(d.residueIndex[d.residues[i].element])!.join(','))
 ];
 

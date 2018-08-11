@@ -27,6 +27,7 @@ export namespace StructConn {
         isStatic: true,
         name: 'struct_conn',
         cifExport: {
+            prefix: '',
             categories: [{
                 name: 'struct_conn',
                 instance(ctx) {

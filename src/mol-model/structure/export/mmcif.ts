@@ -98,8 +98,10 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
         encoder.writeCategory(cat, ctx);
     }
     for (const customProp of model.customProperties.all) {
+        const prefix = customProp.cifExport.prefix;
         const cats = customProp.cifExport.categories;
         for (const cat of cats) {
+            if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
             encoder.writeCategory(cat, ctx);
         }
     }

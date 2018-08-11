@@ -22,6 +22,7 @@ export namespace ComponentBond {
         isStatic: true,
         name: 'chem_comp_bond',
         cifExport: {
+            prefix: '',
             categories: [{
                 name: 'chem_comp_bond',
                 instance(ctx) {

@@ -60,3 +60,25 @@ export const _atom_site: CifCategory<CifExportContext> = {
         };
     }
 }
+
+export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement): CifField<K, D>[] {
+    return [
+        CifField.str('label_comp_id', (k, d) => P.residue.label_comp_id(getLocation(k, d))),
+        CifField.int('label_seq_id', (k, d) => P.residue.label_seq_id(getLocation(k, d)), {
+            encoder: E.deltaRLE,
+            valueKind: (k, d) => {
+                const e = getLocation(k, d);
+                const m = e.unit.model;
+                return m.atomicHierarchy.residues.label_seq_id.valueKind(m.atomicHierarchy.residueAtomSegments.index[e.element]);
+            }
+        }),
+        CifField.str('pdbx_PDB_ins_code', (k, d) => P.residue.pdbx_PDB_ins_code(getLocation(k, d))),
+
+        CifField.str('label_asym_id', (k, d) => P.chain.label_asym_id(getLocation(k, d))),
+        CifField.str('label_entity_id', (k, d) => P.chain.label_entity_id(getLocation(k, d))),
+
+        CifField.str('auth_comp_id', (k, d) => P.residue.auth_comp_id(getLocation(k, d))),
+        CifField.int('auth_seq_id', (k, d) => P.residue.auth_seq_id(getLocation(k, d)), { encoder: E.deltaRLE }),
+        CifField.str('auth_asym_id', (k, d) => P.chain.auth_asym_id(getLocation(k, d))),
+    ]
+}

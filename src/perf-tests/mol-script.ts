@@ -46,7 +46,7 @@ console.log(result);
 const CustomProp = ModelPropertyDescriptor({
     name: 'test_prop',
     isStatic: true,
-    cifExport: { categories: [ ]},
+    cifExport: { prefix: '', categories: [ ]},
     symbols: {
         residueIndex: QuerySymbolRuntime.Dynamic(CustomPropSymbol('custom.test-prop', 'residue-index', Type.Num), ctx => {
             const e = ctx.element;
