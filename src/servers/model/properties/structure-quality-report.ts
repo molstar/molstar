@@ -4,12 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ResidueIndex, ModelPropertyDescriptor, Model, Structure, Unit, StructureElement } from 'mol-model/structure';
-import fetch from 'node-fetch';
-import { CifWriter } from 'mol-io/writer/cif';
-import CifField = CifWriter.Field;
 import { Segmentation } from 'mol-data/int';
+import { CifWriter } from 'mol-io/writer/cif';
+import { Model, ModelPropertyDescriptor, ResidueIndex, Structure, StructureElement, Unit } from 'mol-model/structure';
 import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
+import { fetchRetry } from '../utils/fetch-retry';
+import CifField = CifWriter.Field;
 
 type IssueMap = Map<ResidueIndex, string[]>
 
@@ -99,7 +99,7 @@ export namespace StructureQualityReport {
         if (model.customProperties.has(Descriptor)) return true;
 
         const id = model.label.toLowerCase();
-        const rawData = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, { timeout: 1500 });
+        const rawData = await fetchRetry(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, 1500, 5);
         const json = await rawData.json();
         const data = json[id];
         if (!data) return false;
