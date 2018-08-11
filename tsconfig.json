@@ -23,6 +23,7 @@
             "mol-io": ["./mol-io"],
             "mol-math": ["./mol-math"],
             "mol-model": ["./mol-model"],
+            "mol-model-props": ["./mol-model-props"],
             "mol-ql": ["./mol-ql"],
             "mol-script": ["./mol-script"],
             "mol-task": ["./mol-task", "./mol-task/index.ts"],

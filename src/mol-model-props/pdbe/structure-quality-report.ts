@@ -8,7 +8,6 @@ import { Segmentation } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif';
 import { Model, ModelPropertyDescriptor, ResidueIndex, Structure, StructureElement, Unit } from 'mol-model/structure';
 import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
-import { fetchRetry } from '../utils/fetch-retry';
 import CifField = CifWriter.Field;
 
 type IssueMap = Map<ResidueIndex, string[]>
@@ -95,12 +94,17 @@ function createIssueMap(modelData: Model, data: any): IssueMap | undefined {
 export namespace StructureQualityReport {
     export const Descriptor = _Descriptor;
 
-    export async function attachFromPDBeApi(model: Model) {
+    export async function attachFromCifOrApi(model: Model, params: {
+        // provide JSON from api
+        pdbEapiSourceJson?: (model: Model) => Promise<any>
+    }) {
+        // TODO: check if present in mmCIF on Model
+        if (!params.pdbEapiSourceJson) throw new Error('Data source not defined');
+
         if (model.customProperties.has(Descriptor)) return true;
 
         const id = model.label.toLowerCase();
-        const rawData = await fetchRetry(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, 1500, 5);
-        const json = await rawData.json();
+        const json = await params.pdbEapiSourceJson(model);
         const data = json[id];
         if (!data) return false;
         const issueMap = createIssueMap(model, data);

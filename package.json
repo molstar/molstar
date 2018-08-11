@@ -51,6 +51,7 @@
       "mol-io($|/.*)": "<rootDir>/src/mol-io$1",
       "mol-math($|/.*)": "<rootDir>/src/mol-math$1",
       "mol-model($|/.*)": "<rootDir>/src/mol-model$1",
+      "mol-model-props($|/.*)": "<rootDir>/src/mol-model-props$1",
       "mol-ql($|/.*)": "<rootDir>/src/mol-ql$1",
       "mol-script($|/.*)": "<rootDir>/src/mol-script$1",
       "mol-task($|/.*)": "<rootDir>/src/mol-task$1",
