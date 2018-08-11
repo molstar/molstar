@@ -9,6 +9,9 @@ import { CifWriter } from 'mol-io/writer/cif';
 import { Model, ModelPropertyDescriptor, ResidueIndex, Structure, StructureElement, Unit } from 'mol-model/structure';
 import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
 import CifField = CifWriter.Field;
+import { mmCIF_residueId_schema } from 'mol-io/reader/cif/schema/mmcif-extras';
+import { Column, Table } from 'mol-data/db';
+import { toTable } from 'mol-io/reader/cif/schema';
 
 type IssueMap = Map<ResidueIndex, string[]>
 
@@ -19,13 +22,18 @@ const _Descriptor: ModelPropertyDescriptor = {
         prefix: 'pdbe',
         categories: [{
             name: 'pdbe_structure_quality_report',
+            instance() {
+                return { fields: _structure_quality_report_fields, rowCount: 1 }
+            }
+        }, {
+            name: 'pdbe_structure_quality_report_issues',
             instance(ctx) {
                 const issues = StructureQualityReport.get(ctx.model);
                 if (!issues) return CifWriter.Category.Empty;
 
                 const residues = getResidueLoci(ctx.structure, issues);
                 return {
-                    fields: _structure_quality_report_fields,
+                    fields: _structure_quality_report_issues_fields,
                     data: <ExportCtx>{ model: ctx.model, residues, residueIndex: ctx.model.atomicHierarchy.residueAtomSegments.index, issues },
                     rowCount: residues.length
                 };
@@ -36,10 +44,14 @@ const _Descriptor: ModelPropertyDescriptor = {
 
 type ExportCtx = { model: Model, residueIndex: ArrayLike<ResidueIndex>, residues: StructureElement[], issues: IssueMap };
 
-const _structure_quality_report_fields: CifField<ResidueIndex, ExportCtx>[] = [
+const _structure_quality_report_issues_fields: CifField<ResidueIndex, ExportCtx>[] = [
     CifField.index('id'),
     ...residueIdFields<ResidueIndex, ExportCtx>((k, d) => d.residues[k]),
     CifField.str<ResidueIndex, ExportCtx>('issues', (i, d) => d.issues.get(d.residueIndex[d.residues[i].element])!.join(','))
+];
+
+const _structure_quality_report_fields: CifField<ResidueIndex, ExportCtx>[] = [
+    CifField.str('updated_datetime_utc', () => `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`)
 ];
 
 function getResidueLoci(structure: Structure, issues: IssueMap) {
@@ -67,7 +79,7 @@ function getResidueLoci(structure: Structure, issues: IssueMap) {
     return loci;
 }
 
-function createIssueMap(modelData: Model, data: any): IssueMap | undefined {
+function createIssueMapFromJson(modelData: Model, data: any): IssueMap | undefined {
     const ret = new Map<ResidueIndex, string[]>();
     if (!data.molecules) return;
 
@@ -91,24 +103,52 @@ function createIssueMap(modelData: Model, data: any): IssueMap | undefined {
     return ret;
 }
 
+function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issues>): IssueMap | undefined {
+    const ret = new Map<ResidueIndex, string[]>();
+    const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issues, _rowCount } = data;
+
+    for (let i = 0; i < _rowCount; i++) {
+        const idx = modelData.atomicHierarchy.findResidueKey(label_entity_id.value(i), label_asym_id.value(i), '', auth_seq_id.value(i), pdbx_PDB_ins_code.value(i));
+        ret.set(idx, issues.value(i));
+    }
+
+    return ret;
+}
+
 export namespace StructureQualityReport {
     export const Descriptor = _Descriptor;
 
+    export const Schema = {
+        pdbe_structure_quality_report: {
+            updated_datetime_utc: Column.Schema.str
+        },
+        pdbe_structure_quality_report_issues: {
+            id: Column.Schema.int,
+            ...mmCIF_residueId_schema,
+            issues: Column.Schema.List(',', x => x)
+        }
+    }
+
     export async function attachFromCifOrApi(model: Model, params: {
         // provide JSON from api
-        pdbEapiSourceJson?: (model: Model) => Promise<any>
+        PDBe_apiSourceJson?: (model: Model) => Promise<any>
     }) {
-        // TODO: check if present in mmCIF on Model
-        if (!params.pdbEapiSourceJson) throw new Error('Data source not defined');
-
         if (model.customProperties.has(Descriptor)) return true;
 
-        const id = model.label.toLowerCase();
-        const json = await params.pdbEapiSourceJson(model);
-        const data = json[id];
-        if (!data) return false;
-        const issueMap = createIssueMap(model, data);
-        if (!issueMap || issueMap.size === 0) return false;
+        let issueMap;
+
+        if (model.sourceData.kind === 'mmCIF' && model.sourceData.frame.categoryNames.includes('pdbe_structure_quality_report')) {
+            const data = toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.frame.categories.pdbe_structure_quality_report);
+            issueMap = createIssueMapFromCif(model, data);
+        } else if (!params.PDBe_apiSourceJson) {
+            throw new Error('Data source not defined');
+        } else {
+            const id = model.label.toLowerCase();
+            const json = await params.PDBe_apiSourceJson(model);
+            const data = json[id];
+            if (!data) return false;
+            issueMap = createIssueMapFromJson(model, data);
+        }
 
         model.customProperties.add(Descriptor);
         model._staticPropertyData.__StructureQualityReport__ = issueMap;

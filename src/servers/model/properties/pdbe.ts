@@ -10,7 +10,7 @@ import { fetchRetry } from '../utils/fetch-retry';
 
 export function PDBe_structureQualityReport(model: Model) {
     return StructureQualityReport.attachFromCifOrApi(model, {
-        pdbEapiSourceJson: async model => {
+        PDBe_apiSourceJson: async model => {
             const rawData = await fetchRetry(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, 1500, 5);
             return await rawData.json();
         }
