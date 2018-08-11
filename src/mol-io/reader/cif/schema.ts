@@ -41,7 +41,7 @@ function getColumnCtor(t: Column.Schema): ColumnCtor {
 function createColumn<T>(schema: Column.Schema, field: Data.CifField, value: (row: number) => T, toArray: Column<T>['toArray']): Column<T> {
     return {
         schema,
-        '@array': field['@array'],
+        __array: field.__array,
         isDefined: field.isDefined,
         rowCount: field.rowCount,
         value,
@@ -61,7 +61,7 @@ function createListColumn<T extends number|string>(schema: Column.Schema.List<T>
 
     return {
         schema,
-        '@array': void 0,
+        __array: void 0,
         isDefined: !!f,
         rowCount: category.rowCount,
         value,
@@ -89,7 +89,7 @@ function createTensorColumn(schema: Column.Schema.Tensor, category: Data.CifCate
 
     return {
         schema,
-        '@array': void 0,
+        __array: void 0,
         isDefined: first.isDefined,
         rowCount: category.rowCount,
         value,

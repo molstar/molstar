@@ -4,14 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { MSymbol, Arguments, Argument } from '../../language/symbol'
-import { MolScriptBuilder as B } from '../../language/builder'
+import { UniqueArray } from 'mol-data/generic';
+import Expression from '../../language/expression';
+import { Argument, MSymbol } from '../../language/symbol';
 //import * as M from './macro'
-import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table'
-import Type from '../../language/type'
-import * as Struct from '../../language/symbol-table/structure-query'
-import Expression from '../../language/expression'
-import { UniqueArray } from 'mol-data/generic'
+import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
+import Type from '../../language/type';
 
 export type MolScriptSymbol =
     | { kind: 'alias', aliases: string[], symbol: MSymbol }

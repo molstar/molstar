@@ -38,7 +38,7 @@ export default function Field(column: EncodedColumn): Data.CifField {
     const rowCount = data.length;
 
     return {
-        '@array': data,
+        __array: data,
         isDefined: true,
         rowCount,
         str,

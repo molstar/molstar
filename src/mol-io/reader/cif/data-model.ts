@@ -62,7 +62,7 @@ export namespace CifCategory {
  * This is to ensure that the functions can invoked without having to "bind" them.
  */
 export interface CifField {
-    readonly '@array': ArrayLike<any> | undefined
+    readonly __array: ArrayLike<any> | undefined
     readonly isDefined: boolean,
     readonly rowCount: number,
 
