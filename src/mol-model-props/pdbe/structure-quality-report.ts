@@ -140,14 +140,14 @@ export namespace StructureQualityReport {
         if (model.sourceData.kind === 'mmCIF' && model.sourceData.frame.categoryNames.includes('pdbe_structure_quality_report')) {
             const data = toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.frame.categories.pdbe_structure_quality_report);
             issueMap = createIssueMapFromCif(model, data);
-        } else if (!params.PDBe_apiSourceJson) {
-            throw new Error('Data source not defined');
-        } else {
+        } else if (params.PDBe_apiSourceJson) {
             const id = model.label.toLowerCase();
             const json = await params.PDBe_apiSourceJson(model);
             const data = json[id];
             if (!data) return false;
             issueMap = createIssueMapFromJson(model, data);
+        } else {
+            return false;
         }
 
         model.customProperties.add(Descriptor);
