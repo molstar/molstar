@@ -7,14 +7,14 @@
 
 import { Column } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int';
-import { ElementIndex, ChainIndex } from '../../indexing';
+import { ElementIndex, ChainIndex, EntityIndex } from '../../indexing';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 
 export interface CoarsedElementKeys {
     // assign a key to each element
-    chainKey: ArrayLike<number>,
+    chainKey: ArrayLike<ChainIndex>,
     // assign a key to each element, index to the Model.entities.data table
-    entityKey: ArrayLike<number>,
+    entityKey: ArrayLike<EntityIndex>,
 
     /** find index of the residue/feature element where seq_id is included */
     findSequenceKey(entityId: string, asym_id: string, seq_id: number): ElementIndex

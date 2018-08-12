@@ -7,7 +7,7 @@
 
 import { Entities } from '../common';
 import { CoarseElementData, CoarsedElementKeys } from '../coarse';
-import { ChainIndex, ElementIndex } from '../../indexing';
+import { ChainIndex, ElementIndex, EntityIndex } from '../../indexing';
 
 function getElementKey(map: Map<string, number>, key: string, counter: { index: number }) {
     if (map.has(key)) return map.get(key)!;
@@ -57,8 +57,8 @@ export function getCoarseKeys(data: CoarseElementData, entities: Entities): Coar
     const seqMaps = new Map<number, Map<number, number>>();
     const chainMaps = new Map<number, Map<string, number>>(), chainCounter = { index: 0 };
 
-    const chainKey = new Int32Array(count);
-    const entityKey = new Int32Array(count);
+    const chainKey = new Int32Array(count) as any as ChainIndex[];
+    const entityKey = new Int32Array(count) as any as EntityIndex[];
 
     for (let i = 0; i < count; i++) {
         entityKey[i] = entities.getEntityIndex(entity_id.value(i));
@@ -68,7 +68,7 @@ export function getCoarseKeys(data: CoarseElementData, entities: Entities): Coar
     for (let cI = 0; cI < chainElementSegments.count; cI++) {
         const start = chainElementSegments.offsets[cI], end = chainElementSegments.offsets[cI + 1];
         const map = getElementSubstructureKeyMap(chainMaps, entityKey[start]);
-        const key = getElementKey(map, asym_id.value(start), chainCounter);
+        const key = getElementKey(map, asym_id.value(start), chainCounter) as ChainIndex;
         for (let i = start; i < end; i++) chainKey[i] = key;
 
         // create seq_id map for the ranges defined by seq_id_begin and seq_id_end

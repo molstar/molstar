@@ -12,6 +12,9 @@ export class QueryRuntimeTable {
     private map = new Map<string, QuerySymbolRuntime>();
 
     addSymbol(runtime: QuerySymbolRuntime) {
+        if (this.map.has(runtime.symbol.id)) {
+            throw new Error(`Symbol '${runtime.symbol.id}' already added.`);
+        }
         this.map.set(runtime.symbol.id, runtime);
     }
 
@@ -73,6 +76,18 @@ export interface QuerySymbolRuntime {
 
 export type QueryRuntimeArguments<S extends MSymbol> =
     { length?: number } & { [P in keyof S['args']['@type']]: QueryFn<S['args']['@type'][P]> }
+
+export namespace QueryRuntimeArguments {
+    export function forEachEval<S extends MSymbol, Ctx>(xs: QueryRuntimeArguments<S>, queryCtx: QueryContext, f: (arg: any, i: number, ctx: Ctx) => void, ctx: Ctx): Ctx {
+        if (typeof xs.length === 'number') {
+            for (let i = 0, _i = xs.length; i < _i; i++) f((xs as any)[i](queryCtx), i, ctx);
+        } else {
+            let i = 0;
+            for (const k of Object.keys(xs)) f((xs as any)[k](queryCtx), i++, ctx);
+        }
+        return ctx;
+    }
+}
 
 export namespace QuerySymbolRuntime {
     export function Const<S extends MSymbol<any>>(symbol: S, fn: ConstQuerySymbolFn<S>): QuerySymbolRuntime {
