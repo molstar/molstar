@@ -61,10 +61,18 @@ export const _atom_site: CifCategory<CifExportContext> = {
     }
 }
 
-export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement): CifField<K, D>[] {
+function prefixed(prefix: string, name: string) {
+    return prefix ? `${prefix}_${name}` : name;
+}
+
+function mappedProp<K, D>(loc: (key: K, data: D) => StructureElement, prop: (e: StructureElement) => any) {
+    return (k: K, d: D) => prop(loc(k, d));
+}
+
+export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, prefix = ''): CifField<K, D>[] {
     return [
-        CifField.str('label_comp_id', (k, d) => P.residue.label_comp_id(getLocation(k, d))),
-        CifField.int('label_seq_id', (k, d) => P.residue.label_seq_id(getLocation(k, d)), {
+        CifField.str(prefixed(prefix, `label_comp_id`), mappedProp(getLocation, P.residue.label_comp_id)),
+        CifField.int(prefixed(prefix, `label_seq_id`), mappedProp(getLocation, P.residue.label_seq_id), {
             encoder: E.deltaRLE,
             valueKind: (k, d) => {
                 const e = getLocation(k, d);
@@ -72,13 +80,21 @@ export function residueIdFields<K, D>(getLocation: (key: K, data: D) => Structur
                 return m.atomicHierarchy.residues.label_seq_id.valueKind(m.atomicHierarchy.residueAtomSegments.index[e.element]);
             }
         }),
-        CifField.str('pdbx_PDB_ins_code', (k, d) => P.residue.pdbx_PDB_ins_code(getLocation(k, d))),
+        CifField.str(prefixed(prefix, `pdbx_PDB_ins_code`), mappedProp(getLocation, P.residue.pdbx_PDB_ins_code)),
 
-        CifField.str('label_asym_id', (k, d) => P.chain.label_asym_id(getLocation(k, d))),
-        CifField.str('label_entity_id', (k, d) => P.chain.label_entity_id(getLocation(k, d))),
+        CifField.str(prefixed(prefix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id)),
+        CifField.str(prefixed(prefix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id)),
 
-        CifField.str('auth_comp_id', (k, d) => P.residue.auth_comp_id(getLocation(k, d))),
-        CifField.int('auth_seq_id', (k, d) => P.residue.auth_seq_id(getLocation(k, d)), { encoder: E.deltaRLE }),
-        CifField.str('auth_asym_id', (k, d) => P.chain.auth_asym_id(getLocation(k, d))),
-    ]
+        CifField.str(prefixed(prefix, `auth_comp_id`), mappedProp(getLocation, P.residue.auth_comp_id)),
+        CifField.int(prefixed(prefix, `auth_seq_id`), mappedProp(getLocation, P.residue.auth_seq_id), { encoder: E.deltaRLE }),
+        CifField.str(prefixed(prefix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
+    ];
+}
+
+export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, prefix = ''): CifField<K, D>[] {
+    return [
+        CifField.str(prefixed(prefix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id)),
+        CifField.str(prefixed(prefix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id)),
+        CifField.str(prefixed(prefix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
+    ];
 }
