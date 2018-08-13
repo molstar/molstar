@@ -80,6 +80,56 @@ export interface AtomicKeys {
     findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): ResidueIndex
 }
 
+export interface AtomicIndex {
+    /** @returns index or -1 if not present. */
+    getEntityFromChain(cI: ChainIndex): EntityIndex,
+
+    /**
+     * Find chain using label_ mmCIF properties
+     * @returns index or -1 if not present.
+     */
+    findChainLabel(key: AtomicIndex.ChainLabelKey): ChainIndex,
+    /**
+     * Find chain using auth_ mmCIF properties
+     * @returns index or -1 if not present.
+     */
+    findChainAuth(key: AtomicIndex.ChainAuthKey): ChainIndex,
+
+    /**
+     * Index of the 1st occurence of this residue.
+     * auth_seq_id is used because label_seq_id is undefined for "ligands" in mmCIF.
+     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @returns index or -1 if not present.
+     */
+    findResidue(key: AtomicIndex.ResidueKey): ResidueIndex,
+
+    /**
+     * Index of the 1st occurence of this residue.
+     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @returns index or -1 if not present.
+     */
+    findResidueAuth(key: AtomicIndex.ResidueAuthKey): ResidueIndex,
+
+    /**
+     * Find the residue index where the spefied residue should be inserted to maintain the ordering (entity_id, asym_id, seq_id, ins_code).
+     * Useful for determining ranges for sequence-level annotations.
+     * @param pdbx_PDB_ins_code Empty string for undefined
+     * @returns index or -1 if entity or chain is not present.
+     */
+    findResidueInsertion(key: AtomicIndex.ResidueLabelKey): ResidueIndex,
+
+    // TODO: add indices that support comp_id?
+}
+
+export namespace AtomicIndex {
+    export interface ChainLabelKey { label_entity_id: string, label_asym_id: string }
+    export interface ChainAuthKey { auth_asym_id: string }
+
+    export interface ResidueKey { label_entity_id: string, label_asym_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string }
+    export interface ResidueAuthKey { auth_asym_id: string, auth_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string }
+    export interface ResidueLabelKey { label_entity_id: string, label_asym_id: string, label_seq_id: number, pdbx_PDB_ins_code?: string }
+}
+
 export interface AtomicRanges {
     polymerRanges: SortedRanges<ElementIndex>
     gapRanges: SortedRanges<ElementIndex>
