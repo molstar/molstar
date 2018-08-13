@@ -6,9 +6,10 @@
 
 import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/structure';
 
-import { ColorData, createElementColor } from '../../../util/color-data';
 import { ColorScale, Color } from 'mol-util/color';
-import { LocationIterator, LocationValue } from '../../../representation/structure/visual/util/location-iterator';
+import { Location } from 'mol-model/location';
+import { ColorThemeProps } from '../..';
+import { ColorTheme } from '.';
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -20,11 +21,10 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-export function chainIdColorData(locationIt: LocationIterator, colorData?: ColorData) {
+export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
     const l = StructureElement.create()
 
-    function colorFn(locationValue: LocationValue): Color {
-        const { location } = locationValue
+    function colorFn(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             const map = location.unit.model.properties.asymIdSerialMap
             const scale = ColorScale.create({ domain: [ 0, map.size - 1 ] })
@@ -41,5 +41,8 @@ export function chainIdColorData(locationIt: LocationIterator, colorData?: Color
         return 0
     }
 
-    return createElementColor(locationIt, colorFn, colorData)
+    return {
+        kind: 'element',
+        color: colorFn
+    }
 }

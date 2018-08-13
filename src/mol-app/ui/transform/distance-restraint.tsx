@@ -15,7 +15,7 @@ import { Toggle } from '../controls/common';
 import { DistanceRestraintEntity } from 'mol-view/state/entity';
 import { DistanceRestraintUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorTheme, SizeTheme, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
+import { ColorThemeProps, SizeTheme, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
@@ -25,7 +25,7 @@ interface DistanceRestraintState {
     doubleSided: boolean
     flipSided: boolean
     flatShaded: boolean
-    colorTheme: ColorTheme
+    colorTheme: ColorThemeProps
     colorValue: Color
     sizeTheme: SizeTheme
     visible: boolean
@@ -46,7 +46,7 @@ export class DistanceRestraint extends View<Controller<any>, DistanceRestraintSt
         doubleSided: true,
         flipSided: false,
         flatShaded: false,
-        colorTheme: { name: 'element-symbol' } as ColorTheme,
+        colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
         sizeTheme: { name: 'uniform' } as SizeTheme,
         visible: true,

@@ -8,7 +8,8 @@ import { ValueCell } from 'mol-util';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
-import { LocationIterator, LocationValue, NullLocationValue } from '../representation/structure/visual/util/location-iterator';
+import { LocationIterator } from '../representation/structure/visual/util/location-iterator';
+import { Location, NullLocation } from 'mol-model/location';
 
 export type ColorType = 'uniform' | 'attribute' | 'instance' | 'element' | 'elementInstance'
 
@@ -20,7 +21,7 @@ export type ColorData = {
     dColorType: ValueCell<string>,
 }
 
-export type LocationColor = (locationValue: LocationValue) => Color
+export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
 const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }
 function createEmptyColorTexture() {
@@ -49,7 +50,7 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
 
 /** Creates color uniform */
 export function createUniformColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
-    return createValueColor(colorFn(NullLocationValue), colorData)
+    return createValueColor(colorFn(NullLocation, false), colorData)
 }
 
 // export interface AttributeColorProps {
@@ -110,8 +111,8 @@ export function createInstanceColor(locationIt: LocationIterator, colorFn: Locat
     const { instanceCount} = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const value = locationIt.move()
-        Color.toArray(colorFn(value), colors.array, value.index * 3)
+        const v = locationIt.move()
+        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.index * 3)
         locationIt.skipInstance()
     }
     return createTextureColor(colors, 'instance', colorData)
@@ -122,9 +123,9 @@ export function createElementColor(locationIt: LocationIterator, colorFn: Locati
     const { elementCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createTextureImage(elementCount, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const value = locationIt.move()
-        // console.log(value)
-        Color.toArray(colorFn(value), colors.array, value.elementIndex * 3)
+        const v = locationIt.move()
+        // console.log(v)
+        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.elementIndex * 3)
     }
     return createTextureColor(colors, 'element', colorData)
 }
@@ -135,8 +136,8 @@ export function createElementInstanceColor(locationIt: LocationIterator, colorFn
     const count = instanceCount * elementCount
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const value = locationIt.move()
-        Color.toArray(colorFn(value), colors.array, value.index * 3)
+        const v = locationIt.move()
+        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.index * 3)
     }
     return createTextureColor(colors, 'elementInstance', colorData)
 }

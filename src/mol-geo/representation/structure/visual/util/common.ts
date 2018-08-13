@@ -8,15 +8,14 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { Mat4 } from 'mol-math/linear-algebra'
 
-import { createUniformColor, ColorData } from '../../../../util/color-data';
+import { createUniformColor, ColorData, createElementColor, createElementInstanceColor, createInstanceColor } from '../../../../util/color-data';
 import { createUniformSize, SizeData } from '../../../../util/size-data';
 import { physicalSizeData } from '../../../../theme/structure/size/physical';
 import VertexMap from '../../../../shape/vertex-map';
-import { ColorTheme, SizeTheme } from '../../../../theme';
-import { elementIndexColorData, elementSymbolColorData, instanceIndexColorData, chainIdColorData } from '../../../../theme/structure/color';
+import { ColorThemeProps, SizeTheme } from '../../../../theme';
+import { ColorTheme } from '../../../../theme/structure/color';
 import { ValueCell, defaults } from 'mol-util';
 import { LocationIterator } from './location-iterator';
-import { carbohydrateSymbolColorData } from '../../../../theme/structure/color/carbohydrate-symbol';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
@@ -41,20 +40,14 @@ export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
     return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
 }
 
-export function createColors(locationIt: LocationIterator, props: ColorTheme, colorData?: ColorData) {
-    switch (props.name) {
-        case 'atom-index':
-            return elementIndexColorData(locationIt, colorData)
-        case 'carbohydrate-symbol':
-            return carbohydrateSymbolColorData(locationIt, props, colorData)
-        case 'chain-id':
-            return chainIdColorData(locationIt, colorData)
-        case 'element-symbol':
-            return elementSymbolColorData(locationIt, colorData)
-        case 'instance-index':
-            return instanceIndexColorData(locationIt, colorData)
-        case 'uniform':
-            return createUniformColor(locationIt, () => props.value || 0x000000, colorData)
+export function createColors(locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {
+    const colorTheme = ColorTheme(props)
+    switch (colorTheme.kind) {
+        case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData)
+        case 'element': return createElementColor(locationIt, colorTheme.color, colorData)
+        case 'elementInstance': return createElementInstanceColor(locationIt, colorTheme.color, colorData)
+        case 'instance': return createInstanceColor(locationIt, colorTheme.color, colorData)
+        case 'attribute': throw new Error('not implemented') // TODO
     }
 }
 

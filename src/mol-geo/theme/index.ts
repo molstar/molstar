@@ -7,19 +7,19 @@
 import { Color } from 'mol-util/color';
 import { Structure } from 'mol-model/structure';
 
-export interface ColorTheme {
-    name: 'atom-index' | 'chain-id'| 'instance-index' | 'uniform' | 'carbohydrate-symbol' | 'element-symbol'
+export interface ColorThemeProps {
+    name: 'element-index' | 'chain-id'| 'unit-index' | 'uniform' | 'carbohydrate-symbol' | 'element-symbol'
     domain?: [number, number]
     value?: Color
     structure?: Structure
 }
 
 export const ColorThemeInfo = {
-    'atom-index': {},
+    'element-index': {},
     'carbohydrate-symbol': {},
     'chain-id': {},
     'element-symbol': {},
-    'instance-index': {},
+    'unit-index': {},
     'uniform': {}
 }
 export type ColorThemeName = keyof typeof ColorThemeInfo

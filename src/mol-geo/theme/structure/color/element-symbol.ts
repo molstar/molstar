@@ -6,9 +6,10 @@
 
 import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Color } from 'mol-util/color';
-import { createElementColor, ColorData } from '../../../util/color-data';
 import { StructureElement, Unit, Link } from 'mol-model/structure';
-import { LocationIterator, LocationValue } from '../../../representation/structure/visual/util/location-iterator';
+import { Location } from 'mol-model/location';
+import { ColorThemeProps } from '../..';
+import { ColorTheme } from '.';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors: { [k: string]: Color } = {
@@ -22,9 +23,8 @@ export function elementSymbolColor(element: ElementSymbol): Color {
     return c === void 0 ? DefaultElementSymbolColor : c
 }
 
-export function elementSymbolColorData(locationIt: LocationIterator, colorData?: ColorData) {
-    function colorFn(locationValue: LocationValue): Color {
-        const { location } = locationValue
+export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
+    function colorFn(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const { type_symbol } = location.unit.model.atomicHierarchy.atoms
@@ -39,5 +39,8 @@ export function elementSymbolColorData(locationIt: LocationIterator, colorData?:
         return DefaultElementSymbolColor
     }
 
-    return createElementColor(locationIt, colorFn, colorData)
+    return {
+        kind: 'element',
+        color: colorFn
+    }
 }

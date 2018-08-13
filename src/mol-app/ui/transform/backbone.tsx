@@ -15,7 +15,7 @@ import { Toggle } from '../controls/common';
 import { BackboneEntity } from 'mol-view/state/entity';
 import { BackboneUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorTheme, SizeTheme, ColorThemeNames, ColorThemeName } from 'mol-geo/theme';
+import { ColorThemeProps, SizeTheme, ColorThemeNames, ColorThemeName } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
@@ -26,7 +26,7 @@ interface BackboneState {
     flipSided: boolean
     flatShaded: boolean
     detail: number
-    colorTheme: ColorTheme
+    colorTheme: ColorThemeProps
     colorValue: Color
     sizeTheme: SizeTheme
     visible: boolean
@@ -43,7 +43,7 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
         flipSided: false,
         flatShaded: false,
         detail: 2,
-        colorTheme: { name: 'element-symbol' } as ColorTheme,
+        colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
         sizeTheme: { name: 'uniform' } as SizeTheme,
         visible: true,

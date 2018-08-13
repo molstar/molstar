@@ -15,7 +15,7 @@ import { Toggle } from '../controls/common';
 import { SpacefillEntity } from 'mol-view/state/entity';
 import { SpacefillUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorTheme, SizeTheme, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
+import { ColorThemeProps, SizeTheme, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
@@ -26,7 +26,7 @@ interface SpacefillState {
     flipSided: boolean
     flatShaded: boolean
     detail: number
-    colorTheme: ColorTheme
+    colorTheme: ColorThemeProps
     colorValue: Color
     sizeTheme: SizeTheme
     visible: boolean
@@ -43,7 +43,7 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
         flipSided: false,
         flatShaded: false,
         detail: 2,
-        colorTheme: { name: 'element-symbol' } as ColorTheme,
+        colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
         sizeTheme: { name: 'uniform' } as SizeTheme,
         visible: true,

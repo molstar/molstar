@@ -6,16 +6,16 @@
 
 import { StructureElement, Link, ElementIndex, Unit } from 'mol-model/structure';
 
-import { ColorData, createElementColor } from '../../../util/color-data';
-import { Color } from 'mol-util/color';
-import { LocationIterator, LocationValue } from '../../../representation/structure/visual/util/location-iterator';
-import { ColorTheme } from '../..';
+import { ColorThemeProps } from '../..';
 import { SaccharideColors } from 'mol-model/structure/structure/carbohydrates/constants';
+import { Location } from 'mol-model/location';
+import { ColorTheme } from '.';
+import { LocationColor } from '../../../util/color-data';
 
 const DefaultColor = 0xCCCCCC;
 
-export function carbohydrateSymbolColorData(locationIt: LocationIterator, props: ColorTheme, colorData?: ColorData) {
-    let colorFn: (locationValue: LocationValue) => Color
+export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme {
+    let colorFn: LocationColor
 
     if (props.structure) {
         const { elements, getElementIndex, getAnomericCarbon } = props.structure.carbohydrates
@@ -30,15 +30,14 @@ export function carbohydrateSymbolColorData(locationIt: LocationIterator, props:
             return DefaultColor
         }
 
-        colorFn = (locationValue: LocationValue) => {
-            const { location: l } = locationValue
-            if (locationValue.isSecondary) {
+        colorFn = (location: Location, isSecondary: boolean) => {
+            if (isSecondary) {
                 return SaccharideColors.Secondary
             } else {
-                if (StructureElement.isLocation(l)) {
-                    return getColor(l.unit, l.element)
-                } else if (Link.isLocation(l)) {
-                    return getColor(l.aUnit, l.aUnit.elements[l.aIndex])
+                if (StructureElement.isLocation(location)) {
+                    return getColor(location.unit, location.element)
+                } else if (Link.isLocation(location)) {
+                    return getColor(location.aUnit, location.aUnit.elements[location.aIndex])
                 }
             }
             return DefaultColor
@@ -47,5 +46,8 @@ export function carbohydrateSymbolColorData(locationIt: LocationIterator, props:
         colorFn = () => DefaultColor
     }
 
-    return createElementColor(locationIt, colorFn, colorData)
+    return {
+        kind: 'element',
+        color: colorFn
+    }
 }
