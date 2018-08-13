@@ -15,7 +15,8 @@ import { Toggle } from '../controls/common';
 import { BackboneEntity } from 'mol-view/state/entity';
 import { BackboneUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorThemeProps, SizeThemeProps, ColorThemeNames, ColorThemeName } from 'mol-geo/theme';
+import { ColorThemeProps, ColorThemeNames, ColorThemeName } from 'mol-view/theme/color';
+import { SizeThemeProps } from 'mol-view/theme/size';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';

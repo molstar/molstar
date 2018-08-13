@@ -10,8 +10,8 @@ import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
-import { SizeThemeProps } from '../../../theme';
 import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from '../visual/cross-link-restraint-cylinder';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultDistanceRestraintProps = {
     ...DefaultCrossLinkRestraintProps,

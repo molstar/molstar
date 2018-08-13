@@ -8,8 +8,7 @@ import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/str
 
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps } from '../..';
-import { ColorTheme } from '.';
+import { ColorThemeProps, ColorTheme } from '../color';
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {

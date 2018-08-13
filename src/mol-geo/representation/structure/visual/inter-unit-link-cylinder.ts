@@ -12,10 +12,10 @@ import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { SizeThemeProps } from '../../../theme';
 import { LinkIterator } from './util/location-iterator';
 import { ComplexMeshVisual } from '../complex-visual';
 import { Interval } from 'mol-data/int';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links

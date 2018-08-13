@@ -8,8 +8,7 @@ import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Color } from 'mol-util/color';
 import { StructureElement, Unit, Link } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps } from '../..';
-import { ColorTheme } from '.';
+import { ColorThemeProps, ColorTheme } from '../color';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors: { [k: string]: Color } = {

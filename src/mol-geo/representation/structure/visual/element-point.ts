@@ -11,7 +11,6 @@ import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 
 import { UnitsVisual, DefaultStructureProps } from '..';
-import { SizeThemeProps } from '../../../theme';
 import { getElementLoci } from './util/element';
 import { createTransforms, createColors, createSizes } from './util/common';
 import { deepEqual, defaults } from 'mol-util';
@@ -23,6 +22,7 @@ import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
 import { StructureElementIterator } from './util/location-iterator';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,

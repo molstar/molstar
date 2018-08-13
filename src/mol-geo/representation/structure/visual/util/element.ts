@@ -13,8 +13,7 @@ import { MeshBuilder } from '../../../../shape/mesh-builder';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { PickingId } from '../../../../util/picking';
-import { SizeThemeProps } from '../../../../theme';
-import { SizeTheme } from '../../../../theme/structure/size';
+import { SizeTheme, SizeThemeProps } from 'mol-view/theme/size';
 
 export interface ElementSphereMeshProps {
     sizeTheme: SizeThemeProps,

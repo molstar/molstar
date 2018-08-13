@@ -10,8 +10,6 @@ import { Mat4 } from 'mol-math/linear-algebra'
 
 import { createUniformColor, ColorData, createElementColor, createElementInstanceColor, createInstanceColor } from '../../../../util/color-data';
 import { createUniformSize, SizeData, createElementSize, createElementInstanceSize, createInstanceSize } from '../../../../util/size-data';
-import { ColorThemeProps, SizeThemeProps } from '../../../../theme';
-import { ColorTheme } from '../../../../theme/structure/color';
 import { ValueCell } from 'mol-util';
 import { LocationIterator } from './location-iterator';
 import { Mesh } from '../../../../shape/mesh';
@@ -21,7 +19,8 @@ import { MeshProps, createMeshValues, createRenderableState } from '../../../uti
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject } from 'mol-gl/render-object';
-import { SizeTheme } from '../../../../theme/structure/size';
+import { ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
     const unitCount = units.length

@@ -4,8 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorThemeProps } from '../..';
-import { ColorTheme } from '.';
+import { ColorTheme, ColorThemeProps } from '../color';
 
 const DefaultColor = 0xCCCCCC;
 

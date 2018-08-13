@@ -6,10 +6,9 @@
 
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps } from '../..';
 import { Unit, StructureElement, Link } from 'mol-model/structure';
-import { ColorTheme } from '.';
-import { LocationColor } from '../../../util/color-data';
+import { LocationColor } from 'mol-geo/util/color-data';
+import { ColorTheme, ColorThemeProps } from '../color';
 
 const DefaultColor = 0xCCCCCC;
 

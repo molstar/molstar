@@ -10,7 +10,6 @@ import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { SizeThemeProps } from '../../../theme';
 import { DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -18,6 +17,7 @@ import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/struct
 import { LocationIterator } from './util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()

@@ -6,8 +6,9 @@
  */
 
 import { Structure } from 'mol-model/structure';
+import { ColorThemeProps } from 'mol-view/theme/color';
+import { SizeThemeProps } from 'mol-view/theme/size';
 import { Representation, RepresentationProps } from '..';
-import { ColorThemeProps, SizeThemeProps } from '../../theme';
 import { DefaultBaseProps, DefaultMeshProps } from '../util';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }

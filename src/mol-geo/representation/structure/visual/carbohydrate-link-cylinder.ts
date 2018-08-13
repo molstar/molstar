@@ -10,13 +10,13 @@ import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { SizeThemeProps } from '../../../theme';
 import { DefaultMeshProps } from '../../util';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from './util/location-iterator';
 import { createLinkCylinderMesh, DefaultLinkCylinderProps, LinkCylinderProps } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {

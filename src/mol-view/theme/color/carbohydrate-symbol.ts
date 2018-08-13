@@ -6,11 +6,10 @@
 
 import { StructureElement, Link, ElementIndex, Unit } from 'mol-model/structure';
 
-import { ColorThemeProps } from '../..';
 import { SaccharideColors } from 'mol-model/structure/structure/carbohydrates/constants';
 import { Location } from 'mol-model/location';
-import { ColorTheme } from '.';
-import { LocationColor } from '../../../util/color-data';
+import { ColorThemeProps, ColorTheme } from '../color';
+import { LocationColor } from 'mol-geo/util/color-data';
 
 const DefaultColor = 0xCCCCCC;
 

@@ -4,8 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SizeThemeProps } from '../..';
-import { SizeTheme } from '.';
+import { SizeTheme, SizeThemeProps } from '../size';
 
 const DefaultSize = 1
 const DefaultFactor = 1

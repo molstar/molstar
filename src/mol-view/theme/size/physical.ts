@@ -6,8 +6,7 @@
 
 import { StructureElement, Unit, StructureProperties, Link } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { SizeTheme } from '.';
-import { SizeThemeProps } from '../..';
+import { SizeThemeProps, SizeTheme } from '../size';
 
 const DefaultSize = 1
 const DefaultFactor = 1
