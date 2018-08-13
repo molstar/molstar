@@ -4,12 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
-import VertexMap from '../../../shape/vertex-map';
+import { SizeType, LocationSize } from '../../../util/size-data';
+import { SizeThemeProps } from '../..';
+import { PhysicalSizeTheme } from './physical';
+import { UniformSizeTheme } from './uniform';
 
-export interface StructureSizeDataProps {
-    group: Unit.SymmetryGroup,
-    vertexMap: VertexMap
+export interface SizeTheme {
+    kind: SizeType
+    size: LocationSize
 }
 
-export { physicalSizeData } from './physical'
+export function SizeTheme(props: SizeThemeProps): SizeTheme {
+    switch (props.name) {
+        case 'physical': return PhysicalSizeTheme(props)
+        case 'uniform': return UniformSizeTheme(props)
+    }
+}

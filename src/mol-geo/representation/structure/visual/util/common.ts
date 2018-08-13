@@ -9,12 +9,10 @@ import { Unit, Structure } from 'mol-model/structure';
 import { Mat4 } from 'mol-math/linear-algebra'
 
 import { createUniformColor, ColorData, createElementColor, createElementInstanceColor, createInstanceColor } from '../../../../util/color-data';
-import { createUniformSize, SizeData } from '../../../../util/size-data';
-import { physicalSizeData } from '../../../../theme/structure/size/physical';
-import VertexMap from '../../../../shape/vertex-map';
-import { ColorThemeProps, SizeTheme } from '../../../../theme';
+import { createUniformSize, SizeData, createElementSize, createElementInstanceSize, createInstanceSize } from '../../../../util/size-data';
+import { ColorThemeProps, SizeThemeProps } from '../../../../theme';
 import { ColorTheme } from '../../../../theme/structure/color';
-import { ValueCell, defaults } from 'mol-util';
+import { ValueCell } from 'mol-util';
 import { LocationIterator } from './location-iterator';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshValues } from 'mol-gl/renderable';
@@ -23,6 +21,7 @@ import { MeshProps, createMeshValues, createRenderableState } from '../../../uti
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject } from 'mol-gl/render-object';
+import { SizeTheme } from '../../../../theme/structure/size';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
     const unitCount = units.length
@@ -47,16 +46,16 @@ export function createColors(locationIt: LocationIterator, props: ColorThemeProp
         case 'element': return createElementColor(locationIt, colorTheme.color, colorData)
         case 'elementInstance': return createElementInstanceColor(locationIt, colorTheme.color, colorData)
         case 'instance': return createInstanceColor(locationIt, colorTheme.color, colorData)
-        case 'attribute': throw new Error('not implemented') // TODO
     }
 }
 
-export function createSizes(group: Unit.SymmetryGroup, vertexMap: VertexMap, props: SizeTheme): SizeData {
-    switch (props.name) {
-        case 'uniform':
-            return createUniformSize(props)
-        case 'physical':
-            return physicalSizeData(defaults(props.factor, 1), { group, vertexMap })
+export function createSizes(locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): SizeData {
+    const sizeTheme = SizeTheme(props)
+    switch (sizeTheme.kind) {
+        case 'uniform': return createUniformSize(locationIt, sizeTheme.size, sizeData)
+        case 'element': return createElementSize(locationIt, sizeTheme.size, sizeData)
+        case 'elementInstance': return createElementInstanceSize(locationIt, sizeTheme.size, sizeData)
+        case 'instance': return createInstanceSize(locationIt, sizeTheme.size, sizeData)
     }
 }
 

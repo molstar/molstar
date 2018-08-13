@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, TextureSpec } from './schema';
 import { PointShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
@@ -15,6 +15,8 @@ export const PointSchema = {
     ...BaseSchema,
     aSize: AttributeSpec('float32', 1, 0),
     uSize: UniformSpec('f'),
+    uSizeTexSize: UniformSpec('v2'),
+    tSize: TextureSpec('alpha', 'ubyte'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute']),
     dPointSizeAttenuation: DefineSpec('boolean'),
 }

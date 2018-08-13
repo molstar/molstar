@@ -15,7 +15,7 @@ import { Toggle } from '../controls/common';
 import { BackboneEntity } from 'mol-view/state/entity';
 import { BackboneUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorThemeProps, SizeTheme, ColorThemeNames, ColorThemeName } from 'mol-geo/theme';
+import { ColorThemeProps, SizeThemeProps, ColorThemeNames, ColorThemeName } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
@@ -28,7 +28,7 @@ interface BackboneState {
     detail: number
     colorTheme: ColorThemeProps
     colorValue: Color
-    sizeTheme: SizeTheme
+    sizeTheme: SizeThemeProps
     visible: boolean
     alpha: number
     depthMask: boolean
@@ -45,7 +45,7 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
-        sizeTheme: { name: 'uniform' } as SizeTheme,
+        sizeTheme: { name: 'uniform' } as SizeThemeProps,
         visible: true,
         alpha: 1,
         depthMask: true,

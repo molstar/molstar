@@ -12,14 +12,14 @@ import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
-import { SizeTheme } from '../../../theme';
+import { SizeThemeProps } from '../../../theme';
 import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
 
 export const DefaultBallAndStickProps = {
     ...DefaultElementSphereProps,
     ...DefaultIntraUnitLinkProps,
 
-    sizeTheme: { name: 'uniform', value: 0.25 } as SizeTheme,
+    sizeTheme: { name: 'uniform', value: 0.25 } as SizeThemeProps,
     unitKinds: [ Unit.Kind.Atomic ] as Unit.Kind[]
 }
 export type BallAndStickProps = typeof DefaultBallAndStickProps

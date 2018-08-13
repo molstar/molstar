@@ -12,7 +12,7 @@ import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { SizeTheme } from '../../../theme';
+import { SizeThemeProps } from '../../../theme';
 import { LinkIterator } from './util/location-iterator';
 import { ComplexMeshVisual } from '../complex-visual';
 import { Interval } from 'mol-data/int';
@@ -42,7 +42,7 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
 export const DefaultInterUnitLinkProps = {
     ...DefaultStructureProps,
     ...DefaultLinkCylinderProps,
-    sizeTheme: { name: 'physical', factor: 0.3 } as SizeTheme,
+    sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
 }
 export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps
 

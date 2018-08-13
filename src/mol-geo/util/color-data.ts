@@ -11,7 +11,7 @@ import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../representation/structure/visual/util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 
-export type ColorType = 'uniform' | 'attribute' | 'instance' | 'element' | 'elementInstance'
+export type ColorType = 'uniform' | 'instance' | 'element' | 'elementInstance'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
@@ -53,40 +53,6 @@ export function createUniformColor(locationIt: LocationIterator, colorFn: Locati
     return createValueColor(colorFn(NullLocation, false), colorData)
 }
 
-// export interface AttributeColorProps {
-//     colorFn: (elementIdx: number) => Color
-//     vertexMap: VertexMap
-// }
-
-// /** Creates color attribute with color for each element (i.e. shared across instances/units) */
-// export function createAttributeColor(props: AttributeColorProps, colorData?: ColorData): ColorData {
-//     const { colorFn, vertexMap } = props
-//     const { idCount, offsetCount, offsets } = vertexMap
-//     const colors = new Float32Array(idCount * 3);
-//     for (let i = 0, il = offsetCount - 1; i < il; ++i) {
-//         const start = offsets[i]
-//         const end = offsets[i + 1]
-//         const hexColor = colorFn(i)
-//         for (let i = start, il = end; i < il; ++i) {
-//             Color.toArrayNormalized(hexColor, colors, i * 3)
-//         }
-//     }
-//     if (colorData) {
-//         ValueCell.update(colorData.aColor, colors)
-//         if (colorData.dColorType.ref.value !== 'attribute') {
-//             ValueCell.update(colorData.dColorType, 'attribute')
-//         }
-//         return colorData
-//     } else {
-//         return {
-//             uColor: ValueCell.create(Vec3.zero()),
-//             aColor: ValueCell.create(colors),
-//             ...createEmptyColorTexture(),
-//             dColorType: ValueCell.create('attribute'),
-//         }
-//     }
-// }
-
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
         ValueCell.update(colorData.tColor, colors)
@@ -112,7 +78,7 @@ export function createInstanceColor(locationIt: LocationIterator, colorFn: Locat
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
-        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.index * 3)
+        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.instanceIndex * 3)
         locationIt.skipInstance()
     }
     return createTextureColor(colors, 'instance', colorData)

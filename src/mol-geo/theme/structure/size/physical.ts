@@ -4,9 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Unit, StructureProperties } from 'mol-model/structure';
-import { StructureSizeDataProps } from '.';
-import { createAttributeSize } from '../../../util/size-data';
+import { StructureElement, Unit, StructureProperties, Link } from 'mol-model/structure';
+import { Location } from 'mol-model/location';
+import { SizeTheme } from '.';
+import { SizeThemeProps } from '../..';
+
+const DefaultSize = 1
+const DefaultFactor = 1
 
 export function getPhysicalRadius(unit: Unit): StructureElement.Property<number> {
     if (Unit.isAtomic(unit)) {
@@ -22,18 +26,29 @@ export function getPhysicalRadius(unit: Unit): StructureElement.Property<number>
  * Create attribute data with the physical size of an element,
  * i.e. vdw for atoms and radius for coarse spheres
  */
-export function physicalSizeData(factor: number, props: StructureSizeDataProps) {
-    const { group, vertexMap } = props
-    const unit = group.units[0]
-    const elements = group.elements;
-    const radius = getPhysicalRadius(unit)
+export function PhysicalSizeTheme(props: SizeThemeProps): SizeTheme {
+    const factor = props.factor || DefaultFactor
     const l = StructureElement.create()
-    l.unit = unit
-    return createAttributeSize({
-        sizeFn: (elementIdx: number) => {
-            l.element = elements[elementIdx]
-            return radius(l) * factor
-        },
-        vertexMap
-    })
+
+    function sizeFn(location: Location): number {
+        if (StructureElement.isLocation(location)) {
+            if (Unit.isAtomic(location.unit)) {
+                const radius = getPhysicalRadius(location.unit)
+                return factor * radius(location)
+            }
+        } else if (Link.isLocation(location)) {
+            if (Unit.isAtomic(location.aUnit)) {
+                const radius = getPhysicalRadius(location.aUnit)
+                l.unit = location.aUnit
+                l.element = location.aUnit.elements[location.aIndex]
+                return factor * radius(l)
+            }
+        }
+        return DefaultSize
+    }
+
+    return {
+        kind: 'element',
+        size: sizeFn
+    }
 }

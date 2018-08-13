@@ -6,38 +6,26 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit, StructureElement } from 'mol-model/structure';
-import { SizeTheme } from '../../../../theme';
 import { RuntimeContext } from 'mol-task';
 import { sphereVertexCount } from '../../../../primitive/sphere';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
-import { defaults } from 'mol-util';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
-import { getPhysicalRadius } from '../../../../theme/structure/size/physical';
 import { PickingId } from '../../../../util/picking';
-
-export function getElementRadius(unit: Unit, props: SizeTheme): StructureElement.Property<number> {
-    switch (props.name) {
-        case 'uniform':
-            return () => props.value
-        case 'physical':
-            const radius = getPhysicalRadius(unit)
-            const factor = defaults(props.factor, 1)
-            return (l) => radius(l) * factor
-    }
-}
+import { SizeThemeProps } from '../../../../theme';
+import { SizeTheme } from '../../../../theme/structure/size';
 
 export interface ElementSphereMeshProps {
-    sizeTheme: SizeTheme,
+    sizeTheme: SizeThemeProps,
     detail: number,
 }
 
 export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, props: ElementSphereMeshProps, mesh?: Mesh) {
-    const { detail, sizeTheme } = props
+    const { detail } = props
 
     const { elements } = unit;
-    const radius = getElementRadius(unit, sizeTheme)
+    const sizeTheme = SizeTheme(props.sizeTheme)
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail)
     const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
@@ -52,7 +40,7 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, p
         pos(elements[i], v)
 
         meshBuilder.setId(i)
-        meshBuilder.addSphere(v, radius(l), detail)
+        meshBuilder.addSphere(v, sizeTheme.size(l), detail)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });

@@ -7,7 +7,7 @@
 
 import { Structure } from 'mol-model/structure';
 import { Representation, RepresentationProps } from '..';
-import { ColorThemeProps, SizeTheme } from '../../theme';
+import { ColorThemeProps, SizeThemeProps } from '../../theme';
 import { DefaultBaseProps, DefaultMeshProps } from '../util';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
@@ -15,7 +15,7 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 export const DefaultStructureProps = {
     ...DefaultBaseProps,
     colorTheme: { name: 'unit-index' } as ColorThemeProps,
-    sizeTheme: { name: 'physical' } as SizeTheme,
+    sizeTheme: { name: 'physical' } as SizeThemeProps,
 }
 export type StructureProps = typeof DefaultStructureProps
 

@@ -15,7 +15,7 @@ import { Toggle } from '../controls/common';
 import { CartoonEntity } from 'mol-view/state/entity';
 import { CartoonUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorThemeProps, SizeTheme, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
+import { ColorThemeProps, SizeThemeProps, ColorThemeName, ColorThemeNames } from 'mol-geo/theme';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
@@ -28,7 +28,7 @@ interface CartoonState {
     detail: number
     colorTheme: ColorThemeProps
     colorValue: Color
-    sizeTheme: SizeTheme
+    sizeTheme: SizeThemeProps
     visible: boolean
     alpha: number
     depthMask: boolean
@@ -45,7 +45,7 @@ export class Cartoon extends View<Controller<any>, CartoonState, { transform: Ca
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
-        sizeTheme: { name: 'uniform' } as SizeTheme,
+        sizeTheme: { name: 'uniform' } as SizeThemeProps,
         visible: true,
         alpha: 1,
         depthMask: true,

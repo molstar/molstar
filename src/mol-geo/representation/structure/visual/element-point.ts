@@ -11,8 +11,7 @@ import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 
 import { UnitsVisual, DefaultStructureProps } from '..';
-import VertexMap from '../../../shape/vertex-map';
-import { SizeTheme } from '../../../theme';
+import { SizeThemeProps } from '../../../theme';
 import { getElementLoci } from './util/element';
 import { createTransforms, createColors, createSizes } from './util/common';
 import { deepEqual, defaults } from 'mol-util';
@@ -27,7 +26,7 @@ import { StructureElementIterator } from './util/location-iterator';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
-    sizeTheme: { name: 'physical' } as SizeTheme
+    sizeTheme: { name: 'physical' } as SizeThemeProps
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
@@ -70,17 +69,12 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             const elementCount = _elements.length
             const instanceCount = group.units.length
 
-            const vertexMap = VertexMap.create(
-                elementCount,
-                elementCount + 1,
-                fillSerial(new Uint32Array(elementCount)),
-                fillSerial(new Uint32Array(elementCount + 1))
-            )
+            const locationIt = StructureElementIterator.fromGroup(group)
 
             const vertices = createPointVertices(_units[0])
             const transforms = createTransforms(group)
-            const color = createColors(StructureElementIterator.fromGroup(group), colorTheme)
-            const size = createSizes(group, vertexMap, sizeTheme)
+            const color = createColors(locationIt, colorTheme)
+            const size = createSizes(locationIt, sizeTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const values: PointValues = {

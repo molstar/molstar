@@ -10,12 +10,12 @@ import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
-import { SizeTheme } from '../../../theme';
+import { SizeThemeProps } from '../../../theme';
 import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from '../visual/cross-link-restraint-cylinder';
 
 export const DefaultDistanceRestraintProps = {
     ...DefaultCrossLinkRestraintProps,
-    sizeTheme: { name: 'uniform', value: 0.25 } as SizeTheme,
+    sizeTheme: { name: 'uniform', value: 0.25 } as SizeThemeProps,
 }
 export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 

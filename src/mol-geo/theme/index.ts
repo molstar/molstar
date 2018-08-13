@@ -25,14 +25,18 @@ export const ColorThemeInfo = {
 export type ColorThemeName = keyof typeof ColorThemeInfo
 export const ColorThemeNames = Object.keys(ColorThemeInfo)
 
-export interface UniformSizeTheme {
-    name: 'uniform',
-    value: number
+//
+
+export interface SizeThemeProps {
+    name: 'physical' | 'uniform'
+    value?: number
+    factor?: number
+    structure?: Structure
 }
 
-export interface ScaleSizeTheme {
-    name: 'physical' // van-der-Waals for atoms, given radius for coarse spheres
-    factor?: number // scaling factor
+export const SizeThemeInfo = {
+    'physical': {},
+    'uniform': {}
 }
-
-export type SizeTheme = UniformSizeTheme | ScaleSizeTheme
+export type SizeThemeName = keyof typeof SizeThemeInfo
+export const SizeThemeNames = Object.keys(SizeThemeInfo)

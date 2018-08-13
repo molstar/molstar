@@ -12,7 +12,7 @@ import { ValueCell } from 'mol-util';
 
 import Renderer from '../renderer';
 import { createValueColor } from 'mol-geo/util/color-data';
-import { createUniformSize } from 'mol-geo/util/size-data';
+import { createValueSize } from 'mol-geo/util/size-data';
 import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
 import { createPointRenderObject } from '../render-object';
@@ -48,7 +48,7 @@ function createPoints() {
     const aElementId = ValueCell.create(fillSerial(new Float32Array(3)))
     const aInstanceId = ValueCell.create(fillSerial(new Float32Array(1)))
     const color = createValueColor(0xFF0000)
-    const size = createUniformSize({ value: 1 })
+    const size = createValueSize(1)
     const marker = createEmptyMarkers()
 
     const aTransform = ValueCell.create(new Float32Array(16))

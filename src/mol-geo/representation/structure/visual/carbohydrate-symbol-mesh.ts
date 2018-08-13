@@ -10,7 +10,7 @@ import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { SizeTheme } from '../../../theme';
+import { SizeThemeProps } from '../../../theme';
 import { DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -115,7 +115,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 export const DefaultCarbohydrateSymbolProps = {
     ...DefaultMeshProps,
     ...DefaultStructureProps,
-    sizeTheme: { name: 'physical', factor: 1 } as SizeTheme,
+    sizeTheme: { name: 'physical', factor: 1 } as SizeThemeProps,
     detail: 0,
     unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
 }
