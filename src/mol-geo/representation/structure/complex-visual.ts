@@ -12,11 +12,12 @@ import { RuntimeContext } from 'mol-task';
 import { LocationIterator } from './visual/util/location-iterator';
 import { createComplexMeshRenderObject, createColors } from './visual/util/common';
 import { StructureMeshProps, StructureProps } from '.';
-import { deepEqual } from 'mol-util';
+import { deepEqual, ValueCell } from 'mol-util';
 import { updateMeshValues, updateRenderableState } from '../util';
 import { PickingId } from '../../util/picking';
-import { Loci } from 'mol-model/loci';
-import { MarkerAction, MarkerData } from '../../util/marker-data';
+import { Loci, isEveryLoci } from 'mol-model/loci';
+import { MarkerAction, applyMarkerAction } from '../../util/marker-data';
+import { Interval } from 'mol-data/int';
 
 export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
 
@@ -25,7 +26,7 @@ export interface ComplexMeshVisualBuilder<P extends StructureMeshProps> {
     createMesh(ctx: RuntimeContext, structure: Structure, props: P, mesh?: Mesh): Promise<Mesh>
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
-    mark(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData): void
+    mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean
 }
 
 export function ComplexMeshVisual<P extends StructureMeshProps>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
@@ -35,6 +36,7 @@ export function ComplexMeshVisual<P extends StructureMeshProps>(builder: Complex
     let currentProps: P
     let mesh: Mesh
     let currentStructure: Structure
+    let locationIt: LocationIterator
 
     return {
         get renderObject () { return renderObject },
@@ -44,7 +46,7 @@ export function ComplexMeshVisual<P extends StructureMeshProps>(builder: Complex
 
             mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
 
-            const locationIt = createLocationIterator(structure)
+            locationIt = createLocationIterator(structure)
             renderObject = createComplexMeshRenderObject(structure, mesh, locationIt, currentProps)
         },
         async update(ctx: RuntimeContext, props: Partial<P>) {
@@ -62,7 +64,7 @@ export function ComplexMeshVisual<P extends StructureMeshProps>(builder: Complex
             }
 
             if (updateColor) {
-                createColors(createLocationIterator(currentStructure), newProps.colorTheme, renderObject.values)
+                createColors(locationIt, newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)
@@ -75,7 +77,25 @@ export function ComplexMeshVisual<P extends StructureMeshProps>(builder: Complex
             return getLoci(pickingId, currentStructure, renderObject.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            mark(loci, action, currentStructure, renderObject.values)
+            const { tMarker } = renderObject.values
+            const { elementCount, instanceCount } = locationIt
+
+            function apply(interval: Interval) {
+                const start = Interval.start(interval)
+                const end = Interval.end(interval)
+                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
+            }
+
+            let changed = false
+            if (isEveryLoci(loci)) {
+                apply(Interval.ofBounds(0, elementCount * instanceCount))
+                changed = true
+            } else {
+                changed = mark(loci, currentStructure, apply)
+            }
+            if (changed) {
+                ValueCell.update(tMarker, tMarker.ref.value)
+            }
         },
         destroy() {
             // TODO

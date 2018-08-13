@@ -5,8 +5,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
 import { Unit, Link, StructureElement } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
@@ -14,11 +12,11 @@ import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh } f
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, MarkerData } from '../../../util/marker-data';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { LinkIterator } from './util/location-iterator';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
+import { Interval } from 'mol-data/int';
 
 async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -88,36 +86,20 @@ function getLinkLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number
     return EmptyLoci
 }
 
-function markLink(loci: Loci, action: MarkerAction, group: Unit.SymmetryGroup, values: MarkerData) {
-    const tMarker = values.tMarker
+function markLink(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
     const unit = group.units[0]
-    if (!Unit.isAtomic(unit)) return
-
-    const elementCount = unit.links.edgeCount * 2
-    const instanceCount = group.units.length
 
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        applyMarkerAction(array, 0, elementCount * instanceCount, action)
-        changed = true
-    } else if (Link.isLoci(loci)) {
+    if (Unit.isAtomic(unit) && Link.isLoci(loci)) {
         for (const b of loci.links) {
             const unitIdx = Unit.findUnitById(b.aUnit.id, group.units)
             if (unitIdx !== -1) {
-                const _idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
-                if (_idx !== -1) {
-                    const idx = _idx
-                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                        changed = true
-                    }
+                const idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
+                if (idx !== -1) {
+                    if (apply(Interval.ofSingleton(idx))) changed = true
                 }
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }

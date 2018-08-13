@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
@@ -13,11 +11,11 @@ import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } f
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, MarkerData } from '../../../util/marker-data';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { ComplexMeshVisual } from '../complex-visual';
 import { LocationIterator } from './util/location-iterator';
+import { Interval } from 'mol-data/int';
 
 async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
 
@@ -50,9 +48,6 @@ export const DefaultCrossLinkRestraintProps = {
     flatShaded: false,
 }
 export type CrossLinkRestraintProps = typeof DefaultCrossLinkRestraintProps
-
-// TODO update & create in-place
-// if (currentProps.radialSegments !== newProps.radialSegments) return false
 
 export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {
     return ComplexMeshVisual<CrossLinkRestraintProps>({
@@ -96,34 +91,19 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function markLink(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
-    const tMarker = values.tMarker
-
+function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const crossLinks = structure.crossLinkRestraints
-    const elementCount = crossLinks.count
-    const instanceCount = 1
 
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        applyMarkerAction(array, 0, elementCount * instanceCount, action)
-        changed = true
-    } else if (Link.isLoci(loci)) {
+    if (Link.isLoci(loci)) {
         for (const b of loci.links) {
             const indices = crossLinks.getPairIndices(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
             if (indices) {
                 for (let i = 0, il = indices.length; i < il; ++i) {
-                    const idx = indices[i]
-                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                        changed = true
-                    }
+                    if (apply(Interval.ofSingleton(indices[i]))) changed = true
                 }
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }

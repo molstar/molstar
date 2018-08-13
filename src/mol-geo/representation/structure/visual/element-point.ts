@@ -13,7 +13,7 @@ import { RuntimeContext } from 'mol-task'
 import { UnitsVisual, DefaultStructureProps } from '..';
 import VertexMap from '../../../shape/vertex-map';
 import { SizeTheme } from '../../../theme';
-import { markElement, getElementLoci } from './util/element';
+import { getElementLoci } from './util/element';
 import { createTransforms, createColors, createSizes } from './util/common';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
@@ -133,7 +133,8 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             return getElementLoci(pickingId, currentGroup, renderObject.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            markElement(loci, action, currentGroup, renderObject.values)
+            // TODO
+            // markElement(loci, action, currentGroup, renderObject.values)
         },
         destroy() {
             // TODO

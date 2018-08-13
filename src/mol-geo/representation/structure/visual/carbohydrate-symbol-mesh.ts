@@ -4,22 +4,19 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { MarkerAction, MarkerData, applyMarkerAction } from '../../../util/marker-data';
-import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 import { LocationIterator } from './util/location-iterator';
-import { OrderedSet } from 'mol-data/int';
+import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
 
 const t = Mat4.identity()
@@ -163,33 +160,19 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
     return EmptyLoci
 }
 
-function markCarbohydrate(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
-    const tMarker = values.tMarker
-
+function markCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getElementIndex } = structure.carbohydrates
-    const elementCount = structure.carbohydrates.elements.length * 2
 
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        if (applyMarkerAction(array, 0, elementCount, action)) {
-            changed = true
-        }
-    } else if (StructureElement.isLoci(loci)) {
+    if (StructureElement.isLoci(loci)) {
         for (const e of loci.elements) {
             OrderedSet.forEach(e.indices, index => {
                 const idx = getElementIndex(e.unit, e.unit.elements[index])
                 if (idx !== undefined) {
-                    if (applyMarkerAction(array, idx * 2, idx * 2 + 2, action) && !changed) {
-                        changed = true
-                    }
+                    if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true
                 }
             })
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }

@@ -4,21 +4,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
 import { Unit, Structure, Link, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { MarkerAction, MarkerData, applyMarkerAction } from '../../../util/marker-data';
-import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { DefaultMeshProps } from '../../util';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from './util/location-iterator';
 import { createLinkCylinderMesh, DefaultLinkCylinderProps, LinkCylinderProps } from './util/link';
-import { OrderedSet } from 'mol-data/int';
+import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
 
 // TODO create seperate visual
@@ -110,31 +107,17 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function markLink(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
-    const tMarker = values.tMarker
-
+function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getLinkIndex } = structure.carbohydrates
-    const elementCount = structure.carbohydrates.links.length
 
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        if (applyMarkerAction(array, 0, elementCount, action)) {
-            changed = true
-        }
-    } else if (Link.isLoci(loci)) {
+    if (Link.isLoci(loci)) {
         for (const l of loci.links) {
             const idx = getLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
             if (idx !== undefined) {
-                if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                    changed = true
-                }
+                if (apply(Interval.ofSingleton(idx))) changed = true
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }

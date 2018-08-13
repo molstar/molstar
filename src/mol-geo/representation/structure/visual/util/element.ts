@@ -11,9 +11,8 @@ import { RuntimeContext } from 'mol-task';
 import { sphereVertexCount } from '../../../../primitive/sphere';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
-import { ValueCell, defaults } from 'mol-util';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, MarkerData } from '../../../../util/marker-data';
+import { defaults } from 'mol-util';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { getPhysicalRadius } from '../../../../theme/structure/size/physical';
 import { PickingId } from '../../../../util/picking';
@@ -63,43 +62,28 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, p
     return meshBuilder.getMesh()
 }
 
-export function markElement(loci: Loci, action: MarkerAction, group: Unit.SymmetryGroup, values: MarkerData) {
-    const tMarker = values.tMarker
-
+export function markElement(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
     const elementCount = group.elements.length
-    const instanceCount = group.units.length
 
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        applyMarkerAction(array, 0, elementCount * instanceCount, action)
-        changed = true
-    } else if (StructureElement.isLoci(loci)) {
+    if (StructureElement.isLoci(loci)) {
         for (const e of loci.elements) {
             const unitIdx = Unit.findUnitById(e.unit.id, group.units)
             if (unitIdx !== -1) {
                 if (Interval.is(e.indices)) {
-                    const idxStart = unitIdx * elementCount + Interval.start(e.indices);
-                    const idxEnd = unitIdx * elementCount + Interval.end(e.indices);
-                    if (applyMarkerAction(array, idxStart, idxEnd, action) && !changed) {
-                        changed = true
-                    }
+                    const start = unitIdx * elementCount + Interval.start(e.indices);
+                    const end = unitIdx * elementCount + Interval.end(e.indices);
+                    if (apply(Interval.ofBounds(start, end))) changed = true
                 } else {
                     for (let i = 0, _i = e.indices.length; i < _i; i++) {
                         const idx = unitIdx * elementCount + e.indices[i];
-                        if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                            changed = true
-                        }
+                        if (apply(Interval.ofSingleton(idx))) changed = true
                     }
                 }
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }
 
 export function getElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {

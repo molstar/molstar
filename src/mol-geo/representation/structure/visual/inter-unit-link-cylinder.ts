@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
@@ -13,11 +11,11 @@ import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } f
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, MarkerData } from '../../../util/marker-data';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { SizeTheme } from '../../../theme';
 import { LinkIterator } from './util/location-iterator';
 import { ComplexMeshVisual } from '../complex-visual';
+import { Interval } from 'mol-data/int';
 
 async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links
@@ -72,32 +70,15 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     return EmptyLoci
 }
 
-function markLink(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
-    const tMarker = values.tMarker
-
-    const links = structure.links
-    const elementCount = links.bondCount
-
+function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        if (applyMarkerAction(array, 0, elementCount, action)) {
-            changed = true
-        }
-    } else if (Link.isLoci(loci)) {
+    if (Link.isLoci(loci)) {
         for (const b of loci.links) {
-            const _idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
-            if (_idx !== -1) {
-                const idx = _idx
-                if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                    changed = true
-                }
+            const idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
+            if (idx !== -1) {
+                if (apply(Interval.ofSingleton(idx))) changed = true
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }
