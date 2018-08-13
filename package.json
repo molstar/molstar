@@ -43,6 +43,7 @@
       "node_modules",
       "build/node_modules"
     ],
+    "testURL": "http://localhost/",
     "moduleNameMapper": {
       "mol-app($|/.*)": "<rootDir>/src/mol-app$1",
       "mol-data($|/.*)": "<rootDir>/src/mol-data$1",
