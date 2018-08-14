@@ -5,14 +5,14 @@
  */
 
 import { Link, Structure, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, ComplexVisual } from '..';
+import { ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { ComplexMeshVisual } from '../complex-visual';
+import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { LocationIterator } from './util/location-iterator';
 import { Interval } from 'mol-data/int';
 import { SizeThemeProps } from 'mol-view/theme/size';
@@ -41,7 +41,7 @@ async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structu
 }
 
 export const DefaultCrossLinkRestraintProps = {
-    ...DefaultStructureProps,
+    ...DefaultComplexMeshProps,
     ...DefaultLinkCylinderProps,
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
     flipSided: false,
@@ -55,7 +55,10 @@ export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProp
         createMesh: createCrossLinkRestraintCylinderMesh,
         createLocationIterator: CrossLinkRestraintIterator,
         getLoci: getLinkLoci,
-        mark: markLink
+        mark: markLink,
+        setUpdateState: (state: MeshUpdateState, newProps: CrossLinkRestraintProps, currentProps: CrossLinkRestraintProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }
 

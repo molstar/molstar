@@ -68,7 +68,8 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
         createMesh: createIntraUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
-        mark: markLink
+        mark: markLink,
+        setUpdateState: () => {}
     })
 }
 

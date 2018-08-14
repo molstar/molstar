@@ -30,6 +30,7 @@ export interface LocationIterator extends Iterator<LocationValue> {
     readonly elementCount: number
     readonly instanceCount: number
     move(): LocationValue
+    reset(): void
     skipInstance(): void
 }
 
@@ -73,6 +74,18 @@ export function LocationIterator(elementCount: number, instanceCount: number, ge
                 hasNext = elementIndex < elementCount
             }
             return value
+        },
+        reset() {
+            value.location = NullLocation
+            value.index = 0
+            value.elementIndex = 0
+            value.instanceIndex = 0
+            value.isSecondary = false
+
+            hasNext = value.elementIndex < elementCount
+            isNextNewInstance = false
+            elementIndex = 0
+            instanceIndex = 0
         },
         skipInstance() {
             if (hasNext && value.instanceIndex === instanceIndex) {

@@ -65,7 +65,7 @@ export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => 
                         }
                     }
 
-                    // for new groups, reuse leftover visuals
+                    // for new groups, re-use leftover visuals
                     const unusedVisuals: UnitsVisual<P>[] = []
                     oldUnitsVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
                     newGroups.forEach(async group => {

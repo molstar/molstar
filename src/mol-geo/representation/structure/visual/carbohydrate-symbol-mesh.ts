@@ -5,18 +5,17 @@
  */
 
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, ComplexVisual } from '..';
+import { ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 import { LocationIterator } from './util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
-import { ComplexMeshVisual } from '../complex-visual';
+import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { SizeThemeProps } from 'mol-view/theme/size';
 
 const t = Mat4.identity()
@@ -113,8 +112,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 }
 
 export const DefaultCarbohydrateSymbolProps = {
-    ...DefaultMeshProps,
-    ...DefaultStructureProps,
+    ...DefaultComplexMeshProps,
     sizeTheme: { name: 'physical', factor: 1 } as SizeThemeProps,
     detail: 0,
     unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
@@ -127,7 +125,8 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProp
         createMesh: createCarbohydrateSymbolMesh,
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
-        mark: markCarbohydrate
+        mark: markCarbohydrate,
+        setUpdateState: () => {}
     })
 }
 

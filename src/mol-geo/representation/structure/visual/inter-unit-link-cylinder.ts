@@ -5,7 +5,7 @@
  */
 
 import { Link, Structure, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, ComplexVisual } from '..';
+import { ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
 import { Mesh } from '../../../shape/mesh';
@@ -13,7 +13,7 @@ import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { LinkIterator } from './util/location-iterator';
-import { ComplexMeshVisual } from '../complex-visual';
+import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { Interval } from 'mol-data/int';
 import { SizeThemeProps } from 'mol-view/theme/size';
 
@@ -40,7 +40,7 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
 }
 
 export const DefaultInterUnitLinkProps = {
-    ...DefaultStructureProps,
+    ...DefaultComplexMeshProps,
     ...DefaultLinkCylinderProps,
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
 }
@@ -52,7 +52,10 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {
         createMesh: createInterUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromStructure,
         getLoci: getLinkLoci,
-        mark: markLink
+        mark: markLink,
+        setUpdateState: (state: MeshUpdateState, newProps: InterUnitLinkProps, currentProps: InterUnitLinkProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }
 

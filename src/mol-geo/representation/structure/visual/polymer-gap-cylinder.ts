@@ -66,6 +66,7 @@ export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {
         createMesh: createPolymerGapCylinderMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement
+        mark: markElement,
+        setUpdateState: () => {}
     })
 }

@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure, Link, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, ComplexVisual } from '..';
+import { DefaultStructureProps, ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
@@ -64,7 +64,10 @@ export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {
         createMesh: createCarbohydrateLinkCylinderMesh,
         createLocationIterator: CarbohydrateLinkIterator,
         getLoci: getLinkLoci,
-        mark: markLink
+        mark: markLink,
+        setUpdateState: (state: MeshUpdateState, newProps: CarbohydrateLinkProps, currentProps: CarbohydrateLinkProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }
 

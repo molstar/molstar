@@ -68,7 +68,6 @@ export class Carbohydrate extends View<Controller<any>, CarbohydrateState, { tra
     }
 
     update(state?: Partial<CarbohydrateState>) {
-        console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)

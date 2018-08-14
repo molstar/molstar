@@ -60,7 +60,6 @@ export class Cartoon extends View<Controller<any>, CartoonState, { transform: Ca
     }
 
     update(state?: Partial<CartoonState>) {
-        console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)

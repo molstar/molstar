@@ -60,7 +60,6 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
     }
 
     update(state?: Partial<BackboneState>) {
-        console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)

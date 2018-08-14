@@ -87,6 +87,7 @@ export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {
         createMesh: createPolymerDirectionWedgeMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement
+        mark: markElement,
+        setUpdateState: () => {}
     })
 }

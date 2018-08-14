@@ -33,7 +33,7 @@ export function ComplexRepresentation<P extends StructureProps>(visualCtor: () =
                     await update(_props)
                 } else {
                     if (!await visual.update(ctx, _props)) {
-                        await visual.create(ctx, _structure, _props)
+                        await visual.create(ctx, structure, _props)
                     }
                 }
             }

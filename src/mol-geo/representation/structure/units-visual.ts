@@ -6,7 +6,7 @@
 
 import { Unit } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '..';
-import { DefaultStructureMeshProps } from '.';
+import { DefaultStructureMeshProps, MeshUpdateState } from '.';
 import { RuntimeContext } from 'mol-task';
 import { PickingId } from '../../util/picking';
 import { LocationIterator } from './visual/util/location-iterator';
@@ -33,10 +33,12 @@ export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> {
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
     mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
+    setUpdateState(state: MeshUpdateState, newProps: P, currentProps: P): void
 }
 
 export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisualBuilder<P>): UnitsVisual<P> {
-    const { defaultProps, createMesh, createLocationIterator, getLoci, mark } = builder
+    const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const updateState = MeshUpdateState.create()
 
     let renderObject: MeshRenderObject
     let currentProps: P
@@ -60,29 +62,32 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         },
         async update(ctx: RuntimeContext, props: Partial<P>) {
             const newProps = Object.assign({}, currentProps, props)
+            const unit = currentGroup.units[0]
 
             if (!renderObject) return false
 
-            let updateColor = false
+            locationIt.reset()
+            MeshUpdateState.reset(updateState)
+            setUpdateState(updateState, newProps, currentProps)
 
-            // TODO create in-place
-            // if (currentProps.radialSegments !== newProps.radialSegments) return false
-
-            // TODO
-            // if (newProps.detail !== currentProps.detail) {
-            //     const unit = currentGroup.units[0]
-            //     const radius = getElementRadius(unit, newProps.sizeTheme)
-            //     mesh = await createElementSphereMesh(ctx, unit, radius, newProps.detail, mesh)
-            //     ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
-            //     updateColor = true
-            // }
-
-            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-                updateColor = true
+            if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) {
+                updateState.createMesh = true
             }
 
-            if (updateColor) {
-                createColors(createLocationIterator(currentGroup), newProps.colorTheme, renderObject.values)
+            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
+                updateState.updateColor = true
+            }
+
+            //
+
+            if (updateState.createMesh) {
+                mesh = await createMesh(ctx, unit, newProps, mesh)
+                ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
+                updateState.updateColor = true
+            }
+
+            if (updateState.updateColor) {
+                createColors(locationIt, newProps.colorTheme, renderObject.values)
             }
 
             updateMeshValues(renderObject.values, newProps)

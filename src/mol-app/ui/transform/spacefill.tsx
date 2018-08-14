@@ -46,7 +46,7 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
-        sizeTheme: { name: 'uniform' } as SizeThemeProps,
+        sizeTheme: { name: 'uniform', factor: 1 } as SizeThemeProps,
         visible: true,
         alpha: 1,
         depthMask: true,
@@ -60,7 +60,6 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
     }
 
     update(state?: Partial<SpacefillState>) {
-        console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)
@@ -217,6 +216,21 @@ export class Spacefill extends View<Controller<any>, SpacefillState, { transform
                                     step={0.01}
                                     callOnChangeWhileSliding={true}
                                     onChange={value => this.update({ alpha: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Slider
+                                    value={this.state.sizeTheme.factor || 1}
+                                    label='Size factor'
+                                    min={0.1}
+                                    max={3}
+                                    step={0.01}
+                                    callOnChangeWhileSliding={true}
+                                    onChange={value => this.update({
+                                        sizeTheme: { ...this.state.sizeTheme, factor: value }
+                                    })}
                                 />
                             </div>
                         </div>

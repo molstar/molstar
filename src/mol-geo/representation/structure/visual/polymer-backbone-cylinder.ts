@@ -60,6 +60,7 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
         createMesh: createPolymerBackboneCylinderMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement
+        mark: markElement,
+        setUpdateState: () => {}
     })
 }

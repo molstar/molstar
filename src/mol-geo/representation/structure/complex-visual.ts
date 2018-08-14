@@ -11,7 +11,7 @@ import { Mesh } from '../../shape/mesh';
 import { RuntimeContext } from 'mol-task';
 import { LocationIterator } from './visual/util/location-iterator';
 import { createComplexMeshRenderObject, createColors } from './visual/util/common';
-import { StructureMeshProps, StructureProps } from '.';
+import { StructureProps, DefaultStructureMeshProps, MeshUpdateState } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
 import { updateMeshValues, updateRenderableState } from '../util';
 import { PickingId } from '../../util/picking';
@@ -21,16 +21,23 @@ import { Interval } from 'mol-data/int';
 
 export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
 
-export interface ComplexMeshVisualBuilder<P extends StructureMeshProps> {
+export const DefaultComplexMeshProps = {
+    ...DefaultStructureMeshProps
+}
+export type ComplexMeshProps = typeof DefaultComplexMeshProps
+
+export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> {
     defaultProps: P
     createMesh(ctx: RuntimeContext, structure: Structure, props: P, mesh?: Mesh): Promise<Mesh>
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
-    mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean
+    mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
+    setUpdateState(state: MeshUpdateState, newProps: P, currentProps: P): void
 }
 
-export function ComplexMeshVisual<P extends StructureMeshProps>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
-    const { defaultProps, createMesh, createLocationIterator, getLoci, mark } = builder
+export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
+    const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const updateState = MeshUpdateState.create()
 
     let renderObject: MeshRenderObject
     let currentProps: P
@@ -54,16 +61,27 @@ export function ComplexMeshVisual<P extends StructureMeshProps>(builder: Complex
 
             if (!renderObject) return false
 
-            let updateColor = false
+            locationIt.reset()
+            MeshUpdateState.reset(updateState)
+            setUpdateState(updateState, newProps, currentProps)
 
-            // TODO create in-place
-            // if (currentProps.radialSegments !== newProps.radialSegments) return false
-
-            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-                updateColor = true
+            if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) {
+                updateState.createMesh = true
             }
 
-            if (updateColor) {
+            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
+                updateState.updateColor = true
+            }
+
+            //
+
+            if (updateState.createMesh) {
+                mesh = await createMesh(ctx, currentStructure, newProps, mesh)
+                ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
+                updateState.updateColor = true
+            }
+
+            if (updateState.updateColor) {
                 createColors(locationIt, newProps.colorTheme, renderObject.values)
             }
 
@@ -71,7 +89,7 @@ export function ComplexMeshVisual<P extends StructureMeshProps>(builder: Complex
             updateRenderableState(renderObject.state, newProps)
 
             currentProps = newProps
-            return false
+            return true
         },
         getLoci(pickingId: PickingId) {
             return getLoci(pickingId, currentStructure, renderObject.id)

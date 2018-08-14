@@ -114,6 +114,7 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
         createMesh: createNucleotideBlockMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement
+        mark: markElement,
+        setUpdateState: () => {}
     })
 }

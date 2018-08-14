@@ -26,6 +26,23 @@ export const DefaultStructureMeshProps = {
 }
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
+export interface MeshUpdateState {
+    updateColor: boolean
+    createMesh: boolean
+}
+export namespace MeshUpdateState {
+    export function create(): MeshUpdateState {
+        return {
+            updateColor: false,
+            createMesh: false
+        }
+    }
+    export function reset(state: MeshUpdateState) {
+        state.updateColor = false
+        state.createMesh = false
+    }
+}
+
 export { ComplexRepresentation } from './complex-representation'
 export { UnitsRepresentation } from './units-representation'
 export { ComplexVisual } from './complex-visual'

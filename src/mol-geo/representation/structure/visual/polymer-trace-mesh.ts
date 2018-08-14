@@ -80,6 +80,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
         createMesh: createPolymerTraceMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
-        mark: markElement
+        mark: markElement,
+        setUpdateState: () => {}
     })
 }
