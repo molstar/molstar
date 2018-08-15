@@ -16,7 +16,9 @@ import { LocationIterator } from './util/location-iterator';
 import { createLinkCylinderMesh, DefaultLinkCylinderProps, LinkCylinderProps } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { LinkType } from 'mol-model/structure/model/types';
+import { BitFlags } from 'mol-util';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
@@ -30,8 +32,12 @@ import { SizeThemeProps } from 'mol-view/theme/size';
 //     }
 // }
 
+const radiusFactor = 0.3
+
 async function createCarbohydrateLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const { links, elements } = structure.carbohydrates
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const location = StructureElement.create()
 
     const builderProps = {
         linkCount: links.length,
@@ -42,7 +48,13 @@ async function createCarbohydrateLinkCylinderMesh(ctx: RuntimeContext, structure
             Vec3.copy(posB, elements[l.carbohydrateIndexB].geometry.center)
         },
         order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => 0
+        flags: (edgeIndex: number) => BitFlags.create(LinkType.Flag.None),
+        radius: (edgeIndex: number) => {
+            const l = links[edgeIndex]
+            location.unit = elements[l.carbohydrateIndexA].unit
+            location.element = elements[l.carbohydrateIndexA].anomericCarbon
+            return sizeTheme.size(location) * radiusFactor
+        }
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)

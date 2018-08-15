@@ -15,6 +15,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 import { StructureElementIterator } from './util/location-iterator';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -22,13 +23,22 @@ const n0 = Vec3.zero()
 const n1 = Vec3.zero()
 const upVec = Vec3.zero()
 
-async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
+const depthFactor = 4
+const widthFactor = 4
+const heightFactor = 6
+
+export interface PolymerDirectionWedgeProps {
+    sizeTheme: SizeThemeProps
+}
+
+async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
-    console.log('polymerElementCount direction', polymerElementCount)
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
-    // TODO better vertex count estimates
-    const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
+    const sizeTheme = SizeTheme(props.sizeTheme)
+
+    const vertexCount = polymerElementCount * 24
+    const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
     const linearSegments = 1
 
     const state = createCurveSegmentState(linearSegments)
@@ -47,18 +57,15 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
         interpolateCurveSegment(state, v, tension)
 
         if ((isSheet && !v.secStrucChange) || !isSheet) {
+            const size = sizeTheme.size(v.center)
+            const depth = depthFactor * size
+            const width = widthFactor * size
+            const height = heightFactor * size
 
-            let width = 0.5, height = 1.2, depth = 0.6
-            if (isNucleic) {
-                Vec3.fromArray(n0, binormalVectors, 0)
-                Vec3.fromArray(n1, binormalVectors, 3)
-                Vec3.normalize(upVec, Vec3.add(upVec, n0, n1))
-                depth = 0.9
-            } else {
-                Vec3.fromArray(n0, normalVectors, 0)
-                Vec3.fromArray(n1, normalVectors, 3)
-                Vec3.normalize(upVec, Vec3.add(upVec, n0, n1))
-            }
+            const vectors = isNucleic ? binormalVectors : normalVectors
+            Vec3.fromArray(n0, vectors, 0)
+            Vec3.fromArray(n1, vectors, 3)
+            Vec3.normalize(upVec, Vec3.add(upVec, n0, n1))
 
             Mat4.targetTo(t, v.p3, v.p1, upVec)
             Mat4.mul(t, t, Mat4.rotY90Z180)

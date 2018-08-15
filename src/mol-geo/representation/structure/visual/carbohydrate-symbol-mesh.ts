@@ -16,23 +16,33 @@ import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/struct
 import { LocationIterator } from './util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
 const pd = Vec3.zero()
 
+const sideFactor = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
+const radiusFactor = 1.75
+
 async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, props: CarbohydrateSymbolProps, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
-    const carbohydrates = structure.carbohydrates
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const { detail } = props
 
-    const side = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
-    const radius = 1.75
+    const carbohydrates = structure.carbohydrates
+    const l = StructureElement.create()
 
     for (let i = 0, il = carbohydrates.elements.length; i < il; ++i) {
         const c = carbohydrates.elements[i];
         const shapeType = getSaccharideShape(c.component.type)
+
+        l.unit = c.unit
+        l.element = c.unit.elements[c.anomericCarbon]
+        const size = sizeTheme.size(l)
+        const radius = size * radiusFactor
+        const side = size * sideFactor
 
         const { center, normal, direction } = c.geometry
         Vec3.add(pd, center, direction)
@@ -43,7 +53,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
-                builder.addSphere(center, radius, 2)
+                builder.addSphere(center, radius, detail)
                 break;
             case SaccharideShapes.FilledCube:
                 Mat4.scaleUniformly(t, t, side)
@@ -113,7 +123,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 
 export const DefaultCarbohydrateSymbolProps = {
     ...DefaultComplexMeshProps,
-    sizeTheme: { name: 'physical', factor: 1 } as SizeThemeProps,
+    sizeTheme: { name: 'uniform', value: 1, factor: 1 } as SizeThemeProps,
     detail: 0,
     unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
 }

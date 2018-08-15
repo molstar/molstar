@@ -16,10 +16,14 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { LinkIterator } from './util/location-iterator';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { Interval } from 'mol-data/int';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { BitFlags } from 'mol-util';
 
 async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
+
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const location = StructureElement.create(unit)
 
     const elements = unit.elements;
     const links = unit.links
@@ -49,7 +53,11 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
             pos(elements[b[edgeIndex]], posB)
         },
         order: (edgeIndex: number) => _order[edgeIndex],
-        flags: (edgeIndex: number) => _flags[edgeIndex]
+        flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
+        radius: (edgeIndex: number) => {
+            location.element = elements[a[edgeIndex]]
+            return sizeTheme.size(location)
+        }
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)

@@ -15,6 +15,7 @@ import { BallAndStickProps } from 'mol-geo/representation/structure/representati
 import { CartoonProps } from 'mol-geo/representation/structure/representation/cartoon';
 import { DistanceRestraintProps } from 'mol-geo/representation/structure/representation/distance-restraint';
 import { BackboneProps } from 'mol-geo/representation/structure/representation/backbone';
+import { CarbohydrateProps } from 'mol-geo/representation/structure/representation/carbohydrate';
 // import { Queries as Q, StructureProperties as SP, Query, Selection } from 'mol-model/structure';
 
 const spacefillProps: Partial<SpacefillProps> = {
@@ -44,7 +45,7 @@ const distanceRestraintProps: Partial<DistanceRestraintProps> = {
 const backboneProps: Partial<BackboneProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
-    // colorTheme: { name: 'uniform', value: 0xFF0000 },
+    sizeTheme: { name: 'uniform', value: 0.3 },
     quality: 'auto',
     useFog: false,
     alpha: 0.5
@@ -53,16 +54,17 @@ const backboneProps: Partial<BackboneProps> = {
 const cartoonProps: Partial<CartoonProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
-    // colorTheme: { name: 'uniform', value: 0x2200CC },
+    sizeTheme: { name: 'uniform', value: 0.13, factor: 1 },
+    aspectRatio: 8,
     quality: 'auto',
     useFog: false
 }
 
-const carbohydrateProps: Partial<CartoonProps> = {
+const carbohydrateProps: Partial<CarbohydrateProps> = {
     doubleSided: true,
     colorTheme: { name: 'carbohydrate-symbol' },
-    // colorTheme: { name: 'uniform', value: 0x2200CC },
-    quality: 'auto',
+    sizeTheme: { name: 'uniform', value: 1, factor: 1 },
+    quality: 'highest',
     useFog: false
 }
 
@@ -86,7 +88,7 @@ export class Stage {
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
-        // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
+        this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('2np2') // dna
@@ -114,7 +116,7 @@ export class Stage {
         // this.loadPdbid('4zs9') // contains raffinose
         // this.loadPdbid('2yft') // contains kestose
         // this.loadPdbid('2b5t') // contains large carbohydrate polymer
-        this.loadPdbid('1b5f') // contains carbohydrate with alternate locations
+        // this.loadPdbid('1b5f') // contains carbohydrate with alternate locations
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)

@@ -36,6 +36,10 @@ interface CartoonState {
     useFog: boolean
     quality: VisualQuality
     unitKinds: Unit.Kind[]
+    linearSegments: number
+    radialSegments: number
+    aspectRatio: number
+    arrowFactor: number
 }
 
 export class Cartoon extends View<Controller<any>, CartoonState, { transform: CartoonUpdate, entity: CartoonEntity, ctx: StateContext }> {
@@ -46,13 +50,17 @@ export class Cartoon extends View<Controller<any>, CartoonState, { transform: Ca
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
-        sizeTheme: { name: 'uniform' } as SizeThemeProps,
+        sizeTheme: { name: 'uniform', value: 0.13, factor: 1 } as SizeThemeProps,
         visible: true,
         alpha: 1,
         depthMask: true,
         useFog: true,
         quality: 'auto' as VisualQuality,
-        unitKinds: [] as Unit.Kind[]
+        unitKinds: [] as Unit.Kind[],
+        linearSegments: 8,
+        radialSegments: 12,
+        aspectRatio: 8,
+        arrowFactor: 1.5
     }
 
     componentWillMount() {
@@ -216,6 +224,49 @@ export class Cartoon extends View<Controller<any>, CartoonState, { transform: Ca
                                     step={0.01}
                                     callOnChangeWhileSliding={true}
                                     onChange={value => this.update({ alpha: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Slider
+                                    value={this.state.aspectRatio || 1}
+                                    label='Aspect ratio'
+                                    min={0.1}
+                                    max={10}
+                                    step={0.1}
+                                    callOnChangeWhileSliding={true}
+                                    onChange={value => this.update({ aspectRatio: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Slider
+                                    value={this.state.sizeTheme.value || 0.1}
+                                    label='Size value'
+                                    min={0.01}
+                                    max={0.3}
+                                    step={0.01}
+                                    callOnChangeWhileSliding={true}
+                                    onChange={value => this.update({
+                                        sizeTheme: { ...this.state.sizeTheme, value: value }
+                                    })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Slider
+                                    value={this.state.sizeTheme.factor || 1}
+                                    label='Size factor'
+                                    min={0.1}
+                                    max={3}
+                                    step={0.01}
+                                    callOnChangeWhileSliding={true}
+                                    onChange={value => this.update({
+                                        sizeTheme: { ...this.state.sizeTheme, factor: value }
+                                    })}
                                 />
                             </div>
                         </div>

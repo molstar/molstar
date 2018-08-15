@@ -49,7 +49,7 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
         flatShaded: false,
         colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
-        sizeTheme: { name: 'uniform' } as SizeThemeProps,
+        sizeTheme: { name: 'uniform', value: 0.15 } as SizeThemeProps,
         visible: true,
         alpha: 1,
         depthMask: true,
@@ -208,6 +208,21 @@ export class BallAndStick extends View<Controller<any>, BallAndStickState, { tra
                                     step={0.01}
                                     callOnChangeWhileSliding={true}
                                     onChange={value => this.update({ alpha: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Slider
+                                    value={this.state.sizeTheme.factor || 1}
+                                    label='Size factor'
+                                    min={0.1}
+                                    max={3}
+                                    step={0.01}
+                                    callOnChangeWhileSliding={true}
+                                    onChange={value => this.update({
+                                        sizeTheme: { ...this.state.sizeTheme, factor: value }
+                                    })}
                                 />
                             </div>
                         </div>

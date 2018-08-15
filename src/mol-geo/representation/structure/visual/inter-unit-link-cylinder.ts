@@ -15,13 +15,17 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { LinkIterator } from './util/location-iterator';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { Interval } from 'mol-data/int';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { BitFlags } from 'mol-util';
 
 async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links
     const { bondCount, bonds } = links
 
     if (!bondCount) return Mesh.createEmpty(mesh)
+
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const location = StructureElement.create()
 
     const builderProps = {
         linkCount: bondCount,
@@ -33,7 +37,13 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
             uB.conformation.position(uB.elements[b.indexB], posB)
         },
         order: (edgeIndex: number) => bonds[edgeIndex].order,
-        flags: (edgeIndex: number) => bonds[edgeIndex].flag
+        flags: (edgeIndex: number) => BitFlags.create(bonds[edgeIndex].flag),
+        radius: (edgeIndex: number) => {
+            const b = bonds[edgeIndex]
+            location.unit = b.unitA
+            location.element = b.unitA.elements[b.indexA]
+            return sizeTheme.size(location)
+        }
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)

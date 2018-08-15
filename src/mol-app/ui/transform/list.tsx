@@ -23,6 +23,7 @@ import { Cartoon } from './cartoon';
 import { DistanceRestraint } from './distance-restraint';
 import { Backbone } from './backbone';
 import { UrlLoader } from './url-loader';
+import { Carbohydrate } from './carbohydrate';
 
 function getTransformComponent(controller: TransformListController, entity: AnyEntity, transform: AnyTransform) {
     switch (transform.kind) {
@@ -44,6 +45,8 @@ function getTransformComponent(controller: TransformListController, entity: AnyE
             return <Backbone controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Backbone>
         case 'cartoon-update':
             return <Cartoon controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Cartoon>
+        case 'carbohydrate-update':
+            return <Carbohydrate controller={controller} entity={entity} transform={transform} ctx={controller.context.stage.ctx}></Carbohydrate>
     }
     return <Transform controller={controller} entity={entity} transform={transform}></Transform>
 }

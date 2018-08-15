@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, StructureElement } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
@@ -14,36 +14,58 @@ import { getElementLoci, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { StructureElementIterator } from './util/location-iterator';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { CylinderProps } from '../../../primitive/cylinder';
 
-async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
+const segmentCount = 10
+
+export interface PolymerGapCylinderProps {
+    sizeTheme: SizeThemeProps
+    radialSegments: number
+}
+
+async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, props: PolymerGapCylinderProps, mesh?: Mesh) {
     const polymerGapCount = getPolymerGapCount(unit)
     if (!polymerGapCount) return Mesh.createEmpty(mesh)
-    console.log('polymerGapCount', polymerGapCount)
 
-    // TODO better vertex count estimates
-    const builder = MeshBuilder.create(polymerGapCount * 30, polymerGapCount * 30 / 2, mesh)
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const { radialSegments } = props
+
+    const vertexCountEstimate = segmentCount * radialSegments * 2 * polymerGapCount * 2
+    const builder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 10, mesh)
 
     const { elements } = unit
     const pos = unit.conformation.invariantPosition
     const pA = Vec3.zero()
     const pB = Vec3.zero()
+    const l = StructureElement.create(unit)
+    const cylinderProps: CylinderProps = {
+        radiusTop: 1, radiusBottom: 1, topCap: true, bottomCap: true, radialSegments
+    }
 
     let i = 0
     const polymerGapIt = PolymerGapIterator(unit)
     while (polymerGapIt.hasNext) {
-        // TODO size theme
         const { centerA, centerB } = polymerGapIt.move()
         if (centerA.element === centerB.element) {
             builder.setId(centerA.element)
             pos(elements[centerA.element], pA)
             builder.addSphere(pA, 0.6, 0)
         } else {
-            pos(elements[centerA.element], pA)
-            pos(elements[centerB.element], pB)
+            const elmA = elements[centerA.element]
+            const elmB = elements[centerB.element]
+            pos(elmA, pA)
+            pos(elmB, pB)
+
+            l.element = elmA
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(l)
             builder.setId(centerA.element)
-            builder.addFixedCountDashedCylinder(pA, pB, 0.5, 10, { radiusTop: 0.2, radiusBottom: 0.2 })
+            builder.addFixedCountDashedCylinder(pA, pB, 0.5, segmentCount, cylinderProps)
+
+            l.element = elmB
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(l)
             builder.setId(centerB.element)
-            builder.addFixedCountDashedCylinder(pB, pA, 0.5, 10, { radiusTop: 0.2, radiusBottom: 0.2 })
+            builder.addFixedCountDashedCylinder(pB, pA, 0.5, segmentCount, cylinderProps)
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
@@ -56,7 +78,8 @@ async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, pro
 }
 
 export const DefaultPolymerGapProps = {
-    ...DefaultUnitsMeshProps
+    ...DefaultUnitsMeshProps,
+    radialSegments: 16
 }
 export type PolymerGapProps = typeof DefaultPolymerGapProps
 

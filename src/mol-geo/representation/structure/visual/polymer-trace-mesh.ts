@@ -5,7 +5,7 @@
  */
 
 import { Unit } from 'mol-model/structure';
-import { UnitsVisual } from '..';
+import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { markElement, getElementLoci } from './util/element';
 import { Mesh } from '../../../shape/mesh';
@@ -14,18 +14,27 @@ import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, 
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 import { StructureElementIterator } from './util/location-iterator';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+
+export interface PolymerTraceMeshProps {
+    sizeTheme: SizeThemeProps
+    linearSegments: number
+    radialSegments: number
+    aspectRatio: number
+    arrowFactor: number
+}
 
 // TODO handle polymer ends properly
 
-async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
+async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: PolymerTraceMeshProps, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
-    console.log('polymerElementCount trace', polymerElementCount)
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
-    // TODO better vertex count estimates
-    const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
-    const linearSegments = 8
-    const radialSegments = 12
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const { linearSegments, radialSegments, aspectRatio, arrowFactor } = props
+
+    const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
+    const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
 
     const state = createCurveSegmentState(linearSegments)
     const { curvePoints, normalVectors, binormalVectors } = state
@@ -41,21 +50,23 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: {}
         const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
         const tension = (isNucleic || isSheet) ? 0.5 : 0.9
 
-        // console.log('ELEMENT', i)
         interpolateCurveSegment(state, v, tension)
 
-        let width = 0.2, height = 0.2
+        let width = sizeTheme.size(v.center)
 
-        // TODO size theme
         if (isSheet) {
-            width = 0.15; height = 1.0
-            const arrowHeight = v.secStrucChange ? 1.7 : 0
+            const height = width * aspectRatio
+            const arrowHeight = v.secStrucChange ? height * arrowFactor : 0
             builder.addSheet(curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
         } else {
+            let height: number
             if (isHelix) {
-                width = 0.2; height = 1.0
+                height = width * aspectRatio
             } else if (isNucleic) {
-                width = 1.5; height = 0.3
+                height = width * aspectRatio;
+                [width, height] = [height, width]
+            } else {
+                height = width
             }
             builder.addTube(curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
         }
@@ -70,7 +81,11 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: {}
 }
 
 export const DefaultPolymerTraceProps = {
-    ...DefaultUnitsMeshProps
+    ...DefaultUnitsMeshProps,
+    linearSegments: 8,
+    radialSegments: 12,
+    aspectRatio: 5,
+    arrowFactor: 1.5
 }
 export type PolymerTraceProps = typeof DefaultPolymerTraceProps
 
@@ -81,6 +96,13 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: PolymerTraceProps, currentProps: PolymerTraceProps) => {
+            state.createMesh = (
+                newProps.linearSegments !== currentProps.linearSegments ||
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.aspectRatio !== currentProps.aspectRatio ||
+                newProps.arrowFactor !== currentProps.arrowFactor
+            )
+        }
     })
 }

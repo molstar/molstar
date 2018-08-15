@@ -15,26 +15,35 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { LocationIterator } from './util/location-iterator';
 import { Interval } from 'mol-data/int';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { BitFlags } from 'mol-util';
+import { LinkType } from 'mol-model/structure/model/types';
 
 async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
 
     const crossLinks = structure.crossLinkRestraints
     if (!crossLinks.count) return Mesh.createEmpty(mesh)
 
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const location = StructureElement.create()
+
     const builderProps = {
         linkCount: crossLinks.count,
         referencePosition: (edgeIndex: number) => null,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
-            // console.log(b)
             const uA = b.unitA, uB = b.unitB
             uA.conformation.position(uA.elements[b.indexA], posA)
             uB.conformation.position(uB.elements[b.indexB], posB)
-            // console.log(posA, posB)
         },
         order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => 0
+        flags: (edgeIndex: number) => BitFlags.create(LinkType.Flag.None),
+        radius: (edgeIndex: number) => {
+            const b = crossLinks.pairs[edgeIndex]
+            location.unit = b.unitA
+            location.element = b.unitA.elements[b.indexA]
+            return sizeTheme.size(location)
+        }
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)

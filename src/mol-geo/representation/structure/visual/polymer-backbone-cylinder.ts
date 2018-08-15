@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, StructureElement } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../shape/mesh';
@@ -14,31 +14,49 @@ import { getElementLoci, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { StructureElementIterator } from './util/location-iterator';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { CylinderProps } from '../../../primitive/cylinder';
 
-async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
+export interface PolymerBackboneCylinderProps {
+    sizeTheme: SizeThemeProps
+    radialSegments: number
+}
+
+async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
     const polymerElementCount = getPolymerElementCount(unit)
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
-    console.log('polymerElementCount backbone', polymerElementCount)
 
-    // TODO better vertex count estimates
-    const builder = MeshBuilder.create(polymerElementCount * 30, polymerElementCount * 30 / 2, mesh)
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const { radialSegments } = props
+
+    const vertexCountEstimate = radialSegments * 2 * polymerElementCount * 2
+    const builder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 10, mesh)
 
     const { elements } = unit
     const pos = unit.conformation.invariantPosition
     const pA = Vec3.zero()
     const pB = Vec3.zero()
+    const l = StructureElement.create(unit)
+    const cylinderProps: CylinderProps = { radiusTop: 1, radiusBottom: 1, radialSegments }
 
     let i = 0
     const polymerBackboneIt = PolymerBackboneIterator(unit)
     while (polymerBackboneIt.hasNext) {
-        // TODO size theme
         const { centerA, centerB } = polymerBackboneIt.move()
-        pos(elements[centerA.element], pA)
-        pos(elements[centerB.element], pB)
+        const elmA = elements[centerA.element]
+        const elmB = elements[centerB.element]
+        pos(elmA, pA)
+        pos(elmB, pB)
+
+        l.element = elmA
+        cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(l)
         builder.setId(centerA.element)
-        builder.addCylinder(pA, pB, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+        builder.addCylinder(pA, pB, 0.5, cylinderProps)
+
+        l.element = elmB
+        cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(l)
         builder.setId(centerB.element)
-        builder.addCylinder(pB, pA, 0.5, { radiusTop: 0.2, radiusBottom: 0.2 })
+        builder.addCylinder(pB, pA, 0.5, cylinderProps)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
@@ -50,7 +68,8 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
 }
 
 export const DefaultPolymerBackboneProps = {
-    ...DefaultUnitsMeshProps
+    ...DefaultUnitsMeshProps,
+    radialSegments: 16
 }
 export type PolymerBackboneProps = typeof DefaultPolymerBackboneProps
 
