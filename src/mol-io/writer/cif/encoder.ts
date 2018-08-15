@@ -67,6 +67,36 @@ export namespace Field {
     export function index(name: string) {
         return int(name, (e, d, i) => i + 1, { typedArray: Int32Array, encoder: ArrayEncoding.by(ArrayEncoding.delta).and(ArrayEncoding.runLength).and(ArrayEncoding.integerPacking) })
     }
+
+    export class Builder<K = number, D = any> {
+        private fields: Field<K, D>[] = [];
+
+        index(name: string) {
+            this.fields.push(Field.index(name));
+            return this;
+        }
+
+        str(name: string, value: (k: K, d: D, index: number) => string, params?: ParamsBase<K, D>) {
+            this.fields.push(Field.str(name, value, params));
+            return this;
+        }
+
+        int(name: string, value: (k: K, d: D, index: number) => number, params?:  ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor }) {
+            this.fields.push(Field.int(name, value, params));
+            return this;
+        }
+
+        float(name: string, value: (k: K, d: D, index: number) => number, params?: ParamsBase<K, D> & { typedArray?: ArrayEncoding.TypedArrayCtor, digitCount?: number }) {
+            this.fields.push(Field.float(name, value, params));
+            return this;
+        }
+
+        getFields() { return this.fields; }
+    }
+
+    export function build<K = number, D = any>() {
+        return new Builder<K, D>();
+    }
 }
 
 export interface Category<Ctx = any> {

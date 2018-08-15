@@ -21,6 +21,10 @@ export namespace CifWriter {
         return binary ? new BinaryEncoder(encoderName) : new TextEncoder();
     }
 
+    export function fields<K = number, D = any>() {
+        return Field.build<K, D>();
+    }
+
     import E = Encoding
     export const Encodings = {
         deltaRLE: E.by(E.delta).and(E.runLength).and(E.integerPacking),
