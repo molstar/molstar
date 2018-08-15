@@ -103,7 +103,7 @@ export namespace StructureElementIterator {
         const elementCount = group.elements.length
         const instanceCount = group.units.length
         const location = StructureElement.create(unit)
-        const getLocation = (elementIndex: number, instanceIndex: number) => {
+        const getLocation = (elementIndex: number) => {
             location.element = unit.elements[elementIndex]
             return location
         }
@@ -117,7 +117,7 @@ export namespace LinkIterator {
         const elementCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
         const instanceCount = group.units.length
         const location = StructureElement.create(unit)
-        const getLocation = (elementIndex: number, instanceIndex: number) => {
+        const getLocation = (elementIndex: number) => {
             location.element = unit.elements[(unit as Unit.Atomic).links.a[elementIndex]]
             return location
         }
@@ -128,7 +128,7 @@ export namespace LinkIterator {
         const elementCount = structure.links.bondCount
         const instanceCount = 1
         const location = Link.Location()
-        const getLocation = (elementIndex: number, instanceIndex: number) => {
+        const getLocation = (elementIndex: number) => {
             const bond = structure.links.bonds[elementIndex]
             location.aUnit = bond.unitA
             location.aIndex = bond.indexA as StructureElement.UnitIndex

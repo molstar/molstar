@@ -77,8 +77,8 @@ export function createInstanceColor(locationIt: LocationIterator, colorFn: Locat
     const { instanceCount} = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const v = locationIt.move()
-        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.instanceIndex * 3)
+        const { location, isSecondary, instanceIndex } = locationIt.move()
+        Color.toArray(colorFn(location, isSecondary), colors.array, instanceIndex * 3)
         locationIt.skipInstance()
     }
     return createTextureColor(colors, 'instance', colorData)
@@ -89,9 +89,8 @@ export function createElementColor(locationIt: LocationIterator, colorFn: Locati
     const { elementCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createTextureImage(elementCount, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const v = locationIt.move()
-        // console.log(v)
-        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.elementIndex * 3)
+        const { location, isSecondary, elementIndex } = locationIt.move()
+        Color.toArray(colorFn(location, isSecondary), colors.array, elementIndex * 3)
     }
     return createTextureColor(colors, 'element', colorData)
 }
@@ -102,8 +101,8 @@ export function createElementInstanceColor(locationIt: LocationIterator, colorFn
     const count = instanceCount * elementCount
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const v = locationIt.move()
-        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.index * 3)
+        const { location, isSecondary, index } = locationIt.move()
+        Color.toArray(colorFn(location, isSecondary), colors.array, index * 3)
     }
     return createTextureColor(colors, 'elementInstance', colorData)
 }

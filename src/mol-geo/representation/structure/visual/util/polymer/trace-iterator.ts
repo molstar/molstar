@@ -5,7 +5,7 @@
  */
 
 import { Unit, StructureElement, ElementIndex, ResidueIndex } from 'mol-model/structure';
-import { Segmentation, SortedArray } from 'mol-data/int';
+import { Segmentation } from 'mol-data/int';
 import { MoleculeType, SecondaryStructureType, AtomRole } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
 import { Vec3 } from 'mol-math/linear-algebra';
@@ -94,7 +94,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         if (residueIndex < this.residueSegmentMin) {
             const cyclicIndex = cyclicPolymerMap.get(this.residueSegmentMin)
             if (cyclicIndex !== undefined) {
-
                 residueIndex = cyclicIndex - (this.residueSegmentMin - residueIndex - 1) as ResidueIndex
             } else {
                 residueIndex = this.residueSegmentMin
@@ -107,17 +106,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 residueIndex = this.residueSegmentMax
             }
         }
-        return getElementIndexForAtomRole(this.unit.model, residueIndex as ResidueIndex, atomRole)
-    }
-
-    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
-        const index = this.getAtomIndex(residueIndex, atomRole)
-        // TODO handle case when it returns -1
-        const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
-        if (elementIndex === -1) {
-            console.log('-1', residueIndex, atomRole, index)
-        }
-        return elementIndex === -1 ? 0 as ElementIndex : elementIndex
+        return getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
     }
 
     private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
@@ -146,7 +135,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
         if (this.state === AtomicPolymerTraceIteratorState.nextResidue) {
             const { index: residueIndex } = residueIt.move();
-            value.center.element = this.getElementIndex(residueIndex, 'trace')
+            value.center.element = this.getAtomIndex(residueIndex, 'trace')
 
             this.pos(this.p0, this.getAtomIndex(residueIndex - 3 as ResidueIndex, 'trace'))
             this.pos(this.p1, this.getAtomIndex(residueIndex - 2 as ResidueIndex, 'trace'))
