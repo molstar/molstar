@@ -112,7 +112,7 @@ describe('renderer', () => {
 
         scene.add(points)
         expect(ctx.bufferCount).toBe(6);
-        expect(ctx.textureCount).toBe(2);
+        expect(ctx.textureCount).toBe(3);
         expect(ctx.vaoCount).toBe(4);
         expect(ctx.programCache.count).toBe(4);
         expect(ctx.shaderCache.count).toBe(8);
