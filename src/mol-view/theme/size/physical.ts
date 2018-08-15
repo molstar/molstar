@@ -4,20 +4,21 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureElement, Unit, StructureProperties, Link } from 'mol-model/structure';
+import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
 import { SizeThemeProps, SizeTheme } from '../size';
+import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
 
 const DefaultSize = 1
 const DefaultFactor = 1
 
-export function getPhysicalRadius(unit: Unit): StructureElement.Property<number> {
+export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
     if (Unit.isAtomic(unit)) {
-        return StructureProperties.atom.vdw_radius
+        return VdwRadius(unit.model.atomicHierarchy.atoms.type_symbol.value(element))
     } else if (Unit.isSpheres(unit)) {
-        return StructureProperties.coarse.sphere_radius
+        return unit.model.coarseConformation.spheres.radius[element]
     } else {
-        return () => 0
+        return 0
     }
 }
 
@@ -27,23 +28,17 @@ export function getPhysicalRadius(unit: Unit): StructureElement.Property<number>
  */
 export function PhysicalSizeTheme(props: SizeThemeProps): SizeTheme {
     const factor = props.factor || DefaultFactor
-    const l = StructureElement.create()
 
     function sizeFn(location: Location): number {
+        let size: number
         if (StructureElement.isLocation(location)) {
-            if (Unit.isAtomic(location.unit)) {
-                const radius = getPhysicalRadius(location.unit)
-                return factor * radius(location)
-            }
+            size = getPhysicalRadius(location.unit, location.element)
         } else if (Link.isLocation(location)) {
-            if (Unit.isAtomic(location.aUnit)) {
-                const radius = getPhysicalRadius(location.aUnit)
-                l.unit = location.aUnit
-                l.element = location.aUnit.elements[location.aIndex]
-                return factor * radius(l)
-            }
+            size = getPhysicalRadius(location.aUnit, location.aUnit.elements[location.aIndex])
+        } else {
+            size = DefaultSize
         }
-        return DefaultSize
+        return factor * size
     }
 
     return {
