@@ -36,6 +36,7 @@ interface BackboneState {
     useFog: boolean
     quality: VisualQuality
     unitKinds: Unit.Kind[]
+    radialSegments: number
 }
 
 export class Backbone extends View<Controller<any>, BackboneState, { transform: BackboneUpdate, entity: BackboneEntity, ctx: StateContext }> {
@@ -52,7 +53,8 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
         depthMask: true,
         useFog: true,
         quality: 'auto' as VisualQuality,
-        unitKinds: [] as Unit.Kind[]
+        unitKinds: [] as Unit.Kind[],
+        radialSegments: 16
     }
 
     componentWillMount() {
