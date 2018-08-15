@@ -37,4 +37,15 @@ describe('Chunked Array', () => {
         ChunkedArray.add2(arr, 9, 10);
         expect(ChunkedArray.compact(arr)).toEqual(new Int32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
     });
+
+    it('resize-fraction', () => {
+        const arr  = ChunkedArray.create<number, 2>(Int32Array, 2, 2.5);
+        ChunkedArray.add2(arr, 1, 2);
+        ChunkedArray.add2(arr, 3, 4);
+        ChunkedArray.add2(arr, 5, 6);
+        ChunkedArray.add2(arr, 7, 8);
+        ChunkedArray.add2(arr, 9, 10);
+        expect(arr.elementCount).toBe(5)
+        expect(ChunkedArray.compact(arr)).toEqual(new Int32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+    });
 });

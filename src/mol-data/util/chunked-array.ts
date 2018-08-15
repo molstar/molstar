@@ -144,7 +144,7 @@ namespace ChunkedArray {
             ctor,
             elementSize,
 
-            growBy: chunkSize,
+            growBy: Math.floor(chunkSize),
             allocatedSize: 0,
             elementCount: 0,
 
