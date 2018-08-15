@@ -27,4 +27,14 @@ describe('Chunked Array', () => {
         ChunkedArray.addMany(arr, [1, 2, 3, 4]);
         expect(ChunkedArray.compact(arr)).toEqual([1, 2, 3, 4]);
     });
+
+    it('resize', () => {
+        const arr  = ChunkedArray.create<number, 2>(Int32Array, 2, 2);
+        ChunkedArray.add2(arr, 1, 2);
+        ChunkedArray.add2(arr, 3, 4);
+        ChunkedArray.add2(arr, 5, 6);
+        ChunkedArray.add2(arr, 7, 8);
+        ChunkedArray.add2(arr, 9, 10);
+        expect(ChunkedArray.compact(arr)).toEqual(new Int32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+    });
 });
