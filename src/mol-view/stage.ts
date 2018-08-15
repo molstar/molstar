@@ -21,6 +21,7 @@ import { CarbohydrateProps } from 'mol-geo/representation/structure/representati
 const spacefillProps: Partial<SpacefillProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
+    sizeTheme: { name: 'physical', factor: 1.0 },
     quality: 'auto',
     useFog: false
 }
@@ -88,7 +89,7 @@ export class Stage {
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
-        this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
+        // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('2np2') // dna
@@ -123,25 +124,24 @@ export class Stage {
         // this.loadPdbid('5u0q') // mixed dna/rna in same polymer
         // this.loadPdbid('5u0q') // temp
 
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
+        this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000003.cif`) // ok
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000004.cif`) // TODO issue with cross-link extraction
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000004.cif`) // TODO issue with cross-link extraction, not shown
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000005.cif`) // ok
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000006.cif`) // TODO only three spacefill atoms rendered
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000007.cif`) // TODO only three spacefill atoms rendered
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000006.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000007.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000008.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000010.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000011.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000012.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000014.cif`) // ok
-        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000016.cif`) // TODO only three spacefill atoms rendered
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000016.cif`) // ok
     }
 
     async loadMmcifUrl (url: string) {
         const urlEntity = UrlEntity.ofUrl(this.ctx, url)
         const modelEntity = await MmcifUrlToModel.apply(this.ctx, urlEntity)
-        console.log(modelEntity.value)
         const structureEntity = await ModelToStructure.apply(this.ctx, modelEntity)
 
         StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: true })

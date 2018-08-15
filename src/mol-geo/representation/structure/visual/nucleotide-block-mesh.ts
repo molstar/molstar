@@ -33,6 +33,7 @@ const sVec = Vec3.zero()
 async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
+    // TODO better vertex count estimate
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const { elements, model } = unit
