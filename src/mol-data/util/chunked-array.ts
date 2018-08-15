@@ -144,7 +144,7 @@ namespace ChunkedArray {
             ctor,
             elementSize,
 
-            growBy: Math.floor(chunkSize),
+            growBy: Math.max(1, Math.ceil(chunkSize)),
             allocatedSize: 0,
             elementCount: 0,
 
