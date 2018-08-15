@@ -18,10 +18,10 @@ export function parseIntSkipLeadingWhitespace(str: string, start: number, end: n
 }
 
 export function parseInt(str: string, start: number, end: number) {
-    let ret = 0, neg = 1;
-    if (str.charCodeAt(start) === 45 /* - */) { neg = -1; start++; }
-    for (; start < end; start++) {
-        const c = str.charCodeAt(start) - 48;
+    let _start = start, ret = 0, neg = 1;
+    if (str.charCodeAt(_start) === 45 /* - */) { neg = -1; _start++; }
+    for (; _start < end; _start++) {
+        const c = str.charCodeAt(_start) - 48;
         if (c > 9 || c < 0) return (neg * ret) | 0;
         else ret = (10 * ret + c) | 0;
     }
@@ -40,37 +40,93 @@ export function parseFloatSkipLeadingWhitespace(str: string, start: number, end:
 }
 
 export function parseFloat(str: string, start: number, end: number) {
-    let neg = 1.0, ret = 0.0, point = 0.0, div = 1.0;
+    let _start = start, neg = 1.0, ret = 0.0, point = 0.0, div = 1.0;
 
-    if (str.charCodeAt(start) === 45) {
+    if (str.charCodeAt(_start) === 45) {
         neg = -1.0;
-        ++start;
+        ++_start;
     }
 
-    while (start < end) {
-        let c = str.charCodeAt(start) - 48;
+    while (_start < end) {
+        let c = str.charCodeAt(_start) - 48;
         if (c >= 0 && c < 10) {
             ret = ret * 10 + c;
-            ++start;
+            ++_start;
         } else if (c === -2) { // .
-            ++start;
-            while (start < end) {
-                c = str.charCodeAt(start) - 48;
+            ++_start;
+            while (_start < end) {
+                c = str.charCodeAt(_start) - 48;
                 if (c >= 0 && c < 10) {
                     point = 10.0 * point + c;
                     div = 10.0 * div;
-                    ++start;
+                    ++_start;
                 } else if (c === 53 || c === 21) { // 'e'/'E'
-                    return parseScientific(neg * (ret + point / div), str, start + 1, end);
+                    return parseScientific(neg * (ret + point / div), str, _start + 1, end);
                 } else {
                     return neg * (ret + point / div);
                 }
             }
             return neg * (ret + point / div);
         } else if (c === 53 || c === 21) { // 'e'/'E'
-            return parseScientific(neg * ret, str, start + 1, end);
+            return parseScientific(neg * ret, str, _start + 1, end);
         }
         else break;
     }
     return neg * ret;
+}
+
+export const enum NumberType {
+    Int,
+    Float,
+    NaN
+}
+
+function isInt(str: string, start: number, end: number) {
+    if (str.charCodeAt(start) === 45 /* - */) { start++; }
+    for (; start < end; start++) {
+        const c = str.charCodeAt(start) - 48;
+        if (c > 9 || c < 0) return false;
+    }
+    return true;
+}
+
+// TODO: check for "scientific integers?"
+function getNumberTypeScientific(str: string, start: number, end: number) {
+    // handle + in '1e+1' separately.
+    if (str.charCodeAt(start) === 43 /* + */) start++;
+    return isInt(str, start, end) ? NumberType.Float : NumberType.NaN;
+}
+
+/** The whole range must match, otherwise returns NaN */
+export function getNumberType(str: string): NumberType {
+    let start = 0, end = str.length;
+    if (str.charCodeAt(start) === 45) {
+        ++start;
+    }
+
+    while (start < end) {
+        let c = str.charCodeAt(start) - 48;
+        if (c >= 0 && c < 10) {
+            ++start;
+        } else if (c === -2) { // .
+            ++start;
+            let hasDigit = false;
+            while (start < end) {
+                c = str.charCodeAt(start) - 48;
+                if (c >= 0 && c < 10) {
+                    hasDigit = true;
+                    ++start;
+                } else if (c === 53 || c === 21) { // 'e'/'E'
+                    return getNumberTypeScientific(str, start + 1, end);
+                } else {
+                    return NumberType.NaN;
+                }
+            }
+            return hasDigit ? NumberType.Float : NumberType.Int;
+        } else if (c === 53 || c === 21) { // 'e'/'E'
+            return getNumberTypeScientific(str, start + 1, end);
+        }
+        else break;
+    }
+    return NumberType.Int;
 }

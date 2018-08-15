@@ -7,6 +7,7 @@
 import { OrderedSet, SortedArray } from 'mol-data/int'
 import Unit from './unit'
 import { ElementIndex } from '../model';
+import { ResidueIndex, ChainIndex } from '../model/indexing';
 
 interface StructureElement<U = Unit> {
     readonly kind: 'element-location',
@@ -64,6 +65,35 @@ namespace StructureElement {
 
     export function isLocation(x: any): x is StructureElement {
         return !!x && x.kind === 'element-location';
+    }
+
+    export function residueIndex(e: StructureElement) {
+        if (Unit.isAtomic(e.unit)) {
+            return e.unit.residueIndex[e.element];
+        } else {
+            // TODO: throw error instead?
+            return -1 as ResidueIndex;
+        }
+    }
+
+    export function chainIndex(e: StructureElement) {
+        if (Unit.isAtomic(e.unit)) {
+            return e.unit.chainIndex[e.element];
+        } else {
+            // TODO: throw error instead?
+            return -1 as ChainIndex;
+        }
+    }
+
+    export function entityIndex(l: StructureElement) {
+        switch (l.unit.kind) {
+            case Unit.Kind.Atomic:
+                return l.unit.model.atomicHierarchy.getEntityKey(l.unit.chainIndex[l.element])
+            case Unit.Kind.Spheres:
+                return l.unit.model.coarseHierarchy.spheres.entityKey[l.element]
+            case Unit.Kind.Gaussians:
+                return l.unit.model.coarseHierarchy.gaussians.entityKey[l.element]
+        }
     }
 }
 

@@ -88,7 +88,7 @@ export const mmCIF_Export_Filters = {
 
 /** Doesn't start a data block */
 export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: Structure) {
-    const models = Structure.getModels(structure);
+    const models = structure.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
 
@@ -98,8 +98,12 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
         encoder.writeCategory(cat, ctx);
     }
     for (const customProp of model.customProperties.all) {
+        if (!customProp.cifExport || customProp.cifExport.categories.length === 0) continue;
+
+        const prefix = customProp.cifExport.prefix;
         const cats = customProp.cifExport.categories;
         for (const cat of cats) {
+            if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
             encoder.writeCategory(cat, ctx);
         }
     }

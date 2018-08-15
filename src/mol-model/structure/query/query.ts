@@ -6,9 +6,9 @@
 
 import { Structure } from '../structure'
 import { StructureSelection } from './selection'
-import { QueryContext } from './context';
+import { QueryContext, QueryFn } from './context';
 
-interface StructureQuery { (ctx: QueryContext): StructureSelection }
+interface StructureQuery extends QueryFn<StructureSelection> { }
 namespace StructureQuery {
     export function run(query: StructureQuery, structure: Structure, timeoutMs = 0) {
         return query(new QueryContext(structure, timeoutMs));

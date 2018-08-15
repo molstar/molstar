@@ -12,15 +12,21 @@ import CifField = CifWriter.Field
 import CifCategory = CifWriter.Category
 import E = CifWriter.Encodings
 
-const atom_site_fields: CifField<StructureElement>[] = [
+const atom_site_fields: CifField<StructureElement, Structure>[] = [
     CifField.str('group_PDB', P.residue.group_PDB),
     CifField.index('id'),
     CifField.str('type_symbol', P.atom.type_symbol as any),
     CifField.str('label_atom_id', P.atom.label_atom_id),
-    CifField.str('label_alt_id', P.atom.label_alt_id),
 
     CifField.str('label_comp_id', P.residue.label_comp_id),
-    CifField.int('label_seq_id', P.residue.label_seq_id, { encoder: E.deltaRLE }),
+    CifField.int('label_seq_id', P.residue.label_seq_id, {
+        encoder: E.deltaRLE,
+        valueKind: (k, d) => {
+            const m = k.unit.model;
+            return m.atomicHierarchy.residues.label_seq_id.valueKind(m.atomicHierarchy.residueAtomSegments.index[k.element]);
+        }
+    }),
+    CifField.str('label_alt_id', P.atom.label_alt_id),
     CifField.str('pdbx_PDB_ins_code', P.residue.pdbx_PDB_ins_code),
 
     CifField.str('label_asym_id', P.chain.label_asym_id),
@@ -53,4 +59,26 @@ export const _atom_site: CifCategory<CifExportContext> = {
             keys: () => structure.elementLocations()
         };
     }
+}
+
+export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement): CifField<K, D>[] {
+    return [
+        CifField.str('label_comp_id', (k, d) => P.residue.label_comp_id(getLocation(k, d))),
+        CifField.int('label_seq_id', (k, d) => P.residue.label_seq_id(getLocation(k, d)), {
+            encoder: E.deltaRLE,
+            valueKind: (k, d) => {
+                const e = getLocation(k, d);
+                const m = e.unit.model;
+                return m.atomicHierarchy.residues.label_seq_id.valueKind(m.atomicHierarchy.residueAtomSegments.index[e.element]);
+            }
+        }),
+        CifField.str('pdbx_PDB_ins_code', (k, d) => P.residue.pdbx_PDB_ins_code(getLocation(k, d))),
+
+        CifField.str('label_asym_id', (k, d) => P.chain.label_asym_id(getLocation(k, d))),
+        CifField.str('label_entity_id', (k, d) => P.chain.label_entity_id(getLocation(k, d))),
+
+        CifField.str('auth_comp_id', (k, d) => P.residue.auth_comp_id(getLocation(k, d))),
+        CifField.int('auth_seq_id', (k, d) => P.residue.auth_seq_id(getLocation(k, d)), { encoder: E.deltaRLE }),
+        CifField.str('auth_asym_id', (k, d) => P.chain.auth_asym_id(getLocation(k, d))),
+    ]
 }

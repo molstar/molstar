@@ -4,25 +4,23 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import Symbol, { Arguments, Argument } from '../../symbol'
-import B from '../../builder'
-import * as M from './macro'
-import MolScript from '../../symbol-table'
-import Type from '../../type'
-import * as Struct from '../../symbol-table/structure-query'
-import Expression from '../../expression'
-import { UniqueArray } from 'mol-data/generic'
+import { UniqueArray } from 'mol-data/generic';
+import Expression from '../../language/expression';
+import { Argument, MSymbol } from '../../language/symbol';
+//import * as M from './macro'
+import { MolScriptSymbolTable as MolScript } from '../../language/symbol-table';
+import Type from '../../language/type';
 
 export type MolScriptSymbol =
-    | { kind: 'alias', aliases: string[], symbol: Symbol }
-    | { kind: 'macro', aliases: string[], symbol: Symbol, translate: (args: any) => Expression }
+    | { kind: 'alias', aliases: string[], symbol: MSymbol }
+    | { kind: 'macro', aliases: string[], symbol: MSymbol, translate: (args: any) => Expression }
 
-function Alias(symbol: Symbol<any>, ...aliases: string[]): MolScriptSymbol { return { kind: 'alias', aliases, symbol }; }
-function Macro(symbol: Symbol<any>, translate: (args: any) => Expression, ...aliases: string[]): MolScriptSymbol {
-    symbol.info.namespace = 'molscript-macro';
-    symbol.id = `molscript-macro.${symbol.info.name}`;
-    return { kind: 'macro', symbol, translate, aliases: [symbol.info.name, ...aliases] };
-}
+function Alias(symbol: MSymbol<any>, ...aliases: string[]): MolScriptSymbol { return { kind: 'alias', aliases, symbol }; }
+// function Macro(symbol: MSymbol<any>, translate: (args: any) => Expression, ...aliases: string[]): MolScriptSymbol {
+//     symbol.info.namespace = 'molscript-macro';
+//     symbol.id = `molscript-macro.${symbol.info.name}`;
+//     return { kind: 'macro', symbol, translate, aliases: [symbol.info.name, ...aliases] };
+// }
 
 export function isMolScriptSymbol(x: any): x is MolScriptSymbol {
     return x.kind === 'alias' || x.kind === 'macro';
@@ -105,26 +103,26 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.generator.rings, 'sel.atom.rings'),
             Alias(MolScript.structureQuery.generator.empty, 'sel.atom.empty'),
 
-            Macro(Symbol('sel.atom.atoms', Arguments.Dictionary({
-                0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to each atom.' })
-            }), Struct.Types.ElementSelection, 'A selection of singleton atom sets.'),
-            args => B.struct.generator.atomGroups({ 'atom-test':  M.tryGetArg(args, 0, true) })),
+            // Macro(MSymbol('sel.atom.atoms', Arguments.Dictionary({
+            //     0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to each atom.' })
+            // }), Struct.Types.ElementSelection, 'A selection of singleton atom sets.'),
+            // args => B.struct.generator.atomGroups({ 'atom-test':  M.tryGetArg(args, 0, true) })),
 
-            Macro(Symbol('sel.atom.res', Arguments.Dictionary({
-                0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to the 1st atom of each residue.' })
-            }), Struct.Types.ElementSelection, 'A selection of atom sets grouped by residue.'),
-            args => B.struct.generator.atomGroups({
-                'residue-test':  M.tryGetArg(args, 0, true),
-                'group-by': B.ammp('residueKey')
-            })),
+            // Macro(MSymbol('sel.atom.res', Arguments.Dictionary({
+            //     0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to the 1st atom of each residue.' })
+            // }), Struct.Types.ElementSelection, 'A selection of atom sets grouped by residue.'),
+            // args => B.struct.generator.atomGroups({
+            //     'residue-test':  M.tryGetArg(args, 0, true),
+            //     'group-by': B.ammp('residueKey')
+            // })),
 
-            Macro(Symbol('sel.atom.chains', Arguments.Dictionary({
-                0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to the 1st atom of each chain.' })
-            }), Struct.Types.ElementSelection, 'A selection of atom sets grouped by chain.'),
-            args => B.struct.generator.atomGroups({
-                'chain-test': M.tryGetArg(args, 0, true),
-                'group-by': B.ammp('chainKey')
-            })),
+            // Macro(MSymbol('sel.atom.chains', Arguments.Dictionary({
+            //     0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to the 1st atom of each chain.' })
+            // }), Struct.Types.ElementSelection, 'A selection of atom sets grouped by chain.'),
+            // args => B.struct.generator.atomGroups({
+            //     'chain-test': M.tryGetArg(args, 0, true),
+            //     'group-by': B.ammp('chainKey')
+            // })),
         ],
         [
             'Modifiers',
@@ -138,15 +136,15 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.modifier.includeConnected, 'sel.atom.include-connected'),
             Alias(MolScript.structureQuery.modifier.expandProperty, 'sel.atom.expand-property'),
 
-            Macro(Symbol('sel.atom.around', Arguments.Dictionary({
-                0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to the 1st atom of each chain.' })
-            }), Struct.Types.ElementSelection, 'A selection of singleton atom sets with centers within "radius" of the center of any atom in the given selection.'),
-            args => B.struct.modifier.exceptBy({
-                '0': B.struct.filter.within({
-                    '0': B.struct.generator.atomGroups(), target: M.tryGetArg(args, 0), 'max-radius': M.tryGetArg(args, 'radius')
-                }),
-                by: M.tryGetArg(args, 0)
-            }))
+            // Macro(MSymbol('sel.atom.around', Arguments.Dictionary({
+            //     0: Argument(Type.Bool, { isOptional: true, defaultValue: true, description: 'Test applied to the 1st atom of each chain.' })
+            // }), Struct.Types.ElementSelection, 'A selection of singleton atom sets with centers within "radius" of the center of any atom in the given selection.'),
+            // args => B.struct.modifier.exceptBy({
+            //     '0': B.struct.filter.within({
+            //         '0': B.struct.generator.atomGroups(), target: M.tryGetArg(args, 0), 'max-radius': M.tryGetArg(args, 'radius')
+            //     }),
+            //     by: M.tryGetArg(args, 0)
+            // }))
         ],
         [
             'Filters',
@@ -169,25 +167,25 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomSet.reduce, 'atom.set.reduce'),
             Alias(MolScript.structureQuery.atomSet.propertySet, 'atom.set.property'),
 
-            Macro(Symbol('atom.set.max', Arguments.Dictionary({
-                0: Argument(Type.Num, { description: 'Numeric atom property.'})
-            }), Type.Num, 'Maximum of the given property in the current atom set.'),
-            args => M.aggregate(M.tryGetArg(args, 0), B.core.math.max)),
+            // Macro(MSymbol('atom.set.max', Arguments.Dictionary({
+            //     0: Argument(Type.Num, { description: 'Numeric atom property.'})
+            // }), Type.Num, 'Maximum of the given property in the current atom set.'),
+            // args => M.aggregate(M.tryGetArg(args, 0), B.core.math.max)),
 
-            Macro(Symbol('atom.set.sum', Arguments.Dictionary({
-                0: Argument(Type.Num, { description: 'Numeric atom property.'})
-            }), Type.Num, 'Sum of the given property in the current atom set.'),
-            args => M.aggregate(M.tryGetArg(args, 0), B.core.math.add, 0)),
+            // Macro(MSymbol('atom.set.sum', Arguments.Dictionary({
+            //     0: Argument(Type.Num, { description: 'Numeric atom property.'})
+            // }), Type.Num, 'Sum of the given property in the current atom set.'),
+            // args => M.aggregate(M.tryGetArg(args, 0), B.core.math.add, 0)),
 
-            Macro(Symbol('atom.set.avg', Arguments.Dictionary({
-                0: Argument(Type.Num, { description: 'Numeric atom property.'})
-            }), Type.Num, 'Average of the given property in the current atom set.'),
-            args => B.core.math.div([ M.aggregate(M.tryGetArg(args, 0), B.core.math.add, 0), B.struct.atomSet.atomCount() ])),
+            // Macro(MSymbol('atom.set.avg', Arguments.Dictionary({
+            //     0: Argument(Type.Num, { description: 'Numeric atom property.'})
+            // }), Type.Num, 'Average of the given property in the current atom set.'),
+            // args => B.core.math.div([ M.aggregate(M.tryGetArg(args, 0), B.core.math.add, 0), B.struct.atomSet.atomCount() ])),
 
-            Macro(Symbol('atom.set.min', Arguments.Dictionary({
-                0: Argument(Type.Num, { description: 'Numeric atom property.'})
-            }), Type.Num, 'Minimum of the given property in the current atom set.'),
-            args => M.aggregate(M.tryGetArg(args, 0), B.core.math.min))
+            // Macro(MSymbol('atom.set.min', Arguments.Dictionary({
+            //     0: Argument(Type.Num, { description: 'Numeric atom property.'})
+            // }), Type.Num, 'Minimum of the given property in the current atom set.'),
+            // args => M.aggregate(M.tryGetArg(args, 0), B.core.math.min))
         ],
         [
             'Atom Properties',
@@ -231,16 +229,16 @@ export const SymbolTable = [
             Alias(MolScript.structureQuery.atomProperty.macromolecular.isModified, 'atom.is-modified'),
             Alias(MolScript.structureQuery.atomProperty.macromolecular.modifiedParentName, 'atom.modified-parent'),
 
-            Macro(Symbol('atom.sec-struct.is', Arguments.List(Struct.Types.SecondaryStructureFlag), Type.Bool,
-                `Test if the current atom is part of an secondary structure. Optionally specify allowed sec. struct. types: ${Type.oneOfValues(Struct.Types.SecondaryStructureFlag).join(', ')}`),
-            args => B.core.flags.hasAny([B.struct.atomProperty.macromolecular.secondaryStructureFlags(), B.struct.type.secondaryStructureFlags(args)])),
+            // Macro(MSymbol('atom.sec-struct.is', Arguments.List(Struct.Types.SecondaryStructureFlag), Type.Bool,
+            //     `Test if the current atom is part of an secondary structure. Optionally specify allowed sec. struct. types: ${Type.oneOfValues(Struct.Types.SecondaryStructureFlag).join(', ')}`),
+            // args => B.core.flags.hasAny([B.struct.atomProperty.macromolecular.secondaryStructureFlags(), B.struct.type.secondaryStructureFlags(args)])),
         ],
         [
             'Bond Properties',
             Alias(MolScript.structureQuery.bondProperty.order, 'bond.order'),
-            Macro(Symbol('bond.is', Arguments.List(Struct.Types.BondFlag), Type.Bool,
-                `Test if the current bond has at least one (or all if partial = false) of the specified flags: ${Type.oneOfValues(Struct.Types.BondFlag).join(', ')}`),
-            args => B.core.flags.hasAny([B.struct.bondProperty.flags(), B.struct.type.bondFlags(M.getPositionalArgs(args))])),
+            // Macro(MSymbol('bond.is', Arguments.List(Struct.Types.BondFlag), Type.Bool,
+            //     `Test if the current bond has at least one (or all if partial = false) of the specified flags: ${Type.oneOfValues(Struct.Types.BondFlag).join(', ')}`),
+            // args => B.core.flags.hasAny([B.struct.bondProperty.flags(), B.struct.type.bondFlags(M.getPositionalArgs(args))])),
         ]
     ]
 ];
@@ -293,8 +291,55 @@ export const NamedArgs = normalized.namedArgs;
 export const SymbolMap = normalized.symbolMap;
 export const SymbolList = normalized.symbolList;
 
-const sortedSymbols = SymbolList.map(s => s[0]).sort((a, b) => {
-    if (a.length === b.length) return (a < b) as any;
-    return a.length - b.length;
-});
-export default [...sortedSymbols, ...NamedArgs.map(a => ':' + a), ...Constants];
+function substSymbols(expr: Expression): Expression {
+    if (Expression.isLiteral(expr)) {
+        return expr;
+    }
+    if (Expression.isSymbol(expr)) {
+        if (!SymbolMap[expr.name]) return expr;
+        return Expression.Symbol(SymbolMap[expr.name]!.symbol.id);
+    }
+
+    const head = substSymbols(expr.head);
+    const headChanged = head !== expr.head;
+    if (!expr.args) {
+        return headChanged ? Expression.Apply(head) : expr;
+    }
+
+    let argsChanged = false;
+
+    if (Expression.isArgumentsArray(expr.args)) {
+        let newArgs: Expression[] = [];
+        for (let i = 0, _i = expr.args.length; i < _i; i++) {
+            const oldArg = expr.args[i];
+            const newArg = substSymbols(oldArg);
+            if (oldArg !== newArg) argsChanged = true;
+            newArgs[newArgs.length] = newArg;
+        }
+        if (!argsChanged) newArgs = expr.args;
+        if (!headChanged && !argsChanged) return expr;
+        return Expression.Apply(head, newArgs);
+    } else {
+        let newArgs: any = {}
+        for (const key of Object.keys(expr.args)) {
+            const oldArg = expr.args[key];
+            const newArg = substSymbols(oldArg);
+            if (oldArg !== newArg) argsChanged = true;
+            newArgs[key] = newArg;
+        }
+        if (!headChanged && !argsChanged) return expr;
+        if (!argsChanged) newArgs = expr.args;
+
+        return Expression.Apply(head, newArgs);
+    }
+}
+
+export function transpileMolScript(expr: Expression) {
+    return substSymbols(expr);
+}
+
+// const sortedSymbols = SymbolList.map(s => s[0]).sort((a, b) => {
+//     if (a.length === b.length) return (a < b) as any;
+//     return a.length - b.length;
+// });
+//export default [...sortedSymbols, ...NamedArgs.map(a => ':' + a), ...Constants];

@@ -5,7 +5,7 @@
  */
 
 import Type from '../type'
-import Symbol, { Arguments, Argument } from '../symbol'
+import { MSymbol, Arguments, Argument } from '../symbol'
 import { symbol, normalizeTable, symbolList } from '../helpers'
 
 export namespace Types {
@@ -40,6 +40,15 @@ function binRel<A extends Type, T extends Type>(src: A, target: T, description?:
         1: Argument(src)
     }), target, description);
 }
+
+export const TTargs = Arguments.Dictionary({
+    0: Argument(Type.Num),
+    1: Argument(Type.Num)
+})
+
+const XX = { test: Argument(Type.Str) };
+const t: Arguments.PropTypes<typeof XX> = 0 as any;
+t.test
 
 const type = {
     '@header': 'Types',
@@ -174,7 +183,7 @@ normalizeTable(table);
 export const SymbolList = symbolList(table);
 
 export const SymbolMap = (function() {
-    const map: { [id: string]: Symbol | undefined } = Object.create(null);
+    const map: { [id: string]: MSymbol | undefined } = Object.create(null);
     for (const s of SymbolList) map[s.id] = s;
     return map;
 })();

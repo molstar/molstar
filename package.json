@@ -43,6 +43,7 @@
       "node_modules",
       "build/node_modules"
     ],
+    "testURL": "http://localhost/",
     "moduleNameMapper": {
       "mol-app($|/.*)": "<rootDir>/src/mol-app$1",
       "mol-data($|/.*)": "<rootDir>/src/mol-data$1",
@@ -51,6 +52,7 @@
       "mol-io($|/.*)": "<rootDir>/src/mol-io$1",
       "mol-math($|/.*)": "<rootDir>/src/mol-math$1",
       "mol-model($|/.*)": "<rootDir>/src/mol-model$1",
+      "mol-model-props($|/.*)": "<rootDir>/src/mol-model-props$1",
       "mol-ql($|/.*)": "<rootDir>/src/mol-ql$1",
       "mol-script($|/.*)": "<rootDir>/src/mol-script$1",
       "mol-task($|/.*)": "<rootDir>/src/mol-task$1",
@@ -83,8 +85,8 @@
     "file-loader": "^1.1.11",
     "glslify-import": "^3.1.0",
     "glslify-loader": "^1.0.2",
-    "graphql-code-generator": "^0.10.6",
-    "graphql-codegen-typescript-template": "^0.10.6",
+    "graphql-code-generator": "^0.10.7",
+    "graphql-codegen-typescript-template": "^0.10.7",
     "graphql-tag": "^2.9.2",
     "jest": "^23.4.2",
     "jest-raw-loader": "^1.0.1",

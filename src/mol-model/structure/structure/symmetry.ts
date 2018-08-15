@@ -17,7 +17,7 @@ import { SymmetryOperator, Spacegroup, SpacegroupCell } from 'mol-math/geometry'
 namespace StructureSymmetry {
     export function buildAssembly(structure: Structure, asmName: string) {
         return Task.create('Build Assembly', async ctx => {
-            const models = Structure.getModels(structure);
+            const models = structure.models;
             if (models.length !== 1) throw new Error('Can only build assemblies from structures based on 1 model.');
 
             const assembly = ModelSymmetry.findAssembly(models[0], asmName);
@@ -121,7 +121,7 @@ function assembleOperators(structure: Structure, operators: ReadonlyArray<Symmet
 }
 
 async function _buildNCS(ctx: RuntimeContext, structure: Structure) {
-    const models = Structure.getModels(structure);
+    const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build NCS from structures based on 1 model.');
 
     const operators = models[0].symmetry.ncsOperators;
@@ -130,7 +130,7 @@ async function _buildNCS(ctx: RuntimeContext, structure: Structure) {
 }
 
 async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkMin: Vec3, ijkMax: Vec3) {
-    const models = Structure.getModels(structure);
+    const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
 
     const { spacegroup } = models[0].symmetry;
@@ -141,7 +141,7 @@ async function findSymmetryRange(ctx: RuntimeContext, structure: Structure, ijkM
 }
 
 async function findMatesRadius(ctx: RuntimeContext, structure: Structure, radius: number) {
-    const models = Structure.getModels(structure);
+    const models = structure.models;
     if (models.length !== 1) throw new Error('Can only build symmetries from structures based on 1 model.');
 
     const symmetry = models[0].symmetry;

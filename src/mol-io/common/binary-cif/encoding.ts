@@ -71,10 +71,10 @@ export namespace Encoding {
 
     export type DataType = IntDataType | FloatDataType
 
-    export type IntArray = Int8Array | Int16Array | Int32Array | Uint8Array | Uint16Array | Uint32Array
-    export type FloatArray = Float32Array | Float64Array
+    export type TypedIntArray = Helpers.TypedIntArray
+    export type TypedFloatArray = Helpers.TypedFloatArray
 
-    export function getDataType(data: IntArray | FloatArray): DataType {
+    export function getDataType(data: TypedIntArray | TypedFloatArray): DataType {
         let srcType: DataType;
         if (data instanceof Int8Array) srcType = Encoding.IntDataType.Int8;
         else if (data instanceof Int16Array) srcType = Encoding.IntDataType.Int16;
@@ -88,7 +88,7 @@ export namespace Encoding {
         return srcType;
     }
 
-    export function isSignedIntegerDataType(data: IntArray) {
+    export function isSignedIntegerDataType(data: TypedIntArray) {
         return data instanceof Int8Array || data instanceof Int16Array || data instanceof Int32Array;
     }
 

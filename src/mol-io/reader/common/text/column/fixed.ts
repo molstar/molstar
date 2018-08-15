@@ -35,7 +35,7 @@ export function FixedColumn<T extends Column.Schema>(lines: Tokens, offset: numb
     };
     return {
         schema: schema,
-        '@array': void 0,
+        __array: void 0,
         isDefined: true,
         rowCount,
         value,

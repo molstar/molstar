@@ -22,7 +22,7 @@ async function downloadFromPdb(pdb: string) {
     return parsed.blocks[0];
 }
 
-async function readPdbFile(path: string) {
+export async function readCifFile(path: string) {
     const parsed = await openCif(path);
     return parsed.blocks[0];
 }
@@ -197,9 +197,14 @@ export function printModelStats(models: ReadonlyArray<Model>) {
     console.log();
 }
 
-async function run(frame: CifFrame, args: Args) {
+export async function getModelsAndStructure(frame: CifFrame) {
     const models = await Model.create(Format.mmCIF(frame)).run();
     const structure = Structure.ofModel(models[0]);
+    return { models, structure };
+}
+
+async function run(frame: CifFrame, args: Args) {
+    const { models, structure } = await getModelsAndStructure(frame);
 
     if (args.models) printModelStats(models);
     if (args.seq) printSequence(models[0]);
@@ -218,7 +223,7 @@ async function runDL(pdb: string, args: Args) {
 }
 
 async function runFile(filename: string, args: Args) {
-    const mmcif = await readPdbFile(filename);
+    const mmcif = await readCifFile(filename);
     run(mmcif, args);
 }
 

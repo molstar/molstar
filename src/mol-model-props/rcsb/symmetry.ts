@@ -32,9 +32,9 @@ function getCategory(name: keyof SymmetryAnnotation.Schema) {
 function createDatabase(assemblies: ReadonlyArray<RcsbSymmetry.Assemblies>): SymmetryAnnotation.Database {
     const Schema = SymmetryAnnotation.Schema
 
-    const featureRows: Table.Row<typeof Schema.symmetry_annotation_feature>[] = []
-    const clusterRows: Table.Row<typeof Schema.symmetry_annotation_cluster>[] = []
-    const axisRows: Table.Row<typeof Schema.symmetry_annotation_axis>[] = []
+    const featureRows: Table.Row<typeof Schema.rcsb_symmetry_annotation_feature>[] = []
+    const clusterRows: Table.Row<typeof Schema.rcsb_symmetry_annotation_cluster>[] = []
+    const axisRows: Table.Row<typeof Schema.rcsb_symmetry_annotation_axis>[] = []
 
     let id = 0
     for (let i = 0, il = assemblies.length; i < il; ++i) {
@@ -83,9 +83,9 @@ function createDatabase(assemblies: ReadonlyArray<RcsbSymmetry.Assemblies>): Sym
     }
 
     return _Database.ofTables('symmetry_annotation', Schema, {
-        symmetry_annotation_feature: Table.ofRows(Schema.symmetry_annotation_feature, featureRows),
-        symmetry_annotation_cluster: Table.ofRows(Schema.symmetry_annotation_cluster, clusterRows),
-        symmetry_annotation_axis: Table.ofRows(Schema.symmetry_annotation_axis, axisRows)
+        symmetry_annotation_feature: Table.ofRows(Schema.rcsb_symmetry_annotation_feature, featureRows),
+        symmetry_annotation_cluster: Table.ofRows(Schema.rcsb_symmetry_annotation_cluster, clusterRows),
+        symmetry_annotation_axis: Table.ofRows(Schema.rcsb_symmetry_annotation_axis, axisRows)
     })
 }
 
@@ -93,10 +93,11 @@ const _Descriptor: ModelPropertyDescriptor = {
     isStatic: true,
     name: 'symmetry_annotation',
     cifExport: {
+        prefix: 'rcsb',
         categories: [
-            getCategory('symmetry_annotation_feature'),
-            getCategory('symmetry_annotation_cluster'),
-            getCategory('symmetry_annotation_axis')
+            getCategory('rcsb_symmetry_annotation_feature'),
+            getCategory('rcsb_symmetry_annotation_cluster'),
+            getCategory('rcsb_symmetry_annotation_axis')
         ]
     }
 }
@@ -105,7 +106,7 @@ const client = new GraphQLClient('http://rest-experimental.rcsb.org/graphql')
 
 export namespace SymmetryAnnotation {
     export const Schema = {
-        symmetry_annotation_feature: {
+        rcsb_symmetry_annotation_feature: {
             id: int,
             assembly_id: str,
             source: str,
@@ -113,12 +114,12 @@ export namespace SymmetryAnnotation {
             stoichiometry_value: List(',', x => x),
             stoichiometry_description: str
         },
-        symmetry_annotation_cluster: {
+        rcsb_symmetry_annotation_cluster: {
             feature_id: int,
             avg_rmsd: float,
             members: List(',', x => x)
         },
-        symmetry_annotation_axis: {
+        rcsb_symmetry_annotation_axis: {
             feature_id: int,
             order: int,
             start: Vector(3),

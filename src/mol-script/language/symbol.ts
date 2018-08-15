@@ -31,7 +31,8 @@ export namespace Arguments {
         map: { [P in keyof T]: Argument<T[P]> },
         '@type': T
     }
-    export function Dictionary<Map extends { [key: string]: Argument<any> }>(map: Map): Arguments<{ [P in keyof Map]: Map[P]['type']['@type'] }> {
+    export type PropTypes<Map extends { [key: string]: Argument<any>  }> = { [P in keyof Map]: Map[P]['type']['@type'] }
+    export function Dictionary<Map extends { [key: string]: Argument<any> }>(map: Map): Arguments<PropTypes<Map>> {
         return { kind: 'dictionary', map, '@type': 0 as any };
     }
 
@@ -50,7 +51,7 @@ export namespace Arguments {
 
 export type ExpressionArguments<T> = { [P in keyof T]?: Expression } | { [index: number]: Expression }
 
-interface Symbol<A extends Arguments = Arguments, T extends Type = Type> {
+export interface MSymbol<A extends Arguments = Arguments, T extends Type = Type> {
     (args?: ExpressionArguments<A['@type']>): Expression,
     info: {
         namespace: string,
@@ -62,8 +63,8 @@ interface Symbol<A extends Arguments = Arguments, T extends Type = Type> {
     id: string,
 }
 
-function Symbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
-    const symbol: Symbol<A, T> = function(args: ExpressionArguments<A['@type']>) {
+export function MSymbol<A extends Arguments, T extends Type>(name: string, args: A, type: T, description?: string) {
+    const symbol: MSymbol<A, T> = function(args: ExpressionArguments<A['@type']>) {
         return Expression.Apply(Expression.Symbol(symbol.id), args as any);
     } as any;
     symbol.info = { namespace: '', name, description };
@@ -73,12 +74,21 @@ function Symbol<A extends Arguments, T extends Type>(name: string, args: A, type
     return symbol;
 }
 
-export function isSymbol(x: any): x is Symbol {
-    const s = x as Symbol;
+export function CustomPropSymbol<T extends Type>(namespace: string, name: string, type: T, description?: string) {
+    const symbol: MSymbol<Arguments<{}>, T> = function(args: ExpressionArguments<Arguments<{}>['@type']>) {
+        return Expression.Apply(Expression.Symbol(symbol.id), args as any);
+    } as any;
+    symbol.info = { namespace, name, description };
+    symbol.id = `${namespace}.${name}`;
+    symbol.args = Arguments.None;
+    symbol.type = type;
+    return symbol;
+}
+
+export function isSymbol(x: any): x is MSymbol {
+    const s = x as MSymbol;
     return typeof s === 'function' && !!s.info && !!s.args && typeof s.info.namespace === 'string' && !!s.type;
 }
 
-export type SymbolMap = { [id: string]: Symbol | undefined }
-
-export default Symbol
+export type SymbolMap = { [id: string]: MSymbol | undefined }
 

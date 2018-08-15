@@ -27,7 +27,7 @@ export function TokenColumn<T extends Column.Schema>(tokens: Tokens, schema: T):
 
     return {
         schema: schema,
-        '@array': void 0,
+        __array: void 0,
         isDefined: true,
         rowCount,
         value,

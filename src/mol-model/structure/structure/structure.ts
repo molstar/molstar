@@ -32,8 +32,9 @@ class Structure {
         crossLinkRestraints?: CrossLinkRestraints,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         carbohydrates?: Carbohydrates,
+        models?: ReadonlyArray<Model>,
         hashCode: number,
-        elementCount: number
+        elementCount: number,
     } = { hashCode: -1, elementCount: 0 };
 
     subsetBuilder(isSorted: boolean) {
@@ -102,6 +103,12 @@ class Structure {
         return this._props.carbohydrates;
     }
 
+    get models(): ReadonlyArray<Model> {
+        if (this._props.models) return this._props.models;
+        this._props.models = getModels(this);
+        return this._props.models;
+    }
+
     constructor(units: ArrayLike<Unit>) {
         const map = IntMap.Mutable<Unit>();
         let elementCount = 0;
@@ -122,6 +129,15 @@ class Structure {
 }
 
 function cmpUnits(units: ArrayLike<Unit>, i: number, j: number) { return units[i].id - units[j].id; }
+
+function getModels(s: Structure) {
+    const { units } = s;
+    const arr = UniqueArray.create<Model['id'], Model>();
+    for (const u of units) {
+        UniqueArray.add(arr, u.model.id, u.model);
+    }
+    return arr.array;
+}
 
 namespace Structure {
     export const Empty = new Structure([]);
@@ -198,15 +214,6 @@ namespace Structure {
     }
 
     export function Builder() { return new StructureBuilder(); }
-
-    export function getModels(s: Structure) {
-        const { units } = s;
-        const arr = UniqueArray.create<Model['id'], Model>();
-        for (const u of units) {
-            UniqueArray.add(arr, u.model.id, u.model);
-        }
-        return arr.array;
-    }
 
     export function hashCode(s: Structure) {
         return s.hashCode;

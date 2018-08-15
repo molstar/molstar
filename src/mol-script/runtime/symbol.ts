@@ -1,32 +1,32 @@
-/*
- * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
- *
- * @author David Sehnal <david.sehnal@gmail.com>
- */
+// /**
+//  * Copyright (c) 2018 Mol* contributors, licensed under MIT, See LICENSE file for more info.
+//  *
+//  * @author David Sehnal <david.sehnal@gmail.com>
+//  */
 
-import Environment from './environment'
-import RuntimeExpression from './expression'
+// import Environment from './environment'
+// import RuntimeExpression from './expression'
+// import Expression from '../language/expression';
 
-export type RuntimeArguments = ArrayLike<RuntimeExpression> | { [name: string]: RuntimeExpression | undefined }
+// type SymbolRuntime = SymbolRuntime.Dynamic | SymbolRuntime.Static
 
-type SymbolRuntime = (env: Environment, args: RuntimeArguments) => any
+// namespace SymbolRuntime {
+//     export interface Static {
+//         kind: 'static',
+//         readonly runtime: (ctx: any, args: Arguments) => any,
+//         readonly attributes: Attributes
+//     }
 
-namespace SymbolRuntime {
-    export interface Info {
-        readonly runtime: SymbolRuntime,
-        readonly attributes: Attributes
-    }
+//     export interface Dynamic {
+//         kind: 'dynamic',
+//         readonly compile: (env: Environment, args: Expression.Arguments) => RuntimeExpression
+//     }
 
-    export interface Attributes { isStatic: boolean }
-}
+//     export interface Attributes { isStatic: boolean }
 
-function SymbolRuntime(symbol: Symbol, attributes: Partial<SymbolRuntime.Attributes> = {}) {
-    const { isStatic = false } = attributes;
-    return (runtime: SymbolRuntime): SymbolRuntime.Info => {
-        return ({ runtime, attributes: { isStatic } });
-    };
-}
+//     export type Table = Map<string, SymbolRuntime>
 
-export type SymbolRuntimeTable = { readonly [id: string]: SymbolRuntime.Info }
+//     export type Arguments = ArrayLike<RuntimeExpression> | { [name: string]: RuntimeExpression | undefined }
+// }
 
-export default SymbolRuntime
+// export { SymbolRuntime }

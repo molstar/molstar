@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexanderose@weirdbyte.de>
  */
 
-import Expression from '../expression'
+import Expression from '../language/expression'
 
 type Parser = (source: string) => Expression
 

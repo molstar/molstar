@@ -17,7 +17,7 @@ export class SequenceView extends View<SequenceViewController, {}, {}> {
         const s = this.controller.latestState.structure;
         if (!s) return <div className='molstar-sequence-view-wrap'>No structure available.</div>;
 
-        const seqs = Structure.getModels(s)[0].sequence.sequences;
+        const seqs = s.models[0].sequence.sequences;
         return <div className='molstar-sequence-view-wrap'>
             {seqs.map((seq, i) => <EntitySequence key={i} ctx={this.controller.context} seq={seq} structure={s} /> )}
         </div>;

@@ -8,7 +8,8 @@
         "noUnusedLocals": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,
-        "keyofStringsOnly": true,
+        //"keyofStringsOnly": true,
+        // temp fix for immutable package: has(key: string): key is keyof TProps; => has(key: string | number | Symbol): key is keyof TProps;
         //"downlevelIteration": true,
         "jsx": "react",
         "lib": [ "es6", "dom", "esnext.asynciterable", "es2016" ],
@@ -22,6 +23,7 @@
             "mol-io": ["./mol-io"],
             "mol-math": ["./mol-math"],
             "mol-model": ["./mol-model"],
+            "mol-model-props": ["./mol-model-props"],
             "mol-ql": ["./mol-ql"],
             "mol-script": ["./mol-script"],
             "mol-task": ["./mol-task", "./mol-task/index.ts"],

@@ -1,5 +1,5 @@
 [![License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](./LICENSE)
-[![Build Status](https://travis-ci.org/molstar/molstar-proto.svg?branch=master)](https://travis-ci.org/mol-star/mol-star-proto)
+[![Build Status](https://travis-ci.org/molstar/molstar-proto.svg?branch=master)](https://travis-ci.org/molstar/molstar-proto)
 [![Gitter](https://badges.gitter.im/molstar/Lobby.svg)](https://gitter.im/molstar/Lobby)
 
 # Mol*
@@ -17,6 +17,7 @@ The core of Mol* currently consists of these modules:
 - `mol-math` Math related (loosely) algorithms and data structures.
 - `mol-io` Parsing library. Each format is parsed into an interface that corresponds to the data stored by it. Support for common coordinate, experimental/map, and annotation data formats.
 - `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
+- `mol-model-props` Common "custom properties"
 - `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
 - `mol-geo` Creating molecular geometries.
 - `mol-gl` A wrapper around WebGL. Uses `mol-geo` to generate geometries.
