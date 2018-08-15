@@ -6,8 +6,9 @@
 
 import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Color } from 'mol-util/color';
-import { StructureColorDataProps } from '.';
-import { createElementColor, ColorData } from '../../../util/color-data';
+import { StructureElement, Unit, Link } from 'mol-model/structure';
+import { Location } from 'mol-model/location';
+import { ColorThemeProps, ColorTheme } from '../color';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors: { [k: string]: Color } = {
@@ -21,14 +22,24 @@ export function elementSymbolColor(element: ElementSymbol): Color {
     return c === void 0 ? DefaultElementSymbolColor : c
 }
 
-export function elementSymbolColorData(props: StructureColorDataProps, colorData?: ColorData) {
-    const { group: { units, elements }, elementCount } = props
-    const { type_symbol } = units[0].model.atomicHierarchy.atoms
-    return createElementColor({
-        colorFn: (elementIdx: number) => {
-            const e = elements[elementIdx]
-            return elementSymbolColor(type_symbol.value(e))
-        },
-        elementCount
-    }, colorData)
+export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
+    function colorFn(location: Location): Color {
+        if (StructureElement.isLocation(location)) {
+            if (Unit.isAtomic(location.unit)) {
+                const { type_symbol } = location.unit.model.atomicHierarchy.atoms
+                return elementSymbolColor(type_symbol.value(location.element))
+            }
+        } else if (Link.isLocation(location)) {
+            if (Unit.isAtomic(location.aUnit)) {
+                const { type_symbol } = location.aUnit.model.atomicHierarchy.atoms
+                return elementSymbolColor(type_symbol.value(location.aUnit.elements[location.aIndex]))
+            }
+        }
+        return DefaultElementSymbolColor
+    }
+
+    return {
+        kind: 'element',
+        color: colorFn
+    }
 }

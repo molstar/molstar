@@ -7,10 +7,11 @@
 import { ValueCell } from 'mol-util';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
-import VertexMap from '../shape/vertex-map';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
+import { LocationIterator } from '../representation/structure/visual/util/location-iterator';
+import { Location, NullLocation } from 'mol-model/location';
 
-export type ColorType = 'uniform' | 'attribute' | 'instance' | 'element' | 'elementInstance'
+export type ColorType = 'uniform' | 'instance' | 'element' | 'elementInstance'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
@@ -20,6 +21,8 @@ export type ColorData = {
     dColorType: ValueCell<string>,
 }
 
+export type LocationColor = (location: Location, isSecondary: boolean) => Color
+
 const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }
 function createEmptyColorTexture() {
     return {
@@ -28,21 +31,16 @@ function createEmptyColorTexture() {
     }
 }
 
-export interface UniformColorProps {
-    value: Color
-}
-
-/** Creates color uniform */
-export function createUniformColor(props: UniformColorProps, colorData?: ColorData): ColorData {
+export function createValueColor(value: Color, colorData?: ColorData): ColorData {
     if (colorData) {
-        ValueCell.update(colorData.uColor, Color.toRgbNormalized(props.value) as Vec3)
+        ValueCell.update(colorData.uColor, Color.toRgbNormalized(value) as Vec3)
         if (colorData.dColorType.ref.value !== 'uniform') {
             ValueCell.update(colorData.dColorType, 'uniform')
         }
         return colorData
     } else {
         return {
-            uColor: ValueCell.create(Color.toRgbNormalized(props.value) as Vec3),
+            uColor: ValueCell.create(Color.toRgbNormalized(value) as Vec3),
             aColor: ValueCell.create(new Float32Array(0)),
             ...createEmptyColorTexture(),
             dColorType: ValueCell.create('uniform'),
@@ -50,38 +48,9 @@ export function createUniformColor(props: UniformColorProps, colorData?: ColorDa
     }
 }
 
-export interface AttributeColorProps {
-    colorFn: (elementIdx: number) => Color
-    vertexMap: VertexMap
-}
-
-/** Creates color attribute with color for each element (i.e. shared across instances/units) */
-export function createAttributeColor(props: AttributeColorProps, colorData?: ColorData): ColorData {
-    const { colorFn, vertexMap } = props
-    const { idCount, offsetCount, offsets } = vertexMap
-    const colors = new Float32Array(idCount * 3);
-    for (let i = 0, il = offsetCount - 1; i < il; ++i) {
-        const start = offsets[i]
-        const end = offsets[i + 1]
-        const hexColor = colorFn(i)
-        for (let i = start, il = end; i < il; ++i) {
-            Color.toArrayNormalized(hexColor, colors, i * 3)
-        }
-    }
-    if (colorData) {
-        ValueCell.update(colorData.aColor, colors)
-        if (colorData.dColorType.ref.value !== 'attribute') {
-            ValueCell.update(colorData.dColorType, 'attribute')
-        }
-        return colorData
-    } else {
-        return {
-            uColor: ValueCell.create(Vec3.zero()),
-            aColor: ValueCell.create(colors),
-            ...createEmptyColorTexture(),
-            dColorType: ValueCell.create('attribute'),
-        }
-    }
+/** Creates color uniform */
+export function createUniformColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+    return createValueColor(colorFn(NullLocation, false), colorData)
 }
 
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
@@ -103,53 +72,38 @@ export function createTextureColor(colors: TextureImage, type: ColorType, colorD
     }
 }
 
-export interface InstanceColorProps {
-    colorFn: (instanceIdx: number) => Color
-    instanceCount: number
-}
-
 /** Creates color texture with color for each instance/unit */
-export function createInstanceColor(props: InstanceColorProps, colorData?: ColorData): ColorData {
-    const { colorFn, instanceCount} = props
+export function createInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+    const { instanceCount} = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
-    for (let i = 0; i < instanceCount; i++) {
-        Color.toArray(colorFn(i), colors.array, i * 3)
+    while (locationIt.hasNext && !locationIt.isNextNewInstance) {
+        const v = locationIt.move()
+        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.instanceIndex * 3)
+        locationIt.skipInstance()
     }
     return createTextureColor(colors, 'instance', colorData)
 }
 
-export interface ElementColorProps {
-    colorFn: (elementIdx: number) => Color
-    elementCount: number
-}
-
 /** Creates color texture with color for each element (i.e. shared across instances/units) */
-export function createElementColor(props: ElementColorProps, colorData?: ColorData): ColorData {
-    const { colorFn, elementCount } = props
+export function createElementColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+    const { elementCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createTextureImage(elementCount, 3)
-    for (let i = 0, il = elementCount; i < il; ++i) {
-        Color.toArray(colorFn(i), colors.array, i * 3)
+    while (locationIt.hasNext && !locationIt.isNextNewInstance) {
+        const v = locationIt.move()
+        // console.log(v)
+        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.elementIndex * 3)
     }
     return createTextureColor(colors, 'element', colorData)
 }
 
-export interface ElementInstanceColorProps {
-    colorFn: (instanceIdx: number, elementIdx: number) => Color
-    instanceCount: number,
-    elementCount: number
-}
-
 /** Creates color texture with color for each element instance (i.e. for each unit) */
-export function createElementInstanceColor(props: ElementInstanceColorProps, colorData?: ColorData): ColorData {
-    const { colorFn, instanceCount, elementCount } = props
+export function createElementInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+    const { elementCount, instanceCount } = locationIt
     const count = instanceCount * elementCount
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
-    let colorOffset = 0
-    for (let i = 0; i < instanceCount; i++) {
-        for (let j = 0, jl = elementCount; j < jl; ++j) {
-            Color.toArray(colorFn(i, j), colors.array, colorOffset)
-            colorOffset += 3
-        }
+    while (locationIt.hasNext && !locationIt.isNextNewInstance) {
+        const v = locationIt.move()
+        Color.toArray(colorFn(v.location, v.isSecondary), colors.array, v.index * 3)
     }
     return createTextureColor(colors, 'elementInstance', colorData)
 }

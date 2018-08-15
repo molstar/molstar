@@ -11,9 +11,7 @@ import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 
 import { UnitsVisual, DefaultStructureProps } from '..';
-import VertexMap from '../../../shape/vertex-map';
-import { SizeTheme } from '../../../theme';
-import { markElement, getElementLoci } from './util/element';
+import { getElementLoci } from './util/element';
 import { createTransforms, createColors, createSizes } from './util/common';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
@@ -23,10 +21,12 @@ import { Loci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
+import { StructureElementIterator } from './util/location-iterator';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
-    sizeTheme: { name: 'physical' } as SizeTheme
+    sizeTheme: { name: 'physical' } as SizeThemeProps
 }
 export type PointProps = Partial<typeof DefaultPointProps>
 
@@ -69,17 +69,12 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             const elementCount = _elements.length
             const instanceCount = group.units.length
 
-            const vertexMap = VertexMap.create(
-                elementCount,
-                elementCount + 1,
-                fillSerial(new Uint32Array(elementCount)),
-                fillSerial(new Uint32Array(elementCount + 1))
-            )
+            const locationIt = StructureElementIterator.fromGroup(group)
 
             const vertices = createPointVertices(_units[0])
             const transforms = createTransforms(group)
-            const color = createColors(group, elementCount, colorTheme)
-            const size = createSizes(group, vertexMap, sizeTheme)
+            const color = createColors(locationIt, colorTheme)
+            const size = createSizes(locationIt, sizeTheme)
             const marker = createMarkers(instanceCount * elementCount)
 
             const values: PointValues = {
@@ -129,10 +124,11 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             return false
         },
         getLoci(pickingId: PickingId) {
-            return getElementLoci(renderObject.id, currentGroup, pickingId)
+            return getElementLoci(pickingId, currentGroup, renderObject.id)
         },
         mark(loci: Loci, action: MarkerAction) {
-            markElement(renderObject.values.tMarker, currentGroup, loci, action)
+            // TODO
+            // markElement(loci, action, currentGroup, renderObject.values)
         },
         destroy() {
             // TODO

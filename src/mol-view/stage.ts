@@ -7,24 +7,25 @@
 import Viewer from './viewer'
 import { StateContext } from './state/context';
 import { Progress } from 'mol-task';
-import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone, StructureCenter } from './state/transform';
+import { MmcifUrlToModel, ModelToStructure, StructureToSpacefill, StructureToBallAndStick, StructureToDistanceRestraint, StructureToCartoon, StructureToBackbone, StructureCenter, StructureToCarbohydrate } from './state/transform';
 import { UrlEntity } from './state/entity';
-import { SpacefillProps } from 'mol-geo/representation/structure/spacefill';
+import { SpacefillProps } from 'mol-geo/representation/structure/representation/spacefill';
 import { Context } from 'mol-app/context/context';
-import { BallAndStickProps } from 'mol-geo/representation/structure/ball-and-stick';
-import { CartoonProps } from 'mol-geo/representation/structure/cartoon';
-import { DistanceRestraintProps } from 'mol-geo/representation/structure/distance-restraint';
-import { BackboneProps } from 'mol-geo/representation/structure/backbone';
+import { BallAndStickProps } from 'mol-geo/representation/structure/representation/ball-and-stick';
+import { CartoonProps } from 'mol-geo/representation/structure/representation/cartoon';
+import { DistanceRestraintProps } from 'mol-geo/representation/structure/representation/distance-restraint';
+import { BackboneProps } from 'mol-geo/representation/structure/representation/backbone';
+import { CarbohydrateProps } from 'mol-geo/representation/structure/representation/carbohydrate';
 // import { Queries as Q, StructureProperties as SP, Query, Selection } from 'mol-model/structure';
 
-const spacefillProps: SpacefillProps = {
+const spacefillProps: Partial<SpacefillProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     quality: 'auto',
     useFog: false
 }
 
-const ballAndStickProps: BallAndStickProps = {
+const ballAndStickProps: Partial<BallAndStickProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     sizeTheme: { name: 'uniform', value: 0.15 },
@@ -33,7 +34,7 @@ const ballAndStickProps: BallAndStickProps = {
     useFog: false
 }
 
-const distanceRestraintProps: DistanceRestraintProps = {
+const distanceRestraintProps: Partial<DistanceRestraintProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     linkRadius: 0.5,
@@ -41,20 +42,29 @@ const distanceRestraintProps: DistanceRestraintProps = {
     useFog: false
 }
 
-const backboneProps: BackboneProps = {
+const backboneProps: Partial<BackboneProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
-    // colorTheme: { name: 'uniform', value: 0xFF0000 },
+    sizeTheme: { name: 'uniform', value: 0.3 },
     quality: 'auto',
     useFog: false,
     alpha: 0.5
 }
 
-const cartoonProps: CartoonProps = {
+const cartoonProps: Partial<CartoonProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
-    // colorTheme: { name: 'uniform', value: 0x2200CC },
+    sizeTheme: { name: 'uniform', value: 0.13, factor: 1 },
+    aspectRatio: 8,
     quality: 'auto',
+    useFog: false
+}
+
+const carbohydrateProps: Partial<CarbohydrateProps> = {
+    doubleSided: true,
+    colorTheme: { name: 'carbohydrate-symbol' },
+    sizeTheme: { name: 'uniform', value: 1, factor: 1 },
+    quality: 'highest',
     useFog: false
 }
 
@@ -78,7 +88,7 @@ export class Stage {
         // this.loadPdbid('1hrv') // viral assembly
         // this.loadPdbid('1rb8') // virus
         // this.loadPdbid('1blu') // metal coordination
-        // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
+        this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
         // this.loadPdbid('2np2') // dna
@@ -105,12 +115,13 @@ export class Stage {
         // this.loadPdbid('2fnc') // contains maltotriose
         // this.loadPdbid('4zs9') // contains raffinose
         // this.loadPdbid('2yft') // contains kestose
-        this.loadPdbid('2b5t') // contains large carbohydrate polymer
+        // this.loadPdbid('2b5t') // contains large carbohydrate polymer
         // this.loadPdbid('1b5f') // contains carbohydrate with alternate locations
         // this.loadMmcifUrl(`../../examples/1cbs_full.bcif`)
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)
-        // this.loadPdbid('1zag') // temp
+        // this.loadPdbid('5u0q') // mixed dna/rna in same polymer
+        // this.loadPdbid('5u0q') // temp
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok
@@ -138,6 +149,7 @@ export class Stage {
         StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: false })
         StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: false })
         StructureToCartoon.apply(this.ctx, structureEntity, { ...cartoonProps, visible: true })
+        StructureToCarbohydrate.apply(this.ctx, structureEntity, { ...carbohydrateProps, visible: true })
         StructureCenter.apply(this.ctx, structureEntity)
 
         this.globalContext.components.sequenceView.setState({ structure: structureEntity.value });
@@ -154,8 +166,8 @@ export class Stage {
     }
 
     loadPdbid (pdbid: string) {
-        return this.loadMmcifUrl(`http://www.ebi.ac.uk/pdbe/static/entry/${pdbid}_updated.cif`)
-        // return this.loadMmcifUrl(`https://files.rcsb.org/download/${pdbid}.cif`)
+        // return this.loadMmcifUrl(`http://www.ebi.ac.uk/pdbe/static/entry/${pdbid}_updated.cif`)
+        return this.loadMmcifUrl(`https://files.rcsb.org/download/${pdbid}.cif`)
     }
 
     dispose () {

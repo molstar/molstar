@@ -80,7 +80,7 @@ export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLi
 
     if (startCap) {
         const offset = 0
-        vertexCount = vertices.elementCount
+        const centerVertex = vertices.elementCount
         Vec3.fromArray(u, normalVectors, offset)
         Vec3.fromArray(v, binormalVectors, offset)
         Vec3.fromArray(controlPoint, controlPoints, offset)
@@ -89,6 +89,7 @@ export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLi
         ChunkedArray.add3(vertices, controlPoint[0], controlPoint[1], controlPoint[2]);
         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
+        vertexCount = vertices.elementCount
         for (let i = 0; i < radialSegments; ++i) {
             const t = 2 * Math.PI * i / radialSegments;
 
@@ -106,16 +107,16 @@ export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLi
 
             ChunkedArray.add3(
                 indices,
-                vertexCount,
-                vertexCount + i + 1,
-                vertexCount + (i + 1) % radialSegments + 1
+                centerVertex,
+                vertexCount + i,
+                vertexCount + (i + 1) % radialSegments
             );
         }
     }
 
     if (endCap) {
         const offset = linearSegments * 3
-        vertexCount = vertices.elementCount
+        const centerVertex = vertices.elementCount
         Vec3.fromArray(u, normalVectors, offset)
         Vec3.fromArray(v, binormalVectors, offset)
         Vec3.fromArray(controlPoint, controlPoints, offset)
@@ -124,6 +125,7 @@ export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLi
         ChunkedArray.add3(vertices, controlPoint[0], controlPoint[1], controlPoint[2]);
         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
+        vertexCount = vertices.elementCount
         for (let i = 0; i < radialSegments; ++i) {
             const t = 2 * Math.PI * i / radialSegments;
 
@@ -139,14 +141,12 @@ export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLi
             ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
             ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
-            if (i < radialSegments - 2) {
-                ChunkedArray.add3(
-                    indices,
-                    vertexCount + i + 1,
-                    vertexCount + (i + 1) % radialSegments + 1,
-                    vertexCount
-                );
-            }
+            ChunkedArray.add3(
+                indices,
+                vertexCount + i,
+                vertexCount + (i + 1) % radialSegments,
+                centerVertex
+            );
         }
     }
 

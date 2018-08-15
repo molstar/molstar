@@ -18,7 +18,7 @@ import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
 import { SaccharideNameMap, UnknownSaccharideComponent } from './constants';
-import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink } from './data';
+import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink, PartialCarbohydrateElement } from './data';
 import { UnitRings, UnitRing } from '../unit/rings';
 import { ElementIndex } from '../../model/indexing';
 
@@ -49,7 +49,7 @@ function getAnomericCarbon(unit: Unit.Atomic, ringAtoms: ArrayLike<StructureElem
             // possibly an anomeric carbon if this is a mono-saccharide without a glycosidic bond
             indexHasOxygenAndCarbon = ei
         } else if (label_atom_id.value(ei).startsWith('C1')) {
-            // likely the anomeric carbon as it is name C1 by convention
+            // likely the anomeric carbon as it is named C1 by convention
             indexHasC1Name = ei
         } else {
             // use any carbon as a fallback
@@ -122,10 +122,11 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
     const links: CarbohydrateLink[] = []
     const terminalLinks: CarbohydrateTerminalLink[] = []
     const elements: CarbohydrateElement[] = []
+    const partialElements: PartialCarbohydrateElement[] = []
 
     const elementsWithRingMap = new Map<string, number>()
 
-    function elementKey(residueIndex: number, unitId: number, altId: string) {
+    function ringElementKey(residueIndex: number, unitId: number, altId: string) {
         return `${residueIndex}|${unitId}|${altId}`
     }
 
@@ -173,10 +174,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 const sugarRings = filterFusedRings(unit.rings, sugarResidueMap.get(residueIndex));
 
                 if (!sugarRings || !sugarRings.length) {
-                    elements.push({
-                        hasRing: false,
-                        unit, residueIndex, component: saccharideComp
-                    })
+                    partialElements.push({ unit, residueIndex, component: saccharideComp })
                     continue;
                 }
 
@@ -196,11 +194,11 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const altId = getRingAltId(unit, ringAtoms)
                     const elementIndex = elements.length
                     ringElements.push(elementIndex)
-                    elementsWithRingMap.set(elementKey(residueIndex, unit.id, altId), elementIndex)
+                    elementsWithRingMap.set(ringElementKey(residueIndex, unit.id, altId), elementIndex)
                     elements.push({
                         geometry: { center, normal, direction },
-                        hasRing: true,
-                        unit, residueIndex, component: saccharideComp
+                        component: saccharideComp,
+                        unit, residueIndex, anomericCarbon
                     })
                 }
 
@@ -229,8 +227,8 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         }
     }
 
-    function getElementIndex(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
-        return elementsWithRingMap.get(elementKey(unit.getResidueIndex(index), unit.id, getAltId(unit, index)))
+    function getRingElementIndex(unit: Unit.Atomic, index: StructureElement.UnitIndex) {
+        return elementsWithRingMap.get(ringElementKey(unit.getResidueIndex(index), unit.id, getAltId(unit, index)))
     }
 
     // get carbohydrate links induced by inter-unit bonds
@@ -243,32 +241,32 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 pairBonds.getBonds(indexA).forEach(bondInfo => {
                     const { unitA, unitB } = pairBonds
                     const indexB = bondInfo.indexB
-                    const elementIndexA = getElementIndex(unitA, indexA)
-                    const elementIndexB = getElementIndex(unitB, indexB)
+                    const ringElementIndexA = getRingElementIndex(unitA, indexA)
+                    const ringElementIndexB = getRingElementIndex(unitB, indexB)
 
-                    if (elementIndexA !== undefined && elementIndexB !== undefined) {
+                    if (ringElementIndexA !== undefined && ringElementIndexB !== undefined) {
                         const atomIdA = getAtomId(unitA, indexA)
                         if (atomIdA.startsWith('O1') || atomIdA.startsWith('C1')) {
-                            fixLinkDirection(elementIndexA, elementIndexB)
+                            fixLinkDirection(ringElementIndexA, ringElementIndexB)
                         }
                         links.push({
-                            carbohydrateIndexA: elementIndexA,
-                            carbohydrateIndexB: elementIndexB
+                            carbohydrateIndexA: ringElementIndexA,
+                            carbohydrateIndexB: ringElementIndexB
                         })
-                    } else if (elementIndexA !== undefined) {
+                    } else if (ringElementIndexA !== undefined) {
                         const atomIdA = getAtomId(unitA, indexA)
                         if (atomIdA.startsWith('O1') || atomIdA.startsWith('C1')) {
-                            fixTerminalLinkDirection(elementIndexA, indexB, unitB)
+                            fixTerminalLinkDirection(ringElementIndexA, indexB, unitB)
                         }
                         terminalLinks.push({
-                            carbohydrateIndex: elementIndexA,
+                            carbohydrateIndex: ringElementIndexA,
                             elementIndex: indexB,
                             elementUnit: unitB,
                             fromCarbohydrate: true
                         })
-                    } else if (elementIndexB !== undefined) {
+                    } else if (ringElementIndexB !== undefined) {
                         terminalLinks.push({
-                            carbohydrateIndex: elementIndexB,
+                            carbohydrateIndex: ringElementIndexB,
                             elementIndex: indexA,
                             elementUnit: unitA,
                             fromCarbohydrate: false
@@ -279,5 +277,60 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         })
     }
 
-    return { links, terminalLinks, elements }
+    return { links, terminalLinks, elements, partialElements, ...buildLookups(elements, links) }
+}
+
+function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[]) {
+    // element lookup
+
+    function elementKey(unit: Unit, anomericCarbon: ElementIndex) {
+        return `${unit.id}|${anomericCarbon}`
+    }
+
+    const elementMap = new Map<string, number>()
+    for (let i = 0, il = elements.length; i < il; ++i) {
+        const { unit, anomericCarbon } = elements[i]
+        elementMap.set(elementKey(unit, anomericCarbon), i)
+    }
+
+    function getElementIndex(unit: Unit, anomericCarbon: ElementIndex) {
+        return elementMap.get(elementKey(unit, anomericCarbon))
+    }
+
+    // link lookup
+
+    function linkKey(unitA: Unit, anomericCarbonA: ElementIndex, unitB: Unit, anomericCarbonB: ElementIndex) {
+        return `${unitA.id}|${anomericCarbonA}|${unitB.id}|${anomericCarbonB}`
+    }
+
+    const linkMap = new Map<string, number>()
+    for (let i = 0, il = links.length; i < il; ++i) {
+        const l = links[i]
+        const { unit: unitA, anomericCarbon: anomericCarbonA } = elements[l.carbohydrateIndexA]
+        const { unit: unitB, anomericCarbon: anomericCarbonB } = elements[l.carbohydrateIndexB]
+        linkMap.set(linkKey(unitA, anomericCarbonA, unitB, anomericCarbonB), i)
+    }
+
+    function getLinkIndex(unitA: Unit, anomericCarbonA: ElementIndex, unitB: Unit, anomericCarbonB: ElementIndex) {
+        return linkMap.get(linkKey(unitA, anomericCarbonA, unitB, anomericCarbonB))
+    }
+
+    // anomeric carbon lookup
+
+    function anomericCarbonKey(unit: Unit, residueIndex: ResidueIndex) {
+        return `${unit.id}|${residueIndex}`
+    }
+
+    const anomericCarbonMap = new Map<string, ElementIndex>()
+    for (let i = 0, il = elements.length; i < il; ++i) {
+        const { unit, anomericCarbon } = elements[i]
+        const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index[anomericCarbon]
+        anomericCarbonMap.set(anomericCarbonKey(unit, residueIndex), anomericCarbon)
+    }
+
+    function getAnomericCarbon(unit: Unit, residueIndex: ResidueIndex) {
+        return anomericCarbonMap.get(anomericCarbonKey(unit, residueIndex))
+    }
+
+    return { getElementIndex, getLinkIndex, getAnomericCarbon }
 }

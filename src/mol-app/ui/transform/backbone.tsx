@@ -15,35 +15,28 @@ import { Toggle } from '../controls/common';
 import { BackboneEntity } from 'mol-view/state/entity';
 import { BackboneUpdate } from 'mol-view/state/transform'
 import { StateContext } from 'mol-view/state/context';
-import { ColorTheme, SizeTheme } from 'mol-geo/theme';
+import { ColorThemeProps, ColorThemeNames, ColorThemeName } from 'mol-view/theme/color';
+import { SizeThemeProps } from 'mol-view/theme/size';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
 import { VisualQuality } from 'mol-geo/representation/util';
 import { Unit } from 'mol-model/structure';
-
-export const ColorThemeInfo = {
-    'atom-index': {},
-    'chain-id': {},
-    'element-symbol': {},
-    'instance-index': {},
-    'uniform': {}
-}
-export type ColorThemeInfo = keyof typeof ColorThemeInfo
 
 interface BackboneState {
     doubleSided: boolean
     flipSided: boolean
     flatShaded: boolean
     detail: number
-    colorTheme: ColorTheme
+    colorTheme: ColorThemeProps
     colorValue: Color
-    sizeTheme: SizeTheme
+    sizeTheme: SizeThemeProps
     visible: boolean
     alpha: number
     depthMask: boolean
     useFog: boolean
     quality: VisualQuality
     unitKinds: Unit.Kind[]
+    radialSegments: number
 }
 
 export class Backbone extends View<Controller<any>, BackboneState, { transform: BackboneUpdate, entity: BackboneEntity, ctx: StateContext }> {
@@ -52,15 +45,16 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
         flipSided: false,
         flatShaded: false,
         detail: 2,
-        colorTheme: { name: 'element-symbol' } as ColorTheme,
+        colorTheme: { name: 'element-symbol' } as ColorThemeProps,
         colorValue: 0x000000,
-        sizeTheme: { name: 'uniform' } as SizeTheme,
+        sizeTheme: { name: 'uniform', factor: 1 } as SizeThemeProps,
         visible: true,
         alpha: 1,
         depthMask: true,
         useFog: true,
         quality: 'auto' as VisualQuality,
-        unitKinds: [] as Unit.Kind[]
+        unitKinds: [] as Unit.Kind[],
+        radialSegments: 16
     }
 
     componentWillMount() {
@@ -68,7 +62,6 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
     }
 
     update(state?: Partial<BackboneState>) {
-        console.log(state)
         const { transform, entity, ctx } = this.props
         const newState = { ...this.state, ...state }
         this.setState(newState)
@@ -86,7 +79,7 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
             return <option key={value} value={value}>{value.toString()}</option>
         })
 
-        const colorThemeOptions = Object.keys(ColorThemeInfo).map((name, idx) => {
+        const colorThemeOptions = ColorThemeNames.map((name, idx) => {
             return <option key={name} value={name}>{name}</option>
         })
 
@@ -137,19 +130,12 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
                                     className='molstar-form-control'
                                     value={this.state.colorTheme.name}
                                     onChange={(e) => {
-                                        const colorThemeName = e.target.value as ColorThemeInfo
-                                        if (colorThemeName === 'uniform') {
-                                            this.update({
-                                                colorTheme: {
-                                                    name: colorThemeName,
-                                                    value: this.state.colorValue
-                                                }
-                                            })
-                                        } else {
-                                            this.update({
-                                                colorTheme: { name: colorThemeName }
-                                            })
-                                        }
+                                        this.update({
+                                            colorTheme: {
+                                                name: e.target.value as ColorThemeName,
+                                                value: this.state.colorValue
+                                            }
+                                        })
                                     }}
                                 >
                                     {colorThemeOptions}
@@ -232,6 +218,21 @@ export class Backbone extends View<Controller<any>, BackboneState, { transform: 
                                     step={0.01}
                                     callOnChangeWhileSliding={true}
                                     onChange={value => this.update({ alpha: value })}
+                                />
+                            </div>
+                        </div>
+                        <div className='molstar-control-row molstar-options-group'>
+                            <div>
+                                <Slider
+                                    value={this.state.sizeTheme.factor || 1}
+                                    label='Size factor'
+                                    min={0.1}
+                                    max={3}
+                                    step={0.01}
+                                    callOnChangeWhileSliding={true}
+                                    onChange={value => this.update({
+                                        sizeTheme: { ...this.state.sizeTheme, factor: value }
+                                    })}
                                 />
                             </div>
                         </div>

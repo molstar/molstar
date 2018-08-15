@@ -10,9 +10,12 @@ import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
 import { LinkType } from 'mol-model/structure/model/types';
 import { DefaultMeshProps } from '../../../util';
+import { SizeThemeProps } from 'mol-view/theme/size';
+import { CylinderProps } from '../../../../primitive/cylinder';
 
 export const DefaultLinkCylinderProps = {
     ...DefaultMeshProps,
+    sizeTheme: { name: 'uniform', value: 0.15 } as SizeThemeProps,
     linkScale: 0.4,
     linkSpacing: 1,
     linkRadius: 0.25,
@@ -55,7 +58,8 @@ export interface LinkCylinderMeshBuilderProps {
     referencePosition(edgeIndex: number): Vec3 | null
     position(posA: Vec3, posB: Vec3, edgeIndex: number): void
     order(edgeIndex: number): number
-    flags(edgeIndex: number): LinkType.Flag
+    flags(edgeIndex: number): LinkType
+    radius(edgeIndex: number): number
 }
 
 /**
@@ -63,39 +67,32 @@ export interface LinkCylinderMeshBuilderProps {
  * the half closer to the first vertex, i.e. vertex a.
  */
 export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: LinkCylinderMeshBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
-    const { linkCount, referencePosition, position, order, flags } = linkBuilder
+    const { linkCount, referencePosition, position, order, flags, radius } = linkBuilder
 
     if (!linkCount) return Mesh.createEmpty(mesh)
 
-    // approximate vertextCount (* 2), exact calculation would need to take
-    // multiple cylinders for bond orders and metall coordinations into account
-    const vertexCount = props.radialSegments * 2 * linkCount * 2
-    const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
+    const { linkScale, linkSpacing, radialSegments } = props
+
+    const vertexCountEstimate = radialSegments * 2 * linkCount * 2
+    const meshBuilder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 4, mesh)
 
     const va = Vec3.zero()
     const vb = Vec3.zero()
     const vShift = Vec3.zero()
-
-    const { linkScale, linkSpacing, linkRadius, radialSegments } = props
-
-    const cylinderParams = {
-        height: 1,
-        radiusTop: linkRadius,
-        radiusBottom: linkRadius,
-        radialSegments
-    }
+    const cylinderProps: CylinderProps = { radiusTop: 1, radiusBottom: 1, radialSegments }
 
     for (let edgeIndex = 0, _eI = linkCount; edgeIndex < _eI; ++edgeIndex) {
         position(va, vb, edgeIndex)
 
+        const linkRadius = radius(edgeIndex)
         const o = order(edgeIndex)
-        const f = flags(edgeIndex) as any as LinkType // TODO
+        const f = flags(edgeIndex)
         meshBuilder.setId(edgeIndex)
 
         if (LinkType.is(f, LinkType.Flag.MetallicCoordination)) {
             // show metall coordinations with dashed cylinders
-            cylinderParams.radiusTop = cylinderParams.radiusBottom = linkRadius / 3
-            meshBuilder.addFixedCountDashedCylinder(va, vb, 0.5, 7, cylinderParams)
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
+            meshBuilder.addFixedCountDashedCylinder(va, vb, 0.5, 7, cylinderProps)
         } else if (o === 2 || o === 3) {
             // show bonds with order 2 or 3 using 2 or 3 parallel cylinders
             const multiRadius = linkRadius * (linkScale / (0.5 * o))
@@ -104,13 +101,13 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
             calculateShiftDir(vShift, va, vb, referencePosition(edgeIndex))
             Vec3.setMagnitude(vShift, vShift, absOffset)
 
-            cylinderParams.radiusTop = cylinderParams.radiusBottom = multiRadius
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius
 
-            if (o === 3) meshBuilder.addCylinder(va, vb, 0.5, cylinderParams)
-            meshBuilder.addDoubleCylinder(va, vb, 0.5, vShift, cylinderParams)
+            if (o === 3) meshBuilder.addCylinder(va, vb, 0.5, cylinderProps)
+            meshBuilder.addDoubleCylinder(va, vb, 0.5, vShift, cylinderProps)
         } else {
-            cylinderParams.radiusTop = cylinderParams.radiusBottom = linkRadius
-            meshBuilder.addCylinder(va, vb, 0.5, cylinderParams)
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
+            meshBuilder.addCylinder(va, vb, 0.5, cylinderProps)
         }
 
         if (edgeIndex % 10000 === 0 && ctx.shouldUpdate) {

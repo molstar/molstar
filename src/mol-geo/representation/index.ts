@@ -15,8 +15,8 @@ export interface RepresentationProps {}
 export interface Representation<D, P extends RepresentationProps = {}> {
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
-    create: (data: D, props?: P) => Task<void>
-    update: (props: P) => Task<void>
+    create: (data: D, props?: Partial<P>) => Task<void>
+    update: (props: Partial<P>) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => void
     destroy: () => void
@@ -24,8 +24,8 @@ export interface Representation<D, P extends RepresentationProps = {}> {
 
 export interface Visual<D, P extends RepresentationProps = {}> {
     readonly renderObject: RenderObject
-    create: (ctx: RuntimeContext, data: D, props: P) => Promise<void>
-    update: (ctx: RuntimeContext, props: P) => Promise<boolean>
+    create: (ctx: RuntimeContext, data: D, props?: Partial<P>) => Promise<void>
+    update: (ctx: RuntimeContext, props: Partial<P>) => Promise<boolean>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => void
     destroy: () => void

@@ -10,13 +10,16 @@ import { ElementIndex } from '../model';
 import { ResidueIndex, ChainIndex } from '../model/indexing';
 
 interface StructureElement<U = Unit> {
+    readonly kind: 'element-location',
     unit: U,
     /** Index into element (atomic/coarse) properties of unit.model */
     element: ElementIndex
 }
 
 namespace StructureElement {
-    export function create(unit?: Unit, element?: ElementIndex): StructureElement { return { unit: unit as any, element: element || (0 as ElementIndex) }; }
+    export function create(unit?: Unit, element?: ElementIndex): StructureElement {
+        return { kind: 'element-location', unit: unit as any, element: element || (0 as ElementIndex) };
+    }
 
     // TODO: when nominal types are available, make this indexed by UnitIndex
     export type Set = SortedArray<ElementIndex>
@@ -58,6 +61,10 @@ namespace StructureElement {
 
     export function isLoci(x: any): x is Loci {
         return !!x && x.kind === 'element-loci';
+    }
+
+    export function isLocation(x: any): x is StructureElement {
+        return !!x && x.kind === 'element-location';
     }
 
     export function residueIndex(e: StructureElement) {

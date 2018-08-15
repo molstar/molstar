@@ -4,119 +4,113 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Unit, Structure } from 'mol-model/structure';
-import { DefaultStructureProps, StructureVisual } from '..';
+import { Unit, Structure, StructureElement } from 'mol-model/structure';
+import { ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { createIdentityTransform } from './util/common';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
-import { createMarkers, MarkerAction } from '../../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { SizeTheme } from '../../../theme';
-import { createMeshValues, updateMeshValues, updateRenderableState, createRenderableState, DefaultMeshProps } from '../../util';
 import { MeshBuilder } from '../../../shape/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../../util/color-data';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
+import { LocationIterator } from './util/location-iterator';
+import { OrderedSet, Interval } from 'mol-data/int';
+import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
-const p = Vec3.zero()
 const pd = Vec3.zero()
 
-async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, mesh?: Mesh) {
+const sideFactor = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
+const radiusFactor = 1.75
+
+async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, props: CarbohydrateSymbolProps, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const { detail } = props
+
     const carbohydrates = structure.carbohydrates
-
-    function centerAlign(center: Vec3, normal: Vec3, direction: Vec3) {
-        Vec3.add(pd, center, direction)
-        Mat4.targetTo(t, center, pd, normal)
-        Mat4.setTranslation(t, center)
-    }
-
-    const side = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
-    const radius = 1.75
-
-    const linkParams = { radiusTop: 0.4, radiusBottom: 0.4 }
+    const l = StructureElement.create()
 
     for (let i = 0, il = carbohydrates.elements.length; i < il; ++i) {
         const c = carbohydrates.elements[i];
-        if (!c.hasRing) continue;
-
-        const cGeo = c.geometry!
         const shapeType = getSaccharideShape(c.component.type)
+
+        l.unit = c.unit
+        l.element = c.unit.elements[c.anomericCarbon]
+        const size = sizeTheme.size(l)
+        const radius = size * radiusFactor
+        const side = size * sideFactor
+
+        const { center, normal, direction } = c.geometry
+        Vec3.add(pd, center, direction)
+        Mat4.targetTo(t, center, pd, normal)
+        Mat4.setTranslation(t, center)
+
+        builder.setId(i * 2)
 
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
-                builder.addSphere(cGeo.center, radius, 2)
+                builder.addSphere(center, radius, detail)
                 break;
             case SaccharideShapes.FilledCube:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.scaleUniformly(t, t, side)
                 builder.addBox(t)
                 break;
             case SaccharideShapes.CrossedCube:
-                // TODO split
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.scaleUniformly(t, t, side)
-                builder.addBox(t)
+                builder.addPerforatedBox(t)
+                Mat4.mul(t, t, Mat4.rotZ90X180)
+                builder.setId(i * 2 + 1)
+                builder.addPerforatedBox(t)
                 break;
             case SaccharideShapes.FilledCone:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.scaleUniformly(t, t, side * 1.2)
                 builder.addOctagonalPyramid(t)
                 break
             case SaccharideShapes.DevidedCone:
-                // TODO split
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.scaleUniformly(t, t, side * 1.2)
-                builder.addOctagonalPyramid(t)
+                builder.addPerforatedOctagonalPyramid(t)
+                Mat4.mul(t, t, Mat4.rotZ90)
+                builder.setId(i * 2 + 1)
+                builder.addPerforatedOctagonalPyramid(t)
                 break
             case SaccharideShapes.FlatBox:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
                 builder.addBox(t)
                 break
             case SaccharideShapes.FilledStar:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.mul(t, t, Mat4.rotZY90)
                 builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
                 break
             case SaccharideShapes.FilledDiamond:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 builder.addOctahedron(t)
                 break
             case SaccharideShapes.DividedDiamond:
-                // TODO split
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                builder.addOctahedron(t)
+                builder.addPerforatedOctahedron(t)
+                Mat4.mul(t, t, Mat4.rotY90)
+                builder.setId(i * 2 + 1)
+                builder.addPerforatedOctahedron(t)
                 break
             case SaccharideShapes.FlatDiamond:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side / 2, side / 2))
                 builder.addDiamondPrism(t)
                 break
             case SaccharideShapes.Pentagon:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
                 builder.addPentagonalPrism(t)
                 break
             case SaccharideShapes.FlatHexagon:
             default:
-                centerAlign(cGeo.center, cGeo.normal, cGeo.direction)
                 Mat4.mul(t, t, Mat4.rotZYZ90)
                 Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side , side / 2))
                 builder.addHexagonalPrism(t)
@@ -124,91 +118,70 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
         }
     }
 
-    for (let i = 0, il = carbohydrates.links.length; i < il; ++i) {
-        const l = carbohydrates.links[i]
-        const centerA = carbohydrates.elements[l.carbohydrateIndexA].geometry!.center
-        const centerB = carbohydrates.elements[l.carbohydrateIndexB].geometry!.center
-        builder.addCylinder(centerA, centerB, 0.5, linkParams)
-    }
-
-    for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
-        const tl = carbohydrates.terminalLinks[i]
-        const center = carbohydrates.elements[tl.carbohydrateIndex].geometry!.center
-        tl.elementUnit.conformation.position(tl.elementUnit.elements[tl.elementIndex], p)
-        if (tl.fromCarbohydrate) {
-            builder.addCylinder(center, p, 0.5, linkParams)
-        } else {
-            builder.addCylinder(p, center, 0.5, linkParams)
-        }
-    }
-
     return builder.getMesh()
 }
 
 export const DefaultCarbohydrateSymbolProps = {
-    ...DefaultMeshProps,
-    ...DefaultStructureProps,
-    sizeTheme: { name: 'physical', factor: 1 } as SizeTheme,
+    ...DefaultComplexMeshProps,
+    sizeTheme: { name: 'uniform', value: 1, factor: 1 } as SizeThemeProps,
     detail: 0,
     unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
 }
-export type CarbohydrateSymbolProps = Partial<typeof DefaultCarbohydrateSymbolProps>
+export type CarbohydrateSymbolProps = typeof DefaultCarbohydrateSymbolProps
 
-export function CarbohydrateSymbolVisual(): StructureVisual<CarbohydrateSymbolProps> {
-    let renderObject: MeshRenderObject
-    let currentProps: typeof DefaultCarbohydrateSymbolProps
-    let mesh: Mesh
-    let currentStructure: Structure
+export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProps> {
+    return ComplexMeshVisual<CarbohydrateSymbolProps>({
+        defaultProps: DefaultCarbohydrateSymbolProps,
+        createMesh: createCarbohydrateSymbolMesh,
+        createLocationIterator: CarbohydrateElementIterator,
+        getLoci: getCarbohydrateLoci,
+        mark: markCarbohydrate,
+        setUpdateState: () => {}
+    })
+}
 
-    return {
-        get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, structure: Structure, props: CarbohydrateSymbolProps = {}) {
-            currentProps = Object.assign({}, DefaultCarbohydrateSymbolProps, props)
-            currentStructure = structure
+function CarbohydrateElementIterator(structure: Structure): LocationIterator {
+    const carbElements = structure.carbohydrates.elements
+    const elementCount = carbElements.length * 2
+    const instanceCount = 1
+    const location = StructureElement.create()
+    function getLocation (elementIndex: number, instanceIndex: number) {
+        const carb = carbElements[Math.floor(elementIndex / 2)]
+        location.unit = carb.unit
+        location.element = carb.anomericCarbon
+        return location
+    }
+    function isSecondary (elementIndex: number, instanceIndex: number) {
+        return (elementIndex % 2) === 1
+    }
+    return LocationIterator(elementCount, instanceCount, getLocation, isSecondary)
+}
 
-            const instanceCount = 1
-            const elementCount = currentStructure.elementCount
+function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {
+    const { objectId, elementId } = pickingId
+    if (id === objectId) {
+        const carb = structure.carbohydrates.elements[Math.floor(elementId / 2)]
+        const { unit } = carb
+        const index = OrderedSet.findPredecessorIndex(unit.elements, carb.anomericCarbon)
+        const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
+        return StructureElement.Loci([{ unit, indices }])
+    }
+    return EmptyLoci
+}
 
-            mesh = await createCarbohydrateSymbolMesh(ctx, currentStructure, mesh)
-            // console.log(mesh)
+function markCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+    const { getElementIndex } = structure.carbohydrates
 
-            const transforms = createIdentityTransform()
-            const color = createUniformColor({ value: 0x999911 }) // TODO
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-                aColor: ValueCell.create(new Float32Array(mesh.vertexCount * 3))
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
-        },
-        async update(ctx: RuntimeContext, props: CarbohydrateSymbolProps) {
-            const newProps = Object.assign({}, currentProps, props)
-
-            if (!renderObject) return false
-
-            updateMeshValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
-
-            return false
-        },
-        getLoci(pickingId: PickingId) {
-            return EmptyLoci
-        },
-        mark(loci: Loci, action: MarkerAction) {
-            // TODO
-        },
-        destroy() {
-            // TODO
+    let changed = false
+    if (StructureElement.isLoci(loci)) {
+        for (const e of loci.elements) {
+            OrderedSet.forEach(e.indices, index => {
+                const idx = getElementIndex(e.unit, e.unit.elements[index])
+                if (idx !== undefined) {
+                    if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true
+                }
+            })
         }
     }
+    return changed
 }

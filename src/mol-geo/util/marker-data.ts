@@ -37,7 +37,7 @@ export function applyMarkerAction(array: Uint8Array, start: number, end: number,
                 if (v % 2 !== 0) {
                     v -= 1
                     changed = true
-                } 
+                }
                 break
             case MarkerAction.Select:
                 v += 2

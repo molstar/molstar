@@ -32,6 +32,12 @@ void main(){
         float size = uSize;
     #elif defined(dSizeType_attribute)
         float size = aSize;
+    #elif defined(dSizeType_instance)
+        float size = readFromTexture(tSize, aInstanceId, uSizeTexSize).r;
+    #elif defined(dSizeType_element)
+        float size = readFromTexture(tSize, aElementId, uSizeTexSize).r;
+    #elif defined(dSizeType_elementInstance)
+        float size = readFromTexture(tSize, aInstanceId * float(uElementCount) + aElementId, uSizeTexSize).r;
     #endif
 
     #ifdef dPointSizeAttenuation

@@ -16,10 +16,12 @@ import { getNormalMatrix } from '../util';
 import { addSheet } from '../primitive/sheet';
 import { addTube } from '../primitive/tube';
 import { StarProps, Star } from '../primitive/star';
-import { Octahedron } from '../primitive/octahedron';
+import { Octahedron, PerforatedOctahedron } from '../primitive/octahedron';
 import { Primitive } from '../primitive/primitive';
-import { Wedge, Box, DiamondPrism, PentagonalPrism, HexagonalPrism } from '../primitive/prism';
-import { OctagonalPyramide } from '../primitive/pyramid';
+import { DiamondPrism, PentagonalPrism, HexagonalPrism } from '../primitive/prism';
+import { OctagonalPyramide, PerforatedOctagonalPyramide } from '../primitive/pyramid';
+import { PerforatedBox, Box } from '../primitive/box';
+import { Wedge } from '../primitive/wedge';
 
 export interface MeshBuilderState {
     vertices: ChunkedArray<number, 3>
@@ -30,14 +32,17 @@ export interface MeshBuilderState {
 export interface MeshBuilder {
     add(t: Mat4, _vertices: ArrayLike<number>, _normals: ArrayLike<number>, _indices?: ArrayLike<number>): void
     addBox(t: Mat4): void
+    addPerforatedBox(t: Mat4): void
     addPlane(t: Mat4, props?: PlaneProps): void
     addWedge(t: Mat4): void
     addDiamondPrism(t: Mat4): void
     addPentagonalPrism(t: Mat4): void
     addHexagonalPrism(t: Mat4): void
     addOctagonalPyramid(t: Mat4): void
+    addPerforatedOctagonalPyramid(t: Mat4): void
     addStar(t: Mat4, props?: StarProps): void
     addOctahedron(t: Mat4): void
+    addPerforatedOctahedron(t: Mat4): void
     addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
@@ -140,6 +145,10 @@ export namespace MeshBuilder {
                 const { vertices, normals, indices } = Box()
                 add(t, vertices, normals, indices)
             },
+            addPerforatedBox: (t: Mat4) => {
+                const { vertices, normals, indices } = PerforatedBox()
+                add(t, vertices, normals, indices)
+            },
             addPlane: (t: Mat4, props?: PlaneProps) => {
                 const { vertices, normals, indices } = Plane(props)
                 add(t, vertices, normals, indices)
@@ -164,12 +173,20 @@ export namespace MeshBuilder {
                 const { vertices, normals, indices } = OctagonalPyramide()
                 add(t, vertices, normals, indices)
             },
+            addPerforatedOctagonalPyramid: (t: Mat4) => {
+                const { vertices, normals, indices } = PerforatedOctagonalPyramide()
+                add(t, vertices, normals, indices)
+            },
             addStar: (t: Mat4, props?: StarProps) => {
                 const { vertices, normals, indices } = Star(props)
                 add(t, vertices, normals, indices)
             },
             addOctahedron: (t: Mat4) => {
                 const { vertices, normals, indices } = Octahedron()
+                add(t, vertices, normals, indices)
+            },
+            addPerforatedOctahedron: (t: Mat4) => {
+                const { vertices, normals, indices } = PerforatedOctahedron()
                 add(t, vertices, normals, indices)
             },
             addCylinder: (start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) => {

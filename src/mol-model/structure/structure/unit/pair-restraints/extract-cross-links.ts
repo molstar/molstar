@@ -8,6 +8,7 @@ import Unit from '../../unit';
 import Structure from '../../structure';
 import { IHMCrossLinkRestraint } from '../../../model/formats/mmcif/pair-restraint';
 import { CrossLinkRestraints } from './data';
+import { StructureElement } from '../../../structure';
 
 function _addRestraints(map: Map<number, number>, unit: Unit, restraints: IHMCrossLinkRestraint) {
     const { elements } = unit;
@@ -27,8 +28,8 @@ function extractInter(pairs: CrossLinkRestraints.Pair[], unitA: Unit, unitB: Uni
     const restraints = IHMCrossLinkRestraint.fromModel(unitA.model)
     if (!restraints) return
 
-    const rA = new Map<number, number>();
-    const rB = new Map<number, number>();
+    const rA = new Map<number, StructureElement.UnitIndex>();
+    const rB = new Map<number, StructureElement.UnitIndex>();
     _addRestraints(rA, unitA, restraints)
     _addRestraints(rB, unitB, restraints)
 
@@ -53,14 +54,14 @@ function extractIntra(pairs: CrossLinkRestraints.Pair[], unit: Unit) {
     const elementCount = elements.length;
     const kind = unit.kind
 
-    const r = new Map<number, number[]>();
+    const r = new Map<number, StructureElement.UnitIndex[]>();
 
     for (let i = 0; i < elementCount; i++) {
         const e = elements[i];
         restraints.getIndicesByElement(e, kind).forEach(ri => {
             const il = r.get(ri)
-            if (il) il.push(i)
-            else r.set(ri, [i])
+            if (il) il.push(i as StructureElement.UnitIndex)
+            else r.set(ri, [i as StructureElement.UnitIndex])
         })
     }
 
@@ -74,7 +75,7 @@ function extractIntra(pairs: CrossLinkRestraints.Pair[], unit: Unit) {
     })
 }
 
-function createCrossLinkRestraint(unitA: Unit, indexA: number, unitB: Unit, indexB: number, restraints: IHMCrossLinkRestraint, row: number): CrossLinkRestraints.Pair {
+function createCrossLinkRestraint(unitA: Unit, indexA: StructureElement.UnitIndex, unitB: Unit, indexB: StructureElement.UnitIndex, restraints: IHMCrossLinkRestraint, row: number): CrossLinkRestraints.Pair {
     return {
         unitA, indexA, unitB, indexB,
 

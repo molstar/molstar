@@ -4,31 +4,32 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { StructureRepresentation, StructureUnitsRepresentation } from '.';
-import { ElementSphereVisual, DefaultElementSphereProps } from './visual/element-sphere';
-import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from './visual/intra-unit-link-cylinder';
-import { PickingId } from '../../util/picking';
+import { ComplexRepresentation, StructureRepresentation, UnitsRepresentation } from '..';
+import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
+import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from '../visual/intra-unit-link-cylinder';
+import { PickingId } from '../../../util/picking';
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
-import { SizeTheme } from '../../theme';
-import { InterUnitLinkVisual } from './visual/inter-unit-link-cylinder';
+import { MarkerAction } from '../../../util/marker-data';
+import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultBallAndStickProps = {
     ...DefaultElementSphereProps,
     ...DefaultIntraUnitLinkProps,
 
-    sizeTheme: { name: 'uniform', value: 0.25 } as SizeTheme,
+    sizeTheme: { name: 'uniform', value: 0.25 } as SizeThemeProps,
     unitKinds: [ Unit.Kind.Atomic ] as Unit.Kind[]
 }
-export type BallAndStickProps = Partial<typeof DefaultBallAndStickProps>
+export type BallAndStickProps = typeof DefaultBallAndStickProps
 
 export function BallAndStickRepresentation(): StructureRepresentation<BallAndStickProps> {
-    const elmementRepr = StructureUnitsRepresentation(ElementSphereVisual)
-    const intraLinkRepr = StructureUnitsRepresentation(IntraUnitLinkVisual)
-    const interLinkRepr = StructureRepresentation(InterUnitLinkVisual)
+    const elmementRepr = UnitsRepresentation(ElementSphereVisual)
+    const intraLinkRepr = UnitsRepresentation(IntraUnitLinkVisual)
+    const interLinkRepr = ComplexRepresentation(InterUnitLinkVisual)
 
+    let currentProps: BallAndStickProps
     return {
         get renderObjects() {
             return [ ...elmementRepr.renderObjects, ...intraLinkRepr.renderObjects, ...interLinkRepr.renderObjects ]
@@ -36,20 +37,20 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
         get props() {
             return { ...elmementRepr.props, ...intraLinkRepr.props, ...interLinkRepr.props }
         },
-        create: (structure: Structure, props: BallAndStickProps = {} as BallAndStickProps) => {
-            const p = Object.assign({}, DefaultBallAndStickProps, props)
+        create: (structure: Structure, props: Partial<BallAndStickProps> = {}) => {
+            currentProps = Object.assign({}, DefaultBallAndStickProps, props)
             return Task.create('DistanceRestraintRepresentation', async ctx => {
-                await elmementRepr.create(structure, p).runInContext(ctx)
-                await intraLinkRepr.create(structure, p).runInContext(ctx)
-                await interLinkRepr.create(structure, p).runInContext(ctx)
+                await elmementRepr.create(structure, currentProps).runInContext(ctx)
+                await intraLinkRepr.create(structure, currentProps).runInContext(ctx)
+                await interLinkRepr.create(structure, currentProps).runInContext(ctx)
             })
         },
-        update: (props: BallAndStickProps) => {
-            const p = Object.assign({}, props)
+        update: (props: Partial<BallAndStickProps>) => {
+            currentProps = Object.assign(currentProps, props)
             return Task.create('Updating BallAndStickRepresentation', async ctx => {
-                await elmementRepr.update(p).runInContext(ctx)
-                await intraLinkRepr.update(p).runInContext(ctx)
-                await interLinkRepr.update(p).runInContext(ctx)
+                await elmementRepr.update(currentProps).runInContext(ctx)
+                await intraLinkRepr.update(currentProps).runInContext(ctx)
+                await interLinkRepr.update(currentProps).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

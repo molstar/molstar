@@ -14,7 +14,7 @@ export function isEveryLoci(x: any): x is EveryLoci {
     return !!x && x.kind === 'every-loci';
 }
 
-/** A Loci that that is empty */
+/** A Loci that is empty */
 export const EmptyLoci = { kind: 'empty-loci' as 'empty-loci' }
 export type EmptyLoci = typeof EmptyLoci
 export function isEmptyLoci(x: any): x is EmptyLoci {

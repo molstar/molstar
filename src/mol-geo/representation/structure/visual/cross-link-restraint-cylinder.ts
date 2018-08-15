@@ -4,116 +4,87 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Link, Structure } from 'mol-model/structure';
-import { DefaultStructureProps, StructureVisual } from '..';
+import { Link, Structure, StructureElement } from 'mol-model/structure';
+import { ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { createUniformColor } from '../../../util/color-data';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
-import { SizeTheme } from '../../../theme';
-import { createIdentityTransform } from './util/common';
-import { updateMeshValues, updateRenderableState, createMeshValues, createRenderableState } from '../../util';
-// import { chainIdLinkColorData } from '../../../theme/structure/color/chain-id';
+import { Loci, EmptyLoci } from 'mol-model/loci';
+import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
+import { LocationIterator } from './util/location-iterator';
+import { Interval } from 'mol-data/int';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { BitFlags } from 'mol-util';
+import { LinkType } from 'mol-model/structure/model/types';
 
 async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
 
     const crossLinks = structure.crossLinkRestraints
     if (!crossLinks.count) return Mesh.createEmpty(mesh)
 
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const location = StructureElement.create()
+
     const builderProps = {
         linkCount: crossLinks.count,
         referencePosition: (edgeIndex: number) => null,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
-            // console.log(b)
             const uA = b.unitA, uB = b.unitB
             uA.conformation.position(uA.elements[b.indexA], posA)
             uB.conformation.position(uB.elements[b.indexB], posB)
-            // console.log(posA, posB)
         },
         order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => 0
+        flags: (edgeIndex: number) => BitFlags.create(LinkType.Flag.None),
+        radius: (edgeIndex: number) => {
+            const b = crossLinks.pairs[edgeIndex]
+            location.unit = b.unitA
+            location.element = b.unitA.elements[b.indexA]
+            return sizeTheme.size(location)
+        }
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const DefaultCrossLinkRestraintProps = {
-    ...DefaultStructureProps,
+    ...DefaultComplexMeshProps,
     ...DefaultLinkCylinderProps,
-    sizeTheme: { name: 'physical', factor: 0.3 } as SizeTheme,
+    sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
     flipSided: false,
     flatShaded: false,
 }
-export type CrossLinkRestraintProps = Partial<typeof DefaultCrossLinkRestraintProps>
+export type CrossLinkRestraintProps = typeof DefaultCrossLinkRestraintProps
 
-export function CrossLinkRestraintVisual(): StructureVisual<CrossLinkRestraintProps> {
-    let renderObject: MeshRenderObject
-    let currentProps: typeof DefaultCrossLinkRestraintProps
-    let mesh: Mesh
-    let currentStructure: Structure
-
-    return {
-        get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, structure: Structure, props: CrossLinkRestraintProps = {}) {
-            currentProps = Object.assign({}, DefaultCrossLinkRestraintProps, props)
-            currentStructure = structure
-
-            const elementCount = structure.crossLinkRestraints.count
-            const instanceCount = 1
-
-            mesh = await createCrossLinkRestraintCylinderMesh(ctx, structure, currentProps)
-
-            const transforms = createIdentityTransform()
-            const color = createUniformColor({ value: 0x119911 }) // TODO
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
-        },
-        async update(ctx: RuntimeContext, props: CrossLinkRestraintProps) {
-            const newProps = Object.assign({}, currentProps, props)
-
-            if (!renderObject) return false
-
-            // TODO create in-place
-            if (currentProps.radialSegments !== newProps.radialSegments) return false
-
-            updateMeshValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
-
-            return false
-        },
-        getLoci(pickingId: PickingId) {
-            return getLinkLoci(pickingId, currentStructure, renderObject.id)
-        },
-        mark(loci: Loci, action: MarkerAction) {
-            markLink(loci, action, currentStructure, renderObject.values)
-        },
-        destroy() {
-            // TODO
+export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {
+    return ComplexMeshVisual<CrossLinkRestraintProps>({
+        defaultProps: DefaultCrossLinkRestraintProps,
+        createMesh: createCrossLinkRestraintCylinderMesh,
+        createLocationIterator: CrossLinkRestraintIterator,
+        getLoci: getLinkLoci,
+        mark: markLink,
+        setUpdateState: (state: MeshUpdateState, newProps: CrossLinkRestraintProps, currentProps: CrossLinkRestraintProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
         }
+    })
+}
+
+function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
+    const { pairs } = structure.crossLinkRestraints
+    const elementCount = pairs.length
+    const instanceCount = 1
+    const location = Link.Location()
+    const getLocation = (elementIndex: number, instanceIndex: number) => {
+        const pair = pairs[elementIndex]
+        location.aUnit = pair.unitA
+        location.aIndex = pair.indexA
+        location.bUnit = pair.unitB
+        location.bIndex = pair.indexB
+        return location
     }
+    return LocationIterator(elementCount, instanceCount, getLocation)
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
@@ -121,45 +92,30 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     if (id === objectId) {
         const pair = structure.crossLinkRestraints.pairs[elementId]
         if (pair) {
-            return Link.Loci([{
-                aUnit: pair.unitA,
-                aIndex: pair.indexA,
-                bUnit: pair.unitB,
-                bIndex: pair.indexB
-            }])
+            return Link.Loci([
+                Link.Location(
+                    pair.unitA, pair.indexA as StructureElement.UnitIndex,
+                    pair.unitB, pair.indexB as StructureElement.UnitIndex
+                )
+            ])
         }
     }
     return EmptyLoci
 }
 
-function markLink(loci: Loci, action: MarkerAction, structure: Structure, values: MarkerData) {
-    const tMarker = values.tMarker
-
+function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const crossLinks = structure.crossLinkRestraints
-    const elementCount = crossLinks.count
-    const instanceCount = 1
 
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        applyMarkerAction(array, 0, elementCount * instanceCount, action)
-        changed = true
-    } else if (Link.isLoci(loci)) {
+    if (Link.isLoci(loci)) {
         for (const b of loci.links) {
             const indices = crossLinks.getPairIndices(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
             if (indices) {
                 for (let i = 0, il = indices.length; i < il; ++i) {
-                    const idx = indices[i]
-                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                        changed = true
-                    }
+                    if (apply(Interval.ofSingleton(indices[i]))) changed = true
                 }
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }

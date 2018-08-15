@@ -5,7 +5,7 @@
  */
 
 import { Vec3 } from 'mol-math/linear-algebra'
-import { Primitive, PrimitiveBuilder } from './primitive';
+import { Primitive, PrimitiveBuilder, createPrimitive } from './primitive';
 import { polygon } from './polygon'
 
 const on = Vec3.create(0, 0, -0.5), op = Vec3.create(0, 0, 0.5)
@@ -57,4 +57,31 @@ let octagonalPyramide: Primitive
 export function OctagonalPyramide() {
     if (!octagonalPyramide) octagonalPyramide = Pyramide(polygon(8, true))
     return octagonalPyramide
+}
+
+//
+
+let perforatedOctagonalPyramide: Primitive
+export function PerforatedOctagonalPyramide() {
+    if (!perforatedOctagonalPyramide) {
+        const points = polygon(8, true)
+        const vertices = new Float32Array(8 * 3 + 6)
+        for (let i = 0; i < 8; ++i) {
+            vertices[i * 3] = points[i * 2]
+            vertices[i * 3 + 1] = points[i * 2 + 1]
+            vertices[i * 3 + 2] = -0.5
+        }
+        vertices[8 * 3] = 0
+        vertices[8 * 3 + 1] = 0
+        vertices[8 * 3 + 2] = -0.5
+        vertices[8 * 3 + 3] = 0
+        vertices[8 * 3 + 4] = 0
+        vertices[8 * 3 + 5] = 0.5
+        const indices: ReadonlyArray<number> = [
+            0, 1, 8,  1, 2, 8,  4, 5, 8,  5, 6, 8,
+            2, 3, 9,  3, 4, 9,  6, 7, 9,  7, 0, 9
+        ];
+        perforatedOctagonalPyramide = createPrimitive(vertices, indices)
+    }
+    return perforatedOctagonalPyramide
 }

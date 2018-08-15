@@ -18,7 +18,7 @@ export const DefaultBaseProps = {
     useFog: true,
     quality: 'auto' as VisualQuality
 }
-export type BaseProps = Partial<typeof DefaultBaseProps>
+export type BaseProps = typeof DefaultBaseProps
 
 export const DefaultMeshProps = {
     ...DefaultBaseProps,
@@ -26,7 +26,7 @@ export const DefaultMeshProps = {
     flipSided: false,
     flatShaded: false,
 }
-export type MeshProps = Partial<typeof DefaultMeshProps>
+export type MeshProps = typeof DefaultMeshProps
 
 type Counts = { drawCount: number, elementCount: number, instanceCount: number }
 

@@ -6,32 +6,25 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit, StructureElement } from 'mol-model/structure';
-import { SizeTheme } from '../../../../theme';
 import { RuntimeContext } from 'mol-task';
 import { sphereVertexCount } from '../../../../primitive/sphere';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshBuilder } from '../../../../shape/mesh-builder';
-import { ValueCell, defaults } from 'mol-util';
-import { TextureImage } from 'mol-gl/renderable/util';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction } from '../../../../util/marker-data';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
-import { getPhysicalRadius } from '../../../../theme/structure/size/physical';
 import { PickingId } from '../../../../util/picking';
+import { SizeTheme, SizeThemeProps } from 'mol-view/theme/size';
 
-export function getElementRadius(unit: Unit, props: SizeTheme): StructureElement.Property<number> {
-    switch (props.name) {
-        case 'uniform':
-            return () => props.value
-        case 'physical':
-            const radius = getPhysicalRadius(unit)
-            const factor = defaults(props.factor, 1)
-            return (l) => radius(l) * factor
-    }
+export interface ElementSphereMeshProps {
+    sizeTheme: SizeThemeProps,
+    detail: number,
 }
 
-export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, radius: StructureElement.Property<number>, detail: number, mesh?: Mesh) {
+export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, props: ElementSphereMeshProps, mesh?: Mesh) {
+    const { detail } = props
+
     const { elements } = unit;
+    const sizeTheme = SizeTheme(props.sizeTheme)
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail)
     const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
@@ -46,7 +39,7 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
         pos(elements[i], v)
 
         meshBuilder.setId(i)
-        meshBuilder.addSphere(v, radius(l), detail)
+        meshBuilder.addSphere(v, sizeTheme.size(l), detail)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
@@ -56,43 +49,31 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, r
     return meshBuilder.getMesh()
 }
 
-export function markElement(tMarker: ValueCell<TextureImage>, group: Unit.SymmetryGroup, loci: Loci, action: MarkerAction) {
-    let changed = false
+export function markElement(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
     const elementCount = group.elements.length
-    const instanceCount = group.units.length
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        applyMarkerAction(array, 0, elementCount * instanceCount, action)
-        changed = true
-    } else if (StructureElement.isLoci(loci)) {
+
+    let changed = false
+    if (StructureElement.isLoci(loci)) {
         for (const e of loci.elements) {
             const unitIdx = Unit.findUnitById(e.unit.id, group.units)
             if (unitIdx !== -1) {
                 if (Interval.is(e.indices)) {
-                    const idxStart = unitIdx * elementCount + Interval.start(e.indices);
-                    const idxEnd = unitIdx * elementCount + Interval.end(e.indices);
-                    if (applyMarkerAction(array, idxStart, idxEnd, action) && !changed) {
-                        changed = true
-                    }
+                    const start = unitIdx * elementCount + Interval.start(e.indices);
+                    const end = unitIdx * elementCount + Interval.end(e.indices);
+                    if (apply(Interval.ofBounds(start, end))) changed = true
                 } else {
                     for (let i = 0, _i = e.indices.length; i < _i; i++) {
                         const idx = unitIdx * elementCount + e.indices[i];
-                        if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                            changed = true
-                        }
+                        if (apply(Interval.ofSingleton(idx))) changed = true
                     }
                 }
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }
 
-export function getElementLoci(id: number, group: Unit.SymmetryGroup, pickingId: PickingId) {
+export function getElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
     const { objectId, instanceId, elementId } = pickingId
     if (id === objectId) {
         const unit = group.units[instanceId]

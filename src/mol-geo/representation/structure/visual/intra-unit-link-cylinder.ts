@@ -5,28 +5,25 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-
-import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object'
-import { Unit, Link } from 'mol-model/structure';
-import { UnitsVisual, DefaultStructureProps } from '..';
+import { Unit, Link, StructureElement } from 'mol-model/structure';
+import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { MeshValues } from 'mol-gl/renderable';
-import { getMeshData } from '../../../util/mesh-data';
 import { Mesh } from '../../../shape/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
-// import { createUniformColor } from '../../../util/color-data';
-import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, createMarkers, MarkerData } from '../../../util/marker-data';
-import { SizeTheme } from '../../../theme';
-import { chainIdLinkColorData } from '../../../theme/structure/color/chain-id';
-import { createTransforms } from './util/common';
-import { createMeshValues, createRenderableState, updateMeshValues, updateRenderableState } from '../../util';
+import { Loci, EmptyLoci } from 'mol-model/loci';
+import { LinkIterator } from './util/location-iterator';
+import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
+import { Interval } from 'mol-data/int';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { BitFlags } from 'mol-util';
 
 async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
+
+    const sizeTheme = SizeTheme(props.sizeTheme)
+    const location = StructureElement.create(unit)
 
     const elements = unit.elements;
     const links = unit.links
@@ -56,124 +53,62 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
             pos(elements[b[edgeIndex]], posB)
         },
         order: (edgeIndex: number) => _order[edgeIndex],
-        flags: (edgeIndex: number) => _flags[edgeIndex]
+        flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
+        radius: (edgeIndex: number) => {
+            location.element = elements[a[edgeIndex]]
+            return sizeTheme.size(location)
+        }
     }
 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
 export const DefaultIntraUnitLinkProps = {
-    ...DefaultStructureProps,
+    ...DefaultUnitsMeshProps,
     ...DefaultLinkCylinderProps,
-    sizeTheme: { name: 'physical', factor: 0.3 } as SizeTheme,
+    sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
 }
-export type IntraUnitLinkProps = Partial<typeof DefaultIntraUnitLinkProps>
+export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
 
 export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
-    let renderObject: MeshRenderObject
-    let currentProps: typeof DefaultIntraUnitLinkProps
-    let mesh: Mesh
-    let currentGroup: Unit.SymmetryGroup
-
-    return {
-        get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: IntraUnitLinkProps = {}) {
-            currentProps = Object.assign({}, DefaultIntraUnitLinkProps, props)
-            currentGroup = group
-
-            const unit = group.units[0]
-            const elementCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
-            const instanceCount = group.units.length
-
-            mesh = await createIntraUnitLinkCylinderMesh(ctx, unit, currentProps)
-
-            const transforms = createTransforms(group)
-            const color = chainIdLinkColorData({ group, elementCount }) // TODO
-            const marker = createMarkers(instanceCount * elementCount)
-
-            const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
-
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...color,
-                ...marker,
-                aTransform: transforms,
-                elements: mesh.indexBuffer,
-                ...createMeshValues(currentProps, counts),
-            }
-            const state = createRenderableState(currentProps)
-
-            renderObject = createMeshRenderObject(values, state)
-        },
-        async update(ctx: RuntimeContext, props: IntraUnitLinkProps) {
-            const newProps = Object.assign({}, currentProps, props)
-
-            if (!renderObject) return false
-
-            // TODO create in-place
-            if (currentProps.radialSegments !== newProps.radialSegments) return false
-
-            updateMeshValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
-
-            return true
-        },
-        getLoci(pickingId: PickingId) {
-            return getLinkLoci(pickingId, currentGroup, renderObject.id)
-        },
-        mark(loci: Loci, action: MarkerAction) {
-            markLink(loci, action, currentGroup, renderObject.values)
-        },
-        destroy() {
-            // TODO
-        }
-    }
+    return UnitsMeshVisual<IntraUnitLinkProps>({
+        defaultProps: DefaultIntraUnitLinkProps,
+        createMesh: createIntraUnitLinkCylinderMesh,
+        createLocationIterator: LinkIterator.fromGroup,
+        getLoci: getLinkLoci,
+        mark: markLink,
+        setUpdateState: () => {}
+    })
 }
 
 function getLinkLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
     const { objectId, instanceId, elementId } = pickingId
     const unit = group.units[instanceId]
     if (id === objectId && Unit.isAtomic(unit)) {
-        return Link.Loci([{
-            aUnit: unit,
-            aIndex: unit.links.a[elementId],
-            bUnit: unit,
-            bIndex: unit.links.b[elementId]
-        }])
+        return Link.Loci([
+            Link.Location(
+                unit, unit.links.a[elementId] as StructureElement.UnitIndex,
+                unit, unit.links.b[elementId] as StructureElement.UnitIndex
+            )
+        ])
     }
     return EmptyLoci
 }
 
-function markLink(loci: Loci, action: MarkerAction, group: Unit.SymmetryGroup, values: MarkerData) {
-    const tMarker = values.tMarker
+function markLink(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
     const unit = group.units[0]
-    if (!Unit.isAtomic(unit)) return
-
-    const elementCount = unit.links.edgeCount * 2
-    const instanceCount = group.units.length
 
     let changed = false
-    const array = tMarker.ref.value.array
-    if (isEveryLoci(loci)) {
-        applyMarkerAction(array, 0, elementCount * instanceCount, action)
-        changed = true
-    } else if (Link.isLoci(loci)) {
+    if (Unit.isAtomic(unit) && Link.isLoci(loci)) {
         for (const b of loci.links) {
             const unitIdx = Unit.findUnitById(b.aUnit.id, group.units)
             if (unitIdx !== -1) {
-                const _idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
-                if (_idx !== -1) {
-                    const idx = _idx
-                    if (applyMarkerAction(array, idx, idx + 1, action) && !changed) {
-                        changed = true
-                    }
+                const idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
+                if (idx !== -1) {
+                    if (apply(Interval.ofSingleton(idx))) changed = true
                 }
             }
         }
-    } else {
-        return
     }
-    if (changed) {
-        ValueCell.update(tMarker, tMarker.ref.value)
-    }
+    return changed
 }
