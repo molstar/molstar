@@ -29,15 +29,15 @@ async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structu
 
     const builderProps = {
         linkCount: crossLinks.count,
-        referencePosition: (edgeIndex: number) => null,
+        referencePosition: () => null,
         position: (posA: Vec3, posB: Vec3, edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
             const uA = b.unitA, uB = b.unitB
             uA.conformation.position(uA.elements[b.indexA], posA)
             uB.conformation.position(uB.elements[b.indexB], posB)
         },
-        order: (edgeIndex: number) => 1,
-        flags: (edgeIndex: number) => BitFlags.create(LinkType.Flag.None),
+        order: () => 1,
+        flags: () => BitFlags.create(LinkType.Flag.None),
         radius: (edgeIndex: number) => {
             const b = crossLinks.pairs[edgeIndex]
             location.unit = b.unitA
@@ -76,7 +76,7 @@ function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
     const elementCount = pairs.length
     const instanceCount = 1
     const location = Link.Location()
-    const getLocation = (elementIndex: number, instanceIndex: number) => {
+    const getLocation = (elementIndex: number) => {
         const pair = pairs[elementIndex]
         location.aUnit = pair.unitA
         location.aIndex = pair.indexA
@@ -92,12 +92,7 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     if (id === objectId) {
         const pair = structure.crossLinkRestraints.pairs[elementId]
         if (pair) {
-            return Link.Loci([
-                Link.Location(
-                    pair.unitA, pair.indexA as StructureElement.UnitIndex,
-                    pair.unitB, pair.indexB as StructureElement.UnitIndex
-                )
-            ])
+            return Link.Loci([ Link.Location(pair.unitA, pair.indexA, pair.unitB, pair.indexB) ])
         }
     }
     return EmptyLoci

@@ -7,7 +7,7 @@
 import Unit from '../../unit';
 import Structure from '../../structure';
 import { IHMCrossLinkRestraint } from '../../../model/formats/mmcif/pair-restraint';
-import { CrossLinkRestraints } from './data';
+import { PairRestraints, CrossLinkRestraint } from './data';
 import { StructureElement } from '../../../structure';
 
 function _addRestraints(map: Map<number, number>, unit: Unit, restraints: IHMCrossLinkRestraint) {
@@ -21,7 +21,7 @@ function _addRestraints(map: Map<number, number>, unit: Unit, restraints: IHMCro
     }
 }
 
-function extractInter(pairs: CrossLinkRestraints.Pair[], unitA: Unit, unitB: Unit) {
+function extractInter(pairs: CrossLinkRestraint[], unitA: Unit, unitB: Unit) {
     if (unitA.model !== unitB.model) return
     if (unitA.model.sourceData.kind !== 'mmCIF') return
 
@@ -44,7 +44,7 @@ function extractInter(pairs: CrossLinkRestraints.Pair[], unitA: Unit, unitB: Uni
     })
 }
 
-function extractIntra(pairs: CrossLinkRestraints.Pair[], unit: Unit) {
+function extractIntra(pairs: CrossLinkRestraint[], unit: Unit) {
     if (unit.model.sourceData.kind !== 'mmCIF') return
 
     const restraints = IHMCrossLinkRestraint.fromModel(unit.model)
@@ -75,7 +75,7 @@ function extractIntra(pairs: CrossLinkRestraints.Pair[], unit: Unit) {
     })
 }
 
-function createCrossLinkRestraint(unitA: Unit, indexA: StructureElement.UnitIndex, unitB: Unit, indexB: StructureElement.UnitIndex, restraints: IHMCrossLinkRestraint, row: number): CrossLinkRestraints.Pair {
+function createCrossLinkRestraint(unitA: Unit, indexA: StructureElement.UnitIndex, unitB: Unit, indexB: StructureElement.UnitIndex, restraints: IHMCrossLinkRestraint, row: number): CrossLinkRestraint {
     return {
         unitA, indexA, unitB, indexB,
 
@@ -87,8 +87,8 @@ function createCrossLinkRestraint(unitA: Unit, indexA: StructureElement.UnitInde
     }
 }
 
-function extractCrossLinkRestraints(structure: Structure): CrossLinkRestraints {
-    const pairs: CrossLinkRestraints.Pair[] = []
+function extractCrossLinkRestraints(structure: Structure): PairRestraints<CrossLinkRestraint> {
+    const pairs: CrossLinkRestraint[] = []
 
     const n = structure.units.length
     for (let i = 0; i < n; ++i) {
@@ -100,7 +100,7 @@ function extractCrossLinkRestraints(structure: Structure): CrossLinkRestraints {
         }
     }
 
-    return new CrossLinkRestraints(pairs)
+    return new PairRestraints(pairs)
 }
 
 export { extractCrossLinkRestraints };

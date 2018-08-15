@@ -15,7 +15,7 @@ import { StructureLookup3D } from './util/lookup3d';
 import { CoarseElements } from '../model/properties/coarse';
 import { StructureSubsetBuilder } from './util/subset-builder';
 import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
-import { CrossLinkRestraints, extractCrossLinkRestraints } from './unit/pair-restraints';
+import { PairRestraints, CrossLinkRestraint, extractCrossLinkRestraints } from './unit/pair-restraints';
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
 import { ResidueIndex } from '../model/indexing';
@@ -29,7 +29,7 @@ class Structure {
     private _props: {
         lookup3d?: StructureLookup3D,
         links?: InterUnitBonds,
-        crossLinkRestraints?: CrossLinkRestraints,
+        crossLinkRestraints?: PairRestraints<CrossLinkRestraint>,
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         carbohydrates?: Carbohydrates,
         models?: ReadonlyArray<Model>,

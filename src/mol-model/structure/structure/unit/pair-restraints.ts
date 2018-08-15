@@ -6,4 +6,5 @@
 
 export * from './pair-restraints/data'
 export * from './pair-restraints/extract-cross-links'
-// export * from './pair-restraints/extract-predicted_contacts'
+// export * from './pair-restraints/extract-predicted-contacts'
+// export * from './pair-restraints/extract-distance-restraints'

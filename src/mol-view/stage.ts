@@ -30,7 +30,6 @@ const ballAndStickProps: Partial<BallAndStickProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
     sizeTheme: { name: 'uniform', value: 0.15 },
-    linkRadius: 0.15,
     quality: 'auto',
     useFog: false
 }
@@ -38,7 +37,7 @@ const ballAndStickProps: Partial<BallAndStickProps> = {
 const distanceRestraintProps: Partial<DistanceRestraintProps> = {
     doubleSided: true,
     colorTheme: { name: 'chain-id' },
-    linkRadius: 0.5,
+    sizeTheme: { name: 'uniform', value: 0.6 },
     quality: 'auto',
     useFog: false
 }
@@ -132,11 +131,16 @@ export class Stage {
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000006.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000007.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000008.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000009.cif`) // TODO sequence related error
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000010.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000011.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000012.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000014.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000015.cif`) // TODO sequence related error
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000016.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000017.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000020.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000021.cif`) // ok
     }
 
     async loadMmcifUrl (url: string) {
@@ -146,7 +150,7 @@ export class Stage {
 
         StructureToBallAndStick.apply(this.ctx, structureEntity, { ...ballAndStickProps, visible: true })
         StructureToSpacefill.apply(this.ctx, structureEntity, { ...spacefillProps, visible: false })
-        StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: false })
+        StructureToDistanceRestraint.apply(this.ctx, structureEntity, { ...distanceRestraintProps, visible: true })
         StructureToBackbone.apply(this.ctx, structureEntity, { ...backboneProps, visible: false })
         StructureToCartoon.apply(this.ctx, structureEntity, { ...cartoonProps, visible: true })
         StructureToCarbohydrate.apply(this.ctx, structureEntity, { ...carbohydrateProps, visible: true })
