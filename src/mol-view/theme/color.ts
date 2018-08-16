@@ -14,6 +14,7 @@ import { ChainIdColorTheme } from './color/chain-id';
 import { ElementSymbolColorTheme } from './color/element-symbol';
 import { UnitIndexColorTheme } from './color/unit-index';
 import { UniformColorTheme } from './color/uniform';
+import { CrossLinkColorTheme } from './color/cross-link';
 
 export interface ColorTheme {
     kind: ColorType
@@ -24,6 +25,7 @@ export function ColorTheme(props: ColorThemeProps): ColorTheme {
     switch (props.name) {
         case 'element-index': return ElementIndexColorTheme(props)
         case 'carbohydrate-symbol': return CarbohydrateSymbolColorTheme(props)
+        case 'cross-link': return CrossLinkColorTheme(props)
         case 'chain-id': return ChainIdColorTheme(props)
         case 'element-symbol': return ElementSymbolColorTheme(props)
         case 'unit-index': return UnitIndexColorTheme(props)
@@ -32,7 +34,7 @@ export function ColorTheme(props: ColorThemeProps): ColorTheme {
 }
 
 export interface ColorThemeProps {
-    name: 'element-index' | 'chain-id'| 'unit-index' | 'uniform' | 'carbohydrate-symbol' | 'element-symbol'
+    name: ColorThemeName
     domain?: [number, number]
     value?: Color
     structure?: Structure
@@ -41,6 +43,7 @@ export interface ColorThemeProps {
 export const ColorThemeInfo = {
     'element-index': {},
     'carbohydrate-symbol': {},
+    'cross-link': {},
     'chain-id': {},
     'element-symbol': {},
     'unit-index': {},

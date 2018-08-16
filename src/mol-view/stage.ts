@@ -36,7 +36,7 @@ const ballAndStickProps: Partial<BallAndStickProps> = {
 
 const distanceRestraintProps: Partial<DistanceRestraintProps> = {
     doubleSided: true,
-    colorTheme: { name: 'chain-id' },
+    colorTheme: { name: 'cross-link' },
     sizeTheme: { name: 'uniform', value: 0.6 },
     quality: 'auto',
     useFog: false
