@@ -31,7 +31,7 @@ export namespace ColorScale {
         const diff = (max - min) || 1
 
         function color(value: number) {
-            const t = ((value - min) / diff) * count1
+            const t = Math.min(colors.length - 1, Math.max(0, ((value - min) / diff) * count1))
             const tf = Math.floor(t)
             const c1 = colors[tf]
             const c2 = colors[Math.ceil(t)]
