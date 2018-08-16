@@ -23,9 +23,25 @@ export interface CoarsedElementKeys {
 
 export interface CoarseElementData {
     count: number,
+    /**
+     * The entity identifier corresponding to this coarse object.
+     * In mmCIF files, this points to entity_poly_seq.entity_id in the ENTITY_POLY category.
+     */
     entity_id: Column<string>,
+    /**
+     * An asym/strand identifier corresponding to this coarse object.
+     * In mmCIF files, this points to struct_asym.id in the STRUCT_ASYM category
+     */
     asym_id: Column<string>,
+    /**
+     * The leading sequence index corresponding to this coarse object.
+     * In mmCIF files, this points to entity_poly_seq.num in the ENTITY_POLY category.
+     */
     seq_id_begin: Column<number>,
+    /**
+     * The trailing sequence index corresponding to this coarse object.
+     * In mmCIF files, this points to entity_poly_seq.num in the ENTITY_POLY category.
+     */
     seq_id_end: Column<number>,
 
     chainElementSegments: Segmentation<ElementIndex, ChainIndex>,

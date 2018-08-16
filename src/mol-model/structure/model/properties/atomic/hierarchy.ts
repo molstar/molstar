@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column, Table } from 'mol-data/db'
@@ -12,10 +13,31 @@ import { ChainIndex, EntityIndex, ResidueIndex, ElementIndex } from '../../index
 import SortedRanges from 'mol-data/int/sorted-ranges';
 
 export const AtomsSchema = {
+    /**
+     * The chemical element of this atom site.
+     * For mmCIF files, this points to atom_type.symbol in the ATOM_TYPE category.
+     */
     type_symbol: Column.Schema.Aliased<ElementSymbol>(mmCIF.atom_site.type_symbol),
+    /**
+     * A component of the identifier for this atom site.
+     * This is a standardized name for the atom within its residue.
+     * For mmCIF files, this points to chem_comp_atom.atom_id in the CHEM_COMP_ATOM category.
+     */
     label_atom_id: mmCIF.atom_site.label_atom_id,
+    /**
+     * An alternative identifier for label_atom_id that may be provided by an author
+     * in order to match the identification used in the publication that describes the structure.
+     */
     auth_atom_id: mmCIF.atom_site.auth_atom_id,
+    /**
+     * A component of the identifier for this atom site.
+     * Identifies an alternative conformation for this atom site.
+     */
     label_alt_id: mmCIF.atom_site.label_alt_id,
+    /**
+     * The net integer charge assigned to this atom.
+     * This is the formal charge assignment normally found in chemical diagrams.
+     */
     pdbx_formal_charge: mmCIF.atom_site.pdbx_formal_charge
     // id, occupancy and B_iso_or_equiv are part of conformation
 };
@@ -24,19 +46,52 @@ export type AtomsSchema = typeof AtomsSchema
 export interface Atoms extends Table<AtomsSchema> { }
 
 export const ResiduesSchema = {
+    /**
+     * The group of atoms to which the atom site belongs. This data item is provided for
+     * compatibility with the original Protein Data Bank format, and only for that purpose.
+     */
     group_PDB: mmCIF.atom_site.group_PDB,
+    /**
+     * A component of the identifier for this atom site.
+     * For mmCIF files, this points to chem_comp.id in the CHEM_COMP category.
+     */
     label_comp_id: mmCIF.atom_site.label_comp_id,
+    /**
+     * An alternative identifier for atom_site.label_comp_id that may be provided by an author
+     * in order to match the identification used in the publication that describes the structure.
+     */
     auth_comp_id: mmCIF.atom_site.auth_comp_id,
+    /**
+     * For mmCIF files, this points to entity_poly_seq.num in the ENTITY_POLY_SEQ category.
+     */
     label_seq_id: mmCIF.atom_site.label_seq_id,
+    /**
+     * An alternative identifier for atom_site.label_seq_id that may be provided by an author
+     * in order to match the identification used in the publication that describes the structure.
+     */
     auth_seq_id: mmCIF.atom_site.auth_seq_id,
+    /**
+     * PDB insertion code.
+     */
     pdbx_PDB_ins_code: mmCIF.atom_site.pdbx_PDB_ins_code,
 };
 export type ResiduesSchema = typeof ResiduesSchema
 export interface Residues extends Table<ResiduesSchema> { }
 
 export const ChainsSchema = {
+    /**
+     * A component of the identifier for this atom site.
+     * For mmCIF files, this points to struct_asym.id in the STRUCT_ASYM category.
+     */
     label_asym_id: mmCIF.atom_site.label_asym_id,
+    /**
+     * An alternative identifier for atomsite.label_asym_id that may be provided by an author
+     * in order to match the identification used in the publication that describes the structure.
+     */
     auth_asym_id: mmCIF.atom_site.auth_asym_id,
+    /**
+     * For mmCIF files, this points to _entity.id in the ENTITY category.
+     */
     label_entity_id: mmCIF.atom_site.label_entity_id
 }
 export type ChainsSchema = typeof ChainsSchema
