@@ -10,8 +10,9 @@ import { SaccharideColors } from 'mol-model/structure/structure/carbohydrates/co
 import { Location } from 'mol-model/location';
 import { ColorThemeProps, ColorTheme } from '../color';
 import { LocationColor } from 'mol-geo/util/color-data';
+import { Color } from 'mol-util/color';
 
-const DefaultColor = 0xCCCCCC;
+const DefaultColor = 0xCCCCCC as Color
 
 export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme {
     let colorFn: LocationColor

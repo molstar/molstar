@@ -1,3 +1,5 @@
+import { Color, ColorMap } from 'mol-util/color';
+
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -5,26 +7,26 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// https://www.ncbi.nlm.nih.gov/glycans/snfg.html
+// follows community standard from https://www.ncbi.nlm.nih.gov/glycans/snfg.html
 
 export const enum SaccharideShapes {
     FilledSphere, FilledCube, CrossedCube, DividedDiamond, FilledCone, DevidedCone,
     FlatBox, FilledStar, FilledDiamond, FlatDiamond, FlatHexagon, Pentagon
 }
 
-export const enum SaccharideColors {
-    Blue = 0x0090bc,
-    Green =	0x00a651,
-    Yellow = 0xffd400,
-    Orange = 0xf47920,
-    Pink = 0xf69ea1,
-    Purple = 0xa54399,
-    LightBlue = 0x8fcce9,
-    Brown = 0xa17a4d,
-    Red = 0xed1c24,
+export const SaccharideColors = ColorMap({
+    Blue: 0x0090bc,
+    Green:	0x00a651,
+    Yellow: 0xffd400,
+    Orange: 0xf47920,
+    Pink: 0xf69ea1,
+    Purple: 0xa54399,
+    LightBlue: 0x8fcce9,
+    Brown: 0xa17a4d,
+    Red: 0xed1c24,
 
-    Secondary = 0xf1ece1
-}
+    Secondary: 0xf1ece1
+})
 
 export const enum SaccharideType {
     Hexose, HexNAc, Hexosamine, Hexuronate, Deoxyhexose, DeoxyhexNAc, DiDeoxyhexose,
@@ -72,11 +74,11 @@ export function getSaccharideShape(type: SaccharideType) {
 export type SaccharideComponent = {
     abbr: string
     name: string
-    color: SaccharideColors
+    color: Color
     type: SaccharideType
 }
 
-export const UnknownSaccharideComponent = {
+export const UnknownSaccharideComponent: SaccharideComponent = {
     abbr: 'Unk',
     name: 'Unknown',
     color: SaccharideColors.Secondary,

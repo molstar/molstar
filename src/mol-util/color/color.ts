@@ -5,7 +5,9 @@
  */
 
 /** RGB color triplet expressed as a single number */
-type Color = number
+type Color = { readonly '@type': 'color' } & number
+
+function Color(hex: number) { return hex as Color }
 
 namespace Color {
     export function toRgb(hexColor: Color) {
@@ -17,7 +19,7 @@ namespace Color {
     }
 
     export function fromRgb(r: number, g: number, b: number ): Color {
-        return (r << 16) | (g << 8) | b
+        return ((r << 16) | (g << 8) | b) as Color
     }
 
     /** Copies hex color to rgb array */
@@ -47,7 +49,7 @@ namespace Color {
         const g = g1 + (g2 - g1) * t
         const b = b1 + (b2 - b1) * t
 
-        return (r << 16) | (g << 8) | b
+        return ((r << 16) | (g << 8) | b) as Color
     }
 }
 

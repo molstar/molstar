@@ -10,7 +10,7 @@ import { Unit, StructureElement, Link } from 'mol-model/structure';
 import { LocationColor } from 'mol-geo/util/color-data';
 import { ColorTheme, ColorThemeProps } from '../color';
 
-const DefaultColor = 0xCCCCCC;
+const DefaultColor = 0xCCCCCC as Color
 
 export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let colorFn: LocationColor
@@ -27,7 +27,7 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
             } else if (Link.isLocation(location)) {
                 return scale.color(Unit.findUnitById(location.aUnit.id, units))
             }
-            return 0
+            return DefaultColor
         }
     } else {
         colorFn = () => DefaultColor

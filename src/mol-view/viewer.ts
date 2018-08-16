@@ -24,6 +24,7 @@ import { RenderVariant } from 'mol-gl/webgl/render-item';
 import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
 import { MarkerAction } from 'mol-geo/util/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
+import { Color } from 'mol-util/color';
 
 interface Viewer {
     center: (p: Vec3) => void
@@ -101,7 +102,7 @@ namespace Viewer {
         // const controls = TrackballControls.create(input, scene, {})
         const controls = TrackballControls.create(input, camera, {})
         // const renderer = Renderer.create(ctx, camera, { clearColor: 0xFFFFFF })
-        const renderer = Renderer.create(ctx, camera, { clearColor: 0x000000 })
+        const renderer = Renderer.create(ctx, camera, { clearColor: Color(0x000000) })
 
         const pickScale = 1 / 4
         const pickWidth = Math.round(canvas.width * pickScale)

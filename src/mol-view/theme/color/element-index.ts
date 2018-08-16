@@ -11,7 +11,7 @@ import { OrderedSet } from 'mol-data/int';
 import { LocationColor } from 'mol-geo/util/color-data';
 import { ColorThemeProps, ColorTheme } from '../color';
 
-const DefaultColor = 0xCCCCCC;
+const DefaultColor = 0xCCCCCC as Color
 
 export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let colorFn: LocationColor
@@ -37,7 +37,7 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
                 const unitId = Unit.findUnitById(location.aUnit.id, units)
                 return scale.color(cummulativeElementCount.get(unitId) || 0 + location.aIndex)
             }
-            return 0
+            return DefaultColor
         }
     } else {
         colorFn = () => DefaultColor

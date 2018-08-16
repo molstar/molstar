@@ -20,6 +20,7 @@ import { PickingId } from '../../util/picking';
 import { createEmptyMarkers, MarkerAction } from '../../util/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { fillSerial } from 'mol-util/array';
+import { Color } from 'mol-util/color';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -65,7 +66,7 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
             }
 
             const instanceCount = 1
-            const color = createValueColor(0x7ec0ee)
+            const color = createValueColor(Color(0x7ec0ee))
             const marker = createEmptyMarkers()
 
             const values: MeshValues = {

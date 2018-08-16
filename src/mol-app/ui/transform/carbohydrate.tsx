@@ -49,7 +49,7 @@ export class Carbohydrate extends View<Controller<any>, CarbohydrateState, { tra
         flatShaded: false,
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorThemeProps,
-        colorValue: 0x000000,
+        colorValue: Color(0x000000),
         sizeTheme: { name: 'uniform', factor: 1 } as SizeThemeProps,
         visible: true,
         alpha: 1,
@@ -155,7 +155,7 @@ export class Carbohydrate extends View<Controller<any>, CarbohydrateState, { tra
                                     className='molstar-form-control'
                                     value={this.state.colorValue}
                                     onChange={(e) => {
-                                        const colorValue = parseInt(e.target.value)
+                                        const colorValue = Color(parseInt(e.target.value))
                                         this.update({
                                             colorTheme: {
                                                 name: 'uniform',

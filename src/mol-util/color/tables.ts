@@ -4,13 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { ColorMap, ColorTable } from './index';
+
 /**
  * Brewer Color Lists
  *
  * Copyright (c) 2002 Cynthia Brewer, Mark Harrower, and The Pennsylvania State University.
  * Licensed under the Apache License, Version 2.0 (the "License");
  */
-export const ColorBrewer = {
+export const ColorBrewer = ColorTable({
     // sequential
     OrRd: [0xfff7ec, 0xfee8c8, 0xfdd49e, 0xfdbb84, 0xfc8d59, 0xef6548, 0xd7301f, 0xb30000, 0x7f0000],
     PuBu: [0xfff7fb, 0xece7f2, 0xd0d1e6, 0xa6bddb, 0x74a9cf, 0x3690c0, 0x0570b0, 0x045a8d, 0x023858],
@@ -52,10 +54,10 @@ export const ColorBrewer = {
     Paired: [0xa6cee3, 0x1f78b4, 0xb2df8a, 0x33a02c, 0xfb9a99, 0xe31a1c, 0xfdbf6f, 0xff7f00, 0xcab2d6, 0x6a3d9a, 0xffff99, 0xb15928],
     Pastel2: [0xb3e2cd, 0xfdcdac, 0xcbd5e8, 0xf4cae4, 0xe6f5c9, 0xfff2ae, 0xf1e2cc, 0xcccccc],
     Pastel1: [0xfbb4ae, 0xb3cde3, 0xccebc5, 0xdecbe4, 0xfed9a6, 0xffffcc, 0xe5d8bd, 0xfddaec, 0xf2f2f2]
-}
+})
 
 /** X11 color names http://www.w3.org/TR/css3-color/#svg-color */
-export const ColorNames = {
+export const ColorNames = ColorMap({
     aliceblue: 0xf0f8ff,
     antiquewhite: 0xfaebd7,
     aqua: 0x00ffff,
@@ -211,4 +213,4 @@ export const ColorNames = {
     whitesmoke: 0xf5f5f5,
     yellow: 0xffff00,
     yellowgreen: 0x9acd32
-}
+})

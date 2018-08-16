@@ -49,7 +49,7 @@ export class Cartoon extends View<Controller<any>, CartoonState, { transform: Ca
         flatShaded: false,
         detail: 2,
         colorTheme: { name: 'element-symbol' } as ColorThemeProps,
-        colorValue: 0x000000,
+        colorValue: Color(0x000000),
         sizeTheme: { name: 'uniform', value: 0.13, factor: 1 } as SizeThemeProps,
         visible: true,
         alpha: 1,
@@ -155,7 +155,7 @@ export class Cartoon extends View<Controller<any>, CartoonState, { transform: Ca
                                     className='molstar-form-control'
                                     value={this.state.colorValue}
                                     onChange={(e) => {
-                                        const colorValue = parseInt(e.target.value)
+                                        const colorValue = Color(parseInt(e.target.value))
                                         this.update({
                                             colorTheme: {
                                                 name: 'uniform',

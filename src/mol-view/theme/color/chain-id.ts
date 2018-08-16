@@ -10,6 +10,8 @@ import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorThemeProps, ColorTheme } from '../color';
 
+const DefaultColor = 0xCCCCCC as Color
+
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
         case Unit.Kind.Atomic:
@@ -37,7 +39,7 @@ export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
             l.element = location.aUnit.elements[location.aIndex]
             return scale.color(map.get(asym_id(l)) || 0)
         }
-        return 0
+        return DefaultColor
     }
 
     return {

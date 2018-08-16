@@ -20,6 +20,7 @@ import { PointValues } from '../renderable/point';
 import Scene from '../scene';
 import { createEmptyMarkers } from 'mol-geo/util/marker-data';
 import { fillSerial } from 'mol-util/array';
+import { Color } from 'mol-util/color';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -47,7 +48,7 @@ function createPoints() {
     const aPosition = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
     const aElementId = ValueCell.create(fillSerial(new Float32Array(3)))
     const aInstanceId = ValueCell.create(fillSerial(new Float32Array(1)))
-    const color = createValueColor(0xFF0000)
+    const color = createValueColor(Color(0xFF0000))
     const size = createValueSize(1)
     const marker = createEmptyMarkers()
 
