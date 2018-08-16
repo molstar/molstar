@@ -5,11 +5,11 @@
  */
 
 /** RGB color triplet expressed as a single number */
-type Color = { readonly '@type': 'color' } & number
+export type Color = { readonly '@type': 'color' } & number
 
-function Color(hex: number) { return hex as Color }
+export function Color(hex: number) { return hex as Color }
 
-namespace Color {
+export namespace Color {
     export function toRgb(hexColor: Color) {
         return [ hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255 ]
     }
@@ -53,4 +53,8 @@ namespace Color {
     }
 }
 
-export default Color
+type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }
+export function ColorTable<T extends { [k: string]: number[] }>(o: T) { return o as ColorTable<T> }
+
+type ColorMap<T extends { [k: string]: number }> = { [k in keyof T]: Color }
+export function ColorMap<T extends { [k: string]: number }>(o: T) { return o as ColorMap<T> }

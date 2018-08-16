@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorMap, ColorTable } from './index';
+import { ColorMap, ColorTable } from './color';
 
 /**
  * Brewer Color Lists

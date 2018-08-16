@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Color from './color'
+import { Color } from './color'
 import { ColorBrewer } from './tables'
 
 export interface ColorScale {
