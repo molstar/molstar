@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Database, ValueColumn, ListColumn } from './json-schema'
+import { Database, Column, EnumCol, StrCol, IntCol, ListCol, FloatCol, CoordCol, MatrixCol, VectorCol } from './schema'
 import * as Data from 'mol-io/reader/cif/data-model'
 import { CifFrame } from 'mol-io/reader/cif/data-model';
 
-export function getFieldType (type: string, values?: string[]): ValueColumn|ListColumn {
+export function getFieldType (type: string, description: string, values?: string[]): Column {
     switch (type) {
         case 'code':
         case 'ucode':
@@ -19,11 +19,7 @@ export function getFieldType (type: string, values?: string[]): ValueColumn|List
         case 'uchar3':
         case 'uchar1':
         case 'boolean':
-            if (values && values.length) {
-                return { enum: [ 'str', values ] }
-            } else {
-                return 'str'
-            }
+            return values && values.length ? EnumCol(values, 'str', description) : StrCol(description)
         case 'aliasname':
         case 'name':
         case 'idname':
@@ -56,24 +52,20 @@ export function getFieldType (type: string, values?: string[]): ValueColumn|List
         case 'date_dep':
         case 'url':
         case 'symop':
-            return 'str'
+            return StrCol(description)
         case 'int':
         case 'non_negative_int':
         case 'positive_int':
-            if (values && values.length) {
-                return { enum: [ 'int', values ] }
-            } else {
-                return 'int'
-            }
+           return values && values.length ? EnumCol(values, 'int', description) : IntCol(description)
         case 'float':
-            return 'float'
+            return FloatCol(description)
         case 'ec-type':
         case 'ucode-alphanum-csv':
         case 'id_list':
-            return { list: [ 'str', ',' ] }
+            return ListCol('str', ',', description)
     }
     console.log(`unknown type '${type}'`)
-    return 'str'
+    return StrCol(description)
 }
 
 type FrameCategories = { [category: string]: Data.CifFrame }
@@ -135,6 +127,19 @@ function getSubCategory (d: Data.CifFrame, ctx: FrameData): string|undefined {
     }
 }
 
+function getDescription (d: Data.CifFrame, ctx: FrameData): string|undefined {
+    const value = getField('item_description', 'description', d, ctx)
+    if (value) {
+        return value.str(0).trim()
+            .replace(/(\r\n|\r|\n)([ \t]+)/g, '\n')
+            .replace(/(\[[1-3]\])+ element/, 'elements')
+            .replace(/(\[[1-3]\])+/, '')
+    }
+}
+
+const reMatrixField = /\[[1-3]\]\[[1-3]\]/
+const reVectorField = /\[[1-3]\]/
+
 const FORCE_INT_FIELDS = [
     '_atom_site.id',
     '_atom_site.auth_seq_id',
@@ -190,6 +195,7 @@ export function generateSchema (frames: CifFrame[]) {
     const links: FrameLinks = {}
     const ctx = { categories, links }
 
+    // build list of links between categories
     frames.forEach(d => {
         if (d.header[0] !== '_') return
         categories[d.header] = d
@@ -213,12 +219,12 @@ export function generateSchema (frames: CifFrame[]) {
     Object.keys(categories).forEach(fullName => {
         const d = categories[fullName]
         if (!d) {
-            console.log('foo', fullName)
+            console.log(`${fullName} not found, moving on`)
             return
         }
         const categoryName = d.header.substring(1, d.header.indexOf('.'))
         const itemName = d.header.substring(d.header.indexOf('.') + 1)
-        let fields
+        let fields: { [k: string]: Column }
         if (categoryName in schema) {
             fields = schema[categoryName]
         } else {
@@ -226,38 +232,41 @@ export function generateSchema (frames: CifFrame[]) {
             schema[categoryName] = fields
         }
 
+        const description = getDescription(d, ctx) || ''
+
         // need to use regex to check for matrix or vector items
         // as sub_category assignment is missing for some entries
         const subCategory = getSubCategory(d, ctx)
         if (subCategory === 'cartesian_coordinate' || subCategory === 'fractional_coordinate') {
-            fields[itemName] = 'coord'
+            fields[itemName] = CoordCol(description)
         } else if (FORCE_INT_FIELDS.includes(d.header)) {
-            fields[itemName] = 'int'
+            fields[itemName] = IntCol(description)
+            console.log(`forcing int: ${d.header}`)
         } else if (subCategory === 'matrix') {
-            fields[itemName.replace(/\[[1-3]\]\[[1-3]\]/, '')] = { 'matrix': [ 3, 3 ] }
+            fields[itemName.replace(reMatrixField, '')] = MatrixCol(3, 3, description)
         } else if (subCategory === 'vector') {
-            fields[itemName.replace(/\[[1-3]\]/, '')] = { 'vector': [ 3 ] }
+            fields[itemName.replace(reVectorField, '')] = VectorCol(3, description)
         } else {
-            if (itemName.match(/\[[1-3]\]\[[1-3]\]/)) {
-                fields[itemName.replace(/\[[1-3]\]\[[1-3]\]/, '')] = { 'matrix': [ 3, 3 ] }
+            if (itemName.match(reMatrixField)) {
+                fields[itemName.replace(reMatrixField, '')] = MatrixCol(3, 3, description)
                 console.log(`${d.header} should have 'matrix' _item_sub_category.id`)
-            } else if (itemName.match(/\[[1-3]\]/)) {
-                fields[itemName.replace(/\[[1-3]\]/, '')] = { 'vector': [ 3 ] }
+            } else if (itemName.match(reVectorField)) {
+                fields[itemName.replace(reVectorField, '')] = VectorCol(3, description)
                 console.log(`${d.header} should have 'vector' _item_sub_category.id`)
             } else {
                 const code = getCode(d, ctx)
                 if (code) {
-                    let fieldType = getFieldType(code[0], code[1]);
-                    if (typeof fieldType === 'string') {
+                    let fieldType = getFieldType(code[0], description, code[1]);
+                    if (fieldType.type === 'str') {
                         if (COMMA_SEPARATED_LIST_FIELDS.includes(d.header)) {
-                            fieldType = { 'list': [ 'str', ',' ] };
-                            console.log(`comma separated: ${d.header}`)
+                            fieldType = ListCol('str', ',', description)
+                            console.log(`forcing comma separated: ${d.header}`)
                         } else if (SPACE_SEPARATED_LIST_FIELDS.includes(d.header)) {
-                            fieldType = { 'list': [ 'str', ' ' ] };
-                            console.log(`space separated: ${d.header}`)
+                            fieldType = ListCol('str', ' ', description)
+                            console.log(`forcing space separated: ${d.header}`)
                         } else if (SEMICOLON_SEPARATED_LIST_FIELDS.includes(d.header)) {
-                            fieldType = { 'list': [ 'str', ';' ] };
-                            console.log(`space separated: ${d.header}`)
+                            fieldType = ListCol('str', ';', description)
+                            console.log(`forcing space separated: ${d.header}`)
                         }
                     }
                     fields[itemName] = fieldType

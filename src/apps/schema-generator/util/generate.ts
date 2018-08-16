@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { validate } from './validate'
-import { Database, getTypeAndArgs, Filter } from './json-schema'
+import { Database, Filter, Column } from './schema'
+import { indentString } from 'mol-util';
 
 function header (name: string, info: string, importDatabasePath = 'mol-data/db') {
     return `/**
@@ -37,54 +37,47 @@ export type ${name}_Schema = typeof ${name}_Schema;
 export interface ${name}_Database extends Database<${name}_Schema> {}`
 }
 
-const value: { [k: string]: (...args: any[]) => string } = {
-    enum: function (type: string, values: string[]) {
-        return `Aliased<'${values.map(v => v.replace(/'/g, '\\\'')).join(`' | '`)}'>(${type})`
-    },
-    matrix: function (rows: number, cols: number) {
-        return `Matrix(${rows}, ${cols})`
-    },
-    vector: function (dim: number) {
-        return `Vector(${dim})`
-    },
-    list: function (type: 'str'|'int'|'float', separator: string) {
-        if (type === 'int') {
-            return `List('${separator}', x => parseInt(x, 10))`
-        } else if (type === 'float') {
-            return `List('${separator}', x => parseFloat(x))`
-        } else {
-            return `List('${separator}', x => x)`
-        }
+function getTypeDef(c: Column): string {
+    switch (c.type) {
+        case 'str': return 'str'
+        case 'int': return 'int'
+        case 'float': return 'float'
+        case 'coord': return 'coord'
+        case 'enum':
+            return `Aliased<'${c.values.map(v => v.replace(/'/g, '\\\'')).join(`' | '`)}'>(${c.subType})`
+        case 'matrix':
+            return `Matrix(${c.rows}, ${c.columns})`
+        case 'vector':
+            return `Vector(${c.length})`
+        case 'list':
+            if (c.subType === 'int') {
+                return `List('${c.separator}', x => parseInt(x, 10))`
+            } else if (c.subType === 'float' || c.subType === 'coord') {
+                return `List('${c.separator}', x => parseFloat(x))`
+            } else {
+                return `List('${c.separator}', x => x)`
+            }
     }
 }
 
 const reSafePropertyName = /^[a-zA-Z_$][0-9a-zA-Z_$]*$/
-function safePropertyString(name: string) {
-    return name.match(reSafePropertyName) ? name : `'${name}'`
-}
+function safePropertyString(name: string) { return name.match(reSafePropertyName) ? name : `'${name}'` }
 
 export function generate (name: string, info: string, schema: Database, fields?: Filter, importDatabasePath?: string) {
-    const validationResult = validate(schema)
-    if (validationResult !== true) {
-        throw validationResult
-    }
-
     const codeLines: string[] = []
 
     codeLines.push(`export const ${name}_Schema = {`)
     Object.keys(schema).forEach(table => {
-        if (fields && !fields[ table ]) return
+        if (fields && !fields[table]) return
         codeLines.push(`    ${safePropertyString(table)}: {`)
-        const columns = schema[ table ]
+        const columns = schema[table]
         Object.keys(columns).forEach(columnName => {
-            if (fields && !fields[ table ][ columnName ]) return
-            let typeDef
-            const fieldType = columns[ columnName ]
-            if (typeof fieldType === 'object') {
-                const { type, args } = getTypeAndArgs(fieldType)
-                typeDef = value[ type ](...args)
-            } else {
-                typeDef = fieldType
+            if (fields && !fields[table][columnName]) return
+            const typeDef = getTypeDef(columns[columnName])
+            if (columns[columnName].description) {
+                codeLines.push(`        /**`)
+                codeLines.push(`${indentString(columns[columnName].description, 1, '         * ')}`)
+                codeLines.push(`         */`)
             }
             codeLines.push(`        ${safePropertyString(columnName)}: ${typeDef},`)
         })

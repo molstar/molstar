@@ -184,3 +184,8 @@ export function formatProgress(p: Progress) {
     const x = (100 * tp.current / tp.max).toFixed(2);
     return `${tp.message} ${x}%`;
 }
+
+const reLine = /^/mg
+export function indentString(str: string, count: number, indent: string) {
+    return count === 0 ? str : str.replace(reLine, indent.repeat(count))
+}
