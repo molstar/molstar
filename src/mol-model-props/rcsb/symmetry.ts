@@ -6,7 +6,7 @@
 
 import { GraphQLClient } from 'graphql-request'
 
-import { RcsbSymmetry } from './graphql/types';
+import { AssemblySymmetry as AssemblySymmetryGraphQL } from './graphql/types';
 import query from './graphql/symmetry.gql';
 
 import { Model, ModelPropertyDescriptor } from 'mol-model/structure';
@@ -18,30 +18,30 @@ import { CifExportContext } from 'mol-model/structure/export/mmcif';
 
 const { str, int, float, Aliased, Vector, List } = Column.Schema;
 
-function getInstance(name: keyof SymmetryAnnotation.Schema): (ctx: CifExportContext) => CifWriter.Category.Instance<any, any> {
+function getInstance(name: keyof AssemblySymmetry.Schema): (ctx: CifExportContext) => CifWriter.Category.Instance<any, any> {
     return function(ctx: CifExportContext) {
-        const db = SymmetryAnnotation.get(ctx.model);
+        const db = AssemblySymmetry.get(ctx.model);
         return db ? Category.ofTable(db[name]) : CifWriter.Category.Empty;
     }
 }
 
-function getCategory(name: keyof SymmetryAnnotation.Schema) {
+function getCategory(name: keyof AssemblySymmetry.Schema) {
     return { name, instance: getInstance(name) }
 }
 
-function createDatabase(assemblies: ReadonlyArray<RcsbSymmetry.Assemblies>): SymmetryAnnotation.Database {
-    const Schema = SymmetryAnnotation.Schema
+function createDatabase(assemblies: ReadonlyArray<AssemblySymmetryGraphQL.Assemblies>): AssemblySymmetry.Database {
+    const Schema = AssemblySymmetry.Schema
 
-    const featureRows: Table.Row<typeof Schema.rcsb_symmetry_annotation_feature>[] = []
-    const clusterRows: Table.Row<typeof Schema.rcsb_symmetry_annotation_cluster>[] = []
-    const axisRows: Table.Row<typeof Schema.rcsb_symmetry_annotation_axis>[] = []
+    const featureRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_feature>[] = []
+    const clusterRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_cluster>[] = []
+    const axisRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_axis>[] = []
 
     let id = 0
     for (let i = 0, il = assemblies.length; i < il; ++i) {
         const a = assemblies[i]
         const assembly_id = (a.assembly_id!).toString()
-        const source = a.rcsb_annotation_symmetry!.source!
-        const symmetry_features = a.rcsb_annotation_symmetry!.symmetry_features!
+        const source = a.rcsb_assembly_symmetry!.source!
+        const symmetry_features = a.rcsb_assembly_symmetry!.symmetry_features!
         for (let j = 0, jl = symmetry_features.length; j < jl; ++j) {
             const f = symmetry_features[j]!
             featureRows.push({
@@ -82,31 +82,31 @@ function createDatabase(assemblies: ReadonlyArray<RcsbSymmetry.Assemblies>): Sym
         }
     }
 
-    return _Database.ofTables('symmetry_annotation', Schema, {
-        symmetry_annotation_feature: Table.ofRows(Schema.rcsb_symmetry_annotation_feature, featureRows),
-        symmetry_annotation_cluster: Table.ofRows(Schema.rcsb_symmetry_annotation_cluster, clusterRows),
-        symmetry_annotation_axis: Table.ofRows(Schema.rcsb_symmetry_annotation_axis, axisRows)
+    return _Database.ofTables('assembly_symmetry', Schema, {
+        assembly_symmetry_feature: Table.ofRows(Schema.rcsb_assembly_symmetry_feature, featureRows),
+        assembly_symmetry_cluster: Table.ofRows(Schema.rcsb_assembly_symmetry_cluster, clusterRows),
+        assembly_symmetry_axis: Table.ofRows(Schema.rcsb_assembly_symmetry_axis, axisRows)
     })
 }
 
 const _Descriptor: ModelPropertyDescriptor = {
     isStatic: true,
-    name: 'symmetry_annotation',
+    name: 'assembly_symmetry',
     cifExport: {
         prefix: 'rcsb',
         categories: [
-            getCategory('rcsb_symmetry_annotation_feature'),
-            getCategory('rcsb_symmetry_annotation_cluster'),
-            getCategory('rcsb_symmetry_annotation_axis')
+            getCategory('rcsb_assembly_symmetry_feature'),
+            getCategory('rcsb_assembly_symmetry_cluster'),
+            getCategory('rcsb_assembly_symmetry_axis')
         ]
     }
 }
 
 const client = new GraphQLClient('http://rest-experimental.rcsb.org/graphql')
 
-export namespace SymmetryAnnotation {
+export namespace AssemblySymmetry {
     export const Schema = {
-        rcsb_symmetry_annotation_feature: {
+        rcsb_assembly_symmetry_feature: {
             id: int,
             assembly_id: str,
             source: str,
@@ -114,12 +114,12 @@ export namespace SymmetryAnnotation {
             stoichiometry_value: List(',', x => x),
             stoichiometry_description: str
         },
-        rcsb_symmetry_annotation_cluster: {
+        rcsb_assembly_symmetry_cluster: {
             feature_id: int,
             avg_rmsd: float,
             members: List(',', x => x)
         },
-        rcsb_symmetry_annotation_axis: {
+        rcsb_assembly_symmetry_axis: {
             feature_id: int,
             order: int,
             start: Vector(3),
@@ -134,18 +134,18 @@ export namespace SymmetryAnnotation {
     export async function attachFromRCSB(model: Model) {
         if (model.customProperties.has(Descriptor)) return true;
 
-        const variables: RcsbSymmetry.Variables = { pdbId: model.label.toLowerCase() };
-        const result = await client.request<RcsbSymmetry.Query>(query, variables);
+        const variables: AssemblySymmetryGraphQL.Variables = { pdbId: model.label.toLowerCase() };
+        const result = await client.request<AssemblySymmetryGraphQL.Query>(query, variables);
         if (!result || !result.assemblies) return false;
 
-        const db: Database = createDatabase(result.assemblies as ReadonlyArray<RcsbSymmetry.Assemblies>)
+        const db: Database = createDatabase(result.assemblies as ReadonlyArray<AssemblySymmetryGraphQL.Assemblies>)
         model.customProperties.add(Descriptor);
-        model._staticPropertyData.__SymmetryAnnotation__ = db;
+        model._staticPropertyData.__AssemblySymmetry__ = db;
 
         return true;
     }
 
     export function get(model: Model): Database | undefined {
-        return model._staticPropertyData.__SymmetryAnnotation__;
+        return model._staticPropertyData.__AssemblySymmetry__;
     }
 }

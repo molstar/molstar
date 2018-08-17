@@ -1,7 +1,7 @@
 const { generate } = require('graphql-code-generator')
 const path = require('path')
 
-const basePath = path.join(__dirname, '..', '..', 'src', 'servers', 'model', 'properties', 'rcsb', 'graphql')
+const basePath = path.join(__dirname, '..', '..', 'src', 'mol-model-props', 'rcsb', 'graphql')
 
 generate({
     args: [

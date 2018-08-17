@@ -1,5 +1,5 @@
 /* tslint:disable */
-/** Generated in 2018-08-03T15:19:31-07:00 */
+/** Generated in 2018-08-17T12:05:55-07:00 */
 
 export enum PdbxLeavingAtomFlag {
   N = "N",
@@ -121,14 +121,6 @@ export enum SrcMethod {
   SYN = "SYN"
 }
 
-export enum RcsbType {
-  DNA = "DNA",
-  HYBRID = "HYBRID",
-  OTHER = "OTHER",
-  POLYPEPTIDE = "POLYPEPTIDE",
-  RNA = "RNA"
-}
-
 export enum Level {
   _100 = "_100",
   _30 = "_30",
@@ -146,7 +138,7 @@ export enum PdbFormatCompatible {
   Y = "Y"
 }
 
-export namespace RcsbSymmetry {
+export namespace AssemblySymmetry {
   export type Variables = {
     readonly pdbId?: string | null;
   };
@@ -159,27 +151,28 @@ export namespace RcsbSymmetry {
   export type Assemblies = {
     readonly __typename?: "CoreAssembly";
     readonly assembly_id?: number | null;
-    readonly rcsb_annotation_symmetry?: RcsbAnnotationSymmetry | null;
+    readonly rcsb_assembly_symmetry?: RcsbAssemblySymmetry | null;
   };
 
-  export type RcsbAnnotationSymmetry = {
-    readonly __typename?: "RcsbAnnotationSymmetry";
+  export type RcsbAssemblySymmetry = {
+    readonly __typename?: "RcsbAssemblySymmetry";
     readonly source?: string | null;
     readonly symmetry_features?: ReadonlyArray<SymmetryFeatures | null> | null;
   };
 
   export type SymmetryFeatures = {
     readonly __typename?: "SymmetryFeature";
-    readonly type?: Type | null;
     readonly clusters?: ReadonlyArray<Clusters | null> | null;
     readonly stoichiometry?: Stoichiometry | null;
+    readonly symmetry?: Symmetry | null;
     readonly symmetry_axes?: ReadonlyArray<SymmetryAxes | null> | null;
+    readonly type?: Type | null;
   };
 
   export type Clusters = {
     readonly __typename?: "Cluster";
-    readonly avg_rmsd?: number | null;
     readonly members?: ReadonlyArray<string | null> | null;
+    readonly avg_rmsd?: number | null;
   };
 
   export type Stoichiometry = {
@@ -188,10 +181,15 @@ export namespace RcsbSymmetry {
     readonly value?: ReadonlyArray<string | null> | null;
   };
 
+  export type Symmetry = {
+    readonly __typename?: "Symmetry";
+    readonly space_group_name_h_m?: string | null;
+  };
+
   export type SymmetryAxes = {
     readonly __typename?: "SymmetryAxis";
-    readonly order?: number | null;
     readonly start?: ReadonlyArray<number | null> | null;
     readonly end?: ReadonlyArray<number | null> | null;
+    readonly order?: number | null;
   };
 }

@@ -2,26 +2,29 @@
 function gql (strs: TemplateStringsArray) { return strs.raw.join('') }
 
 export default
-gql`query RcsbSymmetry($pdbId: String) {
+gql`query AssemblySymmetry($pdbId: String) {
     assemblies(pdbId: $pdbId) {
         assembly_id
-        rcsb_annotation_symmetry {
+        rcsb_assembly_symmetry {
             source
             symmetry_features {
-                type
                 clusters {
-                    avg_rmsd
                     members
+                    avg_rmsd
                 }
                 stoichiometry {
                     description
                     value
                 }
+                symmetry {
+                    space_group_name_h_m
+                }
                 symmetry_axes {
-                    order
                     start
                     end
+                    order
                 }
+                type
             }
         }
     }
