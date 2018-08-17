@@ -75,7 +75,12 @@ type CCB = Table<CCD_Schema['chem_comp_bond']>
 type CCA = Table<CCD_Schema['chem_comp_atom']>
 
 const ChemCompBond_Schema = {
-    ...CCD_Schema['chem_comp_bond'],
+    comp_id: CCD_Schema['chem_comp_bond'].comp_id,
+    atom_id_1: CCD_Schema['chem_comp_bond'].atom_id_1,
+    atom_id_2: CCD_Schema['chem_comp_bond'].atom_id_2,
+    value_order: CCD_Schema['chem_comp_bond'].value_order,
+    pdbx_aromatic_flag: CCD_Schema['chem_comp_bond'].pdbx_aromatic_flag,
+    pdbx_stereo_config: CCD_Schema['chem_comp_bond'].pdbx_stereo_config,
     molstar_protonation_variant: Column.Schema.Str()
 }
 
