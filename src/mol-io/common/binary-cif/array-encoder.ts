@@ -9,6 +9,7 @@
 
 import { ChunkedArray } from 'mol-data/util'
 import { Encoding, EncodedData } from './encoding'
+import { classifyIntArray } from './classifier';
 
 export interface ArrayEncoder {
     and(f: ArrayEncoding.Provider): ArrayEncoder,
@@ -21,16 +22,16 @@ export class ArrayEncoderImpl implements ArrayEncoder {
     }
 
     encode(data: ArrayLike<any>): EncodedData {
-        let encoding: Encoding[] = [];
-        for (let p of this.providers) {
-            let t = p(data);
+        const encoding: Encoding[] = [];
+        for (const p of this.providers) {
+            const t = p(data);
 
             if (!t.encodings.length) {
                 throw new Error('Encodings must be non-empty.');
             }
 
             data = t.data;
-            for (let e of t.encodings) {
+            for (const e of t.encodings) {
                 encoding.push(e);
             }
         }
@@ -101,14 +102,14 @@ export namespace ArrayEncoding {
     }
 
     export function byteArray(data: Encoding.TypedFloatArray | Encoding.TypedIntArray) {
-        let type = Encoding.getDataType(data);
+        const type = Encoding.getDataType(data);
 
         if (type === Encoding.IntDataType.Int8) return int8(data as Int8Array);
         else if (type === Encoding.IntDataType.Uint8) return uint8(data as Uint8Array);
 
-        let result = new Uint8Array(data.length * byteSizes[type]);
-        let w = writers[type];
-        let view = new DataView(result.buffer);
+        const result = new Uint8Array(data.length * byteSizes[type]);
+        const w = writers[type];
+        const view = new DataView(result.buffer);
         for (let i = 0, n = data.length; i < n; i++) {
             w(view, i, data[i]);
         }
@@ -119,8 +120,8 @@ export namespace ArrayEncoding {
     }
 
     function _fixedPoint(data: Encoding.TypedFloatArray, factor: number): Result {
-        let srcType = Encoding.getDataType(data) as Encoding.FloatDataType;
-        let result = new Int32Array(data.length);
+        const srcType = Encoding.getDataType(data) as Encoding.FloatDataType;
+        const result = new Int32Array(data.length);
         for (let i = 0, n = data.length; i < n; i++) {
             result[i] = Math.round(data[i] * factor);
         }
@@ -132,7 +133,7 @@ export namespace ArrayEncoding {
     export function fixedPoint(factor: number): Provider { return data => _fixedPoint(data as Encoding.TypedFloatArray, factor); }
 
     function _intervalQuantizaiton(data: Encoding.TypedFloatArray, min: number, max: number, numSteps: number, arrayType: new (size: number) => Encoding.TypedIntArray): Result {
-        let srcType = Encoding.getDataType(data) as Encoding.FloatDataType;
+        const srcType = Encoding.getDataType(data) as Encoding.FloatDataType;
         if (!data.length) {
             return {
                 encodings: [{ kind: 'IntervalQuantization', min, max, numSteps, srcType }],
@@ -141,16 +142,16 @@ export namespace ArrayEncoding {
         }
 
         if (max < min) {
-            let t = min;
+            const t = min;
             min = max;
             max = t;
         }
 
-        let delta = (max - min) / (numSteps - 1);
+        const delta = (max - min) / (numSteps - 1);
 
-        let output = new arrayType(data.length);
+        const output = new arrayType(data.length);
         for (let i = 0, n = data.length; i < n; i++) {
-            let v = data[i];
+            const v = data[i];
             if (v <= min) output[i] = 0;
             else if (v >= max) output[i] = numSteps;
             else output[i] = (Math.round((v - min) / delta)) | 0;
@@ -186,7 +187,7 @@ export namespace ArrayEncoding {
                 fullLength += 2;
             }
         }
-        let output = new Int32Array(fullLength);
+        const output = new Int32Array(fullLength);
         let offset = 0;
         let runLength = 1;
         for (let i = 1, il = data.length; i < il; i++) {
@@ -224,8 +225,8 @@ export namespace ArrayEncoding {
             };
         }
 
-        let output = new (data as any).constructor(data.length);
-        let origin = data[0];
+        const output = new (data as any).constructor(data.length);
+        const origin = data[0];
         output[0] = data[0];
         for (let i = 1, n = data.length; i < n; i++) {
             output[i] = data[i] - data[i - 1];
@@ -245,10 +246,10 @@ export namespace ArrayEncoding {
     }
 
     function packingSize(data: Int32Array, upperLimit: number) {
-        let lowerLimit = -upperLimit - 1;
+        const lowerLimit = -upperLimit - 1;
         let size = 0;
         for (let i = 0, n = data.length; i < n; i++) {
-            let value = data[i];
+            const value = data[i];
             if (value === 0) {
                 size += 1;
             } else if (value > 0) {
@@ -263,9 +264,9 @@ export namespace ArrayEncoding {
     }
 
     function determinePacking(data: Int32Array): { isSigned: boolean, size: number, bytesPerElement: number } {
-        let signed = isSigned(data);
-        let size8 = signed ? packingSize(data, 0x7F) : packingSize(data, 0xFF);
-        let size16 = signed ? packingSize(data, 0x7FFF) : packingSize(data, 0xFFFF);
+        const signed = isSigned(data);
+        const size8 = signed ? packingSize(data, 0x7F) : packingSize(data, 0xFF);
+        const size16 = signed ? packingSize(data, 0x7FFF) : packingSize(data, 0xFFFF);
 
         if (data.length * 4 < size16 * 2) {
             // 4 byte packing is the most effective
@@ -292,13 +293,13 @@ export namespace ArrayEncoding {
     }
 
     function _integerPacking(data: Int32Array, packing: { isSigned: boolean, size: number, bytesPerElement: number }): Result {
-        let upperLimit = packing.isSigned
+        const upperLimit = packing.isSigned
             ? (packing.bytesPerElement === 1 ? 0x7F : 0x7FFF)
             : (packing.bytesPerElement === 1 ? 0xFF : 0xFFFF);
 
-        let lowerLimit = -upperLimit - 1;
-        let n = data.length;
-        let packed = packing.isSigned
+        const lowerLimit = -upperLimit - 1;
+        const n = data.length;
+        const packed = packing.isSigned
             ? packing.bytesPerElement === 1 ? new Int8Array(packing.size) : new Int16Array(packing.size)
             : packing.bytesPerElement === 1 ? new Uint8Array(packing.size) : new Uint16Array(packing.size);
         let j = 0;
@@ -321,7 +322,7 @@ export namespace ArrayEncoding {
             ++j;
         }
 
-        let result = byteArray(packed);
+        const result = byteArray(packed);
         return {
             encodings: [{
                 kind: 'IntegerPacking',
@@ -343,7 +344,7 @@ export namespace ArrayEncoding {
             throw new Error('Integer packing can only be applied to Int32 data.');
         }
 
-        let packing = determinePacking(data);
+        const packing = determinePacking(data);
 
         if (packing.bytesPerElement === 4) {
             // no packing done, Int32 encoding will be used
@@ -354,16 +355,15 @@ export namespace ArrayEncoding {
     }
 
     export function stringArray(data: string[]): Result {
-        let map: any = Object.create(null);
-        let strings: string[] = [];
-        let accLength = 0;
-        let offsets = ChunkedArray.create<number>(Int32Array, 1,
-            Math.min(1024, data.length < 32 ? data.length + 1 : Math.round(data.length / 8) + 1));
-        let output = new Int32Array(data.length);
+        const map: any = Object.create(null);
+        const strings: string[] = [];
+        const output = new Int32Array(data.length);
+        const offsets = ChunkedArray.create<number>(Int32Array, 1, Math.min(1024, data.length < 32 ? data.length + 1 : Math.round(data.length / 8) + 1));
 
         ChunkedArray.add(offsets, 0);
+        let accLength = 0;
         let i = 0;
-        for (let s of data) {
+        for (const s of data) {
             // handle null strings.
             if (s === null || s === void 0) {
                 output[i++] = -1;
@@ -386,12 +386,16 @@ export namespace ArrayEncoding {
             output[i++] = index;
         }
 
-        let encOffsets = ArrayEncoder.by(delta).and(integerPacking).encode(ChunkedArray.compact(offsets));
-        let encOutput = ArrayEncoder.by(delta).and(runLength).and(integerPacking).encode(output);
+        const offsetArray = ChunkedArray.compact(offsets);
+
+        const offsetEncoding = classifyIntArray(offsetArray);
+        const encodedOddsets = offsetEncoding.encode(offsetArray);
+        const dataEncoding = classifyIntArray(output);
+        const encodedData = dataEncoding.encode(output);
 
         return {
-            encodings: [{ kind: 'StringArray', dataEncoding: encOutput.encoding, stringData: strings.join(''), offsetEncoding: encOffsets.encoding, offsets: encOffsets.data }],
-            data: encOutput.data
+            encodings: [{ kind: 'StringArray', dataEncoding: encodedData.encoding, stringData: strings.join(''), offsetEncoding: encodedOddsets.encoding, offsets: encodedOddsets.data }],
+            data: encodedData.data
         };
     }
 }
