@@ -53,6 +53,24 @@ export namespace ArrayEncoder {
     export function by(f: ArrayEncoding.Provider): ArrayEncoder {
         return new ArrayEncoderImpl([f]);
     }
+
+    export function fromEncoding(encoding: Encoding[]) {
+        const e = by(getProvider(encoding[0]));
+        for (let i = 1; i < encoding.length; i++) e.and(getProvider(encoding[i]));
+        return e;
+    }
+
+    function getProvider(e: Encoding): ArrayEncoding.Provider {
+        switch (e.kind) {
+            case 'ByteArray': return ArrayEncoding.byteArray;
+            case 'FixedPoint': return ArrayEncoding.fixedPoint(e.factor);
+            case 'IntervalQuantization': return ArrayEncoding.intervalQuantizaiton(e.min, e.max, e.numSteps);
+            case 'RunLength': return ArrayEncoding.runLength;
+            case 'Delta': return ArrayEncoding.delta;
+            case 'IntegerPacking': return ArrayEncoding.integerPacking;
+            case 'StringArray': return ArrayEncoding.stringArray;
+        }
+    }
 }
 
 export namespace ArrayEncoding {

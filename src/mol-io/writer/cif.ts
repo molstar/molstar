@@ -6,9 +6,10 @@
  */
 
 import TextEncoder from './cif/encoder/text'
-import BinaryEncoder from './cif/encoder/binary'
+import BinaryEncoder, { EncodingProvider } from './cif/encoder/binary'
 import * as _Encoder from './cif/encoder'
-import { ArrayEncoding } from '../common/binary-cif';
+import { ArrayEncoding, ArrayEncoder } from '../common/binary-cif';
+import { CifFrame } from '../reader/cif';
 
 export namespace CifWriter {
     export import Encoder = _Encoder.Encoder
@@ -16,9 +17,16 @@ export namespace CifWriter {
     export import Field = _Encoder.Field
     export import Encoding = ArrayEncoding
 
-    export function createEncoder(params?: { binary?: boolean, encoderName?: string }): Encoder {
+    export interface EncoderParams {
+        binary?: boolean,
+        encoderName?: string,
+        binaryEncodingPovider?: EncodingProvider,
+        binaryAutoClassifyEncoding?: boolean
+    }
+
+    export function createEncoder(params?: EncoderParams): Encoder {
         const { binary = false, encoderName = 'mol*' } = params || {};
-        return binary ? new BinaryEncoder(encoderName) : new TextEncoder();
+        return binary ? new BinaryEncoder(encoderName, params ? params.binaryEncodingPovider : void 0, params ? !!params.binaryAutoClassifyEncoding : false) : new TextEncoder();
     }
 
     export function fields<K = number, D = any>() {
@@ -31,4 +39,15 @@ export namespace CifWriter {
         fixedPoint2: E.by(E.fixedPoint(100)).and(E.delta).and(E.integerPacking),
         fixedPoint3: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking),
     };
+
+    export function createEncodingProviderFromCifFrame(frame: CifFrame): EncodingProvider {
+        return {
+            get(c, f) {
+                const cat = frame.categories[c];
+                if (!cat) return void 0;
+                const ff = cat.getField(f);
+                return ff && ff.binaryEncoding ? ArrayEncoder.fromEncoding(ff.binaryEncoding) : void 0;
+            }
+        }
+    }
 }

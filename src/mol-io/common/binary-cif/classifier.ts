@@ -6,7 +6,7 @@
  */
 
 import { ArrayEncoder, ArrayEncoding as E } from './array-encoder';
-import { getArrayMantissaMultiplier } from 'mol-util/number';
+import { getArrayDigitCount } from 'mol-util/number';
 
 export function classifyIntArray(xs: ArrayLike<number>) {
     return IntClassifier.classify(xs as number[]);
@@ -141,33 +141,42 @@ namespace IntClassifier {
 namespace FloatClassifier {
     const delta = 1e-6;
     export function classify(data: number[]) {
-        const digitCount = getArrayMantissaMultiplier(data, 4, delta);
-        if (digitCount < 0) return { encoder: E.by(E.byteArray), typedArray: Float64Array };
+        const maxDigits = 4;
 
-        // TODO: check for overflows here?
-        if (digitCount === 1) return { encoder: IntClassifier.classify(data), typedArray: Int32Array }
+        const { mantissaDigits, integerDigits } = getArrayDigitCount(data, maxDigits, delta);
+        // TODO: better check for overflows here?
+        if (mantissaDigits < 0 || mantissaDigits + integerDigits > 10) return E.by(E.byteArray);
+        // TODO: this needs a conversion to Int?Array?
+        if (mantissaDigits === 0) return IntClassifier.classify(data);
 
+        const multiplier = getMultiplier(mantissaDigits);
         const intArray = new Int32Array(data.length);
         for (let i = 0, n = data.length; i < n; i++) {
-            const v = digitCount * data[i];
-            intArray[i] = v;
-            // check if the value didn't overflow
-            if (Math.abs(Math.round(v) / digitCount - intArray[i] / digitCount) > delta) {
-                return { encoder: E.by(E.byteArray), typedArray: Float64Array };
-            }
+            intArray[i] = Math.round(multiplier * data[i]);
+            // TODO: enable this again?
+            // const v = Math.round(multiplier * data[i]);
+            // if (Math.abs(Math.round(v) / multiplier - intArray[i] / multiplier) > delta) {
+            //     return E.by(E.byteArray);
+            // }
         }
 
         const sizes = IntClassifier.getSize(intArray as any);
         const size = sizes[0];
 
-        const fp = E.by(E.fixedPoint(digitCount));
+        const fp = E.by(E.fixedPoint(multiplier));
         switch (size.kind) {
-            case 'pack': return { encoder: fp.and(E.integerPacking), typedArray: Float32Array };
-            case 'rle': return { encoder: fp.and(E.runLength).and(E.integerPacking), typedArray: Float32Array };
-            case 'delta': return { encoder: fp.and(E.delta).and(E.integerPacking), typedArray: Float32Array };
-            case 'delta-rle': return { encoder: fp.and(E.delta).and(E.runLength).and(E.integerPacking), typedArray: Float32Array };
+            case 'pack': return fp.and(E.integerPacking);
+            case 'rle': return fp.and(E.runLength).and(E.integerPacking);
+            case 'delta': return fp.and(E.delta).and(E.integerPacking);
+            case 'delta-rle': return fp.and(E.delta).and(E.runLength).and(E.integerPacking);
         }
 
         throw new Error('should not happen :)');
+    }
+
+    function getMultiplier(mantissaDigits: number) {
+        let m = 1;
+        for (let i = 0; i < mantissaDigits; i++) m *= 10;
+        return m;
     }
 }

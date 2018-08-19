@@ -8,6 +8,7 @@
 import { Column } from 'mol-data/db'
 import { Tensor } from 'mol-math/linear-algebra'
 import { getNumberType, NumberType } from '../common/text/number-parser';
+import { Encoding } from '../../common/binary-cif';
 
 export interface CifFile {
     readonly name?: string,
@@ -62,7 +63,8 @@ export namespace CifCategory {
  * This is to ensure that the functions can invoked without having to "bind" them.
  */
 export interface CifField {
-    readonly __array: ArrayLike<any> | undefined
+    readonly __array: ArrayLike<any> | undefined,
+    readonly binaryEncoding: Encoding[] | undefined,
     readonly isDefined: boolean,
     readonly rowCount: number,
 

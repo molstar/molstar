@@ -39,6 +39,7 @@ export default function CifTextField(tokens: Tokens, rowCount: number): Data.Cif
 
     return {
         __array: void 0,
+        binaryEncoding: void 0,
         isDefined: true,
         rowCount,
         str,

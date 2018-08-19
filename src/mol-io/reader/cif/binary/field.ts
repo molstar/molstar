@@ -39,6 +39,7 @@ export default function Field(column: EncodedColumn): Data.CifField {
 
     return {
         __array: data,
+        binaryEncoding: column.data.encoding,
         isDefined: true,
         rowCount,
         str,
