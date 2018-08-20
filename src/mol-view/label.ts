@@ -36,6 +36,8 @@ export function labelFirst(loci: Loci): string {
             } else {
                 return 'Unknown'
             }
+        case 'custom-loci':
+            return 'Custom'
         case 'every-loci':
             return 'Everything'
         case 'empty-loci':
