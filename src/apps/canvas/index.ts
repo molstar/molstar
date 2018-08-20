@@ -8,6 +8,7 @@ import './index.html'
 
 import Viewer from 'mol-view/viewer';
 import CIF, { CifBlock } from 'mol-io/reader/cif'
+import { parse as parseObj } from 'mol-io/reader/obj/parser'
 import { readUrlAs } from 'mol-util/read'
 import { Model, Format, Structure, StructureSymmetry } from 'mol-model/structure';
 import { CartoonRepresentation } from 'mol-geo/representation/structure/representation/cartoon';
@@ -47,6 +48,15 @@ viewer.input.move.subscribe(({x, y, inside, buttons}) => {
     const label = labelFirst(loci)
     info.innerText = `${label}`
 })
+
+
+async function getObjFromUrl(url: string) {
+    const data = await readUrlAs(url, false) as string
+    const comp = parseObj(data)
+    const parsed = await comp.run()
+    if (parsed.isError) throw parsed
+    return parsed.result
+}
 
 async function getCifFromUrl(url: string) {
     const data = await readUrlAs(url, false)
@@ -107,6 +117,8 @@ async function init() {
     meshBuilder.addSphere(Vec3.create(0, 0, 0), 4, 2)
     const mesh = meshBuilder.getMesh()
     // Mesh.computeNormalsImmediate(mesh)
+
+    // mesh = getObjFromUrl('mesh.obj')
 
     // add representation from custom mesh
     const customRepr = CustomRepresentation()
