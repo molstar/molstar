@@ -15,9 +15,13 @@ export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.input
 export const all: StructureQuery = ctx => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
 
 export interface AtomsQueryParams {
+    /** Query to be executed for each entity once */
     entityTest: QueryPredicate,
+    /** Query to be executed for each chain once */
     chainTest: QueryPredicate,
+    /** Query to be executed for each residue once */
     residueTest: QueryPredicate,
+    /** Query to be executed for each atom */
     atomTest: QueryPredicate,
     groupBy: QueryFn
 }
