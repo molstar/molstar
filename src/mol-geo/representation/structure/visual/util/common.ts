@@ -15,7 +15,7 @@ import { LocationIterator } from './location-iterator';
 import { Mesh } from '../../../../shape/mesh';
 import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
-import { MeshProps, createMeshValues, createRenderableState } from '../../../util';
+import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform } from '../../../util';
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject } from 'mol-gl/render-object';
@@ -30,12 +30,6 @@ export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: Val
         Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16)
     }
     return transforms ? ValueCell.update(transforms, array) : ValueCell.create(array)
-}
-
-const identityTransform = new Float32Array(16)
-Mat4.toArray(Mat4.identity(), identityTransform, 0)
-export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
-    return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
 }
 
 export function createColors(locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {

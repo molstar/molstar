@@ -10,6 +10,7 @@ import { MeshValues, RenderableState } from 'mol-gl/renderable';
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
 import { fillSerial } from 'mol-util/array';
+import { Mat4 } from 'mol-math/linear-algebra';
 
 export const DefaultBaseProps = {
     alpha: 1,
@@ -27,6 +28,12 @@ export const DefaultMeshProps = {
     flatShaded: false,
 }
 export type MeshProps = typeof DefaultMeshProps
+
+const identityTransform = new Float32Array(16)
+Mat4.toArray(Mat4.identity(), identityTransform, 0)
+export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
+    return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
+}
 
 type Counts = { drawCount: number, elementCount: number, instanceCount: number }
 
