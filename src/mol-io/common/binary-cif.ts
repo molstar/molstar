@@ -8,4 +8,5 @@ import decode from './binary-cif/decoder'
 
 export * from './binary-cif/encoding'
 export * from './binary-cif/array-encoder'
+export * from './binary-cif/classifier'
 export { decode }

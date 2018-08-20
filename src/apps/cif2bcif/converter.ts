@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import CIF, { CifCategory } from 'mol-io/reader/cif'
+import CIF, { CifCategory, getCifFieldType, CifField } from 'mol-io/reader/cif'
 import { CifWriter } from 'mol-io/writer/cif'
 import * as fs from 'fs'
-import classify from './field-classifier'
 import { Progress, Task, RuntimeContext } from 'mol-task';
+import { classifyFloatArray, classifyIntArray } from 'mol-io/common/binary-cif';
 
 function showProgress(p: Progress) {
     process.stdout.write(`\r${new Array(80).join(' ')}`);
@@ -29,6 +29,19 @@ function getCategoryInstanceProvider(cat: CifCategory, fields: CifWriter.Field[]
         name: cat.name,
         instance: () => ({ data: cat, fields, rowCount: cat.rowCount })
     };
+}
+
+function classify(name: string, field: CifField): CifWriter.Field {
+    const type = getCifFieldType(field);
+    if (type['@type'] === 'str') {
+        return { name, type: CifWriter.Field.Type.Str, value: field.str, valueKind: field.valueKind };
+    } else if (type['@type'] === 'float') {
+        const encoder = classifyFloatArray(field.toFloatArray({ array: Float64Array }));
+        return CifWriter.Field.float(name, field.float, { valueKind: field.valueKind, encoder, typedArray: Float64Array });
+    } else {
+        const encoder = classifyIntArray(field.toIntArray({ array: Int32Array }));
+        return CifWriter.Field.int(name, field.int, { valueKind: field.valueKind, encoder, typedArray: Int32Array });
+    }
 }
 
 export default function convert(path: string, asText = false) {
