@@ -1,5 +1,5 @@
 /* tslint:disable */
-/** Generated in 2018-08-17T12:05:55-07:00 */
+/** Generated in 2018-08-20T10:50:59-07:00 */
 
 export enum PdbxLeavingAtomFlag {
   N = "N",
@@ -31,7 +31,7 @@ export enum ExperimentalSupport {
   SURFACE_PLASMON_RESONANCE = "SURFACE_PLASMON_RESONANCE"
 }
 
-export enum Type {
+export enum SymmetryFeatureType {
   GLOBAL = "GLOBAL",
   LOCAL = "LOCAL",
   PSEUDO = "PSEUDO"
@@ -40,12 +40,6 @@ export enum Type {
 export enum UnpublishedFlag {
   N = "N",
   Y = "Y"
-}
-
-export enum PdbxDiffrnProtocol {
-  LAUE = "LAUE",
-  MAD = "MAD",
-  SINGLE_WAVELENGTH = "SINGLE_WAVELENGTH"
 }
 
 export enum PdbxMonochromaticOrLaueML {
@@ -57,17 +51,6 @@ export enum PdbxScatteringType {
   ELECTRON = "ELECTRON",
   NEUTRON = "NEUTRON",
   X_RAY = "X_RAY"
-}
-
-export enum Source {
-  ELECTRON_MICROSCOPE = "ELECTRON_MICROSCOPE",
-  FREE_ELECTRON_LASER = "FREE_ELECTRON_LASER",
-  LIQUID_ANODE = "LIQUID_ANODE",
-  NUCLEAR_REACTOR = "NUCLEAR_REACTOR",
-  ROTATING_ANODE = "ROTATING_ANODE",
-  SEALED_TUBE = "SEALED_TUBE",
-  SPALLATION_SOURCE = "SPALLATION_SOURCE",
-  SYNCHROTRON = "SYNCHROTRON"
 }
 
 export enum RefSpace {
@@ -115,10 +98,53 @@ export enum VitrificationApplied {
   YES = "YES"
 }
 
+export enum Type {
+  NEGATIVE = "NEGATIVE",
+  NONE = "NONE",
+  POSITIVE = "POSITIVE"
+}
+
 export enum SrcMethod {
   MAN = "MAN",
   NAT = "NAT",
   SYN = "SYN"
+}
+
+export enum EntityType {
+  MACROLIDE = "MACROLIDE",
+  NON_POLYMER = "NON_POLYMER",
+  POLYMER = "POLYMER",
+  WATER = "WATER"
+}
+
+export enum EntityPolyType {
+  CYCLIC_PSEUDO_PEPTIDE = "CYCLIC_PSEUDO_PEPTIDE",
+  OTHER = "OTHER",
+  PEPTIDE_NUCLEIC_ACID = "PEPTIDE_NUCLEIC_ACID",
+  POLYDEOXYRIBONUCLEOTIDE = "POLYDEOXYRIBONUCLEOTIDE",
+  POLYDEOXYRIBONUCLEOTIDE_POLYRIBONUCLEOTIDE_HYBRID = "POLYDEOXYRIBONUCLEOTIDE_POLYRIBONUCLEOTIDE_HYBRID",
+  POLYPEPTIDE_D = "POLYPEPTIDE_D",
+  POLYPEPTIDE_L = "POLYPEPTIDE_L",
+  POLYRIBONUCLEOTIDE = "POLYRIBONUCLEOTIDE",
+  POLYSACCHARIDE_D = "POLYSACCHARIDE_D",
+  POLYSACCHARIDE_L = "POLYSACCHARIDE_L"
+}
+
+export enum RcsbHostOrganismSource {
+  MMCIF = "MMCIF",
+  NCBI = "NCBI",
+  UNIPROT = "UNIPROT"
+}
+
+export enum RcsbMembraneSource {
+  HOMOLOGY = "HOMOLOGY",
+  MPSTRUCT = "MPSTRUCT"
+}
+
+export enum RcsbOrganismSource {
+  MMCIF = "MMCIF",
+  NCBI = "NCBI",
+  UNIPROT = "UNIPROT"
 }
 
 export enum Level {
@@ -140,7 +166,7 @@ export enum PdbFormatCompatible {
 
 export namespace AssemblySymmetry {
   export type Variables = {
-    readonly pdbId?: string | null;
+    readonly pdbId: string;
   };
 
   export type Query = {
@@ -150,46 +176,47 @@ export namespace AssemblySymmetry {
 
   export type Assemblies = {
     readonly __typename?: "CoreAssembly";
-    readonly assembly_id?: number | null;
+    readonly assembly_id: number;
     readonly rcsb_assembly_symmetry?: RcsbAssemblySymmetry | null;
   };
 
   export type RcsbAssemblySymmetry = {
     readonly __typename?: "RcsbAssemblySymmetry";
-    readonly source?: string | null;
-    readonly symmetry_features?: ReadonlyArray<SymmetryFeatures | null> | null;
+    readonly source: string;
+    readonly symmetry_features: ReadonlyArray<SymmetryFeatures | null>;
   };
 
   export type SymmetryFeatures = {
     readonly __typename?: "SymmetryFeature";
-    readonly clusters?: ReadonlyArray<Clusters | null> | null;
-    readonly stoichiometry?: Stoichiometry | null;
-    readonly symmetry?: Symmetry | null;
+    readonly symmetry: Symmetry;
+    readonly clusters: ReadonlyArray<Clusters | null>;
+    readonly stoichiometry: Stoichiometry;
     readonly symmetry_axes?: ReadonlyArray<SymmetryAxes | null> | null;
-    readonly type?: Type | null;
+    readonly type: SymmetryFeatureType;
+  };
+
+  export type Symmetry = {
+    readonly __typename?: "QuaternarySymmetry";
+    readonly description: string;
+    readonly value: string;
   };
 
   export type Clusters = {
     readonly __typename?: "Cluster";
-    readonly members?: ReadonlyArray<string | null> | null;
+    readonly members: ReadonlyArray<string | null>;
     readonly avg_rmsd?: number | null;
   };
 
   export type Stoichiometry = {
     readonly __typename?: "Stoichiometry";
-    readonly description?: string | null;
-    readonly value?: ReadonlyArray<string | null> | null;
-  };
-
-  export type Symmetry = {
-    readonly __typename?: "Symmetry";
-    readonly space_group_name_h_m?: string | null;
+    readonly description: string;
+    readonly value: ReadonlyArray<string | null>;
   };
 
   export type SymmetryAxes = {
     readonly __typename?: "SymmetryAxis";
-    readonly start?: ReadonlyArray<number | null> | null;
-    readonly end?: ReadonlyArray<number | null> | null;
+    readonly start: ReadonlyArray<number | null>;
+    readonly end: ReadonlyArray<number | null>;
     readonly order?: number | null;
   };
 }
