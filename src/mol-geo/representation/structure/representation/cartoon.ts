@@ -33,7 +33,8 @@ export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
     return {
         get renderObjects() {
             return [ ...traceRepr.renderObjects, ...gapRepr.renderObjects,
-                ...blockRepr.renderObjects, ...directionRepr.renderObjects ]
+                ...blockRepr.renderObjects // , ...directionRepr.renderObjects
+            ]
         },
         get props() {
             return { ...traceRepr.props, ...gapRepr.props, ...blockRepr.props }
