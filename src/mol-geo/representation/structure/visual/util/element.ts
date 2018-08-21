@@ -8,12 +8,13 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit, StructureElement } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task';
 import { sphereVertexCount } from '../../../../primitive/sphere';
-import { Mesh } from '../../../../shape/mesh';
-import { MeshBuilder } from '../../../../shape/mesh-builder';
+import { Mesh } from '../../../../mesh/mesh';
+import { MeshBuilder } from '../../../../mesh/mesh-builder';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { PickingId } from '../../../../util/picking';
 import { SizeTheme, SizeThemeProps } from 'mol-view/theme/size';
+import { LocationIterator } from '../../../../util/location-iterator';
 
 export interface ElementSphereMeshProps {
     sizeTheme: SizeThemeProps,
@@ -38,7 +39,7 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, p
         l.element = elements[i]
         pos(elements[i], v)
 
-        meshBuilder.setId(i)
+        meshBuilder.setGroup(i)
         meshBuilder.addSphere(v, sizeTheme.size(l), detail)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
@@ -74,11 +75,25 @@ export function markElement(loci: Loci, group: Unit.SymmetryGroup, apply: (inter
 }
 
 export function getElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
-    const { objectId, instanceId, elementId } = pickingId
+    const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const unit = group.units[instanceId]
-        const indices = OrderedSet.ofSingleton(elementId as StructureElement.UnitIndex);
+        const indices = OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
         return StructureElement.Loci([{ unit, indices }])
     }
     return EmptyLoci
+}
+
+export namespace StructureElementIterator {
+    export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
+        const unit = group.units[0]
+        const groupCount = group.elements.length
+        const instanceCount = group.units.length
+        const location = StructureElement.create(unit)
+        const getLocation = (groupIndex: number) => {
+            location.element = unit.elements[groupIndex]
+            return location
+        }
+        return LocationIterator(groupCount, instanceCount, getLocation)
+    }
 }

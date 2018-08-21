@@ -11,7 +11,7 @@ import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 
 import { UnitsVisual, DefaultStructureProps } from '..';
-import { getElementLoci } from './util/element';
+import { getElementLoci, StructureElementIterator } from './util/element';
 import { createTransforms, createColors, createSizes } from './util/common';
 import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
@@ -21,7 +21,6 @@ import { Loci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
-import { StructureElementIterator } from './util/location-iterator';
 import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultPointProps = {
@@ -79,16 +78,16 @@ export default function PointVisual(): UnitsVisual<PointProps> {
 
             const values: PointValues = {
                 aPosition: ValueCell.create(vertices),
-                aElementId: ValueCell.create(fillSerial(new Float32Array(elementCount))),
+                aGroup: ValueCell.create(fillSerial(new Float32Array(elementCount))),
                 aTransform: transforms,
-                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                 ...color,
                 ...marker,
                 ...size,
 
                 uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                 uInstanceCount: ValueCell.create(instanceCount),
-                uElementCount: ValueCell.create(group.elements.length),
+                uGroupCount: ValueCell.create(group.elements.length),
 
                 drawCount: ValueCell.create(vertices.length / 3),
                 instanceCount: ValueCell.create(instanceCount),

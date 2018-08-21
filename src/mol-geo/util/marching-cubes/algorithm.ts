@@ -7,7 +7,7 @@
 import { Task, RuntimeContext } from 'mol-task'
 import { ChunkedArray } from 'mol-data/util'
 import { Tensor } from 'mol-math/linear-algebra'
-import { Mesh } from '../../shape/mesh'
+import { Mesh } from '../../mesh/mesh'
 import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
 import { ValueCell } from 'mol-util'
 
@@ -76,18 +76,15 @@ class MarchingCubesComputation {
         const ret: Mesh = {
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
-            offsetCount: 0,
             vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),
             indexBuffer: os ? ValueCell.update(os.indexBuffer, ib) : ValueCell.create(ib),
             normalBuffer: os ? os.normalBuffer : ValueCell.create(new Float32Array(0)),
-            idBuffer: this.state.assignIds
-                ? os && os.idBuffer
-                    ? ValueCell.update(os.idBuffer, ChunkedArray.compact(this.state.idBuffer) as Float32Array)
+            groupBuffer: this.state.assignIds
+                ? os && os.groupBuffer
+                    ? ValueCell.update(os.groupBuffer, ChunkedArray.compact(this.state.idBuffer) as Float32Array)
                     : ValueCell.create(ChunkedArray.compact(this.state.idBuffer) as Float32Array)
                 : ValueCell.create(new Float32Array(0)),
-            offsetBuffer: os ? os.offsetBuffer : ValueCell.create(new Uint32Array(0)),
-            normalsComputed: false,
-            offsetsComputed: false
+            normalsComputed: false
         }
 
         return ret;

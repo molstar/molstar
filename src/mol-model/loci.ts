@@ -6,7 +6,7 @@
 
 import { StructureElement } from './structure'
 import { Link } from './structure/structure/unit/links'
-import { CustomLocation } from './location';
+import { Shape } from './shape';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -22,16 +22,4 @@ export function isEmptyLoci(x: any): x is EmptyLoci {
     return !!x && x.kind === 'empty-loci';
 }
 
-/** A Loci of custom locations */
-export interface CustomLoci<D = any, K = any> {
-    readonly kind: 'custom-loci'
-    readonly locations: ReadonlyArray<CustomLocation>
-}
-export function CustomLoci<D, K>(locations: CustomLocation<D, K>[]): CustomLoci<D, K> {
-    return { kind: 'custom-loci', locations }
-}
-export function isCustomLoci(x: any): x is CustomLoci {
-    return !!x && x.kind === 'custom-loci';
-}
-
-export type Loci =  StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | CustomLoci
+export type Loci =  StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci

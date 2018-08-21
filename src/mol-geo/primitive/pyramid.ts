@@ -62,7 +62,7 @@ export function OctagonalPyramide() {
 //
 
 let perforatedOctagonalPyramide: Primitive
-export function PerforatedOctagonalPyramide() {
+export function PerforatedOctagonalPyramid() {
     if (!perforatedOctagonalPyramide) {
         const points = polygon(8, true)
         const vertices = new Float32Array(8 * 3 + 6)

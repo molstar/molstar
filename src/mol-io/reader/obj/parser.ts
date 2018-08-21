@@ -6,12 +6,13 @@
 
 import Result from '../result'
 import { Task, RuntimeContext } from 'mol-task'
-import { Mesh } from 'mol-geo/shape/mesh';
+import { Mesh } from 'mol-geo/mesh/mesh';
 
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Mesh>> {
     // TODO
-    const result: Mesh = Mesh.createEmpty();
-    return Result.success(result);
+    const mesh: Mesh = Mesh.createEmpty();
+    // Mesh.computeNormalsImmediate(mesh)
+    return Result.success(mesh);
 }
 
 export function parse(data: string) {

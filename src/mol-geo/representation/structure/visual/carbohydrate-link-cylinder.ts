@@ -7,12 +7,12 @@
 import { Unit, Structure, Link, StructureElement } from 'mol-model/structure';
 import { DefaultStructureProps, ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../shape/mesh';
+import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { DefaultMeshProps } from '../../util';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { LocationIterator } from './util/location-iterator';
+import { LocationIterator } from '../../../util/location-iterator';
 import { createLinkCylinderMesh, DefaultLinkCylinderProps, LinkCylinderProps } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
@@ -85,11 +85,11 @@ export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {
 
 function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
     const { elements, links } = structure.carbohydrates
-    const elementCount = links.length
+    const groupCount = links.length
     const instanceCount = 1
     const location = Link.Location()
-    const getLocation = (elementIndex: number, instanceIndex: number) => {
-        const link = links[elementIndex]
+    const getLocation = (groupIndex: number) => {
+        const link = links[groupIndex]
         const carbA = elements[link.carbohydrateIndexA]
         const carbB = elements[link.carbohydrateIndexB]
         const indexA = OrderedSet.findPredecessorIndex(carbA.unit.elements, carbA.anomericCarbon)
@@ -100,14 +100,14 @@ function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
         location.bIndex = indexB as StructureElement.UnitIndex
         return location
     }
-    return LocationIterator(elementCount, instanceCount, getLocation)
+    return LocationIterator(groupCount, instanceCount, getLocation)
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
-    const { objectId, elementId } = pickingId
+    const { objectId, groupId } = pickingId
     if (id === objectId) {
         const { links, elements } = structure.carbohydrates
-        const l = links[elementId]
+        const l = links[groupId]
         const carbA = elements[l.carbohydrateIndexA]
         const carbB = elements[l.carbohydrateIndexB]
         const indexA = OrderedSet.findPredecessorIndex(carbA.unit.elements, carbA.anomericCarbon)

@@ -19,7 +19,7 @@ import { StarProps, Star } from '../primitive/star';
 import { Octahedron, PerforatedOctahedron } from '../primitive/octahedron';
 import { Primitive } from '../primitive/primitive';
 import { DiamondPrism, PentagonalPrism, HexagonalPrism } from '../primitive/prism';
-import { OctagonalPyramide, PerforatedOctagonalPyramide } from '../primitive/pyramid';
+import { OctagonalPyramide, PerforatedOctagonalPyramid } from '../primitive/pyramid';
 import { PerforatedBox, Box } from '../primitive/box';
 import { Wedge } from '../primitive/wedge';
 
@@ -49,7 +49,7 @@ export interface MeshBuilder {
     addSphere(center: Vec3, radius: number, detail: number): void
     addTube(centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean): void
     addSheet(centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean): void
-    setId(id: number): void
+    setGroup(id: number): void
     getMesh(): Mesh
 }
 
@@ -114,10 +114,9 @@ export namespace MeshBuilder {
         const indices = ChunkedArray.create(Uint32Array, 3, chunkSize * 3, mesh ? mesh.indexBuffer.ref.value : initialCount * 3);
         const state: MeshBuilderState = { vertices, normals, indices };
 
-        const ids = ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.idBuffer.ref.value : initialCount);
-        const offsets = ChunkedArray.create(Uint32Array, 1, chunkSize, mesh ? mesh.offsetBuffer.ref.value : initialCount);
+        const groups = ChunkedArray.create(Float32Array, 1, chunkSize, mesh ? mesh.groupBuffer.ref.value : initialCount);
 
-        let currentId = -1
+        let currentGroup = -1
 
         function add(t: Mat4, _vertices: ArrayLike<number>, _normals: ArrayLike<number>, _indices: ArrayLike<number>) {
             const { elementCount } = vertices
@@ -131,8 +130,8 @@ export namespace MeshBuilder {
                 Vec3.fromArray(tmpV, _normals, i)
                 Vec3.transformMat3(tmpV, tmpV, n)
                 ChunkedArray.add3(normals, tmpV[0], tmpV[1], tmpV[2]);
-                // id
-                ChunkedArray.add(ids, currentId);
+                // group
+                ChunkedArray.add(groups, currentGroup);
             }
             for (let i = 0, il = _indices.length; i < il; i += 3) {
                 ChunkedArray.add3(indices, _indices[i] + elementCount, _indices[i + 1] + elementCount, _indices[i + 2] + elementCount);
@@ -174,7 +173,7 @@ export namespace MeshBuilder {
                 add(t, vertices, normals, indices)
             },
             addPerforatedOctagonalPyramid: (t: Mat4) => {
-                const { vertices, normals, indices } = PerforatedOctagonalPyramide()
+                const { vertices, normals, indices } = PerforatedOctagonalPyramid()
                 add(t, vertices, normals, indices)
             },
             addStar: (t: Mat4, props?: StarProps) => {
@@ -242,36 +241,28 @@ export namespace MeshBuilder {
             },
             addTube: (centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) => {
                 const addedVertexCount = addTube(centers, normals, binormals, linearSegments, radialSegments, width, height, waveFactor, startCap, endCap, state)
-                for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(ids, currentId);
+                for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup);
             },
             addSheet: (controls: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) => {
                 const addedVertexCount = addSheet(controls, normals, binormals, linearSegments, width, height, arrowHeight, startCap, endCap, state)
-                for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(ids, currentId);
+                for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup);
             },
-            setId: (id: number) => {
-                if (currentId !== id) {
-                    currentId = id
-                    ChunkedArray.add(offsets, vertices.elementCount)
-                }
+            setGroup: (group: number) => {
+                currentGroup = group
             },
             getMesh: () => {
-                ChunkedArray.add(offsets, vertices.elementCount)
                 const vb = ChunkedArray.compact(vertices, true) as Float32Array
                 const ib = ChunkedArray.compact(indices, true) as Uint32Array
                 const nb = ChunkedArray.compact(normals, true) as Float32Array
-                const idb = ChunkedArray.compact(ids, true) as Float32Array
-                const ob = ChunkedArray.compact(offsets, true) as Uint32Array
+                const idb = ChunkedArray.compact(groups, true) as Float32Array
                 return {
                     vertexCount: vertices.elementCount,
                     triangleCount: indices.elementCount,
-                    offsetCount: offsets.elementCount,
                     vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
                     indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
                     normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
-                    idBuffer: mesh ? ValueCell.update(mesh.idBuffer, idb) : ValueCell.create(idb),
-                    offsetBuffer: mesh ? ValueCell.update(mesh.offsetBuffer, ob) : ValueCell.create(ob),
+                    groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, idb) : ValueCell.create(idb),
                     normalsComputed: true,
-                    offsetsComputed: true,
                 }
             }
         }

@@ -6,12 +6,14 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { RuntimeContext } from 'mol-task';
-import { Mesh } from '../../../../shape/mesh';
-import { MeshBuilder } from '../../../../shape/mesh-builder';
+import { Mesh } from '../../../../mesh/mesh';
+import { MeshBuilder } from '../../../../mesh/mesh-builder';
 import { LinkType } from 'mol-model/structure/model/types';
 import { DefaultMeshProps } from '../../../util';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../../primitive/cylinder';
+import { LocationIterator } from '../../../../util/location-iterator';
+import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
 
 export const DefaultLinkCylinderProps = {
     ...DefaultMeshProps,
@@ -87,7 +89,7 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
         const linkRadius = radius(edgeIndex)
         const o = order(edgeIndex)
         const f = flags(edgeIndex)
-        meshBuilder.setId(edgeIndex)
+        meshBuilder.setGroup(edgeIndex)
 
         if (LinkType.is(f, LinkType.Flag.MetallicCoordination)) {
             // show metall coordinations with dashed cylinders
@@ -116,4 +118,33 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
     }
 
     return meshBuilder.getMesh()
+}
+
+export namespace LinkIterator {
+    export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
+        const unit = group.units[0]
+        const groupCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
+        const instanceCount = group.units.length
+        const location = StructureElement.create(unit)
+        const getLocation = (groupIndex: number) => {
+            location.element = unit.elements[(unit as Unit.Atomic).links.a[groupIndex]]
+            return location
+        }
+        return LocationIterator(groupCount, instanceCount, getLocation)
+    }
+
+    export function fromStructure(structure: Structure): LocationIterator {
+        const groupCount = structure.links.bondCount
+        const instanceCount = 1
+        const location = Link.Location()
+        const getLocation = (groupIndex: number) => {
+            const bond = structure.links.bonds[groupIndex]
+            location.aUnit = bond.unitA
+            location.aIndex = bond.indexA as StructureElement.UnitIndex
+            location.bUnit = bond.unitB
+            location.bIndex = bond.indexB as StructureElement.UnitIndex
+            return location
+        }
+        return LocationIterator(groupCount, instanceCount, getLocation)
+    }
 }

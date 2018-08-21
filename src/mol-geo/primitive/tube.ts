@@ -7,7 +7,7 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
-import { MeshBuilderState } from '../shape/mesh-builder';
+import { MeshBuilderState } from '../mesh/mesh-builder';
 
 const normalVector = Vec3.zero()
 const binormalVector = Vec3.zero()

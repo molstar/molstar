@@ -7,13 +7,12 @@
 import { Unit } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { markElement, getElementLoci } from './util/element';
-import { Mesh } from '../../../shape/mesh';
-import { MeshBuilder } from '../../../shape/mesh-builder';
+import { markElement, getElementLoci, StructureElementIterator } from './util/element';
+import { Mesh } from '../../../mesh/mesh';
+import { MeshBuilder } from '../../../mesh/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
-import { StructureElementIterator } from './util/location-iterator';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { OrderedSet } from 'mol-data/int';
@@ -49,7 +48,7 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setId(OrderedSet.findPredecessorIndex(unit.elements, v.center.element))
+        builder.setGroup(OrderedSet.findPredecessorIndex(unit.elements, v.center.element))
 
         const isNucleic = v.moleculeType === MoleculeType.DNA || v.moleculeType === MoleculeType.RNA
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)

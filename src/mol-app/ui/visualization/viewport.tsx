@@ -151,7 +151,7 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
                 images: {
                     'object': viewer.getImageData('pickObject'),
                     'instance': viewer.getImageData('pickInstance'),
-                    'element': viewer.getImageData('pickElement')
+                    'group': viewer.getImageData('pickGroup')
                 }
             })
         })
@@ -168,7 +168,7 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
 
             // TODO use LabelLoci event and make configurable
             const label = labelFirst(loci)
-            const info = `Object: ${p.objectId}, Instance: ${p.instanceId}, Element: ${p.elementId}, Label: ${label}`
+            const info = `Object: ${p.objectId}, Instance: ${p.instanceId}, Group: ${p.groupId}, Label: ${label}`
             this.setState({ info })
         })
 

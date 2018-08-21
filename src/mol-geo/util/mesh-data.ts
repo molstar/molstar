@@ -5,18 +5,18 @@
  */
 
 import { ValueCell } from 'mol-util/value-cell'
-import { Mesh } from '../shape/mesh';
+import { Mesh } from '../mesh/mesh';
 
 type MeshData = {
     aPosition: ValueCell<Float32Array>,
     aNormal: ValueCell<Float32Array>,
-    aElementId: ValueCell<Float32Array>,
+    aGroup: ValueCell<Float32Array>,
 }
 
 export function getMeshData(mesh: Mesh): MeshData {
     return {
         aPosition: mesh.vertexBuffer,
         aNormal: mesh.normalBuffer,
-        aElementId: mesh.idBuffer,
+        aGroup: mesh.groupBuffer,
     }
 }

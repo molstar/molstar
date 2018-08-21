@@ -7,12 +7,11 @@
 import { Unit, StructureElement } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../shape/mesh';
-import { MeshBuilder } from '../../../shape/mesh-builder';
+import { Mesh } from '../../../mesh/mesh';
+import { MeshBuilder } from '../../../mesh/mesh-builder';
 import { getPolymerGapCount, PolymerGapIterator } from './util/polymer';
-import { getElementLoci, markElement } from './util/element';
+import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { StructureElementIterator } from './util/location-iterator';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
@@ -48,7 +47,7 @@ async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, pro
     while (polymerGapIt.hasNext) {
         const { centerA, centerB } = polymerGapIt.move()
         if (centerA.element === centerB.element) {
-            builder.setId(centerA.element)
+            builder.setGroup(centerA.element)
             pos(elements[centerA.element], pA)
             builder.addSphere(pA, 0.6, 0)
         } else {
@@ -59,12 +58,12 @@ async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, pro
 
             l.element = elmA
             cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(l)
-            builder.setId(centerA.element)
+            builder.setGroup(centerA.element)
             builder.addFixedCountDashedCylinder(pA, pB, 0.5, segmentCount, cylinderProps)
 
             l.element = elmB
             cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(l)
-            builder.setId(centerB.element)
+            builder.setGroup(centerB.element)
             builder.addFixedCountDashedCylinder(pB, pA, 0.5, segmentCount, cylinderProps)
         }
 

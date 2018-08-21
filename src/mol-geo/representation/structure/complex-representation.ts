@@ -22,7 +22,7 @@ export function ComplexRepresentation<P extends StructureProps>(visualCtor: () =
 
     function create(structure: Structure, props: Partial<P> = {}) {
         _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
-        _props.colorTheme!.structure = structure
+        _props.colorTheme.structure = structure
 
         return Task.create('Creating StructureRepresentation', async ctx => {
             if (!_structure) {
@@ -44,7 +44,7 @@ export function ComplexRepresentation<P extends StructureProps>(visualCtor: () =
     function update(props: Partial<P>) {
         return Task.create('Updating StructureRepresentation', async ctx => {
             _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
-            _props.colorTheme!.structure = _structure
+            _props.colorTheme.structure = _structure
 
             if (!await visual.update(ctx, _props)) {
                 await visual.create(ctx, _structure, _props)

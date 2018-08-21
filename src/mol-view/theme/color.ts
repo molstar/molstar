@@ -15,6 +15,7 @@ import { ElementSymbolColorTheme } from './color/element-symbol';
 import { UnitIndexColorTheme } from './color/unit-index';
 import { UniformColorTheme } from './color/uniform';
 import { CrossLinkColorTheme } from './color/cross-link';
+import { ShapeGroupColorTheme } from './color/shape-group';
 
 export interface ColorTheme {
     kind: ColorType
@@ -30,6 +31,7 @@ export function ColorTheme(props: ColorThemeProps): ColorTheme {
         case 'element-symbol': return ElementSymbolColorTheme(props)
         case 'unit-index': return UnitIndexColorTheme(props)
         case 'uniform': return UniformColorTheme(props)
+        case 'shape-group': return ShapeGroupColorTheme(props)
     }
 }
 
@@ -47,7 +49,8 @@ export const ColorThemeInfo = {
     'chain-id': {},
     'element-symbol': {},
     'unit-index': {},
-    'uniform': {}
+    'uniform': {},
+    'shape-group': {}
 }
 export type ColorThemeName = keyof typeof ColorThemeInfo
 export const ColorThemeNames = Object.keys(ColorThemeInfo)

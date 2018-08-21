@@ -42,7 +42,7 @@ export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        kind: 'element',
+        kind: 'group',
         color: colorFn
     }
 }

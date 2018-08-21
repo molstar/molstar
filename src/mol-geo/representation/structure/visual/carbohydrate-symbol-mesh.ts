@@ -7,13 +7,13 @@
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../shape/mesh';
+import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { MeshBuilder } from '../../../shape/mesh-builder';
+import { MeshBuilder } from '../../../mesh/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
-import { LocationIterator } from './util/location-iterator';
+import { LocationIterator } from '../../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
@@ -49,7 +49,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
         Mat4.targetTo(t, center, pd, normal)
         Mat4.setTranslation(t, center)
 
-        builder.setId(i * 2)
+        builder.setGroup(i * 2)
 
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
@@ -63,7 +63,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 Mat4.scaleUniformly(t, t, side)
                 builder.addPerforatedBox(t)
                 Mat4.mul(t, t, Mat4.rotZ90X180)
-                builder.setId(i * 2 + 1)
+                builder.setGroup(i * 2 + 1)
                 builder.addPerforatedBox(t)
                 break;
             case SaccharideShapes.FilledCone:
@@ -74,7 +74,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 Mat4.scaleUniformly(t, t, side * 1.2)
                 builder.addPerforatedOctagonalPyramid(t)
                 Mat4.mul(t, t, Mat4.rotZ90)
-                builder.setId(i * 2 + 1)
+                builder.setGroup(i * 2 + 1)
                 builder.addPerforatedOctagonalPyramid(t)
                 break
             case SaccharideShapes.FlatBox:
@@ -96,7 +96,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
                 builder.addPerforatedOctahedron(t)
                 Mat4.mul(t, t, Mat4.rotY90)
-                builder.setId(i * 2 + 1)
+                builder.setGroup(i * 2 + 1)
                 builder.addPerforatedOctahedron(t)
                 break
             case SaccharideShapes.FlatDiamond:
@@ -142,11 +142,11 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProp
 
 function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     const carbElements = structure.carbohydrates.elements
-    const elementCount = carbElements.length * 2
+    const groupCount = carbElements.length * 2
     const instanceCount = 1
     const location = StructureElement.create()
-    function getLocation (elementIndex: number, instanceIndex: number) {
-        const carb = carbElements[Math.floor(elementIndex / 2)]
+    function getLocation (groupIndex: number, instanceIndex: number) {
+        const carb = carbElements[Math.floor(groupIndex / 2)]
         location.unit = carb.unit
         location.element = carb.anomericCarbon
         return location
@@ -154,13 +154,13 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     function isSecondary (elementIndex: number, instanceIndex: number) {
         return (elementIndex % 2) === 1
     }
-    return LocationIterator(elementCount, instanceCount, getLocation, isSecondary)
+    return LocationIterator(groupCount, instanceCount, getLocation, isSecondary)
 }
 
 function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {
-    const { objectId, elementId } = pickingId
+    const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const carb = structure.carbohydrates.elements[Math.floor(elementId / 2)]
+        const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)]
         const { unit } = carb
         const index = OrderedSet.findPredecessorIndex(unit.elements, carb.anomericCarbon)
         const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)

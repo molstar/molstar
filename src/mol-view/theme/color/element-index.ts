@@ -44,7 +44,7 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        kind: 'elementInstance',
+        kind: 'groupInstance',
         color: colorFn
     }
 }

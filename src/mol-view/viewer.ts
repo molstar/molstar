@@ -109,7 +109,7 @@ namespace Viewer {
         const pickHeight = Math.round(canvas.height * pickScale)
         const objectPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
         const instancePickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
-        const elementPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
+        const groupPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
 
         let pickDirty = true
         let drawPending = false
@@ -165,7 +165,7 @@ namespace Viewer {
             switch (variant) {
                 case 'pickObject': objectPickTarget.bind(); break;
                 case 'pickInstance': instancePickTarget.bind(); break;
-                case 'pickElement': elementPickTarget.bind(); break;
+                case 'pickGroup': groupPickTarget.bind(); break;
                 case 'draw':
                     ctx.unbindFramebuffer();
                     renderer.setViewport(0, 0, canvas.width, canvas.height);
@@ -210,7 +210,7 @@ namespace Viewer {
         function pick() {
             render('pickObject', pickDirty)
             render('pickInstance', pickDirty)
-            render('pickElement', pickDirty)
+            render('pickGroup', pickDirty)
 
             pickDirty = false
         }
@@ -232,11 +232,11 @@ namespace Viewer {
             ctx.readPixels(xp, yp, 1, 1, buffer)
             const instanceId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
 
-            elementPickTarget.bind()
+            groupPickTarget.bind()
             ctx.readPixels(xp, yp, 1, 1, buffer)
-            const elementId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+            const groupId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
 
-            return { objectId, instanceId, elementId }
+            return { objectId, instanceId, groupId }
         }
 
         handleResize()
@@ -303,7 +303,7 @@ namespace Viewer {
                     case 'draw': return renderer.getImageData()
                     case 'pickObject': return objectPickTarget.getImageData()
                     case 'pickInstance': return instancePickTarget.getImageData()
-                    case 'pickElement': return elementPickTarget.getImageData()
+                    case 'pickGroup': return groupPickTarget.getImageData()
                 }
             },
             reprCount,
@@ -334,7 +334,7 @@ namespace Viewer {
             const pickHeight = Math.round(canvas.height * pickScale)
             objectPickTarget.setSize(pickWidth, pickHeight)
             instancePickTarget.setSize(pickWidth, pickHeight)
-            elementPickTarget.setSize(pickWidth, pickHeight)
+            groupPickTarget.setSize(pickWidth, pickHeight)
         }
     }
 }

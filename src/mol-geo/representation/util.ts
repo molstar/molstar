@@ -35,14 +35,14 @@ export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
     return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
 }
 
-type Counts = { drawCount: number, elementCount: number, instanceCount: number }
+type Counts = { drawCount: number, groupCount: number, instanceCount: number }
 
 export function createBaseValues(props: Required<BaseProps>, counts: Counts) {
     return {
         uAlpha: ValueCell.create(props.alpha),
         uInstanceCount: ValueCell.create(counts.instanceCount),
-        uElementCount: ValueCell.create(counts.elementCount),
-        aInstanceId: ValueCell.create(fillSerial(new Float32Array(counts.instanceCount))),
+        uGroupCount: ValueCell.create(counts.groupCount),
+        aInstance: ValueCell.create(fillSerial(new Float32Array(counts.instanceCount))),
         drawCount: ValueCell.create(counts.drawCount),
         instanceCount: ValueCell.create(counts.instanceCount),
     }

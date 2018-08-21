@@ -6,8 +6,7 @@
  */
 
 import { UnitsVisual, MeshUpdateState } from '..';
-import { createElementSphereMesh, markElement, getElementLoci } from './util/element';
-import { StructureElementIterator } from './util/location-iterator';
+import { createElementSphereMesh, markElement, getElementLoci, StructureElementIterator } from './util/element';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 
 export const DefaultElementSphereProps = {

@@ -7,12 +7,11 @@
 import { Unit } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../shape/mesh';
-import { MeshBuilder } from '../../../shape/mesh-builder';
+import { Mesh } from '../../../mesh/mesh';
+import { MeshBuilder } from '../../../mesh/mesh-builder';
 import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
-import { getElementLoci, markElement } from './util/element';
+import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { StructureElementIterator } from './util/location-iterator';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
@@ -47,11 +46,11 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
         pos(centerB.element, pB)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerA)
-        builder.setId(OrderedSet.findPredecessorIndex(elements, centerA.element))
+        builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerA.element))
         builder.addCylinder(pA, pB, 0.5, cylinderProps)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerB)
-        builder.setId(OrderedSet.findPredecessorIndex(elements, centerB.element))
+        builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerB.element))
         builder.addCylinder(pB, pA, 0.5, cylinderProps)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

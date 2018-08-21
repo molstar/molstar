@@ -6,6 +6,7 @@
 
 import { StructureElement } from './structure'
 import { Link } from './structure/structure/unit/links'
+import { Shape } from './shape/shape';
 
 /** A null value Location */
 export const NullLocation = { kind: 'null-location' as 'null-location' }
@@ -14,17 +15,4 @@ export function isNullLocation(x: any): x is NullLocation {
     return !!x && x.kind === 'null-location';
 }
 
-/** A custom Location */
-export interface CustomLocation<D = any, K = any> {
-    readonly kind: 'custom-location'
-    data: D
-    key: K
-}
-export function CustomLocation<D, K>(data: D, key: K): CustomLocation<D, K> {
-    return { kind: 'custom-location', data, key }
-}
-export function isCustomLocation(x: any): x is CustomLocation<any, any> {
-    return !!x && x.kind === 'custom-location';
-}
-
-export type Location = StructureElement | Link.Location | NullLocation | CustomLocation
+export type Location = StructureElement | Link.Location | Shape.Location | NullLocation

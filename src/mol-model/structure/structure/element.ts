@@ -18,7 +18,7 @@ interface StructureElement<U = Unit> {
 
 namespace StructureElement {
     export function create(unit?: Unit, element?: ElementIndex): StructureElement {
-        return { kind: 'element-location', unit: unit as any, element: element || (0 as ElementIndex) };
+        return { kind: 'element-location', unit: unit!, element: element || (0 as ElementIndex) };
     }
 
     // TODO: when nominal types are available, make this indexed by UnitIndex

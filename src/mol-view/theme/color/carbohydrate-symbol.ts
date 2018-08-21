@@ -47,7 +47,7 @@ export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme
     }
 
     return {
-        kind: 'element',
+        kind: 'group',
         color: colorFn
     }
 }

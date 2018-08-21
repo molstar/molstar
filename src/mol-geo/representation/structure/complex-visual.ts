@@ -7,9 +7,9 @@
 import { Structure } from 'mol-model/structure';
 import { Visual } from '..';
 import { MeshRenderObject } from 'mol-gl/render-object';
-import { Mesh } from '../../shape/mesh';
+import { Mesh } from '../../mesh/mesh';
 import { RuntimeContext } from 'mol-task';
-import { LocationIterator } from './visual/util/location-iterator';
+import { LocationIterator } from '../../util/location-iterator';
 import { createComplexMeshRenderObject, createColors } from './visual/util/common';
 import { StructureProps, DefaultStructureMeshProps, MeshUpdateState } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
@@ -96,7 +96,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         },
         mark(loci: Loci, action: MarkerAction) {
             const { tMarker } = renderObject.values
-            const { elementCount, instanceCount } = locationIt
+            const { groupCount, instanceCount } = locationIt
 
             function apply(interval: Interval) {
                 const start = Interval.start(interval)
@@ -106,7 +106,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
 
             let changed = false
             if (isEveryLoci(loci)) {
-                apply(Interval.ofBounds(0, elementCount * instanceCount))
+                apply(Interval.ofBounds(0, groupCount * instanceCount))
                 changed = true
             } else {
                 changed = mark(loci, currentStructure, apply)

@@ -8,7 +8,7 @@
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
 import { Task, RuntimeContext } from 'mol-task'
 import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
-import { Mesh } from '../../shape/mesh';
+import { Mesh } from '../../mesh/mesh';
 import { VolumeVisual } from '.';
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { ValueCell, defaults } from 'mol-util';
@@ -72,13 +72,13 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
             const values: MeshValues = {
                 ...getMeshData(mesh),
                 aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
-                aInstanceId: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                 ...color,
                 ...marker,
 
                 uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
                 uInstanceCount: ValueCell.create(instanceCount),
-                uElementCount: ValueCell.create(mesh.triangleCount),
+                uGroupCount: ValueCell.create(mesh.triangleCount),
 
                 elements: mesh.indexBuffer,
 

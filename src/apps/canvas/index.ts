@@ -8,7 +8,7 @@ import './index.html'
 
 import Viewer from 'mol-view/viewer';
 import CIF, { CifBlock } from 'mol-io/reader/cif'
-import { parse as parseObj } from 'mol-io/reader/obj/parser'
+// import { parse as parseObj } from 'mol-io/reader/obj/parser'
 import { readUrlAs } from 'mol-util/read'
 import { Model, Format, Structure, StructureSymmetry } from 'mol-model/structure';
 import { CartoonRepresentation } from 'mol-geo/representation/structure/representation/cartoon';
@@ -17,9 +17,11 @@ import { EveryLoci } from 'mol-model/loci';
 import { MarkerAction } from 'mol-geo/util/marker-data';
 import { labelFirst } from 'mol-view/label';
 import { Queries as Q, StructureProperties as SP, StructureSelection, StructureQuery } from 'mol-model/structure';
-import { MeshBuilder } from 'mol-geo/shape/mesh-builder';
-import { CustomRepresentation } from 'mol-geo/representation/custom';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
+import { ShapeRepresentation } from 'mol-geo/representation/shape';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
+import { Shape } from 'mol-model/shape';
+import { Color } from 'mol-util/color';
 
 const container = document.getElementById('container')
 if (!container) throw new Error('Can not find element with id "container".')
@@ -50,13 +52,13 @@ viewer.input.move.subscribe(({x, y, inside, buttons}) => {
 })
 
 
-async function getObjFromUrl(url: string) {
-    const data = await readUrlAs(url, false) as string
-    const comp = parseObj(data)
-    const parsed = await comp.run()
-    if (parsed.isError) throw parsed
-    return parsed.result
-}
+// async function getObjFromUrl(url: string) {
+//     const data = await readUrlAs(url, false) as string
+//     const comp = parseObj(data)
+//     const parsed = await comp.run()
+//     if (parsed.isError) throw parsed
+//     return parsed.result
+// }
 
 async function getCifFromUrl(url: string) {
     const data = await readUrlAs(url, false)
@@ -111,18 +113,34 @@ async function init() {
     }).run()
     viewer.add(ballStickRepr)
 
-    // create a custom mesh
+    // create a mesh
     const meshBuilder = MeshBuilder.create(256, 128)
-    meshBuilder.setId(0)
+    const groupColors: Color[] = []
+    const groupLabels: string[] = []
+    // red sphere
+    meshBuilder.setGroup(0)
+    groupColors[0] = Color(0xFF2233)
+    groupLabels[0] = 'red sphere'
     meshBuilder.addSphere(Vec3.create(0, 0, 0), 4, 2)
+    // green cube
+    meshBuilder.setGroup(1)
+    groupColors[1] = Color(0x2233FF)
+    groupLabels[1] = 'blue cube'
+    const t = Mat4.identity()
+    Mat4.setTranslation(t, Vec3.create(10, 0, 0))
+    Mat4.scale(t, t, Vec3.create(3, 3, 3))
+    meshBuilder.addBox(t)
     const mesh = meshBuilder.getMesh()
-    // Mesh.computeNormalsImmediate(mesh)
+    // const mesh = getObjFromUrl('mesh.obj')
 
-    // mesh = getObjFromUrl('mesh.obj')
+    // create shape from mesh
+    const shape = Shape.create(mesh, 'myShape', group => groupColors[group], group => groupLabels[group])
 
-    // add representation from custom mesh
-    const customRepr = CustomRepresentation()
-    await customRepr.create(mesh, {
+    // add representation from shape
+    const customRepr = ShapeRepresentation()
+    await customRepr.create(shape, {
+        colorTheme: { name: 'shape-group' },
+        // colorTheme: { name: 'uniform', value: Color(0xFFCC22) },
         useFog: false // TODO fog not working properly
     }).run()
     viewer.add(customRepr)

@@ -39,7 +39,7 @@ export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        kind: 'element',
+        kind: 'group',
         color: colorFn
     }
 }

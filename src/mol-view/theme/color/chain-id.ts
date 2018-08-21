@@ -43,7 +43,7 @@ export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        kind: 'element',
+        kind: 'group',
         color: colorFn
     }
 }

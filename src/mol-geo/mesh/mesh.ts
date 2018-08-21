@@ -15,8 +15,6 @@ export interface Mesh {
     vertexCount: number,
     /** Number of triangles in the mesh */
     triangleCount: number,
-    /** Number of offsets in the mesh */
-    offsetCount: number,
 
     /** Vertex buffer as array of xyz values wrapped in a value cell */
     vertexBuffer: ValueCell<Float32Array>,
@@ -24,15 +22,11 @@ export interface Mesh {
     indexBuffer: ValueCell<Uint32Array>,
     /** Normal buffer as array of xyz values for each vertex wrapped in a value cell */
     normalBuffer: ValueCell<Float32Array>,
-    /** Id buffer as array of ids for each vertex wrapped in a value cell */
-    idBuffer: ValueCell<Float32Array>,
-    /** Offset buffer as array of offsets for id ranges wrapped in a value cell */
-    offsetBuffer: ValueCell<Uint32Array>,
+    /** Group buffer as array of group ids for each vertex wrapped in a value cell */
+    groupBuffer: ValueCell<Float32Array>,
 
     /** Flag indicating if normals are computed for the current set of vertices */
     normalsComputed: boolean,
-    /** Flag indicating if offsets are computed for the current set of ids */
-    offsetsComputed: boolean,
 
     /** Bounding sphere of the mesh */
     boundingSphere?: Sphere3D
@@ -43,19 +37,15 @@ export namespace Mesh {
         const vb = mesh ? mesh.vertexBuffer.ref.value : new Float32Array(0)
         const ib = mesh ? mesh.indexBuffer.ref.value : new Uint32Array(0)
         const nb = mesh ? mesh.normalBuffer.ref.value : new Float32Array(0)
-        const idb = mesh ? mesh.idBuffer.ref.value : new Float32Array(0)
-        const ob = mesh ? mesh.offsetBuffer.ref.value : new Uint32Array(0)
+        const idb = mesh ? mesh.groupBuffer.ref.value : new Float32Array(0)
         return {
             vertexCount: 0,
             triangleCount: 0,
-            offsetCount: 0,
             vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
             indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
             normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
-            idBuffer: mesh ? ValueCell.update(mesh.idBuffer, idb) : ValueCell.create(idb),
-            offsetBuffer: mesh ? ValueCell.update(mesh.offsetBuffer, ob) : ValueCell.create(ob),
+            groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, idb) : ValueCell.create(idb),
             normalsComputed: true,
-            offsetsComputed: true,
         }
     }
 

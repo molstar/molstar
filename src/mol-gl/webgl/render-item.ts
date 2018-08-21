@@ -45,7 +45,7 @@ const RenderVariantDefines = {
     'draw': {},
     'pickObject': { dColorType: ValueCell.create('objectPicking') },
     'pickInstance': { dColorType: ValueCell.create('instancePicking') },
-    'pickElement': { dColorType: ValueCell.create('elementPicking') }
+    'pickGroup': { dColorType: ValueCell.create('groupPicking') }
 }
 export type RenderVariant = keyof typeof RenderVariantDefines
 

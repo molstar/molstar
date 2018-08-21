@@ -46,8 +46,8 @@ function createRenderer(gl: WebGLRenderingContext) {
 
 function createPoints() {
     const aPosition = ValueCell.create(new Float32Array([0, -1, 0, -1, 0, 0, 1, 1, 0]))
-    const aElementId = ValueCell.create(fillSerial(new Float32Array(3)))
-    const aInstanceId = ValueCell.create(fillSerial(new Float32Array(1)))
+    const aGroup = ValueCell.create(fillSerial(new Float32Array(3)))
+    const aInstance = ValueCell.create(fillSerial(new Float32Array(1)))
     const color = createValueColor(Color(0xFF0000))
     const size = createValueSize(1)
     const marker = createEmptyMarkers()
@@ -58,16 +58,16 @@ function createPoints() {
 
     const values: PointValues = {
         aPosition,
-        aElementId,
+        aGroup,
         aTransform,
-        aInstanceId,
+        aInstance,
         ...color,
         ...marker,
         ...size,
 
         uAlpha: ValueCell.create(1.0),
         uInstanceCount: ValueCell.create(1),
-        uElementCount: ValueCell.create(3),
+        uGroupCount: ValueCell.create(3),
 
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
