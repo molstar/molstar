@@ -9,7 +9,7 @@ import { StructureSelection } from '../selection'
 import { Unit, StructureProperties as P } from '../../structure'
 import { Segmentation, SortedArray } from 'mol-data/int'
 import { LinearGroupingBuilder } from '../utils/builders';
-import { QueryPredicate, QueryFn, QueryContextView, QueryContext } from '../context';
+import { QueryPredicate, QueryFn, QueryContextView } from '../context';
 import { UnitRing } from '../../structure/unit/rings';
 import Structure from '../../structure/structure';
 import { ElementIndex } from '../../model';
