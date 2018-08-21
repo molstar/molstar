@@ -10,6 +10,7 @@ import { QueryContext, QueryFn, QueryPredicate } from '../context';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { structureAreIntersecting } from '../utils/structure';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
     return ctx => {
@@ -101,4 +102,93 @@ export function areIntersectedBy(query: StructureQuery, by: StructureQuery): Str
     };
 }
 
-// TODO: within, isConnectedTo
+export interface WithinParams {
+    query: StructureQuery,
+    target: StructureQuery,
+    minRadius?: number,
+    maxRadius: number,
+    atomRadius?: QueryFn<number>,
+    invert?: boolean
+}
+
+function _zeroRadius(ctx: QueryContext) { return 0; }
+
+export function within(params: WithinParams): StructureQuery {
+    return queryCtx => {
+        const ctx: WithinContext = {
+            queryCtx,
+            selection: params.query(queryCtx),
+            target: params.target(queryCtx),
+            maxRadius: params.maxRadius,
+            minRadius: params.minRadius ? params.minRadius : 0,
+            atomRadius: params.atomRadius || _zeroRadius,
+            invert: !!params.invert,
+        }
+
+        if (ctx.minRadius === 0 && ctx.atomRadius === _zeroRadius) {
+            return withinMaxRadius(ctx);
+        } else {
+            // TODO
+            throw 'not implemented';
+            // return withinMinMaxRadius(ctx);
+        }
+    }
+}
+
+interface WithinContext {
+    queryCtx: QueryContext,
+    selection: StructureSelection,
+    target: StructureSelection,
+    minRadius: number,
+    maxRadius: number,
+    invert: boolean,
+    atomRadius: QueryFn<number>
+}
+function withinMaxRadius({ queryCtx, selection, target, maxRadius, invert }: WithinContext) {
+    const targetLookup = StructureSelection.unionStructure(target).lookup3d;
+    const ret = StructureSelection.LinearBuilder(queryCtx.inputStructure);
+
+    const pos = Vec3.zero();
+    StructureSelection.forEach(selection, (s, sI) => {
+        const { units } = s;
+
+        let withinRadius = false;
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            const unit = units[i];
+            const { elements, conformation } = unit;
+
+            switch (unit.kind) {
+                case Unit.Kind.Atomic:
+                // TODO: assign radius to gaussian elements?
+                case Unit.Kind.Gaussians:
+                    for (let i = 0, _i = elements.length; i < _i; i++) {
+                        conformation.position(elements[i], pos);
+                        if (targetLookup.check(pos[0], pos[1], pos[2], maxRadius)) {
+                            withinRadius = true;
+                            break;
+                        }
+                    }
+                    break;
+                case Unit.Kind.Spheres:
+                    const radius = unit.coarseConformation.radius;
+                    for (let i = 0, _i = elements.length; i < _i; i++) {
+                        conformation.position(elements[i], pos);
+                        if (targetLookup.check(pos[0], pos[1], pos[2], maxRadius + radius[elements[i]])) {
+                            withinRadius = true;
+                            break;
+                        }
+                    }
+                    break;
+            }
+            if (withinRadius) break;
+        }
+        if (invert) withinRadius = !withinRadius;
+        if (withinRadius) ret.add(s);
+        if (sI % 10 === 0) queryCtx.throwIfTimedOut();
+    });
+
+    return ret.getSelection();
+}
+
+
+// TODO: isConnectedTo

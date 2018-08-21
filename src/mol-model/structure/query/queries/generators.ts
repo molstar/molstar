@@ -7,9 +7,14 @@
 import { StructureQuery } from '../query'
 import { StructureSelection } from '../selection'
 import { Unit, StructureProperties as P } from '../../structure'
-import { Segmentation } from 'mol-data/int'
+import { Segmentation, SortedArray } from 'mol-data/int'
 import { LinearGroupingBuilder } from '../utils/builders';
-import { QueryPredicate, QueryFn, QueryContextView } from '../context';
+import { QueryPredicate, QueryFn, QueryContextView, QueryContext } from '../context';
+import { UnitRing } from '../../structure/unit/rings';
+import Structure from '../../structure/structure';
+import { ElementIndex } from '../../model';
+import { UniqueArray } from 'mol-data/generic';
+import { structureSubtract } from '../utils/structure';
 
 export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.inputStructure, []);
 export const all: StructureQuery = ctx => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);
@@ -157,4 +162,63 @@ function atomGroupsGrouped({ entityTest, chainTest, residueTest, atomTest, group
         ctx.popCurrentElement();
         return builder.getSelection();
     };
+}
+
+function getRingStructure(unit: Unit.Atomic, ring: UnitRing) {
+    const elements = new Int32Array(ring.length) as any as ElementIndex[];
+    for (let i = 0, _i = ring.length; i < _i; i++) elements[i] = unit.elements[ring[i]];
+    return Structure.create([unit.getChild(SortedArray.ofSortedArray(elements))])
+}
+
+export function rings(fingerprints?: ArrayLike<UnitRing.Fingerprint>): StructureQuery {
+    return ctx => {
+        const { units } = ctx.inputStructure;
+        let ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+
+        if (!fingerprints || fingerprints.length === 0) {
+            for (const u of units) {
+                if (!Unit.isAtomic(u)) continue;
+
+                for (const r of u.rings.all) {
+                    ret.add(getRingStructure(u, r));
+                }
+            }
+        } else {
+            const uniqueFps = UniqueArray.create<UnitRing.Fingerprint, UnitRing.Fingerprint>();
+            for (let i = 0; i < fingerprints.length; i++) UniqueArray.add(uniqueFps, fingerprints[i], fingerprints[i]);
+
+            for (const u of units) {
+                if (!Unit.isAtomic(u)) continue;
+
+                const rings = u.rings;
+                for (const fp of uniqueFps.array) {
+                    if (!rings.byFingerprint.has(fp)) continue;
+                    for (const r of rings.byFingerprint.get(fp)!) {
+                        ret.add(getRingStructure(u, rings.all[r]));
+                    }
+                }
+            }
+        }
+
+        return ret.getSelection();
+    }
+}
+
+export function querySelection(selection: StructureQuery, query: StructureQuery, inComplement: boolean = false): StructureQuery {
+    return ctx => {
+        const targetSel = selection(ctx);
+        if (StructureSelection.structureCount(targetSel) === 0) return targetSel;
+
+        const target = inComplement
+        ? structureSubtract(ctx.inputStructure, StructureSelection.unionStructure(targetSel))
+        : StructureSelection.unionStructure(targetSel);
+
+        if (target.elementCount === 0) return StructureSelection.Empty(ctx.inputStructure);
+        ctx.throwIfTimedOut();
+
+        ctx.pushInputStructure(target);
+        const result = query(ctx);
+        ctx.popInputStructure();
+        return StructureSelection.withInputStructure(result, ctx.inputStructure);
+    }
 }

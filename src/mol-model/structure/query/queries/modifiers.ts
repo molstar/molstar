@@ -59,6 +59,7 @@ export function wholeResidues(query: StructureQuery, isFlat: boolean): Structure
 
 export interface IncludeSurroundingsParams {
     radius: number,
+    // TODO
     // atomRadius?: Element.Property<number>,
     wholeResidues?: boolean
 }
@@ -97,3 +98,5 @@ export function includeSurroundings(query: StructureQuery, params: IncludeSurrou
         }
     };
 }
+
+// TODO: queryEach, intersectBy, exceptBy, unionBy, union, cluster, includeConnected

@@ -15,9 +15,11 @@ export interface QueryContextView {
 export class QueryContext implements QueryContextView {
     private currentElementStack: StructureElement[] = [];
     private currentStructureStack: Structure[] = [];
-    private timeCreated = now();
-    private timeoutMs: number;
+    private inputStructureStack: Structure[] = [];
 
+    private timeCreated = now();
+
+    readonly timeoutMs: number;
     readonly inputStructure: Structure;
 
     /** Current element */
@@ -43,14 +45,22 @@ export class QueryContext implements QueryContextView {
         else (this.currentStructure as Structure) = void 0 as any;
     }
 
+    pushInputStructure(structure: Structure) {
+        this.inputStructureStack.push(this.inputStructure);
+        (this.inputStructure as any) = structure;
+    }
+
+    popInputStructure() {
+        if (this.inputStructureStack.length === 0) throw new Error('Must push before pop.');
+        (this.inputStructure as any) = this.inputStructureStack.pop();
+    }
+
     throwIfTimedOut() {
         if (this.timeoutMs === 0) return;
         if (now() - this.timeCreated > this.timeoutMs) {
             throw new Error(`The query took too long to execute (> ${this.timeoutMs / 1000}s).`);
         }
     }
-
-    // todo timeout
 
     constructor(structure: Structure, timeoutMs = 0) {
         this.inputStructure = structure;

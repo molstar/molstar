@@ -21,6 +21,7 @@ import StructureProperties from './properties';
 import { ResidueIndex } from '../model/indexing';
 import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -320,6 +321,81 @@ namespace Structure {
         }
         sortArray(uniqueResidues.array);
         return uniqueResidues.array;
+    }
+
+    const distVec = Vec3.zero();
+    function atomicOrGaussianDistance(u: Unit.Atomic | Unit.Gaussians, p: Vec3, r: number) {
+        const { elements, conformation } = u;
+        let minD = Number.MAX_VALUE;
+        for (let i = 0, _i = elements.length; i < _i; i++) {
+            const d = Vec3.distance(p, conformation.position(elements[i], distVec)) - r;
+            if (d < minD) minD = d;
+        }
+        return minD;
+    }
+
+    function sphereDistance(u: Unit.Spheres, p: Vec3, r: number) {
+        const { elements, conformation } = u;
+        const radius = u.coarseConformation.radius;
+        let minD = Number.MAX_VALUE;
+        for (let i = 0, _i = elements.length; i < _i; i++) {
+            const d = Vec3.distance(p, conformation.position(elements[i], distVec)) - r - radius[elements[i]];
+            if (d < minD) minD = d;
+        }
+        return minD;
+    }
+
+    export function minDistanceToPoint(s: Structure, point: Vec3, radius: number) {
+        const { units } = s;
+        let minD = Number.MAX_VALUE, d = 0;
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            const unit = units[i];
+            switch (unit.kind) {
+                case Unit.Kind.Atomic:
+                // TODO: assign radius to gaussian elements?
+                case Unit.Kind.Gaussians:
+                    d = atomicOrGaussianDistance(unit, point, radius);
+                    break;
+                case Unit.Kind.Spheres:
+                    d = sphereDistance(unit, point, radius);
+                    break;
+            }
+            if (d < minD) minD = d;
+        }
+        return minD;
+    }
+
+    const distPivot = Vec3.zero();
+    export function distance(a: Structure, b: Structure) {
+        if (a.elementCount === 0 || b.elementCount === 0) return 0;
+
+        const { units } = a;
+        let minD = Number.MAX_VALUE, d = 0;
+
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            const unit = units[i];
+            const { elements, conformation } = unit;
+
+            switch (unit.kind) {
+                case Unit.Kind.Atomic:
+                // TODO: assign radius to gaussian elements?
+                case Unit.Kind.Gaussians:
+                    for (let i = 0, _i = elements.length; i < _i; i++) {
+                        const d = minDistanceToPoint(b, conformation.position(elements[i], distPivot), 0);
+                        if (d < minD) minD = d;
+                    }
+                    break;
+                case Unit.Kind.Spheres:
+                    const radius = unit.coarseConformation.radius;
+                    for (let i = 0, _i = elements.length; i < _i; i++) {
+                        const d = minDistanceToPoint(b, conformation.position(elements[i], distPivot), radius[elements[i]]);
+                        if (d < minD) minD = d;
+                    }
+                    break;
+            }
+            if (d < minD) minD = d;
+        }
+        return minD;
     }
 }
 

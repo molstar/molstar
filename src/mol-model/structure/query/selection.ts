@@ -119,7 +119,12 @@ namespace StructureSelection {
         }
     }
 
-    // TODO: spatial lookup
+    export function withInputStructure(selection: StructureSelection, structure: Structure) {
+        if (isSingleton(selection)) return Singletons(structure, selection.structure);
+        return Sequence(structure, selection.structures);
+    }
+
+    // TODO: spatial lookup?
 }
 
 export { StructureSelection }
