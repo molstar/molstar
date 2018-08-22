@@ -32,11 +32,11 @@ export function createWedge(): Primitive {
     Vec3.set(a, points[0], points[1], -0.5)
     Vec3.set(b, points[2], points[3], -0.5)
     Vec3.set(c, points[4], points[5], -0.5)
-    builder.add(a, b, c)
+    builder.add(c, b, a)
     Vec3.set(a, points[0], points[1], 0.5)
     Vec3.set(b, points[2], points[3], 0.5)
     Vec3.set(c, points[4], points[5], 0.5)
-    builder.add(c, b, a)
+    builder.add(a, b, c)
 
     return builder.getPrimitive()
 }

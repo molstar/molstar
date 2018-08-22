@@ -46,9 +46,9 @@ export function Star(props?: StarProps): Primitive {
         Vec3.set(c, outerPoints[ni * 2], outerPoints[ni * 2 + 1], 0)
 
         builder.add(op, a, b)
-        builder.add(on, a, b)
+        builder.add(b, a, on)
         builder.add(op, b, c)
-        builder.add(on, b, c)
+        builder.add(c, b, on)
     }
 
     return builder.getPrimitive()

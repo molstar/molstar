@@ -16,7 +16,7 @@ const a = Vec3.zero(), b = Vec3.zero(), c = Vec3.zero(), d = Vec3.zero()
  */
 export function Prism(points: ArrayLike<number>): Primitive {
     const sideCount = points.length / 2
-    if (sideCount < 5) throw new Error('need at least 5 points to build a prism')
+    if (sideCount < 4) throw new Error('need at least 5 points to build a prism')
 
     const count = 4 * sideCount
     const builder = PrimitiveBuilder(count)
@@ -37,10 +37,10 @@ export function Prism(points: ArrayLike<number>): Primitive {
         const ni = (i + 1) % sideCount
         Vec3.set(a, points[i * 2], points[i * 2 + 1], -0.5)
         Vec3.set(b, points[ni * 2], points[ni * 2 + 1], -0.5)
-        builder.add(a, b, on)
+        builder.add(on, b, a)
         Vec3.set(a, points[i * 2], points[i * 2 + 1], 0.5)
         Vec3.set(b, points[ni * 2], points[ni * 2 + 1], 0.5)
-        builder.add(op, b, a)
+        builder.add(a, b, op)
     }
 
     return builder.getPrimitive()

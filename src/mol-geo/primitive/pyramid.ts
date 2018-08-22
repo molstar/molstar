@@ -33,20 +33,20 @@ export function Pyramide(points: ArrayLike<number>): Primitive {
         Vec3.set(a, points[0], points[1], -0.5)
         Vec3.set(b, points[2], points[3], -0.5)
         Vec3.set(c, points[4], points[5], -0.5)
-        builder.add(a, b, c)
+        builder.add(c, b, a)
     } else if (sideCount === 4) {
         Vec3.set(a, points[0], points[1], -0.5)
         Vec3.set(b, points[2], points[3], -0.5)
         Vec3.set(c, points[4], points[5], -0.5)
         Vec3.set(d, points[6], points[7], -0.5)
-        builder.add(a, b, c)
-        builder.add(c, d, a)
+        builder.add(c, b, a)
+        builder.add(a, d, c)
     } else {
         for (let i = 0; i < sideCount; ++i) {
             const ni = (i + 1) % sideCount
             Vec3.set(a, points[i * 2], points[i * 2 + 1], -0.5)
             Vec3.set(b, points[ni * 2], points[ni * 2 + 1], -0.5)
-            builder.add(a, b, on)
+            builder.add(on, b, a)
         }
     }
 
