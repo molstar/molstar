@@ -91,7 +91,7 @@ export class Stage {
         // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
-        this.loadPdbid('2np2') // dna
+        // this.loadPdbid('2np2') // dna
         // this.loadPdbid('1d66') // dna
         // this.loadPdbid('9dna') // A form dna
         // this.loadPdbid('1bna') // B form dna
@@ -107,7 +107,7 @@ export class Stage {
         // this.loadPdbid('1sfi') // contains cyclic peptid
         // this.loadPdbid('3sn6') // discontinuous chains
         // this.loadPdbid('2zex') // contains carbohydrate polymer
-        // this.loadPdbid('3sgj') // contains carbohydrate polymer
+        this.loadPdbid('3sgj') // contains carbohydrate polymer
         // this.loadPdbid('3ina') // contains GlcN and IdoA
         // this.loadPdbid('1umz') // contains Xyl (Xyloglucan)
         // this.loadPdbid('1mfb') // contains Abe

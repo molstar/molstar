@@ -8,9 +8,9 @@ import { ValueCell } from 'mol-util/value-cell'
 import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
 
-import { Plane, PlaneProps } from '../primitive/plane';
+import { Plane } from '../primitive/plane';
 import { Cylinder, CylinderProps } from '../primitive/cylinder';
-import { Sphere, SphereProps } from '../primitive/sphere';
+import { Sphere } from '../primitive/sphere';
 import { Mesh } from './mesh';
 import { getNormalMatrix } from '../util';
 import { addSheet } from './sheet';
@@ -31,9 +31,11 @@ export interface MeshBuilderState {
 
 export interface MeshBuilder {
     add(t: Mat4, _vertices: ArrayLike<number>, _normals: ArrayLike<number>, _indices?: ArrayLike<number>): void
+    addPrimitive(t: Mat4, primitive: Primitive): void,
+
     addBox(t: Mat4): void
     addPerforatedBox(t: Mat4): void
-    addPlane(t: Mat4, props?: PlaneProps): void
+    addPlane(t: Mat4): void
     addWedge(t: Mat4): void
     addDiamondPrism(t: Mat4): void
     addPentagonalPrism(t: Mat4): void
@@ -43,18 +45,21 @@ export interface MeshBuilder {
     addStar(t: Mat4, props?: StarProps): void
     addOctahedron(t: Mat4): void
     addPerforatedOctahedron(t: Mat4): void
+
     addCylinder(start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps): void
     addDoubleCylinder(start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps): void
     addFixedCountDashedCylinder(start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps): void
     addSphere(center: Vec3, radius: number, detail: number): void
+
     addTube(centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean): void
     addSheet(centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean): void
+
     setGroup(id: number): void
     getMesh(): Mesh
 }
 
 const cylinderMap = new Map<string, Primitive>()
-const sphereMap = new Map<string, Primitive>()
+const sphereMap = new Map<number, Primitive>()
 
 const up = Vec3.create(0, 1, 0)
 const tmpV = Vec3.zero()
@@ -64,7 +69,6 @@ const tmpCylinderDir = Vec3.zero()
 const tmpCylinderMatDir = Vec3.zero()
 const tmpCylinderCenter = Vec3.zero()
 const tmpCylinderMat = Mat4.zero()
-// const tmpCylinderMatTrans = Mat4.zero()
 const tmpCylinderStart = Vec3.zero()
 const tmpUp = Vec3.zero()
 
@@ -91,21 +95,18 @@ function getCylinder(props: CylinderProps) {
 
 const tmpSphereMat = Mat4.identity()
 
-function setSphereMat(m: Mat4, center: Vec3) {
-    return Mat4.setTranslation(m, center)
+function setSphereMat(m: Mat4, center: Vec3, radius: number) {
+    return Mat4.scaleUniformly(m, Mat4.fromTranslation(m, center), radius)
 }
 
-function getSphere(props: SphereProps) {
-    const key = JSON.stringify(props)
-    let sphere = sphereMap.get(key)
+function getSphere(detail: number) {
+    let sphere = sphereMap.get(detail)
     if (sphere === undefined) {
-        sphere = Sphere(props)
-        sphereMap.set(key, sphere)
+        sphere = Sphere(detail)
+        sphereMap.set(detail, sphere)
     }
     return sphere
 }
-
-// TODO cache primitives based on props
 
 export namespace MeshBuilder {
     export function create(initialCount = 2048, chunkSize = 1024, mesh?: Mesh): MeshBuilder {
@@ -118,97 +119,66 @@ export namespace MeshBuilder {
 
         let currentGroup = -1
 
-        function add(t: Mat4, _vertices: ArrayLike<number>, _normals: ArrayLike<number>, _indices: ArrayLike<number>) {
-            const { elementCount } = vertices
+        function add(t: Mat4, va: ArrayLike<number>, na: ArrayLike<number>, ia: ArrayLike<number>) {
+            const offset = vertices.elementCount
             const n = getNormalMatrix(tmpMat3, t)
-            for (let i = 0, il = _vertices.length; i < il; i += 3) {
+            for (let i = 0, il = va.length; i < il; i += 3) {
                 // position
-                Vec3.fromArray(tmpV, _vertices, i)
-                Vec3.transformMat4(tmpV, tmpV, t)
+                Vec3.transformMat4(tmpV, Vec3.fromArray(tmpV, va, i), t)
                 ChunkedArray.add3(vertices, tmpV[0], tmpV[1], tmpV[2]);
                 // normal
-                Vec3.fromArray(tmpV, _normals, i)
-                Vec3.transformMat3(tmpV, tmpV, n)
+                Vec3.transformMat3(tmpV, Vec3.fromArray(tmpV, na, i), n)
                 ChunkedArray.add3(normals, tmpV[0], tmpV[1], tmpV[2]);
                 // group
                 ChunkedArray.add(groups, currentGroup);
             }
-            for (let i = 0, il = _indices.length; i < il; i += 3) {
-                ChunkedArray.add3(indices, _indices[i] + elementCount, _indices[i + 1] + elementCount, _indices[i + 2] + elementCount);
+            for (let i = 0, il = ia.length; i < il; i += 3) {
+                ChunkedArray.add3(indices, ia[i] + offset, ia[i + 1] + offset, ia[i + 2] + offset);
             }
+        }
+
+        function addPrimitive(t: Mat4, primitive: Primitive) {
+            const { vertices, normals, indices } = primitive
+            add(t, vertices, normals, indices)
         }
 
         return {
             add,
-            addBox: (t: Mat4) => {
-                const { vertices, normals, indices } = Box()
-                add(t, vertices, normals, indices)
-            },
-            addPerforatedBox: (t: Mat4) => {
-                const { vertices, normals, indices } = PerforatedBox()
-                add(t, vertices, normals, indices)
-            },
-            addPlane: (t: Mat4, props?: PlaneProps) => {
-                const { vertices, normals, indices } = Plane(props)
-                add(t, vertices, normals, indices)
-            },
-            addWedge: (t: Mat4) => {
-                const { vertices, normals, indices } = Wedge()
-                add(t, vertices, normals, indices)
-            },
-            addDiamondPrism: (t: Mat4) => {
-                const { vertices, normals, indices } = DiamondPrism()
-                add(t, vertices, normals, indices)
-            },
-            addPentagonalPrism: (t: Mat4) => {
-                const { vertices, normals, indices } = PentagonalPrism()
-                add(t, vertices, normals, indices)
-            },
-            addHexagonalPrism: (t: Mat4) => {
-                const { vertices, normals, indices } = HexagonalPrism()
-                add(t, vertices, normals, indices)
-            },
-            addOctagonalPyramid: (t: Mat4) => {
-                const { vertices, normals, indices } = OctagonalPyramide()
-                add(t, vertices, normals, indices)
-            },
-            addPerforatedOctagonalPyramid: (t: Mat4) => {
-                const { vertices, normals, indices } = PerforatedOctagonalPyramid()
-                add(t, vertices, normals, indices)
-            },
-            addStar: (t: Mat4, props?: StarProps) => {
-                const { vertices, normals, indices } = Star(props)
-                add(t, vertices, normals, indices)
-            },
-            addOctahedron: (t: Mat4) => {
-                const { vertices, normals, indices } = Octahedron()
-                add(t, vertices, normals, indices)
-            },
-            addPerforatedOctahedron: (t: Mat4) => {
-                const { vertices, normals, indices } = PerforatedOctahedron()
-                add(t, vertices, normals, indices)
-            },
+            addPrimitive,
+
+            addBox: (t: Mat4) => addPrimitive(t, Box()),
+            addPerforatedBox: (t: Mat4) => addPrimitive(t, PerforatedBox()),
+            addPlane: (t: Mat4) => addPrimitive(t, Plane()),
+            addWedge: (t: Mat4) => addPrimitive(t, Wedge()),
+            addDiamondPrism: (t: Mat4) => addPrimitive(t, DiamondPrism()),
+            addPentagonalPrism: (t: Mat4) => addPrimitive(t, PentagonalPrism()),
+            addHexagonalPrism: (t: Mat4) => addPrimitive(t, HexagonalPrism()),
+            addOctagonalPyramid: (t: Mat4) => addPrimitive(t, OctagonalPyramide()),
+            addPerforatedOctagonalPyramid: (t: Mat4) => addPrimitive(t, PerforatedOctagonalPyramid()),
+            addStar: (t: Mat4, props?: StarProps) => addPrimitive(t, Star(props)),
+            addOctahedron: (t: Mat4) => addPrimitive(t, Octahedron()),
+            addPerforatedOctahedron: (t: Mat4) => addPrimitive(t, PerforatedOctahedron()),
+
             addCylinder: (start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) => {
                 const d = Vec3.distance(start, end) * lengthScale
                 props.height = d
-                const { vertices, normals, indices } = getCylinder(props)
                 Vec3.sub(tmpCylinderDir, end, start)
                 setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d)
-                add(tmpCylinderMat, vertices, normals, indices)
+                addPrimitive(tmpCylinderMat, getCylinder(props))
             },
             addDoubleCylinder: (start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps) => {
                 const d = Vec3.distance(start, end) * lengthScale
                 props.height = d
-                const { vertices, normals, indices } = getCylinder(props)
+                const cylinder = getCylinder(props)
                 Vec3.sub(tmpCylinderDir, end, start)
                 // positivly shifted cylinder
                 Vec3.add(tmpCylinderStart, start, shift)
                 setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d)
-                add(tmpCylinderMat, vertices, normals, indices)
+                addPrimitive(tmpCylinderMat, cylinder)
                 // negativly shifted cylinder
                 Vec3.sub(tmpCylinderStart, start, shift)
                 setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d)
-                add(tmpCylinderMat, vertices, normals, indices)
+                addPrimitive(tmpCylinderMat, cylinder)
             },
             addFixedCountDashedCylinder: (start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps) => {
                 const s = Math.floor(segmentCount / 2)
@@ -223,7 +193,7 @@ export namespace MeshBuilder {
 
                 const d = Vec3.distance(start, end) * lengthScale
                 props.height = d * step
-                const { vertices, normals, indices } = getCylinder(props)
+                const cylinder = getCylinder(props)
                 Vec3.sub(tmpCylinderDir, end, start)
 
                 for (let j = 0; j < s; ++j) {
@@ -231,14 +201,13 @@ export namespace MeshBuilder {
                     Vec3.setMagnitude(tmpCylinderDir, tmpCylinderDir, d * f)
                     Vec3.add(tmpCylinderStart, start, tmpCylinderDir)
                     setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d * step)
-                    add(tmpCylinderMat, vertices, normals, indices)
+                    addPrimitive(tmpCylinderMat, cylinder)
                 }
             },
             addSphere: (center: Vec3, radius: number, detail: number) => {
-                const { vertices, normals, indices } = getSphere({ radius, detail })
-                setSphereMat(tmpSphereMat, center)
-                add(tmpSphereMat, vertices, normals, indices)
+                addPrimitive(setSphereMat(tmpSphereMat, center, radius), getSphere(detail))
             },
+
             addTube: (centers: ArrayLike<number>, normals: ArrayLike<number>, binormals: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) => {
                 const addedVertexCount = addTube(centers, normals, binormals, linearSegments, radialSegments, width, height, waveFactor, startCap, endCap, state)
                 for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup);
@@ -247,6 +216,7 @@ export namespace MeshBuilder {
                 const addedVertexCount = addSheet(controls, normals, binormals, linearSegments, width, height, arrowHeight, startCap, endCap, state)
                 for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup);
             },
+
             setGroup: (group: number) => {
                 currentGroup = group
             },

@@ -15,13 +15,7 @@ export function sphereVertexCount(detail: number) {
     return 10 * Math.pow(Math.pow(2, detail), 2) + 2
 }
 
-export const DefaultSphereProps = {
-    radius: 1,
-    detail: 0
-}
-export type SphereProps = Partial<typeof DefaultSphereProps>
-
 /** Create sphere by subdividing an icosahedron */
-export function Sphere(props?: SphereProps): Primitive {
-    return Polyhedron(vertices, indices, { ...DefaultSphereProps, ...props })
+export function Sphere(detail: number): Primitive {
+    return Polyhedron(vertices, indices, { detail, radius: 1 })
 }
