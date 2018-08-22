@@ -77,7 +77,7 @@ interface FrameData {
 }
 
 // get field from given or linked category
-function getField ( category: string, field: string, d: Data.CifFrame, ctx: FrameData): Data.CifField|undefined {
+function getField (category: string, field: string, d: Data.CifFrame, ctx: FrameData): Data.CifField|undefined {
     const { categories, links } = ctx
 
     const cat = d.categories[category]
@@ -130,6 +130,7 @@ function getSubCategory (d: Data.CifFrame, ctx: FrameData): string|undefined {
 function getDescription (d: Data.CifFrame, ctx: FrameData): string|undefined {
     const value = getField('item_description', 'description', d, ctx)
     if (value) {
+        // trim (after newlines) and remove references to square brackets
         return value.str(0).trim()
             .replace(/(\r\n|\r|\n)([ \t]+)/g, '\n')
             .replace(/(\[[1-3]\])+ element/, 'elements')
@@ -195,6 +196,40 @@ export function generateSchema (frames: CifFrame[]) {
     const links: FrameLinks = {}
     const ctx = { categories, links }
 
+    // get category metadata
+    frames.forEach(d => {
+        if (d.header[0] === '_') return
+        const categoryKeyNames = new Set<string>()
+        const categoryKey = d.categories['category_key']
+        if (categoryKey) {
+            const categoryKey_names = categoryKey.getField('name')
+            if (categoryKey_names) {
+                for (let i = 0, il = categoryKey_names.rowCount; i < il; ++i) {
+                    categoryKeyNames.add(categoryKey_names.str(i))
+                }
+            }
+        }
+        let description = ''
+        const category = d.categories['category']
+        if (category) {
+            const category_description = category.getField('description')
+            if (category_description) {
+                description = category_description.str(0).trim()
+                    .replace(/(\r\n|\r|\n)([ \t]+)/g, '\n') // remove padding after newlines
+            } else {
+                console.log(`no description given for category '${category}'`)
+            }
+        }
+        if (categoryKeyNames.size === 0) {
+            console.log(`no key given for category '${category}'`)
+        }
+        schema[d.header] = { description, key: categoryKeyNames, columns: {} }
+        // console.log('++++++++++++++++++++++++++++++++++++++++++')
+        // console.log('name', d.header)
+        // console.log('desc', description)
+        // console.log('key', categoryKeyNames)
+    })
+
     // build list of links between categories
     frames.forEach(d => {
         if (d.header[0] !== '_') return
@@ -216,6 +251,7 @@ export function generateSchema (frames: CifFrame[]) {
         }
     })
 
+    // get field data
     Object.keys(categories).forEach(fullName => {
         const d = categories[fullName]
         if (!d) {
@@ -226,10 +262,15 @@ export function generateSchema (frames: CifFrame[]) {
         const itemName = d.header.substring(d.header.indexOf('.') + 1)
         let fields: { [k: string]: Column }
         if (categoryName in schema) {
-            fields = schema[categoryName]
+            fields = schema[categoryName].columns
         } else {
+            console.log(`category '${categoryName}' has no metadata`)
             fields = {}
-            schema[categoryName] = fields
+            schema[categoryName] = {
+                description: '',
+                key: new Set(),
+                columns: fields
+            }
         }
 
         const description = getDescription(d, ctx) || ''
