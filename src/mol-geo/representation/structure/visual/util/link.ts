@@ -92,8 +92,8 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
         const f = flags(edgeIndex)
         meshBuilder.setGroup(edgeIndex)
 
-        if (LinkType.is(f, LinkType.Flag.MetallicCoordination)) {
-            // show metall coordinations with dashed cylinders
+        if (LinkType.is(f, LinkType.Flag.MetallicCoordination) || LinkType.is(f, LinkType.Flag.Hydrogen)) {
+            // show metall coordinations and hydrogen bonds with dashed cylinders
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
             addFixedCountDashedCylinder(meshBuilder, va, vb, 0.5, 7, cylinderProps)
         } else if (o === 2 || o === 3) {
