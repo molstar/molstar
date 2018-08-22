@@ -11,16 +11,15 @@ import { Database, Column } from 'mol-data/db'
 import Schema = Column.Schema
 
 const str = Schema.str;
-const int = Schema.int;
 const float = Schema.float;
-// const coord = Schema.coord;
-
 const Aliased = Schema.Aliased;
-// const Matrix = Schema.Matrix;
-// const Vector = Schema.Vector;
-// const List = Schema.List;
+const int = Schema.int;
 
 export const BIRD_Schema = {
+    /**
+     * Data items in the PDBX_REFERENCE_MOLECULE category record
+     * reference information about small polymer molecules.
+     */
     pdbx_reference_molecule: {
         /**
          * The value of _pdbx_reference_molecule.prd_id is the unique identifier
@@ -108,6 +107,10 @@ export const BIRD_Schema = {
          */
         replaced_by: str,
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_LIST category record
+     * the list of entities within each reference molecule.
+     */
     pdbx_reference_entity_list: {
         /**
          * The value of _pdbx_reference_entity_list.prd_id is a reference
@@ -132,6 +135,10 @@ export const BIRD_Schema = {
          */
         component_id: int,
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_NONPOLY category record
+     * the list of entities within each reference molecule.
+     */
     pdbx_reference_entity_nonpoly: {
         /**
          * The value of _pdbx_reference_entity_nonpoly.prd_id is a reference
@@ -153,6 +160,10 @@ export const BIRD_Schema = {
          */
         chem_comp_id: str,
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_LINK category give details about
+     * the linkages between entities within reference molecules.
+     */
     pdbx_reference_entity_link: {
         /**
          * The value of _pdbx_reference_entity_link.link_id uniquely identifies
@@ -248,6 +259,11 @@ export const BIRD_Schema = {
          */
         link_class: Aliased<'PP' | 'PN' | 'NP' | 'NN'>(str),
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_POLY_LINK category give details about
+     * polymer linkages including both standard and non-standard linkages between
+     * polymer componnents.
+     */
     pdbx_reference_entity_poly_link: {
         /**
          * The value of _pdbx_reference_entity_poly_link.link_id uniquely identifies
@@ -317,6 +333,11 @@ export const BIRD_Schema = {
          */
         value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad' | 'arom' | 'poly' | 'delo' | 'pi'>(str),
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_POLY category record details about
+     * the polymer, such as the type of the polymer, the number of
+     * monomers and whether it has nonstandard features.
+     */
     pdbx_reference_entity_poly: {
         /**
          * The value of _pdbx_reference_entity_poly.prd_id is a reference
@@ -341,6 +362,10 @@ export const BIRD_Schema = {
          */
         db_name: str,
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_POLY_SEQ category specify the sequence
+     * of monomers in a polymer.
+     */
     pdbx_reference_entity_poly_seq: {
         /**
          * The value of _pdbx_reference_entity_poly_seq.prd_id is a reference
@@ -377,6 +402,9 @@ export const BIRD_Schema = {
          */
         hetero: Aliased<'Y' | 'N'>(str),
     },
+    /**
+     * Additional features associated with the reference entity.
+     */
     pdbx_reference_entity_sequence: {
         /**
          * The value of _pdbx_reference_entity_sequence.prd_id is a reference
@@ -401,6 +429,10 @@ export const BIRD_Schema = {
          */
         one_letter_codes: str,
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_SRC_NAT category record
+     * details of the source from which the entity was obtained.
+     */
     pdbx_reference_entity_src_nat: {
         /**
          * The value of _pdbx_reference_entity_src_nat.prd_id is a reference
@@ -434,6 +466,10 @@ export const BIRD_Schema = {
          */
         db_name: str,
     },
+    /**
+     * Data items in the PDBX_PRD_AUDIT category records
+     * the status and tracking information for this molecule.
+     */
     pdbx_prd_audit: {
         /**
          * This data item is a pointer to _pdbx_reference_molecule.prd_id in the

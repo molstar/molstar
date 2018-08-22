@@ -11,16 +11,22 @@ import { Database, Column } from 'mol-data/db'
 import Schema = Column.Schema
 
 const str = Schema.str;
-const int = Schema.int;
 const float = Schema.float;
+const List = Schema.List;
+const Aliased = Schema.Aliased;
+const int = Schema.int;
 const coord = Schema.coord;
 
-const Aliased = Schema.Aliased;
-// const Matrix = Schema.Matrix;
-// const Vector = Schema.Vector;
-const List = Schema.List;
-
 export const CCD_Schema = {
+    /**
+     * Data items in the CHEM_COMP category give details about each
+     * of the chemical components from which the relevant chemical
+     * structures can be constructed, such as name, mass or charge.
+     *
+     * The related categories CHEM_COMP_ATOM, CHEM_COMP_BOND,
+     * CHEM_COMP_ANGLE etc. describe the detailed geometry of these
+     * chemical components.
+     */
     chem_comp: {
         /**
          * The formula for the chemical component. Formulae are written
@@ -167,6 +173,14 @@ export const CCD_Schema = {
          */
         pdbx_processing_site: Aliased<'PDBE' | 'EBI' | 'PDBJ' | 'RCSB'>(str),
     },
+    /**
+     * Data items in the CHEM_COMP_ATOM category record details about
+     * the atoms in a chemical component. Specifying the atomic
+     * coordinates for the components in this category is an
+     * alternative to specifying the structure of the component
+     * via bonds, angles, planes etc. in the appropriate
+     * CHEM_COMP subcategories.
+     */
     chem_comp_atom: {
         /**
          * An alternative identifier for the atom. This data item would be
@@ -271,6 +285,12 @@ export const CCD_Schema = {
          */
         pdbx_leaving_atom_flag: Aliased<'Y' | 'N'>(str),
     },
+    /**
+     * Data items in the CHEM_COMP_BOND category record details about
+     * the bonds between atoms in a chemical component. Target values
+     * may be specified as bond orders, as a distance between the two
+     * atoms, or both.
+     */
     chem_comp_bond: {
         /**
          * The ID of the first of the two atoms that define the bond.
@@ -310,6 +330,10 @@ export const CCD_Schema = {
          */
         pdbx_aromatic_flag: Aliased<'Y' | 'N'>(str),
     },
+    /**
+     * Data items in the CHEM_COMP_DESCRIPTOR category provide
+     * string descriptors of component chemical structure.
+     */
     pdbx_chem_comp_descriptor: {
         /**
          * This data item is a pointer to _chem_comp.id in the CHEM_COMP
@@ -336,6 +360,10 @@ export const CCD_Schema = {
          */
         program_version: str,
     },
+    /**
+     * Data items in the CHEM_COMP_IDENTIFIER category provide
+     * identifiers for chemical components.
+     */
     pdbx_chem_comp_identifier: {
         /**
          * This data item is a pointer to _chem_comp.id in the CHEM_COMP
