@@ -109,7 +109,7 @@ export class Stage {
         // this.loadPdbid('2zex') // contains carbohydrate polymer
         // this.loadPdbid('3sgj') // contains carbohydrate polymer
         // this.loadPdbid('3ina') // contains GlcN and IdoA
-        this.loadPdbid('1umz') // contains Xyl (Xyloglucan)
+        // this.loadPdbid('1umz') // contains Xyl (Xyloglucan)
         // this.loadPdbid('1mfb') // contains Abe
         // this.loadPdbid('2gdu') // contains sucrose
         // this.loadPdbid('2fnc') // contains maltotriose
@@ -121,8 +121,9 @@ export class Stage {
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)
         // this.loadPdbid('5u0q') // mixed dna/rna in same polymer
-        // this.loadPdbid('1xj9') // peptide nucleic acid
-        // this.loadPdbid('1xj9') // temp
+        // this.loadPdbid('1xj9') // PNA (peptide nucleic acid)
+        this.loadPdbid('5eme') // PNA (peptide nucleic acid) and RNA
+        // this.loadPdbid('5eme') // temp
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok

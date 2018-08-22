@@ -11,7 +11,7 @@ import { markElement, getElementLoci, StructureElementIterator } from './util/el
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
 import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment } from './util/polymer';
-import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
+import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { OrderedSet } from 'mol-data/int';
@@ -47,10 +47,10 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: Po
         const v = polymerTraceIt.move()
         builder.setGroup(OrderedSet.findPredecessorIndex(unit.elements, v.center.element))
 
-        const isNucleic = v.moleculeType === MoleculeType.DNA || v.moleculeType === MoleculeType.RNA
+        const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
         const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
-        const tension = (isNucleic || isSheet) ? 0.5 : 0.9
+        const tension = (isNucleicType || isSheet) ? 0.5 : 0.9
 
         interpolateCurveSegment(state, v, tension)
 
@@ -64,7 +64,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: Po
             let height: number
             if (isHelix) {
                 height = width * aspectRatio
-            } else if (isNucleic) {
+            } else if (isNucleicType) {
                 height = width * aspectRatio;
                 [width, height] = [height, width]
             } else {

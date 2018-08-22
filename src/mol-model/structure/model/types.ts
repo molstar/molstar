@@ -50,6 +50,8 @@ export const enum MoleculeType {
     RNA,
     /** DNA, e.g. component type included in `DNAComponentTypeNames` */
     DNA,
+    /** PNA, peptide nucleic acid, comp id included in `PeptideBaseNames` */
+    PNA,
     /** sacharide, e.g. component type included in `SaccharideComponentTypeNames` */
     saccharide
 }
@@ -77,6 +79,12 @@ export const MoleculeTypeAtomRoleId: { [k: number]: { [k in AtomRole]: string } 
         direction: 'C1\'', // TODO 'C1*'
         backboneStart: 'P',
         backboneEnd: 'O3\'' // TODO 'O3*'
+    },
+    [MoleculeType.PNA]: {
+        trace: 'N4\'', // TODO 'N4*'
+        direction: 'C7\'', // TODO 'C7*'
+        backboneStart: 'N1\'', // TODO 'N1*'
+        backboneEnd: 'C1\'' // TODO 'C1*'
     }
 }
 
@@ -153,9 +161,10 @@ export const ExtraSaccharideNames = [
 
 export const RnaBaseNames = [ 'A', 'C', 'T', 'G', 'I', 'U' ]
 export const DnaBaseNames = [ 'DA', 'DC', 'DT', 'DG', 'DI', 'DU' ]
-export const PurinBaseNames = [ 'A', 'G', 'DA', 'DG', 'DI' ]
-export const PyrimidineBaseNames = [ 'C', 'T', 'U', 'DC', 'DT', 'DU' ]
-export const BaseNames = RnaBaseNames.concat(DnaBaseNames)
+export const PeptideBaseNames = [ 'APN', 'CPN', 'TPN', 'GPN' ]
+export const PurinBaseNames = [ 'A', 'G', 'DA', 'DG', 'DI', 'APN', 'GPN' ]
+export const PyrimidineBaseNames = [ 'C', 'T', 'U', 'DC', 'DT', 'DU', 'CPN', 'TPN' ]
+export const BaseNames = RnaBaseNames.concat(DnaBaseNames, PeptideBaseNames)
 
 export const isPurinBase = (compId: string) => PurinBaseNames.includes(compId.toUpperCase())
 export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.includes(compId.toUpperCase())
@@ -164,7 +173,9 @@ export const isPyrimidineBase = (compId: string) => PyrimidineBaseNames.includes
 export function getMoleculeType(compType: string, compId: string) {
     compType = compType.toUpperCase()
     compId = compId.toUpperCase()
-    if (ProteinComponentTypeNames.includes(compType)) {
+    if (PeptideBaseNames.includes(compId)) {
+        return MoleculeType.PNA
+    } else if (ProteinComponentTypeNames.includes(compType)) {
         return MoleculeType.protein
     } else if (RNAComponentTypeNames.includes(compType)) {
         return MoleculeType.RNA
@@ -182,11 +193,11 @@ export function getMoleculeType(compType: string, compId: string) {
 }
 
 export function isPolymer(moleculeType: MoleculeType) {
-    return moleculeType === MoleculeType.protein || moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA
+    return moleculeType === MoleculeType.protein || moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA || moleculeType === MoleculeType.PNA
 }
 
 export function isNucleic(moleculeType: MoleculeType) {
-    return moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA
+    return moleculeType === MoleculeType.DNA || moleculeType === MoleculeType.RNA || moleculeType === MoleculeType.PNA
 }
 
 /**
@@ -484,7 +495,7 @@ export namespace LinkType {
         Covalent             = 0x1,
         MetallicCoordination = 0x2,
         Hydrogen             = 0x4,
-        Ion                  = 0x8,
+        Ionic                = 0x8,
         Sulfide              = 0x10,
         Aromatic             = 0x20,
         Computed             = 0x40
