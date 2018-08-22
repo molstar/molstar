@@ -7,7 +7,7 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
-import { MeshBuilderState } from '../mesh/mesh-builder';
+import { MeshBuilderState } from './mesh-builder';
 
 const tA = Vec3.zero()
 const tB = Vec3.zero()
