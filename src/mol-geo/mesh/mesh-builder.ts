@@ -224,14 +224,14 @@ export namespace MeshBuilder {
                 const vb = ChunkedArray.compact(vertices, true) as Float32Array
                 const ib = ChunkedArray.compact(indices, true) as Uint32Array
                 const nb = ChunkedArray.compact(normals, true) as Float32Array
-                const idb = ChunkedArray.compact(groups, true) as Float32Array
+                const gb = ChunkedArray.compact(groups, true) as Float32Array
                 return {
                     vertexCount: vertices.elementCount,
                     triangleCount: indices.elementCount,
                     vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
                     indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
                     normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
-                    groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, idb) : ValueCell.create(idb),
+                    groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, gb) : ValueCell.create(gb),
                     normalsComputed: true,
                 }
             }
