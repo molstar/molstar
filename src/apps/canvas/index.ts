@@ -115,26 +115,26 @@ async function init() {
 
     // create a mesh
     const meshBuilder = MeshBuilder.create(256, 128)
-    const groupColors: Color[] = []
-    const groupLabels: string[] = []
+    const colors: Color[] = []
+    const labels: string[] = []
     // red sphere
     meshBuilder.setGroup(0)
-    groupColors[0] = Color(0xFF2233)
-    groupLabels[0] = 'red sphere'
+    colors[0] = Color(0xFF2233)
+    labels[0] = 'red sphere'
     meshBuilder.addSphere(Vec3.create(0, 0, 0), 4, 2)
     // green cube
     meshBuilder.setGroup(1)
-    groupColors[1] = Color(0x2233FF)
-    groupLabels[1] = 'blue cube'
+    colors[1] = Color(0x2233FF)
+    labels[1] = 'blue cube'
     const t = Mat4.identity()
-    Mat4.setTranslation(t, Vec3.create(10, 0, 0))
+    Mat4.fromTranslation(t, Vec3.create(10, 0, 0))
     Mat4.scale(t, t, Vec3.create(3, 3, 3))
     meshBuilder.addBox(t)
     const mesh = meshBuilder.getMesh()
     // const mesh = getObjFromUrl('mesh.obj')
 
     // create shape from mesh
-    const shape = Shape.create(mesh, 'myShape', group => groupColors[group], group => groupLabels[group])
+    const shape = Shape.create('myShape', mesh, colors, labels)
 
     // add representation from shape
     const customRepr = ShapeRepresentation()

@@ -6,20 +6,37 @@
 
 import { Mesh } from 'mol-geo/mesh/mesh';
 import { Color } from 'mol-util/color';
-import { UUID } from 'mol-util';
+import { UUID, ValueCell } from 'mol-util';
 import { OrderedSet } from 'mol-data/int';
+import { arrayMax } from 'mol-util/array';
 
 export interface Shape {
     readonly id: UUID
     readonly name: string
     readonly mesh: Mesh
-    getColor(group: number): Color
-    getLabel(group: number): string
+    readonly colors: ValueCell<Color[]>
+    readonly labels: ValueCell<string[]>
+    readonly groupCount: number
 }
 
 export namespace Shape {
-    export function create(mesh: Mesh, name: string, getColor: (group: number) => Color, getLabel: (group: number) => string): Shape {
-        return { id: UUID.create(), name, mesh, getColor, getLabel }
+    export function create(name: string, mesh: Mesh, colors: Color[], labels: string[]): Shape {
+        let currentGroupBufferVersion = -1
+        let currentGroupCount = -1
+
+        return {
+            id: UUID.create(),
+            name,
+            mesh,
+            get groupCount() {
+                if (mesh.groupBuffer.ref.version !== currentGroupBufferVersion) {
+                    currentGroupCount = arrayMax(mesh.groupBuffer.ref.value) + 1
+                }
+                return currentGroupCount
+            },
+            colors: ValueCell.create(colors),
+            labels: ValueCell.create(labels),
+        }
     }
 
     export interface Location {

@@ -91,7 +91,7 @@ export class Stage {
         // this.loadPdbid('3pqr') // inter unit bonds, two polymer chains, ligands, water, carbohydrates linked to protein
         // this.loadPdbid('4v5a') // ribosome
         // this.loadPdbid('3j3q') // ...
-        // this.loadPdbid('2np2') // dna
+        this.loadPdbid('2np2') // dna
         // this.loadPdbid('1d66') // dna
         // this.loadPdbid('9dna') // A form dna
         // this.loadPdbid('1bna') // B form dna
@@ -121,9 +121,10 @@ export class Stage {
         // this.loadMmcifUrl(`../../examples/1cbs_updated.cif`)
         // this.loadMmcifUrl(`../../examples/1crn.cif`)
         // this.loadPdbid('5u0q') // mixed dna/rna in same polymer
-        // this.loadPdbid('5u0q') // temp
+        // this.loadPdbid('1xj9') // peptide nucleic acid
+        // this.loadPdbid('1xj9') // temp
 
-        this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
+        // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000003.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000004.cif`) // TODO issue with cross-link extraction, not shown

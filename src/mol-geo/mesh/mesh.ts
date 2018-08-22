@@ -17,13 +17,13 @@ export interface Mesh {
     triangleCount: number,
 
     /** Vertex buffer as array of xyz values wrapped in a value cell */
-    vertexBuffer: ValueCell<Float32Array>,
+    readonly vertexBuffer: ValueCell<Float32Array>,
     /** Index buffer as array of vertex index triplets wrapped in a value cell */
-    indexBuffer: ValueCell<Uint32Array>,
+    readonly indexBuffer: ValueCell<Uint32Array>,
     /** Normal buffer as array of xyz values for each vertex wrapped in a value cell */
-    normalBuffer: ValueCell<Float32Array>,
+    readonly normalBuffer: ValueCell<Float32Array>,
     /** Group buffer as array of group ids for each vertex wrapped in a value cell */
-    groupBuffer: ValueCell<Float32Array>,
+    readonly groupBuffer: ValueCell<Float32Array>,
 
     /** Flag indicating if normals are computed for the current set of vertices */
     normalsComputed: boolean,
@@ -82,7 +82,7 @@ export namespace Mesh {
 
             // console.log([normals[i], normals[i + 1], normals[i + 2]], [v[i], v[i + 1], v[i + 2]])
         }
-        surface.normalBuffer = ValueCell.update(surface.normalBuffer, normals);
+        ValueCell.update(surface.normalBuffer, normals);
         surface.normalsComputed = true;
     }
 

@@ -17,7 +17,6 @@ import { ValueCell } from 'mol-util';
 import { ColorThemeProps } from 'mol-view/theme/color';
 import { Shape } from 'mol-model/shape';
 import { LocationIterator } from '../../util/location-iterator';
-import { arrayMax } from 'mol-util/array';
 import { createColors } from '../structure/visual/util/common';
 import { OrderedSet, Interval } from 'mol-data/int';
 
@@ -69,7 +68,8 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
 
     function update(props: Partial<P>) {
         return Task.create('ShapeRepresentation.update', async ctx => {
-            // TODO
+            // TODO handle general update
+            // TODO check shape.colors.ref.version
         })
     }
 
@@ -116,7 +116,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
 
 export namespace ShapeGroupIterator {
     export function fromShape(shape: Shape): LocationIterator {
-        const groupCount = arrayMax(shape.mesh.groupBuffer.ref.value) + 1
+        const { groupCount } = shape
         const instanceCount = 1
         const location = Shape.Location(shape)
         const getLocation = (groupIndex: number) => {

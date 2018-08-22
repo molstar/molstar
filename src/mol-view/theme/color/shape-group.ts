@@ -16,7 +16,7 @@ export function ShapeGroupColorTheme(props: ColorThemeProps): ColorTheme {
         kind: 'group',
         color: (location: Location): Color => {
             if (Shape.isLocation(location)) {
-                return location.shape.getColor(location.group)
+                return location.shape.colors.ref.value[location.group]
             }
             return DefaultColor
         }
