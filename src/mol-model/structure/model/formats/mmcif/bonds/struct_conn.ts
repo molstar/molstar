@@ -11,7 +11,7 @@ import { LinkType } from '../../../types'
 import { findEntityIdByAsymId, findAtomIndexByLabelName } from '../util'
 import { Column } from 'mol-data/db'
 import { ModelPropertyDescriptor } from '../../../properties/custom';
-import { mmCIF_Database } from 'mol-io/reader/cif/schema/mmcif';
+import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
 import { ElementIndex } from '../../../indexing';
@@ -137,17 +137,7 @@ export namespace StructConn {
         partners: { residueIndex: number, atomIndex: ElementIndex, symmetry: string }[]
     }
 
-    type StructConnType =
-        | 'covale'
-        | 'covale_base'
-        | 'covale_phosphate'
-        | 'covale_sugar'
-        | 'disulf'
-        | 'hydrog'
-        | 'metalc'
-        | 'mismat'
-        | 'modres'
-        | 'saltbr'
+    type StructConnType = typeof mmCIF_Schema.struct_conn.conn_type_id.T
 
     export function attachFromMmCif(model: Model): boolean {
         if (model.customProperties.has(Descriptor)) return true;
@@ -248,7 +238,7 @@ export namespace StructConn {
                 case 'disulf': flags = LinkType.Flag.Covalent | LinkType.Flag.Sulfide; break;
                 case 'hydrog': flags = LinkType.Flag.Hydrogen; break;
                 case 'metalc': flags = LinkType.Flag.MetallicCoordination; break;
-                case 'saltbr': flags = LinkType.Flag.Ion; break;
+                case 'saltbr': flags = LinkType.Flag.Ionic; break;
             }
 
             entries.push({ rowIndex: i, flags, order, distance: pdbx_dist_value.value(i), partners });
