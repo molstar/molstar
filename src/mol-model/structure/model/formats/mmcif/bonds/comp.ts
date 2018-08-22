@@ -47,8 +47,17 @@ export namespace ComponentBond {
         if (model.sourceData.kind !== 'mmCIF') return false;
         const { chem_comp_bond } = model.sourceData.data;
         if (chem_comp_bond._rowCount === 0) return false;
+
         model.customProperties.add(Descriptor);
         model._staticPropertyData.__ComponentBondData__ = chem_comp_bond;
+        return true;
+    }
+
+    export function attachFromExternalData(model: Model, bonds: ComponentBond, force = false) {
+        if (!force && model.customProperties.has(Descriptor)) return true;
+        if (model._staticPropertyData.__ComponentBondData__) delete model._staticPropertyData.__ComponentBondData__;
+        model.customProperties.add(Descriptor);
+        model._staticPropertyData[PropName] = bonds;
         return true;
     }
 
@@ -62,7 +71,7 @@ export namespace ComponentBond {
         }
     }
 
-    export class Entry implements Entry {
+    export class Entry {
         map: Map<string, Map<string, { order: number, flags: number }>> = new Map();
 
         add(a: string, b: string, order: number, flags: number, swap = true) {
@@ -85,24 +94,12 @@ export namespace ComponentBond {
         }
     }
 
-    function getChemCompBond(model: Model) {
-        return model._staticPropertyData.__ComponentBondData__ as mmCIF_Database['chem_comp_bond'];
-    }
-
-    export const PropName = '__ComponentBond__';
-    export function get(model: Model): ComponentBond | undefined {
-        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
-        if (!model.customProperties.has(Descriptor)) return void 0;
-        const chem_comp_bond = getChemCompBond(model);
+    export function parseChemCompBond(data: mmCIF_Database['chem_comp_bond']): ComponentBond {
+        const { comp_id, atom_id_1, atom_id_2, value_order, pdbx_aromatic_flag, _rowCount: rowCount } = data;
 
         const compBond = new ComponentBondImpl();
-
-        const { comp_id, atom_id_1, atom_id_2, value_order, pdbx_aromatic_flag, _rowCount: rowCount } = chem_comp_bond;
-
         let entry = compBond.addEntry(comp_id.value(0)!);
-
         for (let i = 0; i < rowCount; i++) {
-
             const id = comp_id.value(i)!;
             const nameA = atom_id_1.value(i)!;
             const nameB = atom_id_2.value(i)!;
@@ -128,8 +125,24 @@ export namespace ComponentBond {
             entry.add(nameA, nameB, ord, flags);
         }
 
-        model._staticPropertyData[PropName] = compBond;
         return compBond;
+    }
+
+    function getChemCompBond(model: Model) {
+        return model._staticPropertyData.__ComponentBondData__ as mmCIF_Database['chem_comp_bond'];
+    }
+
+    export const PropName = '__ComponentBond__';
+    export function get(model: Model): ComponentBond | undefined {
+        if (model._staticPropertyData[PropName]) return model._staticPropertyData[PropName];
+        if (!model.customProperties.has(Descriptor)) return void 0;
+
+        const chem_comp_bond = getChemCompBond(model);
+        if (!chem_comp_bond) return void 0;
+
+        const chemComp = parseChemCompBond(chem_comp_bond);
+        model._staticPropertyData[PropName] = chemComp;
+        return chemComp;
     }
 
     function getUniqueResidueNames(s: Structure) {

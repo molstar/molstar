@@ -15,6 +15,8 @@ export class CustomProperties {
     }
 
     add(desc: ModelPropertyDescriptor) {
+        if (this._set.has(desc)) return;
+
         this._list.push(desc);
         this._set.add(desc);
     }
