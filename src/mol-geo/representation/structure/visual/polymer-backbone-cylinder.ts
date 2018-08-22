@@ -16,6 +16,7 @@ import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { OrderedSet } from 'mol-data/int';
+import { addCylinder } from '../../../mesh/builder/cylinder';
 
 export interface PolymerBackboneCylinderProps {
     sizeTheme: SizeThemeProps
@@ -47,11 +48,11 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerA)
         builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerA.element))
-        builder.addCylinder(pA, pB, 0.5, cylinderProps)
+        addCylinder(builder, pA, pB, 0.5, cylinderProps)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerB)
         builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerB.element))
-        builder.addCylinder(pB, pA, 0.5, cylinderProps)
+        addCylinder(builder, pB, pA, 0.5, cylinderProps)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });

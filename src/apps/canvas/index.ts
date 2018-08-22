@@ -22,6 +22,8 @@ import { ShapeRepresentation } from 'mol-geo/representation/shape';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Shape } from 'mol-model/shape';
 import { Color } from 'mol-util/color';
+import { addSphere } from 'mol-geo/mesh/builder/sphere';
+import { Box } from 'mol-geo/primitive/box';
 
 const container = document.getElementById('container')
 if (!container) throw new Error('Can not find element with id "container".')
@@ -121,7 +123,7 @@ async function init() {
     meshBuilder.setGroup(0)
     colors[0] = Color(0xFF2233)
     labels[0] = 'red sphere'
-    meshBuilder.addSphere(Vec3.create(0, 0, 0), 4, 2)
+    addSphere(meshBuilder, Vec3.create(0, 0, 0), 4, 2)
     // green cube
     meshBuilder.setGroup(1)
     colors[1] = Color(0x2233FF)
@@ -129,7 +131,7 @@ async function init() {
     const t = Mat4.identity()
     Mat4.fromTranslation(t, Vec3.create(10, 0, 0))
     Mat4.scale(t, t, Vec3.create(3, 3, 3))
-    meshBuilder.addBox(t)
+    meshBuilder.add(t, Box())
     const mesh = meshBuilder.getMesh()
     // const mesh = getObjFromUrl('mesh.obj')
 

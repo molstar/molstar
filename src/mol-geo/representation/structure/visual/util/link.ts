@@ -14,6 +14,7 @@ import { SizeThemeProps } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../../primitive/cylinder';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
+import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../mesh/builder/cylinder';
 
 export const DefaultLinkCylinderProps = {
     ...DefaultMeshProps,
@@ -94,7 +95,7 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
         if (LinkType.is(f, LinkType.Flag.MetallicCoordination)) {
             // show metall coordinations with dashed cylinders
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
-            meshBuilder.addFixedCountDashedCylinder(va, vb, 0.5, 7, cylinderProps)
+            addFixedCountDashedCylinder(meshBuilder, va, vb, 0.5, 7, cylinderProps)
         } else if (o === 2 || o === 3) {
             // show bonds with order 2 or 3 using 2 or 3 parallel cylinders
             const multiRadius = linkRadius * (linkScale / (0.5 * o))
@@ -105,11 +106,11 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius
 
-            if (o === 3) meshBuilder.addCylinder(va, vb, 0.5, cylinderProps)
-            meshBuilder.addDoubleCylinder(va, vb, 0.5, vShift, cylinderProps)
+            if (o === 3) addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
+            addDoubleCylinder(meshBuilder, va, vb, 0.5, vShift, cylinderProps)
         } else {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
-            meshBuilder.addCylinder(va, vb, 0.5, cylinderProps)
+            addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
         }
 
         if (edgeIndex % 10000 === 0 && ctx.shouldUpdate) {

@@ -15,6 +15,8 @@ import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { OrderedSet } from 'mol-data/int';
+import { addSheet } from '../../../mesh/builder/sheet';
+import { addTube } from '../../../mesh/builder/tube';
 
 export interface PolymerTraceMeshProps {
     sizeTheme: SizeThemeProps
@@ -57,7 +59,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: Po
         if (isSheet) {
             const height = width * aspectRatio
             const arrowHeight = v.secStrucChange ? height * arrowFactor : 0
-            builder.addSheet(curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
+            addSheet(builder, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
         } else {
             let height: number
             if (isHelix) {
@@ -68,7 +70,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: Po
             } else {
                 height = width
             }
-            builder.addTube(curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
+            addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

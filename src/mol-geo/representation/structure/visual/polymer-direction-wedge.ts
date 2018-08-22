@@ -16,6 +16,7 @@ import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { OrderedSet } from 'mol-data/int';
+import { Wedge } from '../../../primitive/wedge';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -26,6 +27,8 @@ const upVec = Vec3.zero()
 const depthFactor = 4
 const widthFactor = 4
 const heightFactor = 6
+
+const wedge = Wedge()
 
 export interface PolymerDirectionWedgeProps {
     sizeTheme: SizeThemeProps
@@ -71,7 +74,7 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
             Mat4.mul(t, t, Mat4.rotY90Z180)
             Mat4.scale(t, t, Vec3.set(sVec, height, width, depth))
             Mat4.setTranslation(t, v.p2)
-            builder.addWedge(t)
+            builder.add(t, wedge)
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

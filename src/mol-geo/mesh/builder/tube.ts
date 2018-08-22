@@ -7,7 +7,7 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
-import { MeshBuilderState } from '../mesh/mesh-builder';
+import { MeshBuilder } from '../mesh-builder';
 
 const normalVector = Vec3.zero()
 const binormalVector = Vec3.zero()
@@ -18,8 +18,8 @@ const b = Vec3.zero()
 const u = Vec3.zero()
 const v = Vec3.zero()
 
-export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean, state: MeshBuilderState) {
-    const { vertices, normals, indices } = state
+export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) {
+    const { currentGroup, vertices, normals, indices, groups } = builder.state
 
     let vertexCount = vertices.elementCount
     const di = 1 / linearSegments
@@ -127,7 +127,7 @@ export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLi
 
         vertexCount = vertices.elementCount
         for (let i = 0; i < radialSegments; ++i) {
-            const t = 2 * Math.PI * i / radialSegments;
+            const t = 2 * Math.PI * i / radialSegments
 
             Vec3.copy(a, u)
             Vec3.copy(b, v)
@@ -150,5 +150,6 @@ export function addTube(controlPoints: ArrayLike<number>, normalVectors: ArrayLi
         }
     }
 
-    return (linearSegments + 1) * radialSegments + (startCap ? radialSegments + 1 : 0) + (endCap ? radialSegments + 1 : 0)
+    const addedVertexCount = (linearSegments + 1) * radialSegments + (startCap ? radialSegments + 1 : 0) + (endCap ? radialSegments + 1 : 0)
+    for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup)
 }

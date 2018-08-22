@@ -15,6 +15,7 @@ import { Interval, OrderedSet } from 'mol-data/int';
 import { PickingId } from '../../../../util/picking';
 import { SizeTheme, SizeThemeProps } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../../util/location-iterator';
+import { addSphere } from '../../../../mesh/builder/sphere';
 
 export interface ElementSphereMeshProps {
     sizeTheme: SizeThemeProps,
@@ -40,7 +41,7 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, p
         pos(elements[i], v)
 
         meshBuilder.setGroup(i)
-        meshBuilder.addSphere(v, sizeTheme.size(l), detail)
+        addSphere(meshBuilder, v, sizeTheme.size(l), detail)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });

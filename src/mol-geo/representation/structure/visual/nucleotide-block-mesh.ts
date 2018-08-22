@@ -15,6 +15,8 @@ import { Segmentation, SortedArray } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
+import { addCylinder } from '../../../mesh/builder/cylinder';
+import { Box } from '../../../primitive/box';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -28,6 +30,7 @@ const vC = Vec3.zero()
 const center = Vec3.zero()
 const t = Mat4.identity()
 const sVec = Vec3.zero()
+const box = Box()
 
 // TODO define props, should be scalable
 async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
@@ -89,8 +92,8 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props:
                     Mat4.scale(t, t, Vec3.set(sVec, width, depth, height))
                     Mat4.setTranslation(t, center)
                     builder.setGroup(SortedArray.findPredecessorIndex(elements, idx6))
-                    builder.addBox(t)
-                    builder.addCylinder(p5, p6, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
+                    builder.add(t, box)
+                    addCylinder(builder, p5, p6, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
                 }
             }
 
