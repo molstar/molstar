@@ -15,7 +15,7 @@ export const PointSchema = {
     ...BaseSchema,
     aSize: AttributeSpec('float32', 1, 0),
     uSize: UniformSpec('f'),
-    uSizeTexSize: UniformSpec('v2'),
+    uSizeTexDim: UniformSpec('v2'),
     tSize: TextureSpec('alpha', 'ubyte'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute']),
     dPointSizeAttenuation: DefineSpec('boolean'),

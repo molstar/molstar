@@ -14,13 +14,22 @@ const str = Schema.str;
 const int = Schema.int;
 const float = Schema.float;
 const coord = Schema.coord;
-
 const Aliased = Schema.Aliased;
 const Matrix = Schema.Matrix;
 const Vector = Schema.Vector;
 const List = Schema.List;
 
 export const mmCIF_Schema = {
+    /**
+     * Data items in the ATOM_SITE category record details about
+     * the atom sites in a macromolecular crystal structure, such as
+     * the positional coordinates, atomic displacement parameters,
+     * magnetic moments and directions.
+     *
+     * The data items for describing anisotropic atomic
+     * displacement factors are only used if the corresponding items
+     * are not given in the ATOM_SITE_ANISOTROP category.
+     */
     atom_site: {
         /**
          * An alternative identifier for _atom_site.label_asym_id that
@@ -204,6 +213,11 @@ export const mmCIF_Schema = {
          */
         ihm_model_id: int,
     },
+    /**
+     * Data items in the ATOM_SITES category record details about
+     * the crystallographic cell and cell transformations, which are
+     * common to all atom sites.
+     */
     atom_sites: {
         /**
          * This data item is a pointer to _entry.id in the ENTRY category.
@@ -236,6 +250,10 @@ export const mmCIF_Schema = {
          */
         fract_transf_vector: Vector(3),
     },
+    /**
+     * Data items in the CELL category record details about the
+     * crystallographic cell parameters.
+     */
     cell: {
         /**
          * Unit-cell angle alpha of the reported structure in degrees.
@@ -283,6 +301,15 @@ export const mmCIF_Schema = {
          */
         pdbx_unique_axis: str,
     },
+    /**
+     * Data items in the CHEM_COMP category give details about each
+     * of the chemical components from which the relevant chemical
+     * structures can be constructed, such as name, mass or charge.
+     *
+     * The related categories CHEM_COMP_ATOM, CHEM_COMP_BOND,
+     * CHEM_COMP_ANGLE etc. describe the detailed geometry of these
+     * chemical components.
+     */
     chem_comp: {
         /**
          * The formula for the chemical component. Formulae are written
@@ -344,6 +371,12 @@ export const mmCIF_Schema = {
          */
         pdbx_synonyms: List(';', x => x),
     },
+    /**
+     * Data items in the CHEM_COMP_BOND category record details about
+     * the bonds between atoms in a chemical component. Target values
+     * may be specified as bond orders, as a distance between the two
+     * atoms, or both.
+     */
     chem_comp_bond: {
         /**
          * The ID of the first of the two atoms that define the bond.
@@ -383,6 +416,37 @@ export const mmCIF_Schema = {
          */
         pdbx_aromatic_flag: Aliased<'Y' | 'N'>(str),
     },
+    /**
+     * Data items in the ENTITY category record details (such as
+     * chemical composition, name and source) about the molecular
+     * entities that are present in the crystallographic structure.
+     *
+     * Items in the various ENTITY subcategories provide a full
+     * chemical description of these molecular entities.
+     *
+     * Entities are of three types:  polymer, non-polymer and water.
+     * Note that the water category includes only water;  ordered
+     * solvent such as sulfate ion or acetone would be described as
+     * individual non-polymer entities.
+     *
+     * The ENTITY category is specific to macromolecular CIF
+     * applications and replaces the function of the CHEMICAL category
+     * in the CIF core.
+     *
+     * It is important to remember that the ENTITY data are not the
+     * result of the crystallographic experiment;  those results are
+     * represented by the ATOM_SITE data items. ENTITY data items
+     * describe the chemistry of the molecules under investigation
+     * and can most usefully be thought of as the ideal groups to which
+     * the structure is restrained or constrained during refinement.
+     *
+     * It is also important to remember that entities do not correspond
+     * directly to the enumeration of the contents of the asymmetric
+     * unit. Entities are described only once, even in those structures
+     * that contain multiple observations of an entity. The
+     * STRUCT_ASYM data items, which reference the entity list,
+     * describe and label the contents of the asymmetric unit.
+     */
     entity: {
         /**
          * A description of special aspects of the entity.
@@ -446,6 +510,11 @@ export const mmCIF_Schema = {
          */
         pdbx_ec: List(',', x => x),
     },
+    /**
+     * Data items in the ENTITY_POLY category record details about the
+     * polymer, such as the type of the polymer, the number of
+     * monomers and whether it has nonstandard features.
+     */
     entity_poly: {
         /**
          * This data item is a pointer to _entity.id in the ENTITY category.
@@ -511,6 +580,14 @@ export const mmCIF_Schema = {
          */
         pdbx_target_identifier: str,
     },
+    /**
+     * Data items in the ENTITY_POLY_SEQ category specify the sequence
+     * of monomers in a polymer. Allowance is made for the possibility
+     * of microheterogeneity in a sample by allowing a given sequence
+     * number to be correlated with more than one monomer ID. The
+     * corresponding ATOM_SITE entries should reflect this
+     * heterogeneity.
+     */
     entity_poly_seq: {
         /**
          * This data item is a pointer to _entity.id in the ENTITY category.
@@ -535,6 +612,12 @@ export const mmCIF_Schema = {
          */
         num: int,
     },
+    /**
+     * There is only one item in the ENTRY category, _entry.id. This
+     * data item gives a name to this entry and is indirectly a key to
+     * the categories (such as CELL, GEOM, EXPTL) that describe
+     * information pertinent to the entire data block.
+     */
     entry: {
         /**
          * The value of _entry.id identifies the data block.
@@ -544,6 +627,11 @@ export const mmCIF_Schema = {
          */
         id: str,
     },
+    /**
+     * Data items in the EXPTL category record details about the
+     * experimental work prior to the intensity measurements and
+     * details about the absorption-correction technique employed.
+     */
     exptl: {
         /**
          * This data item is a pointer to _entry.id in the ENTRY category.
@@ -554,6 +642,10 @@ export const mmCIF_Schema = {
          */
         method: Aliased<'X-RAY DIFFRACTION' | 'NEUTRON DIFFRACTION' | 'FIBER DIFFRACTION' | 'ELECTRON CRYSTALLOGRAPHY' | 'ELECTRON MICROSCOPY' | 'SOLUTION NMR' | 'SOLID-STATE NMR' | 'SOLUTION SCATTERING' | 'POWDER DIFFRACTION' | 'INFRARED SPECTROSCOPY' | 'EPR' | 'FLUORESCENCE TRANSFER' | 'THEORETICAL MODEL'>(str),
     },
+    /**
+     * Data items in the STRUCT category record details about the
+     * description of the crystallographic structure.
+     */
     struct: {
         /**
          * This data item is a pointer to _entry.id in the ENTRY category.
@@ -566,6 +658,10 @@ export const mmCIF_Schema = {
          */
         title: str,
     },
+    /**
+     * Data items in the STRUCT_ASYM category record details about the
+     * structural elements in the asymmetric unit.
+     */
     struct_asym: {
         /**
          * A description of special aspects of this portion of the contents
@@ -594,6 +690,13 @@ export const mmCIF_Schema = {
          */
         pdbx_blank_PDB_chainid_flag: Aliased<'Y' | 'N'>(str),
     },
+    /**
+     * Data items in the STRUCT_CONF category record details about
+     * the backbone conformation of a segment of polymer.
+     *
+     * Data items in the STRUCT_CONF_TYPE category define the
+     * criteria used to identify the backbone conformations.
+     */
     struct_conf: {
         /**
          * A component of the identifier for the residue at which the
@@ -734,6 +837,14 @@ export const mmCIF_Schema = {
          */
         pdbx_PDB_helix_id: str,
     },
+    /**
+     * Data items in the STRUCT_CONN category record details about
+     * the connections between portions of the structure. These can be
+     * hydrogen bonds, salt bridges, disulfide bridges and so on.
+     *
+     * The STRUCT_CONN_TYPE records define the criteria used to
+     * identify these connections.
+     */
     struct_conn: {
         /**
          * This data item is a pointer to _struct_conn_type.id in the
@@ -961,6 +1072,11 @@ export const mmCIF_Schema = {
          */
         pdbx_value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad'>(str),
     },
+    /**
+     * Data items in the STRUCT_CONN_TYPE category record details
+     * about the criteria used to identify interactions between
+     * portions of the structure.
+     */
     struct_conn_type: {
         /**
          * The criteria used to define the interaction.
@@ -976,6 +1092,10 @@ export const mmCIF_Schema = {
          */
         reference: str,
     },
+    /**
+     * Data items in the STRUCT_KEYWORDS category specify keywords
+     * that describe the chemical structure in this entry.
+     */
     struct_keywords: {
         /**
          * This data item is a pointer to _entry.id in the ENTRY category.
@@ -990,6 +1110,14 @@ export const mmCIF_Schema = {
          */
         pdbx_keywords: str,
     },
+    /**
+     * Data items in the STRUCT_NCS_OPER category describe the
+     * noncrystallographic symmetry operations.
+     *
+     * Each operator is specified as a matrix and a subsequent
+     * translation vector. Operators need not represent proper
+     * rotations.
+     */
     struct_ncs_oper: {
         /**
          * A code to indicate whether this operator describes a
@@ -1024,6 +1152,13 @@ export const mmCIF_Schema = {
          */
         vector: Vector(3),
     },
+    /**
+     * Data items in the STRUCT_SHEET_RANGE category record details
+     * about the residue ranges that form a beta-sheet. Residues are
+     * included in a range if they made beta-sheet-type hydrogen-bonding
+     * interactions with at least one adjacent strand and if there are
+     * at least two residues in the range.
+     */
     struct_sheet_range: {
         /**
          * A component of the identifier for the residue at which the
@@ -1145,6 +1280,12 @@ export const mmCIF_Schema = {
          */
         pdbx_end_PDB_ins_code: str,
     },
+    /**
+     * Data items in the STRUCT_SITE category record details about
+     * portions of the structure that contribute to structurally
+     * relevant sites (e.g. active sites, substrate-binding subsites,
+     * metal-coordination sites).
+     */
     struct_site: {
         /**
          * A description of special aspects of the site.
@@ -1192,6 +1333,11 @@ export const mmCIF_Schema = {
          */
         pdbx_auth_ins_code: str,
     },
+    /**
+     * Data items in the STRUCT_SITE_GEN category record details about
+     * the generation of portions of the structure that contribute to
+     * structurally relevant sites.
+     */
     struct_site_gen: {
         /**
          * A description of special aspects of the symmetry generation of
@@ -1282,6 +1428,10 @@ export const mmCIF_Schema = {
          */
         pdbx_num_res: int,
     },
+    /**
+     * Data items in the SYMMETRY category record details about the
+     * space-group symmetry.
+     */
     symmetry: {
         /**
          * This data item is a pointer to _entry.id in the ENTRY category.
@@ -1320,30 +1470,11 @@ export const mmCIF_Schema = {
          */
         'space_group_name_H-M': str,
     },
-    pdbx_struct_assembly: {
-        /**
-         * Provides details of the method used to determine or
-         * compute the assembly.
-         */
-        method_details: str,
-        /**
-         * Provides the details of the oligomeric state of the assembly.
-         */
-        oligomeric_details: str,
-        /**
-         * The number of polymer molecules in the assembly.
-         */
-        oligomeric_count: int,
-        /**
-         * A description of special aspects of the macromolecular assembly.
-         */
-        details: str,
-        /**
-         * The value of _pdbx_struct_assembly.id must uniquely identify a record in
-         * the PDBX_STRUCT_ASSEMBLY list.
-         */
-        id: str,
-    },
+    /**
+     * Data items in the PDBX_STRUCT_MOD_RESIDUE category list the
+     * modified polymer components in the entry and provide some
+     * details describing the nature of the modification.
+     */
     pdbx_struct_mod_residue: {
         /**
          * The value of _pdbx_struct_mod_residue.id must uniquely identify
@@ -1410,6 +1541,11 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Data items in the PDBX_STRUCT_OPER_LIST category describe
+     * Cartesian rotation and translation operations required to
+     * generate or transform the coordinates deposited with this entry.
+     */
     pdbx_struct_oper_list: {
         /**
          * This identifier code must uniquely identify a
@@ -1439,6 +1575,40 @@ export const mmCIF_Schema = {
          */
         vector: Vector(3),
     },
+    /**
+     * Data items in the PDBX_STRUCT_ASSEMBLY category record details about
+     * the structural elements that form macromolecular assemblies.
+     */
+    pdbx_struct_assembly: {
+        /**
+         * Provides details of the method used to determine or
+         * compute the assembly.
+         */
+        method_details: str,
+        /**
+         * Provides the details of the oligomeric state of the assembly.
+         */
+        oligomeric_details: str,
+        /**
+         * The number of polymer molecules in the assembly.
+         */
+        oligomeric_count: int,
+        /**
+         * A description of special aspects of the macromolecular assembly.
+         */
+        details: str,
+        /**
+         * The value of _pdbx_struct_assembly.id must uniquely identify a record in
+         * the PDBX_STRUCT_ASSEMBLY list.
+         */
+        id: str,
+    },
+    /**
+     * Data items in the PDBX_STRUCT_ASSEMBLY_GEN category record details about
+     * the generation of each macromolecular assemblies. The PDBX_STRUCT_ASSEMBLY_GEN
+     * data items provide the specifications of the components that
+     * constitute that assembly in terms of cartesian transformations.
+     */
     pdbx_struct_assembly_gen: {
         /**
          * This data item is a pointer to _struct_asym.id in
@@ -1468,6 +1638,10 @@ export const mmCIF_Schema = {
          */
         oper_expression: str,
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_LIST category record
+     * the list of entities within each reference molecule.
+     */
     pdbx_reference_entity_list: {
         /**
          * The value of _pdbx_reference_entity_list.prd_id is a reference
@@ -1492,6 +1666,10 @@ export const mmCIF_Schema = {
          */
         component_id: int,
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_LINK category give details about
+     * the linkages between entities within reference molecules.
+     */
     pdbx_reference_entity_link: {
         /**
          * The value of _pdbx_reference_entity_link.link_id uniquely identifies
@@ -1587,6 +1765,11 @@ export const mmCIF_Schema = {
          */
         link_class: Aliased<'PP' | 'PN' | 'NP' | 'NN'>(str),
     },
+    /**
+     * Data items in the PDBX_REFERENCE_ENTITY_POLY_LINK category give details about
+     * polymer linkages including both standard and non-standard linkages between
+     * polymer componnents.
+     */
     pdbx_reference_entity_poly_link: {
         /**
          * The value of _pdbx_reference_entity_poly_link.link_id uniquely identifies
@@ -1656,6 +1839,10 @@ export const mmCIF_Schema = {
          */
         value_order: Aliased<'sing' | 'doub' | 'trip' | 'quad' | 'arom' | 'poly' | 'delo' | 'pi'>(str),
     },
+    /**
+     * Data items in the PDBX_MOLECULE category identify reference molecules
+     * within a PDB entry.
+     */
     pdbx_molecule: {
         /**
          * The value of _pdbx_molecule.prd_id is the PDB accession code for this
@@ -1672,6 +1859,10 @@ export const mmCIF_Schema = {
          */
         asym_id: str,
     },
+    /**
+     * Data items in the PDBX_MOLECULE_FEATURES category record features of molecules
+     * within a PDB entry.
+     */
     pdbx_molecule_features: {
         /**
          * The value of _pdbx_molecule_features.prd_id is the PDB accession code for this
@@ -1695,6 +1886,11 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Data items in the IHM_STARTING_MODEL_DETAILS category records the
+     * details about structural models used as starting inputs in
+     * the integrative model building process.
+     */
     ihm_starting_model_details: {
         /**
          * A unique identifier for the starting structural model.
@@ -1750,6 +1946,11 @@ export const mmCIF_Schema = {
          */
         dataset_list_id: int,
     },
+    /**
+     * Data items in the IHM_STARTING_COMPARATIVE_MODELS category records
+     * additional details about comparative models used as starting inputs in
+     * the integrative model building process.
+     */
     ihm_starting_comparative_models: {
         /**
          * A unique identifier for the starting comparative model.
@@ -1805,6 +2006,15 @@ export const mmCIF_Schema = {
          */
         alignment_file_id: int,
     },
+    /**
+     * Data items in the IHM_STARTING_MODEL_SEQ_DIF category provide a
+     * mechanism for indicating and annotating point differences
+     * between the sequence of the entity or biological unit described
+     * in the data block and the sequence of the starting model used in
+     * the integrative modeling referenced from a database. The point
+     * differences may be due to point mutations introduced in the
+     * starting model or the presence of modified amino acid residues.
+     */
     ihm_starting_model_seq_dif: {
         /**
          * A unique identifier for the entry.
@@ -1857,6 +2067,12 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Data items in the IHM_MODEL_REPRESENTATION category records the
+     * details about the architecture and representation of structural
+     * models created by the integrative model building tasks. This
+     * category handles the multi-scale model representation, if employed.
+     */
     ihm_model_representation: {
         /**
          * A unique identifier for the model details record.
@@ -1918,6 +2134,11 @@ export const mmCIF_Schema = {
          */
         model_object_count: int,
     },
+    /**
+     * Data items in the IHM_STRUCT_ASSEMBLY category records the
+     * details of the structural assemblies and used in the
+     * IHM modeling.
+     */
     ihm_struct_assembly: {
         /**
          * A unique identifier for the structural assembly description.
@@ -1968,6 +2189,10 @@ export const mmCIF_Schema = {
          */
         seq_id_end: int,
     },
+    /**
+     * Data items in the IHM_STRUCT_ASSEMBLY_DETAILS category provides
+     * additional details regarding the structure assembly.
+     */
     ihm_struct_assembly_details: {
         /**
          * A unique identifier for the structural assembly.
@@ -1982,6 +2207,10 @@ export const mmCIF_Schema = {
          */
         assembly_description: str,
     },
+    /**
+     * Data items in the IHM_MODELING_PROTOCOL category records the
+     * step-wise details of the integrative modeling workflow.
+     */
     ihm_modeling_protocol: {
         /**
          * A unique identifier for the modeling protocol/step combination.
@@ -2049,6 +2278,10 @@ export const mmCIF_Schema = {
          */
         ordered_flag: Aliased<'YES' | 'NO'>(str),
     },
+    /**
+     * Data items in the IHM_MULTI_STATE_MODELING category records the
+     * details of the multi-state modeling protocol, if applicable.
+     */
     ihm_multi_state_modeling: {
         /**
          * A unique identifier for the multiple states being described.
@@ -2094,6 +2327,11 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Data items in the IHM_MODELING_POST_PROCESS category records
+     * the details of the post processing of the models/results of
+     * the modeling protocol.
+     */
     ihm_modeling_post_process: {
         /**
          * A unique identifier for the post modeling analysis/step combination.
@@ -2133,6 +2371,11 @@ export const mmCIF_Schema = {
          */
         num_models_end: int,
     },
+    /**
+     * Data items in the IHM_ENSEMBLE_INFO category records the
+     * details of the model clusters or ensembles obtained after
+     * sampling.
+     */
     ihm_ensemble_info: {
         /**
          * A unique id for the ensemble.
@@ -2193,6 +2436,10 @@ export const mmCIF_Schema = {
          */
         ensemble_file_id: int,
     },
+    /**
+     * Data items in the IHM_MODEL_LIST category record the
+     * details of the models being deposited.
+     */
     ihm_model_list: {
         /**
          * A unique identifier for the model / model group combination.
@@ -2246,6 +2493,10 @@ export const mmCIF_Schema = {
          */
         representation_id: int,
     },
+    /**
+     * Data items in the IHM_MODEL_REPRESENTATIVE category record the
+     * details of the representative model in an ensemble or cluster.
+     */
     ihm_model_representative: {
         /**
          * A unique identifier for the representative of the model group.
@@ -2268,6 +2519,15 @@ export const mmCIF_Schema = {
          */
         selection_criteria: Aliased<'medoid' | 'closest to the average' | 'lowest energy' | 'target function' | 'fewest violations' | 'minimized average structure' | 'best scoring model' | 'centroid' | 'other selction criteria'>(str),
     },
+    /**
+     * Category holds the list of all datasets used in the IHM modeling.
+     * These can be datasets archived in other related databases such as
+     * BMRB, EMDB, EMPIAR, SASBDB, PRIDE etc., or can be hosted in other
+     * places such as the authors website, github etc. These datasets are
+     * elaborated in detail in the IHM_DATASET_RELATED_DB_REFERENCE and/or
+     * the IHM_DATASET_EXTERNAL_REFERENCE categories. This category
+     * holds the list of all datasets used.
+     */
     ihm_dataset_list: {
         /**
          * A unique identifier for the dataset.
@@ -2283,6 +2543,9 @@ export const mmCIF_Schema = {
          */
         database_hosted: Aliased<'YES' | 'NO'>(str),
     },
+    /**
+     * Category provides a mechanism to group datasets.
+     */
     ihm_dataset_group: {
         /**
          * A unique identifier for the entry.
@@ -2298,6 +2561,9 @@ export const mmCIF_Schema = {
          */
         dataset_list_id: int,
     },
+    /**
+     * Category holds information about related datasets, where one is derived from the other.
+     */
     ihm_related_datasets: {
         /**
          * A unique identifier for the entry.
@@ -2316,6 +2582,11 @@ export const mmCIF_Schema = {
          */
         dataset_list_id_primary: int,
     },
+    /**
+     * Category holds information related to data sources for the entry.
+     * These can be datasets archived in other related databases such as
+     * BMRB, EMDB, EMPIAR, SASBDB, PRIDE etc.
+     */
     ihm_dataset_related_db_reference: {
         /**
          * A unique identifier for the related database entry.
@@ -2344,6 +2615,18 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Category holds links to other external data sources for the I/H model entry.
+     * Input datasets held in other databases such as EMDB, BMRB, SASBDB etc.
+     * are referenced in the IHM_DATASET_RELATED_DB_REFERENCE category.
+     * This data category, along with IHM_EXTERNAL_FILES category, holds information
+     * regarding other non-database external data sources, such as  DOIs (digital
+     * object identifiers) or supplementary files stored locally. The DOIs can either
+     * lead to the external data file(s) directly (as in case of DOIs provided by the PDB)
+     * or might lead to an HTML landing page (as provided by Zenodo). In the latter case,
+     * additional URL (Uniform Resource Locator) information is required to retrieve
+     * the external data file(s).
+     */
     ihm_external_reference_info: {
         /**
          * A unique identifier for the external reference.
@@ -2376,6 +2659,12 @@ export const mmCIF_Schema = {
          */
         associated_url: str,
     },
+    /**
+     * Category provides details regarding external files. The IHM_EXTERNAL_REFERENCE_INFO
+     * category captures the top-level details regarding external data sources.
+     * This category captures the specific details regarding externally stored files
+     * related to the particular I/H model entry.
+     */
     ihm_external_files: {
         /**
          * A unique identifier for each external file.
@@ -2409,6 +2698,10 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Category provides additional details regarding input data hosted externally
+     * at other resources.
+     */
     ihm_dataset_external_reference: {
         /**
          * A unique identifier for the external data.
@@ -2427,6 +2720,13 @@ export const mmCIF_Schema = {
          */
         file_id: int,
     },
+    /**
+     * Data items in the IHM_LOCALIZATION_DENSITY_FILES category records the
+     * details of files that provide information regarding localization densities
+     * of ensembles. These may be stored externally as local files or linked via
+     * DOI and can be in any accepted format that provides volume information
+     * (CCP4, MRC, etc.).
+     */
     ihm_localization_density_files: {
         /**
          * A unique identifier.
@@ -2464,6 +2764,14 @@ export const mmCIF_Schema = {
          */
         asym_id: str,
     },
+    /**
+     * Data items in the IHM_PREDICTED_CONTACT_RESTRAINT category records the
+     * list of predicted contacts used in the integrative modeling experiment.
+     * This has been adapted from the widely used CASP RR format
+     * (http://www.predictioncenter.org/casp8/index.cgi?page=format#RR).
+     * These contacts may be derived from various computational tools.
+     * The software information can be provided in the SOFTWARE category.
+     */
     ihm_predicted_contact_restraint: {
         /**
          * A unique identifier for the predicted contact restraint.
@@ -2563,6 +2871,11 @@ export const mmCIF_Schema = {
          */
         software_id: int,
     },
+    /**
+     * Data items in the IHM_CROSS_LINK_LIST category records the
+     * list of spatial restraints derived from chemical crosslinking
+     * experiment.
+     */
     ihm_cross_link_list: {
         /**
          * A unique identifier for the cross link restraint.
@@ -2628,6 +2941,12 @@ export const mmCIF_Schema = {
          */
         dataset_list_id: int,
     },
+    /**
+     * Data items in the IHM_CROSS_LINK_RESTRAINT category enumerates the
+     * implementation details of the chemical crosslinking restraints in
+     * the integrative modeling. This category holds the details of how
+     * the experimentally derived crosslinks are applied in the modeling.
+     */
     ihm_cross_link_restraint: {
         /**
          * A unique identifier for the cross link record.
@@ -2740,6 +3059,10 @@ export const mmCIF_Schema = {
          */
         sigma_2: float,
     },
+    /**
+     * Data items in the IHM_CROSS_LINK_RESULT_PARAMETERS category records the
+     * results of the crosslinking restraint parameters in the IHM modeling.
+     */
     ihm_cross_link_result_parameters: {
         /**
          * A unique identifier for the restraint/model combination.
@@ -2773,6 +3096,10 @@ export const mmCIF_Schema = {
          */
         sigma_2: float,
     },
+    /**
+     * Data items in the IHM_2DEM_CLASS_AVERAGE_RESTRAINT category records the
+     * details of the 2DEM class averages used in the IHM modeling.
+     */
     ihm_2dem_class_average_restraint: {
         /**
          * A unique identifier for the 2dem class average.
@@ -2829,6 +3156,24 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Data items in the IHM_2DEM_CLASS_AVERAGE_FITTING category records the
+     * details of the fitting of the model to the 2DEM class averages
+     * used in the IHM modeling. The following conventions are recommended
+     * while generating the rotation matrix and translation vector for
+     * transformation.
+     *
+     * - The model is rotated and translated to fit to the 2DEM image.
+     * - The 2DEM image should be in the XY plane.
+     * - The lower left image corner (image pixel index 0,0) should be at x,y,z = (0,0,0).
+     * - The 2D image is scaled by the _ihm_2dem_class_average_restraint.pixel_size_width
+     * and _ihm_2dem_class_average_restraint.pixel_size_height from the
+     * IHM_2DEM_CLASS_AVERAGE_RESTRAINT table.
+     * - The transformation is applied after the scaling and hence the translation vector
+     * should account for the scaling.
+     * - There are no specifications for Z translations i.e., how far the image should be
+     * from the model while projecting. It may be set to zero.
+     */
     ihm_2dem_class_average_fitting: {
         /**
          * A unique identifier for the 2dem class average fitting data.
@@ -2859,6 +3204,11 @@ export const mmCIF_Schema = {
          */
         tr_vector: Vector(3),
     },
+    /**
+     * Data items in the IHM_3DEM_RESTRAINT category records the
+     * details of the 3DEM maps used as restraints in the
+     * IHM modeling.
+     */
     ihm_3dem_restraint: {
         /**
          * A unique identifier for the 3DEM restraint description.
@@ -2902,6 +3252,11 @@ export const mmCIF_Schema = {
          */
         cross_correlation_coefficient: float,
     },
+    /**
+     * Data items in the IHM_SAS_RESTRAINT category records the
+     * details of the SAS data used as restraints in the
+     * IHM modeling.
+     */
     ihm_sas_restraint: {
         /**
          * A unique identifier for the SAS restraint description.
@@ -2960,6 +3315,11 @@ export const mmCIF_Schema = {
          */
         details: str,
     },
+    /**
+     * Data items in the IHM_STARTING_MODEL_COORD category records the coordinates
+     * for structural templates used as starting inputs in the integrative model
+     * building tasks.
+     */
     ihm_starting_model_coord: {
         /**
          * A unique identifier for this coordinate position.
@@ -3030,6 +3390,10 @@ export const mmCIF_Schema = {
          */
         B_iso_or_equiv: float,
     },
+    /**
+     * Data items in the IHM_SPHERE_OBJ_SITE category records the details
+     * of the spherical objects modeled in the integrative structural model.
+     */
     ihm_sphere_obj_site: {
         /**
          * A unique identifier for this pseudo atom / sphere object.
@@ -3083,6 +3447,10 @@ export const mmCIF_Schema = {
          */
         model_id: int,
     },
+    /**
+     * Data items in the IHM_GAUSSIAN_OBJ_SITE category records the details
+     * of the gaussian objects modeled in the integrative structural model.
+     */
     ihm_gaussian_obj_site: {
         /**
          * A unique identifier for this gaussian object in the model.
@@ -3135,6 +3503,10 @@ export const mmCIF_Schema = {
          */
         model_id: int,
     },
+    /**
+     * Data items in the IHM_GAUSSIAN_OBJ_ENSEMBLE category records the details
+     * of the gaussian objects representing an ensemble or cluster of models.
+     */
     ihm_gaussian_obj_ensemble: {
         /**
          * A unique identifier for this gaussian object.
@@ -3187,6 +3559,10 @@ export const mmCIF_Schema = {
          */
         ensemble_id: int,
     },
+    /**
+     * IHM_FEATURE_LIST is the high level category that provides defintions
+     * to select atoms/residues from polymeric and non-polymeric entities.
+     */
     ihm_feature_list: {
         /**
          * A unique identifier for the feature.
@@ -3202,6 +3578,11 @@ export const mmCIF_Schema = {
          */
         entity_type: Aliased<'polymer' | 'non-polymer' | 'macrolide' | 'water'>(str),
     },
+    /**
+     * Data items in the IHM_POLY_RESIDUE_FEATURE category provides the defintions
+     * required to select a specific residue or a set of residues that may or may not be
+     * in a contiguous range.
+     */
     ihm_poly_residue_feature: {
         /**
          * A unique identifier for the category.
@@ -3246,6 +3627,11 @@ export const mmCIF_Schema = {
          */
         seq_id_end: int,
     },
+    /**
+     * Data items in the IHM_DERIVED_DISTANCE_RESTRAINT category records the
+     * list of distance restraints used in the integrative modeling experiment.
+     * These distance redistance restraints may be derived from various kinds of experiments.
+     */
     ihm_derived_distance_restraint: {
         /**
          * A unique identifier for the derived distance restraint.

@@ -7,12 +7,11 @@
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { Mesh } from '../../../shape/mesh';
+import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
+import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { LinkIterator } from './util/location-iterator';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { Interval } from 'mol-data/int';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
@@ -70,9 +69,9 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
-    const { objectId, elementId } = pickingId
+    const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const bond = structure.links.bonds[elementId]
+        const bond = structure.links.bonds[groupId]
         return Link.Loci([
             Link.Location(
                 bond.unitA, bond.indexA as StructureElement.UnitIndex,

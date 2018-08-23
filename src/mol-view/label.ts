@@ -12,7 +12,7 @@ import { OrderedSet } from 'mol-data/int';
 const elementLocA = StructureElement.create()
 const elementLocB = StructureElement.create()
 
-function setElementLocation(loc: StructureElement, unit: Unit, index: number) {
+function setElementLocation(loc: StructureElement, unit: Unit, index: StructureElement.UnitIndex) {
     loc.unit = unit
     loc.element = unit.elements[index]
 }
@@ -33,6 +33,13 @@ export function labelFirst(loci: Loci): string {
                 setElementLocation(elementLocA, bond.aUnit, bond.aIndex)
                 setElementLocation(elementLocB, bond.bUnit, bond.bIndex)
                 return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
+            } else {
+                return 'Unknown'
+            }
+        case 'group-loci':
+            const g = loci.groups[0]
+            if (g) {
+                return g.shape.labels.ref.value[OrderedSet.getAt(g.ids, 0)]
             } else {
                 return 'Unknown'
             }

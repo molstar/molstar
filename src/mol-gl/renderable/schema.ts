@@ -142,18 +142,18 @@ export const InternalSchema = {
 }
 
 export const BaseSchema = {
-    aInstanceId: AttributeSpec('float32', 1, 1),
+    aInstance: AttributeSpec('float32', 1, 1),
     aPosition: AttributeSpec('float32', 3, 0),
-    aElementId: AttributeSpec('float32', 1, 0),
+    aGroup: AttributeSpec('float32', 1, 0),
     aTransform: AttributeSpec('float32', 16, 1),
     aColor: AttributeSpec('float32', 3, 0),
 
     uAlpha: UniformSpec('f'),
     uInstanceCount: UniformSpec('i'),
-    uElementCount: UniformSpec('i'),
+    uGroupCount: UniformSpec('i'),
     uColor: UniformSpec('v3'),
-    uColorTexSize: UniformSpec('v2'),
-    uMarkerTexSize: UniformSpec('v2'),
+    uColorTexDim: UniformSpec('v2'),
+    uMarkerTexDim: UniformSpec('v2'),
 
     tColor: TextureSpec('rgb', 'ubyte'),
     tMarker: TextureSpec('alpha', 'ubyte'),
@@ -161,7 +161,7 @@ export const BaseSchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
 
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'element', 'element_instance']),
+    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
     dUseFog: DefineSpec('boolean'),
 }
 export type BaseSchema = typeof BaseSchema

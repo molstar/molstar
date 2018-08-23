@@ -6,6 +6,7 @@
 
 import { StructureElement } from './structure'
 import { Link } from './structure/structure/unit/links'
+import { Shape } from './shape/shape';
 
 /** A null value Location */
 export const NullLocation = { kind: 'null-location' as 'null-location' }
@@ -14,4 +15,4 @@ export function isNullLocation(x: any): x is NullLocation {
     return !!x && x.kind === 'null-location';
 }
 
-export type Location = StructureElement | Link.Location | NullLocation
+export type Location = StructureElement | Link.Location | Shape.Location | NullLocation

@@ -42,7 +42,7 @@ export function PhysicalSizeTheme(props: SizeThemeProps): SizeTheme {
     }
 
     return {
-        kind: 'element',
+        kind: 'group',
         size: sizeFn
     }
 }

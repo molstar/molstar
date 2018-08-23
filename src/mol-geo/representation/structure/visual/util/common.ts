@@ -8,14 +8,14 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { Mat4 } from 'mol-math/linear-algebra'
 
-import { createUniformColor, ColorData, createElementColor, createElementInstanceColor, createInstanceColor } from '../../../../util/color-data';
-import { createUniformSize, SizeData, createElementSize, createElementInstanceSize, createInstanceSize } from '../../../../util/size-data';
+import { createUniformColor, ColorData, createGroupColor, createGroupInstanceColor, createInstanceColor } from '../../../../util/color-data';
+import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, createInstanceSize } from '../../../../util/size-data';
 import { ValueCell } from 'mol-util';
-import { LocationIterator } from './location-iterator';
-import { Mesh } from '../../../../shape/mesh';
+import { LocationIterator } from '../../../../util/location-iterator';
+import { Mesh } from '../../../../mesh/mesh';
 import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
-import { MeshProps, createMeshValues, createRenderableState } from '../../../util';
+import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform } from '../../../util';
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject } from 'mol-gl/render-object';
@@ -32,18 +32,12 @@ export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: Val
     return transforms ? ValueCell.update(transforms, array) : ValueCell.create(array)
 }
 
-const identityTransform = new Float32Array(16)
-Mat4.toArray(Mat4.identity(), identityTransform, 0)
-export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
-    return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
-}
-
 export function createColors(locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {
     const colorTheme = ColorTheme(props)
     switch (colorTheme.kind) {
         case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData)
-        case 'element': return createElementColor(locationIt, colorTheme.color, colorData)
-        case 'elementInstance': return createElementInstanceColor(locationIt, colorTheme.color, colorData)
+        case 'group': return createGroupColor(locationIt, colorTheme.color, colorData)
+        case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData)
         case 'instance': return createInstanceColor(locationIt, colorTheme.color, colorData)
     }
 }
@@ -52,8 +46,8 @@ export function createSizes(locationIt: LocationIterator, props: SizeThemeProps,
     const sizeTheme = SizeTheme(props)
     switch (sizeTheme.kind) {
         case 'uniform': return createUniformSize(locationIt, sizeTheme.size, sizeData)
-        case 'element': return createElementSize(locationIt, sizeTheme.size, sizeData)
-        case 'elementInstance': return createElementInstanceSize(locationIt, sizeTheme.size, sizeData)
+        case 'group': return createGroupSize(locationIt, sizeTheme.size, sizeData)
+        case 'groupInstance': return createGroupInstanceSize(locationIt, sizeTheme.size, sizeData)
         case 'instance': return createInstanceSize(locationIt, sizeTheme.size, sizeData)
     }
 }
@@ -61,11 +55,11 @@ export function createSizes(locationIt: LocationIterator, props: SizeThemeProps,
 type StructureMeshProps = Required<MeshProps & StructureProps>
 
 function _createMeshValues(transforms: ValueCell<Float32Array>, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
-    const { instanceCount, elementCount } = locationIt
+    const { instanceCount, groupCount } = locationIt
     const color = createColors(locationIt, props.colorTheme)
-    const marker = createMarkers(instanceCount * elementCount)
+    const marker = createMarkers(instanceCount * groupCount)
 
-    const counts = { drawCount: mesh.triangleCount * 3, elementCount, instanceCount }
+    const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
     return {
         ...getMeshData(mesh),

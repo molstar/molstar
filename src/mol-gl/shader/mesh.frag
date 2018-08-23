@@ -38,7 +38,7 @@ void main() {
     // material color
     #pragma glslify: import('./chunks/assign-material-color.glsl')
 
-    #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_elementPicking)
+    #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
         // gl_FragColor = vec4(material.r, material.g, material.a, 1.0);
         gl_FragColor = material;
     #else

@@ -18,7 +18,7 @@ export function decodeIdRGBA(r: number, g: number, b: number) {
 export interface PickingId {
     objectId: number
     instanceId: number
-    elementId: number
+    groupId: number
 }
 
 export interface PickingInfo {

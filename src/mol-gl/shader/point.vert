@@ -21,8 +21,8 @@ uniform float uViewportHeight;
 
 attribute vec3 aPosition;
 attribute mat4 aTransform;
-attribute float aInstanceId;
-attribute float aElementId;
+attribute float aInstance;
+attribute float aGroup;
 
 void main(){
     #pragma glslify: import('./chunks/assign-color-varying.glsl')
@@ -33,11 +33,11 @@ void main(){
     #elif defined(dSizeType_attribute)
         float size = aSize;
     #elif defined(dSizeType_instance)
-        float size = readFromTexture(tSize, aInstanceId, uSizeTexSize).r;
-    #elif defined(dSizeType_element)
-        float size = readFromTexture(tSize, aElementId, uSizeTexSize).r;
-    #elif defined(dSizeType_elementInstance)
-        float size = readFromTexture(tSize, aInstanceId * float(uElementCount) + aElementId, uSizeTexSize).r;
+        float size = readFromTexture(tSize, aInstance, uSizeTexDim).r;
+    #elif defined(dSizeType_group)
+        float size = readFromTexture(tSize, aGroup, uSizeTexDim).r;
+    #elif defined(dSizeType_groupInstance)
+        float size = readFromTexture(tSize, aInstance * float(uGroupCount) + aGroup, uSizeTexDim).r;
     #endif
 
     #ifdef dPointSizeAttenuation

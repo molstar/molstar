@@ -7,16 +7,16 @@
 import { ValueCell } from 'mol-util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
-import { LocationIterator } from '../representation/structure/visual/util/location-iterator';
+import { LocationIterator } from './location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 
-export type SizeType = 'uniform' | 'instance' | 'element' | 'elementInstance'
+export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
 export type SizeData = {
     uSize: ValueCell<number>,
     aSize: ValueCell<Float32Array>,
     tSize: ValueCell<TextureImage>,
-    uSizeTexSize: ValueCell<Vec2>,
+    uSizeTexDim: ValueCell<Vec2>,
     dSizeType: ValueCell<string>,
 }
 
@@ -26,7 +26,7 @@ const emptySizeTexture = { array: new Uint8Array(1), width: 1, height: 1 }
 function createEmptySizeTexture() {
     return {
         tSize: ValueCell.create(emptySizeTexture),
-        uSizeTexSize: ValueCell.create(Vec2.create(1, 1))
+        uSizeTexDim: ValueCell.create(Vec2.create(1, 1))
     }
 }
 
@@ -55,7 +55,7 @@ export function createUniformSize(locationIt: LocationIterator, sizeFn: Location
 export function createTextureSize(sizes: TextureImage, type: SizeType, sizeData?: SizeData): SizeData {
     if (sizeData) {
         ValueCell.update(sizeData.tSize, sizes)
-        ValueCell.update(sizeData.uSizeTexSize, Vec2.create(sizes.width, sizes.height))
+        ValueCell.update(sizeData.uSizeTexDim, Vec2.create(sizes.width, sizes.height))
         if (sizeData.dSizeType.ref.value !== type) {
             ValueCell.update(sizeData.dSizeType, type)
         }
@@ -65,7 +65,7 @@ export function createTextureSize(sizes: TextureImage, type: SizeType, sizeData?
             uSize: ValueCell.create(0),
             aSize: ValueCell.create(new Float32Array(0)),
             tSize: ValueCell.create(sizes),
-            uSizeTexSize: ValueCell.create(Vec2.create(sizes.width, sizes.height)),
+            uSizeTexDim: ValueCell.create(Vec2.create(sizes.width, sizes.height)),
             dSizeType: ValueCell.create(type),
         }
     }
@@ -83,25 +83,25 @@ export function createInstanceSize(locationIt: LocationIterator, sizeFn: Locatio
     return createTextureSize(sizes, 'instance', sizeData)
 }
 
-/** Creates size texture with size for each element (i.e. shared across instances/units) */
-export function createElementSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
-    const { elementCount } = locationIt
-    const sizes = sizeData && sizeData.tSize.ref.value.array.length >= elementCount ? sizeData.tSize.ref.value : createTextureImage(elementCount, 1)
+/** Creates size texture with size for each group (i.e. shared across instances/units) */
+export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+    const { groupCount } = locationIt
+    const sizes = sizeData && sizeData.tSize.ref.value.array.length >= groupCount ? sizeData.tSize.ref.value : createTextureImage(groupCount, 1)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
-        sizes.array[v.elementIndex] = sizeFn(v.location)
+        sizes.array[v.groupIndex] = sizeFn(v.location)
     }
-    return createTextureSize(sizes, 'element', sizeData)
+    return createTextureSize(sizes, 'group', sizeData)
 }
 
-/** Creates size texture with size for each element instance (i.e. for each unit) */
-export function createElementInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
-    const { elementCount, instanceCount } = locationIt
-    const count = instanceCount * elementCount
+/** Creates size texture with size for each group in each instance (i.e. for each unit) */
+export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+    const { groupCount, instanceCount } = locationIt
+    const count = instanceCount * groupCount
     const sizes = sizeData && sizeData.tSize.ref.value.array.length >= count ? sizeData.tSize.ref.value : createTextureImage(count, 1)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
         sizes.array[v.index] = sizeFn(v.location)
     }
-    return createTextureSize(sizes, 'elementInstance', sizeData)
+    return createTextureSize(sizes, 'groupInstance', sizeData)
 }

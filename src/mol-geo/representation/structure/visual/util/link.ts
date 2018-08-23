@@ -6,12 +6,15 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { RuntimeContext } from 'mol-task';
-import { Mesh } from '../../../../shape/mesh';
-import { MeshBuilder } from '../../../../shape/mesh-builder';
+import { Mesh } from '../../../../mesh/mesh';
+import { MeshBuilder } from '../../../../mesh/mesh-builder';
 import { LinkType } from 'mol-model/structure/model/types';
 import { DefaultMeshProps } from '../../../util';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../../primitive/cylinder';
+import { LocationIterator } from '../../../../util/location-iterator';
+import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
+import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../mesh/builder/cylinder';
 
 export const DefaultLinkCylinderProps = {
     ...DefaultMeshProps,
@@ -87,12 +90,12 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
         const linkRadius = radius(edgeIndex)
         const o = order(edgeIndex)
         const f = flags(edgeIndex)
-        meshBuilder.setId(edgeIndex)
+        meshBuilder.setGroup(edgeIndex)
 
-        if (LinkType.is(f, LinkType.Flag.MetallicCoordination)) {
-            // show metall coordinations with dashed cylinders
+        if (LinkType.is(f, LinkType.Flag.MetallicCoordination) || LinkType.is(f, LinkType.Flag.Hydrogen)) {
+            // show metall coordinations and hydrogen bonds with dashed cylinders
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
-            meshBuilder.addFixedCountDashedCylinder(va, vb, 0.5, 7, cylinderProps)
+            addFixedCountDashedCylinder(meshBuilder, va, vb, 0.5, 7, cylinderProps)
         } else if (o === 2 || o === 3) {
             // show bonds with order 2 or 3 using 2 or 3 parallel cylinders
             const multiRadius = linkRadius * (linkScale / (0.5 * o))
@@ -103,11 +106,11 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius
 
-            if (o === 3) meshBuilder.addCylinder(va, vb, 0.5, cylinderProps)
-            meshBuilder.addDoubleCylinder(va, vb, 0.5, vShift, cylinderProps)
+            if (o === 3) addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
+            addDoubleCylinder(meshBuilder, va, vb, 0.5, vShift, cylinderProps)
         } else {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
-            meshBuilder.addCylinder(va, vb, 0.5, cylinderProps)
+            addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
         }
 
         if (edgeIndex % 10000 === 0 && ctx.shouldUpdate) {
@@ -116,4 +119,33 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
     }
 
     return meshBuilder.getMesh()
+}
+
+export namespace LinkIterator {
+    export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
+        const unit = group.units[0]
+        const groupCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
+        const instanceCount = group.units.length
+        const location = StructureElement.create(unit)
+        const getLocation = (groupIndex: number) => {
+            location.element = unit.elements[(unit as Unit.Atomic).links.a[groupIndex]]
+            return location
+        }
+        return LocationIterator(groupCount, instanceCount, getLocation)
+    }
+
+    export function fromStructure(structure: Structure): LocationIterator {
+        const groupCount = structure.links.bondCount
+        const instanceCount = 1
+        const location = Link.Location()
+        const getLocation = (groupIndex: number) => {
+            const bond = structure.links.bonds[groupIndex]
+            location.aUnit = bond.unitA
+            location.aIndex = bond.indexA as StructureElement.UnitIndex
+            location.bUnit = bond.unitB
+            location.bIndex = bond.indexB as StructureElement.UnitIndex
+            return location
+        }
+        return LocationIterator(groupCount, instanceCount, getLocation)
+    }
 }

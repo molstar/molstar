@@ -9,8 +9,8 @@ import { RepresentationProps, Visual } from '..';
 import { DefaultStructureMeshProps, MeshUpdateState } from '.';
 import { RuntimeContext } from 'mol-task';
 import { PickingId } from '../../util/picking';
-import { LocationIterator } from './visual/util/location-iterator';
-import { Mesh } from '../../shape/mesh';
+import { LocationIterator } from '../../util/location-iterator';
+import { Mesh } from '../../mesh/mesh';
 import { MarkerAction, applyMarkerAction } from '../../util/marker-data';
 import { Loci, isEveryLoci } from 'mol-model/loci';
 import { MeshRenderObject } from 'mol-gl/render-object';
@@ -101,7 +101,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         },
         mark(loci: Loci, action: MarkerAction) {
             const { tMarker } = renderObject.values
-            const { elementCount, instanceCount } = locationIt
+            const { groupCount, instanceCount } = locationIt
 
             function apply(interval: Interval) {
                 const start = Interval.start(interval)
@@ -111,7 +111,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
             let changed = false
             if (isEveryLoci(loci)) {
-                apply(Interval.ofBounds(0, elementCount * instanceCount))
+                apply(Interval.ofBounds(0, groupCount * instanceCount))
                 changed = true
             } else {
                 changed = mark(loci, currentGroup, apply)

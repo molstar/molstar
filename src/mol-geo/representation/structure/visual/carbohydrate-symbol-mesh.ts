@@ -7,16 +7,22 @@
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../shape/mesh';
+import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { MeshBuilder } from '../../../shape/mesh-builder';
+import { MeshBuilder } from '../../../mesh/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
-import { LocationIterator } from './util/location-iterator';
+import { LocationIterator } from '../../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { addSphere } from '../../../mesh/builder/sphere';
+import { Box, PerforatedBox } from '../../../primitive/box';
+import { OctagonalPyramid, PerforatedOctagonalPyramid } from '../../../primitive/pyramid';
+import { Star } from '../../../primitive/star';
+import { Octahedron, PerforatedOctahedron } from '../../../primitive/octahedron';
+import { DiamondPrism, PentagonalPrism, HexagonalPrism } from '../../../primitive/prism';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -24,6 +30,17 @@ const pd = Vec3.zero()
 
 const sideFactor = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
 const radiusFactor = 1.75
+
+const box = Box()
+const perforatedBox = PerforatedBox()
+const octagonalPyramid = OctagonalPyramid()
+const perforatedOctagonalPyramid = PerforatedOctagonalPyramid()
+const star = Star({ outerRadius: 1, innerRadius: 0.5, thickness: 0.5, pointCount: 5 })
+const octahedron = Octahedron()
+const perforatedOctahedron = PerforatedOctahedron()
+const diamondPrism = DiamondPrism()
+const pentagonalPrism = PentagonalPrism()
+const hexagonalPrism = HexagonalPrism()
 
 async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, props: CarbohydrateSymbolProps, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
@@ -49,71 +66,72 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
         Mat4.targetTo(t, center, pd, normal)
         Mat4.setTranslation(t, center)
 
-        builder.setId(i * 2)
+        builder.setGroup(i * 2)
 
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
-                builder.addSphere(center, radius, detail)
+                addSphere(builder, center, radius, detail)
                 break;
             case SaccharideShapes.FilledCube:
                 Mat4.scaleUniformly(t, t, side)
-                builder.addBox(t)
+                builder.add(t, box)
                 break;
             case SaccharideShapes.CrossedCube:
                 Mat4.scaleUniformly(t, t, side)
-                builder.addPerforatedBox(t)
+                builder.add(t, perforatedBox)
                 Mat4.mul(t, t, Mat4.rotZ90X180)
-                builder.setId(i * 2 + 1)
-                builder.addPerforatedBox(t)
+                builder.setGroup(i * 2 + 1)
+                builder.add(t, perforatedBox)
                 break;
             case SaccharideShapes.FilledCone:
                 Mat4.scaleUniformly(t, t, side * 1.2)
-                builder.addOctagonalPyramid(t)
+                builder.add(t, octagonalPyramid)
                 break
             case SaccharideShapes.DevidedCone:
                 Mat4.scaleUniformly(t, t, side * 1.2)
-                builder.addPerforatedOctagonalPyramid(t)
+                builder.add(t, perforatedOctagonalPyramid)
                 Mat4.mul(t, t, Mat4.rotZ90)
-                builder.setId(i * 2 + 1)
-                builder.addPerforatedOctagonalPyramid(t)
+                builder.setGroup(i * 2 + 1)
+                builder.add(t, perforatedOctagonalPyramid)
                 break
             case SaccharideShapes.FlatBox:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
-                builder.addBox(t)
+                builder.add(t, box)
                 break
             case SaccharideShapes.FilledStar:
+                Mat4.scaleUniformly(t, t, side)
                 Mat4.mul(t, t, Mat4.rotZY90)
-                builder.addStar(t, { outerRadius: side, innerRadius: side / 2, thickness: side / 2, pointCount: 5 })
+                builder.add(t, star)
                 break
             case SaccharideShapes.FilledDiamond:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                builder.addOctahedron(t)
+                builder.add(t, octahedron)
                 break
             case SaccharideShapes.DividedDiamond:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                builder.addPerforatedOctahedron(t)
+                builder.add(t, perforatedOctahedron)
                 Mat4.mul(t, t, Mat4.rotY90)
-                builder.setId(i * 2 + 1)
-                builder.addPerforatedOctahedron(t)
+                builder.setGroup(i * 2 + 1)
+                builder.add(t, perforatedOctahedron)
                 break
             case SaccharideShapes.FlatDiamond:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side / 2, side / 2))
-                builder.addDiamondPrism(t)
+                builder.add(t, diamondPrism)
                 break
             case SaccharideShapes.Pentagon:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
-                builder.addPentagonalPrism(t)
+                builder.add(t, pentagonalPrism)
                 break
             case SaccharideShapes.FlatHexagon:
             default:
                 Mat4.mul(t, t, Mat4.rotZYZ90)
                 Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side , side / 2))
-                builder.addHexagonalPrism(t)
+                builder.add(t, hexagonalPrism)
                 break
         }
     }
@@ -142,11 +160,11 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProp
 
 function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     const carbElements = structure.carbohydrates.elements
-    const elementCount = carbElements.length * 2
+    const groupCount = carbElements.length * 2
     const instanceCount = 1
     const location = StructureElement.create()
-    function getLocation (elementIndex: number, instanceIndex: number) {
-        const carb = carbElements[Math.floor(elementIndex / 2)]
+    function getLocation (groupIndex: number, instanceIndex: number) {
+        const carb = carbElements[Math.floor(groupIndex / 2)]
         location.unit = carb.unit
         location.element = carb.anomericCarbon
         return location
@@ -154,13 +172,13 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     function isSecondary (elementIndex: number, instanceIndex: number) {
         return (elementIndex % 2) === 1
     }
-    return LocationIterator(elementCount, instanceCount, getLocation, isSecondary)
+    return LocationIterator(groupCount, instanceCount, getLocation, isSecondary)
 }
 
 function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {
-    const { objectId, elementId } = pickingId
+    const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const carb = structure.carbohydrates.elements[Math.floor(elementId / 2)]
+        const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)]
         const { unit } = carb
         const index = OrderedSet.findPredecessorIndex(unit.elements, carb.anomericCarbon)
         const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)

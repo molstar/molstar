@@ -8,12 +8,11 @@
 import { Unit, Link, StructureElement } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { Mesh } from '../../../shape/mesh';
+import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
+import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { LinkIterator } from './util/location-iterator';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { Interval } from 'mol-data/int';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
@@ -82,13 +81,13 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
 }
 
 function getLinkLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
-    const { objectId, instanceId, elementId } = pickingId
+    const { objectId, instanceId, groupId } = pickingId
     const unit = group.units[instanceId]
     if (id === objectId && Unit.isAtomic(unit)) {
         return Link.Loci([
             Link.Location(
-                unit, unit.links.a[elementId] as StructureElement.UnitIndex,
-                unit, unit.links.b[elementId] as StructureElement.UnitIndex
+                unit, unit.links.a[groupId] as StructureElement.UnitIndex,
+                unit, unit.links.b[groupId] as StructureElement.UnitIndex
             )
         ])
     }

@@ -8,16 +8,16 @@ import { ValueCell } from 'mol-util';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
-import { LocationIterator } from '../representation/structure/visual/util/location-iterator';
+import { LocationIterator } from './location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 
-export type ColorType = 'uniform' | 'instance' | 'element' | 'elementInstance'
+export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
     aColor: ValueCell<Float32Array>,
     tColor: ValueCell<TextureImage>,
-    uColorTexSize: ValueCell<Vec2>,
+    uColorTexDim: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
 }
 
@@ -27,7 +27,7 @@ const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }
 function createEmptyColorTexture() {
     return {
         tColor: ValueCell.create(emptyColorTexture),
-        uColorTexSize: ValueCell.create(Vec2.create(1, 1))
+        uColorTexDim: ValueCell.create(Vec2.create(1, 1))
     }
 }
 
@@ -56,7 +56,7 @@ export function createUniformColor(locationIt: LocationIterator, colorFn: Locati
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
         ValueCell.update(colorData.tColor, colors)
-        ValueCell.update(colorData.uColorTexSize, Vec2.create(colors.width, colors.height))
+        ValueCell.update(colorData.uColorTexDim, Vec2.create(colors.width, colors.height))
         if (colorData.dColorType.ref.value !== type) {
             ValueCell.update(colorData.dColorType, type)
         }
@@ -66,7 +66,7 @@ export function createTextureColor(colors: TextureImage, type: ColorType, colorD
             uColor: ValueCell.create(Vec3.zero()),
             aColor: ValueCell.create(new Float32Array(0)),
             tColor: ValueCell.create(colors),
-            uColorTexSize: ValueCell.create(Vec2.create(colors.width, colors.height)),
+            uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
             dColorType: ValueCell.create(type),
         }
     }
@@ -84,25 +84,25 @@ export function createInstanceColor(locationIt: LocationIterator, colorFn: Locat
     return createTextureColor(colors, 'instance', colorData)
 }
 
-/** Creates color texture with color for each element (i.e. shared across instances/units) */
-export function createElementColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
-    const { elementCount } = locationIt
-    const colors = colorData && colorData.tColor.ref.value.array.length >= elementCount * 3 ? colorData.tColor.ref.value : createTextureImage(elementCount, 3)
+/** Creates color texture with color for each group (i.e. shared across instances/units) */
+export function createGroupColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+    const { groupCount } = locationIt
+    const colors = colorData && colorData.tColor.ref.value.array.length >= groupCount * 3 ? colorData.tColor.ref.value : createTextureImage(groupCount, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
-        const { location, isSecondary, elementIndex } = locationIt.move()
-        Color.toArray(colorFn(location, isSecondary), colors.array, elementIndex * 3)
+        const { location, isSecondary, groupIndex } = locationIt.move()
+        Color.toArray(colorFn(location, isSecondary), colors.array, groupIndex * 3)
     }
-    return createTextureColor(colors, 'element', colorData)
+    return createTextureColor(colors, 'group', colorData)
 }
 
-/** Creates color texture with color for each element instance (i.e. for each unit) */
-export function createElementInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
-    const { elementCount, instanceCount } = locationIt
-    const count = instanceCount * elementCount
+/** Creates color texture with color for each group in each instance (i.e. for each unit) */
+export function createGroupInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+    const { groupCount, instanceCount } = locationIt
+    const count = instanceCount * groupCount
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const { location, isSecondary, index } = locationIt.move()
         Color.toArray(colorFn(location, isSecondary), colors.array, index * 3)
     }
-    return createTextureColor(colors, 'elementInstance', colorData)
+    return createTextureColor(colors, 'groupInstance', colorData)
 }

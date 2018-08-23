@@ -1,1 +1,1 @@
-vMarker = readFromTexture(tMarker, aInstanceId * float(uElementCount) + aElementId, uMarkerTexSize).a;
+vMarker = readFromTexture(tMarker, aInstance * float(uGroupCount) + aGroup, uMarkerTexDim).a;

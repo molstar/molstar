@@ -50,13 +50,13 @@ namespace Vec3 {
         v[0] = array[offset + 0]
         v[1] = array[offset + 1]
         v[2] = array[offset + 2]
+        return v
     }
 
     export function toArray(v: Vec3, out: Helpers.NumberArray, offset: number) {
         out[offset + 0] = v[0]
         out[offset + 1] = v[1]
         out[offset + 2] = v[2]
-        return v
     }
 
     export function create(x: number, y: number, z: number): Vec3 {

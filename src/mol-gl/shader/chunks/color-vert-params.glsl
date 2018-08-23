@@ -3,11 +3,11 @@
 #elif defined(dColorType_attribute)
     varying vec4 vColor;
     attribute vec3 aColor;
-#elif defined(dColorType_instance) || defined(dColorType_element) || defined(dColorType_elementInstance)
+#elif defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance)
     varying vec4 vColor;
-    uniform vec2 uColorTexSize;
+    uniform vec2 uColorTexDim;
     uniform sampler2D tColor;
-#elif defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_elementPicking)
+#elif defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
     varying vec4 vColor;
     #pragma glslify: encodeIdRGBA = require(../utils/encode-id-rgba.glsl)
 #endif

@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-vec4 readFromTexture (const in sampler2D tex, const in float i, const in vec2 size) {
-    float x = mod(i, size.x);
-    float y = floor(i / size.x);
-    vec2 uv = (vec2(x, y) + 0.5) / size;
+vec4 readFromTexture (const in sampler2D tex, const in float i, const in vec2 dim) {
+    float x = mod(i, dim.x);
+    float y = floor(i / dim.x);
+    vec2 uv = (vec2(x, y) + 0.5) / dim;
     return texture2D(tex, uv);
 }
 #pragma glslify: export(readFromTexture)

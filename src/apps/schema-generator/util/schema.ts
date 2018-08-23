@@ -5,7 +5,11 @@
  */
 
 export interface Database { [ tableName: string ]: Table }
-export interface Table { [ columnName: string ]: Column }
+export interface Table {
+    description: string
+    key: Set<string>
+    columns: { [ columnName: string ]: Column }
+}
 export type Column = IntCol | StrCol | FloatCol | CoordCol | EnumCol | VectorCol | MatrixCol | ListCol
 
 type BaseCol = { description: string }

@@ -12,8 +12,8 @@ precision highp int;
 
 attribute vec3 aPosition;
 attribute mat4 aTransform;
-attribute float aInstanceId;
-attribute float aElementId;
+attribute float aInstance;
+attribute float aGroup;
 
 #ifndef dFlatShaded
     attribute vec3 aNormal;

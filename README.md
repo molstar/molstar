@@ -78,8 +78,29 @@ From the root of the project:
 
 and navigate to `build/viewer`
 
+### Code generation
+**CIF schemas**
 
+    node build/node_modules/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/mmcif.ts --fieldNamesPath data/mmcif-field-names.csv --name mmCIF
 
+    node build/node_modules/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/ccd.ts --fieldNamesPath data/ccd-field-names.csv --name CCD
+
+    node build/node_modules/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/bird.ts --fieldNamesPath data/bird-field-names.csv --name BIRD
+
+    node --max-old-space-size=8192 build/node_modules/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+
+**GraphQL schemas**
+
+    node data/rcsb-graphql/codegen.js
+
+### Other scripts
+**Create chem comp bond table**
+
+    node --max-old-space-size=8192 build/node_modules/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
+
+**Test model server**
+
+    node build/node_modules/servers/model/test.js
 
 ## Contributing
 Just open an issue or make a pull request. All contributions are welcome.

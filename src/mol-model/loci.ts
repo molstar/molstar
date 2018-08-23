@@ -6,6 +6,7 @@
 
 import { StructureElement } from './structure'
 import { Link } from './structure/structure/unit/links'
+import { Shape } from './shape';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -21,4 +22,4 @@ export function isEmptyLoci(x: any): x is EmptyLoci {
     return !!x && x.kind === 'empty-loci';
 }
 
-export type Loci =  StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci
+export type Loci =  StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci

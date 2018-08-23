@@ -7,7 +7,7 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
-import { MeshBuilderState } from '../shape/mesh-builder';
+import { MeshBuilder } from '../mesh-builder';
 
 const tA = Vec3.zero()
 const tB = Vec3.zero()
@@ -25,8 +25,8 @@ const p2 = Vec3.zero()
 const p3 = Vec3.zero()
 const p4 = Vec3.zero()
 
-export function addSheet(controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean, state: MeshBuilderState) {
-    const { vertices, normals, indices } = state
+export function addSheet(builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) {
+    const { currentGroup, vertices, normals, indices, groups } = builder.state
 
     let vertexCount = vertices.elementCount
     let offsetLength = 0
@@ -173,5 +173,6 @@ export function addSheet(controlPoints: ArrayLike<number>, normalVectors: ArrayL
         ChunkedArray.add3(indices, vertexCount, vertexCount + 3, vertexCount + 2);
     }
 
-    return (linearSegments + 1) * 8 + (startCap ? 4 : 0) + (endCap && arrowHeight === 0 ? 4 : 0)
+    const addedVertexCount = (linearSegments + 1) * 8 + (startCap ? 4 : 0) + (endCap && arrowHeight === 0 ? 4 : 0)
+    for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup)
 }

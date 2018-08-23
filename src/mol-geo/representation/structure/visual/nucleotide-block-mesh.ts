@@ -7,15 +7,16 @@
 import { Unit } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../shape/mesh';
-import { MeshBuilder } from '../../../shape/mesh-builder';
-import { getElementLoci, markElement } from './util/element';
+import { Mesh } from '../../../mesh/mesh';
+import { MeshBuilder } from '../../../mesh/mesh-builder';
+import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation, SortedArray } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
-import { StructureElementIterator } from './util/location-iterator';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
+import { addCylinder } from '../../../mesh/builder/cylinder';
+import { Box } from '../../../primitive/box';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -29,7 +30,9 @@ const vC = Vec3.zero()
 const center = Vec3.zero()
 const t = Mat4.identity()
 const sVec = Vec3.zero()
+const box = Box()
 
+// TODO define props, should be scalable
 async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
@@ -88,9 +91,9 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props:
                     Vec3.scaleAndAdd(center, p1, v12, height / 2 - 0.2)
                     Mat4.scale(t, t, Vec3.set(sVec, width, depth, height))
                     Mat4.setTranslation(t, center)
-                    builder.setId(SortedArray.findPredecessorIndex(elements, idx6))
-                    builder.addBox(t)
-                    builder.addCylinder(p5, p6, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
+                    builder.setGroup(SortedArray.findPredecessorIndex(elements, idx6))
+                    builder.add(t, box)
+                    addCylinder(builder, p5, p6, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
                 }
             }
 

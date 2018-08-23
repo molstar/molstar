@@ -8,12 +8,12 @@ import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
-import { Mesh } from '../../../shape/mesh';
+import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
-import { LocationIterator } from './util/location-iterator';
+import { LocationIterator } from '../../../util/location-iterator';
 import { Interval } from 'mol-data/int';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { BitFlags } from 'mol-util';
@@ -73,24 +73,24 @@ export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProp
 
 function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
     const { pairs } = structure.crossLinkRestraints
-    const elementCount = pairs.length
+    const groupCount = pairs.length
     const instanceCount = 1
     const location = Link.Location()
-    const getLocation = (elementIndex: number) => {
-        const pair = pairs[elementIndex]
+    const getLocation = (groupIndex: number) => {
+        const pair = pairs[groupIndex]
         location.aUnit = pair.unitA
         location.aIndex = pair.indexA
         location.bUnit = pair.unitB
         location.bIndex = pair.indexB
         return location
     }
-    return LocationIterator(elementCount, instanceCount, getLocation)
+    return LocationIterator(groupCount, instanceCount, getLocation)
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
-    const { objectId, elementId } = pickingId
+    const { objectId, groupId } = pickingId
     if (id === objectId) {
-        const pair = structure.crossLinkRestraints.pairs[elementId]
+        const pair = structure.crossLinkRestraints.pairs[groupId]
         if (pair) {
             return Link.Loci([ Link.Location(pair.unitA, pair.indexA, pair.unitB, pair.indexB) ])
         }

@@ -10,7 +10,7 @@ import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 
 export type MarkerData = {
     tMarker: ValueCell<TextureImage>
-    uMarkerTexSize: ValueCell<Vec2>
+    uMarkerTexDim: ValueCell<Vec2>
 }
 
 export enum MarkerAction {
@@ -77,26 +77,26 @@ export function createMarkers(count: number, markerData?: MarkerData): MarkerDat
         : createTextureImage(count, 1)
     if (markerData) {
         ValueCell.update(markerData.tMarker, markers)
-        ValueCell.update(markerData.uMarkerTexSize, Vec2.create(markers.width, markers.height))
+        ValueCell.update(markerData.uMarkerTexDim, Vec2.create(markers.width, markers.height))
         return markerData
     } else {
         return {
             tMarker: ValueCell.create(markers),
-            uMarkerTexSize: ValueCell.create(Vec2.create(markers.width, markers.height)),
+            uMarkerTexDim: ValueCell.create(Vec2.create(markers.width, markers.height)),
         }
     }
 }
 
 const emptyMarkerTexture = { array: new Uint8Array(1), width: 1, height: 1 }
-export function createEmptyMarkers(markerData?: MarkerData) {
+export function createEmptyMarkers(markerData?: MarkerData): MarkerData {
     if (markerData) {
         ValueCell.update(markerData.tMarker, emptyMarkerTexture)
-        ValueCell.update(markerData.uMarkerTexSize, Vec2.create(1, 1))
+        ValueCell.update(markerData.uMarkerTexDim, Vec2.create(1, 1))
         return markerData
     } else {
         return {
             tMarker: ValueCell.create(emptyMarkerTexture),
-            uMarkerTexSize: ValueCell.create(Vec2.create(1, 1)),
+            uMarkerTexDim: ValueCell.create(Vec2.create(1, 1)),
         }
     }
 }
