@@ -7,7 +7,7 @@
 import { StructureElement, Structure } from '../../structure';
 import { StructureSelection } from '../selection';
 import { HashSet } from 'mol-data/generic';
-import { structureUnion } from './structure';
+import { structureUnion } from './structure-set';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 import { ElementIndex } from '../../model';
 

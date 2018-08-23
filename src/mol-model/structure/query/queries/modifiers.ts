@@ -11,6 +11,7 @@ import { StructureSelection } from '../selection';
 import { UniqueStructuresBuilder } from '../utils/builders';
 import { StructureUniqueSubsetBuilder } from '../../structure/util/unique-subset-builder';
 import { QueryContext } from '../context';
+import { structureIntersect, structureSubtract } from '../utils/structure-set';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -39,7 +40,7 @@ function getWholeResidues(ctx: QueryContext, source: Structure, structure: Struc
     return builder.getStructure();
 }
 
-export function wholeResidues(query: StructureQuery, isFlat: boolean): StructureQuery {
+export function wholeResidues(query: StructureQuery): StructureQuery {
     return ctx => {
         const inner = query(ctx);
         if (StructureSelection.isSingleton(inner)) {
@@ -53,9 +54,6 @@ export function wholeResidues(query: StructureQuery, isFlat: boolean): Structure
         }
     };
 }
-
-
-// export function groupBy()  ...
 
 export interface IncludeSurroundingsParams {
     radius: number,
@@ -112,9 +110,55 @@ export function querySelection(selection: StructureQuery, query: StructureQuery)
             StructureSelection.forEach(query(ctx), add);
             ctx.popInputStructure();
             if (sI % 10 === 0) ctx.throwIfTimedOut();
-        })
+        });
         return ret.getSelection();
     }
 }
 
-// TODO: intersectBy, exceptBy, unionBy, union, cluster, includeConnected
+export function intersectBy(query: StructureQuery, by: StructureQuery): StructureQuery {
+    return ctx => {
+        const selection = query(ctx);
+        if (StructureSelection.structureCount(selection) === 0) return selection;
+
+        const bySel = by(ctx);
+        if (StructureSelection.structureCount(bySel) === 0) return StructureSelection.Empty(ctx.inputStructure);
+        const unionBy = StructureSelection.unionStructure(bySel);
+
+        const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
+        StructureSelection.forEach(selection, (s, sI) => {
+            const ii = structureIntersect(unionBy, s);
+            if (ii.elementCount !== 0) ret.add(ii);
+        });
+
+        return ret.getSelection();
+    };
+}
+
+export function exceptBy(query: StructureQuery, by: StructureQuery): StructureQuery {
+    return ctx => {
+        const selection = query(ctx);
+        if (StructureSelection.structureCount(selection) === 0) return selection;
+
+        const bySel = by(ctx);
+        if (StructureSelection.structureCount(bySel) === 0) return StructureSelection.Empty(ctx.inputStructure);
+        const subtractBy = StructureSelection.unionStructure(bySel);
+
+        const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
+        StructureSelection.forEach(selection, (s, sI) => {
+            const diff = structureSubtract(s, subtractBy);
+            if (diff.elementCount !== 0) ret.add(diff);
+        });
+
+        return ret.getSelection();
+    };
+}
+
+export function union(query: StructureQuery): StructureQuery {
+    return ctx => {
+        const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+        ret.add(StructureSelection.unionStructure(query(ctx)));
+        return ret.getSelection();
+    };
+}
+
+// TODO: unionBy (skip this one?), cluster, includeConnected, includeSurroundings with "radii", expandProperty

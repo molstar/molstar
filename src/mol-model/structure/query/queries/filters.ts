@@ -9,7 +9,7 @@ import { Unit } from '../../structure';
 import { QueryContext, QueryFn, QueryPredicate } from '../context';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
-import { structureAreIntersecting } from '../utils/structure';
+import { structureAreIntersecting } from '../utils/structure-set';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { checkStructureMaxRadiusDistance, checkStructureMinMaxDistance } from '../utils/structure-distance';
 

@@ -14,7 +14,7 @@ import { UnitRing } from '../../structure/unit/rings';
 import Structure from '../../structure/structure';
 import { ElementIndex } from '../../model';
 import { UniqueArray } from 'mol-data/generic';
-import { structureSubtract } from '../utils/structure';
+import { structureSubtract } from '../utils/structure-set';
 
 export const none: StructureQuery = ctx => StructureSelection.Sequence(ctx.inputStructure, []);
 export const all: StructureQuery = ctx => StructureSelection.Singletons(ctx.inputStructure, ctx.inputStructure);

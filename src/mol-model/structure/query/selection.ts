@@ -6,7 +6,7 @@
 
 import { HashSet } from 'mol-data/generic'
 import { Structure, StructureElement, Unit } from '../structure'
-import { structureUnion } from './utils/structure';
+import { structureUnion } from './utils/structure-set';
 import { OrderedSet, SortedArray } from 'mol-data/int';
 
 // A selection is a pair of a Structure and a sequence of unique AtomSets
