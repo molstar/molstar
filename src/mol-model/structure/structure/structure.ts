@@ -324,22 +324,12 @@ namespace Structure {
     }
 
     const distVec = Vec3.zero();
-    function atomicOrGaussianDistance(u: Unit.Atomic | Unit.Gaussians, p: Vec3, r: number) {
-        const { elements, conformation } = u;
+    function unitElementMinDistance(unit: Unit, p: Vec3, eRadius: number) {
+        const { elements, conformation: { position, r } } = unit, dV = distVec;
         let minD = Number.MAX_VALUE;
         for (let i = 0, _i = elements.length; i < _i; i++) {
-            const d = Vec3.distance(p, conformation.position(elements[i], distVec)) - r;
-            if (d < minD) minD = d;
-        }
-        return minD;
-    }
-
-    function sphereDistance(u: Unit.Spheres, p: Vec3, r: number) {
-        const { elements, conformation } = u;
-        const radius = u.coarseConformation.radius;
-        let minD = Number.MAX_VALUE;
-        for (let i = 0, _i = elements.length; i < _i; i++) {
-            const d = Vec3.distance(p, conformation.position(elements[i], distVec)) - r - radius[elements[i]];
+            const e = elements[i];
+            const d = Vec3.distance(p, position(e, dV)) - eRadius - r(e);
             if (d < minD) minD = d;
         }
         return minD;
@@ -347,19 +337,10 @@ namespace Structure {
 
     export function minDistanceToPoint(s: Structure, point: Vec3, radius: number) {
         const { units } = s;
-        let minD = Number.MAX_VALUE, d = 0;
+        let minD = Number.MAX_VALUE;
         for (let i = 0, _i = units.length; i < _i; i++) {
             const unit = units[i];
-            switch (unit.kind) {
-                case Unit.Kind.Atomic:
-                // TODO: assign radius to gaussian elements?
-                case Unit.Kind.Gaussians:
-                    d = atomicOrGaussianDistance(unit, point, radius);
-                    break;
-                case Unit.Kind.Spheres:
-                    d = sphereDistance(unit, point, radius);
-                    break;
-            }
+            const d = unitElementMinDistance(unit, point, radius);
             if (d < minD) minD = d;
         }
         return minD;
@@ -370,30 +351,16 @@ namespace Structure {
         if (a.elementCount === 0 || b.elementCount === 0) return 0;
 
         const { units } = a;
-        let minD = Number.MAX_VALUE, d = 0;
+        let minD = Number.MAX_VALUE;
 
         for (let i = 0, _i = units.length; i < _i; i++) {
             const unit = units[i];
-            const { elements, conformation } = unit;
-
-            switch (unit.kind) {
-                case Unit.Kind.Atomic:
-                // TODO: assign radius to gaussian elements?
-                case Unit.Kind.Gaussians:
-                    for (let i = 0, _i = elements.length; i < _i; i++) {
-                        const d = minDistanceToPoint(b, conformation.position(elements[i], distPivot), 0);
-                        if (d < minD) minD = d;
-                    }
-                    break;
-                case Unit.Kind.Spheres:
-                    const radius = unit.coarseConformation.radius;
-                    for (let i = 0, _i = elements.length; i < _i; i++) {
-                        const d = minDistanceToPoint(b, conformation.position(elements[i], distPivot), radius[elements[i]]);
-                        if (d < minD) minD = d;
-                    }
-                    break;
+            const { elements, conformation: { position, r } } = unit;
+            for (let i = 0, _i = elements.length; i < _i; i++) {
+                const e = elements[i];
+                const d = minDistanceToPoint(b, position(e, distPivot), r(e));
+                if (d < minD) minD = d;
             }
-            if (d < minD) minD = d;
         }
         return minD;
     }

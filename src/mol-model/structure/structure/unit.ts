@@ -29,9 +29,9 @@ namespace Unit {
 
     export function create(id: number, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation), AtomicProperties());
-            case Kind.Spheres: return createCoarse(id, unitIdFactory(), model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres));
-            case Kind.Gaussians: return createCoarse(id, unitIdFactory(), model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians));
+            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), AtomicProperties());
+            case Kind.Spheres: return createCoarse(id, unitIdFactory(), model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)));
+            case Kind.Gaussians: return createCoarse(id, unitIdFactory(), model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)));
         }
     }
 
@@ -62,6 +62,16 @@ namespace Unit {
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
 
         readonly lookup3d: Lookup3D
+    }
+
+    function getSphereRadiusFunc(model: Model) {
+        const r = model.coarseConformation.spheres.radius;
+        return (i: number) => r[i];
+    }
+
+    function getGaussianRadiusFunc(model: Model) {
+        // TODO: compute radius for gaussians
+        return (i: number) => 0;
     }
 
     const unitIdFactory = idFactory();
@@ -95,7 +105,7 @@ namespace Unit {
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation), this.props);
+            return new Atomic(id, this.invariantId, this.model, this.elements, SymmetryOperator.createMapping(op, this.model.atomicConformation, this.conformation.r), this.props);
         }
 
         get lookup3d() {
@@ -163,7 +173,7 @@ namespace Unit {
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements()));
+            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements(), this.conformation.r));
             (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
             return ret;
         }

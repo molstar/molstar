@@ -54,16 +54,17 @@ namespace SymmetryOperator {
         readonly position: CoordinateMapper,
         x(index: number): number,
         y(index: number): number,
-        z(index: number): number
+        z(index: number): number,
+        r(index: number): number
     }
 
     export interface Coordinates { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
 
-    export function createMapping(operator: SymmetryOperator, coords: Coordinates): ArrayMapping {
+    export function createMapping(operator: SymmetryOperator, coords: Coordinates, radius: ((index: number) => number) | undefined): ArrayMapping {
         const invariantPosition = SymmetryOperator.createCoordinateMapper(SymmetryOperator.Default, coords);
         const position = operator.isIdentity ? invariantPosition : SymmetryOperator.createCoordinateMapper(operator, coords);
         const { x, y, z } = createProjections(operator, coords);
-        return { operator, invariantPosition, position, x, y, z };
+        return { operator, invariantPosition, position, x, y, z, r: radius ? radius : _zeroRadius };
     }
 
     export function createCoordinateMapper(t: SymmetryOperator, coords: Coordinates): CoordinateMapper {
@@ -73,6 +74,8 @@ namespace SymmetryOperator {
 }
 
 export { SymmetryOperator }
+
+function _zeroRadius(i: number) { return 0; }
 
 interface Projections { x(index: number): number, y(index: number): number, z(index: number): number }
 
