@@ -84,7 +84,7 @@ export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, 
         Vec3.fromArray(u, normalVectors, offset)
         Vec3.fromArray(v, binormalVectors, offset)
         Vec3.fromArray(controlPoint, controlPoints, offset)
-        Vec3.cross(normalVector, u, v)
+        Vec3.cross(normalVector, v, u)
 
         ChunkedArray.add3(vertices, controlPoint[0], controlPoint[1], controlPoint[2]);
         ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
@@ -107,9 +107,9 @@ export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, 
 
             ChunkedArray.add3(
                 indices,
-                centerVertex,
+                vertexCount + (i + 1) % radialSegments,
                 vertexCount + i,
-                vertexCount + (i + 1) % radialSegments
+                centerVertex
             );
         }
     }
