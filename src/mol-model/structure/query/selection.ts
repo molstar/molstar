@@ -101,6 +101,7 @@ namespace StructureSelection {
     export function LinearBuilder(structure: Structure): Builder { return new LinearBuilderImpl(structure); }
     export function UniqueBuilder(structure: Structure): Builder { return new HashBuilderImpl(structure); }
 
+    // TODO: build timeout checking into this?
     export function forEach(sel: StructureSelection, fn: (s: Structure, i: number) => void) {
         let idx = 0;
         if (StructureSelection.isSingleton(sel)) {

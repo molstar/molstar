@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-interface UniqueArray<K, T> {
+interface UniqueArray<K, T = K> {
     keys: Set<K>,
     array: T[]
 }
 
 namespace UniqueArray {
-    export function create<K, T>(): UniqueArray<K, T> {
+    export function create<K, T = K>(): UniqueArray<K, T> {
         return { keys: new Set<K>(), array: [] };
     }
 

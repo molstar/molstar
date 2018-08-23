@@ -10,8 +10,10 @@ import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { UniqueStructuresBuilder } from '../utils/builders';
 import { StructureUniqueSubsetBuilder } from '../../structure/util/unique-subset-builder';
-import { QueryContext } from '../context';
+import { QueryContext, QueryFn } from '../context';
 import { structureIntersect, structureSubtract } from '../utils/structure-set';
+import { UniqueArray } from 'mol-data/generic';
+import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -128,6 +130,7 @@ export function intersectBy(query: StructureQuery, by: StructureQuery): Structur
         StructureSelection.forEach(selection, (s, sI) => {
             const ii = structureIntersect(unionBy, s);
             if (ii.elementCount !== 0) ret.add(ii);
+            if (sI % 50 === 0) ctx.throwIfTimedOut();
         });
 
         return ret.getSelection();
@@ -147,6 +150,7 @@ export function exceptBy(query: StructureQuery, by: StructureQuery): StructureQu
         StructureSelection.forEach(selection, (s, sI) => {
             const diff = structureSubtract(s, subtractBy);
             if (diff.elementCount !== 0) ret.add(diff);
+            if (sI % 50 === 0) ctx.throwIfTimedOut();
         });
 
         return ret.getSelection();
@@ -161,4 +165,57 @@ export function union(query: StructureQuery): StructureQuery {
     };
 }
 
-// TODO: unionBy (skip this one?), cluster, includeConnected, includeSurroundings with "radii", expandProperty
+export function expandProperty(query: StructureQuery, property: QueryFn): StructureQuery {
+    return ctx => {
+        const src = query(ctx);
+        const propertyToStructureIndexMap = new Map<any, UniqueArray<number>>();
+
+        const builders: StructureSubsetBuilder[] = [];
+        ctx.pushCurrentElement();
+        StructureSelection.forEach(src, (s, sI) => {
+            for (const unit of s.units) {
+                ctx.element.unit = unit;
+                const elements = unit.elements;
+                for (let i = 0, _i = elements.length; i < _i; i++) {
+                    ctx.element.element = elements[i];
+                    const p = property(ctx);
+                    let arr: UniqueArray<number>;
+                    if (propertyToStructureIndexMap.has(p)) arr = propertyToStructureIndexMap.get(p)!;
+                    else {
+                        arr = UniqueArray.create<number>();
+                        propertyToStructureIndexMap.set(p, arr);
+                    }
+                    UniqueArray.add(arr, sI, sI);
+                }
+            }
+            builders[sI] = ctx.inputStructure.subsetBuilder(true);
+
+            if (sI % 10 === 0) ctx.throwIfTimedOut();
+        });
+
+        for (const unit of ctx.inputStructure.units) {
+            ctx.element.unit = unit;
+            const elements = unit.elements;
+            for (let i = 0, _i = elements.length; i < _i; i++) {
+                ctx.element.element = elements[i];
+                const p = property(ctx);
+                if (!propertyToStructureIndexMap.has(p)) continue;
+
+                const indices = propertyToStructureIndexMap.get(p)!.array;
+
+                for (let _sI = 0, __sI = indices.length; _sI < __sI; _sI++) {
+                    builders[indices[i]].addToUnit(unit.id, elements[i]);
+                }
+            }
+        }
+
+        ctx.popCurrentElement();
+
+        const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
+        for (const b of builders) ret.add(b.getStructure());
+
+        return ret.getSelection();
+    };
+}
+
+// TODO: unionBy (skip this one?), cluster, includeConnected, includeSurroundings with "radii"
