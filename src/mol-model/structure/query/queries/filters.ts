@@ -107,7 +107,7 @@ export interface WithinParams {
     target: StructureQuery,
     minRadius?: number,
     maxRadius: number,
-    atomRadius?: QueryFn<number>,
+    elementRadius?: QueryFn<number>,
     invert?: boolean
 }
 
@@ -120,12 +120,12 @@ export function within(params: WithinParams): StructureQuery {
             selection: params.query(queryCtx),
             target: params.target(queryCtx),
             maxRadius: params.maxRadius,
-            minRadius: params.minRadius ? params.minRadius : 0,
-            atomRadius: params.atomRadius || _zeroRadius,
+            minRadius: params.minRadius ? Math.max(0, params.minRadius) : 0,
+            elementRadius: params.elementRadius!,
             invert: !!params.invert,
         }
 
-        if (ctx.minRadius === 0 && ctx.atomRadius === _zeroRadius) {
+        if (ctx.minRadius === 0 && typeof params.minRadius === 'undefined') {
             return withinMaxRadius(ctx);
         } else {
             // TODO
@@ -142,7 +142,7 @@ interface WithinContext {
     minRadius: number,
     maxRadius: number,
     invert: boolean,
-    atomRadius: QueryFn<number>
+    elementRadius: QueryFn<number>
 }
 function withinMaxRadius({ queryCtx, selection, target, maxRadius, invert }: WithinContext) {
     const targetLookup = StructureSelection.unionStructure(target).lookup3d;
@@ -151,34 +151,18 @@ function withinMaxRadius({ queryCtx, selection, target, maxRadius, invert }: Wit
     const pos = Vec3.zero();
     StructureSelection.forEach(selection, (s, sI) => {
         const { units } = s;
-
         let withinRadius = false;
         for (let i = 0, _i = units.length; i < _i; i++) {
             const unit = units[i];
-            const { elements, conformation } = unit;
+            const { elements, conformation: { position, r } } = unit;
 
-            switch (unit.kind) {
-                case Unit.Kind.Atomic:
-                // TODO: assign radius to gaussian elements?
-                case Unit.Kind.Gaussians:
-                    for (let i = 0, _i = elements.length; i < _i; i++) {
-                        conformation.position(elements[i], pos);
-                        if (targetLookup.check(pos[0], pos[1], pos[2], maxRadius)) {
-                            withinRadius = true;
-                            break;
-                        }
-                    }
+            for (let i = 0, _i = elements.length; i < _i; i++) {
+                const e = elements[i];
+                position(e, pos);
+                if (targetLookup.check(pos[0], pos[1], pos[2], maxRadius + r(e))) {
+                    withinRadius = true;
                     break;
-                case Unit.Kind.Spheres:
-                    const radius = unit.coarseConformation.radius;
-                    for (let i = 0, _i = elements.length; i < _i; i++) {
-                        conformation.position(elements[i], pos);
-                        if (targetLookup.check(pos[0], pos[1], pos[2], maxRadius + radius[elements[i]])) {
-                            withinRadius = true;
-                            break;
-                        }
-                    }
-                    break;
+                }
             }
             if (withinRadius) break;
         }

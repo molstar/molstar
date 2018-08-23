@@ -4,8 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Structure, StructureElement } from '../structure';
+import { Structure, StructureElement, Unit } from '../structure';
 import { now } from 'mol-task';
+import { ElementIndex } from '../model';
 
 export interface QueryContextView {
     readonly element: StructureElement;
@@ -25,6 +26,11 @@ export class QueryContext implements QueryContextView {
     /** Current element */
     readonly element: StructureElement = StructureElement.create();
     currentStructure: Structure = void 0 as any;
+
+    setElement(unit: Unit, e: ElementIndex) {
+        this.element.unit = unit;
+        this.element.element = e;
+    }
 
     pushCurrentElement(): StructureElement {
         this.currentElementStack[this.currentElementStack.length] = this.element;
