@@ -210,8 +210,8 @@ export function querySelection(selection: StructureQuery, query: StructureQuery,
         if (StructureSelection.structureCount(targetSel) === 0) return targetSel;
 
         const target = inComplement
-        ? structureSubtract(ctx.inputStructure, StructureSelection.unionStructure(targetSel))
-        : StructureSelection.unionStructure(targetSel);
+            ? structureSubtract(ctx.inputStructure, StructureSelection.unionStructure(targetSel))
+            : StructureSelection.unionStructure(targetSel);
 
         if (target.elementCount === 0) return StructureSelection.Empty(ctx.inputStructure);
         ctx.throwIfTimedOut();

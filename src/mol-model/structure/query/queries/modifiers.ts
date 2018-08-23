@@ -99,4 +99,22 @@ export function includeSurroundings(query: StructureQuery, params: IncludeSurrou
     };
 }
 
-// TODO: queryEach, intersectBy, exceptBy, unionBy, union, cluster, includeConnected
+export function querySelection(selection: StructureQuery, query: StructureQuery): StructureQuery {
+    return ctx => {
+        const targetSel = selection(ctx);
+        if (StructureSelection.structureCount(targetSel) === 0) return targetSel;
+
+        const ret = StructureSelection.UniqueBuilder(ctx.inputStructure);
+        const add = (s: Structure) => ret.add(s);
+
+        StructureSelection.forEach(targetSel, (s, sI) => {
+            ctx.pushInputStructure(s);
+            StructureSelection.forEach(query(ctx), add);
+            ctx.popInputStructure();
+            if (sI % 10 === 0) ctx.throwIfTimedOut();
+        })
+        return ret.getSelection();
+    }
+}
+
+// TODO: intersectBy, exceptBy, unionBy, union, cluster, includeConnected
