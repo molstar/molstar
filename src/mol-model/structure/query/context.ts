@@ -7,6 +7,7 @@
 import { Structure, StructureElement, Unit } from '../structure';
 import { now } from 'mol-task';
 import { ElementIndex } from '../model';
+import { Link } from '../structure/unit/links';
 
 export interface QueryContextView {
     readonly element: StructureElement;
@@ -15,6 +16,7 @@ export interface QueryContextView {
 
 export class QueryContext implements QueryContextView {
     private currentElementStack: StructureElement[] = [];
+    private currentAtomicLinkStack: Link.Location<Unit.Atomic>[] = [];
     private currentStructureStack: Structure[] = [];
     private inputStructureStack: Structure[] = [];
 
@@ -26,6 +28,9 @@ export class QueryContext implements QueryContextView {
     /** Current element */
     readonly element: StructureElement = StructureElement.create();
     currentStructure: Structure = void 0 as any;
+
+    /** Current link between atoms */
+    readonly atomicLink: Link.Location<Unit.Atomic> = void 0 as any;
 
     setElement(unit: Unit, e: ElementIndex) {
         this.element.unit = unit;
@@ -40,6 +45,20 @@ export class QueryContext implements QueryContextView {
 
     popCurrentElement() {
         (this.element as StructureElement) = this.currentElementStack.pop()!;
+    }
+
+    pushCurrentLink() {
+        if (this.atomicLink) this.currentAtomicLinkStack.push(this.atomicLink);
+        (this.atomicLink as Link.Location<Unit.Atomic>) = Link.Location() as Link.Location<Unit.Atomic>;
+        return this.atomicLink;
+    }
+
+    popCurrentLink() {
+        if (this.currentAtomicLinkStack.length > 0) {
+            (this.atomicLink as Link.Location<Unit.Atomic>) = this.currentAtomicLinkStack.pop()!;
+        } else {
+            (this.atomicLink as any) = void 0;
+        }
     }
 
     pushCurrentStructure() {

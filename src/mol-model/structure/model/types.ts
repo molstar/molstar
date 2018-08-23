@@ -491,6 +491,10 @@ export namespace LinkType {
         // currently at most 16 flags are supported!!
     }
 
+    export function create(flags: Flag): LinkType {
+        return BitFlags.create(flags);
+    }
+
     export function isCovalent(flags: LinkType.Flag) {
         return (flags & LinkType.Flag.Covalent) !== 0;
     }

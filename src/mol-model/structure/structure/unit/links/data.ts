@@ -9,6 +9,7 @@ import { LinkType } from '../../../model/types'
 import { IntAdjacencyGraph } from 'mol-math/graph';
 import Unit from '../../unit';
 import StructureElement from '../../element';
+import { Link } from '../links';
 
 type IntraUnitLinks = IntAdjacencyGraph<{ readonly order: ArrayLike<number>, readonly flags: ArrayLike<LinkType.Flag> }>
 
@@ -27,15 +28,19 @@ class InterUnitBonds {
     }
 
     /** Index into this.bonds */
-    getBondIndex(indexA: number, unitA: Unit, indexB: number, unitB: Unit): number {
+    getBondIndex(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): number {
         const key = InterUnitBonds.getBondKey(indexA, unitA, indexB, unitB)
         const index = this.bondKeyIndex.get(key)
         return index !== undefined ? index : -1
     }
 
-    getBond(indexA: number, unitA: Unit, indexB: number, unitB: Unit): InterUnitBonds.Bond | undefined {
+    getBond(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): InterUnitBonds.Bond | undefined {
         const index = this.getBondIndex(indexA, unitA, indexB, unitB)
         return index !== -1 ? this.bonds[index] : undefined
+    }
+
+    getBondFromLocation(l: Link.Location) {
+        return this.getBond(l.aIndex, l.aUnit, l.bIndex, l.bUnit);
     }
 
     constructor(private map: Map<number, InterUnitBonds.UnitPairBonds[]>) {

@@ -6,18 +6,20 @@
  */
 
 import { Unit, StructureElement } from '../../structure'
+import Structure from '../structure';
+import { LinkType } from '../../model/types';
 
 export * from './links/data'
 export * from './links/intra-compute'
 export * from './links/inter-compute'
 
 namespace Link {
-    export interface Location {
+    export interface Location<U extends Unit = Unit> {
         readonly kind: 'link-location',
-        aUnit: Unit,
+        aUnit: U,
         /** Index into aUnit.elements */
         aIndex: StructureElement.UnitIndex,
-        bUnit: Unit,
+        bUnit: U,
         /** Index into bUnit.elements */
         bIndex: StructureElement.UnitIndex,
     }
@@ -41,6 +43,32 @@ namespace Link {
 
     export function isLoci(x: any): x is Loci {
         return !!x && x.kind === 'link-loci';
+    }
+
+    export function getType(structure: Structure, link: Location<Unit.Atomic>): LinkType {
+        if (link.aUnit === link.bUnit) {
+            const links = link.aUnit.links;
+            const idx = links.getEdgeIndex(link.aIndex, link.bIndex);
+            if (idx < 0) return LinkType.create(LinkType.Flag.None);
+            return LinkType.create(links.edgeProps.flags[idx]);
+        } else {
+            const bond = structure.links.getBondFromLocation(link);
+            if (bond) return LinkType.create(bond.flag);
+            return LinkType.create(LinkType.Flag.None);
+        }
+    }
+
+    export function getOrder(structure: Structure, link: Location<Unit.Atomic>): number {
+        if (link.aUnit === link.bUnit) {
+            const links = link.aUnit.links;
+            const idx = links.getEdgeIndex(link.aIndex, link.bIndex);
+            if (idx < 0) return 0;
+            return links.edgeProps.order[idx];
+        } else {
+            const bond = structure.links.getBondFromLocation(link);
+            if (bond) return bond.order;
+            return 0;
+        }
     }
 }
 
