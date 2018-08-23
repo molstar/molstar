@@ -1,5 +1,5 @@
 /* tslint:disable */
-/** Generated in 2018-08-20T10:50:59-07:00 */
+/** Generated in 2018-08-22T17:02:01-07:00 */
 
 export enum PdbxLeavingAtomFlag {
   N = "N",
@@ -42,7 +42,7 @@ export enum UnpublishedFlag {
   Y = "Y"
 }
 
-export enum PdbxMonochromaticOrLaueML {
+export enum PdbxMonochromaticOrLaueMl {
   L = "L",
   M = "M"
 }
