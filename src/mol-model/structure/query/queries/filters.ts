@@ -11,6 +11,7 @@ import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 import { structureAreIntersecting } from '../utils/structure';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { checkStructureMaxRadiusDistance, checkStructureMinMaxDistance } from '../utils/structure-distance';
 
 export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
     return ctx => {
@@ -111,8 +112,6 @@ export interface WithinParams {
     invert?: boolean
 }
 
-function _zeroRadius(ctx: QueryContext) { return 0; }
-
 export function within(params: WithinParams): StructureQuery {
     return queryCtx => {
         const ctx: WithinContext = {
@@ -126,11 +125,11 @@ export function within(params: WithinParams): StructureQuery {
         }
 
         if (ctx.minRadius === 0 && typeof params.minRadius === 'undefined') {
+            return withinMaxRadiusLookup(ctx);
+        } else if (ctx.minRadius === 0) {
             return withinMaxRadius(ctx);
         } else {
-            // TODO
-            throw 'not implemented';
-            // return withinMinMaxRadius(ctx);
+            return withinMinMaxRadius(ctx);
         }
     }
 }
@@ -144,7 +143,7 @@ interface WithinContext {
     invert: boolean,
     elementRadius: QueryFn<number>
 }
-function withinMaxRadius({ queryCtx, selection, target, maxRadius, invert }: WithinContext) {
+function withinMaxRadiusLookup({ queryCtx, selection, target, maxRadius, invert }: WithinContext) {
     const targetLookup = StructureSelection.unionStructure(target).lookup3d;
     const ret = StructureSelection.LinearBuilder(queryCtx.inputStructure);
 
@@ -166,6 +165,34 @@ function withinMaxRadius({ queryCtx, selection, target, maxRadius, invert }: Wit
             }
             if (withinRadius) break;
         }
+        if (invert) withinRadius = !withinRadius;
+        if (withinRadius) ret.add(s);
+        if (sI % 10 === 0) queryCtx.throwIfTimedOut();
+    });
+
+    return ret.getSelection();
+}
+
+function withinMaxRadius({ queryCtx, selection, target, maxRadius, invert, elementRadius }: WithinContext) {
+    const targetStructure = StructureSelection.unionStructure(target);
+    const ret = StructureSelection.LinearBuilder(queryCtx.inputStructure);
+
+    StructureSelection.forEach(selection, (s, sI) => {
+        let withinRadius = checkStructureMaxRadiusDistance(queryCtx, targetStructure, s, maxRadius, elementRadius);
+        if (invert) withinRadius = !withinRadius;
+        if (withinRadius) ret.add(s);
+        if (sI % 10 === 0) queryCtx.throwIfTimedOut();
+    });
+
+    return ret.getSelection();
+}
+
+function withinMinMaxRadius({ queryCtx, selection, target, minRadius, maxRadius, invert, elementRadius }: WithinContext) {
+    const targetStructure = StructureSelection.unionStructure(target);
+    const ret = StructureSelection.LinearBuilder(queryCtx.inputStructure);
+
+    StructureSelection.forEach(selection, (s, sI) => {
+        let withinRadius = checkStructureMinMaxDistance(queryCtx, targetStructure, s, minRadius, maxRadius, elementRadius);
         if (invert) withinRadius = !withinRadius;
         if (withinRadius) ret.add(s);
         if (sI % 10 === 0) queryCtx.throwIfTimedOut();
