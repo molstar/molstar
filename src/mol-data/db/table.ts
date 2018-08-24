@@ -101,6 +101,14 @@ namespace Table {
         return ret as Table<R>;
     }
 
+    export function pick<S extends R, R extends Schema>(table: Table<S>, schema: R, test: (i: number) => boolean) {
+        const _view: number[] = []
+        for (let i = 0, il = table._rowCount; i < il; ++i) {
+            if (test(i)) _view.push(i)
+        }
+        return view(table, schema, _view)
+    }
+
     export function window<S extends R, R extends Schema>(table: Table<S>, schema: R, start: number, end: number) {
         if (start === 0 && end === table._rowCount) return table;
         const ret = Object.create(null);
@@ -192,6 +200,13 @@ namespace Table {
             row[c] = table[c].value(index);
         }
         return row;
+    }
+
+    /** Pick the first row for which `test` evaluates to true */
+    export function pickRow<S extends Schema>(table: Table<S>, test: (i: number) => boolean) {
+        for (let i = 0, il = table._rowCount; i < il; ++i) {
+            if (test(i)) return getRow(table, i)
+        }
     }
 
     export function getRows<S extends Schema>(table: Table<S>) {
