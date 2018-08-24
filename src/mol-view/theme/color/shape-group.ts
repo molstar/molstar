@@ -9,7 +9,7 @@ import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { Shape } from 'mol-model/shape';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
 
 export function ShapeGroupColorTheme(props: ColorThemeProps): ColorTheme {
     return {

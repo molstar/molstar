@@ -8,11 +8,10 @@ import { Link } from 'mol-model/structure';
 
 import { Color, ColorScale, ColorBrewer } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme } from '../color';
-import { LocationColor } from 'mol-geo/util/color-data';
+import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
 import { Vec3 } from 'mol-math/linear-algebra';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
 
 const distVecA = Vec3.zero(), distVecB = Vec3.zero()
 function linkDistance(link: Link.Location) {

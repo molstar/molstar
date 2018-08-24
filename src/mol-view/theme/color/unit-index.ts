@@ -7,10 +7,9 @@
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { Unit, StructureElement, Link } from 'mol-model/structure';
-import { LocationColor } from 'mol-geo/util/color-data';
-import { ColorTheme, ColorThemeProps } from '../color';
+import { ColorTheme, ColorThemeProps, LocationColor } from '../color';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
 
 export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let colorFn: LocationColor

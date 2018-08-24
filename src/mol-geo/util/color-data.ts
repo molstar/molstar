@@ -9,9 +9,8 @@ import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from './location-iterator';
-import { Location, NullLocation } from 'mol-model/location';
-
-export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
+import { NullLocation } from 'mol-model/location';
+import { LocationColor, ColorType } from 'mol-view/theme/color';
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
@@ -20,8 +19,6 @@ export type ColorData = {
     uColorTexDim: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
 }
-
-export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
 const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }
 function createEmptyColorTexture() {

@@ -10,7 +10,7 @@ import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorThemeProps, ColorTheme } from '../color';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
