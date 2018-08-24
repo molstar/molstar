@@ -8,7 +8,7 @@ import { Structure, Model, Format } from 'mol-model/structure';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { Cache } from './cache';
 import Config from '../config';
-import CIF from 'mol-io/reader/cif'
+import CIF, { CifFrame } from 'mol-io/reader/cif'
 import * as util from 'util'
 import * as fs from 'fs'
 import * as zlib from 'zlib'
@@ -34,21 +34,22 @@ export interface StructureInfo {
     entryId: string
 }
 
-export class StructureWrapper {
-    info: StructureInfo;
+export interface StructureWrapper {
+    info: StructureInfo,
 
-    key: string;
-    approximateSize: number;
-    structure: Structure;
+    key: string,
+    approximateSize: number,
+    structure: Structure,
+    cifFrame: CifFrame
 }
 
-export async function getStructure(job: Job): Promise<StructureWrapper> {
-    if (Config.cacheParams.useCache) {
+export async function getStructure(job: Job, allowCache = true): Promise<StructureWrapper> {
+    if (allowCache && Config.cacheParams.useCache) {
         const ret = StructureCache.get(job.key);
         if (ret) return ret;
     }
     const ret = await readStructure(job.key, job.sourceId, job.entryId);
-    if (Config.cacheParams.useCache) {
+    if (allowCache && Config.cacheParams.useCache) {
         StructureCache.add(ret);
     }
     return ret;
@@ -84,7 +85,7 @@ async function parseCif(data: string|Uint8Array) {
     return parsed.result;
 }
 
-async function readStructure(key: string, sourceId: string, entryId: string) {
+export async function readStructure(key: string, sourceId: string | '_local_', entryId: string) {
     const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
     if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
     if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
@@ -127,7 +128,8 @@ async function readStructure(key: string, sourceId: string, entryId: string) {
         },
         key,
         approximateSize: typeof data === 'string' ? 2 * data.length : data.length,
-        structure
+        structure,
+        cifFrame: frame
     };
 
     return ret;

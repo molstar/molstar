@@ -39,7 +39,7 @@ export async function runLocal(input: LocalInput) {
     while (job) {
         try {
             const encoder = await resolveJob(job);
-            const writer = wrapFile(job.outputFilename!);
+            const writer = wrapFileToWriter(job.outputFilename!);
             encoder.writeTo(writer);
             writer.end();
             ConsoleLogger.logId(job.id, 'Query', 'Written.');
@@ -61,7 +61,7 @@ export async function runLocal(input: LocalInput) {
     StructureCache.expireAll();
 }
 
-function wrapFile(fn: string) {
+export function wrapFileToWriter(fn: string) {
     const w = {
         open(this: any) {
             if (this.opened) return;
@@ -71,7 +71,7 @@ function wrapFile(fn: string) {
         },
         writeBinary(this: any, data: Uint8Array) {
             this.open();
-            fs.writeSync(this.file, new Buffer(data));
+            fs.writeSync(this.file, new Buffer(data.buffer));
             return true;
         },
         writeString(this: any, data: string) {

@@ -128,5 +128,5 @@ export function getNumberType(str: string): NumberType {
         }
         else break;
     }
-    return NumberType.Int;
+    return start === end ? NumberType.Int : NumberType.NaN;
 }

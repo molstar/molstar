@@ -20,6 +20,12 @@ export interface CifExportContext {
     cache: any
 }
 
+export namespace CifExportContext {
+    export function create(structure: Structure, model: Model): CifExportContext {
+        return { structure, model, cache: Object.create(null) };
+    }
+}
+
 function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportContext> {
     return {
         name,
@@ -87,14 +93,17 @@ export const mmCIF_Export_Filters = {
 }
 
 /** Doesn't start a data block */
-export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: Structure) {
+export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: Structure, params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext }) {
     const models = structure.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
     const model = models[0];
 
-    const ctx: CifExportContext[] = [{ structure, model, cache: Object.create(null) }];
+    const _params = params || { };
+
+    const ctx: CifExportContext[] = [_params.exportCtx ? _params.exportCtx : CifExportContext.create(structure, model)];
 
     for (const cat of Categories) {
+        if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
         encoder.writeCategory(cat, ctx);
     }
     for (const customProp of model.customProperties.all) {
@@ -103,6 +112,7 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: S
         const prefix = customProp.cifExport.prefix;
         const cats = customProp.cifExport.categories;
         for (const cat of cats) {
+            if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
             if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
             encoder.writeCategory(cat, ctx);
         }
