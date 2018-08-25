@@ -30,7 +30,7 @@ export class QueryContext implements QueryContextView {
     currentStructure: Structure = void 0 as any;
 
     /** Current link between atoms */
-    readonly atomicLink: Link.Location<Unit.Atomic> = void 0 as any;
+    readonly atomicLink: Link.Location<Unit.Atomic> = Link.Location() as Link.Location<Unit.Atomic>;
 
     setElement(unit: Unit, e: ElementIndex) {
         this.element.unit = unit;
