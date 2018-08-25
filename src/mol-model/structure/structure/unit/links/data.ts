@@ -68,11 +68,11 @@ class InterUnitBonds {
 
 namespace InterUnitBonds {
     export class UnitPairBonds {
-        hasBonds(indexA: number) {
+        hasBonds(indexA: StructureElement.UnitIndex) {
             return this.linkMap.has(indexA);
         }
 
-        getBonds(indexA: number): ReadonlyArray<InterUnitBonds.BondInfo> {
+        getBonds(indexA: StructureElement.UnitIndex): ReadonlyArray<InterUnitBonds.BondInfo> {
             if (!this.linkMap.has(indexA)) return emptyArray;
             return this.linkMap.get(indexA)!;
         }

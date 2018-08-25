@@ -12,6 +12,9 @@ import { StructureSelection } from '../selection';
 import { structureAreIntersecting } from '../utils/structure-set';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { checkStructureMaxRadiusDistance, checkStructureMinMaxDistance } from '../utils/structure-distance';
+import Structure from '../../structure/structure';
+import StructureElement from '../../structure/element';
+import { SortedArray } from 'mol-data/int';
 
 export function pick(query: StructureQuery, pred: QueryPredicate): StructureQuery {
     return ctx => {
@@ -205,5 +208,101 @@ function withinMinMaxRadius({ queryCtx, selection, target, minRadius, maxRadius,
     return ret.getSelection();
 }
 
+interface IsConnectedToCtx {
+    queryCtx: QueryContext,
+    input: Structure,
+    target: Structure,
+    bondTest: QueryFn<boolean>,
+    tElement: StructureElement
+}
 
-// TODO: isConnectedTo
+function checkConnected(ctx: IsConnectedToCtx, structure: Structure) {
+    const { queryCtx, input, target, bondTest, tElement } = ctx;
+
+    const interLinks = input.links;
+    for (const unit of structure.units) {
+        if (!Unit.isAtomic(unit)) continue;
+
+        const inputUnit = input.unitMap.get(unit.id) as Unit.Atomic;
+
+        const { offset, b } = inputUnit.links;
+        const linkedUnits = interLinks.getLinkedUnits(unit);
+        const luCount = linkedUnits.length;
+
+        queryCtx.atomicLink.aUnit = inputUnit;
+
+        const srcElements = unit.elements;
+        const inputElements = inputUnit.elements;
+
+        for (let i = 0 as StructureElement.UnitIndex, _i = srcElements.length; i < _i; i++) {
+            const inputIndex = SortedArray.indexOf(inputElements, srcElements[i]) as StructureElement.UnitIndex;
+
+            queryCtx.atomicLink.aIndex = inputIndex;
+            queryCtx.atomicLink.bUnit = inputUnit;
+
+            tElement.unit = unit;
+            for (let l = offset[inputIndex], _l = offset[inputIndex + 1]; l < _l; l++) {
+                tElement.element = inputElements[b[l]];
+                if (!target.hasElement(tElement)) continue;
+                queryCtx.atomicLink.bIndex = b[l] as StructureElement.UnitIndex;
+                if (bondTest(queryCtx)) return true;
+            }
+
+            for (let li = 0; li < luCount; li++) {
+                const lu = linkedUnits[li];
+                tElement.unit = lu.unitB;
+                queryCtx.atomicLink.bUnit = lu.unitB;
+                const bElements = lu.unitB.elements;
+                const bonds = lu.getBonds(inputIndex);
+                for (let bi = 0, _bi = bonds.length; bi < _bi; bi++) {
+                    const bond = bonds[bi];
+                    tElement.element = bElements[bond.indexB];
+                    if (!target.hasElement(tElement)) continue;
+                    queryCtx.atomicLink.bIndex = bond.indexB;
+                    if (bondTest(queryCtx)) return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+export interface IsConnectedToParams {
+    query: StructureQuery,
+    target: StructureQuery,
+    bondTest?: QueryFn<boolean>,
+    disjunct: boolean,
+    invert: boolean
+}
+
+function defaultBondTest(ctx: QueryContext) {
+    return true;
+}
+
+export function isConnectedTo({ query, target, disjunct, invert, bondTest }: IsConnectedToParams): StructureQuery {
+    return ctx => {
+        const targetSel = target(ctx);
+        if (StructureSelection.isEmpty(targetSel)) return targetSel;
+        const selection = query(ctx);
+        if (StructureSelection.isEmpty(selection)) return selection;
+
+        const connCtx: IsConnectedToCtx = {
+            queryCtx: ctx,
+            input: ctx.inputStructure,
+            target: StructureSelection.unionStructure(targetSel),
+            bondTest: bondTest || defaultBondTest,
+            tElement: StructureElement.create()
+        }
+
+        const ret = StructureSelection.LinearBuilder(ctx.inputStructure);
+        ctx.pushCurrentLink();
+        StructureSelection.forEach(selection, (s, sI) => {
+            if (checkConnected(connCtx, s)) ret.add(s);
+            if (sI % 5 === 0) ctx.throwIfTimedOut();
+        })
+        ctx.popCurrentLink();
+
+        return ret.getSelection();
+    }
+}
