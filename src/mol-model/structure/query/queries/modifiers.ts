@@ -14,6 +14,7 @@ import { QueryContext, QueryFn } from '../context';
 import { structureIntersect, structureSubtract } from '../utils/structure-set';
 import { UniqueArray } from 'mol-data/generic';
 import { StructureSubsetBuilder } from '../../structure/util/subset-builder';
+import StructureElement from '../../structure/element';
 
 function getWholeResidues(ctx: QueryContext, source: Structure, structure: Structure) {
     const builder = source.subsetBuilder(true);
@@ -59,8 +60,7 @@ export function wholeResidues(query: StructureQuery): StructureQuery {
 
 export interface IncludeSurroundingsParams {
     radius: number,
-    // TODO
-    // atomRadius?: Element.Property<number>,
+    elementRadius?: QueryFn<number>,
     wholeResidues?: boolean
 }
 
@@ -82,9 +82,88 @@ function getIncludeSurroundings(ctx: QueryContext, source: Structure, structure:
     return !!params.wholeResidues ? getWholeResidues(ctx, source, builder.getStructure()) : builder.getStructure();
 }
 
+interface IncludeSurroundingsParamsWithRadius extends IncludeSurroundingsParams {
+    elementRadius: QueryFn<number>,
+    elementRadiusClosure: StructureElement.Property<number>,
+    sourceMaxRadius: number
+}
+
+function getIncludeSurroundingsWithRadius(ctx: QueryContext, source: Structure, structure: Structure, params: IncludeSurroundingsParamsWithRadius) {
+    const builder = new StructureUniqueSubsetBuilder(source);
+    const lookup = source.lookup3d;
+    const { elementRadius, elementRadiusClosure, sourceMaxRadius, radius } = params;
+
+    ctx.pushCurrentElement();
+    for (const unit of structure.units) {
+        ctx.element.unit = unit;
+        const { x, y, z } = unit.conformation;
+        const elements = unit.elements;
+
+        for (let i = 0, _i = elements.length; i < _i; i++) {
+            const e = elements[i];
+            ctx.element.element = e;
+            const eRadius = elementRadius(ctx);
+            lookup.findIntoBuilderWithRadius(x(e), y(e), z(e), eRadius, sourceMaxRadius, radius, elementRadiusClosure, builder);
+        }
+
+        ctx.throwIfTimedOut();
+    }
+
+    ctx.popCurrentElement();
+    return !!params.wholeResidues ? getWholeResidues(ctx, source, builder.getStructure()) : builder.getStructure();
+}
+
+function createElementRadiusFn(ctx: QueryContext, eRadius: QueryFn<number>): StructureElement.Property<number> {
+    return e => {
+        ctx.element.unit = e.unit;
+        ctx.element.element = e.element;
+        return eRadius(ctx);
+    }
+}
+
+function findStructureRadius(ctx: QueryContext, eRadius: QueryFn<number>) {
+    let r = 0;
+    for (const unit of ctx.inputStructure.units) {
+        ctx.element.unit = unit;
+        const elements = unit.elements;
+
+        for (let i = 0, _i = elements.length; i < _i; i++) {
+            const e = elements[i];
+            ctx.element.element = e;
+            const eR = eRadius(ctx);
+            if (eR > r) r = eR;
+        }
+
+    }
+    ctx.throwIfTimedOut();
+    return r;
+}
+
 export function includeSurroundings(query: StructureQuery, params: IncludeSurroundingsParams): StructureQuery {
     return ctx => {
         const inner = query(ctx);
+
+        if (params.elementRadius) {
+            const prms: IncludeSurroundingsParamsWithRadius = {
+                ...params,
+                elementRadius: params.elementRadius,
+                elementRadiusClosure: createElementRadiusFn(ctx, params.elementRadius),
+                sourceMaxRadius: findStructureRadius(ctx, params.elementRadius)
+            };
+
+            if (StructureSelection.isSingleton(inner)) {
+                const surr = getIncludeSurroundingsWithRadius(ctx, ctx.inputStructure, inner.structure, prms);
+                const ret = StructureSelection.Singletons(ctx.inputStructure, surr);
+                return ret;
+            } else {
+                const builder = new UniqueStructuresBuilder(ctx.inputStructure);
+                for (const s of inner.structures) {
+                    builder.add(getIncludeSurroundingsWithRadius(ctx, ctx.inputStructure, s, prms));
+                }
+                return builder.getSelection();
+            }
+        }
+
         if (StructureSelection.isSingleton(inner)) {
             const surr = getIncludeSurroundings(ctx, ctx.inputStructure, inner.structure, params);
             const ret = StructureSelection.Singletons(ctx.inputStructure, surr);
@@ -218,4 +297,4 @@ export function expandProperty(query: StructureQuery, property: QueryFn): Struct
     };
 }
 
-// TODO: unionBy (skip this one?), cluster, includeConnected, includeSurroundings with "radii"
+// TODO: unionBy (skip this one?), cluster, includeConnected

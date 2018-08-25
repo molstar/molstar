@@ -10,6 +10,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { computeStructureBoundary } from './boundary';
 import { OrderedSet } from 'mol-data/int';
 import { StructureUniqueSubsetBuilder } from './unique-subset-builder';
+import StructureElement from '../element';
 
 export class StructureLookup3D {
     private unitLookup: Lookup3D;
@@ -65,6 +66,39 @@ export class StructureLookup3D {
             builder.commitUnit();
         }
     }
+
+    findIntoBuilderWithRadius(x: number, y: number, z: number, pivotR: number, maxRadius: number, radius: number, eRadius: StructureElement.Property<number>, builder: StructureUniqueSubsetBuilder) {
+        const { units } = this.structure;
+        const closeUnits = this.unitLookup.find(x, y, z, radius);
+        if (closeUnits.count === 0) return;
+
+        const se = StructureElement.create();
+        const queryRadius = pivotR + maxRadius + radius;
+
+        for (let t = 0, _t = closeUnits.count; t < _t; t++) {
+            const unit = units[closeUnits.indices[t]];
+            Vec3.set(this.pivot, x, y, z);
+            if (!unit.conformation.operator.isIdentity) {
+                Vec3.transformMat4(this.pivot, this.pivot, unit.conformation.operator.inverse);
+            }
+            const unitLookup = unit.lookup3d;
+            const groupResult = unitLookup.find(this.pivot[0], this.pivot[1], this.pivot[2], queryRadius);
+            if (groupResult.count === 0) continue;
+
+            const elements = unit.elements;
+            se.unit = unit;
+            builder.beginUnit(unit.id);
+            for (let j = 0, _j = groupResult.count; j < _j; j++) {
+                se.element = elements[groupResult.indices[j]];
+                const rr = eRadius(se);
+                if (Math.sqrt(groupResult.squaredDistances[j]) - pivotR - rr > radius) continue;
+                builder.addElement(elements[groupResult.indices[j]]);
+            }
+            builder.commitUnit();
+        }
+    }
+
+
 
     check(x: number, y: number, z: number, radius: number): boolean {
         const { units } = this.structure;
