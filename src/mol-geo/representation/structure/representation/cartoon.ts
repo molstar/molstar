@@ -23,7 +23,9 @@ export const DefaultCartoonProps = {
 }
 export type CartoonProps = typeof DefaultCartoonProps
 
-export function CartoonRepresentation(): StructureRepresentation<CartoonProps> {
+export type CartoonRepresentation = StructureRepresentation<CartoonProps>
+
+export function CartoonRepresentation(): CartoonRepresentation {
     const traceRepr = UnitsRepresentation(PolymerTraceVisual)
     const gapRepr = UnitsRepresentation(PolymerGapVisual)
     const blockRepr = UnitsRepresentation(NucleotideBlockVisual)

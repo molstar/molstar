@@ -17,7 +17,9 @@ export const DefaultBackboneProps = {
 }
 export type BackboneProps = typeof DefaultBackboneProps
 
-export function BackboneRepresentation(): StructureRepresentation<BackboneProps> {
+export type BackboneRepresentation = StructureRepresentation<BackboneProps>
+
+export function BackboneRepresentation(): BackboneRepresentation {
     const traceRepr = UnitsRepresentation(PolymerBackboneVisual)
 
     let currentProps: BackboneProps

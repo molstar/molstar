@@ -19,7 +19,9 @@ export const DefaultCartoonProps = {
 }
 export type CarbohydrateProps = typeof DefaultCartoonProps
 
-export function CarbohydrateRepresentation(): StructureRepresentation<CarbohydrateProps> {
+export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateProps>
+
+export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
     const carbohydrateSymbolRepr = ComplexRepresentation(CarbohydrateSymbolVisual)
     const carbohydrateLinkRepr = ComplexRepresentation(CarbohydrateLinkVisual)
 

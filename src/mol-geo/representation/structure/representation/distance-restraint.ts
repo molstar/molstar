@@ -19,7 +19,9 @@ export const DefaultDistanceRestraintProps = {
 }
 export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 
-export function DistanceRestraintRepresentation(): StructureRepresentation<DistanceRestraintProps> {
+export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
+
+export function DistanceRestraintRepresentation(): DistanceRestraintRepresentation {
     const crossLinkRepr = ComplexRepresentation(CrossLinkRestraintVisual)
 
     let currentProps: DistanceRestraintProps

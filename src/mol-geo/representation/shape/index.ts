@@ -28,6 +28,9 @@ export const DefaultShapeProps = {
 }
 export type ShapeProps = typeof DefaultShapeProps
 
+// TODO
+// export type ShapeRepresentation = ShapeRepresentation<ShapeProps>
+
 export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation<P> {
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject

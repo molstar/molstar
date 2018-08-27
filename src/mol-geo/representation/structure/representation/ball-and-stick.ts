@@ -24,7 +24,9 @@ export const DefaultBallAndStickProps = {
 }
 export type BallAndStickProps = typeof DefaultBallAndStickProps
 
-export function BallAndStickRepresentation(): StructureRepresentation<BallAndStickProps> {
+export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>
+
+export function BallAndStickRepresentation(): BallAndStickRepresentation {
     const elmementRepr = UnitsRepresentation(ElementSphereVisual)
     const intraLinkRepr = UnitsRepresentation(IntraUnitLinkVisual)
     const interLinkRepr = ComplexRepresentation(InterUnitLinkVisual)

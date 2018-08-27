@@ -6,12 +6,15 @@
 
 import { UnitsRepresentation } from '..';
 import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
+import { StructureRepresentation } from '../units-representation';
 
 export const DefaultSpacefillProps = {
     ...DefaultElementSphereProps
 }
 export type SpacefillProps = typeof DefaultSpacefillProps
 
-export function SpacefillRepresentation() {
+export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>
+
+export function SpacefillRepresentation(): SpacefillRepresentation {
     return UnitsRepresentation(ElementSphereVisual)
 }
