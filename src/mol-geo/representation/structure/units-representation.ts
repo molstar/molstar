@@ -114,7 +114,9 @@ export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => 
     return {
         get renderObjects() {
             const renderObjects: RenderObject[] = []
-            visuals.forEach(({ visual }) => renderObjects.push(visual.renderObject))
+            visuals.forEach(({ visual }) => {
+                if (visual.renderObject) renderObjects.push(visual.renderObject)
+            })
             return renderObjects
         },
         get props() {

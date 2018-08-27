@@ -33,7 +33,7 @@ export type ShapeProps = typeof DefaultShapeProps
 
 export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation<P> {
     const renderObjects: RenderObject[] = []
-    let _renderObject: MeshRenderObject
+    let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
     let _props: P
 
@@ -83,12 +83,13 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
         update,
         getLoci(pickingId: PickingId) {
             const { objectId, groupId } = pickingId
-            if (_renderObject.id === objectId) {
+            if (_renderObject && _renderObject.id === objectId) {
                 return Shape.Loci([ { shape: _shape, ids: OrderedSet.ofSingleton(groupId) } ])
             }
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
+            if (!_renderObject) return
             const { tMarker } = _renderObject.values
             let changed = false
             if (isEveryLoci(loci)) {

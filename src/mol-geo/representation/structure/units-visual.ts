@@ -12,7 +12,7 @@ import { PickingId } from '../../util/picking';
 import { LocationIterator } from '../../util/location-iterator';
 import { Mesh } from '../../mesh/mesh';
 import { MarkerAction, applyMarkerAction } from '../../util/marker-data';
-import { Loci, isEveryLoci } from 'mol-model/loci';
+import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject } from 'mol-gl/render-object';
 import { createUnitsMeshRenderObject, createColors } from './visual/util/common';
 import { deepEqual, ValueCell } from 'mol-util';
@@ -40,7 +40,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
     const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const updateState = MeshUpdateState.create()
 
-    let renderObject: MeshRenderObject
+    let renderObject: MeshRenderObject | undefined
     let currentProps: P
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
@@ -97,9 +97,10 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
             return true
         },
         getLoci(pickingId: PickingId) {
-            return getLoci(pickingId, currentGroup, renderObject.id)
+            return renderObject ? getLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
+            if (!renderObject) return
             const { tMarker } = renderObject.values
             const { groupCount, instanceCount } = locationIt
 

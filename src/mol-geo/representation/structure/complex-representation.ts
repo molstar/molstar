@@ -68,7 +68,9 @@ export function ComplexRepresentation<P extends StructureProps>(visualCtor: () =
     }
 
     return {
-        get renderObjects() { return [ visual.renderObject ] },
+        get renderObjects() {
+            return visual.renderObject ? [ visual.renderObject ] : []
+        },
         get props() { return _props },
         create,
         update,

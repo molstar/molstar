@@ -33,7 +33,7 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
             _volumeData = volumeData
             const visual = visualCtor(_volumeData)
             await visual.create(ctx, _volumeData, props)
-            renderObjects.push(visual.renderObject)
+            if (visual.renderObject) renderObjects.push(visual.renderObject)
         });
     }
 
