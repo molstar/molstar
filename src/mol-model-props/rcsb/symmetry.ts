@@ -38,7 +38,7 @@ function createDatabase(assemblies: ReadonlyArray<AssemblySymmetryGraphQL.Assemb
     const clusterRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_cluster>[] = []
     const axisRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_axis>[] = []
 
-    let id = 0
+    let id = 1 // start feature ids at 1
     for (let i = 0, il = assemblies.length; i < il; ++i) {
         const { assembly_id: _assembly_id, rcsb_assembly_symmetry } = assemblies[i]
         if (!rcsb_assembly_symmetry) continue
