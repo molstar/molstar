@@ -5,7 +5,7 @@
  */
 
 import CIF, { CifBlock } from 'mol-io/reader/cif'
-import { readUrlAs } from "mol-util/read";
+import { readUrlAs } from 'mol-util/read';
 import { Model, Format, StructureSymmetry, Structure } from 'mol-model/structure';
 // import { parse as parseObj } from 'mol-io/reader/obj/parser'
 
@@ -25,16 +25,15 @@ export async function getCifFromUrl(url: string) {
     return parsed.result.blocks[0]
 }
 
-export async function getModelFromMmcif(cif: CifBlock) {
-    const models = await Model.create(Format.mmCIF(cif)).run()
-    return models[0]
+export async function getModelsFromMmcif(cif: CifBlock) {
+    return await Model.create(Format.mmCIF(cif)).run()
 }
 
-export async function getStructureFromModel(model: Model, assembly = '0') {
+export async function getStructureFromModel(model: Model, assembly: string) {
     const assemblies = model.symmetry.assemblies
-    if (assemblies.length) {
-        return await StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly).run()
-    } else {
+    if (assembly === '0') {
         return Structure.ofModel(model)
+    } else if (assemblies.find(a => a.id === assembly)) {
+        return await StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly).run()
     }
 }

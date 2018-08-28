@@ -4,17 +4,14 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { AssemblySymmetry } from "mol-model-props/rcsb/symmetry";
-import { Table } from "mol-data/db";
-import { Color } from "mol-util/color";
-import { MeshBuilder } from "mol-geo/mesh/mesh-builder";
-import { Tensor } from "mol-math/linear-algebra";
-import { addSphere } from "mol-geo/mesh/builder/sphere";
-import { addCylinder } from "mol-geo/mesh/builder/cylinder";
-import { Shape } from "mol-model/shape";
-import { DefaultView } from "./view";
-import { Model } from "mol-model/structure";
-import { ShapeRepresentation, ShapeProps } from "mol-geo/representation/shape";
+import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
+import { Table } from 'mol-data/db';
+import { Color } from 'mol-util/color';
+import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
+import { Tensor } from 'mol-math/linear-algebra';
+import { addSphere } from 'mol-geo/mesh/builder/sphere';
+import { addCylinder } from 'mol-geo/mesh/builder/cylinder';
+import { Shape } from 'mol-model/shape';
 
 export function getAxesShape(featureId: number, assemblySymmetry: AssemblySymmetry) {
     const f = assemblySymmetry.db.rcsb_assembly_symmetry_feature
@@ -59,39 +56,4 @@ export function getClusterColorTheme(featureId: number, assemblySymmetry: Assemb
     for (let i = 0, il = clusters._rowCount; i < il; ++i) {
         console.log(clusters.members.value(i), clusters.avg_rmsd.value(i), feature.stoichiometry_value, feature.stoichiometry_description)
     }
-}
-
-export interface SymmetryView extends DefaultView {
-    readonly axes: ShapeRepresentation<ShapeProps> // TODO
-}
-
-export async function SymmetryView(model: Model, assembly: string): Promise<SymmetryView> {
-    const view = await DefaultView(model, assembly)
-    const axesRepr = ShapeRepresentation()
-
-    await AssemblySymmetry.attachFromCifOrAPI(model)
-    const assemblySymmetry = AssemblySymmetry.get(model)
-    console.log(assemblySymmetry)
-    if (assemblySymmetry) {
-        const features = assemblySymmetry.getFeatures(assembly)
-        if (features._rowCount) {
-            const axesShape = getAxesShape(features.id.value(1), assemblySymmetry)
-            console.log(axesShape)
-            if (axesShape) {
-                
-                await axesRepr.create(axesShape, {
-                    colorTheme: { name: 'shape-group' },
-                    // colorTheme: { name: 'uniform', value: Color(0xFFCC22) },
-                    useFog: false // TODO fog not working properly
-                }).run()
-            }
-
-            getClusterColorTheme(features.id.value(0), assemblySymmetry)
-            getClusterColorTheme(features.id.value(1), assemblySymmetry)
-        }
-    }
-
-    return Object.assign({}, view, {
-        axes: axesRepr
-    })
 }
