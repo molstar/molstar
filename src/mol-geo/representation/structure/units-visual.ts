@@ -123,6 +123,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         },
         destroy() {
             // TODO
+            renderObject = undefined
         }
     }
 }

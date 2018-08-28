@@ -17,7 +17,7 @@ import { deepEqual, defaults } from 'mol-util';
 import { SortedArray } from 'mol-data/int';
 import { RenderableState, PointValues } from 'mol-gl/renderable';
 import { PickingId } from '../../../util/picking';
-import { Loci } from 'mol-model/loci';
+import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
@@ -48,7 +48,7 @@ export function createPointVertices(unit: Unit) {
 }
 
 export default function PointVisual(): UnitsVisual<PointProps> {
-    let renderObject: PointRenderObject
+    let renderObject: PointRenderObject | undefined
     let currentProps = DefaultPointProps
     let currentGroup: Unit.SymmetryGroup
 
@@ -123,7 +123,7 @@ export default function PointVisual(): UnitsVisual<PointProps> {
             return false
         },
         getLoci(pickingId: PickingId) {
-            return getElementLoci(pickingId, currentGroup, renderObject.id)
+            return renderObject ? getElementLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             // TODO
@@ -131,6 +131,7 @@ export default function PointVisual(): UnitsVisual<PointProps> {
         },
         destroy() {
             // TODO
+            renderObject = undefined
         }
     }
 }

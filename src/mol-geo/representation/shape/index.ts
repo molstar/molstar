@@ -64,7 +64,6 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
             const state = createRenderableState(_props)
 
             _renderObject = createMeshRenderObject(values, state)
-            console.log(_renderObject)
             renderObjects.push(_renderObject)
         });
     }
@@ -114,6 +113,8 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
         },
         destroy() {
             // TODO
+            renderObjects.length = 0
+            _renderObject = undefined
         }
     }
 }

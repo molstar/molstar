@@ -15,7 +15,7 @@ import { StructureProps, DefaultStructureMeshProps, MeshUpdateState } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
 import { updateMeshValues, updateRenderableState } from '../util';
 import { PickingId } from '../../util/picking';
-import { Loci, isEveryLoci } from 'mol-model/loci';
+import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../util/marker-data';
 import { Interval } from 'mol-data/int';
 
@@ -39,7 +39,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
     const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const updateState = MeshUpdateState.create()
 
-    let renderObject: MeshRenderObject
+    let renderObject: MeshRenderObject | undefined
     let currentProps: P
     let mesh: Mesh
     let currentStructure: Structure
@@ -92,9 +92,10 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
             return true
         },
         getLoci(pickingId: PickingId) {
-            return getLoci(pickingId, currentStructure, renderObject.id)
+            return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
+            if (!renderObject) return
             const { tMarker } = renderObject.values
             const { groupCount, instanceCount } = locationIt
 
@@ -117,6 +118,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         },
         destroy() {
             // TODO
+            renderObject = undefined
         }
     }
 }
