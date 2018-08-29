@@ -27,25 +27,24 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
     let _volumeData: VolumeData
     let _props: P
 
-    function create(volumeData: VolumeData, props: Partial<P> = {}) {
+    function createOrUpdate(props: Partial<P> = {}, volumeData?: VolumeData) {
         _props = Object.assign({}, DefaultVolumeProps, _props, props)
         return Task.create('VolumeRepresentation.create', async ctx => {
-            _volumeData = volumeData
-            const visual = visualCtor(_volumeData)
-            await visual.create(ctx, _volumeData, props)
-            if (visual.renderObject) renderObjects.push(visual.renderObject)
+            if (volumeData) {
+                _volumeData = volumeData
+                const visual = visualCtor(_volumeData)
+                await visual.createOrUpdate(ctx, props, _volumeData)
+                if (visual.renderObject) renderObjects.push(visual.renderObject)
+            } else {
+                throw new Error('missing volumeData')
+            }
         });
-    }
-
-    function update(props: Partial<P>) {
-        return Task.create('VolumeRepresentation.update', async ctx => {})
     }
 
     return {
         get renderObjects () { return renderObjects },
         get props () { return _props },
-        create,
-        update,
+        createOrUpdate,
         getLoci(pickingId: PickingId) {
             // TODO
             return EmptyLoci

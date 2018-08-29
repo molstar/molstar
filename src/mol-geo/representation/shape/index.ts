@@ -37,17 +37,20 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
     let _shape: Shape
     let _props: P
 
-    function create(shape: Shape, props: Partial<P> = {}) {
+    function createOrUpdate(props: Partial<P> = {}, shape?: Shape) {
         _props = Object.assign({}, DefaultShapeProps, _props, props)
-        _shape = shape
+        if (shape) _shape = shape
 
         return Task.create('ShapeRepresentation.create', async ctx => {
             renderObjects.length = 0
 
-            const mesh = shape.mesh
-            const locationIt = ShapeGroupIterator.fromShape(shape)
+            if (!_shape) return
+
+            const mesh = _shape.mesh
+            const locationIt = ShapeGroupIterator.fromShape(_shape)
             const { groupCount, instanceCount } = locationIt
 
+            const transform = createIdentityTransform()
             const color = createColors(locationIt, _props.colorTheme)
             const marker = createMarkers(instanceCount * groupCount)
             const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
@@ -55,7 +58,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
             const values: MeshValues = {
                 ...getMeshData(mesh),
                 ...createMeshValues(_props, counts),
-                aTransform: createIdentityTransform(),
+                ...transform,
                 ...color,
                 ...marker,
 
@@ -68,18 +71,10 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
         });
     }
 
-    function update(props: Partial<P>) {
-        return Task.create('ShapeRepresentation.update', async ctx => {
-            // TODO handle general update
-            // TODO check shape.colors.ref.version
-        })
-    }
-
     return {
         get renderObjects () { return renderObjects },
         get props () { return _props },
-        create,
-        update,
+        createOrUpdate,
         getLoci(pickingId: PickingId) {
             const { objectId, groupId } = pickingId
             if (_renderObject && _renderObject.id === objectId) {

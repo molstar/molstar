@@ -6,7 +6,7 @@
 
 import { Model, Structure } from 'mol-model/structure';
 import { CartoonRepresentation } from 'mol-geo/representation/structure/representation/cartoon';
-// import { BallAndStickRepresentation } from 'mol-geo/representation/structure/representation/ball-and-stick';
+import { BallAndStickRepresentation } from 'mol-geo/representation/structure/representation/ball-and-stick';
 import { getStructureFromModel } from './util';
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
 import { ShapeRepresentation, ShapeProps } from 'mol-geo/representation/shape';
@@ -20,29 +20,31 @@ export interface StructureView {
     readonly assemblySymmetry: AssemblySymmetry | undefined
 
     readonly cartoon: CartoonRepresentation
-    // readonly ballAndStick: BallAndStickRepresentation
+    readonly ballAndStick: BallAndStickRepresentation
     readonly axes: ShapeRepresentation<ShapeProps>
 
     readonly modelId: number
     readonly assemblyId: string
     readonly symmetryFeatureId: number
 
-    setAssembly(assembly: string): Promise<void>
+    setModel(modelId: number): Promise<void>
+    getModelIds(): { id: number, label: string }[]
+    setAssembly(assemblyId: string): Promise<void>
     getAssemblyIds(): { id: string, label: string }[]
-    setSymmetryFeature(symmetryFeature: number): Promise<void>
+    setSymmetryFeature(symmetryFeatureId: number): Promise<void>
     getSymmetryFeatureIds(): { id: number, label: string }[]
 
     destroy: () => void
 }
 
 interface StructureViewProps {
-    assembly?: string
-    symmetryFeature?: number
+    assemblyId?: string
+    symmetryFeatureId?: number
 }
 
-export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps): Promise<StructureView> {
+export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const cartoon = CartoonRepresentation()
-    // const ballAndStick = BallAndStickRepresentation()
+    const ballAndStick = BallAndStickRepresentation()
     const axes = ShapeRepresentation()
 
     let label: string
@@ -55,16 +57,24 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     let symmetryFeatureId: number
 
     async function setModel(newModelId: number, newAssemblyId?: string, newSymmetryFeatureId?: number) {
+        console.log('setModel', newModelId)
         modelId = newModelId
-
         model = models[modelId]
         await AssemblySymmetry.attachFromCifOrAPI(model)
         assemblySymmetry = AssemblySymmetry.get(model)
-
         await setAssembly(newAssemblyId, newSymmetryFeatureId)
     }
 
+    function getModelIds() {
+        const modelIds: { id: number, label: string }[] = []
+        models.forEach((m, i) => {
+            modelIds.push({ id: i, label: `${i}: ${m.label} #${m.modelNum}` })
+        })
+        return modelIds
+    }
+
     async function setAssembly(newAssemblyId?: string, newSymmetryFeatureId?: number) {
+        console.log('setAssembly', newAssemblyId)
         if (newAssemblyId !== undefined) {
             assemblyId = newAssemblyId
         } else if (model && model.symmetry.assemblies.length) {
@@ -75,7 +85,6 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             assemblyId = '-1'
         }
         await getStructure()
-        await createStructureRepr()
         await setSymmetryFeature(newSymmetryFeatureId)
     }
 
@@ -90,6 +99,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     }
 
     async function setSymmetryFeature(newSymmetryFeatureId?: number) {
+        console.log('setSymmetryFeature', newSymmetryFeatureId)
         if (newSymmetryFeatureId !== undefined) {
             symmetryFeatureId = newSymmetryFeatureId
         } else if (assemblySymmetry) {
@@ -133,26 +143,27 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
 
     async function createStructureRepr() {
         if (structure) {
-            await cartoon.create(structure, {
+            console.log('createStructureRepr')
+            await cartoon.createOrUpdate({
                 colorTheme: { name: 'chain-id' },
                 sizeTheme: { name: 'uniform', value: 0.2 },
                 useFog: false // TODO fog not working properly
-            }).run()
+            }, structure).run()
 
-            // await ballAndStick.create(structure, {
-            //     colorTheme: { name: 'element-symbol' },
-            //     sizeTheme: { name: 'uniform', value: 0.1 },
-            //     useFog: false // TODO fog not working properly
-            // }).run()
+            await ballAndStick.createOrUpdate({
+                colorTheme: { name: 'element-symbol' },
+                sizeTheme: { name: 'uniform', value: 0.1 },
+                useFog: false // TODO fog not working properly
+            }, structure).run()
 
             viewer.center(structure.boundary.sphere.center)
         } else {
             cartoon.destroy()
-            // ballAndStick.destroy()
+            ballAndStick.destroy()
         }
 
         viewer.add(cartoon)
-        // viewer.add(ballAndStick)
+        viewer.add(ballAndStick)
     }
 
     async function createSymmetryRepr() {
@@ -162,11 +173,11 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
                 const axesShape = getAxesShape(symmetryFeatureId, assemblySymmetry)
                 if (axesShape) {
                     // getClusterColorTheme(symmetryFeatureId, assemblySymmetry)
-                    await axes.create(axesShape, {
+                    await axes.createOrUpdate({
                         colorTheme: { name: 'shape-group' },
                         // colorTheme: { name: 'uniform', value: Color(0xFFCC22) },
                         useFog: false // TODO fog not working properly
-                    }).run()
+                    }, axesShape).run()
                 } else {
                     axes.destroy()
                 }
@@ -180,7 +191,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         viewer.requestDraw()
     }
 
-    await setModel(0, props.assembly, props.symmetryFeature)
+    await setModel(0, props.assemblyId, props.symmetryFeatureId)
 
     return {
         get label() { return label },
@@ -189,13 +200,15 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         get assemblySymmetry() { return assemblySymmetry },
 
         cartoon,
-        // ballAndStick,
+        ballAndStick,
         axes,
 
         get modelId() { return modelId },
         get assemblyId() { return assemblyId },
         get symmetryFeatureId() { return symmetryFeatureId },
 
+        setModel,
+        getModelIds,
         setAssembly,
         getAssemblyIds,
         setSymmetryFeature,
@@ -203,12 +216,12 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
 
         destroy: () => {
             viewer.remove(cartoon)
-            // viewer.remove(ballAndStick)
+            viewer.remove(ballAndStick)
             viewer.remove(axes)
             viewer.requestDraw()
 
             cartoon.destroy()
-            // ballAndStick.destroy()
+            ballAndStick.destroy()
             axes.destroy()
         }
     }

@@ -16,40 +16,16 @@ import { ComplexVisual } from './complex-visual';
 
 export function ComplexRepresentation<P extends StructureProps>(visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let visual: ComplexVisual<P> | undefined
-
     let _props: P
-    let _structure: Structure
 
-    function create(structure: Structure, props: Partial<P> = {}) {
+    function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
         _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
-        _props.colorTheme.structure = structure
+        if (structure) _props.colorTheme.structure = structure
 
         return Task.create('Creating StructureRepresentation', async ctx => {
-            if (!_structure) {
-                visual = visualCtor()
-                await visual.create(ctx, structure, _props)
-            } else {
-                if (_structure.hashCode === structure.hashCode) {
-                    await update(_props)
-                } else {
-                    if (visual && !await visual.update(ctx, _props)) {
-                        await visual.create(ctx, structure, _props)
-                    }
-                }
-            }
-            _structure = structure
+            if (!visual) visual = visualCtor()
+            await visual.createOrUpdate(ctx, _props, structure)
         });
-    }
-
-    function update(props: Partial<P>) {
-        return Task.create('Updating StructureRepresentation', async ctx => {
-            _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
-            _props.colorTheme.structure = _structure
-
-            if (visual && !await visual.update(ctx, _props)) {
-                await visual.create(ctx, _structure, _props)
-            }
-        })
     }
 
     function getLoci(pickingId: PickingId) {
@@ -69,8 +45,7 @@ export function ComplexRepresentation<P extends StructureProps>(visualCtor: () =
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },
         get props() { return _props },
-        create,
-        update,
+        createOrUpdate,
         getLoci,
         mark,
         destroy

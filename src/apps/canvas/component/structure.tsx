@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { StructureView } from '../view';
+import { StructureView } from '../structure-view';
 
 // export function FileInput (props: {
 //     accept: string
@@ -24,6 +24,8 @@ export interface StructureComponentProps {
 
 export interface StructureComponentState {
     label: string
+    modelId: number
+    modelIds: { id: number, label: string }[]
     assemblyId: string
     assemblyIds: { id: string, label: string }[]
     symmetryFeatureId: number
@@ -33,6 +35,8 @@ export interface StructureComponentState {
 export class StructureComponent extends React.Component<StructureComponentProps, StructureComponentState> {
     state = {
         label: this.props.structureView.label,
+        modelId: this.props.structureView.modelId,
+        modelIds: this.props.structureView.getModelIds(),
         assemblyId: this.props.structureView.assemblyId,
         assemblyIds: this.props.structureView.getAssemblyIds(),
         symmetryFeatureId: this.props.structureView.symmetryFeatureId,
@@ -45,6 +49,8 @@ export class StructureComponent extends React.Component<StructureComponentProps,
         this.setState({
             ...this.state,
             label: sv.label,
+            modelId: sv.modelId,
+            modelIds: sv.getModelIds(),
             assemblyId: sv.assemblyId,
             assemblyIds: sv.getAssemblyIds(),
             symmetryFeatureId: sv.symmetryFeatureId,
@@ -55,12 +61,15 @@ export class StructureComponent extends React.Component<StructureComponentProps,
     async update(state: Partial<StructureComponentState>) {
         const sv = this.props.structureView
 
+        if (state.modelId !== undefined) await sv.setModel(state.modelId)
         if (state.assemblyId !== undefined) await sv.setAssembly(state.assemblyId)
         if (state.symmetryFeatureId !== undefined) await sv.setSymmetryFeature(state.symmetryFeatureId)
 
         const newState = {
             ...this.state,
             label: sv.label,
+            modelId: sv.modelId,
+            modelIds: sv.getModelIds(),
             assemblyId: sv.assemblyId,
             assemblyIds: sv.getAssemblyIds(),
             symmetryFeatureId: sv.symmetryFeatureId,
@@ -70,8 +79,11 @@ export class StructureComponent extends React.Component<StructureComponentProps,
     }
 
     render() {
-        const { label, assemblyIds, symmetryFeatureIds } = this.state
+        const { label, modelIds, assemblyIds, symmetryFeatureIds } = this.state
 
+        const modelIdOptions = modelIds.map(m => {
+            return <option key={m.id} value={m.id}>{m.label}</option>
+        })
         const assemblyIdOptions = assemblyIds.map(a => {
             return <option key={a.id} value={a.id}>{a.label}</option>
         })
@@ -84,6 +96,17 @@ export class StructureComponent extends React.Component<StructureComponentProps,
                 <span>{label}</span>
             </div>
             <div>
+                <div>
+                    <span>Model</span>
+                    <select
+                        value={this.state.modelId}
+                        onChange={(e) => {
+                            this.update({ modelId: parseInt(e.target.value) })
+                        }}
+                    >
+                        {modelIdOptions}
+                    </select>
+                </div>
                 <div>
                     <span>Assembly</span>
                     <select

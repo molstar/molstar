@@ -30,16 +30,10 @@ export function BackboneRepresentation(): BackboneRepresentation {
         get props() {
             return { ...traceRepr.props }
         },
-        create: (structure: Structure, props: Partial<BackboneProps> = {}) => {
+        createOrUpdate: (props: Partial<BackboneProps> = {}, structure?: Structure) => {
             currentProps = Object.assign({}, DefaultBackboneProps, props)
             return Task.create('BackboneRepresentation', async ctx => {
-                await traceRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<BackboneProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating BackboneRepresentation', async ctx => {
-                await traceRepr.update(currentProps).runInContext(ctx)
+                await traceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

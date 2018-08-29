@@ -41,22 +41,13 @@ export function CartoonRepresentation(): CartoonRepresentation {
         get props() {
             return { ...traceRepr.props, ...gapRepr.props, ...blockRepr.props }
         },
-        create: (structure: Structure, props: Partial<CartoonProps> = {}) => {
+        createOrUpdate: (props: Partial<CartoonProps> = {}, structure?: Structure) => {
             currentProps = Object.assign({}, DefaultCartoonProps, props)
             return Task.create('Creating CartoonRepresentation', async ctx => {
-                await traceRepr.create(structure, currentProps).runInContext(ctx)
-                await gapRepr.create(structure, currentProps).runInContext(ctx)
-                await blockRepr.create(structure, currentProps).runInContext(ctx)
-                await directionRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<CartoonProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating CartoonRepresentation', async ctx => {
-                await traceRepr.update(currentProps).runInContext(ctx)
-                await gapRepr.update(currentProps).runInContext(ctx)
-                await blockRepr.update(currentProps).runInContext(ctx)
-                await directionRepr.update(currentProps).runInContext(ctx)
+                await traceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await gapRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await blockRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await directionRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

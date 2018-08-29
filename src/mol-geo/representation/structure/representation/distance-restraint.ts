@@ -32,16 +32,10 @@ export function DistanceRestraintRepresentation(): DistanceRestraintRepresentati
         get props() {
             return { ...crossLinkRepr.props }
         },
-        create: (structure: Structure, props: Partial<DistanceRestraintProps> = {}) => {
+        createOrUpdate: (props: Partial<DistanceRestraintProps> = {}, structure?: Structure) => {
             currentProps = Object.assign({}, DefaultDistanceRestraintProps, props)
             return Task.create('DistanceRestraintRepresentation', async ctx => {
-                await crossLinkRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<DistanceRestraintProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating DistanceRestraintRepresentation', async ctx => {
-                await crossLinkRepr.update(currentProps).runInContext(ctx)
+                await crossLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

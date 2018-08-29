@@ -15,21 +15,26 @@ import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../mesh/mesh';
 import { MeshValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
-import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform } from '../../../util';
+import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform, TransformData } from '../../../util';
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject } from 'mol-gl/render-object';
 import { ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 
-export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
+export function createTransforms({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length
     const n = unitCount * 16
-    const array = transforms && transforms.ref.value.length >= n ? transforms.ref.value : new Float32Array(n)
+    const array = transformData && transformData.aTransform && transformData.aTransform.ref.value.length >= n ? transformData.aTransform.ref.value : new Float32Array(n)
     for (let i = 0; i < unitCount; i++) {
         Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16)
     }
-    return transforms ? ValueCell.update(transforms, array) : ValueCell.create(array)
+    if (transformData) {
+        ValueCell.update(transformData.aTransform, array)
+        return transformData
+    } else {
+        return { aTransform: ValueCell.create(array) }
+    }
 }
 
 export function createColors(locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {
@@ -54,7 +59,7 @@ export function createSizes(locationIt: LocationIterator, props: SizeThemeProps,
 
 type StructureMeshProps = Required<MeshProps & StructureProps>
 
-function _createMeshValues(transforms: ValueCell<Float32Array>, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+function _createMeshValues(transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
     const { instanceCount, groupCount } = locationIt
     const color = createColors(locationIt, props.colorTheme)
     const marker = createMarkers(instanceCount * groupCount)
@@ -65,7 +70,7 @@ function _createMeshValues(transforms: ValueCell<Float32Array>, mesh: Mesh, loca
         ...getMeshData(mesh),
         ...color,
         ...marker,
-        aTransform: transforms,
+        ...transforms,
         elements: mesh.indexBuffer,
         ...createMeshValues(props, counts)
     }

@@ -39,20 +39,12 @@ export function BallAndStickRepresentation(): BallAndStickRepresentation {
         get props() {
             return { ...elmementRepr.props, ...intraLinkRepr.props, ...interLinkRepr.props }
         },
-        create: (structure: Structure, props: Partial<BallAndStickProps> = {}) => {
+        createOrUpdate: (props: Partial<BallAndStickProps> = {}, structure?: Structure) => {
             currentProps = Object.assign({}, DefaultBallAndStickProps, props)
             return Task.create('DistanceRestraintRepresentation', async ctx => {
-                await elmementRepr.create(structure, currentProps).runInContext(ctx)
-                await intraLinkRepr.create(structure, currentProps).runInContext(ctx)
-                await interLinkRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<BallAndStickProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating BallAndStickRepresentation', async ctx => {
-                await elmementRepr.update(currentProps).runInContext(ctx)
-                await intraLinkRepr.update(currentProps).runInContext(ctx)
-                await interLinkRepr.update(currentProps).runInContext(ctx)
+                await elmementRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await intraLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await interLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

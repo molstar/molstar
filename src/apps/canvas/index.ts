@@ -11,6 +11,7 @@ import './index.html'
 
 import { App } from './app';
 import { AppComponent } from './component/app';
+import { urlQueryParameter } from 'mol-util/url-query';
 
 const elm = document.getElementById('app') as HTMLElement
 if (!elm) throw new Error('Can not find element with id "app".')
@@ -18,4 +19,5 @@ if (!elm) throw new Error('Can not find element with id "app".')
 const app = new App()
 ReactDOM.render(React.createElement(AppComponent, { app }), elm);
 
-app.loadPdbId('2ONK')
+const pdbid = urlQueryParameter('pdbid')
+if (pdbid) app.loadPdbId(pdbid)

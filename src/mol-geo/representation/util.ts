@@ -29,10 +29,19 @@ export const DefaultMeshProps = {
 }
 export type MeshProps = typeof DefaultMeshProps
 
+export type TransformData = {
+    aTransform: ValueCell<Float32Array>,
+}
+
 const identityTransform = new Float32Array(16)
 Mat4.toArray(Mat4.identity(), identityTransform, 0)
-export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
-    return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
+export function createIdentityTransform(transformData?: TransformData): TransformData {
+    if (transformData) {
+        ValueCell.update(transformData.aTransform, identityTransform)
+        return transformData
+    } else {
+        return { aTransform: ValueCell.create(identityTransform) }
+    }
 }
 
 type Counts = { drawCount: number, groupCount: number, instanceCount: number }
@@ -90,12 +99,12 @@ interface QualityProps {
     radialSegments: number
 }
 
-export function getQualityProps(props: Partial<QualityProps>, structure: Structure) {
+export function getQualityProps(props: Partial<QualityProps>, structure?: Structure) {
     let quality = defaults(props.quality, 'auto' as VisualQuality)
     let detail = 1
     let radialSegments = 12
 
-    if (quality === 'auto') {
+    if (quality === 'auto' && structure) {
         const score = structure.elementCount
         if (score > 500_000) {
             quality = 'lowest'

@@ -6,7 +6,7 @@
 
 import Viewer from 'mol-view/viewer';
 import { getCifFromUrl, getModelsFromMmcif } from './util';
-import { StructureView } from './view';
+import { StructureView } from './structure-view';
 import { BehaviorSubject } from 'rxjs';
 
 export class App {
@@ -35,7 +35,7 @@ export class App {
         if (this.structureView) this.structureView.destroy()
         const cif = await getCifFromUrl(`https://files.rcsb.org/download/${id}.cif`)
         const models = await getModelsFromMmcif(cif)
-        this.structureView = await StructureView(this.viewer, models, { assembly: '1' })
+        this.structureView = await StructureView(this.viewer, models)
         this.pdbIdLoaded.next(this.structureView)
     }
 }

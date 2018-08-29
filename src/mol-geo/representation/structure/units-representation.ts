@@ -27,70 +27,78 @@ export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => 
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
-    function create(structure: Structure, props: Partial<P> = {}) {
+    function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
         _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
-        _props.colorTheme!.structure = structure
+        _props.colorTheme.structure = structure
 
-        return Task.create('Creating StructureRepresentation', async ctx => {
-            if (!_structure) {
+        return Task.create('Creating or updating StructureRepresentation', async ctx => {
+            if (!_structure && !structure) {
+                throw new Error('missing structure')
+            } else if (structure && !_structure) {
+                // First call with a structure, create visuals for each group.
                 _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = visualCtor()
-                    await visual.create(ctx, group, _props)
+                    await visual.createOrUpdate(ctx, _props, group)
                     visuals.set(group.hashCode, { visual, group })
                 }
-            } else {
-                if (_structure.hashCode === structure.hashCode) {
-                    await update(_props)
-                } else {
-                    _groups = structure.unitSymmetryGroups;
-                    const newGroups: Unit.SymmetryGroup[] = []
-                    const oldUnitsVisuals = visuals
-                    visuals = new Map()
-                    for (let i = 0; i < _groups.length; i++) {
-                        const group = _groups[i];
-                        const visualGroup = oldUnitsVisuals.get(group.hashCode)
-                        if (visualGroup) {
-                            const { visual, group } = visualGroup
-                            if (!await visual.update(ctx, _props)) {
-                                await visual.create(ctx, group, _props)
-                            }
-                            oldUnitsVisuals.delete(group.hashCode)
-                        } else {
-                            newGroups.push(group)
-                            const visual = visualCtor()
-                            await visual.create(ctx, group, _props)
-                            visuals.set(group.hashCode, { visual, group })
-                        }
-                    }
-
-                    // for new groups, re-use leftover visuals
-                    const unusedVisuals: UnitsVisual<P>[] = []
-                    oldUnitsVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
-                    newGroups.forEach(async group => {
-                        const visual = unusedVisuals.pop() || visualCtor()
-                        await visual.create(ctx, group, _props)
+            } else if (structure && _structure.hashCode !== structure.hashCode) {
+                // Tries to re-use existing visuals for the groups of the new structure.
+                // Creates additional visuals if needed, destroys left-over visuals.
+                _groups = structure.unitSymmetryGroups;
+                // const newGroups: Unit.SymmetryGroup[] = []
+                const oldVisuals = visuals
+                visuals = new Map()
+                for (let i = 0; i < _groups.length; i++) {
+                    const group = _groups[i];
+                    const visualGroup = oldVisuals.get(group.hashCode)
+                    if (visualGroup) {
+                        const { visual } = visualGroup
+                        await visual.createOrUpdate(ctx, _props, group)
                         visuals.set(group.hashCode, { visual, group })
-                    })
-                    unusedVisuals.forEach(visual => visual.destroy())
+                        oldVisuals.delete(group.hashCode)
+                    } else {
+                        // newGroups.push(group)
+                        const visual = visualCtor()
+                        await visual.createOrUpdate(ctx, _props, group)
+                        visuals.set(group.hashCode, { visual, group })
+                    }
                 }
+                oldVisuals.forEach(({ visual }) => visual.destroy())
+
+                // For new groups, re-use left-over visuals
+                // const unusedVisuals: UnitsVisual<P>[] = []
+                // oldVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
+                // newGroups.forEach(async group => {
+                //     const visual = unusedVisuals.pop() || visualCtor()
+                //     await visual.createOrUpdate(ctx, _props, group)
+                //     visuals.set(group.hashCode, { visual, group })
+                // })
+                // unusedVisuals.forEach(visual => visual.destroy())
+            } else if (structure && _structure.hashCode === structure.hashCode) {
+                // Expects that for structures with the same hashCode,
+                // the unitSymmetryGroups are the same as well.
+                // Re-uses existing visuals for the groups of the new structure.
+                _groups = structure.unitSymmetryGroups;
+                for (let i = 0; i < _groups.length; i++) {
+                    const group = _groups[i];
+                    const visualGroup = visuals.get(group.hashCode)
+                    if (visualGroup) {
+                        await visualGroup.visual.createOrUpdate(ctx, _props, group)
+                        visualGroup.group = group
+                    } else {
+                        throw new Error(`expected to find visual for hashCode ${group.hashCode}`)
+                    }
+                }
+            } else {
+                // No new structure given, just update all visuals with new props.
+                visuals.forEach(async ({ visual, group }) => {
+                    await visual.createOrUpdate(ctx, _props, group)
+                })
             }
-            _structure = structure
+            if (structure) _structure = structure
         });
-    }
-
-    function update(props: Partial<P>) {
-        return Task.create('Updating StructureRepresentation', async ctx => {
-            _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, _structure))
-            _props.colorTheme!.structure = _structure
-
-            visuals.forEach(async ({ visual, group }) => {
-                if (!await visual.update(ctx, _props)) {
-                    await visual.create(ctx, group, _props)
-                }
-            })
-        })
     }
 
     function getLoci(pickingId: PickingId) {
@@ -122,8 +130,7 @@ export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => 
         get props() {
             return _props
         },
-        create,
-        update,
+        createOrUpdate,
         getLoci,
         mark,
         destroy

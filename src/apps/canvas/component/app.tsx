@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { StructureView } from '../view';
+import { StructureView } from '../structure-view';
 import { App } from '../app';
 import { Viewport } from './viewport';
 import { StructureComponent } from './structure';

@@ -99,7 +99,7 @@ export type StructureToSpacefill = StateTransform<StructureEntity, SpacefillEnti
 export const StructureToSpacefill: StructureToSpacefill = StateTransform.create('structure', 'spacefill', 'structure-to-spacefill',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<SpacefillProps> = {}) {
         const spacefillRepr = SpacefillRepresentation()
-        await spacefillRepr.create(structureEntity.value, props).run(ctx.log)
+        await spacefillRepr.createOrUpdate(props, structureEntity.value).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -110,7 +110,7 @@ export type StructureToBallAndStick = StateTransform<StructureEntity, BallAndSti
 export const StructureToBallAndStick: StructureToBallAndStick = StateTransform.create('structure', 'ballandstick', 'structure-to-ballandstick',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<BallAndStickProps> = {}) {
         const ballAndStickRepr = BallAndStickRepresentation()
-        await ballAndStickRepr.create(structureEntity.value, props).run(ctx.log)
+        await ballAndStickRepr.createOrUpdate(props, structureEntity.value).run(ctx.log)
         ctx.viewer.add(ballAndStickRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -121,7 +121,7 @@ export type StructureToDistanceRestraint = StateTransform<StructureEntity, Dista
 export const StructureToDistanceRestraint: StructureToDistanceRestraint = StateTransform.create('structure', 'distancerestraint', 'structure-to-distancerestraint',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<DistanceRestraintProps> = {}) {
         const distanceRestraintRepr = DistanceRestraintRepresentation()
-        await distanceRestraintRepr.create(structureEntity.value, props).run(ctx.log)
+        await distanceRestraintRepr.createOrUpdate(props, structureEntity.value).run(ctx.log)
         ctx.viewer.add(distanceRestraintRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -132,7 +132,7 @@ export type StructureToBackbone = StateTransform<StructureEntity, BackboneEntity
 export const StructureToBackbone: StructureToBackbone = StateTransform.create('structure', 'backbone', 'structure-to-backbone',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<BackboneProps> = {}) {
         const backboneRepr = BackboneRepresentation()
-        await backboneRepr.create(structureEntity.value, props).run(ctx.log)
+        await backboneRepr.createOrUpdate(props, structureEntity.value).run(ctx.log)
         ctx.viewer.add(backboneRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -143,7 +143,7 @@ export type StructureToCartoon = StateTransform<StructureEntity, CartoonEntity, 
 export const StructureToCartoon: StructureToCartoon = StateTransform.create('structure', 'cartoon', 'structure-to-cartoon',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<CartoonProps> = {}) {
         const cartoonRepr = CartoonRepresentation()
-        await cartoonRepr.create(structureEntity.value, props).run(ctx.log)
+        await cartoonRepr.createOrUpdate(props, structureEntity.value).run(ctx.log)
         ctx.viewer.add(cartoonRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -154,7 +154,7 @@ export type StructureToCarbohydrate = StateTransform<StructureEntity, Carbohydra
 export const StructureToCarbohydrate: StructureToCarbohydrate = StateTransform.create('structure', 'carbohydrate', 'structure-to-cartoon',
     async function (ctx: StateContext, structureEntity: StructureEntity, props: Partial<CarbohydrateProps> = {}) {
         const carbohydrateRepr = CarbohydrateRepresentation()
-        await carbohydrateRepr.create(structureEntity.value, props).run(ctx.log)
+        await carbohydrateRepr.createOrUpdate(props, structureEntity.value).run(ctx.log)
         ctx.viewer.add(carbohydrateRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -165,7 +165,7 @@ export type SpacefillUpdate = StateTransform<SpacefillEntity, NullEntity, Partia
 export const SpacefillUpdate: SpacefillUpdate = StateTransform.create('spacefill', 'null', 'spacefill-update',
     async function (ctx: StateContext, spacefillEntity: SpacefillEntity, props: Partial<SpacefillProps> = {}) {
         const spacefillRepr = spacefillEntity.value
-        await spacefillRepr.update(props).run(ctx.log)
+        await spacefillRepr.createOrUpdate(props).run(ctx.log)
         ctx.viewer.add(spacefillRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -176,7 +176,7 @@ export type BallAndStickUpdate = StateTransform<BallAndStickEntity, NullEntity, 
 export const BallAndStickUpdate: BallAndStickUpdate = StateTransform.create('ballandstick', 'null', 'ballandstick-update',
     async function (ctx: StateContext, ballAndStickEntity: BallAndStickEntity, props: Partial<BallAndStickProps> = {}) {
         const ballAndStickRepr = ballAndStickEntity.value
-        await ballAndStickRepr.update(props).run(ctx.log)
+        await ballAndStickRepr.createOrUpdate(props).run(ctx.log)
         ctx.viewer.add(ballAndStickRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -187,7 +187,7 @@ export type DistanceRestraintUpdate = StateTransform<DistanceRestraintEntity, Nu
 export const DistanceRestraintUpdate: DistanceRestraintUpdate = StateTransform.create('distancerestraint', 'null', 'distancerestraint-update',
     async function (ctx: StateContext, distanceRestraintEntity: DistanceRestraintEntity, props: Partial<DistanceRestraintProps> = {}) {
         const distanceRestraintRepr = distanceRestraintEntity.value
-        await distanceRestraintRepr.update(props).run(ctx.log)
+        await distanceRestraintRepr.createOrUpdate(props).run(ctx.log)
         ctx.viewer.add(distanceRestraintRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -198,7 +198,7 @@ export type BackboneUpdate = StateTransform<BackboneEntity, NullEntity, Partial<
 export const BackboneUpdate: BackboneUpdate = StateTransform.create('backbone', 'null', 'backbone-update',
     async function (ctx: StateContext, backboneEntity: BackboneEntity, props: Partial<BackboneProps> = {}) {
         const backboneRepr = backboneEntity.value
-        await backboneRepr.update(props).run(ctx.log)
+        await backboneRepr.createOrUpdate(props).run(ctx.log)
         ctx.viewer.add(backboneRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -209,7 +209,7 @@ export type CartoonUpdate = StateTransform<CartoonEntity, NullEntity, Partial<Ca
 export const CartoonUpdate: CartoonUpdate = StateTransform.create('cartoon', 'null', 'cartoon-update',
     async function (ctx: StateContext, cartoonEntity: CartoonEntity, props: Partial<CartoonProps> = {}) {
         const cartoonRepr = cartoonEntity.value
-        await cartoonRepr.update(props).run(ctx.log)
+        await cartoonRepr.createOrUpdate(props).run(ctx.log)
         ctx.viewer.add(cartoonRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)
@@ -220,7 +220,7 @@ export type CarbohydrateUpdate = StateTransform<CarbohydrateEntity, NullEntity, 
 export const CarbohydrateUpdate: CarbohydrateUpdate = StateTransform.create('carbohydrate', 'null', 'carbohydrate-update',
     async function (ctx: StateContext, carbohydrateEntity: CarbohydrateEntity, props: Partial<CarbohydrateProps> = {}) {
         const carbohydrateRepr = carbohydrateEntity.value
-        await carbohydrateRepr.update(props).run(ctx.log)
+        await carbohydrateRepr.createOrUpdate(props).run(ctx.log)
         ctx.viewer.add(carbohydrateRepr)
         ctx.viewer.requestDraw()
         console.log('stats', ctx.viewer.stats)

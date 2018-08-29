@@ -44,52 +44,72 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
     let mesh: Mesh
     let currentStructure: Structure
     let locationIt: LocationIterator
+    let conformationHashCode: number
+
+    async function create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
+        currentProps = Object.assign({}, defaultProps, props)
+        currentStructure = structure
+
+        conformationHashCode = Structure.conformationHash(currentStructure)
+        mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
+
+        locationIt = createLocationIterator(structure)
+        renderObject = createComplexMeshRenderObject(structure, mesh, locationIt, currentProps)
+    }
+
+    async function update(ctx: RuntimeContext, props: Partial<P>) {
+        const newProps = Object.assign({}, currentProps, props)
+
+        if (!renderObject) return false
+
+        locationIt.reset()
+        MeshUpdateState.reset(updateState)
+        setUpdateState(updateState, newProps, currentProps)
+
+        const newConformationHashCode = Structure.conformationHash(currentStructure)
+        if (newConformationHashCode !== conformationHashCode) {
+            conformationHashCode = newConformationHashCode
+            updateState.createMesh = true
+        }
+
+        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.createMesh = true
+        if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
+        // if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createMesh = true // TODO
+
+        //
+
+        if (updateState.createMesh) {
+            mesh = await createMesh(ctx, currentStructure, newProps, mesh)
+            ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
+            updateState.updateColor = true
+        }
+
+        if (updateState.updateColor) {
+            createColors(locationIt, newProps.colorTheme, renderObject.values)
+        }
+
+        updateMeshValues(renderObject.values, newProps)
+        updateRenderableState(renderObject.state, newProps)
+
+        currentProps = newProps
+        return true
+    }
 
     return {
         get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
-            currentProps = Object.assign({}, defaultProps, props)
-            currentStructure = structure
-
-            mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
-
-            locationIt = createLocationIterator(structure)
-            renderObject = createComplexMeshRenderObject(structure, mesh, locationIt, currentProps)
-        },
-        async update(ctx: RuntimeContext, props: Partial<P>) {
-            const newProps = Object.assign({}, currentProps, props)
-
-            if (!renderObject) return false
-
-            locationIt.reset()
-            MeshUpdateState.reset(updateState)
-            setUpdateState(updateState, newProps, currentProps)
-
-            if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) {
-                updateState.createMesh = true
+        async createOrUpdate(ctx: RuntimeContext, props: Partial<P> = {}, structure?: Structure) {
+            if (!structure && !currentStructure) {
+                throw new Error('missing structure')
+            } else if (structure && (!currentStructure || !renderObject)) {
+                await create(ctx, structure, props)
+            } else if (structure && structure.hashCode !== currentStructure.hashCode) {
+                await create(ctx, structure, props)
+            } else {
+                if (structure && Structure.conformationHash(structure) !== Structure.conformationHash(currentStructure)) {
+                    currentStructure = structure
+                }
+                await update(ctx, props)
             }
-
-            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-                updateState.updateColor = true
-            }
-
-            //
-
-            if (updateState.createMesh) {
-                mesh = await createMesh(ctx, currentStructure, newProps, mesh)
-                ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
-                updateState.updateColor = true
-            }
-
-            if (updateState.updateColor) {
-                createColors(locationIt, newProps.colorTheme, renderObject.values)
-            }
-
-            updateMeshValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
-
-            currentProps = newProps
-            return true
         },
         getLoci(pickingId: PickingId) {
             return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci

@@ -22,6 +22,7 @@ import { MarkerAction, createMarkers } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { LocationIterator } from '../../../util/location-iterator';
 
 export const DefaultPointProps = {
     ...DefaultStructureProps,
@@ -51,76 +52,72 @@ export default function PointVisual(): UnitsVisual<PointProps> {
     let renderObject: PointRenderObject | undefined
     let currentProps = DefaultPointProps
     let currentGroup: Unit.SymmetryGroup
+    let locationIt: LocationIterator
 
     let _units: ReadonlyArray<Unit>
     let _elements: SortedArray
 
     return {
         get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: PointProps = {}) {
-            currentProps = Object.assign({}, DefaultPointProps, props)
-            currentGroup = group
+        async createOrUpdate(ctx: RuntimeContext, props: PointProps = {}, group?: Unit.SymmetryGroup) {
+            if (!group && !currentGroup) {
+                throw new Error('missing group')
+            } else if (group && !currentGroup) {
+                currentProps = Object.assign({}, DefaultPointProps, props)
+                currentGroup = group
+                locationIt = StructureElementIterator.fromGroup(group)
 
-            _units = group.units
-            _elements = group.elements;
+                _units = group.units
+                _elements = group.elements;
 
-            const { colorTheme, sizeTheme } = currentProps
-            const elementCount = _elements.length
-            const instanceCount = group.units.length
+                const { colorTheme, sizeTheme } = currentProps
+                const elementCount = _elements.length
+                const instanceCount = group.units.length
 
-            const locationIt = StructureElementIterator.fromGroup(group)
+                const vertices = createPointVertices(_units[0])
+                const transform = createTransforms(group)
+                const color = createColors(locationIt, colorTheme)
+                const size = createSizes(locationIt, sizeTheme)
+                const marker = createMarkers(instanceCount * elementCount)
 
-            const vertices = createPointVertices(_units[0])
-            const transforms = createTransforms(group)
-            const color = createColors(locationIt, colorTheme)
-            const size = createSizes(locationIt, sizeTheme)
-            const marker = createMarkers(instanceCount * elementCount)
+                const values: PointValues = {
+                    aPosition: ValueCell.create(vertices),
+                    aGroup: ValueCell.create(fillSerial(new Float32Array(elementCount))),
+                    aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
+                    ...transform,
+                    ...color,
+                    ...marker,
+                    ...size,
 
-            const values: PointValues = {
-                aPosition: ValueCell.create(vertices),
-                aGroup: ValueCell.create(fillSerial(new Float32Array(elementCount))),
-                aTransform: transforms,
-                aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
-                ...color,
-                ...marker,
-                ...size,
+                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
+                    uInstanceCount: ValueCell.create(instanceCount),
+                    uGroupCount: ValueCell.create(group.elements.length),
 
-                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                uInstanceCount: ValueCell.create(instanceCount),
-                uGroupCount: ValueCell.create(group.elements.length),
+                    drawCount: ValueCell.create(vertices.length / 3),
+                    instanceCount: ValueCell.create(instanceCount),
 
-                drawCount: ValueCell.create(vertices.length / 3),
-                instanceCount: ValueCell.create(instanceCount),
+                    dPointSizeAttenuation: ValueCell.create(true),
+                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
+                }
+                const state: RenderableState = {
+                    depthMask: defaults(props.depthMask, true),
+                    visible: defaults(props.visible, true)
+                }
 
-                dPointSizeAttenuation: ValueCell.create(true),
-                dUseFog: ValueCell.create(defaults(props.useFog, true)),
+                renderObject = createPointRenderObject(values, state)
+            } else if (renderObject) {
+                const newProps = { ...currentProps, ...props }
+
+                if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
+                    createColors(locationIt, newProps.colorTheme, renderObject.values)
+                }
+
+                if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {
+                    createSizes(locationIt, newProps.sizeTheme, renderObject.values)
+                }
+
+                currentProps = newProps
             }
-            const state: RenderableState = {
-                depthMask: defaults(props.depthMask, true),
-                visible: defaults(props.visible, true)
-            }
-
-            renderObject = createPointRenderObject(values, state)
-        },
-        async update(ctx: RuntimeContext, props: PointProps) {
-            if (!renderObject || !_units || !_elements) return false
-
-            const newProps = { ...currentProps, ...props }
-            if (deepEqual(currentProps, newProps)) {
-                console.log('props identical, nothing to change')
-                return true
-            }
-
-            if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
-                console.log('colorTheme changed', currentProps.colorTheme, newProps.colorTheme)
-            }
-
-            if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {
-                console.log('sizeTheme changed', currentProps.sizeTheme, newProps.sizeTheme)
-            }
-
-            currentProps = newProps
-            return false
         },
         getLoci(pickingId: PickingId) {
             return renderObject ? getElementLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci

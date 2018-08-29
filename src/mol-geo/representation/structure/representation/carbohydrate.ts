@@ -33,18 +33,11 @@ export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
         get props() {
             return { ...carbohydrateSymbolRepr.props, ...carbohydrateLinkRepr.props }
         },
-        create: (structure: Structure, props: Partial<CarbohydrateProps> = {} as CarbohydrateProps) => {
+        createOrUpdate: (props: Partial<CarbohydrateProps> = {}, structure?: Structure) => {
             currentProps = Object.assign({}, DefaultCartoonProps, props)
             return Task.create('Creating CarbohydrateRepresentation', async ctx => {
-                await carbohydrateSymbolRepr.create(structure, currentProps).runInContext(ctx)
-                await carbohydrateLinkRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<CarbohydrateProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating CarbohydrateRepresentation', async ctx => {
-                await carbohydrateSymbolRepr.update(currentProps).runInContext(ctx)
-                await carbohydrateLinkRepr.update(currentProps).runInContext(ctx)
+                await carbohydrateSymbolRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await carbohydrateLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
