@@ -9,8 +9,9 @@ import { Unit, StructureElement, StructureProperties as Props } from 'mol-model/
 import { Loci } from 'mol-model/loci';
 import { OrderedSet } from 'mol-data/int';
 
-const elementLocA = StructureElement.create()
-const elementLocB = StructureElement.create()
+// for `labelFirst`, don't create right away to avaiod problems with circular dependencies/imports
+let elementLocA: StructureElement
+let elementLocB: StructureElement
 
 function setElementLocation(loc: StructureElement, unit: Unit, index: StructureElement.UnitIndex) {
     loc.unit = unit
@@ -18,6 +19,9 @@ function setElementLocation(loc: StructureElement, unit: Unit, index: StructureE
 }
 
 export function labelFirst(loci: Loci): string {
+    if (!elementLocA) elementLocA = StructureElement.create()
+    if (!elementLocB) elementLocB = StructureElement.create()
+
     switch (loci.kind) {
         case 'element-loci':
             const e = loci.elements[0]
