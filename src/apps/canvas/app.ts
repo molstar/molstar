@@ -31,11 +31,11 @@ export class App {
         }
     }
 
-    async loadPdbId(id: string) {
+    async loadPdbId(id: string, assemblyId?: string) {
         if (this.structureView) this.structureView.destroy()
         const cif = await getCifFromUrl(`https://files.rcsb.org/download/${id}.cif`)
         const models = await getModelsFromMmcif(cif)
-        this.structureView = await StructureView(this.viewer, models)
+        this.structureView = await StructureView(this.viewer, models, { assemblyId })
         this.pdbIdLoaded.next(this.structureView)
     }
 }

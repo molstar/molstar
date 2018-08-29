@@ -19,5 +19,6 @@ if (!elm) throw new Error('Can not find element with id "app".')
 const app = new App()
 ReactDOM.render(React.createElement(AppComponent, { app }), elm);
 
-const pdbid = urlQueryParameter('pdbid')
-if (pdbid) app.loadPdbId(pdbid)
+const assemblyId = urlQueryParameter('assembly')
+const pdbId = urlQueryParameter('pdb')
+if (pdbId) app.loadPdbId(pdbId, assemblyId)
