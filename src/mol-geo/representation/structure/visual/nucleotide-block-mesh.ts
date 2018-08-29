@@ -82,18 +82,21 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props:
                     idx6 = getElementIndexForAtomRole(model, residueIndex, 'trace')
                 }
 
-                if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1 && idx5 !== -1 && idx6 !== -1) {
-                    pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4); pos(idx5, p5); pos(idx6, p6)
-                    Vec3.normalize(v12, Vec3.sub(v12, p2, p1))
-                    Vec3.normalize(v34, Vec3.sub(v34, p4, p3))
-                    Vec3.normalize(vC, Vec3.cross(vC, v12, v34))
-                    Mat4.targetTo(t, p1, p2, vC)
-                    Vec3.scaleAndAdd(center, p1, v12, height / 2 - 0.2)
-                    Mat4.scale(t, t, Vec3.set(sVec, width, depth, height))
-                    Mat4.setTranslation(t, center)
+                if (idx5 !== -1 && idx6 !== -1) {
+                    pos(idx5, p5); pos(idx6, p6)
                     builder.setGroup(SortedArray.findPredecessorIndex(elements, idx6))
-                    builder.add(t, box)
                     addCylinder(builder, p5, p6, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
+                    if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1) {
+                        pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4);
+                        Vec3.normalize(v12, Vec3.sub(v12, p2, p1))
+                        Vec3.normalize(v34, Vec3.sub(v34, p4, p3))
+                        Vec3.normalize(vC, Vec3.cross(vC, v12, v34))
+                        Mat4.targetTo(t, p1, p2, vC)
+                        Vec3.scaleAndAdd(center, p1, v12, height / 2 - 0.2)
+                        Mat4.scale(t, t, Vec3.set(sVec, width, depth, height))
+                        Mat4.setTranslation(t, center)
+                        builder.add(t, box)
+                    }
                 }
             }
 

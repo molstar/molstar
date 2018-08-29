@@ -26,13 +26,13 @@ export function getAtomIdForAtomRole(moleculeType: MoleculeType, atomRole: AtomR
     return ''
 }
 
-export function getElementIndexForAtomId(model: Model, rI: ResidueIndex, atomId: string): ElementIndex {
+export function getElementIndexForAtomId(model: Model, rI: ResidueIndex, atomId: string): ElementIndex | -1 {
     const { offsets } = model.atomicHierarchy.residueAtomSegments
     const { label_atom_id } = model.atomicHierarchy.atoms
     for (let j = offsets[rI], _j = offsets[rI + 1]; j < _j; j++) {
         if (label_atom_id.value(j) === atomId) return j as ElementIndex
     }
-    return offsets[rI] as ElementIndex
+    return -1
 }
 
 export function getElementIndexForAtomRole(model: Model, rI: ResidueIndex, atomRole: AtomRole) {

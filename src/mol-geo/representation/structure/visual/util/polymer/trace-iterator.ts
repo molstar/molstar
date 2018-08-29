@@ -89,24 +89,25 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.residueSegmentMax = index[this.unit.elements[polymerSegment.end - 1]]
     }
 
-    private getAtomIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
-        const { cyclicPolymerMap } = this.unit.model.atomicHierarchy
+    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
+        const { atomicHierarchy } = this.unit.model
         if (residueIndex < this.residueSegmentMin) {
-            const cyclicIndex = cyclicPolymerMap.get(this.residueSegmentMin)
+            const cyclicIndex = atomicHierarchy.cyclicPolymerMap.get(this.residueSegmentMin)
             if (cyclicIndex !== undefined) {
                 residueIndex = cyclicIndex - (this.residueSegmentMin - residueIndex - 1) as ResidueIndex
             } else {
                 residueIndex = this.residueSegmentMin
             }
         } else if (residueIndex > this.residueSegmentMax) {
-            const cyclicIndex = cyclicPolymerMap.get(this.residueSegmentMax)
+            const cyclicIndex = atomicHierarchy.cyclicPolymerMap.get(this.residueSegmentMax)
             if (cyclicIndex !== undefined) {
                 residueIndex = cyclicIndex + (residueIndex - this.residueSegmentMax - 1) as ResidueIndex
             } else {
                 residueIndex = this.residueSegmentMax
             }
         }
-        return getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
+        const elementIndex = getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
+        return elementIndex === -1 ? atomicHierarchy.residueAtomSegments.offsets[residueIndex] : elementIndex
     }
 
     private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
@@ -135,19 +136,19 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
         if (this.state === AtomicPolymerTraceIteratorState.nextResidue) {
             const { index: residueIndex } = residueIt.move();
-            value.center.element = this.getAtomIndex(residueIndex, 'trace')
+            value.center.element = this.getElementIndex(residueIndex, 'trace')
 
-            this.pos(this.p0, this.getAtomIndex(residueIndex - 3 as ResidueIndex, 'trace'))
-            this.pos(this.p1, this.getAtomIndex(residueIndex - 2 as ResidueIndex, 'trace'))
-            this.pos(this.p2, this.getAtomIndex(residueIndex - 1 as ResidueIndex, 'trace'))
-            this.pos(this.p3, this.getAtomIndex(residueIndex, 'trace'))
-            this.pos(this.p4, this.getAtomIndex(residueIndex + 1 as ResidueIndex, 'trace'))
-            this.pos(this.p5, this.getAtomIndex(residueIndex + 2 as ResidueIndex, 'trace'))
-            this.pos(this.p6, this.getAtomIndex(residueIndex + 3 as ResidueIndex, 'trace'))
+            this.pos(this.p0, this.getElementIndex(residueIndex - 3 as ResidueIndex, 'trace'))
+            this.pos(this.p1, this.getElementIndex(residueIndex - 2 as ResidueIndex, 'trace'))
+            this.pos(this.p2, this.getElementIndex(residueIndex - 1 as ResidueIndex, 'trace'))
+            this.pos(this.p3, this.getElementIndex(residueIndex, 'trace'))
+            this.pos(this.p4, this.getElementIndex(residueIndex + 1 as ResidueIndex, 'trace'))
+            this.pos(this.p5, this.getElementIndex(residueIndex + 2 as ResidueIndex, 'trace'))
+            this.pos(this.p6, this.getElementIndex(residueIndex + 3 as ResidueIndex, 'trace'))
 
             // this.pos(this.v01, this.getAtomIndex(residueIndex - 2 as ResidueIndex, 'direction'))
-            this.pos(this.v12, this.getAtomIndex(residueIndex - 1 as ResidueIndex, 'direction'))
-            this.pos(this.v23, this.getAtomIndex(residueIndex, 'direction'))
+            this.pos(this.v12, this.getElementIndex(residueIndex - 1 as ResidueIndex, 'direction'))
+            this.pos(this.v23, this.getElementIndex(residueIndex, 'direction'))
             // this.pos(this.v34, this.getAtomIndex(residueIndex + 1 as ResidueIndex, 'direction'))
 
             this.value.secStrucType = this.unit.model.properties.secondaryStructure.type[residueIndex]
