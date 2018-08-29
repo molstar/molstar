@@ -103,6 +103,7 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
     let quality = defaults(props.quality, 'auto' as VisualQuality)
     let detail = 1
     let radialSegments = 12
+    let linearSegments = 8
 
     if (quality === 'auto' && structure) {
         const score = structure.elementCount
@@ -121,22 +122,27 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
         case 'highest':
             detail = 2
             radialSegments = 36
+            linearSegments = 18
             break
         case 'high':
             detail = 1
             radialSegments = 24
+            linearSegments = 12
             break
         case 'medium':
             detail = 0
             radialSegments = 12
+            linearSegments = 8
             break
         case 'low':
             detail = 0
             radialSegments = 5
+            linearSegments = 3
             break
         case 'lowest':
             detail = 0
             radialSegments = 3
+            linearSegments = 2
             break
         case 'custom':
             detail = defaults(props.detail, 1)
@@ -146,6 +152,7 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
 
     return {
         detail,
-        radialSegments
+        radialSegments,
+        linearSegments
     }
 }
