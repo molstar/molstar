@@ -8,7 +8,7 @@ import { IntMap, SortedArray, Iterator, Segmentation } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model, ElementIndex } from '../model'
-import { sort, arraySwap, hash1, sortArray } from 'mol-data/util';
+import { sort, arraySwap, hash1, sortArray, hashString } from 'mol-data/util';
 import StructureElement from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
@@ -22,6 +22,7 @@ import { ResidueIndex } from '../model/indexing';
 import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { idFactory } from 'mol-util/id-factory';
 
 class Structure {
     readonly unitMap: IntMap<Unit>;
@@ -192,9 +193,10 @@ namespace Structure {
 
     export class StructureBuilder {
         private units: Unit[] = [];
+        private invariantId = idFactory()
 
         addUnit(kind: Unit.Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
-            const unit = Unit.create(this.units.length, kind, model, operator, elements);
+            const unit = Unit.create(this.units.length, this.invariantId(), kind, model, operator, elements);
             this.units.push(unit);
             return unit;
         }
@@ -218,6 +220,10 @@ namespace Structure {
 
     export function hashCode(s: Structure) {
         return s.hashCode;
+    }
+
+    export function conformationHash(s: Structure) {
+        return hashString(s.units.map(u => Unit.conformationId(u)).join('|'))
     }
 
     export function areEqual(a: Structure, b: Structure) {

@@ -7,7 +7,6 @@
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
 import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
-import { idFactory } from 'mol-util/id-factory';
 import { IntraUnitLinks, computeIntraUnitBonds } from './unit/links'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { ValueRef } from 'mol-util';
@@ -27,11 +26,11 @@ namespace Unit {
     export function isSpheres(u: Unit): u is Spheres { return u.kind === Kind.Spheres; }
     export function isGaussians(u: Unit): u is Gaussians { return u.kind === Kind.Gaussians; }
 
-    export function create(id: number, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
+    export function create(id: number, invariantId: number, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
         switch (kind) {
-            case Kind.Atomic: return new Atomic(id, unitIdFactory(), model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), AtomicProperties());
-            case Kind.Spheres: return createCoarse(id, unitIdFactory(), model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)));
-            case Kind.Gaussians: return createCoarse(id, unitIdFactory(), model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)));
+            case Kind.Atomic: return new Atomic(id, invariantId, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), AtomicProperties());
+            case Kind.Spheres: return createCoarse(id, invariantId, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)));
+            case Kind.Gaussians: return createCoarse(id, invariantId, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)));
         }
     }
 
@@ -40,6 +39,10 @@ namespace Unit {
         readonly elements: StructureElement.Set,
         readonly units: ReadonlyArray<Unit>
         readonly hashCode: number
+    }
+
+    export function conformationId (unit: Unit) {
+        return Unit.isAtomic(unit) ? unit.model.atomicConformation.id : unit.model.coarseConformation.id
     }
 
     /** Find index of unit with given id, returns -1 if not found */
@@ -73,8 +76,6 @@ namespace Unit {
         // TODO: compute radius for gaussians
         return (i: number) => 0;
     }
-
-    const unitIdFactory = idFactory();
 
     // A bulding block of a structure that corresponds
     // to a "natural group of atoms" (most often a "chain")
