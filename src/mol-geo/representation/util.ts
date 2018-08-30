@@ -93,10 +93,11 @@ export function updateRenderableState(state: RenderableState, props: Required<Ba
 
 export type VisualQuality = 'custom' | 'auto' | 'highest' | 'high' | 'medium' | 'low' | 'lowest'
 
-interface QualityProps {
+export interface QualityProps {
     quality: VisualQuality
     detail: number
     radialSegments: number
+    linearSegments: number
 }
 
 export function getQualityProps(props: Partial<QualityProps>, structure?: Structure) {

@@ -159,7 +159,7 @@ function _build(state: BuildState): Grid3D {
 function build(data: PositionData) {
     const boundingBox = Box3D.computeBounding(data);
     // need to expand the grid bounds to avoid rounding errors
-    const expandedBox = Box3D.expand(boundingBox, Vec3.create(0.5, 0.5, 0.5));
+    const expandedBox = Box3D.expand(Box3D.empty(), boundingBox, Vec3.create(0.5, 0.5, 0.5));
     const boundingSphere = Sphere3D.computeBounding(data);
     const { indices } = data;
 
