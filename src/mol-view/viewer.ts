@@ -113,6 +113,7 @@ namespace Viewer {
 
         let pickDirty = true
         let drawPending = false
+        let lastRenderTime = -1
         const prevProjectionView = Mat4.zero()
         const prevSceneView = Mat4.zero()
 
@@ -129,9 +130,9 @@ namespace Viewer {
         }
 
         function mark(loci: Loci, action: MarkerAction) {
-            reprMap.forEach((roSet, repr) => repr.mark(loci, action))
-            scene.update()
-            requestDraw()
+            // reprMap.forEach((roSet, repr) => repr.mark(loci, action))
+            // scene.update()
+            // requestDraw()
         }
 
         let nearPlaneDelta = 0
@@ -156,7 +157,7 @@ namespace Viewer {
             let fogNear = targetDistance - camera.near + 1 * focusRadius - nearPlaneDelta;
             let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta;
 
-            //console.log(fogNear, fogFar);
+            // console.log(fogNear, fogFar);
             camera.fogNear = Math.max(fogNear, 0.1);
             camera.fogFar = Math.max(fogFar, 0.2);
 
@@ -181,8 +182,9 @@ namespace Viewer {
                 Mat4.copy(prevSceneView, scene.view)
                 renderer.render(scene, variant)
                 if (variant === 'draw') {
+                    lastRenderTime = performance.now()
                     pickDirty = true
-                    pick()
+                    // pick()
                 }
                 didRender = true
             }
@@ -204,10 +206,14 @@ namespace Viewer {
 
         function animate () {
             draw(false)
+            if (performance.now() - lastRenderTime > 500) {
+                if (pickDirty) pick()
+            }
             window.requestAnimationFrame(() => animate())
         }
 
         function pick() {
+            console.log('pick')
             render('pickObject', pickDirty)
             render('pickInstance', pickDirty)
             render('pickGroup', pickDirty)
