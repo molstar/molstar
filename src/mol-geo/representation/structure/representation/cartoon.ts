@@ -13,7 +13,7 @@ import { MarkerAction } from '../../../util/marker-data';
 import { PolymerTraceVisual, DefaultPolymerTraceProps } from '../visual/polymer-trace-mesh';
 import { PolymerGapVisual, DefaultPolymerGapProps } from '../visual/polymer-gap-cylinder';
 import { NucleotideBlockVisual, DefaultNucleotideBlockProps } from '../visual/nucleotide-block-mesh';
-import { PolymerDirectionVisual, DefaultPolymerDirectionProps } from '../visual/polymer-direction-wedge';
+import { /* PolymerDirectionVisual, */ DefaultPolymerDirectionProps } from '../visual/polymer-direction-wedge';
 
 export const DefaultCartoonProps = {
     ...DefaultPolymerTraceProps,
@@ -29,7 +29,7 @@ export function CartoonRepresentation(): CartoonRepresentation {
     const traceRepr = UnitsRepresentation(PolymerTraceVisual)
     const gapRepr = UnitsRepresentation(PolymerGapVisual)
     const blockRepr = UnitsRepresentation(NucleotideBlockVisual)
-    const directionRepr = UnitsRepresentation(PolymerDirectionVisual)
+    // const directionRepr = UnitsRepresentation(PolymerDirectionVisual)
 
     let currentProps: CartoonProps
     return {
@@ -47,30 +47,31 @@ export function CartoonRepresentation(): CartoonRepresentation {
                 await traceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await gapRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await blockRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
-                await directionRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                // await directionRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
             const traceLoci = traceRepr.getLoci(pickingId)
             const gapLoci = gapRepr.getLoci(pickingId)
             const blockLoci = blockRepr.getLoci(pickingId)
-            const directionLoci = directionRepr.getLoci(pickingId)
+            // const directionLoci = directionRepr.getLoci(pickingId)
             return !isEmptyLoci(traceLoci) ? traceLoci
                 : !isEmptyLoci(gapLoci) ? gapLoci
-                : !isEmptyLoci(blockLoci) ? blockLoci
-                : directionLoci
+                : blockLoci
+                // : !isEmptyLoci(blockLoci) ? blockLoci
+                // : directionLoci
         },
         mark: (loci: Loci, action: MarkerAction) => {
             traceRepr.mark(loci, action)
             gapRepr.mark(loci, action)
             blockRepr.mark(loci, action)
-            directionRepr.mark(loci, action)
+            // directionRepr.mark(loci, action)
         },
         destroy() {
             traceRepr.destroy()
             gapRepr.destroy()
             blockRepr.destroy()
-            directionRepr.destroy()
+            // directionRepr.destroy()
         }
     }
 }
