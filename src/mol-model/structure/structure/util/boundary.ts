@@ -37,13 +37,13 @@ function computeElementsPositionBoundary(elements: SortedArray<ElementIndex>, po
     for (let j = 0, _j = elements.length; j < _j; j++) {
         position(elements[j], p)
         const d = Vec3.squaredDistance(p, center)
-        if (d > radiusSq) radiusSq = d;
+        if (d > radiusSq) radiusSq = d
     }
 
     return {
         box: { min, max },
         sphere: { center, radius: Math.sqrt(radiusSq) }
-    };
+    }
 }
 
 function computeInvariantUnitBoundary(u: Unit): Boundary {
@@ -62,7 +62,7 @@ export function computeStructureBoundary(s: Structure): Boundary {
     const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
     const center = Vec3.zero()
 
-    const { units } = s;
+    const { units } = s
 
     const boundaryMap: Map<number, Boundary> = new Map()
     function getInvariantBoundary(u: Unit) {
@@ -76,19 +76,19 @@ export function computeStructureBoundary(s: Structure): Boundary {
         return boundary
     }
 
-    let radiusSq = 0;
-    let size = 0;
+    let radius = 0
+    let size = 0
 
     for (let i = 0, _i = units.length; i < _i; i++) {
-        size += 1
         const u = units[i]
         const invariantBoundary = getInvariantBoundary(u)
         const m = u.conformation.operator.matrix
+        size += u.elements.length
         Box3D.transform(tmpBox, invariantBoundary.box, m)
         Vec3.min(min, min, tmpBox.min)
         Vec3.max(max, max, tmpBox.max)
         Sphere3D.transform(tmpSphere, invariantBoundary.sphere, m)
-        Vec3.add(center, center, tmpSphere.center)
+        Vec3.scaleAndAdd(center, center, tmpSphere.center, u.elements.length)
     }
 
     if (size > 0) Vec3.scale(center, center, 1/size)
@@ -98,70 +98,9 @@ export function computeStructureBoundary(s: Structure): Boundary {
         const invariantBoundary = getInvariantBoundary(u)
         const m = u.conformation.operator.matrix
         Sphere3D.transform(tmpSphere, invariantBoundary.sphere, m)
-        const d = Vec3.squaredDistance(tmpSphere.center, center) + (tmpSphere.radius * tmpSphere.radius) * 4
-        if (d > radiusSq) radiusSq = d
+        const d = Vec3.distance(tmpSphere.center, center) + tmpSphere.radius
+        if (d > radius) radius = d
     }
 
-    const b = {
-        box: { min, max },
-        sphere: { center, radius: Math.sqrt(radiusSq) }
-    };
-    console.log(b, computeStructureBoundary2(s))
-    return b
-}
-
-export function computeStructureBoundary2(s: Structure): Boundary {
-    const min = [Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE];
-    const max = [-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE];
-
-    const { units } = s;
-
-    let cx = 0, cy = 0, cz = 0;
-    let radiusSq = 0;
-    let size = 0;
-
-    for (let i = 0, _i = units.length; i < _i; i++) {
-        const { x, y, z } = units[i].conformation;
-
-        const elements = units[i].elements;
-        size += elements.length;
-        for (let j = 0, _j = elements.length; j < _j; j++) {
-            const e = elements[j];
-            const xx = x(e), yy = y(e), zz = z(e);
-
-            min[0] = Math.min(xx, min[0]);
-            min[1] = Math.min(yy, min[1]);
-            min[2] = Math.min(zz, min[2]);
-            max[0] = Math.max(xx, max[0]);
-            max[1] = Math.max(yy, max[1]);
-            max[2] = Math.max(zz, max[2]);
-
-            cx += xx;
-            cy += yy;
-            cz += zz;
-        }
-    }
-
-    if (size > 0) {
-        cx /= size;
-        cy /= size;
-        cz /= size;
-    }
-
-    for (let i = 0, _i = units.length; i < _i; i++) {
-        const { x, y, z } = units[i].conformation;
-
-        const elements = units[i].elements;
-        for (let j = 0, _j = elements.length; j < _j; j++) {
-            const e = elements[j];
-            const dx = x(e) - cx, dy = y(e) - cy, dz = z(e) - cz;
-            const d = dx * dx + dy * dy + dz * dz;
-            if (d > radiusSq) radiusSq = d;
-        }
-    }
-
-    return {
-        box: { min: Vec3.ofArray(min), max: Vec3.ofArray(max) },
-        sphere: { center: Vec3.create(cx, cy, cz), radius: Math.sqrt(radiusSq) }
-    };
+    return { box: { min, max }, sphere: { center, radius } }
 }
