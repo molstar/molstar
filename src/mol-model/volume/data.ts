@@ -24,7 +24,7 @@ namespace VolumeData {
     const _scale = Mat4.zero(), _translate = Mat4.zero();
     export function getGridToCartesianTransform(volume: VolumeData) {
         const { data: { space } } = volume;
-        const scale = Mat4.fromScaling(_scale, Vec3.div(Vec3.zero(), Box3D.size(volume.fractionalBox), Vec3.ofArray(space.dimensions)));
+        const scale = Mat4.fromScaling(_scale, Vec3.div(Vec3.zero(), Box3D.size(Vec3.zero(), volume.fractionalBox), Vec3.ofArray(space.dimensions)));
         const translate = Mat4.fromTranslation(_translate, volume.fractionalBox.min);
         return Mat4.mul3(Mat4.zero(), volume.cell.fromFractional, translate, scale);
     }
