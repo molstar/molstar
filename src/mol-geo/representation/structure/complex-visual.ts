@@ -54,7 +54,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
 
         locationIt = createLocationIterator(structure)
-        renderObject = createComplexMeshRenderObject(structure, mesh, locationIt, currentProps)
+        renderObject = await createComplexMeshRenderObject(ctx, structure, mesh, locationIt, currentProps)
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P>) {
@@ -85,7 +85,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         }
 
         if (updateState.updateColor) {
-            createColors(locationIt, newProps.colorTheme, renderObject.values)
+            await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
         }
 
         updateMeshValues(renderObject.values, newProps)

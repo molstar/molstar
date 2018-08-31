@@ -21,6 +21,7 @@ import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject } from 'mol-gl/render-object';
 import { ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { RuntimeContext } from 'mol-task';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length
@@ -37,13 +38,13 @@ export function createTransforms({ units }: Unit.SymmetryGroup, transformData?: 
     }
 }
 
-export function createColors(locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {
+export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {
     const colorTheme = ColorTheme(props)
     switch (colorTheme.kind) {
-        case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData)
-        case 'group': return createGroupColor(locationIt, colorTheme.color, colorData)
-        case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData)
-        case 'instance': return createInstanceColor(locationIt, colorTheme.color, colorData)
+        case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'groupInstance': return createGroupInstanceColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'instance': return createInstanceColor(ctx, locationIt, colorTheme.color, colorData)
     }
 }
 
@@ -59,9 +60,11 @@ export function createSizes(locationIt: LocationIterator, props: SizeThemeProps,
 
 type StructureMeshProps = Required<MeshProps & StructureProps>
 
-function _createMeshValues(transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+async function _createMeshValues(ctx: RuntimeContext, transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const { instanceCount, groupCount } = locationIt
-    const color = createColors(locationIt, props.colorTheme)
+    console.time('createColors1')
+    const color = await createColors(ctx, locationIt, props.colorTheme)
+    console.timeEnd('createColors1')
     const marker = createMarkers(instanceCount * groupCount)
 
     const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
@@ -76,29 +79,29 @@ function _createMeshValues(transforms: TransformData, mesh: Mesh, locationIt: Lo
     }
 }
 
-export function createComplexMeshValues(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+export async function createComplexMeshValues(ctx: RuntimeContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const transforms = createIdentityTransform()
-    return _createMeshValues(transforms, mesh, locationIt, props)
+    return _createMeshValues(ctx, transforms, mesh, locationIt, props)
 }
 
-export function createUnitsMeshValues(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+export async function createUnitsMeshValues(ctx: RuntimeContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const transforms = createTransforms(group)
-    return _createMeshValues(transforms, mesh, locationIt, props)
+    return _createMeshValues(ctx, transforms, mesh, locationIt, props)
 }
 
-export function createComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
-    const values = createComplexMeshValues(structure, mesh, locationIt, props)
+export async function createComplexMeshRenderObject(ctx: RuntimeContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+    const values = await createComplexMeshValues(ctx, structure, mesh, locationIt, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
-export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
-    const values = createUnitsMeshValues(group, mesh, locationIt, props)
+export async function createUnitsMeshRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+    const values = await createUnitsMeshValues(ctx, group, mesh, locationIt, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
-export function updateComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+export async function updateComplexMeshRenderObject(ctx: RuntimeContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const transforms = createIdentityTransform()
-    return _createMeshValues(transforms, mesh, locationIt, props)
+    return _createMeshValues(ctx, transforms, mesh, locationIt, props)
 }

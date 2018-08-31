@@ -76,7 +76,7 @@ export default function PointVisual(): UnitsVisual<PointProps> {
 
                 const vertices = createPointVertices(_units[0])
                 const transform = createTransforms(group)
-                const color = createColors(locationIt, colorTheme)
+                const color = await createColors(ctx, locationIt, colorTheme)
                 const size = createSizes(locationIt, sizeTheme)
                 const marker = createMarkers(instanceCount * elementCount)
 
@@ -109,7 +109,7 @@ export default function PointVisual(): UnitsVisual<PointProps> {
                 const newProps = { ...currentProps, ...props }
 
                 if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
-                    createColors(locationIt, newProps.colorTheme, renderObject.values)
+                    await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
                 }
 
                 if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {

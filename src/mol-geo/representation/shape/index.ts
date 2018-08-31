@@ -51,7 +51,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
             const { groupCount, instanceCount } = locationIt
 
             const transform = createIdentityTransform()
-            const color = createColors(locationIt, _props.colorTheme)
+            const color = await createColors(ctx, locationIt, _props.colorTheme)
             const marker = createMarkers(instanceCount * groupCount)
             const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 

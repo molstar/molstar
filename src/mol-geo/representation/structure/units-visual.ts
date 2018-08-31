@@ -58,8 +58,10 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
             ? await createMesh(ctx, unit, currentProps, mesh)
             : Mesh.createEmpty(mesh)
 
+        // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
-        renderObject = createUnitsMeshRenderObject(group, mesh, locationIt, currentProps)
+        renderObject = await createUnitsMeshRenderObject(ctx, group, mesh, locationIt, currentProps)
+        console.log(renderObject.values.uInstanceCount.ref.value, renderObject.values.uGroupCount.ref.value)
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P> = {}) {
@@ -105,7 +107,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         }
 
         if (updateState.updateColor) {
-            createColors(locationIt, newProps.colorTheme, renderObject.values)
+            await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
         }
 
         updateMeshValues(renderObject.values, newProps)
