@@ -87,11 +87,12 @@ export function getElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, 
 
 export namespace StructureElementIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
-        const unit = group.units[0]
         const groupCount = group.elements.length
         const instanceCount = group.units.length
-        const location = StructureElement.create(unit)
-        const getLocation = (groupIndex: number) => {
+        const location = StructureElement.create()
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            const unit = group.units[instanceIndex]
+            location.unit = unit
             location.element = unit.elements[groupIndex]
             return location
         }
