@@ -6,7 +6,7 @@
 
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { Unit, StructureElement, Link } from 'mol-model/structure';
+import { StructureElement, Link } from 'mol-model/structure';
 import { ColorTheme, ColorThemeProps, LocationColor } from '../color';
 
 const DefaultColor = Color(0xCCCCCC)
@@ -17,12 +17,16 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
     if (props.structure) {
         const { units } = props.structure
         const scale = ColorScale.create({ domain: [ 0, units.length - 1 ] })
+        const unitIdColor = new Map<number, Color>()
+        for (let i = 0, il = units.length; i <il; ++i) {
+            unitIdColor.set(units[i].id, scale.color(units[i].id))
+        }
 
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
-                return scale.color(Unit.findUnitById(location.unit.id, units))
+                return unitIdColor.get(location.unit.id)!
             } else if (Link.isLocation(location)) {
-                return scale.color(Unit.findUnitById(location.aUnit.id, units))
+                return unitIdColor.get(location.aUnit.id)!
             }
             return DefaultColor
         }
@@ -30,5 +34,5 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
         color = () => DefaultColor
     }
 
-    return { kind: 'instance', color }
+    return { kind: 'groupInstance', color }
 }
