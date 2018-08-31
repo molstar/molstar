@@ -96,9 +96,7 @@ export function createGroupColor(locationIt: LocationIterator, color: LocationCo
 export function createGroupInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
-    console.log(count, instanceCount, groupCount)
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
-    console.log(colors.array.length / 3, count)
     while (locationIt.hasNext) {
         const { location, isSecondary, index } = locationIt.move()
         Color.toArray(color(location, isSecondary), colors.array, index * 3)

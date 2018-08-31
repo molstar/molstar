@@ -7,14 +7,13 @@
 import { Unit } from 'mol-model/structure';
 import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { markElement, getElementLoci, StructureElementIterator } from './util/element';
+import { markElement, getElementLoci } from './util/element';
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
-import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment } from './util/polymer';
+import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
-import { OrderedSet } from 'mol-data/int';
 import { addSheet } from '../../../mesh/builder/sheet';
 import { addTube } from '../../../mesh/builder/tube';
 
@@ -45,7 +44,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: Po
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setGroup(OrderedSet.findPredecessorIndex(unit.elements, v.center.element))
+        builder.setGroup(i)
 
         const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
@@ -95,7 +94,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
     return UnitsMeshVisual<PolymerTraceProps>({
         defaultProps: DefaultPolymerTraceProps,
         createMesh: createPolymerTraceMesh,
-        createLocationIterator: StructureElementIterator.fromGroup,
+        createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
         setUpdateState: (state: MeshUpdateState, newProps: PolymerTraceProps, currentProps: PolymerTraceProps) => {

@@ -20,7 +20,6 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
 
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
-                // console.log(location.unit.id, Unit.findUnitById(location.unit.id, units), units.length, units)
                 return scale.color(Unit.findUnitById(location.unit.id, units))
             } else if (Link.isLocation(location)) {
                 return scale.color(Unit.findUnitById(location.aUnit.id, units))
