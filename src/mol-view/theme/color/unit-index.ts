@@ -12,16 +12,15 @@ import { ColorTheme, ColorThemeProps, LocationColor } from '../color';
 const DefaultColor = Color(0xCCCCCC)
 
 export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
-    let colorFn: LocationColor
+    let color: LocationColor
 
     if (props.structure) {
         const { units } = props.structure
-        const unitCount = units.length
+        const scale = ColorScale.create({ domain: [ 0, units.length - 1 ] })
 
-        const scale = ColorScale.create({ domain: [ 0, unitCount ] })
-
-        colorFn = (location: Location): Color => {
+        color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
+                // console.log(location.unit.id, Unit.findUnitById(location.unit.id, units), units.length, units)
                 return scale.color(Unit.findUnitById(location.unit.id, units))
             } else if (Link.isLocation(location)) {
                 return scale.color(Unit.findUnitById(location.aUnit.id, units))
@@ -29,11 +28,8 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
             return DefaultColor
         }
     } else {
-        colorFn = () => DefaultColor
+        color = () => DefaultColor
     }
 
-    return {
-        kind: 'instance',
-        color: colorFn
-    }
+    return { kind: 'instance', color }
 }

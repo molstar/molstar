@@ -23,7 +23,7 @@ export function elementSymbolColor(element: ElementSymbol): Color {
 }
 
 export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
-    function colorFn(location: Location): Color {
+    function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
                 const { type_symbol } = location.unit.model.atomicHierarchy.atoms
@@ -38,8 +38,5 @@ export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
         return DefaultElementSymbolColor
     }
 
-    return {
-        kind: 'group',
-        color: colorFn
-    }
+    return { kind: 'group', color }
 }

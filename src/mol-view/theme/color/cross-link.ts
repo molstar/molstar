@@ -21,13 +21,13 @@ function linkDistance(link: Link.Location) {
 }
 
 export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
-    let colorFn: LocationColor
+    let color: LocationColor
 
     if (props.structure) {
         const crosslinks = props.structure.crossLinkRestraints
         const scale = ColorScale.create({ domain: [ -10, 10 ], colors: ColorBrewer.RdYlBu })
 
-        colorFn = (location: Location): Color => {
+        color = (location: Location): Color => {
             if (Link.isLocation(location)) {
                 const pairs = crosslinks.getPairs(location.aIndex, location.aUnit, location.bIndex, location.bUnit)
                 if (pairs) {
@@ -37,11 +37,8 @@ export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
             return DefaultColor
         }
     } else {
-        colorFn = () => DefaultColor
+        color = () => DefaultColor
     }
 
-    return {
-        kind: 'group',
-        color: colorFn
-    }
+    return { kind: 'group', color }
 }

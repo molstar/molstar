@@ -46,8 +46,8 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
 }
 
 /** Creates color uniform */
-export function createUniformColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
-    return createValueColor(colorFn(NullLocation, false), colorData)
+export function createUniformColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
+    return createValueColor(color(NullLocation, false), colorData)
 }
 
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
@@ -70,36 +70,38 @@ export function createTextureColor(colors: TextureImage, type: ColorType, colorD
 }
 
 /** Creates color texture with color for each instance/unit */
-export function createInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+export function createInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { instanceCount} = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
-    while (locationIt.hasNext && !locationIt.isNextNewInstance) {
+    while (locationIt.hasNext) {
         const { location, isSecondary, instanceIndex } = locationIt.move()
-        Color.toArray(colorFn(location, isSecondary), colors.array, instanceIndex * 3)
+        Color.toArray(color(location, isSecondary), colors.array, instanceIndex * 3)
         locationIt.skipInstance()
     }
     return createTextureColor(colors, 'instance', colorData)
 }
 
 /** Creates color texture with color for each group (i.e. shared across instances/units) */
-export function createGroupColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+export function createGroupColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= groupCount * 3 ? colorData.tColor.ref.value : createTextureImage(groupCount, 3)
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const { location, isSecondary, groupIndex } = locationIt.move()
-        Color.toArray(colorFn(location, isSecondary), colors.array, groupIndex * 3)
+        Color.toArray(color(location, isSecondary), colors.array, groupIndex * 3)
     }
     return createTextureColor(colors, 'group', colorData)
 }
 
 /** Creates color texture with color for each group in each instance (i.e. for each unit) */
-export function createGroupInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+export function createGroupInstanceColor(locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): ColorData {
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
+    console.log(count, instanceCount, groupCount)
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
-    while (locationIt.hasNext && !locationIt.isNextNewInstance) {
+    console.log(colors.array.length / 3, count)
+    while (locationIt.hasNext) {
         const { location, isSecondary, index } = locationIt.move()
-        Color.toArray(colorFn(location, isSecondary), colors.array, index * 3)
+        Color.toArray(color(location, isSecondary), colors.array, index * 3)
     }
     return createTextureColor(colors, 'groupInstance', colorData)
 }

@@ -13,7 +13,7 @@ import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
 const DefaultColor = Color(0xCCCCCC)
 
 export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
-    let colorFn: LocationColor
+    let color: LocationColor
 
     if (props.structure) {
         const { units } = props.structure
@@ -27,7 +27,7 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
         }
         const scale = ColorScale.create({ domain: [ 0, elementCount ] })
 
-        colorFn = (location: Location): Color => {
+        color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
                 const unitIndex = Unit.findUnitById(location.unit.id, units)
                 const unitElementIndex = OrderedSet.findPredecessorIndex(location.unit.elements, location.element)
@@ -39,11 +39,8 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
             return DefaultColor
         }
     } else {
-        colorFn = () => DefaultColor
+        color = () => DefaultColor
     }
 
-    return {
-        kind: 'groupInstance',
-        color: colorFn
-    }
+    return { kind: 'groupInstance', color }
 }

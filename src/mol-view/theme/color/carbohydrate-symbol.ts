@@ -14,7 +14,7 @@ import { Color } from 'mol-util/color';
 const DefaultColor = Color(0xCCCCCC)
 
 export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme {
-    let colorFn: LocationColor
+    let color: LocationColor
 
     if (props.structure) {
         const { elements, getElementIndex, getAnomericCarbon } = props.structure.carbohydrates
@@ -29,7 +29,7 @@ export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme
             return DefaultColor
         }
 
-        colorFn = (location: Location, isSecondary: boolean) => {
+        color = (location: Location, isSecondary: boolean) => {
             if (isSecondary) {
                 return SaccharideColors.Secondary
             } else {
@@ -42,11 +42,8 @@ export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme
             return DefaultColor
         }
     } else {
-        colorFn = () => DefaultColor
+        color = () => DefaultColor
     }
 
-    return {
-        kind: 'group',
-        color: colorFn
-    }
+    return { kind: 'group', color: color }
 }

@@ -25,7 +25,7 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
 export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
     const l = StructureElement.create()
 
-    function colorFn(location: Location): Color {
+    function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             const map = location.unit.model.properties.asymIdSerialMap
             const scale = ColorScale.create({ domain: [ 0, map.size - 1 ] })
@@ -42,8 +42,5 @@ export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
         return DefaultColor
     }
 
-    return {
-        kind: 'group',
-        color: colorFn
-    }
+    return { kind: 'group', color }
 }

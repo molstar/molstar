@@ -14,6 +14,6 @@ export function CustomColorTheme(props: ColorThemeProps): ColorTheme {
     const value = defaults(props.value, DefaultColor)
     return {
         kind: defaults(props.kind, 'uniform'),
-        color: defaults(props.colorFn, () => value)
+        color: defaults(props.color, () => value)
     }
 }

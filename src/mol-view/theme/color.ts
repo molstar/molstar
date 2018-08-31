@@ -45,7 +45,7 @@ export interface ColorThemeProps {
     domain?: [number, number]
     value?: Color
     structure?: Structure
-    colorFn?: LocationColor
+    color?: LocationColor
     kind?: ColorType
 }
 
