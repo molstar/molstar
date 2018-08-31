@@ -9,10 +9,10 @@ import { Mat4, Vec3 } from 'mol-math/linear-algebra'
 import { ValueCell } from 'mol-util';
 
 export function calculateTextureInfo (n: number, itemSize: number) {
-    const sqN = Math.sqrt(n * itemSize)
+    const sqN = Math.sqrt(n)
     let width = Math.ceil(sqN)
     width = width + (itemSize - (width % itemSize)) % itemSize
-    const height = width > 0 ? Math.ceil(n * itemSize / width) : 0
+    const height = width > 0 ? Math.ceil(n / width) : 0
     return { width, height, length: width * height * itemSize }
 }
 
@@ -43,7 +43,7 @@ function getPositionDataFromValues(values: PositionValues) {
     }
 }
 
-export function calculateBoundingSphereFromValues(values: PositionValues){
+export function calculateBoundingSphereFromValues(values: PositionValues) {
     const { position, positionCount, transform, transformCount } = getPositionDataFromValues(values)
     return calculateBoundingSphere(position, positionCount, transform, transformCount)
 }
