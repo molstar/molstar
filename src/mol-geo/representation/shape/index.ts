@@ -10,7 +10,7 @@ import { RepresentationProps, Representation } from '..';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction, createMarkers } from '../../util/marker-data';
-import { createRenderableState, createMeshValues, createIdentityTransform, DefaultMeshProps } from '../util';
+import { createRenderableState, createMeshValues, DefaultMeshProps } from '../util';
 import { getMeshData } from '../../util/mesh-data';
 import { MeshValues } from 'mol-gl/renderable';
 import { ValueCell } from 'mol-util';
@@ -19,6 +19,7 @@ import { Shape } from 'mol-model/shape';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../structure/visual/util/common';
 import { OrderedSet, Interval } from 'mol-data/int';
+import { createIdentityTransform } from '../../util/transform-data';
 
 export interface ShapeRepresentation<P extends RepresentationProps = {}> extends Representation<Shape, P> { }
 

@@ -14,11 +14,11 @@ import { Mesh } from '../../mesh/mesh';
 import { MarkerAction, applyMarkerAction, createMarkers } from '../../util/marker-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject } from 'mol-gl/render-object';
-import { createUnitsMeshRenderObject, createColors, createTransforms } from './visual/util/common';
+import { createUnitsMeshRenderObject, createColors } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { updateMeshValues, updateRenderableState } from '../util';
 import { Interval } from 'mol-data/int';
-import { fillSerial } from 'mol-util/array';
+import { createTransforms } from '../../util/transform-data';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<Unit.SymmetryGroup, P> { }
 
@@ -93,8 +93,6 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
             const { instanceCount, groupCount } = locationIt
             createTransforms(currentGroup, renderObject.values)
             createMarkers(instanceCount * groupCount, renderObject.values)
-            ValueCell.update(renderObject.values.instanceCount, instanceCount)
-            ValueCell.update(renderObject.values.aInstance, fillSerial(new Float32Array(instanceCount))) // TODO reuse array
             updateState.updateColor = true
         }
 

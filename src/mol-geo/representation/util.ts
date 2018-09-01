@@ -9,8 +9,6 @@ import { BaseValues } from 'mol-gl/renderable/schema';
 import { MeshValues, RenderableState } from 'mol-gl/renderable';
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
-import { fillSerial } from 'mol-util/array';
-import { Mat4 } from 'mol-math/linear-algebra';
 
 export const DefaultBaseProps = {
     alpha: 1,
@@ -35,31 +33,13 @@ export const DefaultPointProps = {
 }
 export type PointProps = typeof DefaultPointProps
 
-export type TransformData = {
-    aTransform: ValueCell<Float32Array>,
-}
-
-const identityTransform = new Float32Array(16)
-Mat4.toArray(Mat4.identity(), identityTransform, 0)
-export function createIdentityTransform(transformData?: TransformData): TransformData {
-    if (transformData) {
-        ValueCell.update(transformData.aTransform, identityTransform)
-        return transformData
-    } else {
-        return { aTransform: ValueCell.create(identityTransform) }
-    }
-}
-
 type Counts = { drawCount: number, groupCount: number, instanceCount: number }
 
 export function createBaseValues(props: Required<BaseProps>, counts: Counts) {
     return {
         uAlpha: ValueCell.create(props.alpha),
-        uInstanceCount: ValueCell.create(counts.instanceCount),
         uGroupCount: ValueCell.create(counts.groupCount),
-        aInstance: ValueCell.create(fillSerial(new Float32Array(counts.instanceCount))),
         drawCount: ValueCell.create(counts.drawCount),
-        instanceCount: ValueCell.create(counts.instanceCount),
         dUseFog: ValueCell.create(props.useFog),
     }
 }

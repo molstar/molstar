@@ -9,10 +9,9 @@ import { ValueCell } from 'mol-util/value-cell'
 import { PointRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
-
 import { UnitsVisual, DefaultStructureProps } from '..';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
-import { createTransforms, createColors, createSizes, createUnitsPointRenderObject } from './util/common';
+import { createColors, createSizes, createUnitsPointRenderObject } from './util/common';
 import { deepEqual, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { PickingId } from '../../../util/picking';
@@ -22,6 +21,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../util/location-iterator';
+import { createTransforms } from '../../../util/transform-data';
 
 export const DefaultElementPointProps = {
     ...DefaultStructureProps,
@@ -103,8 +103,6 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                     const { instanceCount, groupCount } = locationIt
                     createTransforms(currentGroup, renderObject.values)
                     createMarkers(instanceCount * groupCount, renderObject.values)
-                    ValueCell.update(renderObject.values.instanceCount, instanceCount)
-                    ValueCell.update(renderObject.values.aInstance, fillSerial(new Float32Array(instanceCount))) // TODO reuse array
                     updateColor = true
                     updateSize = true
                 }

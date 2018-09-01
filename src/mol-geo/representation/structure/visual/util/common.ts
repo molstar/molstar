@@ -6,8 +6,6 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { Mat4 } from 'mol-math/linear-algebra'
-
 import { createUniformColor, ColorData, createGroupColor, createGroupInstanceColor, createInstanceColor } from '../../../../util/color-data';
 import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, createInstanceSize } from '../../../../util/size-data';
 import { ValueCell } from 'mol-util';
@@ -15,7 +13,7 @@ import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../mesh/mesh';
 import { MeshValues, PointValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
-import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform, TransformData, createPointValues } from '../../../util';
+import { MeshProps, createMeshValues, createRenderableState, createPointValues } from '../../../util';
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject, createPointRenderObject } from 'mol-gl/render-object';
@@ -24,21 +22,7 @@ import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { RuntimeContext } from 'mol-task';
 import { PointProps } from 'mol-geo/representation/structure/representation/point';
 import { fillSerial } from 'mol-util/array';
-
-export function createTransforms({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
-    const unitCount = units.length
-    const n = unitCount * 16
-    const array = transformData && transformData.aTransform && transformData.aTransform.ref.value.length >= n ? transformData.aTransform.ref.value : new Float32Array(n)
-    for (let i = 0; i < unitCount; i++) {
-        Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16)
-    }
-    if (transformData) {
-        ValueCell.update(transformData.aTransform, array)
-        return transformData
-    } else {
-        return { aTransform: ValueCell.create(array) }
-    }
-}
+import { TransformData, createIdentityTransform, createTransforms } from '../../../../util/transform-data';
 
 export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
     const colorTheme = ColorTheme(props)
