@@ -13,7 +13,7 @@ import { RuntimeContext } from 'mol-task'
 import { UnitsVisual, DefaultStructureProps } from '..';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
 import { createTransforms, createColors, createSizes, createUnitsPointRenderObject } from './util/common';
-import { deepEqual } from 'mol-util';
+import { deepEqual, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
@@ -58,6 +58,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
     let currentGroup: Unit.SymmetryGroup
     let locationIt: LocationIterator
     let vertices: ValueCell<Float32Array>
+    let currentConformationId: UUID
 
     return {
         get renderObject () { return renderObject },
@@ -68,20 +69,31 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                 currentProps = Object.assign({}, DefaultElementPointProps, props)
                 currentGroup = group
                 locationIt = StructureElementIterator.fromGroup(group)
-                vertices = await createElementPointVertices(ctx, group.units[0], vertices)
+
+                const unit = group.units[0]
+                currentConformationId = Unit.conformationId(unit)
+                vertices = await createElementPointVertices(ctx, unit, vertices)
 
                 renderObject = await createUnitsPointRenderObject(ctx, group, vertices, locationIt, currentProps)
             } else if (renderObject) {
                 if (group) currentGroup = group
 
                 const newProps = { ...currentProps, ...props }
+                const unit = currentGroup.units[0]
 
                 let updateTransform = false
                 let createVertices = false
                 let updateColor = false
                 let updateSize = false
 
+                const newConformationId = Unit.conformationId(unit)
+                if (newConformationId !== currentConformationId) {
+                    currentConformationId = newConformationId
+                    createVertices = true
+                }
+
                 if (currentGroup.units.length !== locationIt.instanceCount) updateTransform = true
+
                 if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) createVertices = true
                 if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateColor = true
                 if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateSize = true
@@ -98,7 +110,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                 }
 
                 if (createVertices) {
-                    await createElementPointVertices(ctx, currentGroup.units[0], vertices)
+                    await createElementPointVertices(ctx, unit, vertices)
                     ValueCell.update(renderObject.values.aGroup, fillSerial(new Float32Array(locationIt.groupCount))) // TODO reuse array
                     ValueCell.update(renderObject.values.drawCount, locationIt.groupCount)
                     updateColor = true
