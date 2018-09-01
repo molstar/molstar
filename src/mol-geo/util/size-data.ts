@@ -9,6 +9,7 @@ import { Vec2 } from 'mol-math/linear-algebra';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { LocationIterator } from './location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
+import { RuntimeContext } from 'mol-task';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -48,7 +49,7 @@ export function createValueSize(value: number, sizeData?: SizeData): SizeData {
 }
 
 /** Creates size uniform */
-export function createUniformSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+export async function createUniformSize(ctx: RuntimeContext, locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): Promise<SizeData> {
     return createValueSize(sizeFn(NullLocation), sizeData)
 }
 
@@ -72,36 +73,51 @@ export function createTextureSize(sizes: TextureImage, type: SizeType, sizeData?
 }
 
 /** Creates size texture with size for each instance/unit */
-export function createInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+export async function createInstanceSize(ctx: RuntimeContext, locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): Promise<SizeData> {
     const { instanceCount} = locationIt
     const sizes = sizeData && sizeData.tSize.ref.value.array.length >= instanceCount ? sizeData.tSize.ref.value : createTextureImage(instanceCount, 1)
+    let i = 0
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
         sizes.array[v.instanceIndex] = sizeFn(v.location)
         locationIt.skipInstance()
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Creating instance sizes', current: i, max: instanceCount });
+        }
+        ++i
     }
     return createTextureSize(sizes, 'instance', sizeData)
 }
 
 /** Creates size texture with size for each group (i.e. shared across instances/units) */
-export function createGroupSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+export async function createGroupSize(ctx: RuntimeContext, locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): Promise<SizeData> {
     const { groupCount } = locationIt
     const sizes = sizeData && sizeData.tSize.ref.value.array.length >= groupCount ? sizeData.tSize.ref.value : createTextureImage(groupCount, 1)
+    let i = 0
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
         sizes.array[v.groupIndex] = sizeFn(v.location)
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Creating group sizes', current: i, max: groupCount });
+        }
+        ++i
     }
     return createTextureSize(sizes, 'group', sizeData)
 }
 
 /** Creates size texture with size for each group in each instance (i.e. for each unit) */
-export function createGroupInstanceSize(locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): SizeData {
+export async function createGroupInstanceSize(ctx: RuntimeContext, locationIt: LocationIterator, sizeFn: LocationSize, sizeData?: SizeData): Promise<SizeData> {
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
     const sizes = sizeData && sizeData.tSize.ref.value.array.length >= count ? sizeData.tSize.ref.value : createTextureImage(count, 1)
+    let i = 0
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const v = locationIt.move()
         sizes.array[v.index] = sizeFn(v.location)
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Creating group instance sizes', current: i, max: count });
+        }
+        ++i
     }
     return createTextureSize(sizes, 'groupInstance', sizeData)
 }

@@ -13,15 +13,17 @@ import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, 
 import { ValueCell } from 'mol-util';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../mesh/mesh';
-import { MeshValues } from 'mol-gl/renderable';
+import { MeshValues, PointValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
-import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform, TransformData } from '../../../util';
+import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform, TransformData, createPointValues } from '../../../util';
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
-import { createMeshRenderObject } from 'mol-gl/render-object';
+import { createMeshRenderObject, createPointRenderObject } from 'mol-gl/render-object';
 import { ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { RuntimeContext } from 'mol-task';
+import { PointProps } from 'mol-geo/representation/structure/representation/point';
+import { fillSerial } from 'mol-util/array';
 
 export function createTransforms({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length
@@ -38,7 +40,7 @@ export function createTransforms({ units }: Unit.SymmetryGroup, transformData?: 
     }
 }
 
-export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {
+export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
     const colorTheme = ColorTheme(props)
     switch (colorTheme.kind) {
         case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
@@ -48,23 +50,23 @@ export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, 
     }
 }
 
-export function createSizes(locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): SizeData {
+export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): Promise<SizeData> {
     const sizeTheme = SizeTheme(props)
     switch (sizeTheme.kind) {
-        case 'uniform': return createUniformSize(locationIt, sizeTheme.size, sizeData)
-        case 'group': return createGroupSize(locationIt, sizeTheme.size, sizeData)
-        case 'groupInstance': return createGroupInstanceSize(locationIt, sizeTheme.size, sizeData)
-        case 'instance': return createInstanceSize(locationIt, sizeTheme.size, sizeData)
+        case 'uniform': return createUniformSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'group': return createGroupSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'groupInstance': return createGroupInstanceSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'instance': return createInstanceSize(ctx, locationIt, sizeTheme.size, sizeData)
     }
 }
+
+// mesh
 
 type StructureMeshProps = Required<MeshProps & StructureProps>
 
 async function _createMeshValues(ctx: RuntimeContext, transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const { instanceCount, groupCount } = locationIt
-    console.time('createColors mesh')
     const color = await createColors(ctx, locationIt, props.colorTheme)
-    console.timeEnd('createColors mesh')
     const marker = createMarkers(instanceCount * groupCount)
 
     const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
@@ -104,4 +106,38 @@ export async function createUnitsMeshRenderObject(ctx: RuntimeContext, group: Un
 export async function updateComplexMeshRenderObject(ctx: RuntimeContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const transforms = createIdentityTransform()
     return _createMeshValues(ctx, transforms, mesh, locationIt, props)
+}
+
+// point
+
+type StructurePointProps = Required<PointProps & StructureProps>
+
+async function _createPointValues(ctx: RuntimeContext, transforms: TransformData, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
+    const { instanceCount, groupCount } = locationIt
+    const color = await createColors(ctx, locationIt, props.colorTheme)
+    const size = await createSizes(ctx, locationIt, props.sizeTheme)
+    const marker = createMarkers(instanceCount * groupCount)
+
+    const counts = { drawCount: groupCount, groupCount, instanceCount }
+
+    return {
+        aPosition: vertices,
+        aGroup: ValueCell.create(fillSerial(new Float32Array(groupCount))),
+        ...color,
+        ...size,
+        ...marker,
+        ...transforms,
+        ...createPointValues(props, counts)
+    }
+}
+
+export async function createUnitsPointValues(ctx: RuntimeContext, group: Unit.SymmetryGroup, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
+    const transforms = createTransforms(group)
+    return _createPointValues(ctx, transforms, vertices, locationIt, props)
+}
+
+export async function createUnitsPointRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps) {
+    const values = await createUnitsPointValues(ctx, group, vertices, locationIt, props)
+    const state = createRenderableState(props)
+    return createPointRenderObject(values, state)
 }

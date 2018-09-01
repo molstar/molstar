@@ -6,19 +6,18 @@
  */
 
 import { ValueCell } from 'mol-util/value-cell'
-import { createPointRenderObject, PointRenderObject } from 'mol-gl/render-object'
+import { PointRenderObject } from 'mol-gl/render-object'
 import { Unit } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 
 import { UnitsVisual, DefaultStructureProps } from '..';
-import { getElementLoci, StructureElementIterator } from './util/element';
-import { createTransforms, createColors, createSizes } from './util/common';
-import { deepEqual, defaults } from 'mol-util';
-import { SortedArray } from 'mol-data/int';
-import { RenderableState, PointValues } from 'mol-gl/renderable';
+import { getElementLoci, StructureElementIterator, markElement } from './util/element';
+import { createTransforms, createColors, createSizes, createUnitsPointRenderObject } from './util/common';
+import { deepEqual } from 'mol-util';
+import { Interval } from 'mol-data/int';
 import { PickingId } from '../../../util/picking';
-import { Loci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, createMarkers } from '../../../util/marker-data';
+import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
+import { MarkerAction, createMarkers, applyMarkerAction } from '../../../util/marker-data';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { fillSerial } from 'mol-util/array';
 import { SizeThemeProps } from 'mol-view/theme/size';
@@ -26,12 +25,12 @@ import { LocationIterator } from '../../../util/location-iterator';
 
 export const DefaultElementPointProps = {
     ...DefaultStructureProps,
-    sizeTheme: { name: 'physical' } as SizeThemeProps
+    sizeTheme: { name: 'physical' } as SizeThemeProps,
+    pointSizeAttenuation: true,
 }
 export type ElementPointProps = Partial<typeof DefaultElementPointProps>
 
-// TODO make async
-export function createElementPointVertices(unit: Unit, vertices?: ValueCell<Float32Array>) {
+export async function createElementPointVertices(ctx: RuntimeContext, unit: Unit, vertices?: ValueCell<Float32Array>) {
     const elements = unit.elements
     const n = elements.length * 3
     const array = vertices && vertices.ref.value.length >= n ? vertices.ref.value : new Float32Array(n)
@@ -44,6 +43,11 @@ export function createElementPointVertices(unit: Unit, vertices?: ValueCell<Floa
         array[i] = p[0]
         array[i + 1] = p[1]
         array[i + 2] = p[2]
+
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Creating points', current: i / 3, max: elements.length });
+        }
+        ++i
     }
     return vertices ? ValueCell.update(vertices, array) : ValueCell.create(array)
 }
@@ -53,9 +57,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
     let currentProps = DefaultElementPointProps
     let currentGroup: Unit.SymmetryGroup
     let locationIt: LocationIterator
-
-    let _units: ReadonlyArray<Unit>
-    let _elements: SortedArray
+    let vertices: ValueCell<Float32Array>
 
     return {
         get renderObject () { return renderObject },
@@ -66,47 +68,9 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                 currentProps = Object.assign({}, DefaultElementPointProps, props)
                 currentGroup = group
                 locationIt = StructureElementIterator.fromGroup(group)
+                vertices = await createElementPointVertices(ctx, group.units[0], vertices)
 
-                _units = group.units
-                _elements = group.elements;
-
-                const { colorTheme, sizeTheme } = currentProps
-                const elementCount = _elements.length
-                const instanceCount = group.units.length
-
-                const vertices = createElementPointVertices(_units[0])
-                const transform = createTransforms(group)
-                // console.time('createColors point')
-                const color = await createColors(ctx, locationIt, colorTheme)
-                // console.timeEnd('createColors point')
-                const size = createSizes(locationIt, sizeTheme)
-                const marker = createMarkers(instanceCount * elementCount)
-
-                const values: PointValues = {
-                    aPosition: vertices,
-                    aGroup: ValueCell.create(fillSerial(new Float32Array(elementCount))),
-                    aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
-                    ...transform,
-                    ...color,
-                    ...marker,
-                    ...size,
-
-                    uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                    uInstanceCount: ValueCell.create(instanceCount),
-                    uGroupCount: ValueCell.create(group.elements.length),
-
-                    drawCount: ValueCell.create(group.elements.length),
-                    instanceCount: ValueCell.create(instanceCount),
-
-                    dPointSizeAttenuation: ValueCell.create(true),
-                    dUseFog: ValueCell.create(defaults(props.useFog, true)),
-                }
-                const state: RenderableState = {
-                    depthMask: defaults(props.depthMask, true),
-                    visible: defaults(props.visible, true)
-                }
-
-                renderObject = createPointRenderObject(values, state)
+                renderObject = await createUnitsPointRenderObject(ctx, group, vertices, locationIt, currentProps)
             } else if (renderObject) {
                 if (group) currentGroup = group
 
@@ -134,9 +98,9 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                 }
 
                 if (createVertices) {
-                    createElementPointVertices(currentGroup.units[0], renderObject.values.aPosition)
+                    await createElementPointVertices(ctx, currentGroup.units[0], vertices)
                     ValueCell.update(renderObject.values.aGroup, fillSerial(new Float32Array(locationIt.groupCount))) // TODO reuse array
-                    ValueCell.update(renderObject.values.drawCount, currentGroup.elements.length)
+                    ValueCell.update(renderObject.values.drawCount, locationIt.groupCount)
                     updateColor = true
                     updateSize = true
                 }
@@ -146,7 +110,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                 }
 
                 if (updateSize) {
-                    createSizes(locationIt, newProps.sizeTheme, renderObject.values)
+                    await createSizes(ctx, locationIt, newProps.sizeTheme, renderObject.values)
                 }
 
                 currentProps = newProps
@@ -156,8 +120,26 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
             return renderObject ? getElementLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            // TODO
-            // markElement(loci, action, currentGroup, renderObject.values)
+            if (!renderObject) return
+            const { tMarker } = renderObject.values
+            const { groupCount, instanceCount } = locationIt
+
+            function apply(interval: Interval) {
+                const start = Interval.start(interval)
+                const end = Interval.end(interval)
+                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
+            }
+
+            let changed = false
+            if (isEveryLoci(loci)) {
+                apply(Interval.ofBounds(0, groupCount * instanceCount))
+                changed = true
+            } else {
+                changed = markElement(loci, currentGroup, apply)
+            }
+            if (changed) {
+                ValueCell.update(tMarker, tMarker.ref.value)
+            }
         },
         destroy() {
             // TODO

@@ -8,10 +8,10 @@ import { UnitsRepresentation } from '..';
 import { ElementPointVisual, DefaultElementPointProps } from '../visual/element-point';
 import { StructureRepresentation } from '../units-representation';
 
-export const DefaultSpacefillProps = {
-    ...DefaultElementPointProps
+export const DefaultPointProps = {
+    ...DefaultElementPointProps,
 }
-export type PointProps = typeof DefaultElementPointProps
+export type PointProps = typeof DefaultPointProps
 
 export type PointRepresentation = StructureRepresentation<PointProps>
 

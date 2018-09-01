@@ -29,6 +29,12 @@ export const DefaultMeshProps = {
 }
 export type MeshProps = typeof DefaultMeshProps
 
+export const DefaultPointProps = {
+    ...DefaultBaseProps,
+    pointSizeAttenuation: true
+}
+export type PointProps = typeof DefaultPointProps
+
 export type TransformData = {
     aTransform: ValueCell<Float32Array>,
 }
@@ -54,6 +60,7 @@ export function createBaseValues(props: Required<BaseProps>, counts: Counts) {
         aInstance: ValueCell.create(fillSerial(new Float32Array(counts.instanceCount))),
         drawCount: ValueCell.create(counts.drawCount),
         instanceCount: ValueCell.create(counts.instanceCount),
+        dUseFog: ValueCell.create(props.useFog),
     }
 }
 
@@ -63,7 +70,13 @@ export function createMeshValues(props: Required<MeshProps>, counts: Counts) {
         dDoubleSided: ValueCell.create(props.doubleSided),
         dFlatShaded: ValueCell.create(props.flatShaded),
         dFlipSided: ValueCell.create(props.flipSided),
-        dUseFog: ValueCell.create(props.useFog),
+    }
+}
+
+export function createPointValues(props: Required<PointProps>, counts: Counts) {
+    return {
+        ...createBaseValues(props, counts),
+        dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
     }
 }
 
@@ -76,6 +89,7 @@ export function createRenderableState(props: Required<BaseProps>): RenderableSta
 
 export function updateBaseValues(values: BaseValues, props: Required<BaseProps>) {
     ValueCell.updateIfChanged(values.uAlpha, props.alpha)
+    ValueCell.updateIfChanged(values.dUseFog, props.useFog)
 }
 
 export function updateMeshValues(values: MeshValues, props: Required<MeshProps>) {
@@ -83,7 +97,6 @@ export function updateMeshValues(values: MeshValues, props: Required<MeshProps>)
     ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
     ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
     ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
-    ValueCell.updateIfChanged(values.dUseFog, props.useFog)
 }
 
 export function updateRenderableState(state: RenderableState, props: Required<BaseProps>) {
