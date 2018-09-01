@@ -10,7 +10,7 @@ import { BallAndStickRepresentation } from 'mol-geo/representation/structure/rep
 import { getStructureFromModel } from './util';
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
 import { ShapeRepresentation, ShapeProps } from 'mol-geo/representation/shape';
-import { getAxesShape } from './assembly-symmetry';
+import { getAxesShape, getClusterColorTheme } from './assembly-symmetry';
 import Viewer from 'mol-view/viewer';
 import { CarbohydrateRepresentation } from 'mol-geo/representation/structure/representation/carbohydrate';
 import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
@@ -19,6 +19,7 @@ import { Shape } from 'mol-model/shape';
 import { Color } from 'mol-util/color';
 import { computeUnitBoundary } from 'mol-model/structure/structure/util/boundary';
 import { addBoundingBox } from 'mol-geo/mesh/builder/bounding-box';
+import { PointRepresentation } from 'mol-geo/representation/structure/representation/point';
 
 export interface StructureView {
     readonly label: string
@@ -52,6 +53,7 @@ interface StructureViewProps {
 
 export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const cartoon = CartoonRepresentation()
+    const point = PointRepresentation()
     const ballAndStick = BallAndStickRepresentation()
     const carbohydrate = CarbohydrateRepresentation()
     const symmetryAxes = ShapeRepresentation()
@@ -154,55 +156,63 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     async function createStructureRepr() {
         if (structure) {
             console.log('createStructureRepr')
-            await cartoon.createOrUpdate({
-                colorTheme: { name: 'chain-id' },
+            // await cartoon.createOrUpdate({
+            //     colorTheme: { name: 'unit-index' },
+            //     sizeTheme: { name: 'uniform', value: 0.2 },
+            //     useFog: false // TODO fog not working properly
+            // }, structure).run()
+
+            await point.createOrUpdate({
+                colorTheme: { name: 'unit-index' },
                 sizeTheme: { name: 'uniform', value: 0.2 },
                 useFog: false // TODO fog not working properly
             }, structure).run()
 
-            await ballAndStick.createOrUpdate({
-                colorTheme: { name: 'element-symbol' },
-                sizeTheme: { name: 'uniform', value: 0.1 },
-                useFog: false // TODO fog not working properly
-            }, structure).run()
+            // await ballAndStick.createOrUpdate({
+            //     colorTheme: { name: 'unit-index' },
+            //     sizeTheme: { name: 'uniform', value: 0.1 },
+            //     useFog: false // TODO fog not working properly
+            // }, structure).run()
 
-            await carbohydrate.createOrUpdate({
-                colorTheme: { name: 'carbohydrate-symbol' },
-                sizeTheme: { name: 'uniform', value: 1, factor: 1 },
-                useFog: false // TODO fog not working properly
-            }, structure).run()
+            // await carbohydrate.createOrUpdate({
+            //     colorTheme: { name: 'carbohydrate-symbol' },
+            //     sizeTheme: { name: 'uniform', value: 1, factor: 1 },
+            //     useFog: false // TODO fog not working properly
+            // }, structure).run()
 
             viewer.center(structure.boundary.sphere.center)
 
-            const mb = MeshBuilder.create()
-            mb.setGroup(0)
-            addSphere(mb, structure.boundary.sphere.center, structure.boundary.sphere.radius, 3)
-            addBoundingBox(mb, structure.boundary.box, 1, 2, 8)
-            for (let i = 0, il = structure.units.length; i < il; ++i) {
-                mb.setGroup(1)
-                const u = structure.units[i]
-                const ci = u.model.atomicHierarchy.chainAtomSegments.index[u.elements[0]]
-                const ek = u.model.atomicHierarchy.getEntityKey(ci)
-                if (u.model.entities.data.type.value(ek) === 'water') continue
-                const boundary = computeUnitBoundary(u)
-                addSphere(mb, boundary.sphere.center, boundary.sphere.radius, 3)
-                addBoundingBox(mb, boundary.box, 0.5, 2, 8)
-            }
-            const shape = Shape.create('boundary', mb.getMesh(), [Color(0xCC6633), Color(0x3366CC)], ['sphere boundary'])
-            await polymerSphere.createOrUpdate({
-                alpha: 0.5,
-                doubleSided: false,
-                depthMask: false,
-                useFog: false // TODO fog not working properly
-            }, shape).run()
+            // const mb = MeshBuilder.create()
+            // mb.setGroup(0)
+            // addSphere(mb, structure.boundary.sphere.center, structure.boundary.sphere.radius, 3)
+            // addBoundingBox(mb, structure.boundary.box, 1, 2, 8)
+            // for (let i = 0, il = structure.units.length; i < il; ++i) {
+            //     mb.setGroup(1)
+            //     const u = structure.units[i]
+            //     const ci = u.model.atomicHierarchy.chainAtomSegments.index[u.elements[0]]
+            //     const ek = u.model.atomicHierarchy.getEntityKey(ci)
+            //     if (u.model.entities.data.type.value(ek) === 'water') continue
+            //     const boundary = computeUnitBoundary(u)
+            //     addSphere(mb, boundary.sphere.center, boundary.sphere.radius, 3)
+            //     addBoundingBox(mb, boundary.box, 0.5, 2, 8)
+            // }
+            // const shape = Shape.create('boundary', mb.getMesh(), [Color(0xCC6633), Color(0x3366CC)], ['sphere boundary'])
+            // await polymerSphere.createOrUpdate({
+            //     alpha: 0.5,
+            //     doubleSided: false,
+            //     depthMask: false,
+            //     useFog: false // TODO fog not working properly
+            // }, shape).run()
         } else {
             cartoon.destroy()
+            point.destroy()
             ballAndStick.destroy()
             carbohydrate.destroy()
             polymerSphere.destroy()
         }
 
         viewer.add(cartoon)
+        viewer.add(point)
         viewer.add(ballAndStick)
         viewer.add(carbohydrate)
         viewer.add(polymerSphere)
@@ -214,9 +224,19 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             if (features._rowCount) {
                 const axesShape = getAxesShape(symmetryFeatureId, assemblySymmetry)
                 if (axesShape) {
-                    // getClusterColorTheme(symmetryFeatureId, assemblySymmetry)
+                    const colorTheme = getClusterColorTheme(symmetryFeatureId, assemblySymmetry)
+                    // await cartoon.createOrUpdate({
+                    //     colorTheme: { name: 'custom', ...colorTheme },
+                    //     sizeTheme: { name: 'uniform', value: 0.2 },
+                    //     useFog: false // TODO fog not working properly
+                    // }).run()
+                    // await ballAndStick.createOrUpdate({
+                    //     colorTheme:  { name: 'custom', ...colorTheme },
+                    //     sizeTheme: { name: 'uniform', value: 0.1 },
+                    //     useFog: false // TODO fog not working properly
+                    // }).run()
                     await symmetryAxes.createOrUpdate({
-                        colorTheme: { name: 'shape-group' },
+                        colorTheme: { name: 'shape-group', ...colorTheme },
                         // colorTheme: { name: 'uniform', value: Color(0xFFCC22) },
                         useFog: false // TODO fog not working properly
                     }, axesShape).run()

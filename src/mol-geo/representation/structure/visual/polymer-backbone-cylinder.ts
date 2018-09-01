@@ -73,6 +73,7 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
     return UnitsMeshVisual<PolymerBackboneProps>({
         defaultProps: DefaultPolymerBackboneProps,
         createMesh: createPolymerBackboneCylinderMesh,
+        // TODO create a specialized location iterator
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,

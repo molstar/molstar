@@ -10,12 +10,10 @@ precision highp int;
 #pragma glslify: import('./chunks/common-frag-params.glsl')
 #pragma glslify: import('./chunks/color-frag-params.glsl')
 
-uniform float uAlpha;
-
 void main(){
     #pragma glslify: import('./chunks/assign-material-color.glsl')
-    
-    gl_FragColor = vec4(material, uAlpha);
+
+    gl_FragColor = material;
 
     #pragma glslify: import('./chunks/apply-marker-color.glsl')
     #pragma glslify: import('./chunks/apply-fog.glsl')

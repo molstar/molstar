@@ -20,8 +20,6 @@ attribute float aGroup;
     varying vec3 vNormal;
 #endif
 
-varying vec3 vViewPosition;
-
 #pragma glslify: inverse = require(./utils/inverse.glsl)
 #pragma glslify: transpose = require(./utils/transpose.glsl)
 

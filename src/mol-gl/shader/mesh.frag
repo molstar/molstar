@@ -18,12 +18,10 @@ precision highp int;
 uniform vec3 uLightColor;
 uniform vec3 uLightAmbient;
 uniform mat4 uView;
-uniform float uAlpha;
 
 #ifndef dFlatShaded
     varying vec3 vNormal;
 #endif
-varying vec3 vViewPosition;
 
 #pragma glslify: attenuation = require(./utils/attenuation.glsl)
 #pragma glslify: calculateSpecular = require(./utils/phong-specular.glsl)
@@ -74,7 +72,7 @@ void main() {
         // gl_FragColor.a = 1.0;
         // gl_FragColor.rgb = vec3(1.0, 0.0, 0.0);
         gl_FragColor.rgb = finalColor;
-        gl_FragColor.a = uAlpha;
+        gl_FragColor.a = material.a;
 
         #pragma glslify: import('./chunks/apply-marker-color.glsl')
         #pragma glslify: import('./chunks/apply-fog.glsl')

@@ -6,6 +6,10 @@ uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
 varying float vMarker;
 
+varying vec3 vViewPosition;
+
 uniform float uFogNear;
 uniform float uFogFar;
 uniform vec3 uFogColor;
+
+uniform float uAlpha;

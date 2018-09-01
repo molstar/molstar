@@ -62,9 +62,9 @@ type StructureMeshProps = Required<MeshProps & StructureProps>
 
 async function _createMeshValues(ctx: RuntimeContext, transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const { instanceCount, groupCount } = locationIt
-    console.time('createColors1')
+    console.time('createColors mesh')
     const color = await createColors(ctx, locationIt, props.colorTheme)
-    console.timeEnd('createColors1')
+    console.timeEnd('createColors mesh')
     const marker = createMarkers(instanceCount * groupCount)
 
     const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }

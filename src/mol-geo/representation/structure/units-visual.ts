@@ -94,7 +94,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
             createTransforms(currentGroup, renderObject.values)
             createMarkers(instanceCount * groupCount, renderObject.values)
             ValueCell.update(renderObject.values.instanceCount, instanceCount)
-            ValueCell.update(renderObject.values.aInstance, fillSerial(new Float32Array(instanceCount))) // TODO
+            ValueCell.update(renderObject.values.aInstance, fillSerial(new Float32Array(instanceCount))) // TODO reuse array
             updateState.updateColor = true
         }
 

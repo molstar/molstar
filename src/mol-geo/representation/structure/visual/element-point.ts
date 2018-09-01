@@ -24,33 +24,33 @@ import { fillSerial } from 'mol-util/array';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../util/location-iterator';
 
-export const DefaultPointProps = {
+export const DefaultElementPointProps = {
     ...DefaultStructureProps,
     sizeTheme: { name: 'physical' } as SizeThemeProps
 }
-export type PointProps = Partial<typeof DefaultPointProps>
+export type ElementPointProps = Partial<typeof DefaultElementPointProps>
 
-export function createPointVertices(unit: Unit) {
+// TODO make async
+export function createElementPointVertices(unit: Unit, vertices?: ValueCell<Float32Array>) {
     const elements = unit.elements
-    const elementCount = elements.length
-    const vertices = new Float32Array(elementCount * 3)
+    const n = elements.length * 3
+    const array = vertices && vertices.ref.value.length >= n ? vertices.ref.value : new Float32Array(n)
 
     const pos = unit.conformation.invariantPosition
 
     const p = Vec3.zero()
-    for (let i = 0; i < elementCount; i++) {
-        const i3 = i * 3
-        pos(elements[i], p)
-        vertices[i3] = p[0]
-        vertices[i3 + 1] = p[1]
-        vertices[i3 + 2] = p[2]
+    for (let i = 0; i < n; i += 3) {
+        pos(elements[i / 3], p)
+        array[i] = p[0]
+        array[i + 1] = p[1]
+        array[i + 2] = p[2]
     }
-    return vertices
+    return vertices ? ValueCell.update(vertices, array) : ValueCell.create(array)
 }
 
-export default function PointVisual(): UnitsVisual<PointProps> {
+export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
     let renderObject: PointRenderObject | undefined
-    let currentProps = DefaultPointProps
+    let currentProps = DefaultElementPointProps
     let currentGroup: Unit.SymmetryGroup
     let locationIt: LocationIterator
 
@@ -59,11 +59,11 @@ export default function PointVisual(): UnitsVisual<PointProps> {
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: PointProps = {}, group?: Unit.SymmetryGroup) {
+        async createOrUpdate(ctx: RuntimeContext, props: ElementPointProps = {}, group?: Unit.SymmetryGroup) {
             if (!group && !currentGroup) {
                 throw new Error('missing group')
             } else if (group && !currentGroup) {
-                currentProps = Object.assign({}, DefaultPointProps, props)
+                currentProps = Object.assign({}, DefaultElementPointProps, props)
                 currentGroup = group
                 locationIt = StructureElementIterator.fromGroup(group)
 
@@ -74,14 +74,16 @@ export default function PointVisual(): UnitsVisual<PointProps> {
                 const elementCount = _elements.length
                 const instanceCount = group.units.length
 
-                const vertices = createPointVertices(_units[0])
+                const vertices = createElementPointVertices(_units[0])
                 const transform = createTransforms(group)
+                // console.time('createColors point')
                 const color = await createColors(ctx, locationIt, colorTheme)
+                // console.timeEnd('createColors point')
                 const size = createSizes(locationIt, sizeTheme)
                 const marker = createMarkers(instanceCount * elementCount)
 
                 const values: PointValues = {
-                    aPosition: ValueCell.create(vertices),
+                    aPosition: vertices,
                     aGroup: ValueCell.create(fillSerial(new Float32Array(elementCount))),
                     aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
                     ...transform,
@@ -93,7 +95,7 @@ export default function PointVisual(): UnitsVisual<PointProps> {
                     uInstanceCount: ValueCell.create(instanceCount),
                     uGroupCount: ValueCell.create(group.elements.length),
 
-                    drawCount: ValueCell.create(vertices.length / 3),
+                    drawCount: ValueCell.create(group.elements.length),
                     instanceCount: ValueCell.create(instanceCount),
 
                     dPointSizeAttenuation: ValueCell.create(true),
@@ -106,13 +108,44 @@ export default function PointVisual(): UnitsVisual<PointProps> {
 
                 renderObject = createPointRenderObject(values, state)
             } else if (renderObject) {
+                if (group) currentGroup = group
+
                 const newProps = { ...currentProps, ...props }
 
-                if (!deepEqual(currentProps.colorTheme, newProps.colorTheme)) {
+                let updateTransform = false
+                let createVertices = false
+                let updateColor = false
+                let updateSize = false
+
+                if (currentGroup.units.length !== locationIt.instanceCount) updateTransform = true
+                if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) createVertices = true
+                if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateColor = true
+                if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateSize = true
+
+                if (updateTransform) {
+                    locationIt = StructureElementIterator.fromGroup(currentGroup)
+                    const { instanceCount, groupCount } = locationIt
+                    createTransforms(currentGroup, renderObject.values)
+                    createMarkers(instanceCount * groupCount, renderObject.values)
+                    ValueCell.update(renderObject.values.instanceCount, instanceCount)
+                    ValueCell.update(renderObject.values.aInstance, fillSerial(new Float32Array(instanceCount))) // TODO reuse array
+                    updateColor = true
+                    updateSize = true
+                }
+
+                if (createVertices) {
+                    createElementPointVertices(currentGroup.units[0], renderObject.values.aPosition)
+                    ValueCell.update(renderObject.values.aGroup, fillSerial(new Float32Array(locationIt.groupCount))) // TODO reuse array
+                    ValueCell.update(renderObject.values.drawCount, currentGroup.elements.length)
+                    updateColor = true
+                    updateSize = true
+                }
+
+                if (updateColor) {
                     await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
                 }
 
-                if (!deepEqual(currentProps.sizeTheme, newProps.sizeTheme)) {
+                if (updateSize) {
                     createSizes(locationIt, newProps.sizeTheme, renderObject.values)
                 }
 

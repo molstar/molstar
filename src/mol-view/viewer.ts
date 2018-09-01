@@ -104,7 +104,7 @@ namespace Viewer {
         // const renderer = Renderer.create(ctx, camera, { clearColor: 0xFFFFFF })
         const renderer = Renderer.create(ctx, camera, { clearColor: Color(0x000000) })
 
-        const pickScale = 1 / 4
+        const pickScale = 1
         const pickWidth = Math.round(canvas.width * pickScale)
         const pickHeight = Math.round(canvas.height * pickScale)
         const objectPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
