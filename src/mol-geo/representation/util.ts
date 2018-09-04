@@ -14,7 +14,7 @@ export const DefaultBaseProps = {
     alpha: 1,
     visible: true,
     depthMask: true,
-    useFog: true,
+    useFog: false,
     quality: 'auto' as VisualQuality
 }
 export type BaseProps = typeof DefaultBaseProps

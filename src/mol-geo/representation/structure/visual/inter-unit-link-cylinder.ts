@@ -51,6 +51,7 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
 export const DefaultInterUnitLinkProps = {
     ...DefaultComplexMeshProps,
     ...DefaultLinkCylinderProps,
+
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
 }
 export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps

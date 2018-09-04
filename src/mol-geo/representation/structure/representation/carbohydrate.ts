@@ -12,21 +12,25 @@ import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { CarbohydrateSymbolVisual, DefaultCarbohydrateSymbolProps } from '../visual/carbohydrate-symbol-mesh';
 import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from '../visual/carbohydrate-link-cylinder';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultCartoonProps = {
     ...DefaultCarbohydrateSymbolProps,
-    ...DefaultCarbohydrateLinkProps
+    ...DefaultCarbohydrateLinkProps,
+
+    sizeTheme: { name: 'uniform', value: 1, factor: 1 } as SizeThemeProps,
 }
 export type CarbohydrateProps = typeof DefaultCartoonProps
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateProps>
 
 export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
-    const carbohydrateSymbolRepr = ComplexRepresentation(CarbohydrateSymbolVisual)
-    const carbohydrateLinkRepr = ComplexRepresentation(CarbohydrateLinkVisual)
+    const carbohydrateSymbolRepr = ComplexRepresentation('Carbohydrate symbol mesh', CarbohydrateSymbolVisual)
+    const carbohydrateLinkRepr = ComplexRepresentation('Carbohydrate link cylinder', CarbohydrateLinkVisual)
 
     let currentProps: CarbohydrateProps
     return {
+        label: 'Carbohydrate',
         get renderObjects() {
             return [ ...carbohydrateSymbolRepr.renderObjects, ...carbohydrateLinkRepr.renderObjects ]
         },

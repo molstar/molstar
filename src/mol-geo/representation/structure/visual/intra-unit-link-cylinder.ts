@@ -65,6 +65,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
 export const DefaultIntraUnitLinkProps = {
     ...DefaultUnitsMeshProps,
     ...DefaultLinkCylinderProps,
+
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
 }
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps

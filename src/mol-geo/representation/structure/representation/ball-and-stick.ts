@@ -19,7 +19,7 @@ export const DefaultBallAndStickProps = {
     ...DefaultElementSphereProps,
     ...DefaultIntraUnitLinkProps,
 
-    sizeTheme: { name: 'uniform', value: 0.25 } as SizeThemeProps,
+    sizeTheme: { name: 'uniform', value: 0.2 } as SizeThemeProps,
     unitKinds: [ Unit.Kind.Atomic ] as Unit.Kind[]
 }
 export type BallAndStickProps = typeof DefaultBallAndStickProps
@@ -27,12 +27,13 @@ export type BallAndStickProps = typeof DefaultBallAndStickProps
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>
 
 export function BallAndStickRepresentation(): BallAndStickRepresentation {
-    const elmementRepr = UnitsRepresentation(ElementSphereVisual)
-    const intraLinkRepr = UnitsRepresentation(IntraUnitLinkVisual)
-    const interLinkRepr = ComplexRepresentation(InterUnitLinkVisual)
+    const elmementRepr = UnitsRepresentation('Element sphere mesh', ElementSphereVisual)
+    const intraLinkRepr = UnitsRepresentation('Intra-unit link cylinder', IntraUnitLinkVisual)
+    const interLinkRepr = ComplexRepresentation('Inter-unit link cylinder', InterUnitLinkVisual)
 
     let currentProps: BallAndStickProps
     return {
+        label: 'Ball & Stick',
         get renderObjects() {
             return [ ...elmementRepr.renderObjects, ...intraLinkRepr.renderObjects, ...interLinkRepr.renderObjects ]
         },

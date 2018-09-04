@@ -20,10 +20,11 @@ export type BackboneProps = typeof DefaultBackboneProps
 export type BackboneRepresentation = StructureRepresentation<BackboneProps>
 
 export function BackboneRepresentation(): BackboneRepresentation {
-    const traceRepr = UnitsRepresentation(PolymerBackboneVisual)
+    const traceRepr = UnitsRepresentation('Polymer backbone cylinder', PolymerBackboneVisual)
 
     let currentProps: BackboneProps
     return {
+        label: 'Backbone',
         get renderObjects() {
             return [ ...traceRepr.renderObjects ]
         },

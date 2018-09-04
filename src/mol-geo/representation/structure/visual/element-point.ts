@@ -75,6 +75,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                 vertices = await createElementPointVertices(ctx, unit, vertices)
 
                 renderObject = await createUnitsPointRenderObject(ctx, group, vertices, locationIt, currentProps)
+                console.log(renderObject)
             } else if (renderObject) {
                 if (group) currentGroup = group
 

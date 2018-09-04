@@ -22,10 +22,11 @@ export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
 
 export function DistanceRestraintRepresentation(): DistanceRestraintRepresentation {
-    const crossLinkRepr = ComplexRepresentation(CrossLinkRestraintVisual)
+    const crossLinkRepr = ComplexRepresentation('Cross-link restraint', CrossLinkRestraintVisual)
 
     let currentProps: DistanceRestraintProps
     return {
+        label: 'Distance restraint',
         get renderObjects() {
             return [ ...crossLinkRepr.renderObjects ]
         },

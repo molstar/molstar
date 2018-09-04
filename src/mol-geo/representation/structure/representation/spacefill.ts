@@ -16,5 +16,5 @@ export type SpacefillProps = typeof DefaultSpacefillProps
 export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>
 
 export function SpacefillRepresentation(): SpacefillRepresentation {
-    return UnitsRepresentation(ElementSphereVisual)
+    return UnitsRepresentation('Spacefill', ElementSphereVisual)
 }

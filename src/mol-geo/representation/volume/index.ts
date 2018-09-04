@@ -42,6 +42,7 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
     }
 
     return {
+        label: 'Volume mesh',
         get renderObjects () { return renderObjects },
         get props () { return _props },
         createOrUpdate,

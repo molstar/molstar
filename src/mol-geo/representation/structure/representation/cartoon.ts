@@ -13,26 +13,30 @@ import { MarkerAction } from '../../../util/marker-data';
 import { PolymerTraceVisual, DefaultPolymerTraceProps } from '../visual/polymer-trace-mesh';
 import { PolymerGapVisual, DefaultPolymerGapProps } from '../visual/polymer-gap-cylinder';
 import { NucleotideBlockVisual, DefaultNucleotideBlockProps } from '../visual/nucleotide-block-mesh';
-import { /* PolymerDirectionVisual, */ DefaultPolymerDirectionProps } from '../visual/polymer-direction-wedge';
+import { SizeThemeProps } from 'mol-view/theme/size';
+// import { PolymerDirectionVisual, DefaultPolymerDirectionProps } from '../visual/polymer-direction-wedge';
 
 export const DefaultCartoonProps = {
     ...DefaultPolymerTraceProps,
     ...DefaultPolymerGapProps,
     ...DefaultNucleotideBlockProps,
-    ...DefaultPolymerDirectionProps
+    // ...DefaultPolymerDirectionProps,
+
+    sizeTheme: { name: 'uniform', value: 0.2 } as SizeThemeProps,
 }
 export type CartoonProps = typeof DefaultCartoonProps
 
 export type CartoonRepresentation = StructureRepresentation<CartoonProps>
 
 export function CartoonRepresentation(): CartoonRepresentation {
-    const traceRepr = UnitsRepresentation(PolymerTraceVisual)
-    const gapRepr = UnitsRepresentation(PolymerGapVisual)
-    const blockRepr = UnitsRepresentation(NucleotideBlockVisual)
-    // const directionRepr = UnitsRepresentation(PolymerDirectionVisual)
+    const traceRepr = UnitsRepresentation('Polymer trace mesh', PolymerTraceVisual)
+    const gapRepr = UnitsRepresentation('Polymer gap cylinder', PolymerGapVisual)
+    const blockRepr = UnitsRepresentation('Nucleotide block mesh', NucleotideBlockVisual)
+    // const directionRepr = UnitsRepresentation('Polymer direction wedge', PolymerDirectionVisual)
 
     let currentProps: CartoonProps
     return {
+        label: 'Cartoon',
         get renderObjects() {
             return [ ...traceRepr.renderObjects, ...gapRepr.renderObjects,
                 ...blockRepr.renderObjects // , ...directionRepr.renderObjects

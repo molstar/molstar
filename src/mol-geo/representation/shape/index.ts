@@ -73,6 +73,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
     }
 
     return {
+        label: 'Shape mesh',
         get renderObjects () { return renderObjects },
         get props () { return _props },
         createOrUpdate,

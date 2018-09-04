@@ -13,6 +13,7 @@ import { MarkerAction } from '../util/marker-data';
 export interface RepresentationProps {}
 
 export interface Representation<D, P extends RepresentationProps = {}> {
+    readonly label: string
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
     createOrUpdate: (props?: Partial<P>, data?: D) => Task<void>

@@ -14,7 +14,7 @@ import { getQualityProps } from '../util';
 import { StructureProps, DefaultStructureProps, StructureRepresentation } from '.';
 import { ComplexVisual } from './complex-visual';
 
-export function ComplexRepresentation<P extends StructureProps>(visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureProps>(label: string, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let visual: ComplexVisual<P> | undefined
     let _props: P
 
@@ -41,6 +41,7 @@ export function ComplexRepresentation<P extends StructureProps>(visualCtor: () =
     }
 
     return {
+        label,
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },
