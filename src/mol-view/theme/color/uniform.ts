@@ -13,7 +13,7 @@ export function UniformColorTheme(props: ColorThemeProps): ColorTheme {
     const color = props.value || DefaultColor
 
     return {
-        kind: 'uniform',
+        granularity: 'uniform',
         color: () => color
     }
 }

@@ -22,7 +22,7 @@ export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
 export interface ColorTheme {
-    kind: ColorType
+    granularity: ColorType
     color: LocationColor
 }
 

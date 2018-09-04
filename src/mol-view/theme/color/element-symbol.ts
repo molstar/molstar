@@ -38,5 +38,5 @@ export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
         return DefaultElementSymbolColor
     }
 
-    return { kind: 'group', color }
+    return { granularity: 'group', color }
 }

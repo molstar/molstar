@@ -40,5 +40,5 @@ export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
         color = () => DefaultColor
     }
 
-    return { kind: 'group', color }
+    return { granularity: 'group', color }
 }

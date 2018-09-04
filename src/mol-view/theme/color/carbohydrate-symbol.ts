@@ -45,5 +45,5 @@ export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme
         color = () => DefaultColor
     }
 
-    return { kind: 'group', color: color }
+    return { granularity: 'group', color: color }
 }

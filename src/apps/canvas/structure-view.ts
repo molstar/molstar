@@ -157,7 +157,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         if (structure) {
             console.log('createStructureRepr')
             await cartoon.createOrUpdate({
-                colorTheme: { name: 'unit-index' },
+                colorTheme: { name: 'chain-id' },
                 sizeTheme: { name: 'uniform', value: 0.2 },
                 useFog: false // TODO fog not working properly
             }, structure).run()
@@ -169,7 +169,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             // }, structure).run()
 
             await ballAndStick.createOrUpdate({
-                colorTheme: { name: 'unit-index' },
+                colorTheme: { name: 'chain-id' },
                 sizeTheme: { name: 'uniform', value: 0.1 },
                 useFog: false // TODO fog not working properly
             }, structure).run()

@@ -55,7 +55,6 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
 
         locationIt = createLocationIterator(structure)
         renderObject = await createComplexMeshRenderObject(ctx, structure, mesh, locationIt, currentProps)
-        console.log(renderObject.values)
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P>) {

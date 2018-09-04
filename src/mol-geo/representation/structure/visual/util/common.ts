@@ -27,7 +27,7 @@ import { TransformData, createIdentityTransform, createTransforms } from '../../
 export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
     const colorTheme = ColorTheme(props)
     // Always use 'group' kind for 'complex' location iterators, i.e. an instance may include multiple units
-    const kind = colorTheme.kind === 'instance' && locationIt.isComplex ? 'group' : colorTheme.kind
+    const kind = colorTheme.granularity === 'instance' && locationIt.isComplex ? 'group' : colorTheme.granularity
     switch (kind) {
         case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)
@@ -52,7 +52,10 @@ type StructureMeshProps = Required<MeshProps & StructureProps>
 
 async function _createMeshValues(ctx: RuntimeContext, transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const { instanceCount, groupCount } = locationIt
+    console.time('createColors')
     const color = await createColors(ctx, locationIt, props.colorTheme)
+    console.timeEnd('createColors')
+    console.log(locationIt.groupCount)
     const marker = createMarkers(instanceCount * groupCount)
 
     const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }

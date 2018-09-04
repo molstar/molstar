@@ -34,5 +34,5 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
         color = () => DefaultColor
     }
 
-    return { kind: 'instance', color }
+    return { granularity: 'instance', color }
 }

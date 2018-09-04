@@ -42,5 +42,5 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
         color = () => DefaultColor
     }
 
-    return { kind: 'groupInstance', color }
+    return { granularity: 'groupInstance', color }
 }
