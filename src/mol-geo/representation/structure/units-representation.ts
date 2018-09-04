@@ -13,14 +13,14 @@ import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 import { getQualityProps } from '../util';
-import { DefaultStructureProps, StructureProps } from '.';
+import { StructureProps } from '.';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<Unit.SymmetryGroup, P> { }
 export interface  StructureVisual<P extends RepresentationProps = {}> extends Visual<Structure, P> { }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
-export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends StructureProps>(label: string, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _props: P
@@ -28,7 +28,7 @@ export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => 
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
     function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
-        _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
+        _props = Object.assign({}, _props, props, getQualityProps(props, structure))
         _props.colorTheme.structure = structure
 
         return Task.create('Creating or updating StructureRepresentation', async ctx => {
@@ -120,6 +120,7 @@ export function UnitsRepresentation<P extends StructureProps>(visualCtor: () => 
     }
 
     return {
+        label,
         get renderObjects() {
             const renderObjects: RenderObject[] = []
             visuals.forEach(({ visual }) => {

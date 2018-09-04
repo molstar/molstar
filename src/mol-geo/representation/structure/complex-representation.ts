@@ -11,7 +11,7 @@ import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 import { getQualityProps } from '../util';
-import { StructureProps, DefaultStructureProps, StructureRepresentation } from '.';
+import { StructureProps, StructureRepresentation } from '.';
 import { ComplexVisual } from './complex-visual';
 
 export function ComplexRepresentation<P extends StructureProps>(label: string, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
@@ -19,7 +19,7 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, v
     let _props: P
 
     function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
-        _props = Object.assign({}, DefaultStructureProps, _props, props, getQualityProps(props, structure))
+        _props = Object.assign({}, _props, props, getQualityProps(props, structure))
         if (structure) _props.colorTheme.structure = structure
 
         return Task.create('Creating StructureRepresentation', async ctx => {
