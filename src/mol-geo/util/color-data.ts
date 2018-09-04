@@ -10,8 +10,10 @@ import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from './location-iterator';
 import { NullLocation } from 'mol-model/location';
-import { LocationColor, ColorType } from 'mol-view/theme/color';
+import { LocationColor } from 'mol-view/theme/color';
 import { RuntimeContext } from 'mol-task';
+
+export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,

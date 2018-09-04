@@ -17,8 +17,8 @@ import { UniformColorTheme } from './color/uniform';
 import { CrossLinkColorTheme } from './color/cross-link';
 import { ShapeGroupColorTheme } from './color/shape-group';
 import { CustomColorTheme } from './color/custom';
+import { ColorType } from 'mol-geo/util/color-data';
 
-export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
 export interface ColorTheme {
@@ -46,7 +46,7 @@ export interface ColorThemeProps {
     value?: Color
     structure?: Structure
     color?: LocationColor
-    kind?: ColorType
+    granularity?: ColorType
 }
 
 export const ColorThemeInfo = {

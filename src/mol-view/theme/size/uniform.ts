@@ -15,7 +15,7 @@ export function UniformSizeTheme(props: SizeThemeProps): SizeTheme {
     const size = value * factor
 
     return {
-        kind: 'uniform',
+        granularity: 'uniform',
         size: () => size
     }
 }

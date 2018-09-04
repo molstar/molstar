@@ -6,8 +6,8 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { createUniformColor, ColorData, createGroupColor, createGroupInstanceColor, createInstanceColor } from '../../../../util/color-data';
-import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, createInstanceSize } from '../../../../util/size-data';
+import { createUniformColor, ColorData, createGroupColor, createGroupInstanceColor, createInstanceColor, ColorType } from '../../../../util/color-data';
+import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, createInstanceSize, SizeType } from '../../../../util/size-data';
 import { ValueCell } from 'mol-util';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../mesh/mesh';
@@ -24,11 +24,14 @@ import { PointProps } from 'mol-geo/representation/structure/representation/poin
 import { fillSerial } from 'mol-util/array';
 import { TransformData, createIdentityTransform, createTransforms } from '../../../../util/transform-data';
 
+function getGranularity(locationIt: LocationIterator, granularity: ColorType | SizeType) {
+    // Always use 'group' kind for 'complex' location iterators, i.e. an instance may include multiple units
+    return granularity === 'instance' && locationIt.isComplex ? 'group' : granularity
+}
+
 export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
     const colorTheme = ColorTheme(props)
-    // Always use 'group' kind for 'complex' location iterators, i.e. an instance may include multiple units
-    const kind = colorTheme.granularity === 'instance' && locationIt.isComplex ? 'group' : colorTheme.granularity
-    switch (kind) {
+    switch (getGranularity(locationIt, colorTheme.granularity)) {
         case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)
         case 'groupInstance': return createGroupInstanceColor(ctx, locationIt, colorTheme.color, colorData)
@@ -38,7 +41,7 @@ export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, 
 
 export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): Promise<SizeData> {
     const sizeTheme = SizeTheme(props)
-    switch (sizeTheme.kind) {
+    switch (getGranularity(locationIt, sizeTheme.granularity)) {
         case 'uniform': return createUniformSize(ctx, locationIt, sizeTheme.size, sizeData)
         case 'group': return createGroupSize(ctx, locationIt, sizeTheme.size, sizeData)
         case 'groupInstance': return createGroupInstanceSize(ctx, locationIt, sizeTheme.size, sizeData)
@@ -52,10 +55,7 @@ type StructureMeshProps = Required<MeshProps & StructureProps>
 
 async function _createMeshValues(ctx: RuntimeContext, transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const { instanceCount, groupCount } = locationIt
-    console.time('createColors')
     const color = await createColors(ctx, locationIt, props.colorTheme)
-    console.timeEnd('createColors')
-    console.log(locationIt.groupCount)
     const marker = createMarkers(instanceCount * groupCount)
 
     const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
