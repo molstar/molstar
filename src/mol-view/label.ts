@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, StructureElement, StructureProperties as Props } from 'mol-model/structure';
+import { Unit, StructureElement, StructureProperties as Props, Link } from 'mol-model/structure';
 import { Loci } from 'mol-model/loci';
 import { OrderedSet } from 'mol-data/int';
 
@@ -19,9 +19,6 @@ function setElementLocation(loc: StructureElement, unit: Unit, index: StructureE
 }
 
 export function labelFirst(loci: Loci): string {
-    if (!elementLocA) elementLocA = StructureElement.create()
-    if (!elementLocB) elementLocB = StructureElement.create()
-
     switch (loci.kind) {
         case 'element-loci':
             const e = loci.elements[0]
@@ -32,14 +29,8 @@ export function labelFirst(loci: Loci): string {
                 return 'Unknown'
             }
         case 'link-loci':
-            const bond = loci.links[0]
-            if (bond) {
-                setElementLocation(elementLocA, bond.aUnit, bond.aIndex)
-                setElementLocation(elementLocB, bond.bUnit, bond.bIndex)
-                return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
-            } else {
-                return 'Unknown'
-            }
+            const link = loci.links[0]
+            return link ? linkLabel(link) : 'Unknown'
         case 'group-loci':
             const g = loci.groups[0]
             if (g) {
@@ -54,32 +45,40 @@ export function labelFirst(loci: Loci): string {
     }
 }
 
-export function elementLabel(loc: StructureElement) {
-    const model = loc.unit.model.label
-    const instance = loc.unit.conformation.operator.name
-    let element = ''
+export function linkLabel(link: Link.Location) {
+    if (!elementLocA) elementLocA = StructureElement.create()
+    if (!elementLocB) elementLocB = StructureElement.create()
+    setElementLocation(elementLocA, link.aUnit, link.aIndex)
+    setElementLocation(elementLocB, link.bUnit, link.bIndex)
+    return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
+}
 
-    if (Unit.isAtomic(loc.unit)) {
-        const asym_id = Props.chain.auth_asym_id(loc)
-        const seq_id = Props.residue.auth_seq_id(loc)
-        const comp_id = Props.residue.auth_comp_id(loc)
-        const atom_id = Props.atom.auth_atom_id(loc)
-        element = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}`
-    } else if (Unit.isCoarse(loc.unit)) {
-        const asym_id = Props.coarse.asym_id(loc)
-        const seq_id_begin = Props.coarse.seq_id_begin(loc)
-        const seq_id_end = Props.coarse.seq_id_end(loc)
+export function elementLabel(element: StructureElement) {
+    const model = element.unit.model.label
+    const instance = element.unit.conformation.operator.name
+    let label = ''
+
+    if (Unit.isAtomic(element.unit)) {
+        const asym_id = Props.chain.auth_asym_id(element)
+        const seq_id = Props.residue.auth_seq_id(element)
+        const comp_id = Props.residue.auth_comp_id(element)
+        const atom_id = Props.atom.auth_atom_id(element)
+        label = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}`
+    } else if (Unit.isCoarse(element.unit)) {
+        const asym_id = Props.coarse.asym_id(element)
+        const seq_id_begin = Props.coarse.seq_id_begin(element)
+        const seq_id_end = Props.coarse.seq_id_end(element)
         if (seq_id_begin === seq_id_end) {
-            const entityKey = Props.coarse.entityKey(loc)
-            const seq = loc.unit.model.sequence.byEntityKey[entityKey]
+            const entityKey = Props.coarse.entityKey(element)
+            const seq = element.unit.model.sequence.byEntityKey[entityKey]
             const comp_id = seq.compId.value(seq_id_begin - 1) // 1-indexed
-            element = `[${comp_id}]${seq_id_begin}:${asym_id}`
+            label = `[${comp_id}]${seq_id_begin}:${asym_id}`
         } else {
-            element = `${seq_id_begin}-${seq_id_end}:${asym_id}`
+            label = `${seq_id_begin}-${seq_id_end}:${asym_id}`
         }
     } else {
-        element = 'unknown'
+        label = 'unknown'
     }
 
-    return `${model} ${instance} ${element}`
+    return `${model} ${instance} ${label}`
 }
