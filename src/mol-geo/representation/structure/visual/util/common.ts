@@ -26,7 +26,9 @@ import { TransformData, createIdentityTransform, createTransforms } from '../../
 
 export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
     const colorTheme = ColorTheme(props)
-    switch (colorTheme.kind) {
+    // Always use 'group' kind for 'complex' location iterators, i.e. an instance may include multiple units
+    const kind = colorTheme.kind === 'instance' && locationIt.isComplex ? 'group' : colorTheme.kind
+    switch (kind) {
         case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)
         case 'groupInstance': return createGroupInstanceColor(ctx, locationIt, colorTheme.color, colorData)

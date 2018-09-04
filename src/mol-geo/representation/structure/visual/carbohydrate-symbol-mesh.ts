@@ -172,7 +172,7 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     function isSecondary (elementIndex: number, instanceIndex: number) {
         return (elementIndex % 2) === 1
     }
-    return LocationIterator(groupCount, instanceCount, getLocation, isSecondary)
+    return LocationIterator(groupCount, instanceCount, getLocation, true, isSecondary)
 }
 
 function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {

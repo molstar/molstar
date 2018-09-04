@@ -61,7 +61,6 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
         renderObject = await createUnitsMeshRenderObject(ctx, group, mesh, locationIt, currentProps)
-        console.log(renderObject.values.uInstanceCount.ref.value, renderObject.values.uGroupCount.ref.value)
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P> = {}) {

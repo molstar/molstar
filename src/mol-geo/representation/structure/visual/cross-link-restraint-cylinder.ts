@@ -84,7 +84,7 @@ function CrossLinkRestraintIterator(structure: Structure): LocationIterator {
         location.bIndex = pair.indexB
         return location
     }
-    return LocationIterator(groupCount, instanceCount, getLocation)
+    return LocationIterator(groupCount, instanceCount, getLocation, true)
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {

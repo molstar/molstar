@@ -100,7 +100,7 @@ function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
         location.bIndex = indexB as StructureElement.UnitIndex
         return location
     }
-    return LocationIterator(groupCount, instanceCount, getLocation)
+    return LocationIterator(groupCount, instanceCount, getLocation, true)
 }
 
 function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {

@@ -28,6 +28,8 @@ export interface LocationIterator extends Iterator<LocationValue> {
     readonly isNextNewInstance: boolean
     readonly groupCount: number
     readonly instanceCount: number
+    /** If true, may have multiple units per instance; if false one unit per instance */
+    readonly isComplex: boolean
     move(): LocationValue
     reset(): void
     skipInstance(): void
@@ -36,7 +38,7 @@ export interface LocationIterator extends Iterator<LocationValue> {
 type LocationGetter = (groupIndex: number, instanceIndex: number) => Location
 type IsSecondaryGetter = (groupIndex: number, instanceIndex: number) => boolean
 
-export function LocationIterator(groupCount: number, instanceCount: number, getLocation: LocationGetter, isSecondary: IsSecondaryGetter = () => false): LocationIterator {
+export function LocationIterator(groupCount: number, instanceCount: number, getLocation: LocationGetter, isComplex = false, isSecondary: IsSecondaryGetter = () => false): LocationIterator {
     const value: LocationValue = {
         location: NullLocation as Location,
         index: 0,
@@ -55,6 +57,7 @@ export function LocationIterator(groupCount: number, instanceCount: number, getL
         get isNextNewInstance () { return isNextNewInstance },
         get groupCount () { return groupCount },
         get instanceCount () { return instanceCount },
+        isComplex,
         move() {
             if (hasNext) {
                 value.groupIndex = groupIndex

@@ -156,23 +156,23 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     async function createStructureRepr() {
         if (structure) {
             console.log('createStructureRepr')
-            // await cartoon.createOrUpdate({
-            //     colorTheme: { name: 'unit-index' },
-            //     sizeTheme: { name: 'uniform', value: 0.2 },
-            //     useFog: false // TODO fog not working properly
-            // }, structure).run()
-
-            await point.createOrUpdate({
+            await cartoon.createOrUpdate({
                 colorTheme: { name: 'unit-index' },
                 sizeTheme: { name: 'uniform', value: 0.2 },
                 useFog: false // TODO fog not working properly
             }, structure).run()
 
-            // await ballAndStick.createOrUpdate({
+            // await point.createOrUpdate({
             //     colorTheme: { name: 'unit-index' },
-            //     sizeTheme: { name: 'uniform', value: 0.1 },
+            //     sizeTheme: { name: 'uniform', value: 0.2 },
             //     useFog: false // TODO fog not working properly
             // }, structure).run()
+
+            await ballAndStick.createOrUpdate({
+                colorTheme: { name: 'unit-index' },
+                sizeTheme: { name: 'uniform', value: 0.1 },
+                useFog: false // TODO fog not working properly
+            }, structure).run()
 
             // await carbohydrate.createOrUpdate({
             //     colorTheme: { name: 'carbohydrate-symbol' },

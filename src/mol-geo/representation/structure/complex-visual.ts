@@ -44,17 +44,18 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
     let mesh: Mesh
     let currentStructure: Structure
     let locationIt: LocationIterator
-    let conformationHashCode: number
+    let conformationHash: number
 
     async function create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
         currentStructure = structure
 
-        conformationHashCode = Structure.conformationHash(currentStructure)
+        conformationHash = Structure.conformationHash(currentStructure)
         mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
 
         locationIt = createLocationIterator(structure)
         renderObject = await createComplexMeshRenderObject(ctx, structure, mesh, locationIt, currentProps)
+        console.log(renderObject.values)
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P>) {
@@ -66,9 +67,9 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         MeshUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps)
 
-        const newConformationHashCode = Structure.conformationHash(currentStructure)
-        if (newConformationHashCode !== conformationHashCode) {
-            conformationHashCode = newConformationHashCode
+        const newConformationHash = Structure.conformationHash(currentStructure)
+        if (newConformationHash !== conformationHash) {
+            conformationHash = newConformationHash
             updateState.createMesh = true
         }
 
