@@ -20,16 +20,19 @@ import { Color } from 'mol-util/color';
 import { computeUnitBoundary } from 'mol-model/structure/structure/util/boundary';
 import { addBoundingBox } from 'mol-geo/mesh/builder/bounding-box';
 import { PointRepresentation } from 'mol-geo/representation/structure/representation/point';
+import { StructureRepresentation } from 'mol-geo/representation/structure';
+import { BehaviorSubject } from 'rxjs';
 
 export interface StructureView {
+    readonly viewer: Viewer
+
     readonly label: string
     readonly models: ReadonlyArray<Model>
     readonly structure: Structure | undefined
     readonly assemblySymmetry: AssemblySymmetry | undefined
 
-    readonly cartoon: CartoonRepresentation
-    readonly ballAndStick: BallAndStickRepresentation
-    readonly carbohydrate: CarbohydrateRepresentation
+    readonly structureRepresentations: StructureRepresentation<any>[]
+    readonly structureRepresentationsUpdated: BehaviorSubject<null>
     readonly symmetryAxes: ShapeRepresentation<ShapeProps>
 
     readonly modelId: number
@@ -56,8 +59,18 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     const point = PointRepresentation()
     const ballAndStick = BallAndStickRepresentation()
     const carbohydrate = CarbohydrateRepresentation()
+
+    const structureRepresentations: StructureRepresentation<any>[] = [
+        // cartoon,
+        point,
+        // ballAndStick,
+        // carbohydrate
+    ]
+
     const symmetryAxes = ShapeRepresentation()
     const polymerSphere = ShapeRepresentation()
+
+    const structureRepresentationsUpdated: BehaviorSubject<null> = new BehaviorSubject<null>(null)
 
     let label: string
     let model: Model | undefined
@@ -156,29 +169,9 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     async function createStructureRepr() {
         if (structure) {
             console.log('createStructureRepr')
-            await cartoon.createOrUpdate({
-                colorTheme: { name: 'chain-id' },
-                sizeTheme: { name: 'uniform', value: 0.2 },
-                useFog: false // TODO fog not working properly
-            }, structure).run()
-
-            // await point.createOrUpdate({
-            //     colorTheme: { name: 'unit-index' },
-            //     sizeTheme: { name: 'uniform', value: 0.2 },
-            //     useFog: false // TODO fog not working properly
-            // }, structure).run()
-
-            await ballAndStick.createOrUpdate({
-                colorTheme: { name: 'chain-id' },
-                sizeTheme: { name: 'uniform', value: 0.1 },
-                useFog: false // TODO fog not working properly
-            }, structure).run()
-
-            // await carbohydrate.createOrUpdate({
-            //     colorTheme: { name: 'carbohydrate-symbol' },
-            //     sizeTheme: { name: 'uniform', value: 1, factor: 1 },
-            //     useFog: false // TODO fog not working properly
-            // }, structure).run()
+            for (let i = 0, il = structureRepresentations.length; i < il; ++i) {
+                await structureRepresentations[i].createOrUpdate({}, structure).run()
+            }
 
             viewer.center(structure.boundary.sphere.center)
 
@@ -204,18 +197,13 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             //     useFog: false // TODO fog not working properly
             // }, shape).run()
         } else {
-            cartoon.destroy()
-            point.destroy()
-            ballAndStick.destroy()
-            carbohydrate.destroy()
+            structureRepresentations.forEach(repr => repr.destroy)
             polymerSphere.destroy()
         }
 
-        viewer.add(cartoon)
-        viewer.add(point)
-        viewer.add(ballAndStick)
-        viewer.add(carbohydrate)
+        structureRepresentations.forEach(repr => viewer.add(repr))
         viewer.add(polymerSphere)
+        structureRepresentationsUpdated.next(null)
     }
 
     async function createSymmetryRepr() {
@@ -224,22 +212,18 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             if (features._rowCount) {
                 const axesShape = getAxesShape(symmetryFeatureId, assemblySymmetry)
                 if (axesShape) {
-                    const colorTheme = getClusterColorTheme(symmetryFeatureId, assemblySymmetry)
+                    // const colorTheme = getClusterColorTheme(symmetryFeatureId, assemblySymmetry)
                     // await cartoon.createOrUpdate({
-                    //     colorTheme: { name: 'custom', ...colorTheme },
+                    //     colorTheme: { name: 'custom', color: colorTheme.color, granularity: colorTheme.granularity },
                     //     sizeTheme: { name: 'uniform', value: 0.2 },
                     //     useFog: false // TODO fog not working properly
                     // }).run()
                     // await ballAndStick.createOrUpdate({
-                    //     colorTheme:  { name: 'custom', ...colorTheme },
+                    //     colorTheme:  { name: 'custom', color: colorTheme.color, granularity: colorTheme.granularity },
                     //     sizeTheme: { name: 'uniform', value: 0.1 },
                     //     useFog: false // TODO fog not working properly
                     // }).run()
-                    await symmetryAxes.createOrUpdate({
-                        colorTheme: { name: 'shape-group', ...colorTheme },
-                        // colorTheme: { name: 'uniform', value: Color(0xFFCC22) },
-                        useFog: false // TODO fog not working properly
-                    }, axesShape).run()
+                    await symmetryAxes.createOrUpdate({}, axesShape).run()
                 } else {
                     symmetryAxes.destroy()
                 }
@@ -256,14 +240,15 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     await setModel(0, props.assemblyId, props.symmetryFeatureId)
 
     return {
+        viewer,
+
         get label() { return label },
         models,
         get structure() { return structure },
         get assemblySymmetry() { return assemblySymmetry },
 
-        cartoon,
-        ballAndStick,
-        carbohydrate,
+        structureRepresentations,
+        structureRepresentationsUpdated,
         symmetryAxes,
 
         get modelId() { return modelId },
@@ -278,14 +263,15 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         getSymmetryFeatureIds,
 
         destroy: () => {
-            viewer.remove(cartoon)
-            viewer.remove(ballAndStick)
-            viewer.remove(carbohydrate)
+            structureRepresentations.forEach(repr => {
+                viewer.remove(repr)
+                repr.destroy()
+            })
+            viewer.remove(polymerSphere)
             viewer.remove(symmetryAxes)
             viewer.requestDraw()
 
-            cartoon.destroy()
-            ballAndStick.destroy()
+            polymerSphere.destroy()
             symmetryAxes.destroy()
         }
     }

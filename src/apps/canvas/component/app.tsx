@@ -8,7 +8,7 @@ import * as React from 'react'
 import { StructureView } from '../structure-view';
 import { App } from '../app';
 import { Viewport } from './viewport';
-import { StructureComponent } from './structure';
+import { StructureViewComponent } from './structure-view';
 
 // export function FileInput (props: {
 //     accept: string
@@ -49,7 +49,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
             </div>
 
             <div style={{float: 'right', width: '25%', height: '100%'}}>
-                {structureView ? <StructureComponent structureView={structureView} /> : ''}
+                {structureView ? <StructureViewComponent structureView={structureView} /> : ''}
             </div>
         </div>;
     }

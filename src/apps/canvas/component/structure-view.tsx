@@ -6,6 +6,8 @@
 
 import * as React from 'react'
 import { StructureView } from '../structure-view';
+import { StructureRepresentation } from 'mol-geo/representation/structure';
+import { StructureRepresentationComponent } from './structure-representation';
 
 // export function FileInput (props: {
 //     accept: string
@@ -18,11 +20,11 @@ import { StructureView } from '../structure-view';
 //     />
 // }
 
-export interface StructureComponentProps {
+export interface StructureViewComponentProps {
     structureView: StructureView
 }
 
-export interface StructureComponentState {
+export interface StructureViewComponentState {
     label: string
     modelId: number
     modelIds: { id: number, label: string }[]
@@ -30,9 +32,11 @@ export interface StructureComponentState {
     assemblyIds: { id: string, label: string }[]
     symmetryFeatureId: number
     symmetryFeatureIds: { id: number, label: string }[]
+
+    structureRepresentations: StructureRepresentation<any>[]
 }
 
-export class StructureComponent extends React.Component<StructureComponentProps, StructureComponentState> {
+export class StructureViewComponent extends React.Component<StructureViewComponentProps, StructureViewComponentState> {
     state = {
         label: this.props.structureView.label,
         modelId: this.props.structureView.modelId,
@@ -40,7 +44,9 @@ export class StructureComponent extends React.Component<StructureComponentProps,
         assemblyId: this.props.structureView.assemblyId,
         assemblyIds: this.props.structureView.getAssemblyIds(),
         symmetryFeatureId: this.props.structureView.symmetryFeatureId,
-        symmetryFeatureIds: this.props.structureView.getSymmetryFeatureIds()
+        symmetryFeatureIds: this.props.structureView.getSymmetryFeatureIds(),
+
+        structureRepresentations: this.props.structureView.structureRepresentations
     }
 
     componentWillMount() {
@@ -54,11 +60,19 @@ export class StructureComponent extends React.Component<StructureComponentProps,
             assemblyId: sv.assemblyId,
             assemblyIds: sv.getAssemblyIds(),
             symmetryFeatureId: sv.symmetryFeatureId,
-            symmetryFeatureIds: sv.getSymmetryFeatureIds()
+            symmetryFeatureIds: sv.getSymmetryFeatureIds(),
+
+            structureRepresentations: sv.structureRepresentations
         })
     }
 
-    async update(state: Partial<StructureComponentState>) {
+    componentDidMount() {
+        this.props.structureView.structureRepresentationsUpdated.subscribe(() => this.setState({
+            structureRepresentations: this.props.structureView.structureRepresentations
+        }))
+    }
+
+    async update(state: Partial<StructureViewComponentState>) {
         const sv = this.props.structureView
 
         if (state.modelId !== undefined) await sv.setModel(state.modelId)
@@ -73,13 +87,15 @@ export class StructureComponent extends React.Component<StructureComponentProps,
             assemblyId: sv.assemblyId,
             assemblyIds: sv.getAssemblyIds(),
             symmetryFeatureId: sv.symmetryFeatureId,
-            symmetryFeatureIds: sv.getSymmetryFeatureIds()
+            symmetryFeatureIds: sv.getSymmetryFeatureIds(),
+
+            structureRepresentations: sv.structureRepresentations
         }
         this.setState(newState)
     }
 
     render() {
-        const { label, modelIds, assemblyIds, symmetryFeatureIds } = this.state
+        const { label, modelIds, assemblyIds, symmetryFeatureIds, structureRepresentations } = this.state
 
         const modelIdOptions = modelIds.map(m => {
             return <option key={m.id} value={m.id}>{m.label}</option>
@@ -93,7 +109,7 @@ export class StructureComponent extends React.Component<StructureComponentProps,
 
         return <div>
             <div>
-                <span>{label}</span>
+                <h2>{label}</h2>
             </div>
             <div>
                 <div>
@@ -128,6 +144,16 @@ export class StructureComponent extends React.Component<StructureComponentProps,
                     >
                         {symmetryFeatureIdOptions}
                     </select>
+                </div>
+                <div>
+                    <h3>Structure Representations</h3>
+                    { structureRepresentations ? structureRepresentations.map((r, i) =>
+                        <div key={i}>
+                            <StructureRepresentationComponent
+                                representation={r}
+                                viewer={this.props.structureView.viewer}
+                            />
+                        </div>) : '' }
                 </div>
             </div>
         </div>;
