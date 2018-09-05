@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '..';
 import { DefaultStructureMeshProps, MeshUpdateState } from '.';
 import { RuntimeContext } from 'mol-task';
@@ -20,7 +20,9 @@ import { updateMeshValues, updateRenderableState } from '../util';
 import { Interval } from 'mol-data/int';
 import { createTransforms } from '../../util/transform-data';
 
-export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<Unit.SymmetryGroup, P> { }
+export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
+
+export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
 export const DefaultUnitsMeshProps = {
     ...DefaultStructureMeshProps,
@@ -45,11 +47,13 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
     let currentProps: P
     let mesh: Mesh
     let currentGroup: Unit.SymmetryGroup
+    let currentStructure: Structure
     let locationIt: LocationIterator
     let currentConformationId: UUID
 
     async function create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
+        currentProps.colorTheme.structure = currentStructure
         currentGroup = group
 
         const unit = group.units[0]
@@ -115,7 +119,9 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: Partial<P> = {}, group?: Unit.SymmetryGroup) {
+        async createOrUpdate(ctx: RuntimeContext, props: Partial<P> = {}, structureGroup?: StructureGroup) {
+            if (structureGroup) currentStructure = structureGroup.structure
+            const group = structureGroup ? structureGroup.group : undefined
             if (!group && !currentGroup) {
                 throw new Error('missing group')
             } else if (group && (!currentGroup || !renderObject)) {

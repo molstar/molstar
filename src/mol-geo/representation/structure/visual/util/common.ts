@@ -25,7 +25,8 @@ import { fillSerial } from 'mol-util/array';
 import { TransformData, createIdentityTransform, createTransforms } from '../../../../util/transform-data';
 
 function getGranularity(locationIt: LocationIterator, granularity: ColorType | SizeType) {
-    // Always use 'group' kind for 'complex' location iterators, i.e. an instance may include multiple units
+    // Always use 'group' granularity for 'complex' location iterators,
+    // i.e. for which an instance may include multiple units
     return granularity === 'instance' && locationIt.isComplex ? 'group' : granularity
 }
 

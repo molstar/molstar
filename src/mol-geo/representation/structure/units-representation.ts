@@ -14,8 +14,9 @@ import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
 import { getQualityProps } from '../util';
 import { StructureProps } from '.';
+import { StructureGroup } from './units-visual';
 
-export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<Unit.SymmetryGroup, P> { }
+export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 export interface  StructureVisual<P extends RepresentationProps = {}> extends Visual<Structure, P> { }
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
@@ -28,8 +29,8 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
     function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
+        console.log(props)
         _props = Object.assign({}, _props, props, getQualityProps(props, structure))
-        _props.colorTheme.structure = structure
 
         return Task.create('Creating or updating StructureRepresentation', async ctx => {
             if (!_structure && !structure) {
@@ -40,7 +41,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = visualCtor()
-                    await visual.createOrUpdate(ctx, _props, group)
+                    await visual.createOrUpdate(ctx, _props, { group, structure })
                     visuals.set(group.hashCode, { visual, group })
                 }
             } else if (structure && _structure.hashCode !== structure.hashCode) {
@@ -55,18 +56,19 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                     const visualGroup = oldVisuals.get(group.hashCode)
                     if (visualGroup) {
                         const { visual } = visualGroup
-                        await visual.createOrUpdate(ctx, _props, group)
+                        await visual.createOrUpdate(ctx, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
                     } else {
                         // newGroups.push(group)
                         const visual = visualCtor()
-                        await visual.createOrUpdate(ctx, _props, group)
+                        await visual.createOrUpdate(ctx, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                     }
                 }
                 oldVisuals.forEach(({ visual }) => visual.destroy())
 
+                // TODO review logic
                 // For new groups, re-use left-over visuals
                 // const unusedVisuals: UnitsVisual<P>[] = []
                 // oldVisuals.forEach(({ visual }) => unusedVisuals.push(visual))
@@ -85,7 +87,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                     const group = _groups[i];
                     const visualGroup = visuals.get(group.hashCode)
                     if (visualGroup) {
-                        await visualGroup.visual.createOrUpdate(ctx, _props, group)
+                        await visualGroup.visual.createOrUpdate(ctx, _props, { group, structure })
                         visualGroup.group = group
                     } else {
                         throw new Error(`expected to find visual for hashCode ${group.hashCode}`)
@@ -94,7 +96,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
             } else {
                 // No new structure given, just update all visuals with new props.
                 visuals.forEach(async ({ visual, group }) => {
-                    await visual.createOrUpdate(ctx, _props, group)
+                    await visual.createOrUpdate(ctx, _props, { group, structure: _structure })
                 })
             }
             if (structure) _structure = structure

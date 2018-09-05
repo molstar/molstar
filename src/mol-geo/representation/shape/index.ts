@@ -25,6 +25,7 @@ export interface ShapeRepresentation<P extends RepresentationProps = {}> extends
 
 export const DefaultShapeProps = {
     ...DefaultMeshProps,
+
     colorTheme: { name: 'shape-group' } as ColorThemeProps
 }
 export type ShapeProps = typeof DefaultShapeProps

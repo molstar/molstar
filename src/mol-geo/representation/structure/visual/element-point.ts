@@ -7,7 +7,7 @@
 
 import { ValueCell } from 'mol-util/value-cell'
 import { PointRenderObject } from 'mol-gl/render-object'
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
 import { UnitsVisual, DefaultStructureProps } from '..';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
@@ -22,6 +22,8 @@ import { fillSerial } from 'mol-util/array';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../util/location-iterator';
 import { createTransforms } from '../../../util/transform-data';
+import { StructureGroup } from '../units-visual';
+import { updateRenderableState } from '../../util';
 
 export const DefaultElementPointProps = {
     ...DefaultStructureProps,
@@ -57,17 +59,21 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
     let renderObject: PointRenderObject | undefined
     let currentProps = DefaultElementPointProps
     let currentGroup: Unit.SymmetryGroup
+    let currentStructure: Structure
     let locationIt: LocationIterator
     let vertices: ValueCell<Float32Array>
     let currentConformationId: UUID
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: ElementPointProps = {}, group?: Unit.SymmetryGroup) {
+        async createOrUpdate(ctx: RuntimeContext, props: ElementPointProps = {}, structureGroup?: StructureGroup) {
+            if (structureGroup) currentStructure = structureGroup.structure
+            const group = structureGroup ? structureGroup.group : undefined
             if (!group && !currentGroup) {
                 throw new Error('missing group')
             } else if (group && !currentGroup) {
                 currentProps = Object.assign({}, DefaultElementPointProps, props)
+                currentProps.colorTheme.structure = currentStructure
                 currentGroup = group
                 locationIt = StructureElementIterator.fromGroup(group)
 
@@ -123,6 +129,8 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                 if (updateSize) {
                     await createSizes(ctx, locationIt, newProps.sizeTheme, renderObject.values)
                 }
+
+                updateRenderableState(renderObject.state, newProps)
 
                 currentProps = newProps
             }
