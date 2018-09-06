@@ -19,7 +19,6 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, v
 
     function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
         _props = Object.assign({}, _props, props)
-        if (structure) _props.colorTheme.structure = structure
 
         return Task.create('Creating StructureRepresentation', async ctx => {
             if (!visual) visual = visualCtor()

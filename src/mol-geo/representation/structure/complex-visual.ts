@@ -48,6 +48,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
 
     async function create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
+        currentProps.colorTheme.structure = structure
         currentStructure = structure
 
         conformationHash = Structure.conformationHash(currentStructure)
@@ -59,6 +60,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
 
     async function update(ctx: RuntimeContext, props: Partial<P>) {
         const newProps = Object.assign({}, currentProps, props)
+        newProps.colorTheme.structure = currentStructure
 
         if (!renderObject) return false
 

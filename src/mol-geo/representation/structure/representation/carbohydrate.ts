@@ -15,13 +15,13 @@ import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from '../visual/
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { getQualityProps } from '../../util';
 
-export const DefaultCartoonProps = {
+export const DefaultCarbohydrateProps = {
     ...DefaultCarbohydrateSymbolProps,
     ...DefaultCarbohydrateLinkProps,
 
     sizeTheme: { name: 'uniform', value: 1, factor: 1 } as SizeThemeProps,
 }
-export type CarbohydrateProps = typeof DefaultCartoonProps
+export type CarbohydrateProps = typeof DefaultCarbohydrateProps
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateProps>
 
@@ -40,7 +40,7 @@ export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
         },
         createOrUpdate: (props: Partial<CarbohydrateProps> = {}, structure?: Structure) => {
             const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
-            currentProps = Object.assign({}, DefaultCartoonProps, currentProps, props, qualityProps)
+            currentProps = Object.assign({}, DefaultCarbohydrateProps, currentProps, props, qualityProps)
             return Task.create('Creating CarbohydrateRepresentation', async ctx => {
                 await carbohydrateSymbolRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await carbohydrateLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
