@@ -31,9 +31,13 @@ export interface StructureView {
     readonly structure: Structure | undefined
     readonly assemblySymmetry: AssemblySymmetry | undefined
 
-    readonly structureRepresentations: StructureRepresentation<any>[]
-    readonly structureRepresentationsUpdated: BehaviorSubject<null>
+    readonly active: { [k: string]: boolean }
+    readonly structureRepresentations: { [k: string]: StructureRepresentation<any> }
+    readonly updated: BehaviorSubject<null>
     readonly symmetryAxes: ShapeRepresentation<ShapeProps>
+
+    setSymmetryAxes(value: boolean): void
+    setStructureRepresentation(name: string, value: boolean): void
 
     readonly modelId: number
     readonly assemblyId: string
@@ -54,23 +58,29 @@ interface StructureViewProps {
     symmetryFeatureId?: number
 }
 
-export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
-    const cartoon = CartoonRepresentation()
-    const point = PointRepresentation()
-    const ballAndStick = BallAndStickRepresentation()
-    const carbohydrate = CarbohydrateRepresentation()
 
-    const structureRepresentations: StructureRepresentation<any>[] = [
-        // cartoon,
-        point,
-        // ballAndStick,
-        // carbohydrate
-    ]
+
+export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
+    const active: { [k: string]: boolean } = {
+        cartoon: true,
+        point: false,
+        ballAndStick: false,
+        carbohydrate: false,
+        symmetryAxes: false,
+        polymerSphere: false,
+    }
+
+    const structureRepresentations: { [k: string]: StructureRepresentation<any> } = {
+        cartoon: CartoonRepresentation(),
+        point: PointRepresentation(),
+        ballAndStick: BallAndStickRepresentation(),
+        carbohydrate: CarbohydrateRepresentation(),
+    }
 
     const symmetryAxes = ShapeRepresentation()
     const polymerSphere = ShapeRepresentation()
 
-    const structureRepresentationsUpdated: BehaviorSubject<null> = new BehaviorSubject<null>(null)
+    const updated: BehaviorSubject<null> = new BehaviorSubject<null>(null)
 
     let label: string
     let model: Model | undefined
@@ -81,12 +91,30 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     let assemblyId: string
     let symmetryFeatureId: number
 
+    async function setSymmetryAxes(value: boolean) {
+        if (!value) {
+            assemblySymmetry = undefined
+        } else {
+            await AssemblySymmetry.attachFromCifOrAPI(models[modelId])
+            assemblySymmetry = AssemblySymmetry.get(models[modelId])
+        }
+        active.symmetryAxes = value
+        await setSymmetryFeature()
+    }
+
+    async function setStructureRepresentation(k: string, value: boolean) {
+        active[k] = value
+        await createStructureRepr()
+    }
+
     async function setModel(newModelId: number, newAssemblyId?: string, newSymmetryFeatureId?: number) {
         console.log('setModel', newModelId)
         modelId = newModelId
         model = models[modelId]
-        await AssemblySymmetry.attachFromCifOrAPI(model)
-        assemblySymmetry = AssemblySymmetry.get(model)
+        if (active.symmetryAxes) {
+            await AssemblySymmetry.attachFromCifOrAPI(model)
+            assemblySymmetry = AssemblySymmetry.get(model)
+        }
         await setAssembly(newAssemblyId, newSymmetryFeatureId)
     }
 
@@ -169,8 +197,13 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     async function createStructureRepr() {
         if (structure) {
             console.log('createStructureRepr')
-            for (let i = 0, il = structureRepresentations.length; i < il; ++i) {
-                await structureRepresentations[i].createOrUpdate({}, structure).run()
+            for (const k in structureRepresentations) {
+                if (active[k]) {
+                    await structureRepresentations[k].createOrUpdate({}, structure).run()
+                    viewer.add(structureRepresentations[k])
+                } else {
+                    viewer.remove(structureRepresentations[k])
+                }
             }
 
             viewer.center(structure.boundary.sphere.center)
@@ -197,13 +230,14 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             //     useFog: false // TODO fog not working properly
             // }, shape).run()
         } else {
-            structureRepresentations.forEach(repr => repr.destroy)
+            for (const k in structureRepresentations) structureRepresentations[k].destroy()
             polymerSphere.destroy()
         }
 
-        structureRepresentations.forEach(repr => viewer.add(repr))
         viewer.add(polymerSphere)
-        structureRepresentationsUpdated.next(null)
+
+        updated.next(null)
+        viewer.requestDraw()
     }
 
     async function createSymmetryRepr() {
@@ -224,16 +258,17 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
                     //     useFog: false // TODO fog not working properly
                     // }).run()
                     await symmetryAxes.createOrUpdate({}, axesShape).run()
+                    viewer.add(symmetryAxes)
                 } else {
-                    symmetryAxes.destroy()
+                    viewer.remove(symmetryAxes)
                 }
             } else {
-                symmetryAxes.destroy()
+                viewer.remove(symmetryAxes)
             }
         } else {
-            symmetryAxes.destroy()
+            viewer.remove(symmetryAxes)
         }
-        viewer.add(symmetryAxes)
+        updated.next(null)
         viewer.requestDraw()
     }
 
@@ -247,9 +282,13 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         get structure() { return structure },
         get assemblySymmetry() { return assemblySymmetry },
 
+        active,
         structureRepresentations,
-        structureRepresentationsUpdated,
+        updated,
         symmetryAxes,
+
+        setSymmetryAxes,
+        setStructureRepresentation,
 
         get modelId() { return modelId },
         get assemblyId() { return assemblyId },
@@ -263,10 +302,10 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         getSymmetryFeatureIds,
 
         destroy: () => {
-            structureRepresentations.forEach(repr => {
-                viewer.remove(repr)
-                repr.destroy()
-            })
+            for (const k in structureRepresentations) {
+                viewer.remove(structureRepresentations[k])
+                structureRepresentations[k].destroy()
+            }
             viewer.remove(polymerSphere)
             viewer.remove(symmetryAxes)
             viewer.requestDraw()
