@@ -22,6 +22,7 @@ import { addBoundingBox } from 'mol-geo/mesh/builder/bounding-box';
 import { PointRepresentation } from 'mol-geo/representation/structure/representation/point';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { BehaviorSubject } from 'rxjs';
+import { SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
 
 export interface StructureView {
     readonly viewer: Viewer
@@ -66,6 +67,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         point: false,
         ballAndStick: false,
         carbohydrate: false,
+        spacefill: false,
         symmetryAxes: false,
         polymerSphere: false,
     }
@@ -75,6 +77,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         point: PointRepresentation(),
         ballAndStick: BallAndStickRepresentation(),
         carbohydrate: CarbohydrateRepresentation(),
+        spacefill: SpacefillRepresentation(),
     }
 
     const symmetryAxes = ShapeRepresentation()
