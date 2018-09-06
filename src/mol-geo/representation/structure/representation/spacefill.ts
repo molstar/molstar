@@ -11,6 +11,7 @@ import { Structure } from 'mol-model/structure';
 import { PickingId } from '../../../util/picking';
 import { MarkerAction } from '../../../util/marker-data';
 import { Loci } from 'mol-model/loci';
+import { getQualityProps } from '../../util';
 
 export const DefaultSpacefillProps = {
     ...DefaultElementSphereProps
@@ -31,7 +32,8 @@ export function SpacefillRepresentation(): SpacefillRepresentation {
             return { ...sphereRepr.props }
         },
         createOrUpdate: (props: Partial<SpacefillProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultSpacefillProps, props)
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultSpacefillProps, currentProps, props, qualityProps)
             return sphereRepr.createOrUpdate(currentProps, structure)
         },
         getLoci: (pickingId: PickingId) => {

@@ -11,6 +11,7 @@ import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { PolymerBackboneVisual, DefaultPolymerBackboneProps } from '../visual/polymer-backbone-cylinder';
+import { getQualityProps } from '../../util';
 
 export const DefaultBackboneProps = {
     ...DefaultPolymerBackboneProps
@@ -32,7 +33,8 @@ export function BackboneRepresentation(): BackboneRepresentation {
             return { ...traceRepr.props }
         },
         createOrUpdate: (props: Partial<BackboneProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultBackboneProps, props)
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultBackboneProps, currentProps, props, qualityProps)
             return Task.create('BackboneRepresentation', async ctx => {
                 await traceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })

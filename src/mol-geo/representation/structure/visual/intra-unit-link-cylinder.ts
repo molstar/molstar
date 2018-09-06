@@ -6,7 +6,7 @@
  */
 
 import { Unit, Link, StructureElement } from 'mol-model/structure';
-import { UnitsVisual } from '..';
+import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
 import { Mesh } from '../../../mesh/mesh';
@@ -77,7 +77,9 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: LinkCylinderProps, currentProps: LinkCylinderProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }
 

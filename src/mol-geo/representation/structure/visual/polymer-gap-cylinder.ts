@@ -5,7 +5,7 @@
  */
 
 import { Unit } from 'mol-model/structure';
-import { UnitsVisual } from '..';
+import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
@@ -85,6 +85,8 @@ export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {
         createLocationIterator: PolymerGapLocationIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: PolymerGapProps, currentProps: PolymerGapProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }

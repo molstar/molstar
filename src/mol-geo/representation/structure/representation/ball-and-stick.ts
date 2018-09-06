@@ -14,6 +14,7 @@ import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { getQualityProps } from '../../util';
 
 export const DefaultBallAndStickProps = {
     ...DefaultElementSphereProps,
@@ -41,8 +42,9 @@ export function BallAndStickRepresentation(): BallAndStickRepresentation {
             return { ...elmementRepr.props, ...intraLinkRepr.props, ...interLinkRepr.props }
         },
         createOrUpdate: (props: Partial<BallAndStickProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultBallAndStickProps, props)
-            return Task.create('DistanceRestraintRepresentation', async ctx => {
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultBallAndStickProps, currentProps, props, qualityProps)
+            return Task.create('BallAndStickRepresentation', async ctx => {
                 await elmementRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await intraLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await interLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)

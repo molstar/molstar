@@ -12,6 +12,7 @@ import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from '../visual/cross-link-restraint-cylinder';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { getQualityProps } from '../../util';
 
 export const DefaultDistanceRestraintProps = {
     ...DefaultCrossLinkRestraintProps,
@@ -34,7 +35,8 @@ export function DistanceRestraintRepresentation(): DistanceRestraintRepresentati
             return { ...crossLinkRepr.props }
         },
         createOrUpdate: (props: Partial<DistanceRestraintProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultDistanceRestraintProps, props)
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultDistanceRestraintProps, currentProps, props, qualityProps)
             return Task.create('DistanceRestraintRepresentation', async ctx => {
                 await crossLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })

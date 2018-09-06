@@ -13,6 +13,7 @@ import { MarkerAction } from '../../../util/marker-data';
 import { CarbohydrateSymbolVisual, DefaultCarbohydrateSymbolProps } from '../visual/carbohydrate-symbol-mesh';
 import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from '../visual/carbohydrate-link-cylinder';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { getQualityProps } from '../../util';
 
 export const DefaultCartoonProps = {
     ...DefaultCarbohydrateSymbolProps,
@@ -38,7 +39,8 @@ export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
             return { ...carbohydrateSymbolRepr.props, ...carbohydrateLinkRepr.props }
         },
         createOrUpdate: (props: Partial<CarbohydrateProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultCartoonProps, props)
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultCartoonProps, currentProps, props, qualityProps)
             return Task.create('Creating CarbohydrateRepresentation', async ctx => {
                 await carbohydrateSymbolRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await carbohydrateLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)

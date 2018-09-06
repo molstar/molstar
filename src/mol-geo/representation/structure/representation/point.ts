@@ -31,7 +31,7 @@ export function PointRepresentation(): PointRepresentation {
             return { ...pointRepr.props }
         },
         createOrUpdate: (props: Partial<PointProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultPointProps, props)
+            currentProps = Object.assign({}, DefaultPointProps, currentProps, props)
             return pointRepr.createOrUpdate(currentProps, structure)
         },
         getLoci: (pickingId: PickingId) => {

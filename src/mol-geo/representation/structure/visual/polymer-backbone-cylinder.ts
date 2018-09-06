@@ -5,7 +5,7 @@
  */
 
 import { Unit } from 'mol-model/structure';
-import { UnitsVisual } from '..';
+import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
@@ -77,6 +77,8 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: PolymerBackboneProps, currentProps: PolymerBackboneProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }

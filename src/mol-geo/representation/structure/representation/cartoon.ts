@@ -14,6 +14,7 @@ import { PolymerTraceVisual, DefaultPolymerTraceProps } from '../visual/polymer-
 import { PolymerGapVisual, DefaultPolymerGapProps } from '../visual/polymer-gap-cylinder';
 import { NucleotideBlockVisual, DefaultNucleotideBlockProps } from '../visual/nucleotide-block-mesh';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { getQualityProps } from '../../util';
 // import { PolymerDirectionVisual, DefaultPolymerDirectionProps } from '../visual/polymer-direction-wedge';
 
 export const DefaultCartoonProps = {
@@ -46,7 +47,8 @@ export function CartoonRepresentation(): CartoonRepresentation {
             return { ...traceRepr.props, ...gapRepr.props, ...blockRepr.props }
         },
         createOrUpdate: (props: Partial<CartoonProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultCartoonProps, props)
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultCartoonProps, currentProps, props, qualityProps)
             return Task.create('Creating CartoonRepresentation', async ctx => {
                 await traceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await gapRepr.createOrUpdate(currentProps, structure).runInContext(ctx)

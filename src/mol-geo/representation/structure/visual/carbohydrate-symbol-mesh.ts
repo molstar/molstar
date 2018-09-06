@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
-import { ComplexVisual } from '..';
+import { ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
@@ -154,7 +154,9 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProp
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: CarbohydrateSymbolProps, currentProps: CarbohydrateSymbolProps) => {
+            state.createMesh = newProps.detail !== currentProps.detail
+        }
     })
 }
 

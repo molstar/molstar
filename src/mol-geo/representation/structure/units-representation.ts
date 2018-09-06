@@ -12,7 +12,6 @@ import { Representation, RepresentationProps, Visual } from '..';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
-import { getQualityProps } from '../util';
 import { StructureProps } from '.';
 import { StructureGroup } from './units-visual';
 
@@ -29,8 +28,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
     function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
-        console.log(props)
-        _props = Object.assign({}, _props, props, getQualityProps(props, structure))
+        _props = Object.assign({}, _props, props)
 
         return Task.create('Creating or updating StructureRepresentation', async ctx => {
             if (!_structure && !structure) {
