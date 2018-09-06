@@ -117,7 +117,7 @@ export type ProgramCache = ReferenceCache<Program, ProgramProps, Context>
 export function createProgramCache(): ProgramCache {
     return createReferenceCache(
         (props: ProgramProps) => {
-            const array = [props.shaderCode.id]
+            const array = [ props.shaderCode.id ]
             Object.keys(props.defineValues).forEach(k => {
                 const v = props.defineValues[k].ref.value
                 array.push(hashString(k), typeof v === 'boolean' ? v ? 1 : 0 : hashString(v))
