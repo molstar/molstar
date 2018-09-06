@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import Structure from './structure'
@@ -10,7 +11,7 @@ import { ModelSymmetry } from '../model'
 import { Task, RuntimeContext } from 'mol-task';
 import { SortedArray } from 'mol-data/int';
 import Unit from './unit';
-import { EquivalenceClasses, hash2 } from 'mol-data/util';
+import { EquivalenceClasses } from 'mol-data/util';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { SymmetryOperator, Spacegroup, SpacegroupCell } from 'mol-math/geometry';
 
@@ -58,16 +59,12 @@ namespace StructureSymmetry {
         return Task.create('Build NCS', ctx => _buildNCS(ctx, structure));
     }
 
-    function hashUnit(u: Unit) {
-        return hash2(u.invariantId, SortedArray.hashCode(u.elements));
-    }
-
     export function areUnitsEquivalent(a: Unit, b: Unit) {
         return a.invariantId === b.invariantId && a.model.id === b.model.id && SortedArray.areEqual(a.elements, b.elements);
     }
 
     export function UnitEquivalenceBuilder() {
-        return EquivalenceClasses<number, Unit>(hashUnit, areUnitsEquivalent);
+        return EquivalenceClasses<number, Unit>(Unit.hashUnit, areUnitsEquivalent);
     }
 
     export function computeTransformGroups(s: Structure): ReadonlyArray<Unit.SymmetryGroup> {
@@ -76,12 +73,7 @@ namespace StructureSymmetry {
 
         const ret: Unit.SymmetryGroup[] = [];
         for (const eqUnits of groups.groups) {
-            const first = s.unitMap.get(eqUnits[0]);
-            ret.push({
-                elements: first.elements,
-                units: eqUnits.map(id => s.unitMap.get(id)),
-                hashCode: hashUnit(first)
-            });
+            ret.push(Unit.SymmetryGroup(eqUnits.map(id => s.unitMap.get(id))))
         }
 
         return ret;

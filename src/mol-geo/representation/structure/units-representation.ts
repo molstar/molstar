@@ -34,6 +34,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
             if (!_structure && !structure) {
                 throw new Error('missing structure')
             } else if (structure && !_structure) {
+                // console.log('initial structure')
                 // First call with a structure, create visuals for each group.
                 _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
@@ -43,6 +44,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                     visuals.set(group.hashCode, { visual, group })
                 }
             } else if (structure && _structure.hashCode !== structure.hashCode) {
+                // console.log('_structure.hashCode !== structure.hashCode')
                 // Tries to re-use existing visuals for the groups of the new structure.
                 // Creates additional visuals if needed, destroys left-over visuals.
                 _groups = structure.unitSymmetryGroups;
@@ -77,6 +79,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                 // })
                 // unusedVisuals.forEach(visual => visual.destroy())
             } else if (structure && _structure.hashCode === structure.hashCode) {
+                // console.log('_structure.hashCode === structure.hashCode')
                 // Expects that for structures with the same hashCode,
                 // the unitSymmetryGroups are the same as well.
                 // Re-uses existing visuals for the groups of the new structure.
@@ -92,6 +95,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                     }
                 }
             } else {
+                // console.log('no new structure')
                 // No new structure given, just update all visuals with new props.
                 visuals.forEach(async ({ visual, group }) => {
                     await visual.createOrUpdate(ctx, _props, { group, structure: _structure })

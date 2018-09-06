@@ -25,7 +25,9 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { idFactory } from 'mol-util/id-factory';
 
 class Structure {
+    /** Maps unit.id to unit */
     readonly unitMap: IntMap<Unit>;
+    /** Array of all units in the structure, sorted by unit.id */
     readonly units: ReadonlyArray<Unit>;
 
     private _props: {
@@ -67,6 +69,7 @@ class Structure {
         return hash;
     }
 
+    /** Returns a new element location iterator */
     elementLocations(): Iterator<StructureElement> {
         return new Structure.ElementLocationIterator(this);
     }

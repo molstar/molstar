@@ -2,6 +2,7 @@
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
@@ -13,6 +14,8 @@ import { ValueRef } from 'mol-util';
 import { UnitRings } from './unit/rings';
 import StructureElement from './element'
 import { ChainIndex, ResidueIndex } from '../model/indexing';
+import { IntMap, SortedArray } from 'mol-data/int';
+import { hash2 } from 'mol-data/util';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -36,21 +39,44 @@ namespace Unit {
 
     /** A group of units that differ only by symmetry operators. */
     export type SymmetryGroup = {
-        readonly elements: StructureElement.Set,
+        readonly elements: StructureElement.Set
         readonly units: ReadonlyArray<Unit>
+        /** Maps unit.id to index of unit in units array */
+        readonly unitIndexMap: IntMap<number>
         readonly hashCode: number
+    }
+
+    function getUnitIndexMap(units: Unit[]) {
+        const unitIndexMap = IntMap.Mutable<number>();
+        for (let i = 0, _i = units.length; i < _i; i++) {
+            unitIndexMap.set(units[i].id, i);
+        }
+        return unitIndexMap
+    }
+
+    export function SymmetryGroup(units: Unit[]) {
+        const props: {
+            unitIndexMap?: IntMap<number>
+        } = {}
+
+        return {
+            elements: units[0].elements,
+            units,
+            get unitIndexMap () {
+                if (props.unitIndexMap) return props.unitIndexMap
+                props.unitIndexMap = getUnitIndexMap(units)
+                return props.unitIndexMap
+            },
+            hashCode: hashUnit(units[0])
+        }
     }
 
     export function conformationId (unit: Unit) {
         return Unit.isAtomic(unit) ? unit.model.atomicConformation.id : unit.model.coarseConformation.id
     }
 
-    /** Find index of unit with given id, returns -1 if not found */
-    export function findUnitById(id: number, units: ReadonlyArray<Unit>) {
-        for (let i = 0, il = units.length; i < il; ++i) {
-            if (units[i].id === id) return i
-        }
-        return -1
+    export function hashUnit(u: Unit) {
+        return hash2(u.invariantId, SortedArray.hashCode(u.elements));
     }
 
     export interface Base {

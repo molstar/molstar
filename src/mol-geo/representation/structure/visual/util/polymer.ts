@@ -32,6 +32,8 @@ export function getGapRanges(unit: Unit): SortedRanges<ElementIndex> {
     }
 }
 
+// polymer element
+
 export function getPolymerElementCount(unit: Unit) {
     let count = 0
     const { elements } = unit
@@ -107,6 +109,8 @@ export namespace PolymerLocationIterator {
         return LocationIterator(groupCount, instanceCount, getLocation)
     }
 }
+
+// polymer gap
 
 export function getPolymerGapCount(unit: Unit) {
     let count = 0

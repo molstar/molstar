@@ -57,8 +57,8 @@ export function markElement(loci: Loci, group: Unit.SymmetryGroup, apply: (inter
     let changed = false
     if (StructureElement.isLoci(loci)) {
         for (const e of loci.elements) {
-            const unitIdx = Unit.findUnitById(e.unit.id, group.units)
-            if (unitIdx !== -1) {
+            const unitIdx = group.unitIndexMap.get(e.unit.id)
+            if (unitIdx !== undefined) {
                 if (Interval.is(e.indices)) {
                     const start = unitIdx * elementCount + Interval.start(e.indices);
                     const end = unitIdx * elementCount + Interval.end(e.indices);
