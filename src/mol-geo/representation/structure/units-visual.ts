@@ -131,6 +131,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
             } else {
                 if (group && !areGroupsIdentical(group, currentGroup)) {
                     currentGroup = group
+                    currentProps.colorTheme.structure = currentStructure
                 }
                 await update(ctx, props)
             }

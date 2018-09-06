@@ -25,6 +25,8 @@ export interface StructureViewComponentProps {
 }
 
 export interface StructureViewComponentState {
+    structureView: StructureView
+
     label: string
     modelId: number
     modelIds: { id: number, label: string }[]
@@ -38,57 +40,12 @@ export interface StructureViewComponentState {
 }
 
 export class StructureViewComponent extends React.Component<StructureViewComponentProps, StructureViewComponentState> {
-    state = {
-        label: this.props.structureView.label,
-        modelId: this.props.structureView.modelId,
-        modelIds: this.props.structureView.getModelIds(),
-        assemblyId: this.props.structureView.assemblyId,
-        assemblyIds: this.props.structureView.getAssemblyIds(),
-        symmetryFeatureId: this.props.structureView.symmetryFeatureId,
-        symmetryFeatureIds: this.props.structureView.getSymmetryFeatureIds(),
+    state = this.stateFromStructureView(this.props.structureView)
 
-        active: this.props.structureView.active,
-        structureRepresentations: this.props.structureView.structureRepresentations
-    }
+    private stateFromStructureView(sv: StructureView) {
+        return {
+            structureView: sv,
 
-    componentWillMount() {
-        const sv = this.props.structureView
-
-        this.setState({
-            ...this.state,
-            label: sv.label,
-            modelId: sv.modelId,
-            modelIds: sv.getModelIds(),
-            assemblyId: sv.assemblyId,
-            assemblyIds: sv.getAssemblyIds(),
-            symmetryFeatureId: sv.symmetryFeatureId,
-            symmetryFeatureIds: sv.getSymmetryFeatureIds(),
-
-            active: sv.active,
-            structureRepresentations: sv.structureRepresentations
-        })
-    }
-
-    componentDidMount() {
-        const sv = this.props.structureView
-
-        this.props.structureView.updated.subscribe(() => this.setState({
-            symmetryFeatureIds: sv.getSymmetryFeatureIds(),
-            structureRepresentations: sv.structureRepresentations
-        }))
-    }
-
-    async update(state: Partial<StructureViewComponentState>) {
-        const sv = this.props.structureView
-
-        console.log(state)
-
-        if (state.modelId !== undefined) await sv.setModel(state.modelId)
-        if (state.assemblyId !== undefined) await sv.setAssembly(state.assemblyId)
-        if (state.symmetryFeatureId !== undefined) await sv.setSymmetryFeature(state.symmetryFeatureId)
-
-        const newState = {
-            ...this.state,
             label: sv.label,
             modelId: sv.modelId,
             modelIds: sv.getModelIds(),
@@ -100,11 +57,44 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
             active: sv.active,
             structureRepresentations: sv.structureRepresentations
         }
-        this.setState(newState)
+    }
+
+    componentWillMount() {
+        this.setState(this.stateFromStructureView(this.props.structureView))
+    }
+
+    componentDidMount() {
+        const sv = this.props.structureView
+
+        this.props.structureView.updated.subscribe(() => this.setState({
+            symmetryFeatureIds: sv.getSymmetryFeatureIds(),
+            structureRepresentations: sv.structureRepresentations
+        }))
+    }
+
+    componentWillReceiveProps(nextProps: StructureViewComponentProps) {
+        if (nextProps.structureView !== this.props.structureView) {
+            this.setState(this.stateFromStructureView(nextProps.structureView))
+
+            nextProps.structureView.updated.subscribe(() => this.setState({
+                symmetryFeatureIds: nextProps.structureView.getSymmetryFeatureIds(),
+                structureRepresentations: nextProps.structureView.structureRepresentations
+            }))
+        }
+    }
+
+    async update(state: Partial<StructureViewComponentState>) {
+        const sv = this.state.structureView
+
+        if (state.modelId !== undefined) await sv.setModel(state.modelId)
+        if (state.assemblyId !== undefined) await sv.setAssembly(state.assemblyId)
+        if (state.symmetryFeatureId !== undefined) await sv.setSymmetryFeature(state.symmetryFeatureId)
+
+        this.setState(this.stateFromStructureView(sv))
     }
 
     render() {
-        const { label, modelIds, assemblyIds, symmetryFeatureIds, active, structureRepresentations } = this.state
+        const { structureView, label, modelIds, assemblyIds, symmetryFeatureIds, active, structureRepresentations } = this.state
 
         const modelIdOptions = modelIds.map(m => {
             return <option key={m.id} value={m.id}>{m.label}</option>
@@ -172,7 +162,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                                 type='checkbox'
                                 checked={active[k]}
                                 onChange={(e) => {
-                                    const sv = this.props.structureView
+                                    const sv = structureView
                                     if (k === 'symmetryAxes') {
                                         sv.setSymmetryAxes(e.target.checked)
                                     } else if (Object.keys(sv.structureRepresentations).includes(k)) {
@@ -190,7 +180,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                             return <div key={i}>
                                 <StructureRepresentationComponent
                                     representation={structureRepresentations[k]}
-                                    viewer={this.props.structureView.viewer}
+                                    viewer={structureView.viewer}
                                 />
                             </div>
                         } else {

@@ -5,7 +5,7 @@
  */
 
 import CIF, { CifBlock } from 'mol-io/reader/cif'
-import { readUrlAs } from 'mol-util/read';
+import { readUrlAs, readFileAs } from 'mol-util/read';
 import { Model, Format, StructureSymmetry, Structure } from 'mol-model/structure';
 // import { parse as parseObj } from 'mol-io/reader/obj/parser'
 
@@ -17,12 +17,19 @@ import { Model, Format, StructureSymmetry, Structure } from 'mol-model/structure
 //     return parsed.result
 // }
 
-export async function getCifFromUrl(url: string) {
-    const data = await readUrlAs(url, false)
+export async function getCifFromData(data: string | Uint8Array) {
     const comp = CIF.parse(data)
     const parsed = await comp.run()
     if (parsed.isError) throw parsed
     return parsed.result.blocks[0]
+}
+
+export async function getCifFromUrl(url: string) {
+    return getCifFromData(await readUrlAs(url, false))
+}
+
+export async function getCifFromFile(file: File, binary = false) {
+    return getCifFromData(await readFileAs(file, binary))
 }
 
 export async function getModelsFromMmcif(cif: CifBlock) {

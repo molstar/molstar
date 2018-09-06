@@ -84,7 +84,17 @@ export function updateRenderableState(state: RenderableState, props: Required<Ba
     state.depthMask = props.depthMask
 }
 
-export type VisualQuality = 'custom' | 'auto' | 'highest' | 'high' | 'medium' | 'low' | 'lowest'
+export const VisualQualityInfo = {
+    'custom': {},
+    'auto': {},
+    'highest': {},
+    'high': {},
+    'medium': {},
+    'low': {},
+    'lowest': {},
+}
+export type VisualQuality = keyof typeof VisualQualityInfo
+export const VisualQualityNames = Object.keys(VisualQualityInfo)
 
 export interface QualityProps {
     quality: VisualQuality

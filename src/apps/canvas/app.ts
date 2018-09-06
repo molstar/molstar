@@ -5,9 +5,10 @@
  */
 
 import Viewer from 'mol-view/viewer';
-import { getCifFromUrl, getModelsFromMmcif } from './util';
+import { getCifFromUrl, getModelsFromMmcif, getCifFromFile } from './util';
 import { StructureView } from './structure-view';
 import { BehaviorSubject } from 'rxjs';
+import { CifBlock } from 'mol-io/reader/cif';
 
 export class App {
     viewer: Viewer
@@ -31,11 +32,21 @@ export class App {
         }
     }
 
-    async loadPdbId(id: string, assemblyId?: string) {
-        if (this.structureView) this.structureView.destroy()
-        const cif = await getCifFromUrl(`https://files.rcsb.org/download/${id}.cif`)
+    async loadCif(cif: CifBlock, assemblyId?: string) {
         const models = await getModelsFromMmcif(cif)
         this.structureView = await StructureView(this.viewer, models, { assemblyId })
         this.pdbIdLoaded.next(this.structureView)
+    }
+
+    async loadPdbId(id: string, assemblyId?: string) {
+        if (this.structureView) this.structureView.destroy()
+        const cif = await getCifFromUrl(`https://files.rcsb.org/download/${id}.cif`)
+        this.loadCif(cif, assemblyId)
+    }
+
+    async loadCifFile(file: File) {
+        if (this.structureView) this.structureView.destroy()
+        const cif = await getCifFromFile(file)
+        this.loadCif(cif)
     }
 }

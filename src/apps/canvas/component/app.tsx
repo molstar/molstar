@@ -35,9 +35,11 @@ export class AppComponent extends React.Component<AppProps, AppState> {
     }
 
     componentDidMount() {
-        this.props.app.pdbIdLoaded.subscribe(() => this.setState({
-            structureView: this.props.app.structureView
-        }))
+        this.props.app.pdbIdLoaded.subscribe((structureView) => {
+            this.setState({
+                structureView: this.props.app.structureView
+            })
+        })
     }
 
     render() {
@@ -49,7 +51,34 @@ export class AppComponent extends React.Component<AppProps, AppState> {
             </div>
 
             <div style={{float: 'right', width: '25%', height: '100%'}}>
-                {structureView ? <StructureViewComponent structureView={structureView} /> : ''}
+                <div>
+                    <span>Load PDB ID</span>
+                    <input
+                        type='text'
+                        onKeyDown={e => {
+                            if (e.keyCode === 13) {
+                                const value = e.currentTarget.value.trim()
+                                if (value) {
+                                    this.props.app.loadPdbId(value)
+                                }
+                            }
+                        }}
+                    />
+                </div>
+                <div>
+                    <span>Load CIF file</span>
+                    <input
+                        accept='*.cif'
+                        type='file'
+                        onChange={e => {
+                            if (e.target.files) this.props.app.loadCifFile(e.target.files[0])
+                        }}
+                    />
+                </div>
+                <hr/>
+                <div>
+                    {structureView ? <StructureViewComponent structureView={structureView} /> : ''}
+                </div>
             </div>
         </div>;
     }

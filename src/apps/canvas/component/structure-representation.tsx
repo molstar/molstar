@@ -7,7 +7,8 @@
 import * as React from 'react'
 import { StructureRepresentation, StructureProps } from 'mol-geo/representation/structure';
 import Viewer from 'mol-view/viewer';
-import { VisualQuality } from 'mol-geo/representation/util';
+import { VisualQuality, VisualQualityNames } from 'mol-geo/representation/util';
+import { ColorThemeProps, ColorThemeName, ColorThemeNames } from 'mol-view/theme/color';
 
 export interface StructureRepresentationComponentProps {
     viewer: Viewer
@@ -18,6 +19,7 @@ export interface StructureRepresentationComponentState {
     label: string
     visible: boolean
     quality: VisualQuality
+    colorTheme: ColorThemeProps
 }
 
 export class StructureRepresentationComponent extends React.Component<StructureRepresentationComponentProps, StructureRepresentationComponentState> {
@@ -25,6 +27,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         label: this.props.representation.label,
         visible: this.props.representation.props.visible,
         quality: this.props.representation.props.quality,
+        colorTheme: this.props.representation.props.colorTheme,
     }
 
     componentWillMount() {
@@ -35,6 +38,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             label: repr.label,
             visible: repr.props.visible,
             quality: repr.props.quality,
+            colorTheme: repr.props.colorTheme,
         })
     }
 
@@ -44,6 +48,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
         if (state.visible !== undefined) props.visible = state.visible
         if (state.quality !== undefined) props.quality = state.quality
+        if (state.colorTheme !== undefined) props.colorTheme = state.colorTheme
 
         await repr.createOrUpdate(props).run()
         this.props.viewer.add(repr)
@@ -52,13 +57,14 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         const newState = {
             ...this.state,
             visible: repr.props.visible,
-            quality: repr.props.quality
+            quality: repr.props.quality,
+            colorTheme: repr.props.colorTheme,
         }
         this.setState(newState)
     }
 
     render() {
-        const { label, visible, quality } = this.state
+        const { label, visible, quality, colorTheme } = this.state
 
         return <div>
             <div>
@@ -74,12 +80,13 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                 <div>
                     <span>Quality</span>
                     <select value={quality} onChange={(e) => this.update({ quality: e.target.value as VisualQuality }) }>
-                        <option value='auto'>auto</option>
-                        <option value='lowest'>lowest</option>
-                        <option value='low'>low</option>
-                        <option value='medium'>medium</option>
-                        <option value='high'>high</option>
-                        <option value='highest'>highest</option>
+                        {VisualQualityNames.map(name => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <span>Color Theme</span>
+                    <select value={colorTheme.name} onChange={(e) => this.update({ colorTheme: { name: e.target.value as ColorThemeName } }) }>
+                        {ColorThemeNames.map(name => <option key={name} value={name}>{name}</option>)}
                     </select>
                 </div>
             </div>
