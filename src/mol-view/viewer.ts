@@ -175,7 +175,6 @@ namespace Viewer {
             let didRender = false
             controls.update()
             camera.update()
-            scene.update()
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value) || !Mat4.areEqual(scene.view, prevSceneView, EPSILON.Value)) {
                 // console.log('foo', force, prevSceneView, scene.view)
                 Mat4.copy(prevProjectionView, camera.projectionView)
@@ -274,6 +273,7 @@ namespace Viewer {
                 }
                 reprMap.set(repr, newRO)
                 reprCount.next(reprMap.size)
+                scene.update()
             },
             remove: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
@@ -281,6 +281,7 @@ namespace Viewer {
                     renderObjectSet.forEach(o => scene.remove(o))
                     reprMap.delete(repr)
                     reprCount.next(reprMap.size)
+                    scene.update()
                 }
             },
             update: () => scene.update(),

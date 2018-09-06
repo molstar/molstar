@@ -7,7 +7,7 @@
 import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, ArrayKind } from './buffer';
 import { createTextures } from './texture';
 import { Context } from './context';
-import { ShaderCode, addShaderDefines } from '../shader-code';
+import { ShaderCode } from '../shader-code';
 import { Program } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
@@ -74,7 +74,8 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
     Object.keys(RenderVariantDefines).forEach(k => {
         const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
         programs[k] = programCache.get(ctx, {
-            shaderCode: addShaderDefines({ ...defineValues, ...variantDefineValues }, shaderCode),
+            defineValues: { ...defineValues, ...variantDefineValues },
+            shaderCode,
             schema
         })
     })
@@ -117,7 +118,7 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             program.setUniforms(uniformValues)
             if (oesVertexArrayObject && vertexArray) {
                 oesVertexArrayObject.bindVertexArrayOES(vertexArray)
-                // TODO need to bind elements buffer explicitely since it is not always recorded in the VAO
+                // need to bind elements buffer explicitely since it is not always recorded in the VAO
                 if (elementsBuffer) elementsBuffer.bind()
             } else {
                 if (elementsBuffer) elementsBuffer.bind()
@@ -147,7 +148,8 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                     const variantDefineValues: Values<RenderableSchema> = (RenderVariantDefines as any)[k]
                     programs[k].free()
                     programs[k] = programCache.get(ctx, {
-                        shaderCode: addShaderDefines({ ...defineValues, ...variantDefineValues }, shaderCode),
+                        defineValues: { ...defineValues, ...variantDefineValues },
+                        shaderCode,
                         schema
                     })
                 })

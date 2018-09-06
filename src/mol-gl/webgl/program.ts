@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ShaderCode } from '../shader-code'
+import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
 import { Context } from './context';
 import { getUniformUpdaters, getTextureUniformUpdaters, UniformValues } from './uniform';
 import { AttributeBuffers } from './buffer';
@@ -12,6 +12,7 @@ import { TextureId, Textures } from './texture';
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
 import { idFactory } from 'mol-util/id-factory';
 import { RenderableSchema } from '../renderable/schema';
+import { hashFnv32a, hashString } from 'mol-data/util';
 
 const getNextProgramId = idFactory()
 
@@ -46,19 +47,21 @@ function getAttributeLocations(ctx: Context, program: WebGLProgram, schema: Rend
 }
 
 export interface ProgramProps {
+    defineValues: DefineValues,
     shaderCode: ShaderCode,
     schema: RenderableSchema
 }
 
 export function createProgram(ctx: Context, props: ProgramProps): Program {
     const { gl, shaderCache } = ctx
-    const { shaderCode, schema } = props
+    const { defineValues, shaderCode: _shaderCode, schema } = props
 
     const program = gl.createProgram()
     if (program === null) {
         throw new Error('Could not create WebGL program')
     }
 
+    const shaderCode = addShaderDefines(defineValues, _shaderCode)
     const vertShaderRef = shaderCache.get(ctx, { type: 'vert', source: shaderCode.vert })
     const fragShaderRef = shaderCache.get(ctx, { type: 'frag', source: shaderCode.frag })
 
@@ -113,7 +116,14 @@ export type ProgramCache = ReferenceCache<Program, ProgramProps, Context>
 
 export function createProgramCache(): ProgramCache {
     return createReferenceCache(
-        (props: ProgramProps) => JSON.stringify(props),
+        (props: ProgramProps) => {
+            const array = [props.shaderCode.id]
+            Object.keys(props.defineValues).forEach(k => {
+                const v = props.defineValues[k].ref.value
+                array.push(hashString(k), typeof v === 'boolean' ? v ? 1 : 0 : hashString(v))
+            })
+            return hashFnv32a(array).toString()
+        },
         (ctx: Context, props: ProgramProps) => createProgram(ctx, props),
         (program: Program) => { program.destroy() }
     )
