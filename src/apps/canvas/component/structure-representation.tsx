@@ -53,6 +53,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         await repr.createOrUpdate(props).run()
         this.props.viewer.add(repr)
         this.props.viewer.requestDraw()
+        console.log(this.props.viewer.stats)
 
         const newState = {
             ...this.state,

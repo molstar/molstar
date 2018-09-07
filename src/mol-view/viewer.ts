@@ -99,9 +99,7 @@ namespace Viewer {
         const ctx = createContext(gl)
 
         const scene = Scene.create(ctx)
-        // const controls = TrackballControls.create(input, scene, {})
         const controls = TrackballControls.create(input, camera, {})
-        // const renderer = Renderer.create(ctx, camera, { clearColor: 0xFFFFFF })
         const renderer = Renderer.create(ctx, camera, { clearColor: Color(0x000000) })
 
         const pickScale = 1
@@ -130,9 +128,9 @@ namespace Viewer {
         }
 
         function mark(loci: Loci, action: MarkerAction) {
-            // reprMap.forEach((roSet, repr) => repr.mark(loci, action))
-            // scene.update()
-            // requestDraw()
+            reprMap.forEach((roSet, repr) => repr.mark(loci, action))
+            scene.update()
+            requestDraw()
         }
 
         let nearPlaneDelta = 0

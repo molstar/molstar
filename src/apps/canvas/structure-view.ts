@@ -23,6 +23,7 @@ import { PointRepresentation } from 'mol-geo/representation/structure/representa
 import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { BehaviorSubject } from 'rxjs';
 import { SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
+import { DistanceRestraintRepresentation } from 'mol-geo/representation/structure/representation/distance-restraint';
 
 export interface StructureView {
     readonly viewer: Viewer
@@ -68,8 +69,9 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         ballAndStick: false,
         carbohydrate: false,
         spacefill: false,
+        distanceRestraint: false,
         symmetryAxes: false,
-        polymerSphere: false,
+        // polymerSphere: false,
     }
 
     const structureRepresentations: { [k: string]: StructureRepresentation<any> } = {
@@ -78,6 +80,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         ballAndStick: BallAndStickRepresentation(),
         carbohydrate: CarbohydrateRepresentation(),
         spacefill: SpacefillRepresentation(),
+        distanceRestraint: DistanceRestraintRepresentation(),
     }
 
     const symmetryAxes = ShapeRepresentation()
@@ -241,6 +244,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
 
         updated.next(null)
         viewer.requestDraw()
+        console.log(viewer.stats)
     }
 
     async function createSymmetryRepr() {
