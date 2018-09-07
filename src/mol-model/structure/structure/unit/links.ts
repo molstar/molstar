@@ -32,6 +32,13 @@ namespace Link {
         return !!x && x.kind === 'link-location';
     }
 
+    export function areLocationsEqual(locA: Location, locB: Location) {
+        return (
+            locA.aIndex === locB.aIndex && locA.bIndex === locB.bIndex &&
+            locA.aUnit.id === locB.aUnit.id && locA.bUnit.id === locB.bUnit.id
+        )
+    }
+
     export interface Loci {
         readonly kind: 'link-loci',
         readonly links: ReadonlyArray<Location>
@@ -43,6 +50,14 @@ namespace Link {
 
     export function isLoci(x: any): x is Loci {
         return !!x && x.kind === 'link-loci';
+    }
+
+    export function areLociEqual(a: Loci, b: Loci) {
+        if (a.links.length !== b.links.length) return false
+        for (let i = 0, il = a.links.length; i < il; ++i) {
+            if (!areLocationsEqual(a.links[i], b.links[i])) return false
+        }
+        return true
     }
 
     export function getType(structure: Structure, link: Location<Unit.Atomic>): LinkType {

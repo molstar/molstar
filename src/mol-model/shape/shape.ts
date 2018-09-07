@@ -68,4 +68,15 @@ export namespace Shape {
     export function isLoci(x: any): x is Loci {
         return !!x && x.kind === 'group-loci';
     }
+
+    export function areLociEqual(a: Loci, b: Loci) {
+        if (a.groups.length !== b.groups.length) return false
+        for (let i = 0, il = a.groups.length; i < il; ++i) {
+            const groupA = a.groups[i]
+            const groupB = b.groups[i]
+            if (groupA.shape.id !== groupB.shape.id) return false
+            if (!OrderedSet.areEqual(groupA.ids, groupB.ids)) return false
+        }
+        return true
+    }
 }
