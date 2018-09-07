@@ -40,7 +40,7 @@ export function SpacefillRepresentation(): SpacefillRepresentation {
             return sphereRepr.getLoci(pickingId)
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            sphereRepr.mark(loci, action)
+            return sphereRepr.mark(loci, action)
         },
         destroy() {
             sphereRepr.destroy()

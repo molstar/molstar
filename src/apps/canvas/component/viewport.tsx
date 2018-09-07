@@ -7,7 +7,7 @@
 import * as React from 'react'
 import { App } from '../app';
 import { MarkerAction } from 'mol-geo/util/marker-data';
-import { EveryLoci } from 'mol-model/loci';
+import { EveryLoci, EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
 import { labelFirst } from 'mol-view/label';
 
 interface ViewportProps {
@@ -42,17 +42,23 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
 
         viewer.input.resize.subscribe(() => this.handleResize())
 
+        let prevLoci: Loci = EmptyLoci
         viewer.input.move.subscribe(({x, y, inside, buttons}) => {
             if (!inside || buttons) return
             const p = viewer.identify(x, y)
-            const loci = viewer.getLoci(p)
+            if (p) {
+                const loci = viewer.getLoci(p)
 
-            viewer.mark(EveryLoci, MarkerAction.RemoveHighlight)
-            viewer.mark(loci, MarkerAction.Highlight)
+                if (!areLociEqual(loci, prevLoci)) {
+                    viewer.mark(prevLoci, MarkerAction.RemoveHighlight)
+                    viewer.mark(loci, MarkerAction.Highlight)
+                    prevLoci = loci
 
-            const label = labelFirst(loci)
-            const info = `${label}`
-            this.setState({ info })
+                    const label = labelFirst(loci)
+                    const info = `${label}`
+                    this.setState({ info })
+                }
+            }
         })
     }
 

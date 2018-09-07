@@ -52,8 +52,8 @@ export function markNucleotideElement(loci: Loci, group: Unit.SymmetryGroup, app
             const unitIdx = group.unitIndexMap.get(e.unit.id)
             if (unitIdx !== undefined && Unit.isAtomic(e.unit)) {
                 if (Interval.is(e.indices)) {
-                    const min = unitIdx * groupCount + OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.min(e.indices)])
-                    const max = unitIdx * groupCount + OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.max(e.indices)])
+                    const min = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.min(e.indices)])
+                    const max = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.max(e.indices)])
                     if (min !== -1 && max !== -1) {
                         if (apply(Interval.ofRange(unitIdx * groupCount + min, unitIdx * groupCount + max))) changed = true
                     }

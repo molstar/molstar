@@ -65,9 +65,10 @@ export function BallAndStickRepresentation(): BallAndStickRepresentation {
             }
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            elmementRepr.mark(loci, action)
-            intraLinkRepr.mark(loci, action)
-            interLinkRepr.mark(loci, action)
+            const markElement = elmementRepr.mark(loci, action)
+            const markIntraLink = intraLinkRepr.mark(loci, action)
+            const markInterLink = interLinkRepr.mark(loci, action)
+            return markElement || markIntraLink || markInterLink
         },
         destroy() {
             elmementRepr.destroy()

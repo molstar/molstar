@@ -68,10 +68,11 @@ export function CartoonRepresentation(): CartoonRepresentation {
                 // : directionLoci
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            traceRepr.mark(loci, action)
-            gapRepr.mark(loci, action)
-            blockRepr.mark(loci, action)
-            // directionRepr.mark(loci, action)
+            const markTrace = traceRepr.mark(loci, action)
+            const markGap = gapRepr.mark(loci, action)
+            const markBlock = blockRepr.mark(loci, action)
+            // const markDirection = directionRepr.mark(loci, action)
+            return markTrace || markGap || markBlock // \\ markDirection
         },
         destroy() {
             traceRepr.destroy()

@@ -43,7 +43,7 @@ export function BackboneRepresentation(): BackboneRepresentation {
             return traceRepr.getLoci(pickingId)
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            traceRepr.mark(loci, action)
+            return traceRepr.mark(loci, action)
         },
         destroy() {
             traceRepr.destroy()

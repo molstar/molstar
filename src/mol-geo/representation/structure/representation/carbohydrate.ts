@@ -53,8 +53,9 @@ export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
                 : carbohydrateLinkLoci
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            carbohydrateSymbolRepr.mark(loci, action)
-            carbohydrateLinkRepr.mark(loci, action)
+            const markSymbol = carbohydrateSymbolRepr.mark(loci, action)
+            const markLink = carbohydrateLinkRepr.mark(loci, action)
+            return markSymbol || markLink
         },
         destroy() {
             carbohydrateSymbolRepr.destroy()

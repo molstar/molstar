@@ -117,7 +117,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
             return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!renderObject) return
+            if (!renderObject) return false
             const { tMarker } = renderObject.values
             const { groupCount, instanceCount } = locationIt
 
@@ -129,14 +129,14 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
 
             let changed = false
             if (isEveryLoci(loci)) {
-                apply(Interval.ofBounds(0, groupCount * instanceCount))
-                changed = true
+                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = mark(loci, currentStructure, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)
             }
+            return changed
         },
         destroy() {
             // TODO

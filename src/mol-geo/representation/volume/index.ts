@@ -52,6 +52,7 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
         },
         mark(loci: Loci, action: MarkerAction) {
             // TODO
+            return false
         },
         destroy() {
             // TODO

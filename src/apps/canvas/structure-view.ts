@@ -243,7 +243,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         viewer.add(polymerSphere)
 
         updated.next(null)
-        viewer.requestDraw()
+        viewer.requestDraw(true)
         console.log(viewer.stats)
     }
 
@@ -276,7 +276,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             viewer.remove(symmetryAxes)
         }
         updated.next(null)
-        viewer.requestDraw()
+        viewer.requestDraw(true)
     }
 
     await setModel(0, props.assemblyId, props.symmetryFeatureId)
@@ -315,7 +315,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             }
             viewer.remove(polymerSphere)
             viewer.remove(symmetryAxes)
-            viewer.requestDraw()
+            viewer.requestDraw(true)
 
             polymerSphere.destroy()
             symmetryAxes.destroy()

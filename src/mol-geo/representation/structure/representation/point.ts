@@ -38,7 +38,7 @@ export function PointRepresentation(): PointRepresentation {
             return pointRepr.getLoci(pickingId)
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            pointRepr.mark(loci, action)
+            return pointRepr.mark(loci, action)
         },
         destroy() {
             pointRepr.destroy()

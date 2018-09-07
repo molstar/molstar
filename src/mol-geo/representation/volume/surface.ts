@@ -105,6 +105,7 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
         },
         mark(loci: Loci, action: MarkerAction) {
             // TODO
+            return false
         },
         destroy() {
             // TODO

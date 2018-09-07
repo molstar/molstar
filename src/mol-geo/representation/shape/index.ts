@@ -86,7 +86,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!_renderObject) return
+            if (!_renderObject) return false
             const { tMarker } = _renderObject.values
             let changed = false
             if (isEveryLoci(loci)) {
@@ -108,6 +108,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)
             }
+            return changed
         },
         destroy() {
             // TODO

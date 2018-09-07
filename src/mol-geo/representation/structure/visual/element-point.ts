@@ -139,7 +139,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
             return renderObject ? getElementLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!renderObject) return
+            if (!renderObject) return false
             const { tMarker } = renderObject.values
             const { groupCount, instanceCount } = locationIt
 
@@ -159,6 +159,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)
             }
+            return changed
         },
         destroy() {
             // TODO

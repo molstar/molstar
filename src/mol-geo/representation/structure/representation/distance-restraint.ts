@@ -45,7 +45,7 @@ export function DistanceRestraintRepresentation(): DistanceRestraintRepresentati
             return crossLinkRepr.getLoci(pickingId)
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            crossLinkRepr.mark(loci, action)
+            return crossLinkRepr.mark(loci, action)
         },
         destroy() {
             crossLinkRepr.destroy()

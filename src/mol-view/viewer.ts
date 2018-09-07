@@ -38,10 +38,10 @@ interface Viewer {
     clear: () => void
 
     draw: (force?: boolean) => void
-    requestDraw: () => void
+    requestDraw: (force?: boolean) => void
     animate: () => void
     pick: () => void
-    identify: (x: number, y: number) => PickingId
+    identify: (x: number, y: number) => PickingId | undefined
     mark: (loci: Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => Loci
 
@@ -128,9 +128,16 @@ namespace Viewer {
         }
 
         function mark(loci: Loci, action: MarkerAction) {
-            reprMap.forEach((roSet, repr) => repr.mark(loci, action))
-            scene.update()
-            requestDraw()
+            let changed = false
+            reprMap.forEach((roSet, repr) => {
+                changed = repr.mark(loci, action) || changed
+            })
+            if (changed) {
+                // console.log('changed')
+                scene.update()
+                draw(true)
+                pickDirty = false // picking buffers should not have changed
+            }
         }
 
         let nearPlaneDelta = 0
@@ -181,7 +188,6 @@ namespace Viewer {
                 if (variant === 'draw') {
                     lastRenderTime = performance.now()
                     pickDirty = true
-                    // pick()
                 }
                 didRender = true
             }
@@ -195,22 +201,21 @@ namespace Viewer {
             drawPending = false
         }
 
-        function requestDraw () {
+        function requestDraw(force?: boolean) {
             if (drawPending) return
             drawPending = true
-            window.requestAnimationFrame(() => draw(true))
+            window.requestAnimationFrame(() => draw(force))
         }
 
-        function animate () {
+        function animate() {
             draw(false)
-            if (performance.now() - lastRenderTime > 500) {
+            if (performance.now() - lastRenderTime > 200) {
                 if (pickDirty) pick()
             }
             window.requestAnimationFrame(() => animate())
         }
 
         function pick() {
-            console.log('pick')
             render('pickObject', pickDirty)
             render('pickInstance', pickDirty)
             render('pickGroup', pickDirty)
@@ -218,7 +223,9 @@ namespace Viewer {
             pickDirty = false
         }
 
-        function identify (x: number, y: number): PickingId {
+        function identify(x: number, y: number): PickingId | undefined {
+            if (pickDirty) return undefined
+
             x *= ctx.pixelRatio
             y *= ctx.pixelRatio
             y = canvas.height - y // flip y

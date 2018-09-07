@@ -140,7 +140,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
             return renderObject ? getLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            if (!renderObject) return
+            if (!renderObject) return false
             const { tMarker } = renderObject.values
             const { groupCount, instanceCount } = locationIt
 
@@ -152,14 +152,14 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
             let changed = false
             if (isEveryLoci(loci)) {
-                apply(Interval.ofBounds(0, groupCount * instanceCount))
-                changed = true
+                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = mark(loci, currentGroup, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)
             }
+            return changed
         },
         destroy() {
             // TODO

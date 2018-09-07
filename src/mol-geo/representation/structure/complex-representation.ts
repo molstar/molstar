@@ -31,7 +31,7 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, v
     }
 
     function mark(loci: Loci, action: MarkerAction) {
-        if (visual) visual.mark(loci, action)
+        return visual ? visual.mark(loci, action) : false
     }
 
     function destroy() {

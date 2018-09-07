@@ -115,7 +115,11 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
     }
 
     function mark(loci: Loci, action: MarkerAction) {
-        visuals.forEach(({ visual }) => visual.mark(loci, action))
+        let changed = false
+        visuals.forEach(({ visual }) => {
+            changed = visual.mark(loci, action) || changed
+        })
+        return changed
     }
 
     function destroy() {
