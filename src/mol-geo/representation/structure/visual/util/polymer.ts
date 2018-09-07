@@ -5,11 +5,11 @@
  */
 
 import { Unit, ElementIndex, StructureElement } from 'mol-model/structure';
-import { Segmentation, OrderedSet, Interval } from 'mol-data/int';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { LocationIterator } from '../../../../util/location-iterator';
-import { getElementIndexForAtomRole } from 'mol-model/structure/util';
-import { PolymerGapIterator } from './polymer/gap-iterator';
+import { PickingId } from '../../../../util/picking';
+import { OrderedSet, Interval } from 'mol-data/int';
+import { EmptyLoci, Loci } from 'mol-model/loci';
 
 export * from './polymer/backbone-iterator'
 export * from './polymer/gap-iterator'
@@ -32,119 +32,69 @@ export function getGapRanges(unit: Unit): SortedRanges<ElementIndex> {
     }
 }
 
-// polymer element
-
-export function getPolymerElementCount(unit: Unit) {
-    let count = 0
-    const { elements } = unit
-    const polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), elements)
-    switch (unit.kind) {
-        case Unit.Kind.Atomic:
-            const residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, elements)
-            while (polymerIt.hasNext) {
-                const polymerSegment = polymerIt.move()
-                residueIt.setSegment(polymerSegment)
-                while (residueIt.hasNext) {
-                    const residueSegment = residueIt.move()
-                    const { start, end } = residueSegment
-                    if (OrderedSet.areIntersecting(Interval.ofBounds(elements[start], elements[end - 1]), elements)) ++count
-                }
-            }
-            break
-        case Unit.Kind.Spheres:
-        case Unit.Kind.Gaussians:
-            while (polymerIt.hasNext) {
-                const { start, end } = polymerIt.move()
-                count += OrderedSet.intersectionSize(Interval.ofBounds(elements[start], elements[end - 1]), elements)
-            }
-            break
-    }
-    return count
-}
-
-export function getPolymerElementIndices(unit: Unit) {
-    const indices: ElementIndex[] = []
-    const { elements, model } = unit
-    const { residueAtomSegments } = unit.model.atomicHierarchy
-    const polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), elements)
-    switch (unit.kind) {
-        case Unit.Kind.Atomic:
-            const residueIt = Segmentation.transientSegments(residueAtomSegments, elements)
-            while (polymerIt.hasNext) {
-                const polymerSegment = polymerIt.move()
-                residueIt.setSegment(polymerSegment)
-                while (residueIt.hasNext) {
-                    const residueSegment = residueIt.move()
-                    const { start, end, index } = residueSegment
-                    if (OrderedSet.areIntersecting(Interval.ofBounds(elements[start], elements[end - 1]), elements)) {
-                        const elementIndex = getElementIndexForAtomRole(model, index, 'trace')
-                        indices.push(elementIndex === -1 ? residueAtomSegments.offsets[index] : elementIndex)
-                    }
-                }
-            }
-            break
-        case Unit.Kind.Spheres:
-        case Unit.Kind.Gaussians:
-            while (polymerIt.hasNext) {
-                const { start, end } = polymerIt.move()
-                for (let i = start; i < end; ++i) { indices.push(elements[i]) }
-            }
-            break
-    }
-    return indices
-}
-
 export namespace PolymerLocationIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
-        const polymerElementIndices = getPolymerElementIndices(group.units[0])
-        const groupCount = polymerElementIndices.length
+        const polymerElements = group.units[0].polymerElements
+        const groupCount = polymerElements.length
         const instanceCount = group.units.length
         const location = StructureElement.create()
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
-            location.element = polymerElementIndices[groupIndex]
+            location.element = polymerElements[groupIndex]
             return location
         }
         return LocationIterator(groupCount, instanceCount, getLocation)
     }
-}
-
-// polymer gap
-
-export function getPolymerGapCount(unit: Unit) {
-    let count = 0
-    const { elements } = unit
-    const gapIt = SortedRanges.transientSegments(getGapRanges(unit), elements)
-    while (gapIt.hasNext) {
-        const { start, end } = gapIt.move()
-        if (OrderedSet.areIntersecting(Interval.ofBounds(elements[start], elements[end - 1]), elements)) ++count
-    }
-    return count
-}
-
-export function getPolymerGapElementIndices(unit: Unit) {
-    const indices: ElementIndex[] = []
-    const polymerGapIt = PolymerGapIterator(unit)
-    while (polymerGapIt.hasNext) {
-        const { centerA, centerB } = polymerGapIt.move()
-        indices.push(centerA.element, centerB.element)
-    }
-    return indices
 }
 
 export namespace PolymerGapLocationIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
-        const polymerGapElementIndices = getPolymerGapElementIndices(group.units[0])
-        const groupCount = polymerGapElementIndices.length
+        const gapElements = group.units[0].gapElements
+        const groupCount = gapElements.length
         const instanceCount = group.units.length
         const location = StructureElement.create()
         const getLocation = (groupIndex: number, instanceIndex: number) => {
             const unit = group.units[instanceIndex]
             location.unit = unit
-            location.element = polymerGapElementIndices[groupIndex]
+            location.element = gapElements[groupIndex]
             return location
         }
         return LocationIterator(groupCount, instanceCount, getLocation)
     }
+}
+
+export function getPolymerElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
+    const { objectId, instanceId, groupId } = pickingId
+    if (id === objectId) {
+        const unit = group.units[instanceId]
+        const unitIndex = OrderedSet.findPredecessorIndex(unit.elements, unit.polymerElements[groupId]) as StructureElement.UnitIndex
+        const indices = OrderedSet.ofSingleton(unitIndex);
+        return StructureElement.Loci([{ unit, indices }])
+    }
+    return EmptyLoci
+}
+
+export function markPolymerElement(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
+    const groupCount = group.units[0].polymerElements.length
+
+    let changed = false
+    if (StructureElement.isLoci(loci)) {
+        for (const e of loci.elements) {
+            const unitIdx = group.unitIndexMap.get(e.unit.id)
+            if (unitIdx !== undefined) {
+                if (Interval.is(e.indices)) {
+                    const start = unitIdx * groupCount + OrderedSet.findPredecessorIndex(e.unit.polymerElements, e.unit.elements[Interval.start(e.indices)])
+                    const end = unitIdx * groupCount + OrderedSet.findPredecessorIndex(e.unit.polymerElements, e.unit.elements[Interval.end(e.indices)])
+                    if (apply(Interval.ofBounds(start, end))) changed = true
+                } else {
+                    for (let i = 0, _i = e.indices.length; i < _i; i++) {
+                        const idx = unitIdx * groupCount + OrderedSet.findPredecessorIndex(e.unit.polymerElements, e.unit.elements[e.indices[i]])
+                        if (apply(Interval.ofSingleton(idx))) changed = true
+                    }
+                }
+            }
+        }
+    }
+    return changed
 }

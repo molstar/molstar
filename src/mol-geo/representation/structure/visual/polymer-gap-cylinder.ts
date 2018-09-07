@@ -9,7 +9,7 @@ import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
-import { getPolymerGapCount, PolymerGapIterator, PolymerGapLocationIterator } from './util/polymer';
+import { PolymerGapIterator, PolymerGapLocationIterator } from './util/polymer';
 import { getElementLoci, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
@@ -26,7 +26,7 @@ export interface PolymerGapCylinderProps {
 }
 
 async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, props: PolymerGapCylinderProps, mesh?: Mesh) {
-    const polymerGapCount = getPolymerGapCount(unit)
+    const polymerGapCount = unit.gapElements.length
     if (!polymerGapCount) return Mesh.createEmpty(mesh)
 
     const sizeTheme = SizeTheme(props.sizeTheme)

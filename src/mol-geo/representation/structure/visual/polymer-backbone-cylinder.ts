@@ -9,7 +9,7 @@ import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
-import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
+import { PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
@@ -24,7 +24,7 @@ export interface PolymerBackboneCylinderProps {
 }
 
 async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
-    const polymerElementCount = getPolymerElementCount(unit)
+    const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
     const sizeTheme = SizeTheme(props.sizeTheme)

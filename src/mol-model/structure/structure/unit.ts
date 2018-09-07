@@ -13,9 +13,10 @@ import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } 
 import { ValueRef } from 'mol-util';
 import { UnitRings } from './unit/rings';
 import StructureElement from './element'
-import { ChainIndex, ResidueIndex } from '../model/indexing';
+import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray } from 'mol-data/int';
 import { hash2 } from 'mol-data/util';
+import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -32,8 +33,8 @@ namespace Unit {
     export function create(id: number, invariantId: number, kind: Kind, model: Model, operator: SymmetryOperator, elements: StructureElement.Set): Unit {
         switch (kind) {
             case Kind.Atomic: return new Atomic(id, invariantId, model, elements, SymmetryOperator.createMapping(operator, model.atomicConformation, void 0), AtomicProperties());
-            case Kind.Spheres: return createCoarse(id, invariantId, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)));
-            case Kind.Gaussians: return createCoarse(id, invariantId, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)));
+            case Kind.Spheres: return createCoarse(id, invariantId, model, Kind.Spheres, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.spheres, getSphereRadiusFunc(model)), CoarseProperties());
+            case Kind.Gaussians: return createCoarse(id, invariantId, model, Kind.Gaussians, elements, SymmetryOperator.createMapping(operator, model.coarseConformation.gaussians, getGaussianRadiusFunc(model)), CoarseProperties());
         }
     }
 
@@ -91,6 +92,8 @@ namespace Unit {
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
 
         readonly lookup3d: Lookup3D
+        readonly polymerElements: SortedArray<ElementIndex>
+        readonly gapElements: SortedArray<ElementIndex>
     }
 
     function getSphereRadiusFunc(model: Model) {
@@ -154,6 +157,18 @@ namespace Unit {
             return this.props.rings.ref;
         }
 
+        get polymerElements() {
+            if (this.props.polymerElements.ref) return this.props.polymerElements.ref;
+            this.props.polymerElements.ref = getAtomicPolymerElements(this);
+            return this.props.polymerElements.ref;
+        }
+
+        get gapElements() {
+            if (this.props.gapElements.ref) return this.props.gapElements.ref;
+            this.props.gapElements.ref = getAtomicGapElements(this);
+            return this.props.gapElements.ref;
+        }
+
         getResidueIndex(elementIndex: StructureElement.UnitIndex) {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
@@ -175,10 +190,18 @@ namespace Unit {
         lookup3d: ValueRef<Lookup3D | undefined>,
         links: ValueRef<IntraUnitLinks | undefined>,
         rings: ValueRef<UnitRings | undefined>
+        polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
     }
 
     function AtomicProperties(): AtomicProperties {
-        return { lookup3d: ValueRef.create(void 0), links: ValueRef.create(void 0), rings: ValueRef.create(void 0) };
+        return {
+            lookup3d: ValueRef.create(void 0),
+            links: ValueRef.create(void 0),
+            rings: ValueRef.create(void 0),
+            polymerElements: ValueRef.create(void 0),
+            gapElements: ValueRef.create(void 0),
+        };
     }
 
     class Coarse<K extends Kind.Gaussians | Kind.Spheres, C extends CoarseSphereConformation | CoarseGaussianConformation> implements Base {
@@ -193,32 +216,45 @@ namespace Unit {
         readonly coarseElements: CoarseElements;
         readonly coarseConformation: C;
 
+        private props: CoarseProperties;
+
         getChild(elements: StructureElement.Set): Unit {
             if (elements.length === this.elements.length) return this as any as Unit /** lets call this an ugly temporary hack */;
-            return createCoarse(this.id, this.invariantId, this.model, this.kind, elements, this.conformation);
+            return createCoarse(this.id, this.invariantId, this.model, this.kind, elements, this.conformation, CoarseProperties());
         }
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements(), this.conformation.r));
-            (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
+            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements(), this.conformation.r), this.props);
+            // (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
             return ret;
         }
 
-        private _lookup3d: ValueRef<Lookup3D | undefined> = ValueRef.create(void 0);
         get lookup3d() {
-            if (this._lookup3d.ref) return this._lookup3d.ref;
+            if (this.props.lookup3d.ref) return this.props.lookup3d.ref;
             // TODO: support sphere radius?
             const { x, y, z } = this.getCoarseElements();
-            this._lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements });
-            return this._lookup3d.ref;
+            this.props.lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements });
+            return this.props.lookup3d.ref;
+        }
+
+        get polymerElements() {
+            if (this.props.polymerElements.ref) return this.props.polymerElements.ref;
+            this.props.polymerElements.ref = getCoarsePolymerElements(this as Unit.Spheres | Unit.Gaussians); // TODO
+            return this.props.polymerElements.ref;
+        }
+
+        get gapElements() {
+            if (this.props.gapElements.ref) return this.props.gapElements.ref;
+            this.props.gapElements.ref = getCoarseGapElements(this as Unit.Spheres | Unit.Gaussians); // TODO
+            return this.props.gapElements.ref;
         }
 
         private getCoarseElements() {
             return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
         }
 
-        constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping) {
+        constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: CoarseProperties) {
             this.kind = kind;
             this.id = id;
             this.invariantId = invariantId;
@@ -227,11 +263,26 @@ namespace Unit {
             this.conformation = conformation;
             this.coarseElements = kind === Kind.Spheres ? model.coarseHierarchy.spheres : model.coarseHierarchy.gaussians;
             this.coarseConformation = (kind === Kind.Spheres ? model.coarseConformation.spheres : model.coarseConformation.gaussians) as C;
+            this.props = props;
         }
     }
 
-    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping): Unit {
-        return new Coarse(id, invariantId, model, kind, elements, conformation) as any as Unit /** lets call this an ugly temporary hack */;
+    interface CoarseProperties {
+        lookup3d: ValueRef<Lookup3D | undefined>,
+        polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
+    }
+
+    function CoarseProperties(): CoarseProperties {
+        return {
+            lookup3d: ValueRef.create(void 0),
+            polymerElements: ValueRef.create(void 0),
+            gapElements: ValueRef.create(void 0),
+        };
+    }
+
+    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: CoarseProperties): Unit {
+        return new Coarse(id, invariantId, model, kind, elements, conformation, props) as any as Unit /** lets call this an ugly temporary hack */;
     }
 
     export class Spheres extends Coarse<Kind.Spheres, CoarseSphereConformation> { }
