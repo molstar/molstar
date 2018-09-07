@@ -17,6 +17,7 @@ import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray } from 'mol-data/int';
 import { hash2 } from 'mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
+import { getNucleotideElements } from './util/nucleotide';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -169,6 +170,12 @@ namespace Unit {
             return this.props.gapElements.ref;
         }
 
+        get nucleotideElements() {
+            if (this.props.nucleotideElements.ref) return this.props.nucleotideElements.ref;
+            this.props.nucleotideElements.ref = getNucleotideElements(this);
+            return this.props.nucleotideElements.ref;
+        }
+
         getResidueIndex(elementIndex: StructureElement.UnitIndex) {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
@@ -192,6 +199,7 @@ namespace Unit {
         rings: ValueRef<UnitRings | undefined>
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        nucleotideElements: ValueRef<SortedArray<ElementIndex> | undefined>
     }
 
     function AtomicProperties(): AtomicProperties {
@@ -201,6 +209,7 @@ namespace Unit {
             rings: ValueRef.create(void 0),
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
+            nucleotideElements: ValueRef.create(void 0),
         };
     }
 

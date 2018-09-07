@@ -92,8 +92,8 @@ function CarbohydrateLinkIterator(structure: Structure): LocationIterator {
         const link = links[groupIndex]
         const carbA = elements[link.carbohydrateIndexA]
         const carbB = elements[link.carbohydrateIndexB]
-        const indexA = OrderedSet.findPredecessorIndex(carbA.unit.elements, carbA.anomericCarbon)
-        const indexB = OrderedSet.findPredecessorIndex(carbB.unit.elements, carbB.anomericCarbon)
+        const indexA = OrderedSet.indexOf(carbA.unit.elements, carbA.anomericCarbon)
+        const indexB = OrderedSet.indexOf(carbB.unit.elements, carbB.anomericCarbon)
         location.aUnit = carbA.unit
         location.aIndex = indexA as StructureElement.UnitIndex
         location.bUnit = carbB.unit
@@ -110,14 +110,16 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
         const l = links[groupId]
         const carbA = elements[l.carbohydrateIndexA]
         const carbB = elements[l.carbohydrateIndexB]
-        const indexA = OrderedSet.findPredecessorIndex(carbA.unit.elements, carbA.anomericCarbon)
-        const indexB = OrderedSet.findPredecessorIndex(carbB.unit.elements, carbB.anomericCarbon)
-        return Link.Loci([
-            Link.Location(
-                carbA.unit, indexA as StructureElement.UnitIndex,
-                carbB.unit, indexB as StructureElement.UnitIndex
-            )
-        ])
+        const indexA = OrderedSet.indexOf(carbA.unit.elements, carbA.anomericCarbon)
+        const indexB = OrderedSet.indexOf(carbB.unit.elements, carbB.anomericCarbon)
+        if (indexA !== -1 && indexB !== -1) {
+            return Link.Loci([
+                Link.Location(
+                    carbA.unit, indexA as StructureElement.UnitIndex,
+                    carbB.unit, indexB as StructureElement.UnitIndex
+                )
+            ])
+        }
     }
     return EmptyLoci
 }

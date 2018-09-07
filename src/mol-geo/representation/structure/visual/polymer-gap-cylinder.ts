@@ -9,8 +9,7 @@ import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
-import { PolymerGapIterator, PolymerGapLocationIterator } from './util/polymer';
-import { getElementLoci, markElement } from './util/element';
+import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
@@ -83,8 +82,8 @@ export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {
         defaultProps: DefaultPolymerGapProps,
         createMesh: createPolymerGapCylinderMesh,
         createLocationIterator: PolymerGapLocationIterator.fromGroup,
-        getLoci: getElementLoci,
-        mark: markElement,
+        getLoci: getPolymerGapElementLoci,
+        mark: markPolymerGapElement,
         setUpdateState: (state: MeshUpdateState, newProps: PolymerGapProps, currentProps: PolymerGapProps) => {
             state.createMesh = newProps.radialSegments !== currentProps.radialSegments
         }

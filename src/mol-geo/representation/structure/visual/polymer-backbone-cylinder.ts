@@ -47,11 +47,11 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
         pos(centerB.element, pB)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerA)
-        builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerA.element))
+        builder.setGroup(OrderedSet.indexOf(elements, centerA.element))
         addCylinder(builder, pA, pB, 0.5, cylinderProps)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerB)
-        builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerB.element))
+        builder.setGroup(OrderedSet.indexOf(elements, centerB.element))
         addCylinder(builder, pB, pA, 0.5, cylinderProps)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {

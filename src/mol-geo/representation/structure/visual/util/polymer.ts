@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, ElementIndex, StructureElement } from 'mol-model/structure';
+import { Unit, ElementIndex, StructureElement, Link } from 'mol-model/structure';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { PickingId } from '../../../../util/picking';
@@ -68,9 +68,11 @@ export function getPolymerElementLoci(pickingId: PickingId, group: Unit.Symmetry
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const unit = group.units[instanceId]
-        const unitIndex = OrderedSet.findPredecessorIndex(unit.elements, unit.polymerElements[groupId]) as StructureElement.UnitIndex
-        const indices = OrderedSet.ofSingleton(unitIndex);
-        return StructureElement.Loci([{ unit, indices }])
+        const unitIndex = OrderedSet.indexOf(unit.elements, unit.polymerElements[groupId]) as StructureElement.UnitIndex
+        if (unitIndex !== -1) {
+            const indices = OrderedSet.ofSingleton(unitIndex)
+            return StructureElement.Loci([{ unit, indices }])
+        }
     }
     return EmptyLoci
 }
@@ -84,14 +86,49 @@ export function markPolymerElement(loci: Loci, group: Unit.SymmetryGroup, apply:
             const unitIdx = group.unitIndexMap.get(e.unit.id)
             if (unitIdx !== undefined) {
                 if (Interval.is(e.indices)) {
-                    const start = unitIdx * groupCount + OrderedSet.findPredecessorIndex(e.unit.polymerElements, e.unit.elements[Interval.start(e.indices)])
-                    const end = unitIdx * groupCount + OrderedSet.findPredecessorIndex(e.unit.polymerElements, e.unit.elements[Interval.end(e.indices)])
-                    if (apply(Interval.ofBounds(start, end))) changed = true
+                    const min =  + OrderedSet.indexOf(e.unit.polymerElements, e.unit.elements[Interval.min(e.indices)])
+                    const max = OrderedSet.indexOf(e.unit.polymerElements, e.unit.elements[Interval.max(e.indices)])
+                    if (min !== -1 && max !== -1) {
+                        if (apply(Interval.ofRange(unitIdx * groupCount + min, unitIdx * groupCount + max))) changed = true
+                    }
                 } else {
                     for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                        const idx = unitIdx * groupCount + OrderedSet.findPredecessorIndex(e.unit.polymerElements, e.unit.elements[e.indices[i]])
-                        if (apply(Interval.ofSingleton(idx))) changed = true
+                        const idx = OrderedSet.indexOf(e.unit.polymerElements, e.unit.elements[e.indices[i]])
+                        if (idx !== -1) {
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+                        }
                     }
+                }
+            }
+        }
+    }
+    return changed
+}
+
+export function getPolymerGapElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
+    const { objectId, instanceId, groupId } = pickingId
+    if (id === objectId) {
+        const unit = group.units[instanceId]
+        const unitIndexA = OrderedSet.indexOf(unit.elements, unit.gapElements[groupId]) as StructureElement.UnitIndex
+        const unitIndexB = OrderedSet.indexOf(unit.elements, unit.gapElements[groupId % 2 ? groupId - 1 : groupId + 1]) as StructureElement.UnitIndex
+        if (unitIndexA !== -1 && unitIndexB !== -1) {
+            return Link.Loci([ Link.Location(unit, unitIndexA, unit, unitIndexB) ])
+        }
+    }
+    return EmptyLoci
+}
+
+export function markPolymerGapElement(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
+    let changed = false
+    if (Link.isLoci(loci)) {
+        const groupCount = group.units[0].gapElements.length
+        for (const b of loci.links) {
+            const unitIdx = group.unitIndexMap.get(b.aUnit.id)
+            if (unitIdx !== undefined) {
+                const idxA = OrderedSet.indexOf(b.aUnit.gapElements, b.aUnit.elements[b.aIndex])
+                const idxB = OrderedSet.indexOf(b.bUnit.gapElements, b.bUnit.elements[b.bIndex])
+                if (idxA !== -1 && idxB !== -1) {
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idxA))) changed = true
                 }
             }
         }

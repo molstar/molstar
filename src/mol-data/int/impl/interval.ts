@@ -19,6 +19,7 @@ export function size(i: Tuple) { return Tuple.snd(i) - Tuple.fst(i); }
 export const hashCode = Tuple.hashCode;
 
 export function has(int: Tuple, v: number) { return Tuple.fst(int) <= v && v < Tuple.snd(int); }
+/** Returns the index of `x` in `set` or -1 if not found. */
 export function indexOf(int: Tuple, x: number) { const m = start(int); return x >= m && x < end(int) ? x - m : -1; }
 export function getAt(int: Tuple, i: number) { return Tuple.fst(int) + i; }
 

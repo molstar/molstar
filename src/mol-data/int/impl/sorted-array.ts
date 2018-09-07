@@ -36,6 +36,7 @@ export function hashCode(xs: Nums) {
     return hash3(s, xs[0], xs[s - 1]);
 }
 
+/** Returns the index of `x` in `set` or -1 if not found. */
 export function indexOf(xs: Nums, v: number) {
     const l = xs.length;
     return l === 0 ? -1 : xs[0] <= v && v <= xs[l - 1] ? binarySearchRange(xs, v, 0, l) : -1;

@@ -182,9 +182,11 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
     if (id === objectId) {
         const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)]
         const { unit } = carb
-        const index = OrderedSet.findPredecessorIndex(unit.elements, carb.anomericCarbon)
-        const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
-        return StructureElement.Loci([{ unit, indices }])
+        const index = OrderedSet.indexOf(unit.elements, carb.anomericCarbon)
+        if (index !== -1) {
+            const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
+            return StructureElement.Loci([{ unit, indices }])
+        }
     }
     return EmptyLoci
 }

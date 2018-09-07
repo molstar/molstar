@@ -9,7 +9,6 @@ import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
-import { getElementLoci, markElement } from './util/element';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
@@ -17,7 +16,7 @@ import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { addCylinder } from '../../../mesh/builder/cylinder';
 import { Box } from '../../../primitive/box';
-import { NucleotideLocationIterator } from './util/nucleotide';
+import { NucleotideLocationIterator, markNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -121,8 +120,8 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
         defaultProps: DefaultNucleotideBlockProps,
         createMesh: createNucleotideBlockMesh,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
-        getLoci: getElementLoci,
-        mark: markElement,
+        getLoci: getNucleotideElementLoci,
+        mark: markNucleotideElement,
         setUpdateState: () => {}
     })
 }

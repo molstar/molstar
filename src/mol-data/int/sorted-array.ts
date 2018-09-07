@@ -19,6 +19,7 @@ namespace SortedArray {
     export const is: <T extends number = number>(v: any) => v is SortedArray<T> = Impl.is as any;
 
     export const has: <T extends number = number>(array: SortedArray<T>, x: T) => boolean = Impl.has as any;
+    /** Returns the index of `x` in `set` or -1 if not found. */
     export const indexOf: <T extends number = number>(array: SortedArray<T>, x: T) => number = Impl.indexOf as any;
     export const indexOfInInterval: <T extends number = number>(array: SortedArray<T>, x: number, bounds: Interval) => number = Impl.indexOfInInterval as any;
 

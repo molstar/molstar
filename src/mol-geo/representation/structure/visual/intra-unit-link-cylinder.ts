@@ -102,12 +102,13 @@ function markLink(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Inter
 
     let changed = false
     if (Unit.isAtomic(unit) && Link.isLoci(loci)) {
+        const groupCount = unit.links.edgeCount * 2
         for (const b of loci.links) {
             const unitIdx = group.unitIndexMap.get(b.aUnit.id)
             if (unitIdx !== undefined) {
                 const idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
                 if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(idx))) changed = true
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
             }
         }

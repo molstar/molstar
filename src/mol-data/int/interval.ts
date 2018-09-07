@@ -18,6 +18,7 @@ namespace Interval {
 
     /** Test if a value is within the bounds of the interval */
     export const has: <T extends number = number>(interval: Interval<T>, x: T) => boolean = Impl.has as any;
+    /** Returns the index of `x` in `set` or -1 if not found. */
     export const indexOf: <T extends number = number>(interval: Interval<T>, x: T) => number = Impl.indexOf as any;
     export const getAt: <T extends number = number>(interval: Interval<T>, i: number) => T = Impl.getAt as any;
 
