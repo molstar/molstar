@@ -182,7 +182,7 @@ export const MonosaccharidesColorTable: [string, Color][] = [
     ['Alt-family', SaccharideColors.Pink],
     ['All-family', SaccharideColors.Purple],
     ['Tal-family', SaccharideColors.LightBlue],
-    ['Ido-family', SaccharideColors.Blue],
+    ['Ido-family', SaccharideColors.Brown],
     ['Fuc-family', SaccharideColors.Red],
     ['Generic/Unknown/Secondary', SaccharideColors.Secondary],
 ]
