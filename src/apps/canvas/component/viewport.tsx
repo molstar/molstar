@@ -7,7 +7,7 @@
 import * as React from 'react'
 import { App } from '../app';
 import { MarkerAction } from 'mol-geo/util/marker-data';
-import { EveryLoci, EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
+import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
 import { labelFirst } from 'mol-view/label';
 
 interface ViewportProps {
