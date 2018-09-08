@@ -110,6 +110,7 @@ namespace Viewer {
         const groupPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
 
         let pickDirty = true
+        let isPicking = false
         let drawPending = false
         let lastRenderTime = -1
         const prevProjectionView = Mat4.zero()
@@ -149,6 +150,7 @@ namespace Viewer {
         }
 
         function render(variant: RenderVariant, force?: boolean) {
+            if (isPicking) return false
             // const p = scene.boundingSphere.center
             // console.log(p[0], p[1], p[2])
             // Vec3.set(controls.target, p[0], p[1], p[2])
@@ -226,6 +228,8 @@ namespace Viewer {
         function identify(x: number, y: number): PickingId | undefined {
             if (pickDirty) return undefined
 
+            isPicking = true
+
             x *= ctx.pixelRatio
             y *= ctx.pixelRatio
             y = canvas.height - y // flip y
@@ -245,6 +249,8 @@ namespace Viewer {
             groupPickTarget.bind()
             ctx.readPixels(xp, yp, 1, 1, buffer)
             const groupId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+
+            isPicking = false
 
             return { objectId, instanceId, groupId }
         }
