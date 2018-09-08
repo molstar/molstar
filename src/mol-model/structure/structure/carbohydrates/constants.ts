@@ -174,6 +174,19 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Psi', name: 'Psicose', color: SaccharideColors.Pink, type: SaccharideType.Assigned },
 ]
 
+export const MonosaccharidesColorTable: [string, Color][] = [
+    ['Glc-family', SaccharideColors.Blue],
+    ['Man-family', SaccharideColors.Green],
+    ['Gal-family', SaccharideColors.Yellow],
+    ['Gul-family', SaccharideColors.Orange],
+    ['Alt-family', SaccharideColors.Pink],
+    ['All-family', SaccharideColors.Purple],
+    ['Tal-family', SaccharideColors.LightBlue],
+    ['Ido-family', SaccharideColors.Blue],
+    ['Fuc-family', SaccharideColors.Red],
+    ['Generic/Unknown/Secondary', SaccharideColors.Secondary],
+]
+
 const CommonSaccharideNames: { [k: string]: string[] } = {
     // Hexose
     Glc: [

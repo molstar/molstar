@@ -46,13 +46,13 @@ export class AppComponent extends React.Component<AppProps, AppState> {
         const { structureView } = this.state
 
         return <div style={{width: '100%', height: '100%'}}>
-            <div style={{float: 'left', width: '70%', height: '100%'}}>
+            <div style={{left: '0px', right: '350px', height: '100%', position: 'absolute'}}>
                 <Viewport app={this.props.app} />
             </div>
 
-            <div style={{float: 'right', width: '25%', height: '100%'}}>
-                <div>
-                    <span>Load PDB ID</span>
+            <div style={{width: '330px', paddingLeft: '10px', paddingRight: '10px', right: '0px', height: '100%', position: 'absolute', overflow: 'auto'}}>
+                <div style={{marginTop: '10px'}}>
+                    <span>Load PDB ID </span>
                     <input
                         type='text'
                         onKeyDown={e => {
@@ -66,7 +66,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                     />
                 </div>
                 <div>
-                    <span>Load CIF file</span>
+                    <span>Load CIF file </span>
                     <input
                         accept='*.cif'
                         type='file'
@@ -76,7 +76,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                     />
                 </div>
                 <hr/>
-                <div>
+                <div style={{marginBottom: '10px'}}>
                     {structureView ? <StructureViewComponent structureView={structureView} /> : ''}
                 </div>
             </div>

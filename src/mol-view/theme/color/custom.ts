@@ -14,6 +14,8 @@ export function CustomColorTheme(props: ColorThemeProps): ColorTheme {
     const value = defaults(props.value, DefaultColor)
     return {
         granularity: defaults(props.granularity, 'uniform'),
-        color: defaults(props.color, () => value)
+        color: defaults(props.color, () => value),
+        description: props.description,
+        legend: props.legend
     }
 }

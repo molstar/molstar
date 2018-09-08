@@ -8,9 +8,10 @@ import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/str
 
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme } from '../color';
+import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
 
 const DefaultColor = Color(0xCCCCCC)
+const Description = 'Gives every chain a color based on its `asym_id` value.'
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -23,34 +24,49 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
 }
 
 export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
-    const l = StructureElement.create()
+    let color: LocationColor
+    let scale: ColorScale | undefined = undefined
+    // const table: [string, Color][] = []
 
-    const scaleMap = new Map<number, ColorScale>()
-    function getScale(size: number) {
-        let scale = scaleMap.get(size)
-        if (!scale) {
-            scale = ColorScale.create({ domain: [ 0, size - 1 ] })
-            scaleMap.set(size, scale)
+    if (props.structure) {
+        const l = StructureElement.create()
+        const { models } = props.structure
+        const asymIdSerialMap = new Map<string, number>()
+        let j = 0
+        for (let i = 0, il = models.length; i <il; ++i) {
+            models[i].properties.asymIdSerialMap.forEach((v, k) => {
+                if (!asymIdSerialMap.has(k)) {
+                    asymIdSerialMap.set(k, j)
+                    j += 1
+                }
+            })
         }
-        return scale
+        scale = ColorScale.create({ domain: [ 0, asymIdSerialMap.size - 1 ] })
+        const scaleColor = scale.color
+
+        // asymIdSerialMap.forEach((v, k) => table.push([k, scaleColor(v)]))
+
+        color = (location: Location): Color => {
+            if (StructureElement.isLocation(location)) {
+                const asym_id = getAsymId(location.unit)
+                return scaleColor(asymIdSerialMap.get(asym_id(location)) || 0)
+            } else if (Link.isLocation(location)) {
+                const asym_id = getAsymId(location.aUnit)
+                l.unit = location.aUnit
+                l.element = location.aUnit.elements[location.aIndex]
+                return scaleColor(asymIdSerialMap.get(asym_id(l)) || 0)
+            }
+            return DefaultColor
+        }
+    } else {
+        color = () => DefaultColor
     }
 
-    function color(location: Location): Color {
-        if (StructureElement.isLocation(location)) {
-            const map = location.unit.model.properties.asymIdSerialMap
-            const scale = getScale(map.size)
-            const asym_id = getAsymId(location.unit)
-            return scale.color(map.get(asym_id(location)) || 0)
-        } else if (Link.isLocation(location)) {
-            const map = location.aUnit.model.properties.asymIdSerialMap
-            const scale = getScale(map.size)
-            const asym_id = getAsymId(location.aUnit)
-            l.unit = location.aUnit
-            l.element = location.aUnit.elements[location.aIndex]
-            return scale.color(map.get(asym_id(l)) || 0)
-        }
-        return DefaultColor
+    return {
+        granularity: 'group',
+        color,
+        description: Description,
+        // legend: scale ? TableLegend(table) : undefined
+        legend: scale ? scale.legend : undefined
     }
-
-    return { granularity: 'group', color }
 }

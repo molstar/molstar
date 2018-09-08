@@ -112,8 +112,9 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
             </div>
             <div>
                 <div>
-                    <span>Model</span>
+                    <span>Model </span>
                     <select
+                        style={{width: '100px'}}
                         value={this.state.modelId}
                         onChange={(e) => {
                             this.update({ modelId: parseInt(e.target.value) })
@@ -121,6 +122,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                     >
                         {modelIdOptions}
                     </select>
+                    <span> </span>
                     <input type='range'
                         value={this.state.modelId}
                         min={Math.min(...modelIds.map(m => m.id))}
@@ -133,8 +135,9 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                     </input>
                 </div>
                 <div>
-                    <span>Assembly</span>
+                    <span>Assembly </span>
                     <select
+                        style={{width: '150px'}}
                         value={this.state.assemblyId}
                         onChange={(e) => {
                             this.update({ assemblyId: e.target.value })
@@ -144,8 +147,9 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                     </select>
                 </div>
                 <div>
-                    <span>Symmetry Feature</span>
+                    <span>Symmetry Feature </span>
                     <select
+                        style={{width: '150px'}}
                         value={this.state.symmetryFeatureId}
                         onChange={(e) => {
                             this.update({ symmetryFeatureId: parseInt(e.target.value) })

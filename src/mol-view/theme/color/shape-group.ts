@@ -19,6 +19,8 @@ export function ShapeGroupColorTheme(props: ColorThemeProps): ColorTheme {
                 return location.shape.colors.ref.value[location.group]
             }
             return DefaultColor
-        }
+        },
+        description: props.description,
+        legend: props.legend
     }
 }

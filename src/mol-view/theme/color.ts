@@ -21,9 +21,29 @@ import { ColorType } from 'mol-geo/util/color-data';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
+export interface ScaleLegend {
+    kind: 'scale-legend'
+    min: number,
+    max: number,
+    colors: Color[]
+}
+export function ScaleLegend(min: number, max: number, colors: Color[]): ScaleLegend {
+    return { kind: 'scale-legend', min, max, colors }
+}
+
+export interface TableLegend {
+    kind: 'table-legend'
+    table: [ string, Color ][]
+}
+export function TableLegend(table: [ string, Color ][]): TableLegend {
+    return { kind: 'table-legend', table }
+}
+
 export interface ColorTheme {
     granularity: ColorType
     color: LocationColor
+    description?: string
+    legend?: ScaleLegend | TableLegend
 }
 
 export function ColorTheme(props: ColorThemeProps): ColorTheme {
@@ -46,7 +66,9 @@ export interface ColorThemeProps {
     value?: Color
     structure?: Structure
     color?: LocationColor
-    granularity?: ColorType
+    granularity?: ColorType,
+    description?: string,
+    legend?: ScaleLegend | TableLegend
 }
 
 export const ColorThemeInfo = {

@@ -11,9 +11,11 @@ import { OrderedSet } from 'mol-data/int';
 import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
 
 const DefaultColor = Color(0xCCCCCC)
+const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.'
 
 export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let color: LocationColor
+    let scale: ColorScale | undefined = undefined
 
     if (props.structure) {
         const { units } = props.structure
@@ -27,16 +29,17 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
             elementCount += units[i].elements.length
             unitIdIndex.set(units[i].id, i)
         }
-        const scale = ColorScale.create({ domain: [ 0, elementCount - 1 ] })
+        scale = ColorScale.create({ domain: [ 0, elementCount - 1 ] })
+        const scaleColor = scale.color
 
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
                 const unitIndex = unitIdIndex.get(location.unit.id)!
                 const unitElementIndex = OrderedSet.findPredecessorIndex(location.unit.elements, location.element)
-                return scale.color(cummulativeElementCount.get(unitIndex)! + unitElementIndex)
+                return scaleColor(cummulativeElementCount.get(unitIndex)! + unitElementIndex)
             } else if (Link.isLocation(location)) {
                 const unitIndex = unitIdIndex.get(location.aUnit.id)!
-                return scale.color(cummulativeElementCount.get(unitIndex)! + location.aIndex)
+                return scaleColor(cummulativeElementCount.get(unitIndex)! + location.aIndex)
             }
             return DefaultColor
         }
@@ -44,5 +47,10 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
         color = () => DefaultColor
     }
 
-    return { granularity: 'groupInstance', color }
+    return {
+        granularity: 'groupInstance',
+        color,
+        description: Description,
+        legend: scale ? scale.legend : undefined
+    }
 }
