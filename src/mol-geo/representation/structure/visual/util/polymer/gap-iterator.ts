@@ -5,7 +5,6 @@
  */
 
 import { Unit, StructureElement, ElementIndex, ResidueIndex } from 'mol-model/structure';
-import { SortedArray } from 'mol-data/int';
 import { AtomRole } from 'mol-model/structure/model/types';
 import Iterator from 'mol-data/iterator';
 import SortedRanges from 'mol-data/int/sorted-ranges';
@@ -40,13 +39,8 @@ export class AtomicPolymerGapIterator implements Iterator<PolymerGapPair> {
     hasNext: boolean = false;
 
     private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
-        const index = getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
-        // TODO handle case when it returns -1
-        const elementIndex = SortedArray.indexOf(this.unit.elements, index) as ElementIndex
-        if (elementIndex === -1) {
-            console.log('-1', residueIndex, atomRole, index)
-        }
-        return elementIndex === -1 ? 0 as ElementIndex : elementIndex
+        const elementIndex = getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
+        return elementIndex === -1 ? this.unit.model.atomicHierarchy.residueAtomSegments.offsets[residueIndex] : elementIndex
     }
 
     move() {

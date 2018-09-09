@@ -6,57 +6,57 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { Mat4 } from 'mol-math/linear-algebra'
-
-import { createUniformColor, ColorData, createGroupColor, createGroupInstanceColor, createInstanceColor } from '../../../../util/color-data';
-import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, createInstanceSize } from '../../../../util/size-data';
+import { createUniformColor, ColorData, createGroupColor, createGroupInstanceColor, createInstanceColor, ColorType } from '../../../../util/color-data';
+import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, createInstanceSize, SizeType } from '../../../../util/size-data';
 import { ValueCell } from 'mol-util';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../mesh/mesh';
-import { MeshValues } from 'mol-gl/renderable';
+import { MeshValues, PointValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
-import { MeshProps, createMeshValues, createRenderableState, createIdentityTransform } from '../../../util';
+import { MeshProps, createMeshValues, createRenderableState, createPointValues } from '../../../util';
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
-import { createMeshRenderObject } from 'mol-gl/render-object';
+import { createMeshRenderObject, createPointRenderObject } from 'mol-gl/render-object';
 import { ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { RuntimeContext } from 'mol-task';
+import { PointProps } from 'mol-geo/representation/structure/representation/point';
+import { fillSerial } from 'mol-util/array';
+import { TransformData, createIdentityTransform, createTransforms } from '../../../../util/transform-data';
 
-export function createTransforms({ units }: Unit.SymmetryGroup, transforms?: ValueCell<Float32Array>) {
-    const unitCount = units.length
-    const n = unitCount * 16
-    const array = transforms && transforms.ref.value.length >= n ? transforms.ref.value : new Float32Array(n)
-    for (let i = 0; i < unitCount; i++) {
-        Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16)
-    }
-    return transforms ? ValueCell.update(transforms, array) : ValueCell.create(array)
+function getGranularity(locationIt: LocationIterator, granularity: ColorType | SizeType) {
+    // Always use 'group' granularity for 'complex' location iterators,
+    // i.e. for which an instance may include multiple units
+    return granularity === 'instance' && locationIt.isComplex ? 'group' : granularity
 }
 
-export function createColors(locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData) {
+export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
     const colorTheme = ColorTheme(props)
-    switch (colorTheme.kind) {
-        case 'uniform': return createUniformColor(locationIt, colorTheme.color, colorData)
-        case 'group': return createGroupColor(locationIt, colorTheme.color, colorData)
-        case 'groupInstance': return createGroupInstanceColor(locationIt, colorTheme.color, colorData)
-        case 'instance': return createInstanceColor(locationIt, colorTheme.color, colorData)
+    switch (getGranularity(locationIt, colorTheme.granularity)) {
+        case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'groupInstance': return createGroupInstanceColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'instance': return createInstanceColor(ctx, locationIt, colorTheme.color, colorData)
     }
 }
 
-export function createSizes(locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): SizeData {
+export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): Promise<SizeData> {
     const sizeTheme = SizeTheme(props)
-    switch (sizeTheme.kind) {
-        case 'uniform': return createUniformSize(locationIt, sizeTheme.size, sizeData)
-        case 'group': return createGroupSize(locationIt, sizeTheme.size, sizeData)
-        case 'groupInstance': return createGroupInstanceSize(locationIt, sizeTheme.size, sizeData)
-        case 'instance': return createInstanceSize(locationIt, sizeTheme.size, sizeData)
+    switch (getGranularity(locationIt, sizeTheme.granularity)) {
+        case 'uniform': return createUniformSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'group': return createGroupSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'groupInstance': return createGroupInstanceSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'instance': return createInstanceSize(ctx, locationIt, sizeTheme.size, sizeData)
     }
 }
+
+// mesh
 
 type StructureMeshProps = Required<MeshProps & StructureProps>
 
-function _createMeshValues(transforms: ValueCell<Float32Array>, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+async function _createMeshValues(ctx: RuntimeContext, transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const { instanceCount, groupCount } = locationIt
-    const color = createColors(locationIt, props.colorTheme)
+    const color = await createColors(ctx, locationIt, props.colorTheme)
     const marker = createMarkers(instanceCount * groupCount)
 
     const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
@@ -65,35 +65,69 @@ function _createMeshValues(transforms: ValueCell<Float32Array>, mesh: Mesh, loca
         ...getMeshData(mesh),
         ...color,
         ...marker,
-        aTransform: transforms,
+        ...transforms,
         elements: mesh.indexBuffer,
         ...createMeshValues(props, counts)
     }
 }
 
-export function createComplexMeshValues(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+export async function createComplexMeshValues(ctx: RuntimeContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const transforms = createIdentityTransform()
-    return _createMeshValues(transforms, mesh, locationIt, props)
+    return _createMeshValues(ctx, transforms, mesh, locationIt, props)
 }
 
-export function createUnitsMeshValues(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+export async function createUnitsMeshValues(ctx: RuntimeContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const transforms = createTransforms(group)
-    return _createMeshValues(transforms, mesh, locationIt, props)
+    return _createMeshValues(ctx, transforms, mesh, locationIt, props)
 }
 
-export function createComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
-    const values = createComplexMeshValues(structure, mesh, locationIt, props)
+export async function createComplexMeshRenderObject(ctx: RuntimeContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+    const values = await createComplexMeshValues(ctx, structure, mesh, locationIt, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
-export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
-    const values = createUnitsMeshValues(group, mesh, locationIt, props)
+export async function createUnitsMeshRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+    const values = await createUnitsMeshValues(ctx, group, mesh, locationIt, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
-export function updateComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): MeshValues {
+export async function updateComplexMeshRenderObject(ctx: RuntimeContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const transforms = createIdentityTransform()
-    return _createMeshValues(transforms, mesh, locationIt, props)
+    return _createMeshValues(ctx, transforms, mesh, locationIt, props)
+}
+
+// point
+
+type StructurePointProps = Required<PointProps & StructureProps>
+
+async function _createPointValues(ctx: RuntimeContext, transforms: TransformData, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
+    const { instanceCount, groupCount } = locationIt
+    const color = await createColors(ctx, locationIt, props.colorTheme)
+    const size = await createSizes(ctx, locationIt, props.sizeTheme)
+    const marker = createMarkers(instanceCount * groupCount)
+
+    const counts = { drawCount: groupCount, groupCount, instanceCount }
+
+    return {
+        aPosition: vertices,
+        aGroup: ValueCell.create(fillSerial(new Float32Array(groupCount))),
+        ...color,
+        ...size,
+        ...marker,
+        ...transforms,
+        ...createPointValues(props, counts)
+    }
+}
+
+export async function createUnitsPointValues(ctx: RuntimeContext, group: Unit.SymmetryGroup, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
+    const transforms = createTransforms(group)
+    return _createPointValues(ctx, transforms, vertices, locationIt, props)
+}
+
+export async function createUnitsPointRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps) {
+    const values = await createUnitsPointValues(ctx, group, vertices, locationIt, props)
+    const state = createRenderableState(props)
+    return createPointRenderObject(values, state)
 }

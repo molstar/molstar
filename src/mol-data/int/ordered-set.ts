@@ -18,6 +18,7 @@ namespace OrderedSet {
     export const ofSortedArray: <T extends number = number>(xs: ArrayLike<T>) => OrderedSet<T> = Base.ofSortedArray as any;
 
     export const has: <T extends number = number>(set: OrderedSet<T>, x: T) => boolean = Base.has as any;
+    /** Returns the index of `x` in `set` or -1 if not found. */
     export const indexOf: <T extends number = number>(set: OrderedSet<T>, x: T) => number = Base.indexOf as any;
     export const getAt: <T extends number = number>(set: OrderedSet<T>, i: number) => T = Base.getAt as any;
 

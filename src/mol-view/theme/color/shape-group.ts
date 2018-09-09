@@ -9,16 +9,18 @@ import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { Shape } from 'mol-model/shape';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
 
 export function ShapeGroupColorTheme(props: ColorThemeProps): ColorTheme {
     return {
-        kind: 'group',
+        granularity: 'group',
         color: (location: Location): Color => {
             if (Shape.isLocation(location)) {
                 return location.shape.colors.ref.value[location.group]
             }
             return DefaultColor
-        }
+        },
+        description: props.description,
+        legend: props.legend
     }
 }

@@ -122,8 +122,8 @@ export class Stage {
         // this.loadMmcifUrl(`../../examples/1crn.cif`)
         // this.loadPdbid('5u0q') // mixed dna/rna in same polymer
         // this.loadPdbid('1xj9') // PNA (peptide nucleic acid)
-        this.loadPdbid('5eme') // PNA (peptide nucleic acid) and RNA
-        // this.loadPdbid('5eme') // temp
+        // this.loadPdbid('5eme') // PNA (peptide nucleic acid) and RNA
+        this.loadPdbid('2X3T') // temp
 
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000001.cif`) // ok
         // this.loadMmcifUrl(`../../../test/pdb-dev/PDBDEV_00000002.cif`) // ok

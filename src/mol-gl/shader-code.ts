@@ -6,25 +6,33 @@
  */
 
 import { ValueCell } from 'mol-util';
+import { idFactory } from 'mol-util/id-factory';
 
 export type DefineKind = 'boolean' | 'string'
 export type DefineType = boolean | string
 export type DefineValues = { [k: string]: ValueCell<DefineType> }
 
+const shaderCodeId = idFactory()
+
 export interface ShaderCode {
+    id: number
     vert: string
     frag: string
 }
 
-export const PointShaderCode: ShaderCode = {
-    vert: require('mol-gl/shader/point.vert'),
-    frag: require('mol-gl/shader/point.frag')
+export function ShaderCode(vert: string, frag: string): ShaderCode {
+    return { id: shaderCodeId(), vert, frag }
 }
 
-export const MeshShaderCode: ShaderCode = {
-    vert: require('mol-gl/shader/mesh.vert'),
-    frag: require('mol-gl/shader/mesh.frag')
-}
+export const PointShaderCode = ShaderCode(
+    require('mol-gl/shader/point.vert'),
+    require('mol-gl/shader/point.frag')
+)
+
+export const MeshShaderCode = ShaderCode(
+    require('mol-gl/shader/mesh.vert'),
+    require('mol-gl/shader/mesh.frag')
+)
 
 export type ShaderDefines = {
     [k: string]: ValueCell<DefineType>
@@ -47,9 +55,10 @@ function getDefinesCode (defines: ShaderDefines) {
     return lines.join('\n') + '\n'
 }
 
-export function addShaderDefines(defines: ShaderDefines, shaders: ShaderCode) {
+export function addShaderDefines(defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
     const header = getDefinesCode(defines)
     return {
+        id: shaderCodeId(),
         vert: `${header}${shaders.vert}`,
         frag: `${header}${shaders.frag}`
     }

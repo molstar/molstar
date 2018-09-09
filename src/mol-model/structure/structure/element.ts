@@ -63,6 +63,17 @@ namespace StructureElement {
         return !!x && x.kind === 'element-loci';
     }
 
+    export function areLociEqual(a: Loci, b: Loci) {
+        if (a.elements.length !== b.elements.length) return false
+        for (let i = 0, il = a.elements.length; i < il; ++i) {
+            const elementA = a.elements[i]
+            const elementB = b.elements[i]
+            if (elementA.unit.id !== elementB.unit.id) return false
+            if (!OrderedSet.areEqual(elementA.indices, elementB.indices)) return false
+        }
+        return true
+    }
+
     export function isLocation(x: any): x is StructureElement {
         return !!x && x.kind === 'element-location';
     }

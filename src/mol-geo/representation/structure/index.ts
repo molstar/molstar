@@ -27,17 +27,20 @@ export const DefaultStructureMeshProps = {
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
 export interface MeshUpdateState {
+    updateTransform: boolean
     updateColor: boolean
     createMesh: boolean
 }
 export namespace MeshUpdateState {
     export function create(): MeshUpdateState {
         return {
+            updateTransform: false,
             updateColor: false,
             createMesh: false
         }
     }
     export function reset(state: MeshUpdateState) {
+        state.updateTransform = false
         state.updateColor = false
         state.createMesh = false
     }

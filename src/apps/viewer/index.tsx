@@ -104,10 +104,4 @@ ctx.dispatcher.getStream(InteractivityEvents.HighlightLoci).subscribe(event => {
     }
 })
 
-ctx.dispatcher.getStream(InteractivityEvents.SelectLoci).subscribe(event => {
-    if (event && event.data) {
-        ctx.stage.viewer.mark(event.data, MarkerAction.ToggleSelect)
-    }
-})
-
 ReactDOM.render(React.createElement(Layout, { controller: ctx.layout }), elm);

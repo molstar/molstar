@@ -6,16 +6,16 @@
 
 import { StructureElement, Link, ElementIndex, Unit } from 'mol-model/structure';
 
-import { SaccharideColors } from 'mol-model/structure/structure/carbohydrates/constants';
+import { SaccharideColors, MonosaccharidesColorTable } from 'mol-model/structure/structure/carbohydrates/constants';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme } from '../color';
-import { LocationColor } from 'mol-geo/util/color-data';
+import { ColorThemeProps, ColorTheme, LocationColor, TableLegend } from '../color';
 import { Color } from 'mol-util/color';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
+const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).'
 
 export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme {
-    let colorFn: LocationColor
+    let color: LocationColor
 
     if (props.structure) {
         const { elements, getElementIndex, getAnomericCarbon } = props.structure.carbohydrates
@@ -30,7 +30,7 @@ export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme
             return DefaultColor
         }
 
-        colorFn = (location: Location, isSecondary: boolean) => {
+        color = (location: Location, isSecondary: boolean) => {
             if (isSecondary) {
                 return SaccharideColors.Secondary
             } else {
@@ -43,11 +43,13 @@ export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme
             return DefaultColor
         }
     } else {
-        colorFn = () => DefaultColor
+        color = () => DefaultColor
     }
 
     return {
-        kind: 'group',
-        color: colorFn
+        granularity: 'group',
+        color: color,
+        description: Description,
+        legend: TableLegend(MonosaccharidesColorTable)
     }
 }

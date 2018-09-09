@@ -231,10 +231,6 @@ namespace InputObserver {
             window.removeEventListener('resize', onResize, false)
         }
 
-        function preventDefault (ev: Event | Touch) {
-            if ('preventDefault' in ev) ev.preventDefault()
-        }
-
         function onContextMenu(event: Event) {
             if (noContextMenu) {
                 event.preventDefault()
@@ -273,8 +269,6 @@ namespace InputObserver {
         }
 
         function onTouchStart (ev: TouchEvent) {
-            preventDefault(ev)
-
             if (ev.touches.length === 1) {
                 buttons = ButtonsFlag.Primary
                 onPointerDown(ev.touches[0])
@@ -286,13 +280,9 @@ namespace InputObserver {
             }
         }
 
-        function onTouchEnd (ev: TouchEvent) {
-            preventDefault(ev)
-        }
+        function onTouchEnd (ev: TouchEvent) {}
 
         function onTouchMove (ev: TouchEvent) {
-            preventDefault(ev)
-
             if (ev.touches.length === 1) {
                 buttons = ButtonsFlag.Primary
                 onPointerMove(ev.touches[0])
@@ -313,22 +303,16 @@ namespace InputObserver {
         }
 
         function onMouseDown (ev: MouseEvent) {
-            preventDefault(ev)
-
             buttons = getButtons(ev)
             onPointerDown(ev)
         }
 
         function onMouseMove (ev: MouseEvent) {
-            preventDefault(ev)
-
             buttons = getButtons(ev)
             onPointerMove(ev)
         }
 
         function onMouseUp (ev: MouseEvent) {
-            preventDefault(ev)
-
             buttons = getButtons(ev)
             onPointerUp(ev)
         }

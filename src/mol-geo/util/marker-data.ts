@@ -18,7 +18,6 @@ export enum MarkerAction {
     RemoveHighlight,
     Select,
     Deselect,
-    ToggleSelect,
     Clear
 }
 
@@ -30,42 +29,26 @@ export function applyMarkerAction(array: Uint8Array, start: number, end: number,
             case MarkerAction.Highlight:
                 if (v % 2 === 0) {
                     v += 1
-                    changed = true
                 }
                 break
             case MarkerAction.RemoveHighlight:
                 if (v % 2 !== 0) {
                     v -= 1
-                    changed = true
                 }
                 break
             case MarkerAction.Select:
                 v += 2
-                changed = true
                 break
             case MarkerAction.Deselect:
                 if (v >= 2) {
                     v -= 2
-                    changed = true
                 }
-                break
-            case MarkerAction.ToggleSelect:
-                if (v === 0) {
-                    v = 2
-                } else if (v === 1) {
-                    v = 3
-                } else if (v === 2) {
-                    v = 0
-                } else {
-                    v -= 2
-                }
-                changed = true
                 break
             case MarkerAction.Clear:
                 v = 0
-                changed = true
                 break
         }
+        changed = array[i] !== v || changed
         array[i] = v
     }
     return changed

@@ -10,6 +10,10 @@ export type Color = { readonly '@type': 'color' } & number
 export function Color(hex: number) { return hex as Color }
 
 export namespace Color {
+    export function toStyle(hexColor: Color) {
+        return `rgb(${hexColor >> 16 & 255}, ${hexColor >> 8 & 255}, ${hexColor & 255})`
+    }
+
     export function toRgb(hexColor: Color) {
         return [ hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255 ]
     }

@@ -8,11 +8,11 @@ import { Link } from 'mol-model/structure';
 
 import { Color, ColorScale, ColorBrewer } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme } from '../color';
-import { LocationColor } from 'mol-geo/util/color-data';
+import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
 import { Vec3 } from 'mol-math/linear-algebra';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
+const Description = 'Colors cross-links by the deviation of the observed distance versus the modeled distance (e.g. `ihm_cross_link_restraint.distance_threshold`).'
 
 const distVecA = Vec3.zero(), distVecB = Vec3.zero()
 function linkDistance(link: Link.Location) {
@@ -22,27 +22,31 @@ function linkDistance(link: Link.Location) {
 }
 
 export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
-    let colorFn: LocationColor
+    let color: LocationColor
+    let scale: ColorScale | undefined = undefined
 
     if (props.structure) {
         const crosslinks = props.structure.crossLinkRestraints
-        const scale = ColorScale.create({ domain: [ -10, 10 ], colors: ColorBrewer.RdYlBu })
+        scale = ColorScale.create({ domain: [ -10, 10 ], colors: ColorBrewer.RdYlBu })
+        const scaleColor = scale.color
 
-        colorFn = (location: Location): Color => {
+        color = (location: Location): Color => {
             if (Link.isLocation(location)) {
                 const pairs = crosslinks.getPairs(location.aIndex, location.aUnit, location.bIndex, location.bUnit)
                 if (pairs) {
-                    return scale.color(linkDistance(location) - pairs[0].distanceThreshold)
+                    return scaleColor(linkDistance(location) - pairs[0].distanceThreshold)
                 }
             }
             return DefaultColor
         }
     } else {
-        colorFn = () => DefaultColor
+        color = () => DefaultColor
     }
 
     return {
-        kind: 'group',
-        color: colorFn
+        granularity: 'group',
+        color,
+        description: Description,
+        legend: scale ? scale.legend : undefined
     }
 }

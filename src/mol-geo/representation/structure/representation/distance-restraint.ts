@@ -12,6 +12,7 @@ import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from '../visual/cross-link-restraint-cylinder';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { getQualityProps } from '../../util';
 
 export const DefaultDistanceRestraintProps = {
     ...DefaultCrossLinkRestraintProps,
@@ -19,34 +20,32 @@ export const DefaultDistanceRestraintProps = {
 }
 export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 
-export function DistanceRestraintRepresentation(): StructureRepresentation<DistanceRestraintProps> {
-    const crossLinkRepr = ComplexRepresentation(CrossLinkRestraintVisual)
+export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
+
+export function DistanceRestraintRepresentation(): DistanceRestraintRepresentation {
+    const crossLinkRepr = ComplexRepresentation('Cross-link restraint', CrossLinkRestraintVisual)
 
     let currentProps: DistanceRestraintProps
     return {
+        label: 'Distance restraint',
         get renderObjects() {
             return [ ...crossLinkRepr.renderObjects ]
         },
         get props() {
             return { ...crossLinkRepr.props }
         },
-        create: (structure: Structure, props: Partial<DistanceRestraintProps> = {}) => {
-            currentProps = Object.assign({}, DefaultDistanceRestraintProps, props)
+        createOrUpdate: (props: Partial<DistanceRestraintProps> = {}, structure?: Structure) => {
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultDistanceRestraintProps, currentProps, props, qualityProps)
             return Task.create('DistanceRestraintRepresentation', async ctx => {
-                await crossLinkRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<DistanceRestraintProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating DistanceRestraintRepresentation', async ctx => {
-                await crossLinkRepr.update(currentProps).runInContext(ctx)
+                await crossLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
             return crossLinkRepr.getLoci(pickingId)
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            crossLinkRepr.mark(loci, action)
+            return crossLinkRepr.mark(loci, action)
         },
         destroy() {
             crossLinkRepr.destroy()

@@ -92,7 +92,7 @@ function isW1(m: Mat4) {
     return m[3] === 0 && m[7] === 0 && m[11] === 0 && m[15] === 1;
 }
 
-function projectX({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs}: SymmetryOperator.Coordinates) {
+function projectX({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: SymmetryOperator.Coordinates) {
     const xx = m[0], yy = m[4], zz = m[8], tx = m[12];
 
     if (isW1(m)) {
@@ -106,7 +106,7 @@ function projectX({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs}: Symme
     }
 }
 
-function projectY({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs}: SymmetryOperator.Coordinates) {
+function projectY({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: SymmetryOperator.Coordinates) {
     const xx = m[1], yy = m[5], zz = m[9], ty = m[13];
 
     if (isW1(m)) {
@@ -120,7 +120,7 @@ function projectY({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs}: Symme
     }
 }
 
-function projectZ({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs}: SymmetryOperator.Coordinates) {
+function projectZ({ matrix: m }: SymmetryOperator, { x: xs, y: ys, z: zs }: SymmetryOperator.Coordinates) {
     const xx = m[2], yy = m[6], zz = m[10], tz = m[14];
 
     if (isW1(m)) {

@@ -6,35 +6,40 @@
 
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { Unit, StructureElement, Link } from 'mol-model/structure';
-import { LocationColor } from 'mol-geo/util/color-data';
-import { ColorTheme, ColorThemeProps } from '../color';
+import { StructureElement, Link } from 'mol-model/structure';
+import { ColorTheme, ColorThemeProps, LocationColor } from '../color';
 
-const DefaultColor = 0xCCCCCC as Color
+const DefaultColor = Color(0xCCCCCC)
+const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
 export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
-    let colorFn: LocationColor
+    let color: LocationColor
+    let scale: ColorScale | undefined = undefined
 
     if (props.structure) {
         const { units } = props.structure
-        const unitCount = units.length
+        scale = ColorScale.create({ domain: [ 0, units.length - 1 ] })
+        const unitIdColor = new Map<number, Color>()
+        for (let i = 0, il = units.length; i <il; ++i) {
+            unitIdColor.set(units[i].id, scale.color(units[i].id))
+        }
 
-        const scale = ColorScale.create({ domain: [ 0, unitCount ] })
-
-        colorFn = (location: Location): Color => {
+        color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
-                return scale.color(Unit.findUnitById(location.unit.id, units))
+                return unitIdColor.get(location.unit.id)!
             } else if (Link.isLocation(location)) {
-                return scale.color(Unit.findUnitById(location.aUnit.id, units))
+                return unitIdColor.get(location.aUnit.id)!
             }
             return DefaultColor
         }
     } else {
-        colorFn = () => DefaultColor
+        color = () => DefaultColor
     }
 
     return {
-        kind: 'instance',
-        color: colorFn
+        granularity: 'instance',
+        color,
+        description: Description,
+        legend: scale ? scale.legend : undefined
     }
 }

@@ -38,10 +38,10 @@ interface Viewer {
     clear: () => void
 
     draw: (force?: boolean) => void
-    requestDraw: () => void
+    requestDraw: (force?: boolean) => void
     animate: () => void
     pick: () => void
-    identify: (x: number, y: number) => PickingId
+    identify: (x: number, y: number) => PickingId | undefined
     mark: (loci: Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => Loci
 
@@ -99,12 +99,10 @@ namespace Viewer {
         const ctx = createContext(gl)
 
         const scene = Scene.create(ctx)
-        // const controls = TrackballControls.create(input, scene, {})
         const controls = TrackballControls.create(input, camera, {})
-        // const renderer = Renderer.create(ctx, camera, { clearColor: 0xFFFFFF })
         const renderer = Renderer.create(ctx, camera, { clearColor: Color(0x000000) })
 
-        const pickScale = 1 / 4
+        const pickScale = 1
         const pickWidth = Math.round(canvas.width * pickScale)
         const pickHeight = Math.round(canvas.height * pickScale)
         const objectPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
@@ -112,7 +110,9 @@ namespace Viewer {
         const groupPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
 
         let pickDirty = true
+        let isPicking = false
         let drawPending = false
+        let lastRenderTime = -1
         const prevProjectionView = Mat4.zero()
         const prevSceneView = Mat4.zero()
 
@@ -129,9 +129,16 @@ namespace Viewer {
         }
 
         function mark(loci: Loci, action: MarkerAction) {
-            reprMap.forEach((roSet, repr) => repr.mark(loci, action))
-            scene.update()
-            requestDraw()
+            let changed = false
+            reprMap.forEach((roSet, repr) => {
+                changed = repr.mark(loci, action) || changed
+            })
+            if (changed) {
+                // console.log('changed')
+                scene.update()
+                draw(true)
+                pickDirty = false // picking buffers should not have changed
+            }
         }
 
         let nearPlaneDelta = 0
@@ -143,6 +150,7 @@ namespace Viewer {
         }
 
         function render(variant: RenderVariant, force?: boolean) {
+            if (isPicking) return false
             // const p = scene.boundingSphere.center
             // console.log(p[0], p[1], p[2])
             // Vec3.set(controls.target, p[0], p[1], p[2])
@@ -156,7 +164,7 @@ namespace Viewer {
             let fogNear = targetDistance - camera.near + 1 * focusRadius - nearPlaneDelta;
             let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta;
 
-            //console.log(fogNear, fogFar);
+            // console.log(fogNear, fogFar);
             camera.fogNear = Math.max(fogNear, 0.1);
             camera.fogFar = Math.max(fogFar, 0.2);
 
@@ -174,15 +182,14 @@ namespace Viewer {
             let didRender = false
             controls.update()
             camera.update()
-            scene.update()
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value) || !Mat4.areEqual(scene.view, prevSceneView, EPSILON.Value)) {
                 // console.log('foo', force, prevSceneView, scene.view)
                 Mat4.copy(prevProjectionView, camera.projectionView)
                 Mat4.copy(prevSceneView, scene.view)
                 renderer.render(scene, variant)
                 if (variant === 'draw') {
+                    lastRenderTime = performance.now()
                     pickDirty = true
-                    pick()
                 }
                 didRender = true
             }
@@ -196,14 +203,17 @@ namespace Viewer {
             drawPending = false
         }
 
-        function requestDraw () {
+        function requestDraw(force?: boolean) {
             if (drawPending) return
             drawPending = true
-            window.requestAnimationFrame(() => draw(true))
+            window.requestAnimationFrame(() => draw(force))
         }
 
-        function animate () {
+        function animate() {
             draw(false)
+            if (performance.now() - lastRenderTime > 200) {
+                if (pickDirty) pick()
+            }
             window.requestAnimationFrame(() => animate())
         }
 
@@ -215,7 +225,11 @@ namespace Viewer {
             pickDirty = false
         }
 
-        function identify (x: number, y: number): PickingId {
+        function identify(x: number, y: number): PickingId | undefined {
+            if (pickDirty) return undefined
+
+            isPicking = true
+
             x *= ctx.pixelRatio
             y *= ctx.pixelRatio
             y = canvas.height - y // flip y
@@ -235,6 +249,8 @@ namespace Viewer {
             groupPickTarget.bind()
             ctx.readPixels(xp, yp, 1, 1, buffer)
             const groupId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+
+            isPicking = false
 
             return { objectId, instanceId, groupId }
         }
@@ -268,6 +284,7 @@ namespace Viewer {
                 }
                 reprMap.set(repr, newRO)
                 reprCount.next(reprMap.size)
+                scene.update()
             },
             remove: (repr: Representation<any>) => {
                 const renderObjectSet = reprMap.get(repr)
@@ -275,6 +292,7 @@ namespace Viewer {
                     renderObjectSet.forEach(o => scene.remove(o))
                     reprMap.delete(repr)
                     reprCount.next(reprMap.size)
+                    scene.update()
                 }
             },
             update: () => scene.update(),

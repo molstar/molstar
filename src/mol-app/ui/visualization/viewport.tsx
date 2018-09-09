@@ -163,19 +163,24 @@ export class Viewport extends View<ViewportController, ViewportState, { noWebGl?
         viewer.input.move.subscribe(({x, y, inside, buttons}) => {
             if (!inside || buttons) return
             const p = viewer.identify(x, y)
-            const loci = viewer.getLoci(p)
-            InteractivityEvents.HighlightLoci.dispatch(this.controller.context, loci);
+            if (p) {
+                const loci = viewer.getLoci(p)
+                InteractivityEvents.HighlightLoci.dispatch(this.controller.context, loci);
 
-            // TODO use LabelLoci event and make configurable
-            const label = labelFirst(loci)
-            const info = `Object: ${p.objectId}, Instance: ${p.instanceId}, Group: ${p.groupId}, Label: ${label}`
-            this.setState({ info })
+                // TODO use LabelLoci event and make configurable
+                const label = labelFirst(loci)
+                const info = `Object: ${p.objectId}, Instance: ${p.instanceId}, Group: ${p.groupId}, Label: ${label}`
+                this.setState({ info })
+            }
         })
 
         // TODO filter only for left button/single finger touch?
         viewer.input.click.subscribe(({x, y}) => {
-            const loci = viewer.getLoci(viewer.identify(x, y))
-            InteractivityEvents.SelectLoci.dispatch(this.controller.context, loci);
+            const p = viewer.identify(x, y)
+            if (p) {
+                const loci = viewer.getLoci(p)
+                InteractivityEvents.SelectLoci.dispatch(this.controller.context, loci);
+            }
         })
     }
 

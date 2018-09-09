@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 // from http://burtleburtle.net/bob/hash/integer.html
@@ -67,4 +68,16 @@ export function cantorPairing(a: number, b: number) {
  */
 export function sortedCantorPairing(a: number, b: number) {
     return a < b ? cantorPairing(a, b) : cantorPairing(b, a);
+}
+
+/**
+ * 32 bit FNV-1a hash, see http://isthe.com/chongo/tech/comp/fnv/
+ */
+export function hashFnv32a(array: number[]) {
+    let hval = 0x811c9dc5;
+    for (let i = 0, il = array.length; i < il; ++i) {
+        hval ^= array[i];
+        hval += (hval << 1) + (hval << 4) + (hval << 7) + (hval << 8) + (hval << 24);
+    }
+    return hval >>> 0;
 }

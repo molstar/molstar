@@ -22,8 +22,8 @@ const { str, int, float, Aliased, Vector, List } = Column.Schema;
 
 function getInstance(name: keyof AssemblySymmetry.Schema): (ctx: CifExportContext) => CifWriter.Category.Instance<any, any> {
     return function(ctx: CifExportContext) {
-        const db = AssemblySymmetry.get(ctx.model);
-        return db ? Category.ofTable(db[name]) : CifWriter.Category.Empty;
+        const assemblySymmetry = AssemblySymmetry.get(ctx.model);
+        return assemblySymmetry ? Category.ofTable(assemblySymmetry.db[name]) : CifWriter.Category.Empty;
     }
 }
 
@@ -38,7 +38,7 @@ function createDatabase(assemblies: ReadonlyArray<AssemblySymmetryGraphQL.Assemb
     const clusterRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_cluster>[] = []
     const axisRows: Table.Row<typeof Schema.rcsb_assembly_symmetry_axis>[] = []
 
-    let id = 0
+    let id = 1 // start feature ids at 1
     for (let i = 0, il = assemblies.length; i < il; ++i) {
         const { assembly_id: _assembly_id, rcsb_assembly_symmetry } = assemblies[i]
         if (!rcsb_assembly_symmetry) continue
@@ -65,7 +65,7 @@ function createDatabase(assemblies: ReadonlyArray<AssemblySymmetryGraphQL.Assemb
                     clusterRows.push({
                         feature_id: id,
                         avg_rmsd: c.avg_rmsd || 0, // TODO upstream, should not be nullable, or???
-                        members: c.members as string[]
+                        members: c.members as string[] // TODO upstream, array members should not be nullable
                     })
                 }
             }
@@ -108,6 +108,26 @@ const _Descriptor: ModelPropertyDescriptor = {
 }
 
 const client = new GraphQLClient('http://rest-experimental.rcsb.org/graphql')
+
+export interface AssemblySymmetry {
+    db: AssemblySymmetry.Database
+    getFeatures(assemblyId: string): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry_feature']>
+    getClusters(featureId: number): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry_cluster']>
+    getAxes(featureId: number): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry_axis']>
+}
+
+export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetry {
+    const f = db.rcsb_assembly_symmetry_feature
+    const c = db.rcsb_assembly_symmetry_cluster
+    const a = db.rcsb_assembly_symmetry_axis
+
+    return {
+        db,
+        getFeatures: (assemblyId: string) => Table.pick(f, f._schema, i => f.assembly_id.value(i) === assemblyId),
+        getClusters: (featureId: number) => Table.pick(c, c._schema, i => c.feature_id.value(i) === featureId),
+        getAxes: (featureId: number) => Table.pick(a, a._schema, i => a.feature_id.value(i) === featureId)
+    }
+}
 
 export namespace AssemblySymmetry {
     export const Schema = {
@@ -195,11 +215,11 @@ export namespace AssemblySymmetry {
         }
 
         model.customProperties.add(Descriptor);
-        model._staticPropertyData.__AssemblySymmetry__ = db;
+        model._staticPropertyData.__AssemblySymmetry__ = AssemblySymmetry(db);
         return true;
     }
 
-    export function get(model: Model): Database | undefined {
+    export function get(model: Model): AssemblySymmetry | undefined {
         return model._staticPropertyData.__AssemblySymmetry__;
     }
 }

@@ -12,37 +12,38 @@ import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { CarbohydrateSymbolVisual, DefaultCarbohydrateSymbolProps } from '../visual/carbohydrate-symbol-mesh';
 import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from '../visual/carbohydrate-link-cylinder';
+import { SizeThemeProps } from 'mol-view/theme/size';
+import { getQualityProps } from '../../util';
 
-export const DefaultCartoonProps = {
+export const DefaultCarbohydrateProps = {
     ...DefaultCarbohydrateSymbolProps,
-    ...DefaultCarbohydrateLinkProps
-}
-export type CarbohydrateProps = typeof DefaultCartoonProps
+    ...DefaultCarbohydrateLinkProps,
 
-export function CarbohydrateRepresentation(): StructureRepresentation<CarbohydrateProps> {
-    const carbohydrateSymbolRepr = ComplexRepresentation(CarbohydrateSymbolVisual)
-    const carbohydrateLinkRepr = ComplexRepresentation(CarbohydrateLinkVisual)
+    sizeTheme: { name: 'uniform', value: 1, factor: 1 } as SizeThemeProps,
+}
+export type CarbohydrateProps = typeof DefaultCarbohydrateProps
+
+export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateProps>
+
+export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
+    const carbohydrateSymbolRepr = ComplexRepresentation('Carbohydrate symbol mesh', CarbohydrateSymbolVisual)
+    const carbohydrateLinkRepr = ComplexRepresentation('Carbohydrate link cylinder', CarbohydrateLinkVisual)
 
     let currentProps: CarbohydrateProps
     return {
+        label: 'Carbohydrate',
         get renderObjects() {
             return [ ...carbohydrateSymbolRepr.renderObjects, ...carbohydrateLinkRepr.renderObjects ]
         },
         get props() {
             return { ...carbohydrateSymbolRepr.props, ...carbohydrateLinkRepr.props }
         },
-        create: (structure: Structure, props: Partial<CarbohydrateProps> = {} as CarbohydrateProps) => {
-            currentProps = Object.assign({}, DefaultCartoonProps, props)
+        createOrUpdate: (props: Partial<CarbohydrateProps> = {}, structure?: Structure) => {
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultCarbohydrateProps, currentProps, props, qualityProps)
             return Task.create('Creating CarbohydrateRepresentation', async ctx => {
-                await carbohydrateSymbolRepr.create(structure, currentProps).runInContext(ctx)
-                await carbohydrateLinkRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<CarbohydrateProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating CarbohydrateRepresentation', async ctx => {
-                await carbohydrateSymbolRepr.update(currentProps).runInContext(ctx)
-                await carbohydrateLinkRepr.update(currentProps).runInContext(ctx)
+                await carbohydrateSymbolRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await carbohydrateLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
@@ -52,8 +53,9 @@ export function CarbohydrateRepresentation(): StructureRepresentation<Carbohydra
                 : carbohydrateLinkLoci
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            carbohydrateSymbolRepr.mark(loci, action)
-            carbohydrateLinkRepr.mark(loci, action)
+            const markSymbol = carbohydrateSymbolRepr.mark(loci, action)
+            const markLink = carbohydrateLinkRepr.mark(loci, action)
+            return markSymbol || markLink
         },
         destroy() {
             carbohydrateSymbolRepr.destroy()

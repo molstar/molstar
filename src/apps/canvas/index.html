@@ -4,12 +4,30 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
         <title>Mol* Canvas</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+            }
+            html, body {
+                width: 100%;
+                height: 100%;
+                overflow: hidden;
+            }
+            hr {
+                margin: 10px;
+            }
+            h1, h2, h3, h4, h5 {
+                margin-top: 5px;
+                margin-bottom: 3px;
+            }
+            button {
+                padding: 2px;
+            }
+        </style>
     </head>
     <body>
-        <div id="container" style="width:800px; height: 600px;">
-            <canvas id="canvas"></canvas>
-        </div>
-        <span id="info"></span>
+        <div id="app" style="width: 100%; height: 100%"></div>
         <script type="text/javascript" src="./index.js"></script>
     </body>
 </html>

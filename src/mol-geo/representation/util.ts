@@ -9,14 +9,12 @@ import { BaseValues } from 'mol-gl/renderable/schema';
 import { MeshValues, RenderableState } from 'mol-gl/renderable';
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
-import { fillSerial } from 'mol-util/array';
-import { Mat4 } from 'mol-math/linear-algebra';
 
 export const DefaultBaseProps = {
     alpha: 1,
     visible: true,
     depthMask: true,
-    useFog: true,
+    useFog: false,
     quality: 'auto' as VisualQuality
 }
 export type BaseProps = typeof DefaultBaseProps
@@ -29,22 +27,20 @@ export const DefaultMeshProps = {
 }
 export type MeshProps = typeof DefaultMeshProps
 
-const identityTransform = new Float32Array(16)
-Mat4.toArray(Mat4.identity(), identityTransform, 0)
-export function createIdentityTransform(transforms?: ValueCell<Float32Array>) {
-    return transforms ? ValueCell.update(transforms, identityTransform) : ValueCell.create(identityTransform)
+export const DefaultPointProps = {
+    ...DefaultBaseProps,
+    pointSizeAttenuation: true
 }
+export type PointProps = typeof DefaultPointProps
 
 type Counts = { drawCount: number, groupCount: number, instanceCount: number }
 
 export function createBaseValues(props: Required<BaseProps>, counts: Counts) {
     return {
         uAlpha: ValueCell.create(props.alpha),
-        uInstanceCount: ValueCell.create(counts.instanceCount),
         uGroupCount: ValueCell.create(counts.groupCount),
-        aInstance: ValueCell.create(fillSerial(new Float32Array(counts.instanceCount))),
         drawCount: ValueCell.create(counts.drawCount),
-        instanceCount: ValueCell.create(counts.instanceCount),
+        dUseFog: ValueCell.create(props.useFog),
     }
 }
 
@@ -54,7 +50,13 @@ export function createMeshValues(props: Required<MeshProps>, counts: Counts) {
         dDoubleSided: ValueCell.create(props.doubleSided),
         dFlatShaded: ValueCell.create(props.flatShaded),
         dFlipSided: ValueCell.create(props.flipSided),
-        dUseFog: ValueCell.create(props.useFog),
+    }
+}
+
+export function createPointValues(props: Required<PointProps>, counts: Counts) {
+    return {
+        ...createBaseValues(props, counts),
+        dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
     }
 }
 
@@ -67,6 +69,7 @@ export function createRenderableState(props: Required<BaseProps>): RenderableSta
 
 export function updateBaseValues(values: BaseValues, props: Required<BaseProps>) {
     ValueCell.updateIfChanged(values.uAlpha, props.alpha)
+    ValueCell.updateIfChanged(values.dUseFog, props.useFog)
 }
 
 export function updateMeshValues(values: MeshValues, props: Required<MeshProps>) {
@@ -74,7 +77,6 @@ export function updateMeshValues(values: MeshValues, props: Required<MeshProps>)
     ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
     ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
     ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
-    ValueCell.updateIfChanged(values.dUseFog, props.useFog)
 }
 
 export function updateRenderableState(state: RenderableState, props: Required<BaseProps>) {
@@ -82,20 +84,32 @@ export function updateRenderableState(state: RenderableState, props: Required<Ba
     state.depthMask = props.depthMask
 }
 
-export type VisualQuality = 'custom' | 'auto' | 'highest' | 'high' | 'medium' | 'low' | 'lowest'
+export const VisualQualityInfo = {
+    'custom': {},
+    'auto': {},
+    'highest': {},
+    'high': {},
+    'medium': {},
+    'low': {},
+    'lowest': {},
+}
+export type VisualQuality = keyof typeof VisualQualityInfo
+export const VisualQualityNames = Object.keys(VisualQualityInfo)
 
-interface QualityProps {
+export interface QualityProps {
     quality: VisualQuality
     detail: number
     radialSegments: number
+    linearSegments: number
 }
 
-export function getQualityProps(props: Partial<QualityProps>, structure: Structure) {
+export function getQualityProps(props: Partial<QualityProps>, structure?: Structure) {
     let quality = defaults(props.quality, 'auto' as VisualQuality)
-    let detail = 1
-    let radialSegments = 12
+    let detail = defaults(props.detail, 1)
+    let radialSegments = defaults(props.radialSegments, 12)
+    let linearSegments = defaults(props.linearSegments, 8)
 
-    if (quality === 'auto') {
+    if (quality === 'auto' && structure) {
         const score = structure.elementCount
         if (score > 500_000) {
             quality = 'lowest'
@@ -110,33 +124,38 @@ export function getQualityProps(props: Partial<QualityProps>, structure: Structu
 
     switch (quality) {
         case 'highest':
-            detail = 2
+            detail = 3
             radialSegments = 36
+            linearSegments = 18
             break
         case 'high':
-            detail = 1
+            detail = 2
             radialSegments = 24
+            linearSegments = 12
             break
         case 'medium':
-            detail = 0
+            detail = 1
             radialSegments = 12
+            linearSegments = 8
             break
         case 'low':
             detail = 0
             radialSegments = 5
+            linearSegments = 3
             break
         case 'lowest':
             detail = 0
             radialSegments = 3
+            linearSegments = 2
             break
         case 'custom':
-            detail = defaults(props.detail, 1)
-            radialSegments = defaults(props.radialSegments, 12)
+            // use defaults or given props as set above
             break
     }
 
     return {
         detail,
-        radialSegments
+        radialSegments,
+        linearSegments
     }
 }

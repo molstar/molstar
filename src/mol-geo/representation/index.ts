@@ -13,20 +13,19 @@ import { MarkerAction } from '../util/marker-data';
 export interface RepresentationProps {}
 
 export interface Representation<D, P extends RepresentationProps = {}> {
+    readonly label: string
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
-    create: (data: D, props?: Partial<P>) => Task<void>
-    update: (props: Partial<P>) => Task<void>
+    createOrUpdate: (props?: Partial<P>, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
-    mark: (loci: Loci, action: MarkerAction) => void
+    mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void
 }
 
 export interface Visual<D, P extends RepresentationProps = {}> {
-    readonly renderObject: RenderObject
-    create: (ctx: RuntimeContext, data: D, props?: Partial<P>) => Promise<void>
-    update: (ctx: RuntimeContext, props: Partial<P>) => Promise<boolean>
+    readonly renderObject: RenderObject | undefined
+    createOrUpdate: (ctx: RuntimeContext, props?: Partial<P>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
-    mark: (loci: Loci, action: MarkerAction) => void
+    mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void
 }

@@ -7,15 +7,13 @@
 import { Unit } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { markElement, getElementLoci, StructureElementIterator } from './util/element';
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
-import { getPolymerElementCount, PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment } from './util/polymer';
+import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
-import { OrderedSet } from 'mol-data/int';
 import { Wedge } from '../../../primitive/wedge';
 
 const t = Mat4.identity()
@@ -35,7 +33,7 @@ export interface PolymerDirectionWedgeProps {
 }
 
 async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
-    const polymerElementCount = getPolymerElementCount(unit)
+    const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
     const sizeTheme = SizeTheme(props.sizeTheme)
@@ -51,7 +49,7 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setGroup(OrderedSet.findPredecessorIndex(unit.elements, v.center.element))
+        builder.setGroup(i)
 
         const isNucleic = v.moleculeType === MoleculeType.DNA || v.moleculeType === MoleculeType.RNA
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
@@ -95,9 +93,9 @@ export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {
     return UnitsMeshVisual<PolymerDirectionProps>({
         defaultProps: DefaultPolymerDirectionProps,
         createMesh: createPolymerDirectionWedgeMesh,
-        createLocationIterator: StructureElementIterator.fromGroup,
-        getLoci: getElementLoci,
-        mark: markElement,
+        createLocationIterator: PolymerLocationIterator.fromGroup,
+        getLoci: getPolymerElementLoci,
+        mark: markPolymerElement,
         setUpdateState: () => {}
     })
 }

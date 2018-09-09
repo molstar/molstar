@@ -18,10 +18,13 @@ namespace IntraUnitLinks {
 }
 
 class InterUnitBonds {
+    /** Number of inter-unit bonds */
     readonly bondCount: number
+    /** Array of inter-unit bonds */
     readonly bonds: ReadonlyArray<InterUnitBonds.Bond>
     private readonly bondKeyIndex: Map<string, number>
 
+    /** Get an array of unit-pair-bonds that are linked to the given unit */
     getLinkedUnits(unit: Unit): ReadonlyArray<InterUnitBonds.UnitPairBonds> {
         if (!this.map.has(unit.id)) return emptyArray;
         return this.map.get(unit.id)!;
@@ -34,11 +37,13 @@ class InterUnitBonds {
         return index !== undefined ? index : -1
     }
 
+    /** Get inter-unit bond given a pair of indices and units */
     getBond(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): InterUnitBonds.Bond | undefined {
         const index = this.getBondIndex(indexA, unitA, indexB, unitB)
         return index !== -1 ? this.bonds[index] : undefined
     }
 
+    /** Get inter-unit bond given a link-location */
     getBondFromLocation(l: Link.Location) {
         return this.getBond(l.aIndex, l.aUnit, l.bIndex, l.bUnit);
     }

@@ -5,7 +5,7 @@
 #elif defined(dColorType_group)
     vColor.rgb = readFromTexture(tColor, aGroup, uColorTexDim).rgb;
 #elif defined(dColorType_groupInstance)
-    vColor.rgb = readFromTexture(tColor, aGroup * float(uGroupCount) + aGroup, uColorTexDim).rgb;
+    vColor.rgb = readFromTexture(tColor, aInstance * float(uGroupCount) + aGroup, uColorTexDim).rgb;
 #elif defined(dColorType_objectPicking)
     vColor = encodeIdRGBA(float(uObjectId));
 #elif defined(dColorType_instancePicking)

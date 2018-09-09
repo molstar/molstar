@@ -15,7 +15,7 @@ import { StructureProps, DefaultStructureMeshProps, MeshUpdateState } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
 import { updateMeshValues, updateRenderableState } from '../util';
 import { PickingId } from '../../util/picking';
-import { Loci, isEveryLoci } from 'mol-model/loci';
+import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../util/marker-data';
 import { Interval } from 'mol-data/int';
 
@@ -39,62 +39,85 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
     const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const updateState = MeshUpdateState.create()
 
-    let renderObject: MeshRenderObject
+    let renderObject: MeshRenderObject | undefined
     let currentProps: P
     let mesh: Mesh
     let currentStructure: Structure
     let locationIt: LocationIterator
+    let conformationHash: number
+
+    async function create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
+        currentProps = Object.assign({}, defaultProps, props)
+        currentProps.colorTheme.structure = structure
+        currentStructure = structure
+
+        conformationHash = Structure.conformationHash(currentStructure)
+        mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
+
+        locationIt = createLocationIterator(structure)
+        renderObject = await createComplexMeshRenderObject(ctx, structure, mesh, locationIt, currentProps)
+    }
+
+    async function update(ctx: RuntimeContext, props: Partial<P>) {
+        const newProps = Object.assign({}, currentProps, props)
+        newProps.colorTheme.structure = currentStructure
+
+        if (!renderObject) return false
+
+        locationIt.reset()
+        MeshUpdateState.reset(updateState)
+        setUpdateState(updateState, newProps, currentProps)
+
+        const newConformationHash = Structure.conformationHash(currentStructure)
+        if (newConformationHash !== conformationHash) {
+            conformationHash = newConformationHash
+            updateState.createMesh = true
+        }
+
+        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.createMesh = true
+        if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
+        // if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createMesh = true // TODO
+
+        //
+
+        if (updateState.createMesh) {
+            mesh = await createMesh(ctx, currentStructure, newProps, mesh)
+            ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
+            updateState.updateColor = true
+        }
+
+        if (updateState.updateColor) {
+            await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
+        }
+
+        updateMeshValues(renderObject.values, newProps)
+        updateRenderableState(renderObject.state, newProps)
+
+        currentProps = newProps
+        return true
+    }
 
     return {
         get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
-            currentProps = Object.assign({}, defaultProps, props)
-            currentStructure = structure
-
-            mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
-
-            locationIt = createLocationIterator(structure)
-            renderObject = createComplexMeshRenderObject(structure, mesh, locationIt, currentProps)
-        },
-        async update(ctx: RuntimeContext, props: Partial<P>) {
-            const newProps = Object.assign({}, currentProps, props)
-
-            if (!renderObject) return false
-
-            locationIt.reset()
-            MeshUpdateState.reset(updateState)
-            setUpdateState(updateState, newProps, currentProps)
-
-            if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) {
-                updateState.createMesh = true
+        async createOrUpdate(ctx: RuntimeContext, props: Partial<P> = {}, structure?: Structure) {
+            if (!structure && !currentStructure) {
+                throw new Error('missing structure')
+            } else if (structure && (!currentStructure || !renderObject)) {
+                await create(ctx, structure, props)
+            } else if (structure && structure.hashCode !== currentStructure.hashCode) {
+                await create(ctx, structure, props)
+            } else {
+                if (structure && Structure.conformationHash(structure) !== Structure.conformationHash(currentStructure)) {
+                    currentStructure = structure
+                }
+                await update(ctx, props)
             }
-
-            if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) {
-                updateState.updateColor = true
-            }
-
-            //
-
-            if (updateState.createMesh) {
-                mesh = await createMesh(ctx, currentStructure, newProps, mesh)
-                ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
-                updateState.updateColor = true
-            }
-
-            if (updateState.updateColor) {
-                createColors(locationIt, newProps.colorTheme, renderObject.values)
-            }
-
-            updateMeshValues(renderObject.values, newProps)
-            updateRenderableState(renderObject.state, newProps)
-
-            currentProps = newProps
-            return true
         },
         getLoci(pickingId: PickingId) {
-            return getLoci(pickingId, currentStructure, renderObject.id)
+            return renderObject ? getLoci(pickingId, currentStructure, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
+            if (!renderObject) return false
             const { tMarker } = renderObject.values
             const { groupCount, instanceCount } = locationIt
 
@@ -106,17 +129,18 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
 
             let changed = false
             if (isEveryLoci(loci)) {
-                apply(Interval.ofBounds(0, groupCount * instanceCount))
-                changed = true
+                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = mark(loci, currentStructure, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)
             }
+            return changed
         },
         destroy() {
             // TODO
+            renderObject = undefined
         }
     }
 }

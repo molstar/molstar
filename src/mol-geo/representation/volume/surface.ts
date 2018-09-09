@@ -57,8 +57,10 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
 
     return {
         get renderObject () { return renderObject },
-        async create(ctx: RuntimeContext, volume: VolumeData, props: SurfaceProps = {}) {
+        async createOrUpdate(ctx: RuntimeContext, props: SurfaceProps = {}, volume?: VolumeData) {
             props = { ...DefaultSurfaceProps, ...props }
+
+            if (!volume) return
 
             const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
             if (!props.flatShaded) {
@@ -97,16 +99,13 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
 
             renderObject = createMeshRenderObject(values, state)
         },
-        async update(ctx: RuntimeContext, props: SurfaceProps) {
-            // TODO
-            return false
-        },
         getLoci(pickingId: PickingId) {
             // TODO
             return EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             // TODO
+            return false
         },
         destroy() {
             // TODO

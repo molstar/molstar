@@ -11,7 +11,7 @@ import { PhysicalSizeTheme } from './size/physical';
 import { UniformSizeTheme } from './size/uniform';
 
 export interface SizeTheme {
-    kind: SizeType
+    granularity: SizeType
     size: LocationSize
 }
 

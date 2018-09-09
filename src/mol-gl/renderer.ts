@@ -92,16 +92,28 @@ namespace Renderer {
                     program.setUniforms(globalUniforms)
                     currentProgramId = program.id
                 }
-                if (r.values.dDoubleSided.ref.value) {
-                    gl.disable(gl.CULL_FACE)
+
+                if (r.values.dDoubleSided) {
+                    if (r.values.dDoubleSided.ref.value) {
+                        gl.disable(gl.CULL_FACE)
+                    } else {
+                        gl.enable(gl.CULL_FACE)
+                    }
                 } else {
-                    gl.enable(gl.CULL_FACE)
+                    // webgl default
+                    gl.disable(gl.CULL_FACE)
                 }
 
-                if (r.values.dFlipSided.ref.value) {
-                    gl.frontFace(gl.CW)
-                    gl.cullFace(gl.FRONT)
+                if (r.values.dFlipSided) {
+                    if (r.values.dFlipSided.ref.value) {
+                        gl.frontFace(gl.CW)
+                        gl.cullFace(gl.FRONT)
+                    } else {
+                        gl.frontFace(gl.CCW)
+                        gl.cullFace(gl.BACK)
+                    }
                 } else {
+                    // webgl default
                     gl.frontFace(gl.CCW)
                     gl.cullFace(gl.BACK)
                 }

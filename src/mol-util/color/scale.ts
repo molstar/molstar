@@ -6,6 +6,7 @@
 
 import { Color } from './color'
 import { ColorBrewer } from './tables'
+import { ScaleLegend } from 'mol-view/theme/color';
 
 export interface ColorScale {
     /** Returns hex color for given value */
@@ -14,19 +15,22 @@ export interface ColorScale {
     colorToArray: (value: number, array: Helpers.NumberArray, offset: number) => void
     /** Copies normalized (0 to 1) hex color to rgb array */
     normalizedColorToArray: (value: number, array: Helpers.NumberArray, offset: number) => void
+    /** */
+    readonly legend: ScaleLegend
 }
 
 export const DefaultColorScale = {
     domain: [0, 1],
     reverse: false,
-    colors: ColorBrewer.RdYlBu as Color[]
+    colors: ColorBrewer.RdYlBu,
 }
 export type ColorScaleProps = Partial<typeof DefaultColorScale>
 
 export namespace ColorScale {
     export function create(props: ColorScaleProps): ColorScale {
-        const { domain, reverse, colors } = { ...DefaultColorScale, ...props }
-        const [ min, max ] = reverse ? domain.slice().reverse() : domain
+        const { domain, reverse, colors: _colors } = { ...DefaultColorScale, ...props }
+        const [ min, max ] = domain
+        const colors = reverse ? _colors.slice().reverse() : _colors
         const count1 = colors.length - 1
         const diff = (max - min) || 1
 
@@ -45,6 +49,7 @@ export namespace ColorScale {
             normalizedColorToArray: (value: number, array: Helpers.NumberArray, offset: number) => {
                 Color.toArrayNormalized(color(value), array, offset)
             },
+            get legend() { return ScaleLegend(min, max, colors) }
         }
     }
 }

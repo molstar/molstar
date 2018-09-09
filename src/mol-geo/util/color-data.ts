@@ -9,7 +9,9 @@ import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from './location-iterator';
-import { Location, NullLocation } from 'mol-model/location';
+import { NullLocation } from 'mol-model/location';
+import { LocationColor } from 'mol-view/theme/color';
+import { RuntimeContext } from 'mol-task';
 
 export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -20,8 +22,6 @@ export type ColorData = {
     uColorTexDim: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
 }
-
-export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
 const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }
 function createEmptyColorTexture() {
@@ -49,8 +49,8 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
 }
 
 /** Creates color uniform */
-export function createUniformColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
-    return createValueColor(colorFn(NullLocation, false), colorData)
+export async function createUniformColor(ctx: RuntimeContext, locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): Promise<ColorData> {
+    return createValueColor(color(NullLocation, false), colorData)
 }
 
 export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
@@ -73,36 +73,51 @@ export function createTextureColor(colors: TextureImage, type: ColorType, colorD
 }
 
 /** Creates color texture with color for each instance/unit */
-export function createInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+export async function createInstanceColor(ctx: RuntimeContext, locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): Promise<ColorData> {
     const { instanceCount} = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
-    while (locationIt.hasNext && !locationIt.isNextNewInstance) {
+    let i = 0
+    while (locationIt.hasNext) {
         const { location, isSecondary, instanceIndex } = locationIt.move()
-        Color.toArray(colorFn(location, isSecondary), colors.array, instanceIndex * 3)
+        Color.toArray(color(location, isSecondary), colors.array, instanceIndex * 3)
         locationIt.skipInstance()
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Creating instance colors', current: i, max: instanceCount });
+        }
+        ++i
     }
     return createTextureColor(colors, 'instance', colorData)
 }
 
 /** Creates color texture with color for each group (i.e. shared across instances/units) */
-export function createGroupColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+export async function createGroupColor(ctx: RuntimeContext, locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): Promise<ColorData> {
     const { groupCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= groupCount * 3 ? colorData.tColor.ref.value : createTextureImage(groupCount, 3)
+    let i = 0
     while (locationIt.hasNext && !locationIt.isNextNewInstance) {
         const { location, isSecondary, groupIndex } = locationIt.move()
-        Color.toArray(colorFn(location, isSecondary), colors.array, groupIndex * 3)
+        Color.toArray(color(location, isSecondary), colors.array, groupIndex * 3)
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Creating group colors', current: i, max: groupCount });
+        }
+        ++i
     }
     return createTextureColor(colors, 'group', colorData)
 }
 
 /** Creates color texture with color for each group in each instance (i.e. for each unit) */
-export function createGroupInstanceColor(locationIt: LocationIterator, colorFn: LocationColor, colorData?: ColorData): ColorData {
+export async function createGroupInstanceColor(ctx: RuntimeContext, locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): Promise<ColorData> {
     const { groupCount, instanceCount } = locationIt
     const count = instanceCount * groupCount
     const colors = colorData && colorData.tColor.ref.value.array.length >= count * 3 ? colorData.tColor.ref.value : createTextureImage(count, 3)
-    while (locationIt.hasNext && !locationIt.isNextNewInstance) {
+    let i = 0
+    while (locationIt.hasNext) {
         const { location, isSecondary, index } = locationIt.move()
-        Color.toArray(colorFn(location, isSecondary), colors.array, index * 3)
+        Color.toArray(color(location, isSecondary), colors.array, index * 3)
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Creating group instance colors', current: i, max: count });
+        }
+        ++i
     }
     return createTextureColor(colors, 'groupInstance', colorData)
 }

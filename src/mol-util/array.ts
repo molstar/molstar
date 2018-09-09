@@ -50,9 +50,8 @@ export function arrayRms(array: Helpers.NumberArray) {
     return Math.sqrt(sumSq / n)
 }
 
-/** Fill an array with serial numbers starting from 0 */
-export function fillSerial<T extends Helpers.NumberArray> (array: T) {
-    const n = array.length
-    for (let i = 0; i < n; ++i) array[ i ] = i
+/** Fill an array with serial numbers starting from 0 until n - 1 (defaults to array.length) */
+export function fillSerial<T extends Helpers.NumberArray> (array: T, n?: number) {
+    for (let i = 0, il = n ? Math.min(n, array.length) : array.length; i < il; ++i) array[ i ] = i
     return array
 }

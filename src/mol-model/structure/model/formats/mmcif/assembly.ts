@@ -110,14 +110,14 @@ function expandOperators1(operatorNames: string[][], list: string[][], i: number
 function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], startIndex: number) {
     const operators: SymmetryOperator[] = [];
 
-    let index = startIndex;
     for (let op of operatorNames) {
         let m = Mat4.identity();
         for (let i = 0; i < op.length; i++) {
             Mat4.mul(m, m, matrices.get(op[i])!);
         }
-        index++;
-        operators[operators.length] = SymmetryOperator.create(`A-${index}`, m);
+        // TODO currently using the original operator name for the symmetry operator to be able
+        // to link it to the original operator but it might be clearer to introduce an extra field???
+        operators[operators.length] = SymmetryOperator.create(`A-${op.join(',')}`, m);
     }
 
     return operators;

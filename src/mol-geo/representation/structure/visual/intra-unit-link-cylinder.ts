@@ -6,7 +6,7 @@
  */
 
 import { Unit, Link, StructureElement } from 'mol-model/structure';
-import { UnitsVisual } from '..';
+import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
 import { Mesh } from '../../../mesh/mesh';
@@ -65,6 +65,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
 export const DefaultIntraUnitLinkProps = {
     ...DefaultUnitsMeshProps,
     ...DefaultLinkCylinderProps,
+
     sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
 }
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
@@ -76,7 +77,9 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: LinkCylinderProps, currentProps: LinkCylinderProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }
 
@@ -99,12 +102,13 @@ function markLink(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Inter
 
     let changed = false
     if (Unit.isAtomic(unit) && Link.isLoci(loci)) {
+        const groupCount = unit.links.edgeCount * 2
         for (const b of loci.links) {
-            const unitIdx = Unit.findUnitById(b.aUnit.id, group.units)
-            if (unitIdx !== -1) {
+            const unitIdx = group.unitIndexMap.get(b.aUnit.id)
+            if (unitIdx !== undefined) {
                 const idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
                 if (idx !== -1) {
-                    if (apply(Interval.ofSingleton(idx))) changed = true
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
             }
         }

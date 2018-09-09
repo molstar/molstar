@@ -126,8 +126,10 @@ export namespace LinkIterator {
         const unit = group.units[0]
         const groupCount = Unit.isAtomic(unit) ? unit.links.edgeCount * 2 : 0
         const instanceCount = group.units.length
-        const location = StructureElement.create(unit)
-        const getLocation = (groupIndex: number) => {
+        const location = StructureElement.create()
+        const getLocation = (groupIndex: number, instanceIndex: number) => {
+            const unit = group.units[instanceIndex]
+            location.unit = unit
             location.element = unit.elements[(unit as Unit.Atomic).links.a[groupIndex]]
             return location
         }
@@ -146,6 +148,6 @@ export namespace LinkIterator {
             location.bIndex = bond.indexB as StructureElement.UnitIndex
             return location
         }
-        return LocationIterator(groupCount, instanceCount, getLocation)
+        return LocationIterator(groupCount, instanceCount, getLocation, true)
     }
 }

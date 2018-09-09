@@ -11,40 +11,39 @@ import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { PolymerBackboneVisual, DefaultPolymerBackboneProps } from '../visual/polymer-backbone-cylinder';
+import { getQualityProps } from '../../util';
 
 export const DefaultBackboneProps = {
     ...DefaultPolymerBackboneProps
 }
 export type BackboneProps = typeof DefaultBackboneProps
 
-export function BackboneRepresentation(): StructureRepresentation<BackboneProps> {
-    const traceRepr = UnitsRepresentation(PolymerBackboneVisual)
+export type BackboneRepresentation = StructureRepresentation<BackboneProps>
+
+export function BackboneRepresentation(): BackboneRepresentation {
+    const traceRepr = UnitsRepresentation('Polymer backbone cylinder', PolymerBackboneVisual)
 
     let currentProps: BackboneProps
     return {
+        label: 'Backbone',
         get renderObjects() {
             return [ ...traceRepr.renderObjects ]
         },
         get props() {
             return { ...traceRepr.props }
         },
-        create: (structure: Structure, props: Partial<BackboneProps> = {}) => {
-            currentProps = Object.assign({}, DefaultBackboneProps, props)
+        createOrUpdate: (props: Partial<BackboneProps> = {}, structure?: Structure) => {
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultBackboneProps, currentProps, props, qualityProps)
             return Task.create('BackboneRepresentation', async ctx => {
-                await traceRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<BackboneProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating BackboneRepresentation', async ctx => {
-                await traceRepr.update(currentProps).runInContext(ctx)
+                await traceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
             return traceRepr.getLoci(pickingId)
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            traceRepr.mark(loci, action)
+            return traceRepr.mark(loci, action)
         },
         destroy() {
             traceRepr.destroy()

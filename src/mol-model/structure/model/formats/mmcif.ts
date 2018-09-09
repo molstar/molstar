@@ -141,7 +141,12 @@ function getFormatData(format: mmCIF_Format): FormatData {
 function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities: Entities, formatData: FormatData, previous?: Model): Model {
     const atomic = getAtomicHierarchyAndConformation(format, atom_site, entities, formatData, previous);
     if (previous && atomic.sameAsPrevious) {
-        return { ...previous, atomicConformation: atomic.conformation };
+        return {
+            ...previous,
+            id: UUID.create(),
+            modelNum: atom_site.pdbx_PDB_model_num.value(0),
+            atomicConformation: atomic.conformation
+        };
     }
 
     const coarse = EmptyIHMCoarse;

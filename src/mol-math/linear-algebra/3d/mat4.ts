@@ -873,6 +873,13 @@ namespace Mat4 {
         return out;
     }
 
+    export function getMaxScaleOnAxis(m: Mat4) {
+        const scaleXSq = m[0] * m[0] + m[1] * m[1] + m[2] * m[2]
+        const scaleYSq = m[4] * m[4] + m[5] * m[5] + m[6] * m[6]
+        const scaleZSq = m[8] * m[8] + m[9] * m[9] + m[10] * m[10]
+        return Math.sqrt(Math.max(scaleXSq, scaleYSq, scaleZSq))
+    }
+
     /** Rotation matrix for 90deg around x-axis */
     export const rotX90: ReadonlyMat4 = Mat4.fromRotation(Mat4.identity(), degToRad(90), Vec3.create(1, 0, 0))
     /** Rotation matrix for 180deg around x-axis */

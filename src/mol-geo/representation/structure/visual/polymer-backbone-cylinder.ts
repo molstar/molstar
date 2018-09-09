@@ -5,11 +5,11 @@
  */
 
 import { Unit } from 'mol-model/structure';
-import { UnitsVisual } from '..';
+import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
-import { getPolymerElementCount, PolymerBackboneIterator } from './util/polymer';
+import { PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
@@ -24,7 +24,7 @@ export interface PolymerBackboneCylinderProps {
 }
 
 async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
-    const polymerElementCount = getPolymerElementCount(unit)
+    const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
     const sizeTheme = SizeTheme(props.sizeTheme)
@@ -47,11 +47,11 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
         pos(centerB.element, pB)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerA)
-        builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerA.element))
+        builder.setGroup(OrderedSet.indexOf(elements, centerA.element))
         addCylinder(builder, pA, pB, 0.5, cylinderProps)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = sizeTheme.size(centerB)
-        builder.setGroup(OrderedSet.findPredecessorIndex(elements, centerB.element))
+        builder.setGroup(OrderedSet.indexOf(elements, centerB.element))
         addCylinder(builder, pB, pA, 0.5, cylinderProps)
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
@@ -73,9 +73,12 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
     return UnitsMeshVisual<PolymerBackboneProps>({
         defaultProps: DefaultPolymerBackboneProps,
         createMesh: createPolymerBackboneCylinderMesh,
+        // TODO create a specialized location iterator
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: PolymerBackboneProps, currentProps: PolymerBackboneProps) => {
+            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        }
     })
 }

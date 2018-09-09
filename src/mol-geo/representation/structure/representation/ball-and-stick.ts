@@ -14,43 +14,40 @@ import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../util/marker-data';
 import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { getQualityProps } from '../../util';
 
 export const DefaultBallAndStickProps = {
     ...DefaultElementSphereProps,
     ...DefaultIntraUnitLinkProps,
 
-    sizeTheme: { name: 'uniform', value: 0.25 } as SizeThemeProps,
+    sizeTheme: { name: 'uniform', value: 0.2 } as SizeThemeProps,
     unitKinds: [ Unit.Kind.Atomic ] as Unit.Kind[]
 }
 export type BallAndStickProps = typeof DefaultBallAndStickProps
 
-export function BallAndStickRepresentation(): StructureRepresentation<BallAndStickProps> {
-    const elmementRepr = UnitsRepresentation(ElementSphereVisual)
-    const intraLinkRepr = UnitsRepresentation(IntraUnitLinkVisual)
-    const interLinkRepr = ComplexRepresentation(InterUnitLinkVisual)
+export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>
+
+export function BallAndStickRepresentation(): BallAndStickRepresentation {
+    const elmementRepr = UnitsRepresentation('Element sphere mesh', ElementSphereVisual)
+    const intraLinkRepr = UnitsRepresentation('Intra-unit link cylinder', IntraUnitLinkVisual)
+    const interLinkRepr = ComplexRepresentation('Inter-unit link cylinder', InterUnitLinkVisual)
 
     let currentProps: BallAndStickProps
     return {
+        label: 'Ball & Stick',
         get renderObjects() {
             return [ ...elmementRepr.renderObjects, ...intraLinkRepr.renderObjects, ...interLinkRepr.renderObjects ]
         },
         get props() {
             return { ...elmementRepr.props, ...intraLinkRepr.props, ...interLinkRepr.props }
         },
-        create: (structure: Structure, props: Partial<BallAndStickProps> = {}) => {
-            currentProps = Object.assign({}, DefaultBallAndStickProps, props)
-            return Task.create('DistanceRestraintRepresentation', async ctx => {
-                await elmementRepr.create(structure, currentProps).runInContext(ctx)
-                await intraLinkRepr.create(structure, currentProps).runInContext(ctx)
-                await interLinkRepr.create(structure, currentProps).runInContext(ctx)
-            })
-        },
-        update: (props: Partial<BallAndStickProps>) => {
-            currentProps = Object.assign(currentProps, props)
-            return Task.create('Updating BallAndStickRepresentation', async ctx => {
-                await elmementRepr.update(currentProps).runInContext(ctx)
-                await intraLinkRepr.update(currentProps).runInContext(ctx)
-                await interLinkRepr.update(currentProps).runInContext(ctx)
+        createOrUpdate: (props: Partial<BallAndStickProps> = {}, structure?: Structure) => {
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
+            currentProps = Object.assign({}, DefaultBallAndStickProps, currentProps, props, qualityProps)
+            return Task.create('BallAndStickRepresentation', async ctx => {
+                await elmementRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await intraLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await interLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
@@ -68,9 +65,10 @@ export function BallAndStickRepresentation(): StructureRepresentation<BallAndSti
             }
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            elmementRepr.mark(loci, action)
-            intraLinkRepr.mark(loci, action)
-            interLinkRepr.mark(loci, action)
+            const markElement = elmementRepr.mark(loci, action)
+            const markIntraLink = intraLinkRepr.mark(loci, action)
+            const markInterLink = interLinkRepr.mark(loci, action)
+            return markElement || markIntraLink || markInterLink
         },
         destroy() {
             elmementRepr.destroy()

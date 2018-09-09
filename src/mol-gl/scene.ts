@@ -60,10 +60,10 @@ namespace Scene {
 
             update: () => {
                 update()
-                renderableMap.forEach((o, r) => o.update())
+                renderableMap.forEach(o => o.update())
                 boundingSphere = undefined
             },
-            
+
             add: (o: RenderObject) => {
                 if (!renderableMap.has(o)) {
                     renderableMap.set(o, createRenderable(ctx, o))

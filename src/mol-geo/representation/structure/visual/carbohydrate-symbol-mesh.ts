@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
-import { ComplexVisual } from '..';
+import { ComplexVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
 import { PickingId } from '../../../util/picking';
@@ -154,7 +154,9 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProp
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,
-        setUpdateState: () => {}
+        setUpdateState: (state: MeshUpdateState, newProps: CarbohydrateSymbolProps, currentProps: CarbohydrateSymbolProps) => {
+            state.createMesh = newProps.detail !== currentProps.detail
+        }
     })
 }
 
@@ -172,7 +174,7 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     function isSecondary (elementIndex: number, instanceIndex: number) {
         return (elementIndex % 2) === 1
     }
-    return LocationIterator(groupCount, instanceCount, getLocation, isSecondary)
+    return LocationIterator(groupCount, instanceCount, getLocation, true, isSecondary)
 }
 
 function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {
@@ -180,9 +182,11 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
     if (id === objectId) {
         const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)]
         const { unit } = carb
-        const index = OrderedSet.findPredecessorIndex(unit.elements, carb.anomericCarbon)
-        const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
-        return StructureElement.Loci([{ unit, indices }])
+        const index = OrderedSet.indexOf(unit.elements, carb.anomericCarbon)
+        if (index !== -1) {
+            const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
+            return StructureElement.Loci([{ unit, indices }])
+        }
     }
     return EmptyLoci
 }

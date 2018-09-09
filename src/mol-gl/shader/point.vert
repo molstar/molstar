@@ -17,6 +17,10 @@ uniform float uViewportHeight;
     uniform float uSize;
 #elif defined(dSizeType_attribute)
     attribute float aSize;
+#elif defined(dSizeType_instance) || defined(dSizeType_group) || defined(dSizeType_groupInstance)
+    varying vec4 vSize;
+    uniform vec2 uSizeTexDim;
+    uniform sampler2D tSize;
 #endif
 
 attribute vec3 aPosition;
