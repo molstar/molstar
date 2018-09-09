@@ -19,6 +19,7 @@ export interface StructureRepresentationComponentProps {
 export interface StructureRepresentationComponentState {
     label: string
     visible: boolean
+    alpha: number
     quality: VisualQuality
     colorTheme: ColorThemeProps
 }
@@ -27,6 +28,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
     state = {
         label: this.props.representation.label,
         visible: this.props.representation.props.visible,
+        alpha: this.props.representation.props.alpha,
         quality: this.props.representation.props.quality,
         colorTheme: this.props.representation.props.colorTheme,
     }
@@ -38,6 +40,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             ...this.state,
             label: repr.label,
             visible: repr.props.visible,
+            alpha: repr.props.alpha,
             quality: repr.props.quality,
             colorTheme: repr.props.colorTheme,
         })
@@ -49,6 +52,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
         if (state.visible !== undefined) props.visible = state.visible
         if (state.quality !== undefined) props.quality = state.quality
+        if (state.alpha !== undefined) props.alpha = state.alpha
         if (state.colorTheme !== undefined) props.colorTheme = state.colorTheme
 
         await repr.createOrUpdate(props).run()
@@ -60,13 +64,14 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             ...this.state,
             visible: repr.props.visible,
             quality: repr.props.quality,
+            alpha: repr.props.alpha,
             colorTheme: repr.props.colorTheme,
         }
         this.setState(newState)
     }
 
     render() {
-        const { label, visible, quality, colorTheme } = this.state
+        const { label, visible, quality, alpha, colorTheme } = this.state
 
         const ct = ColorTheme(colorTheme)
 
@@ -90,6 +95,17 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     <select value={quality} onChange={(e) => this.update({ quality: e.target.value as VisualQuality }) }>
                         {VisualQualityNames.map(name => <option key={name} value={name}>{name}</option>)}
                     </select>
+                </div>
+                <div>
+                    <span>Opacity </span>
+                    <input type='range'
+                        defaultValue={alpha.toString()}
+                        min='0'
+                        max='1'
+                        step='0.05'
+                        onInput={(e) => this.update({ alpha: parseFloat(e.currentTarget.value) })}
+                    >
+                    </input>
                 </div>
                 <div>
                     <span>Color Theme </span>

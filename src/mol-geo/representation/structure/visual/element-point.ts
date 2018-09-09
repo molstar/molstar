@@ -23,7 +23,7 @@ import { SizeThemeProps } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../util/location-iterator';
 import { createTransforms } from '../../../util/transform-data';
 import { StructureGroup } from '../units-visual';
-import { updateRenderableState } from '../../util';
+import { updateRenderableState, updateBaseValues } from '../../util';
 
 export const DefaultElementPointProps = {
     ...DefaultStructureProps,
@@ -130,6 +130,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
                     await createSizes(ctx, locationIt, newProps.sizeTheme, renderObject.values)
                 }
 
+                updateBaseValues(renderObject.values, newProps)
                 updateRenderableState(renderObject.state, newProps)
 
                 currentProps = newProps
