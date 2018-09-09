@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Segmentation, SortedArray } from 'mol-data/int';
+import { Segmentation } from 'mol-data/int';
 import { Structure, Unit } from '../../structure';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
@@ -310,73 +310,73 @@ export function includeConnected({ query, layerCount, wholeResidues, bondTest }:
     }
 }
 
-function defaultBondTest(ctx: QueryContext) {
-    return true;
-}
+// function defaultBondTest(ctx: QueryContext) {
+//     return true;
+// }
 
-interface IncludeConnectedCtx {
-    queryCtx: QueryContext,
-    input: Structure,
-    bondTest: QueryFn<boolean>,
-    wholeResidues: boolean
-}
+// interface IncludeConnectedCtx {
+//     queryCtx: QueryContext,
+//     input: Structure,
+//     bondTest: QueryFn<boolean>,
+//     wholeResidues: boolean
+// }
 
-type FrontierSet = UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
-type Frontier = { unitIds: UniqueArray<number>, elements: Map<number /* unit id */, FrontierSet> }
+// type FrontierSet = UniqueArray<StructureElement.UnitIndex, StructureElement.UnitIndex>
+// type Frontier = { unitIds: UniqueArray<number>, elements: Map<number /* unit id */, FrontierSet> }
 
-namespace Frontier {
-    export function has({ elements }: Frontier, unitId: number, element: StructureElement.UnitIndex) {
-        if (!elements.has(unitId)) return false;
-        const xs = elements.get(unitId)!;
-        return xs.keys.has(element);
-    }
+// namespace Frontier {
+//     export function has({ elements }: Frontier, unitId: number, element: StructureElement.UnitIndex) {
+//         if (!elements.has(unitId)) return false;
+//         const xs = elements.get(unitId)!;
+//         return xs.keys.has(element);
+//     }
 
-    export function create(pivot: Structure, input: Structure) {
-        const unitIds = UniqueArray.create<number>();
-        const elements: Frontier['elements'] = new Map();
-        for (const unit of pivot.units) {
-            if (!Unit.isAtomic(unit)) continue;
+//     export function create(pivot: Structure, input: Structure) {
+//         const unitIds = UniqueArray.create<number>();
+//         const elements: Frontier['elements'] = new Map();
+//         for (const unit of pivot.units) {
+//             if (!Unit.isAtomic(unit)) continue;
 
-            UniqueArray.add(unitIds, unit.id, unit.id);
-            const xs: FrontierSet = UniqueArray.create();
-            elements.set(unit.id, xs);
+//             UniqueArray.add(unitIds, unit.id, unit.id);
+//             const xs: FrontierSet = UniqueArray.create();
+//             elements.set(unit.id, xs);
 
-            const pivotElements = unit.elements;
-            const inputElements = input.unitMap.get(unit.id).elements;
-            for (let i = 0, _i = pivotElements.length; i < _i; i++) {
-                const idx = SortedArray.indexOf(inputElements, pivotElements[i]) as StructureElement.UnitIndex;
-                UniqueArray.add(xs, idx, idx);
-            }
-        }
+//             const pivotElements = unit.elements;
+//             const inputElements = input.unitMap.get(unit.id).elements;
+//             for (let i = 0, _i = pivotElements.length; i < _i; i++) {
+//                 const idx = SortedArray.indexOf(inputElements, pivotElements[i]) as StructureElement.UnitIndex;
+//                 UniqueArray.add(xs, idx, idx);
+//             }
+//         }
 
-        return { unitIds, elements };
-    }
+//         return { unitIds, elements };
+//     }
 
-    export function addFrontier(target: Frontier, from: Frontier) {
-        for (const unitId of from.unitIds.array) {
-            let xs: FrontierSet;
-            if (target.elements.has(unitId)) {
-                xs = target.elements.get(unitId)!;
-            } else {
-                xs = UniqueArray.create();
-                target.elements.set(unitId, xs);
-                UniqueArray.add(target.unitIds, unitId, unitId);
-            }
+//     export function addFrontier(target: Frontier, from: Frontier) {
+//         for (const unitId of from.unitIds.array) {
+//             let xs: FrontierSet;
+//             if (target.elements.has(unitId)) {
+//                 xs = target.elements.get(unitId)!;
+//             } else {
+//                 xs = UniqueArray.create();
+//                 target.elements.set(unitId, xs);
+//                 UniqueArray.add(target.unitIds, unitId, unitId);
+//             }
 
-            for (const e of from.elements.get(unitId)!.array) {
-                UniqueArray.add(xs, e, e);
-            }
-        }
-        return target;
-    }
+//             for (const e of from.elements.get(unitId)!.array) {
+//                 UniqueArray.add(xs, e, e);
+//             }
+//         }
+//         return target;
+//     }
 
-    export function includeWholeResidues(structure: Structure, frontier: Frontier) {
-        // ...
-    }
-}
+//     export function includeWholeResidues(structure: Structure, frontier: Frontier) {
+//         // ...
+//     }
+// }
 
-function expandFrontier(ctx: IncludeConnectedCtx, currentFrontier: Frontier, result: Frontier): Frontier {
-    return 0 as any;
-}
+// function expandFrontier(ctx: IncludeConnectedCtx, currentFrontier: Frontier, result: Frontier): Frontier {
+//     return 0 as any;
+// }
 
 // TODO: unionBy (skip this one?), cluster
