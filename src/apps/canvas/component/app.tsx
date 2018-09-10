@@ -78,8 +78,8 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                         }}
                     >
                         <option value=''></option>
-                        {Examples.map(({pdbId, description}, i) => {
-                            return <option key={i} value={pdbId}>{`${pdbId} - ${description}`}</option>
+                        {Examples.map(({label, id, description}, i) => {
+                            return <option key={i} value={id}>{`${label ? label : id} - ${description}`}</option>
                         })}
                     </select>
                 </div>
