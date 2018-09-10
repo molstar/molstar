@@ -124,7 +124,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                     </select>
                     <span> </span>
                     <input type='range'
-                        value={this.state.modelId}
+                        defaultValue={this.state.modelId.toString()}
                         min={Math.min(...modelIds.map(m => m.id))}
                         max={Math.max(...modelIds.map(m => m.id))}
                         step='1'
