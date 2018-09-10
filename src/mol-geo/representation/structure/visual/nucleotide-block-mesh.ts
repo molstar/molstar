@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
@@ -33,7 +33,7 @@ const sVec = Vec3.zero()
 const box = Box()
 
 // TODO define props, should be scalable
-async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, props: {}, mesh?: Mesh) {
+async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: {}, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     // TODO better vertex count estimate

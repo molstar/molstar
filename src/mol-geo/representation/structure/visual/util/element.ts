@@ -5,7 +5,7 @@
  */
 
 import { Vec3 } from 'mol-math/linear-algebra';
-import { Unit, StructureElement } from 'mol-model/structure';
+import { Unit, StructureElement, Structure } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task';
 import { sphereVertexCount } from '../../../../primitive/sphere';
 import { Mesh } from '../../../../mesh/mesh';
@@ -22,7 +22,7 @@ export interface ElementSphereMeshProps {
     detail: number,
 }
 
-export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, props: ElementSphereMeshProps, mesh?: Mesh) {
+export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: ElementSphereMeshProps, mesh?: Mesh) {
     const { detail } = props
 
     const { elements } = unit;

@@ -32,7 +32,7 @@ export type UnitsMeshProps = typeof DefaultUnitsMeshProps
 
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> {
     defaultProps: P
-    createMesh(ctx: RuntimeContext, unit: Unit, props: P, mesh?: Mesh): Promise<Mesh>
+    createMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, mesh?: Mesh): Promise<Mesh>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
     mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
@@ -59,7 +59,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
         mesh = currentProps.unitKinds.includes(unit.kind)
-            ? await createMesh(ctx, unit, currentProps, mesh)
+            ? await createMesh(ctx, unit, currentStructure, currentProps, mesh)
             : Mesh.createEmpty(mesh)
 
         // TODO create empty location iterator when not in unitKinds
@@ -102,7 +102,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
         if (updateState.createMesh) {
             mesh = newProps.unitKinds.includes(unit.kind)
-                ? await createMesh(ctx, unit, newProps, mesh)
+                ? await createMesh(ctx, unit, currentStructure, newProps, mesh)
                 : Mesh.createEmpty(mesh)
             ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
             updateState.updateColor = true

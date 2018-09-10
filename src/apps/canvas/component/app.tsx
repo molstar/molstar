@@ -9,17 +9,7 @@ import { StructureView } from '../structure-view';
 import { App } from '../app';
 import { Viewport } from './viewport';
 import { StructureViewComponent } from './structure-view';
-
-// export function FileInput (props: {
-//     accept: string
-//     onChange: (v: FileList | null) => void,
-// }) {
-//     return <input
-//         accept={props.accept || '*.*'}
-//         type='file'
-//         onChange={e => props.onChange.call(null, e.target.files)}
-//     />
-// }
+import { Examples } from '../examples';
 
 export interface AppProps {
     app: App
@@ -74,6 +64,20 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                             if (e.target.files) this.props.app.loadCifFile(e.target.files[0])
                         }}
                     />
+                </div>
+                <div>
+                    <span>Load example </span>
+                    <select
+                        style={{width: '200px'}}
+                        onChange={e => {
+                            this.props.app.loadPdbId(e.target.value)
+                        }}
+                    >
+                        <option value=''></option>
+                        {Examples.map(({pdbId, description}, i) => {
+                            return <option key={i} value={pdbId}>{`${pdbId} - ${description}`}</option>
+                        })}
+                    </select>
                 </div>
                 <hr/>
                 <div style={{marginBottom: '10px'}}>
