@@ -67,6 +67,7 @@ class MarchingCubesComputation {
     private finish() {
         const vb = ChunkedArray.compact(this.state.vertexBuffer, true) as Float32Array;
         const ib = ChunkedArray.compact(this.state.triangleBuffer, true) as Uint32Array;
+        const gb = ChunkedArray.compact(this.state.groupBuffer, true) as Float32Array;
 
         this.state.vertexBuffer = <any>void 0;
         this.state.verticesOnEdges = <any>void 0;
@@ -77,13 +78,9 @@ class MarchingCubesComputation {
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
             vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),
+            groupBuffer: os ? ValueCell.update(os.groupBuffer, gb) : ValueCell.create(gb),
             indexBuffer: os ? ValueCell.update(os.indexBuffer, ib) : ValueCell.create(ib),
             normalBuffer: os ? os.normalBuffer : ValueCell.create(new Float32Array(0)),
-            groupBuffer: this.state.assignIds
-                ? os && os.groupBuffer
-                    ? ValueCell.update(os.groupBuffer, ChunkedArray.compact(this.state.idBuffer) as Float32Array)
-                    : ValueCell.create(ChunkedArray.compact(this.state.idBuffer) as Float32Array)
-                : ValueCell.create(new Float32Array(0)),
             normalsComputed: false
         }
 
@@ -131,7 +128,7 @@ class MarchingCubesState {
     i: number = 0; j: number = 0; k: number = 0;
 
     vertexBuffer: ChunkedArray<number, 3>;
-    idBuffer: ChunkedArray<number, 1>;
+    groupBuffer: ChunkedArray<number, 1>;
     triangleBuffer: ChunkedArray<number, 3>;
     vertexCount = 0;
     triangleCount = 0;
@@ -173,12 +170,14 @@ class MarchingCubesState {
 
         this.verticesOnEdges[edgeId] = id + 1;
 
-        if (this.assignIds) {
-            const u = this.idFieldGet!(this.idField!, li, lj, lk);
-            const v = this.idFieldGet!(this.idField!, hi, hj, hk)
+        if (this.idField) {
+            const u = this.idFieldGet!(this.idField, li, lj, lk);
+            const v = this.idFieldGet!(this.idField, hi, hj, hk)
             let a = t < 0.5 ? u : v;
             if (a < 0) a = t < 0.5 ? v : u;
-            ChunkedArray.add(this.idBuffer, a);
+            ChunkedArray.add(this.groupBuffer, a);
+        } else {
+            ChunkedArray.add(this.groupBuffer, 0);
         }
 
         this.vertexCount++;
@@ -197,17 +196,19 @@ class MarchingCubesState {
             this.idFieldGet = params.idField.space.get;
         }
 
-        let dX = params.topRight![0] - params.bottomLeft![0], dY = params.topRight![1] - params.bottomLeft![1], dZ = params.topRight![2] - params.bottomLeft![2],
-            vertexBufferSize = Math.min(262144, Math.max(dX * dY * dZ / 16, 1024) | 0),
-            triangleBufferSize = Math.min(1 << 16, vertexBufferSize * 4);
+        const dX = params.topRight![0] - params.bottomLeft![0]
+        const dY = params.topRight![1] - params.bottomLeft![1]
+        const dZ = params.topRight![2] - params.bottomLeft![2]
+        // TODO should it be configurable? Scalar fields can produce meshes with vastly different densities.
+        const vertexBufferSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024) | 0)
+        const triangleBufferSize = Math.min(1 << 16, vertexBufferSize * 4)
 
         this.vertexBuffer = ChunkedArray.create(Float32Array, 3, vertexBufferSize,
             params.oldSurface && params.oldSurface.vertexBuffer.ref.value);
+        this.groupBuffer = ChunkedArray.create(Float32Array, 1, vertexBufferSize,
+            params.oldSurface && params.oldSurface.groupBuffer.ref.value);
         this.triangleBuffer = ChunkedArray.create(Uint32Array, 3, triangleBufferSize,
             params.oldSurface && params.oldSurface.indexBuffer.ref.value);
-
-        this.assignIds = !!params.idField;
-        if (this.assignIds) this.idBuffer = ChunkedArray.create(Int32Array, 1, vertexBufferSize);
 
         // two layers of vertex indices. Each vertex has 3 edges associated.
         this.verticesOnEdges = new Int32Array(3 * this.nX * this.nY * 2);

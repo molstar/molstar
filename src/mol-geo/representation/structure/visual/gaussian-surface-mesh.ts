@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
+import { Unit, Structure, StructureElement } from 'mol-model/structure';
 import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
@@ -15,9 +15,10 @@ import { Tensor, Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
 import { ValueCell } from 'mol-util';
 import { smoothstep } from 'mol-math/interpolate';
+import { LocationIterator } from '../../../util/location-iterator';
 
 export interface GaussianSurfaceMeshProps {
-    
+
 }
 
 function getDelta(box: Box3D) {
@@ -94,8 +95,8 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
                         const density = 1.0 - smoothstep(0.0, radius * 1.0, dist)
                         space.set(data, x, y, z, space.get(data, x, y, z) + density)
                     }
-                } 
-            }   
+                }
+            }
         }
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
@@ -109,22 +110,15 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
         isoLevel: 0.1,
         scalarField: field,
         oldSurface: mesh
-        
+
     }).runAsChild(ctx);
 
     const t = Mat4.identity()
     Mat4.fromUniformScaling(t, 1 / delta[0])
     Mat4.setTranslation(t, expandedBox.min)
 
-    ValueCell.update(surface.groupBuffer, new Float32Array(surface.vertexCount)) 
     Mesh.transformImmediate(surface, t)
-    await Mesh.computeNormals(surface).runAsChild(ctx)
-
-    // console.log('surface', surface)
-
-    // const transform = VolumeData.getGridToCartesianTransform(volume);
-    // ctx.update({ message: 'Transforming mesh...' });
-    // Mesh.transformImmediate(surface, transform);
+    Mesh.computeNormalsImmediate(surface)
 
     return surface;
 }
@@ -151,3 +145,16 @@ export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {
         setUpdateState: (state: MeshUpdateState, newProps: GaussianSurfaceProps, currentProps: GaussianSurfaceProps) => {}
     })
 }
+
+// function SingleGroupLocationIterator(group: Unit.SymmetryGroup): LocationIterator {
+//     const groupCount = 1
+//         const instanceCount = group.units.length
+//         const location = StructureElement.create()
+//         const getLocation = (groupIndex: number, instanceIndex: number) => {
+//             const unit = group.units[instanceIndex]
+//             location.unit = unit
+//             location.element = unit.elements[groupIndex]
+//             return location
+//         }
+//         return LocationIterator(groupCount, instanceCount, getLocation)
+// }

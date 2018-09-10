@@ -37,14 +37,14 @@ export namespace Mesh {
         const vb = mesh ? mesh.vertexBuffer.ref.value : new Float32Array(0)
         const ib = mesh ? mesh.indexBuffer.ref.value : new Uint32Array(0)
         const nb = mesh ? mesh.normalBuffer.ref.value : new Float32Array(0)
-        const idb = mesh ? mesh.groupBuffer.ref.value : new Float32Array(0)
+        const gb = mesh ? mesh.groupBuffer.ref.value : new Float32Array(0)
         return {
             vertexCount: 0,
             triangleCount: 0,
             vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),
             indexBuffer: mesh ? ValueCell.update(mesh.indexBuffer, ib) : ValueCell.create(ib),
             normalBuffer: mesh ? ValueCell.update(mesh.normalBuffer, nb) : ValueCell.create(nb),
-            groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, idb) : ValueCell.create(idb),
+            groupBuffer: mesh ? ValueCell.update(mesh.groupBuffer, gb) : ValueCell.create(gb),
             normalsComputed: true,
         }
     }
