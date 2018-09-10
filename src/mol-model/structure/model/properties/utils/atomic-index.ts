@@ -62,6 +62,7 @@ function createMapping(entities: Entities, data: AtomicData, segments: AtomicSeg
     };
 }
 
+const _tempResidueKey = AtomicIndex.EmptyResidueKey();
 class Index implements AtomicIndex {
     private entityIndex: Entities['getEntityIndex'];
 
@@ -81,7 +82,19 @@ class Index implements AtomicIndex {
         return this.map.auth_asym_id.has(key.auth_asym_id) ? this.map.auth_asym_id.get(key.auth_asym_id)! : -1 as ChainIndex;
     }
 
-    findResidue(key: AtomicIndex.ResidueKey): ResidueIndex {
+    findResidue(label_entity_id: string, label_asym_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string): ResidueIndex
+    findResidue(key: AtomicIndex.ResidueKey): ResidueIndex
+    findResidue(label_entity_id_or_key: string | AtomicIndex.ResidueKey, label_asym_id?: string, auth_seq_id?: number, pdbx_PDB_ins_code?: string): ResidueIndex {
+        let key: AtomicIndex.ResidueKey;
+        if (arguments.length === 1) {
+            key = label_entity_id_or_key as AtomicIndex.ResidueKey
+        } else {
+            _tempResidueKey.label_entity_id = label_entity_id_or_key as string;
+            _tempResidueKey.label_asym_id = label_asym_id!;
+            _tempResidueKey.auth_seq_id = auth_seq_id!;
+            _tempResidueKey.pdbx_PDB_ins_code = pdbx_PDB_ins_code;
+            key = _tempResidueKey;
+        }
         const cI = this.findChainLabel(key);
         if (cI < 0) return -1 as ResidueIndex;
         const rm = this.map.chain_index_auth_seq_id.get(cI)!;
@@ -117,7 +130,7 @@ class Index implements AtomicIndex {
     }
 }
 
-export function getAtomicKeys(data: AtomicData, entities: Entities, segments: AtomicSegments): AtomicIndex {
+export function getAtomicIndex(data: AtomicData, entities: Entities, segments: AtomicSegments): AtomicIndex {
     const map = createMapping(entities, data, segments);
 
     const { label_seq_id, auth_seq_id, pdbx_PDB_ins_code } = data.residues;

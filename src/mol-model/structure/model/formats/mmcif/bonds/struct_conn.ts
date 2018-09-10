@@ -163,7 +163,6 @@ export namespace StructConn {
         const { conn_type_id, pdbx_dist_value, pdbx_value_order } = struct_conn;
         const p1 = {
             label_asym_id: struct_conn.ptnr1_label_asym_id,
-            label_comp_id: struct_conn.ptnr1_label_comp_id,
             label_seq_id: struct_conn.ptnr1_label_seq_id,
             auth_seq_id: struct_conn.ptnr1_auth_seq_id,
             label_atom_id: struct_conn.ptnr1_label_atom_id,
@@ -173,7 +172,6 @@ export namespace StructConn {
         };
         const p2: typeof p1 = {
             label_asym_id: struct_conn.ptnr2_label_asym_id,
-            label_comp_id: struct_conn.ptnr2_label_comp_id,
             label_seq_id: struct_conn.ptnr2_label_seq_id,
             auth_seq_id: struct_conn.ptnr2_auth_seq_id,
             label_atom_id: struct_conn.ptnr2_label_atom_id,
@@ -184,11 +182,10 @@ export namespace StructConn {
 
         const _p = (row: number, ps: typeof p1) => {
             if (ps.label_asym_id.valueKind(row) !== Column.ValueKind.Present) return void 0;
-            const asymId = ps.label_asym_id.value(row)
-            const residueIndex = model.atomicHierarchy.findResidueKey(
+            const asymId = ps.label_asym_id.value(row);
+            const residueIndex = model.atomicHierarchy.index.findResidue(
                 findEntityIdByAsymId(model, asymId),
                 asymId,
-                ps.label_comp_id.value(row),
                 ps.auth_seq_id.value(row),
                 ps.ins_code.value(row)
             );

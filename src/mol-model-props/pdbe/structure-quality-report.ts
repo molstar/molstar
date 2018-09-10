@@ -71,7 +71,7 @@ function createIssueMapFromJson(modelData: Model, data: any): IssueMap | undefin
 
                 for (const residue of model.residues) {
                     const auth_seq_id = residue.author_residue_number, ins_code = residue.author_insertion_code || '';
-                    const idx = modelData.atomicHierarchy.findResidueKey(entity_id, asym_id, '', auth_seq_id, ins_code);
+                    const idx = modelData.atomicHierarchy.index.findResidue(entity_id, asym_id, auth_seq_id, ins_code);
                     ret.set(idx, residue.outlier_types);
                 }
             }
@@ -86,7 +86,7 @@ function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQua
     const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issues, _rowCount } = data;
 
     for (let i = 0; i < _rowCount; i++) {
-        const idx = modelData.atomicHierarchy.findResidueKey(label_entity_id.value(i), label_asym_id.value(i), '', auth_seq_id.value(i), pdbx_PDB_ins_code.value(i));
+        const idx = modelData.atomicHierarchy.index.findResidue(label_entity_id.value(i), label_asym_id.value(i), auth_seq_id.value(i), pdbx_PDB_ins_code.value(i));
         ret.set(idx, issues.value(i));
     }
 

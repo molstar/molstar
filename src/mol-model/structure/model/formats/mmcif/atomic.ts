@@ -12,7 +12,7 @@ import { ElementIndex } from '../../../../structure';
 import Format from '../../format';
 import { Model } from '../../model';
 import { AtomicConformation, AtomicData, AtomicHierarchy, AtomicSegments, AtomsSchema, ChainsSchema, ResiduesSchema } from '../../properties/atomic';
-import { getAtomicKeys } from '../../properties/utils/atomic-keys';
+import { getAtomicIndex } from '../../properties/utils/atomic-index';
 import { ElementSymbol } from '../../types';
 import { Entities } from '../../properties/common';
 
@@ -98,8 +98,8 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
         chainAtomSegments: Segmentation.ofOffsets(hierarchyOffsets.chains, Interval.ofBounds(0, atom_site._rowCount)),
     }
 
-    const hierarchyKeys = getAtomicKeys(hierarchyData, entities, hierarchySegments);
+    const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
     const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, formatData.chemicalComponentMap);
-    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchyKeys, ...hierarchySegments, ...hierarchyRanges };
+    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, ...hierarchyRanges, index };
     return { sameAsPrevious: false, hierarchy, conformation };
 }

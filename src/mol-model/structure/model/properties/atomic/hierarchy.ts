@@ -119,22 +119,6 @@ export interface AtomicSegments {
     // TODO: include entity segments?
 }
 
-export interface AtomicKeys {
-    // TODO: include (lazily computed) "entity/chain/residue" indices?
-
-    /** @returns index or -1 if not present. */
-    getEntityKey(cI: ChainIndex): EntityIndex,
-
-    /** @returns index or -1 if not present. */
-    findChainKey(entityId: string, label_asym_id: string): ChainIndex,
-
-    /**
-     * Unique number for each of the residue. Also the index of the 1st occurence of this residue.
-     * @returns index or -1 if not present.
-     */
-    findResidueKey(entityId: string, label_asym_id: string, label_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code: string): ResidueIndex
-}
-
 export interface AtomicIndex {
     /** @returns index or -1 if not present. */
     getEntityFromChain(cI: ChainIndex): EntityIndex,
@@ -157,6 +141,7 @@ export interface AtomicIndex {
      * @returns index or -1 if not present.
      */
     findResidue(key: AtomicIndex.ResidueKey): ResidueIndex,
+    findResidue(label_entity_id: string, label_asym_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string): ResidueIndex,
 
     /**
      * Index of the 1st occurence of this residue.
@@ -181,6 +166,8 @@ export namespace AtomicIndex {
     export interface ChainAuthKey { auth_asym_id: string }
 
     export interface ResidueKey { label_entity_id: string, label_asym_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string }
+    export function EmptyResidueKey(): ResidueKey { return { label_entity_id: '', label_asym_id: '', auth_seq_id: 0, pdbx_PDB_ins_code: void 0 }; }
+
     export interface ResidueAuthKey { auth_asym_id: string, auth_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string }
     export interface ResidueLabelKey { label_entity_id: string, label_asym_id: string, label_seq_id: number, pdbx_PDB_ins_code?: string }
 }
@@ -191,8 +178,10 @@ export interface AtomicRanges {
     cyclicPolymerMap: Map<ResidueIndex, ResidueIndex>
 }
 
-type _Hierarchy = AtomicData & AtomicSegments & AtomicKeys & AtomicRanges
-export interface AtomicHierarchy extends _Hierarchy { }
+type _Hierarchy = AtomicData & AtomicSegments & AtomicRanges
+export interface AtomicHierarchy extends _Hierarchy {
+    index: AtomicIndex
+}
 
 export namespace AtomicHierarchy {
     /** Start residue inclusive */

@@ -11,9 +11,9 @@ import { findAtomIndexByLabelName } from '../util';
 import { Unit } from '../../../../structure';
 import { ElementIndex } from '../../../indexing';
 
-function findAtomIndex(model: Model, entityId: string, asymId: string, compId: string, seqId: number, atomId: string) {
+function findAtomIndex(model: Model, entityId: string, asymId: string, seqId: number, atomId: string) {
     if (!model.atomicHierarchy.atoms.auth_atom_id.isDefined) return -1
-    const residueIndex = model.atomicHierarchy.findResidueKey(entityId, compId, asymId, seqId, '')
+    const residueIndex = model.atomicHierarchy.index.findResidue(entityId, asymId, seqId)
     if (residueIndex < 0) return -1
     return findAtomIndexByLabelName(model, residueIndex, atomId, '') as ElementIndex
 }
@@ -35,7 +35,6 @@ export namespace IHMCrossLinkRestraint {
         const p1 = {
             entity_id: ihm_cross_link_restraint.entity_id_1,
             asym_id: ihm_cross_link_restraint.asym_id_1,
-            comp_id: ihm_cross_link_restraint.comp_id_1,
             seq_id: ihm_cross_link_restraint.seq_id_1,
             atom_id: ihm_cross_link_restraint.atom_id_1,
         }
@@ -43,7 +42,6 @@ export namespace IHMCrossLinkRestraint {
         const p2: typeof p1 = {
             entity_id: ihm_cross_link_restraint.entity_id_2,
             asym_id: ihm_cross_link_restraint.asym_id_2,
-            comp_id: ihm_cross_link_restraint.comp_id_2,
             seq_id: ihm_cross_link_restraint.seq_id_2,
             atom_id: ihm_cross_link_restraint.atom_id_2,
         }
@@ -60,7 +58,7 @@ export namespace IHMCrossLinkRestraint {
             const seqId = ps.seq_id.value(row)
 
             if (ihm_cross_link_restraint.model_granularity.value(row) === 'by-atom') {
-                const atomicElement = findAtomIndex(model, entityId, asymId, ps.comp_id.value(row), seqId, ps.atom_id.value(row))
+                const atomicElement = findAtomIndex(model, entityId, asymId, seqId, ps.atom_id.value(row))
                 if (atomicElement >= 0) _add(atomicElementMap, atomicElement as ElementIndex, row)
             } else if (model.coarseHierarchy.isDefined) {
                 const sphereElement = model.coarseHierarchy.spheres.findSequenceKey(entityId, asymId, seqId)
