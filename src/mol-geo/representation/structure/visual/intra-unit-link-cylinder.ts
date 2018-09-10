@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Unit, Link, StructureElement } from 'mol-model/structure';
+import { Unit, Link, StructureElement, Structure } from 'mol-model/structure';
 import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
@@ -18,7 +18,7 @@ import { Interval } from 'mol-data/int';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { BitFlags } from 'mol-util';
 
-async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, props: LinkCylinderProps, mesh?: Mesh) {
+async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const sizeTheme = SizeTheme(props.sizeTheme)

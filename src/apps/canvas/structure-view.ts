@@ -24,6 +24,7 @@ import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { BehaviorSubject } from 'rxjs';
 import { SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
 import { DistanceRestraintRepresentation } from 'mol-geo/representation/structure/representation/distance-restraint';
+import { SurfaceRepresentation } from 'mol-geo/representation/structure/representation/surface';
 
 export interface StructureView {
     readonly viewer: Viewer
@@ -66,6 +67,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     const active: { [k: string]: boolean } = {
         cartoon: true,
         point: false,
+        surface: true,
         ballAndStick: false,
         carbohydrate: false,
         spacefill: false,
@@ -76,6 +78,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
 
     const structureRepresentations: { [k: string]: StructureRepresentation<any> } = {
         cartoon: CartoonRepresentation(),
+        surface: SurfaceRepresentation(),
         point: PointRepresentation(),
         ballAndStick: BallAndStickRepresentation(),
         carbohydrate: CarbohydrateRepresentation(),

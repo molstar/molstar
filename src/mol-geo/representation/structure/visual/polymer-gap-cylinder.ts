@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
@@ -24,7 +24,7 @@ export interface PolymerGapCylinderProps {
     radialSegments: number
 }
 
-async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, props: PolymerGapCylinderProps, mesh?: Mesh) {
+async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerGapCylinderProps, mesh?: Mesh) {
     const polymerGapCount = unit.gapElements.length
     if (!polymerGapCount) return Mesh.createEmpty(mesh)
 

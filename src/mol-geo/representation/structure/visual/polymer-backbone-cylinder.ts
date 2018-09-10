@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
@@ -23,7 +23,7 @@ export interface PolymerBackboneCylinderProps {
     radialSegments: number
 }
 
-async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
+async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 

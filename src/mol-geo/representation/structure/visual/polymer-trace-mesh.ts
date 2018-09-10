@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual, MeshUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
@@ -26,7 +26,7 @@ export interface PolymerTraceMeshProps {
 
 // TODO handle polymer ends properly
 
-async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, props: PolymerTraceMeshProps, mesh?: Mesh) {
+async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerTraceMeshProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit } from 'mol-model/structure';
+import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../mesh/mesh';
@@ -32,7 +32,7 @@ export interface PolymerDirectionWedgeProps {
     sizeTheme: SizeThemeProps
 }
 
-async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
+async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
