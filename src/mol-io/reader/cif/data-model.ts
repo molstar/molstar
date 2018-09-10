@@ -117,7 +117,7 @@ export function getCifFieldType(field: CifField): Column.Schema.Int | Column.Sch
     let floatCount = 0, hasString = false;
     for (let i = 0, _i = field.rowCount; i < _i; i++) {
         const k = field.valueKind(i);
-        if (k !== Column.ValueKind.Present) continue
+        if (k !== Column.ValueKind.Present) continue;
         const type = getNumberType(field.str(i));
         if (type === NumberType.Int) continue;
         else if (type === NumberType.Float) floatCount++;

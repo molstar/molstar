@@ -114,6 +114,11 @@ class Structure {
         return this._props.models;
     }
 
+    hasElement(e: StructureElement) {
+        if (!this.unitMap.has(e.unit.id)) return false;
+        return SortedArray.has(this.unitMap.get(e.unit.id).elements, e.element);
+    }
+
     constructor(units: ArrayLike<Unit>) {
         const map = IntMap.Mutable<Unit>();
         let elementCount = 0;

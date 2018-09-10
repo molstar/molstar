@@ -4,10 +4,10 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Matrix from './matrix.js';
-import { Vec3 } from '../3d.js';
+import Matrix from './matrix';
+import { Vec3 } from '../3d';
 // import { Vec3, Mat4 } from '../3d.js';
-import { svd } from './svd.js';
+import { svd } from './svd';
 
 // const negateVector = Vec3.create(-1, -1, -1)
 // const tmpMatrix = Mat4.identity()
