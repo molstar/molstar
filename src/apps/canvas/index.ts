@@ -21,4 +21,4 @@ ReactDOM.render(React.createElement(AppComponent, { app }), elm);
 
 const assemblyId = urlQueryParameter('assembly')
 const pdbId = urlQueryParameter('pdb')
-if (pdbId) app.loadPdbId(pdbId, assemblyId)
+if (pdbId) app.loadPdbIdOrUrl(pdbId, { assemblyId })

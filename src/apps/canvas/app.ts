@@ -38,15 +38,17 @@ export class App {
         this.pdbIdLoaded.next(this.structureView)
     }
 
-    async loadPdbId(id: string, assemblyId?: string) {
-        if (this.structureView) this.structureView.destroy()
-        const cif = await getCifFromUrl(`https://files.rcsb.org/download/${id}.cif`)
-        this.loadCif(cif, assemblyId)
+    async loadPdbIdOrUrl(idOrUrl: string, options?: { assemblyId?: string, binary?: boolean }) {
+        if (this.structureView) this.structureView.destroy();
+        const url = idOrUrl.length <= 4 ? `https://files.rcsb.org/download/${idOrUrl}.cif` : idOrUrl;
+        const cif = await getCifFromUrl(url, options ? !!options.binary : false)
+        this.loadCif(cif, options ? options.assemblyId : void 0)
     }
 
     async loadCifFile(file: File) {
-        if (this.structureView) this.structureView.destroy()
-        const cif = await getCifFromFile(file)
+        if (this.structureView) this.structureView.destroy();
+        const binary = /\.bcif$/.test(file.name);
+        const cif = await getCifFromFile(file, binary)
         this.loadCif(cif)
     }
 }

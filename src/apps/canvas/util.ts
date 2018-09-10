@@ -24,8 +24,8 @@ export async function getCifFromData(data: string | Uint8Array) {
     return parsed.result.blocks[0]
 }
 
-export async function getCifFromUrl(url: string) {
-    return getCifFromData(await readUrlAs(url, false))
+export async function getCifFromUrl(url: string, binary = false) {
+    return getCifFromData(await readUrlAs(url, binary))
 }
 
 export async function getCifFromFile(file: File, binary = false) {

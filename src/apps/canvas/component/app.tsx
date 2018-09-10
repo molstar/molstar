@@ -16,12 +16,14 @@ export interface AppProps {
 }
 
 export interface AppState {
-    structureView: StructureView | null
+    structureView: StructureView | null,
+    binary: boolean
 }
 
 export class AppComponent extends React.Component<AppProps, AppState> {
     state = {
         structureView: this.props.app.structureView,
+        binary: false
     }
 
     componentDidMount() {
@@ -42,14 +44,16 @@ export class AppComponent extends React.Component<AppProps, AppState> {
 
             <div style={{width: '330px', paddingLeft: '10px', paddingRight: '10px', right: '0px', height: '100%', position: 'absolute', overflow: 'auto'}}>
                 <div style={{marginTop: '10px'}}>
-                    <span>Load PDB ID </span>
+                    <span>Load PDB ID or URL</span>&nbsp;&nbsp;
+                    <input type='checkbox' checked={this.state.binary} onChange={e => this.setState({ binary: e.target.checked })} /> Binary<br />
                     <input
+                        style={{ width: '100%' }}
                         type='text'
                         onKeyDown={e => {
                             if (e.keyCode === 13) {
                                 const value = e.currentTarget.value.trim()
                                 if (value) {
-                                    this.props.app.loadPdbId(value)
+                                    this.props.app.loadPdbIdOrUrl(value, { binary: this.state.binary })
                                 }
                             }
                         }}
@@ -70,7 +74,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                     <select
                         style={{width: '200px'}}
                         onChange={e => {
-                            this.props.app.loadPdbId(e.target.value)
+                            this.props.app.loadPdbIdOrUrl(e.target.value)
                         }}
                     >
                         <option value=''></option>
