@@ -153,11 +153,13 @@ function findLinks(structure: Structure, params: LinkComputationParameters) {
     if (!structure.units.some(u => Unit.isAtomic(u))) return new InterUnitBonds(map);
 
     const lookup = structure.lookup3d;
+    const imageCenter = Vec3.zero();
     for (const unit of structure.units) {
         if (!Unit.isAtomic(unit)) continue;
 
         const bs = unit.lookup3d.boundary.sphere;
-        const closeUnits = lookup.findUnitIndices(bs.center[0], bs.center[1], bs.center[2], bs.radius + MAX_RADIUS);
+        Vec3.transformMat4(imageCenter, bs.center, unit.conformation.operator.matrix);
+        const closeUnits = lookup.findUnitIndices(imageCenter[0], imageCenter[1], imageCenter[2], bs.radius + MAX_RADIUS);
         for (let i = 0; i < closeUnits.count; i++) {
             const other = structure.units[closeUnits.indices[i]];
             if (!Unit.isAtomic(other) || unit.id >= other.id) continue;
