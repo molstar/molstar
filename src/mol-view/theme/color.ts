@@ -7,6 +7,7 @@
 import { Color } from 'mol-util/color';
 import { Structure } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
+import { ColorType } from 'mol-geo/util/color-data';
 
 import { ElementIndexColorTheme } from './color/element-index';
 import { CarbohydrateSymbolColorTheme } from './color/carbohydrate-symbol';
@@ -17,7 +18,7 @@ import { UniformColorTheme } from './color/uniform';
 import { CrossLinkColorTheme } from './color/cross-link';
 import { ShapeGroupColorTheme } from './color/shape-group';
 import { CustomColorTheme } from './color/custom';
-import { ColorType } from 'mol-geo/util/color-data';
+import { ResidueNameColorTheme } from './color/residue-name';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -53,6 +54,7 @@ export function ColorTheme(props: ColorThemeProps): ColorTheme {
         case 'cross-link': return CrossLinkColorTheme(props)
         case 'chain-id': return ChainIdColorTheme(props)
         case 'element-symbol': return ElementSymbolColorTheme(props)
+        case 'residue-name': return ResidueNameColorTheme(props)
         case 'unit-index': return UnitIndexColorTheme(props)
         case 'uniform': return UniformColorTheme(props)
         case 'shape-group': return ShapeGroupColorTheme(props)
@@ -77,6 +79,7 @@ export const ColorThemeInfo = {
     'cross-link': {},
     'chain-id': {},
     'element-symbol': {},
+    'residue-name': {},
     'unit-index': {},
     'uniform': {},
     'shape-group': {},

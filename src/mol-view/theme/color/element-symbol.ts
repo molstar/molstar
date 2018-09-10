@@ -20,7 +20,7 @@ const Description = 'Assigns a color to every atom according to its chemical ele
 
 export function elementSymbolColor(element: ElementSymbol): Color {
     const c = (ElementSymbolColors as { [k: string]: Color })[element];
-    return c === void 0 ? DefaultElementSymbolColor : c
+    return c === undefined ? DefaultElementSymbolColor : c
 }
 
 export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {

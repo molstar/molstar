@@ -54,11 +54,11 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, struct
 
         while (residueIt.hasNext) {
             const { index: residueIndex } = residueIt.move();
-            const cc = chemicalComponentMap.get(label_comp_id.value(residueIndex))
+            let compId = label_comp_id.value(residueIndex)
+            const cc = chemicalComponentMap.get(compId)
             const moleculeType = cc ? cc.moleculeType : MoleculeType.unknown
 
             if (isNucleic(moleculeType)) {
-                let compId = label_comp_id.value(residueIndex)
                 const parentId = modifiedResidues.parentId.get(compId)
                 if (parentId !== undefined) compId = parentId
                 let idx1 = -1, idx2 = -1, idx3 = -1, idx4 = -1, idx5 = -1, idx6 = -1
