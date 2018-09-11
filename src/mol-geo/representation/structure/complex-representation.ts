@@ -20,7 +20,7 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, v
     function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
         _props = Object.assign({}, _props, props)
 
-        return Task.create('Creating StructureRepresentation', async ctx => {
+        return Task.create('Creating or updating ComplexRepresentation', async ctx => {
             if (!visual) visual = visualCtor()
             await visual.createOrUpdate(ctx, _props, structure)
         });

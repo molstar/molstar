@@ -10,6 +10,7 @@ import Viewer from 'mol-view/viewer';
 import { VisualQuality, VisualQualityNames } from 'mol-geo/representation/util';
 import { ColorThemeProps, ColorThemeName, ColorThemeNames, ColorTheme } from 'mol-view/theme/color';
 import { Color } from 'mol-util/color';
+import { Progress } from 'mol-task';
 
 export interface StructureRepresentationComponentProps {
     viewer: Viewer
@@ -22,6 +23,10 @@ export interface StructureRepresentationComponentState {
     alpha: number
     quality: VisualQuality
     colorTheme: ColorThemeProps
+
+    resolutionFactor?: number
+    probeRadius?: number
+    isoValue?: number
 }
 
 export class StructureRepresentationComponent extends React.Component<StructureRepresentationComponentProps, StructureRepresentationComponentState> {
@@ -31,6 +36,10 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         alpha: this.props.representation.props.alpha,
         quality: this.props.representation.props.quality,
         colorTheme: this.props.representation.props.colorTheme,
+
+        resolutionFactor: (this.props.representation.props as any).resolutionFactor,
+        probeRadius: (this.props.representation.props as any).probeRadius,
+        isoValue: (this.props.representation.props as any).isoValue,
     }
 
     componentWillMount() {
@@ -43,6 +52,10 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             alpha: repr.props.alpha,
             quality: repr.props.quality,
             colorTheme: repr.props.colorTheme,
+
+            resolutionFactor: (repr.props as any).resolutionFactor,
+            probeRadius: (repr.props as any).probeRadius,
+            isoValue: (repr.props as any).isoValue,
         })
     }
 
@@ -55,10 +68,25 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         if (state.alpha !== undefined) props.alpha = state.alpha
         if (state.colorTheme !== undefined) props.colorTheme = state.colorTheme
 
-        await repr.createOrUpdate(props).run()
+        if (state.resolutionFactor !== undefined) (props as any).resolutionFactor = state.resolutionFactor
+        if (state.probeRadius !== undefined) (props as any).probeRadius = state.probeRadius
+        if (state.isoValue !== undefined) (props as any).isoValue = state.isoValue
+
+        await repr.createOrUpdate(props).run(
+            progress => console.log(Progress.format(progress)), 100
+        )
         this.props.viewer.add(repr)
-        this.props.viewer.requestDraw(true)
+        this.props.viewer.draw(true)
         console.log(this.props.viewer.stats)
+
+        console.log(
+            'drawCount',
+            repr.renderObjects[0].values.drawCount.ref.version,
+            repr.renderObjects[0].values.drawCount.ref.value,
+            'dColorType',
+            repr.renderObjects[0].values.dColorType.ref.version,
+            repr.renderObjects[0].values.dColorType.ref.value
+        )
 
         const newState = {
             ...this.state,
@@ -66,6 +94,10 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             quality: repr.props.quality,
             alpha: repr.props.alpha,
             colorTheme: repr.props.colorTheme,
+
+            resolutionFactor: (repr.props as any).resolutionFactor,
+            probeRadius: (repr.props as any).probeRadius,
+            isoValue: (repr.props as any).isoValue,
         }
         this.setState(newState)
     }
@@ -107,6 +139,39 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     >
                     </input>
                 </div>
+                { this.state.resolutionFactor !== undefined ? <div>
+                    <span>Resolution Factor </span>
+                    <input type='range'
+                        defaultValue={this.state.resolutionFactor.toString()}
+                        min='4'
+                        max='9'
+                        step='1'
+                        onInput={(e) => this.update({ resolutionFactor: parseInt(e.currentTarget.value) })}
+                    >
+                    </input>
+                </div> : '' }
+                { this.state.isoValue !== undefined ? <div>
+                    <span>Iso Value </span>
+                    <input type='range'
+                        defaultValue={this.state.isoValue.toString()}
+                        min='0.1'
+                        max='2'
+                        step='0.1'
+                        onInput={(e) => this.update({ isoValue: parseFloat(e.currentTarget.value) })}
+                    >
+                    </input>
+                </div> : '' }
+                { this.state.probeRadius !== undefined ? <div>
+                    <span>Probe Radius </span>
+                    <input type='range'
+                        defaultValue={this.state.probeRadius.toString()}
+                        min='0'
+                        max='10'
+                        step='0.1'
+                        onInput={(e) => this.update({ probeRadius: parseFloat(e.currentTarget.value) })}
+                    >
+                    </input>
+                </div> : '' }
                 <div>
                     <span>Color Theme </span>
                     <select value={colorTheme.name} onChange={(e) => this.update({ colorTheme: { name: e.target.value as ColorThemeName } }) }>

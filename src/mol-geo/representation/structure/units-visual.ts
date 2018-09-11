@@ -126,14 +126,19 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
             if (!group && !currentGroup) {
                 throw new Error('missing group')
             } else if (group && (!currentGroup || !renderObject)) {
+                // console.log('unit-visual first create')
                 await create(ctx, group, props)
             } else if (group && group.hashCode !== currentGroup.hashCode) {
+                // console.log('unit-visual group.hashCode !== currentGroup.hashCode')
                 await create(ctx, group, props)
             } else {
-                if (group && !areGroupsIdentical(group, currentGroup)) {
+                // console.log('unit-visual update')
+                if (group && !sameGroupConformation(group, currentGroup)) {
+                    // console.log('unit-visual new conformation')
                     currentGroup = group
+                } else {
+                    await update(ctx, props)
                 }
-                await update(ctx, props)
             }
         },
         getLoci(pickingId: PickingId) {
@@ -168,7 +173,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
     }
 }
 
-function areGroupsIdentical(groupA: Unit.SymmetryGroup, groupB: Unit.SymmetryGroup) {
+function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.SymmetryGroup) {
     return (
         groupA.units.length === groupB.units.length &&
         Unit.conformationId(groupA.units[0]) === Unit.conformationId(groupB.units[0])

@@ -25,6 +25,7 @@ import { BehaviorSubject } from 'rxjs';
 import { SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
 import { DistanceRestraintRepresentation } from 'mol-geo/representation/structure/representation/distance-restraint';
 import { SurfaceRepresentation } from 'mol-geo/representation/structure/representation/surface';
+import { Progress } from 'mol-task';
 
 export interface StructureView {
     readonly viewer: Viewer
@@ -67,7 +68,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     const active: { [k: string]: boolean } = {
         cartoon: true,
         point: false,
-        surface: true,
+        surface: false,
         ballAndStick: false,
         carbohydrate: false,
         spacefill: false,
@@ -208,7 +209,9 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             console.log('createStructureRepr')
             for (const k in structureRepresentations) {
                 if (active[k]) {
-                    await structureRepresentations[k].createOrUpdate({}, structure).run()
+                    await structureRepresentations[k].createOrUpdate({}, structure).run(
+                        progress => console.log(Progress.format(progress)), 100
+                    )
                     viewer.add(structureRepresentations[k])
                 } else {
                     viewer.remove(structureRepresentations[k])
@@ -247,7 +250,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
 
         updated.next(null)
         viewer.requestDraw(true)
-        console.log(viewer.stats)
+        console.log('stats', viewer.stats)
     }
 
     async function createSymmetryRepr() {

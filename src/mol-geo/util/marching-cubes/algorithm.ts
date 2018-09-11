@@ -28,7 +28,7 @@ export interface MarchingCubesParameters {
 
 export function computeMarchingCubes(parameters: MarchingCubesParameters) {
     return Task.create('Marching Cubes', async ctx => {
-        let comp = new MarchingCubesComputation(parameters, ctx);
+        const comp = new MarchingCubesComputation(parameters, ctx);
         return await comp.run();
     });
 }
@@ -64,17 +64,18 @@ class MarchingCubesComputation {
         this.state.clearEdgeVertexIndexSlice(k);
     }
 
-    private finish() {
+    private finish(): Mesh {
         const vb = ChunkedArray.compact(this.state.vertexBuffer, true) as Float32Array;
         const ib = ChunkedArray.compact(this.state.triangleBuffer, true) as Uint32Array;
         const gb = ChunkedArray.compact(this.state.groupBuffer, true) as Float32Array;
 
         this.state.vertexBuffer = <any>void 0;
         this.state.verticesOnEdges = <any>void 0;
+        this.state.groupBuffer = <any>void 0;
 
         const os = this.parameters.oldSurface
 
-        const ret: Mesh = {
+        return {
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
             vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),
@@ -83,8 +84,6 @@ class MarchingCubesComputation {
             normalBuffer: os ? os.normalBuffer : ValueCell.create(new Float32Array(0)),
             normalsComputed: false
         }
-
-        return ret;
     }
 
     async run() {
@@ -94,11 +93,8 @@ class MarchingCubesComputation {
         return this.finish();
     }
 
-    constructor(
-        parameters: MarchingCubesParameters,
-        private ctx: RuntimeContext) {
-
-        let params = { ...parameters };
+    constructor(parameters: MarchingCubesParameters, private ctx: RuntimeContext) {
+        const params = { ...parameters };
         this.parameters = params;
 
         if (!params.bottomLeft) params.bottomLeft = [0, 0, 0];
@@ -148,8 +144,8 @@ class MarchingCubesState {
     }
 
     private interpolate(edgeNum: number) {
-        const info = EdgeIdInfo[edgeNum],
-            edgeId = 3 * this.get3dOffsetFromEdgeInfo(info) + info.e;
+        const info = EdgeIdInfo[edgeNum];
+        const edgeId = 3 * this.get3dOffsetFromEdgeInfo(info) + info.e;
 
         const ret = this.verticesOnEdges[edgeId];
         if (ret > 0) return (ret - 1) | 0;
@@ -247,7 +243,7 @@ class MarchingCubesState {
         if ((edgeInfo & 1024) > 0) this.vertList[10] = this.interpolate(10); // 2 6
         if ((edgeInfo & 2048) > 0) this.vertList[11] = this.interpolate(11); // 3 7
 
-        let triInfo = TriTable[tableIndex];
+        const triInfo = TriTable[tableIndex];
         for (let t = 0; t < triInfo.length; t += 3) {
             this.triangleCount++;
             ChunkedArray.add3(this.triangleBuffer, this.vertList[triInfo[t]], this.vertList[triInfo[t + 1]], this.vertList[triInfo[t + 2]]);

@@ -13,18 +13,21 @@ import { StructureElementIterator, getElementLoci, markElement } from './util/el
 import { computeMarchingCubes } from '../../../util/marching-cubes/algorithm';
 import { Tensor, Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
-import { ValueCell } from 'mol-util';
 import { smoothstep } from 'mol-math/interpolate';
-import { LocationIterator } from '../../../util/location-iterator';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 
 export interface GaussianSurfaceMeshProps {
+    sizeTheme: SizeThemeProps
 
+    resolutionFactor: number
+    probeRadius: number
+    isoValue: number
 }
 
-function getDelta(box: Box3D) {
+function getDelta(box: Box3D, resolutionFactor: number) {
     const extent = Vec3.sub(Vec3.zero(), box.max, box.min)
 
-    const n = Math.pow(128, 3)
+    const n = Math.pow(Math.pow(2, resolutionFactor), 3)
     const f = (extent[0] * extent[1] * extent[2]) / n
     const s = Math.pow(f, 1 / 3)
     const size = Vec3.zero()
@@ -35,17 +38,21 @@ function getDelta(box: Box3D) {
 }
 
 async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
+    const { resolutionFactor, probeRadius, isoValue } = props
 
     const { elements } = unit;
     const elementCount = elements.length;
-
-    const r = 2.5;
+    const sizeTheme = SizeTheme(props.sizeTheme)
 
     const v = Vec3.zero()
     const p = Vec3.zero()
     const pos = unit.conformation.invariantPosition
+    const l = StructureElement.create()
+    l.unit = unit
+
+    const pad = (probeRadius + 2) * 2 // TODO calculate max radius
     const box = unit.lookup3d.boundary.box
-    const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(r*3, r*3, r*3));
+    const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad));
     const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)
     const min = expandedBox.min
 
@@ -63,7 +70,7 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
     // console.log('s', s)
     // console.log('size', size)
     // console.log('delta', delta)
-    const delta = getDelta(Box3D.expand(Box3D.empty(), structure.boundary.box, Vec3.create(r*3, r*3, r*3)))
+    const delta = getDelta(Box3D.expand(Box3D.empty(), structure.boundary.box, Vec3.create(pad, pad, pad)), resolutionFactor)
     const dim = Vec3.zero()
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
     // console.log('dim', dim, dim[0] * dim[1] * dim[2])
@@ -73,11 +80,12 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
     const field = Tensor.create(space, data)
 
     for (let i = 0; i < elementCount; i++) {
+        l.element = elements[i]
         pos(elements[i], v)
 
         Vec3.mul(v, Vec3.sub(v, v, min), delta)
 
-        const size = r
+        const size = sizeTheme.size(l) + probeRadius
         const radius = size * delta[0]
 
         const minX = Math.floor(v[0] - radius)
@@ -107,11 +115,10 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
     // console.log('data', data)
 
     const surface = await computeMarchingCubes({
-        isoLevel: 0.1,
+        isoLevel: isoValue,
         scalarField: field,
         oldSurface: mesh
-
-    }).runAsChild(ctx);
+    }).runAsChild(ctx)
 
     const t = Mat4.identity()
     Mat4.fromUniformScaling(t, 1 / delta[0])
@@ -132,6 +139,10 @@ export const DefaultGaussianSurfaceProps = {
 
     flipSided: true,
     // flatShaded: true,
+
+    resolutionFactor: 7,
+    probeRadius: 1.4,
+    isoValue: 0.1,
 }
 export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 
@@ -142,19 +153,10 @@ export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: MeshUpdateState, newProps: GaussianSurfaceProps, currentProps: GaussianSurfaceProps) => {}
+        setUpdateState: (state: MeshUpdateState, newProps: GaussianSurfaceProps, currentProps: GaussianSurfaceProps) => {
+            if (newProps.resolutionFactor !== currentProps.resolutionFactor) state.createMesh = true
+            if (newProps.probeRadius !== currentProps.probeRadius) state.createMesh = true
+            if (newProps.isoValue !== currentProps.isoValue) state.createMesh = true
+        }
     })
 }
-
-// function SingleGroupLocationIterator(group: Unit.SymmetryGroup): LocationIterator {
-//     const groupCount = 1
-//         const instanceCount = group.units.length
-//         const location = StructureElement.create()
-//         const getLocation = (groupIndex: number, instanceIndex: number) => {
-//             const unit = group.units[instanceIndex]
-//             location.unit = unit
-//             location.element = unit.elements[groupIndex]
-//             return location
-//         }
-//         return LocationIterator(groupCount, instanceCount, getLocation)
-// }
