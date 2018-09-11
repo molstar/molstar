@@ -30,8 +30,8 @@ export function createCurveSegmentState(linearSegments: number): CurveSegmentSta
     }
 }
 
-export function interpolateCurveSegment(state: CurveSegmentState, controls: CurveSegmentControls, tension: number) {
-    interpolatePointsAndTangents(state, controls, tension)
+export function interpolateCurveSegment(state: CurveSegmentState, controls: CurveSegmentControls, tension: number, shift: number) {
+    interpolatePointsAndTangents(state, controls, tension, shift)
     interpolateNormals(state, controls)
 }
 
@@ -39,22 +39,22 @@ const tanA = Vec3.zero()
 const tanB = Vec3.zero()
 const tB = Vec3.zero()
 
-export function interpolatePointsAndTangents(state: CurveSegmentState, controls: CurveSegmentControls, tension: number) {
+export function interpolatePointsAndTangents(state: CurveSegmentState, controls: CurveSegmentControls, tension: number, shift: number) {
     const { curvePoints, tangentVectors, linearSegments } = state
     const { p0, p1, p2, p3, p4 } = controls
 
+    const shift1 = 1 - shift
+
     for (let j = 0; j <= linearSegments; ++j) {
         const t = j * 1.0 / linearSegments;
-        // if ((v.last && t > 0.5) || (v.first && t < 0.5)) break
-
-        if (t < 0.5) {
-            Vec3.spline(tB, p0, p1, p2, p3, t + 0.5, tension)
-            Vec3.spline(tanA, p0, p1, p2, p3, t + 0.5 + 0.01, tension)
-            Vec3.spline(tanB, p0, p1, p2, p3, t + 0.5 - 0.01, tension)
+        if (t < shift1) {
+            Vec3.spline(tB, p0, p1, p2, p3, t + shift, tension)
+            Vec3.spline(tanA, p0, p1, p2, p3, t + shift + 0.01, tension)
+            Vec3.spline(tanB, p0, p1, p2, p3, t + shift - 0.01, tension)
         } else {
-            Vec3.spline(tB, p1, p2, p3, p4, t - 0.5, tension)
-            Vec3.spline(tanA, p1, p2, p3, p4, t - 0.5 + 0.01, tension)
-            Vec3.spline(tanB, p1, p2, p3, p4, t - 0.5 - 0.01, tension)
+            Vec3.spline(tB, p1, p2, p3, p4, t - shift1, tension)
+            Vec3.spline(tanA, p1, p2, p3, p4, t - shift1 + 0.01, tension)
+            Vec3.spline(tanB, p1, p2, p3, p4, t - shift1 - 0.01, tension)
         }
         Vec3.toArray(tB, curvePoints, j * 3)
         Vec3.normalize(tangentVec, Vec3.sub(tangentVec, tanA, tanB))

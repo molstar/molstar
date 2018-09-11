@@ -11,7 +11,7 @@ import { Mesh } from '../../../mesh/mesh';
 import { MeshBuilder } from '../../../mesh/mesh-builder';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
-import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
+import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { Wedge } from '../../../primitive/wedge';
@@ -51,11 +51,12 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
         const v = polymerTraceIt.move()
         builder.setGroup(i)
 
-        const isNucleic = v.moleculeType === MoleculeType.DNA || v.moleculeType === MoleculeType.RNA
+        const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
-        const tension = (isNucleic || isSheet) ? 0.5 : 0.9
+        const tension = (isNucleicType || isSheet) ? 0.5 : 0.9
+        const shift = isNucleicType ? 0.3 : 0.5
 
-        interpolateCurveSegment(state, v, tension)
+        interpolateCurveSegment(state, v, tension, shift)
 
         if ((isSheet && !v.secStrucChange) || !isSheet) {
             const size = sizeTheme.size(v.center)
@@ -63,7 +64,7 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
             const width = widthFactor * size
             const height = heightFactor * size
 
-            const vectors = isNucleic ? binormalVectors : normalVectors
+            const vectors = isNucleicType ? binormalVectors : normalVectors
             Vec3.fromArray(n0, vectors, 0)
             Vec3.fromArray(n1, vectors, 3)
             Vec3.normalize(upVec, Vec3.add(upVec, n0, n1))
