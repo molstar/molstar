@@ -30,7 +30,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
     function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
         _props = Object.assign({}, _props, props)
 
-        return Task.create('Creating or updating StructureRepresentation', async ctx => {
+        return Task.create('Creating or updating UnitsRepresentation', async ctx => {
             if (!_structure && !structure) {
                 throw new Error('missing structure')
             } else if (structure && !_structure) {
@@ -97,9 +97,12 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
             } else {
                 // console.log('no new structure')
                 // No new structure given, just update all visuals with new props.
-                visuals.forEach(async ({ visual, group }) => {
+                const visualsList: [ UnitsVisual<P>, Unit.SymmetryGroup ][] = [] // TODO avoid allocation
+                visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]))
+                for (let i = 0, il = visualsList.length; i < il; ++i) {
+                    const [ visual, group ] = visualsList[i]
                     await visual.createOrUpdate(ctx, _props, { group, structure: _structure })
-                })
+                }
             }
             if (structure) _structure = structure
         });
