@@ -136,9 +136,8 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
                 if (group && !sameGroupConformation(group, currentGroup)) {
                     // console.log('unit-visual new conformation')
                     currentGroup = group
-                } else {
-                    await update(ctx, props)
                 }
+                await update(ctx, props)
             }
         },
         getLoci(pickingId: PickingId) {
