@@ -18,11 +18,12 @@ import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
 import { PairRestraints, CrossLinkRestraint, extractCrossLinkRestraints } from './unit/pair-restraints';
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
-import { ResidueIndex } from '../model/indexing';
+import { ResidueIndex, ChainIndex } from '../model/indexing';
 import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { idFactory } from 'mol-util/id-factory';
+import { GridLookup3D } from 'mol-math/geometry';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -175,7 +176,12 @@ namespace Structure {
             }
 
             const elements = SortedArray.ofBounds(start as ElementIndex, chains.offsets[c + 1] as ElementIndex);
-            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
+
+            if (isWaterChain(model, c as ChainIndex, elements)) {
+                partitionAtomicUnit(model, elements, builder);
+            } else {
+                builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, elements);
+            }
         }
 
         const cs = model.coarseHierarchy;
@@ -189,6 +195,26 @@ namespace Structure {
         }
 
         return builder.getStructure();
+    }
+
+    function isWaterChain(model: Model, chainIndex: ChainIndex, indices: SortedArray) {
+        const e = model.atomicHierarchy.index.getEntityFromChain(chainIndex);
+        return model.entities.data.type.value(e) === 'water';
+    }
+
+    function partitionAtomicUnit(model: Model, indices: SortedArray, builder: StructureBuilder) {
+        const { x, y, z } = model.atomicConformation;
+        const lookup = GridLookup3D({ x, y, z, indices }, Vec3.create(64, 64, 64));
+        const { offset, count, array } = lookup.buckets;
+
+        for (let i = 0, _i = offset.length; i < _i; i++) {
+            const start = offset[i];
+            const set = new Int32Array(count[i]);
+            for (let j = 0, _j = count[i]; j < _j; j++) {
+                set[j] = indices[array[start + j]];
+            }
+            builder.addUnit(Unit.Kind.Atomic, model, SymmetryOperator.Default, SortedArray.ofSortedArray(set));
+        }
     }
 
     function addCoarseUnits(builder: StructureBuilder, model: Model, elements: CoarseElements, kind: Unit.Kind) {

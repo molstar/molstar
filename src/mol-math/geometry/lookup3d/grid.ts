@@ -12,15 +12,20 @@ import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
 import { OrderedSet } from 'mol-data/int';
 
-function GridLookup3D(data: PositionData): Lookup3D {
-    return new GridLookup3DImpl(data);
+interface GridLookup3D<T = number> extends Lookup3D<T> {
+    readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
+}
+
+function GridLookup3D(data: PositionData, cellSize?: Vec3): GridLookup3D {
+    return new GridLookup3DImpl(data, cellSize);
 }
 
 export { GridLookup3D }
 
-class GridLookup3DImpl implements Lookup3D<number> {
+class GridLookup3DImpl implements GridLookup3D<number> {
     private ctx: QueryContext;
     boundary: Lookup3D['boundary'];
+    buckets: GridLookup3D['buckets'];
 
     find(x: number, y: number, z: number, radius: number): Result<number> {
         this.ctx.x = x;
@@ -31,6 +36,7 @@ class GridLookup3DImpl implements Lookup3D<number> {
         query(this.ctx);
         return this.ctx.result;
     }
+
     check(x: number, y: number, z: number, radius: number): boolean {
         this.ctx.x = x;
         this.ctx.y = y;
@@ -40,10 +46,11 @@ class GridLookup3DImpl implements Lookup3D<number> {
         return query(this.ctx);
     }
 
-    constructor(data: PositionData) {
-        const structure = build(data);
+    constructor(data: PositionData, cellSize?: Vec3) {
+        const structure = build(data, cellSize);
         this.ctx = createContext(structure);
         this.boundary = { box: structure.boundingBox, sphere: structure.boundingSphere };
+        this.buckets = { offset: structure.bucketOffset, count: structure.bucketCounts, array: structure.bucketArray };
     }
 }
 
@@ -82,18 +89,18 @@ interface BuildState {
     expandedBox: Box3D,
     boundingBox: Box3D,
     boundingSphere: Sphere3D,
-    count: number
+    elementCount: number
 }
 
 function _build(state: BuildState): Grid3D {
-    const { expandedBox, size: [sX, sY, sZ], data: { x: px, y: py, z: pz, radius, indices }, count, delta } = state;
+    const { expandedBox, size: [sX, sY, sZ], data: { x: px, y: py, z: pz, radius, indices }, elementCount, delta } = state;
     const n = sX * sY * sZ;
     const { min: [minX, minY, minZ] } = expandedBox;
 
     let maxRadius = 0;
     let bucketCount = 0;
     const grid = new Uint32Array(n);
-    const bucketIndex = new Int32Array(count);
+    const bucketIndex = new Int32Array(elementCount);
     for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
         const i = OrderedSet.getAt(indices, t);
         const x = Math.floor((px[i] - minX) / delta[0]);
@@ -124,14 +131,14 @@ function _build(state: BuildState): Grid3D {
         }
     }
 
-    const bucketOffset = new Uint32Array(count);
-    for (let i = 1; i < count; ++i) {
+    const bucketOffset = new Uint32Array(bucketCount);
+    for (let i = 1; i < bucketCount; ++i) {
         bucketOffset[i] += bucketOffset[i - 1] + bucketCounts[i - 1];
     }
 
     const bucketFill = new Int32Array(bucketCount);
-    const bucketArray = new Int32Array(count);
-    for (let i = 0; i < count; i++) {
+    const bucketArray = new Int32Array(elementCount);
+    for (let i = 0; i < elementCount; i++) {
         const bucketIdx = grid[bucketIndex[i]]
         if (bucketIdx > 0) {
             const k = bucketIdx - 1;
@@ -156,7 +163,7 @@ function _build(state: BuildState): Grid3D {
     }
 }
 
-function build(data: PositionData) {
+function build(data: PositionData, cellSize?: Vec3) {
     const boundingBox = Box3D.computeBounding(data);
     // need to expand the grid bounds to avoid rounding errors
     const expandedBox = Box3D.expand(Box3D.empty(), boundingBox, Vec3.create(0.5, 0.5, 0.5));
@@ -168,7 +175,10 @@ function build(data: PositionData) {
 
     const elementCount = OrderedSet.size(indices);
 
-    if (elementCount > 0) {
+    if (cellSize) {
+        size = [Math.ceil(S[0] / cellSize[0]), Math.ceil(S[1] / cellSize[1]), Math.ceil(S[2] / cellSize[2])];
+        delta = cellSize;
+    } else if (elementCount > 0) {
         // size of the box
         // required "grid volume" so that each cell contains on average 32 elements.
         const V = Math.ceil(elementCount / 32);
@@ -194,7 +204,7 @@ function build(data: PositionData) {
         expandedBox,
         boundingBox,
         boundingSphere,
-        count: elementCount,
+        elementCount: elementCount,
         delta
     }
 
