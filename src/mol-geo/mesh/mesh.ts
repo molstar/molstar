@@ -49,16 +49,22 @@ export namespace Mesh {
         }
     }
 
-    export function computeNormalsImmediate(surface: Mesh) {
-        if (surface.normalsComputed) return;
+    export function computeNormalsImmediate(mesh: Mesh) {
+        if (mesh.normalsComputed) return;
 
-        const normals = surface.normalBuffer.ref.value.length >= surface.vertexCount * 3
-            ? surface.normalBuffer.ref.value : new Float32Array(surface.vertexBuffer.ref.value.length);
+        const normals = mesh.normalBuffer.ref.value.length >= mesh.vertexCount * 3
+            ? mesh.normalBuffer.ref.value : new Float32Array(mesh.vertexBuffer.ref.value.length);
 
-        const v = surface.vertexBuffer.ref.value, triangles = surface.indexBuffer.ref.value;
+        const v = mesh.vertexBuffer.ref.value, triangles = mesh.indexBuffer.ref.value;
+
+        if (normals === mesh.normalBuffer.ref.value) {
+            for (let i = 0, ii = 3 * mesh.vertexCount; i < ii; i += 3) {
+                normals[i] = 0; normals[i + 1] = 0; normals[i + 2] = 0;
+            }
+        }
 
         const x = Vec3.zero(), y = Vec3.zero(), z = Vec3.zero(), d1 = Vec3.zero(), d2 = Vec3.zero(), n = Vec3.zero();
-        for (let i = 0, ii = 3 * surface.triangleCount; i < ii; i += 3) {
+        for (let i = 0, ii = 3 * mesh.triangleCount; i < ii; i += 3) {
             const a = 3 * triangles[i], b = 3 * triangles[i + 1], c = 3 * triangles[i + 2];
 
             Vec3.fromArray(x, v, a);
@@ -73,7 +79,7 @@ export namespace Mesh {
             normals[c] += n[0]; normals[c + 1] += n[1]; normals[c + 2] += n[2];
         }
 
-        for (let i = 0, ii = 3 * surface.vertexCount; i < ii; i += 3) {
+        for (let i = 0, ii = 3 * mesh.vertexCount; i < ii; i += 3) {
             const nx = normals[i];
             const ny = normals[i + 1];
             const nz = normals[i + 2];
@@ -82,8 +88,8 @@ export namespace Mesh {
 
             // console.log([normals[i], normals[i + 1], normals[i + 2]], [v[i], v[i + 1], v[i + 2]])
         }
-        ValueCell.update(surface.normalBuffer, normals);
-        surface.normalsComputed = true;
+        ValueCell.update(mesh.normalBuffer, normals);
+        mesh.normalsComputed = true;
     }
 
     export function computeNormals(surface: Mesh): Task<Mesh> {
@@ -101,15 +107,16 @@ export namespace Mesh {
     }
 
     export function transformRangeImmediate(mesh: Mesh, t: Mat4, offset: number, count: number) {
-        transformPositionArray(t, mesh.vertexBuffer.ref.value, offset, count)
+        const v = mesh.vertexBuffer.ref.value
+        transformPositionArray(t, v, offset, count)
         // TODO normals transformation does not work for an unknown reason, ASR
         // if (mesh.normalBuffer.ref.value) {
         //     const n = getNormalMatrix(Mat3.zero(), t)
         //     transformDirectionArray(n, mesh.normalBuffer.ref.value, offset, count)
         //     mesh.normalsComputed = true;
         // }
+        ValueCell.update(mesh.vertexBuffer, v);
         mesh.normalsComputed = false;
-        // mesh.boundingSphere = void 0;
     }
 
     export function computeBoundingSphere(mesh: Mesh): Task<Mesh> {
