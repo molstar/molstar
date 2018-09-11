@@ -14,11 +14,11 @@ import { ModelPropertyDescriptor } from '../../../properties/custom';
 import { mmCIF_Database, mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif';
 import { SortedArray } from 'mol-data/int';
 import { CifWriter } from 'mol-io/writer/cif'
-import { ElementIndex } from '../../../indexing';
+import { ElementIndex, ResidueIndex } from '../../../indexing';
 
 export interface StructConn {
-    getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry>,
-    getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry>,
+    getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry>,
+    getAtomEntries(atomIndex: ElementIndex): ReadonlyArray<StructConn.Entry>,
     readonly entries: ReadonlyArray<StructConn.Entry>
 }
 
@@ -117,11 +117,11 @@ export namespace StructConn {
         }
 
 
-        getResidueEntries(residueAIndex: number, residueBIndex: number): ReadonlyArray<StructConn.Entry> {
+        getResidueEntries(residueAIndex: ResidueIndex, residueBIndex: ResidueIndex): ReadonlyArray<StructConn.Entry> {
             return this.getResiduePairIndex().get(_resKey(residueAIndex, residueBIndex)) || _emptyEntry;
         }
 
-        getAtomEntries(atomIndex: number): ReadonlyArray<StructConn.Entry> {
+        getAtomEntries(atomIndex: ElementIndex): ReadonlyArray<StructConn.Entry> {
             return this.getAtomIndex().get(atomIndex) || _emptyEntry;
         }
 
@@ -134,7 +134,7 @@ export namespace StructConn {
         distance: number,
         order: number,
         flags: number,
-        partners: { residueIndex: number, atomIndex: ElementIndex, symmetry: string }[]
+        partners: { residueIndex: ResidueIndex, atomIndex: ElementIndex, symmetry: string }[]
     }
 
     type StructConnType = typeof mmCIF_Schema.struct_conn.conn_type_id.T
