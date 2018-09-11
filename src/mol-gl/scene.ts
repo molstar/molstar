@@ -15,7 +15,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<RenderableValues & BaseValues>>): Sphere3D {
     let count = 0
     const center = Vec3.zero()
-    renderableMap.forEach((r, o) => {
+    renderableMap.forEach(r => {
         if (r.boundingSphere.radius) {
             Vec3.add(center, center, r.boundingSphere.center)
             ++count
@@ -26,7 +26,7 @@ function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<Ren
     }
 
     let radius = 0
-    renderableMap.forEach((r, o) => {
+    renderableMap.forEach(r => {
         if (r.boundingSphere.radius) {
             radius = Math.max(radius, Vec3.distance(center, r.boundingSphere.center) + r.boundingSphere.radius)
         }
@@ -60,7 +60,7 @@ namespace Scene {
 
             update: () => {
                 update()
-                renderableMap.forEach(o => o.update())
+                renderableMap.forEach(r => r.update())
                 boundingSphere = undefined
             },
 

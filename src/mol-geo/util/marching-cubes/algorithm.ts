@@ -100,9 +100,13 @@ class MarchingCubesComputation {
         if (!params.bottomLeft) params.bottomLeft = [0, 0, 0];
         if (!params.topRight) params.topRight = params.scalarField.space.dimensions;
 
-        this.state = new MarchingCubesState(params),
-            this.minX = params.bottomLeft[0]; this.minY = params.bottomLeft[1]; this.minZ = params.bottomLeft[2];
-        this.maxX = params.topRight[0] - 1; this.maxY = params.topRight[1] - 1; this.maxZ = params.topRight[2] - 1;
+        this.state = new MarchingCubesState(params);
+        this.minX = params.bottomLeft[0];
+        this.minY = params.bottomLeft[1];
+        this.minZ = params.bottomLeft[2];
+        this.maxX = params.topRight[0] - 1;
+        this.maxY = params.topRight[1] - 1;
+        this.maxZ = params.topRight[2] - 1;
 
         this.size = (this.maxX - this.minX) * (this.maxY - this.minY) * (this.maxZ - this.minZ);
         this.sliceSize = (this.maxX - this.minX) * (this.maxY - this.minY);
@@ -162,7 +166,8 @@ class MarchingCubesState {
             this.vertexBuffer,
             li + t * (li - hi),
             lj + t * (lj - hj),
-            lk + t * (lk - hk)) | 0;
+            lk + t * (lk - hk)
+        ) | 0;
 
         this.verticesOnEdges[edgeId] = id + 1;
 

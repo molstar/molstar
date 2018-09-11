@@ -91,15 +91,16 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
         const minX = Math.floor(v[0] - radius)
         const minY = Math.floor(v[1] - radius)
         const minZ = Math.floor(v[2] - radius)
-        const maxX = Math.floor(v[0] + radius)
-        const maxY = Math.floor(v[1] + radius)
-        const maxZ = Math.floor(v[2] + radius)
+        const maxX = Math.ceil(v[0] + radius)
+        const maxY = Math.ceil(v[1] + radius)
+        const maxZ = Math.ceil(v[2] + radius)
 
-        for (let x = minX; x <= maxX; ++x) {
-            for (let y = minY; y <= maxY; ++y) {
-                for (let z = minZ; z <= maxZ; ++z) {
+        for (let x = minX; x < maxX; ++x) {
+            for (let y = minY; y < maxY; ++y) {
+                for (let z = minZ; z < maxZ; ++z) {
                     const dist = Vec3.distance(Vec3.set(p, x, y, z), v)
                     if (dist <= radius) {
+                        // TODO use actual gaussian
                         const density = 1.0 - smoothstep(0.0, radius * 1.0, dist)
                         space.set(data, x, y, z, space.get(data, x, y, z) + density)
                     }

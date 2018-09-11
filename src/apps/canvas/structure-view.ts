@@ -210,7 +210,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             for (const k in structureRepresentations) {
                 if (active[k]) {
                     await structureRepresentations[k].createOrUpdate({}, structure).run(
-                        progress => console.log(Progress.format(progress)), 100
+                        progress => console.log(Progress.format(progress))
                     )
                     viewer.add(structureRepresentations[k])
                 } else {

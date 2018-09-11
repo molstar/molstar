@@ -172,13 +172,13 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                 if (value.ref.version !== versions[k]) {
                     const buffer = attributeBuffers[k]
                     if (buffer.length >= value.ref.value.length) {
-                        // console.log('attribute array large enough to update', k)
+                        // console.log('attribute array large enough to update', k, value.ref.id, value.ref.version)
                         attributeBuffers[k].updateData(value.ref.value)
                     } else {
-                        // console.log('attribute array to small, need to create new attribute', k)
+                        // console.log('attribute array to small, need to create new attribute', k, value.ref.id, value.ref.version)
                         attributeBuffers[k].destroy()
-                        const spec = schema[k] as AttributeSpec<ArrayKind>
-                        attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, spec.itemSize, spec.divisor)
+                        const { itemSize, divisor } = schema[k] as AttributeSpec<ArrayKind>
+                        attributeBuffers[k] = createAttributeBuffer(ctx, value.ref.value, itemSize, divisor)
                         valueChanges.attributes = true
                     }
                     versions[k] = value.ref.version
@@ -188,10 +188,10 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             valueChanges.elements = false
             if (elementsBuffer && values.elements.ref.version !== versions.elements) {
                 if (elementsBuffer.length >= values.elements.ref.value.length) {
-                    // console.log('elements array large enough to update')
+                    // console.log('elements array large enough to update', values.elements.ref.id, values.elements.ref.version)
                     elementsBuffer.updateData(values.elements.ref.value)
                 } else {
-                    // console.log('elements array to small, need to create new elements')
+                    // console.log('elements array to small, need to create new elements', values.elements.ref.id, values.elements.ref.version)
                     elementsBuffer.destroy()
                     elementsBuffer = createElementsBuffer(ctx, values.elements.ref.value)
                     valueChanges.elements = true

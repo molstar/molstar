@@ -24,6 +24,7 @@ export interface StructureRepresentationComponentState {
     quality: VisualQuality
     colorTheme: ColorThemeProps
 
+    flatShaded?: boolean
     resolutionFactor?: number
     probeRadius?: number
     isoValue?: number
@@ -37,6 +38,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         quality: this.props.representation.props.quality,
         colorTheme: this.props.representation.props.colorTheme,
 
+        flatShaded: (this.props.representation.props as any).flatShaded,
         resolutionFactor: (this.props.representation.props as any).resolutionFactor,
         probeRadius: (this.props.representation.props as any).probeRadius,
         isoValue: (this.props.representation.props as any).isoValue,
@@ -53,6 +55,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             quality: repr.props.quality,
             colorTheme: repr.props.colorTheme,
 
+            flatShaded: (repr.props as any).flatShaded,
             resolutionFactor: (repr.props as any).resolutionFactor,
             probeRadius: (repr.props as any).probeRadius,
             isoValue: (repr.props as any).isoValue,
@@ -68,12 +71,13 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         if (state.alpha !== undefined) props.alpha = state.alpha
         if (state.colorTheme !== undefined) props.colorTheme = state.colorTheme
 
+        if (state.flatShaded !== undefined) (props as any).flatShaded = state.flatShaded
         if (state.resolutionFactor !== undefined) (props as any).resolutionFactor = state.resolutionFactor
         if (state.probeRadius !== undefined) (props as any).probeRadius = state.probeRadius
         if (state.isoValue !== undefined) (props as any).isoValue = state.isoValue
 
         await repr.createOrUpdate(props).run(
-            progress => console.log(Progress.format(progress)), 100
+            progress => console.log(Progress.format(progress))
         )
         this.props.viewer.add(repr)
         this.props.viewer.draw(true)
@@ -95,6 +99,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             alpha: repr.props.alpha,
             colorTheme: repr.props.colorTheme,
 
+            flatShaded: (repr.props as any).flatShaded,
             resolutionFactor: (repr.props as any).resolutionFactor,
             probeRadius: (repr.props as any).probeRadius,
             isoValue: (repr.props as any).isoValue,
@@ -122,6 +127,12 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         {visible ? 'Hide' : 'Show'}
                     </button>
                 </div>
+                { this.state.flatShaded !== undefined ? <div>
+                    <span>Flat Shaded </span>
+                    <button onClick={(e) => this.update({ flatShaded: !this.state.flatShaded }) }>
+                        {this.state.flatShaded ? 'Deactivate' : 'Activate'}
+                    </button>
+                </div> : '' }
                 <div>
                     <span>Quality </span>
                     <select value={quality} onChange={(e) => this.update({ quality: e.target.value as VisualQuality }) }>
@@ -155,7 +166,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     <input type='range'
                         defaultValue={this.state.isoValue.toString()}
                         min='0.1'
-                        max='2'
+                        max='3'
                         step='0.1'
                         onInput={(e) => this.update({ isoValue: parseFloat(e.currentTarget.value) })}
                     >
