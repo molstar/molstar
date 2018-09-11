@@ -34,26 +34,26 @@ async function readData(path: string) {
     }
 }
 
-(Symbol as any).asyncIterator = (Symbol as any).asyncIterator || Symbol.for('Symbol.asyncIterator');
+// (Symbol as any).asyncIterator = (Symbol as any).asyncIterator || Symbol.for('Symbol.asyncIterator');
 
-interface ProgressGenerator<T> extends AsyncIterableIterator<number | T> {
-    next(cont?: boolean): Promise<IteratorResult<number | T>>
-}
+// interface ProgressGenerator<T> extends AsyncIterableIterator<number | T> {
+//     next(cont?: boolean): Promise<IteratorResult<number | T>>
+// }
 
-async function *test(): ProgressGenerator<boolean> {
-    const r = yield await new Promise<number>(res => res(10));
-    return r;
-}
+// async function *test(): ProgressGenerator<boolean> {
+//     const r = yield await new Promise<number>(res => res(10));
+//     return r;
+// }
 
-async function runIt(itP: () => ProgressGenerator<boolean>) {
-    const it = itP();
-    while (true) {
-        const { value, done } = await it.next(true);
-        if (done) return value;
-    }
-}
+// async function runIt(itP: () => ProgressGenerator<boolean>) {
+//     const it = itP();
+//     while (true) {
+//         const { value, done } = await it.next(true);
+//         if (done) return value;
+//     }
+// }
 
-runIt(test).then(r => console.log('rerdasdasda', r))
+// runIt(test).then(r => console.log('rerdasdasda', r))
 
 export async function readCIF(path: string) {
     console.time('readData');
@@ -375,6 +375,13 @@ export namespace PropertyAccess {
         return StructureQuery.run(q, s);
     }
 
+    export async function runLinks() {
+        const { structures } = await readCIF('e:/test/quick/3j3q_full.bcif');
+        console.time('links');
+        structures[0].links
+        console.timeEnd('links');
+    }
+
     export async function run() {
         //const { structures, models/*, mmcif*/ } = await getBcif('1cbs');
         // const { structures, models } = await getBcif('3j3q');
@@ -483,4 +490,4 @@ export namespace PropertyAccess {
     }
 }
 
-PropertyAccess.run();
+PropertyAccess.runLinks();

@@ -55,13 +55,20 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
     // the lookup queries need to happen in the "unitB space".
     // that means imageA = inverseOperB(operA(aI))
     const imageTransform = Mat4.mul(_imageTransform, unitB.conformation.operator.inverse, unitA.conformation.operator.matrix);
+    const isNotIdentity = !Mat4.isIdentity(imageTransform);
     const imageA = Vec3.zero();
 
+    const { center: bCenter, radius: bRadius } = lookup3d.boundary.sphere;
+    const testDistanceSq = (bRadius + MAX_RADIUS) * (bRadius + MAX_RADIUS);
+
     for (let _aI = 0; _aI < atomCount; _aI++) {
-        const aI =  atomsA[_aI];
+        const aI = atomsA[_aI];
+        Vec3.set(imageA, xA[aI], yA[aI], zA[aI]);
+        if (isNotIdentity) Vec3.transformMat4(imageA, imageA, imageTransform);
+        if (Vec3.squaredDistance(imageA, bCenter) > testDistanceSq) continue;
 
         const structConnEntries = params.forceCompute ? void 0 : structConn && structConn.getAtomEntries(aI);
-        if (structConnEntries) {
+        if (structConnEntries && structConnEntries.length) {
             for (const se of structConnEntries) {
                 if (se.distance < MAX_RADIUS) continue;
 
@@ -74,13 +81,10 @@ function findPairLinks(unitA: Unit.Atomic, unitB: Unit.Atomic, params: LinkCompu
             }
         }
 
-        const aeI = getElementIdx(type_symbolA.value(aI));
-
-        Vec3.set(imageA, xA[aI], yA[aI], zA[aI]);
-        Vec3.transformMat4(imageA, imageA, imageTransform);
         const { indices, count, squaredDistances } = lookup3d.find(imageA[0], imageA[1], imageA[2], MAX_RADIUS);
         if (count === 0) continue;
 
+        const aeI = getElementIdx(type_symbolA.value(aI));
         const isHa = isHydrogen(aeI);
         const thresholdA = getElementThreshold(aeI);
         const altA = label_alt_idA.value(aI);
@@ -154,6 +158,7 @@ function findLinks(structure: Structure, params: LinkComputationParameters) {
 
     const lookup = structure.lookup3d;
     const imageCenter = Vec3.zero();
+
     for (const unit of structure.units) {
         if (!Unit.isAtomic(unit)) continue;
 
