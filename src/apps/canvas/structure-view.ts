@@ -68,10 +68,10 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     const active: { [k: string]: boolean } = {
         cartoon: true,
         point: false,
-        surface: false,
+        surface: true,
         ballAndStick: false,
         carbohydrate: false,
-        spacefill: false,
+        spacefill: true,
         distanceRestraint: false,
         symmetryAxes: false,
         // polymerSphere: false,
