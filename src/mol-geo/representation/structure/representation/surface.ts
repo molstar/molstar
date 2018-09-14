@@ -38,7 +38,7 @@ export function SurfaceRepresentation(): SurfaceRepresentation {
             currentProps = Object.assign({}, DefaultSurfaceProps, currentProps, props)
             return Task.create('Creating SurfaceRepresentation', async ctx => {
                 await gaussianSurfaceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
-                await gaussianPointRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                // await gaussianPointRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {

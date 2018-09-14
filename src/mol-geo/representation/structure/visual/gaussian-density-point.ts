@@ -10,36 +10,22 @@ import { UnitsVisual, VisualUpdateState } from '..';
 import { StructureElementIterator } from './util/element';
 import { EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { SizeThemeProps } from 'mol-view/theme/size';
 import { UnitsPointVisual, DefaultUnitsPointProps } from '../units-visual';
-import { computeGaussianDensity } from './util/gaussian';
-import { Color } from 'mol-util/color';
-import { ColorThemeProps } from 'mol-view/theme/color';
+import { computeGaussianDensity, DefaultGaussianDensityProps } from './util/gaussian';
 import { Point } from '../../../geometry/point/point';
 import { PointBuilder } from '../../../geometry/point/point-builder';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultGaussianDensityPointProps = {
     ...DefaultUnitsPointProps,
+    ...DefaultGaussianDensityProps,
 
-    sizeTheme: { name: 'uniform', value: 1.5 } as SizeThemeProps,
-    colorTheme: { name: 'uniform', value: Color(0xAAAAAA) } as ColorThemeProps,
+    sizeTheme: { name: 'uniform', value: 1 } as SizeThemeProps,
     pointSizeAttenuation: false,
-
-    resolutionFactor: 7,
-    probeRadius: 0,
-    isoValue: 1.5,
 }
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
-export interface GaussianDensityProps {
-    sizeTheme: SizeThemeProps
-
-    resolutionFactor: number
-    probeRadius: number
-    isoValue: number
-}
-
-export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, point?: Point) {
+export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityPointProps, point?: Point) {
     const { transform, field: { space, data } } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
 
     const { dimensions, get } = space
@@ -77,7 +63,9 @@ export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointPr
         getLoci: () => EmptyLoci,
         mark: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: GaussianDensityPointProps, currentProps: GaussianDensityPointProps) => {
-
+            if (newProps.resolutionFactor !== currentProps.resolutionFactor) state.createGeometry = true
+            if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
+            if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
         }
     })
 }

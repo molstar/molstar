@@ -11,33 +11,17 @@ import { Mesh } from '../../../geometry/mesh/mesh';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { computeMarchingCubes } from '../../../util/marching-cubes/algorithm';
-import { SizeThemeProps } from 'mol-view/theme/size';
-import { Color } from 'mol-util/color';
-import { computeGaussianDensity } from './util/gaussian';
-import { ColorThemeProps } from 'mol-view/theme/color';
+import { computeGaussianDensity, DefaultGaussianDensityProps } from './util/gaussian';
 
-export interface GaussianSurfaceMeshProps {
-    sizeTheme: SizeThemeProps
-
-    resolutionFactor: number
-    probeRadius: number
-    isoValue: number
-}
-
-async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianSurfaceMeshProps, mesh?: Mesh): Promise<Mesh> {
-    const { isoValue } = props
-
-    console.time('surface density')
+async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianSurfaceProps, mesh?: Mesh): Promise<Mesh> {
+    const { smoothness } = props
     const { transform, field } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
-    console.timeEnd('surface density')
 
-    console.time('surface mc')
     const surface = await computeMarchingCubes({
-        isoLevel: Math.exp(-isoValue),
+        isoLevel: Math.exp(-smoothness),
         scalarField: field,
         oldSurface: mesh
     }).runAsChild(ctx)
-    console.timeEnd('surface mc')
 
     Mesh.transformImmediate(surface, transform)
     Mesh.computeNormalsImmediate(surface)
@@ -47,19 +31,9 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
 
 export const DefaultGaussianSurfaceProps = {
     ...DefaultUnitsMeshProps,
-    linearSegments: 8,
-    radialSegments: 12,
-    aspectRatio: 5,
-    arrowFactor: 1.5,
+    ...DefaultGaussianDensityProps,
 
-    flipSided: true,
-    // flatShaded: true,
-    alpha: 0.7,
-    colorTheme: { name: 'uniform' as 'uniform', value: Color(0xDDDDDD) } as ColorThemeProps,
-
-    resolutionFactor: 7,
-    probeRadius: 0,
-    isoValue: 1.5,
+    flipSided: true, // TODO should not be required
 }
 export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 
@@ -72,8 +46,8 @@ export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {
         mark: markElement,
         setUpdateState: (state: VisualUpdateState, newProps: GaussianSurfaceProps, currentProps: GaussianSurfaceProps) => {
             if (newProps.resolutionFactor !== currentProps.resolutionFactor) state.createGeometry = true
-            if (newProps.probeRadius !== currentProps.probeRadius) state.createGeometry = true
-            if (newProps.isoValue !== currentProps.isoValue) state.createGeometry = true
+            if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
+            if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
         }
     })
 }

@@ -29,8 +29,8 @@ export const DefaultStructureMeshProps = {
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
 export const DefaultStructurePointProps = {
+    ...Point.DefaultProps,
     ...DefaultStructureProps,
-    ...Point.DefaultProps
 }
 export type StructurePointProps = typeof DefaultStructurePointProps
 

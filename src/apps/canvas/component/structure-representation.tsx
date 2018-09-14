@@ -26,8 +26,8 @@ export interface StructureRepresentationComponentState {
 
     flatShaded?: boolean
     resolutionFactor?: number
-    probeRadius?: number
-    isoValue?: number
+    radiusOffset?: number
+    smoothness?: number
 }
 
 export class StructureRepresentationComponent extends React.Component<StructureRepresentationComponentProps, StructureRepresentationComponentState> {
@@ -40,8 +40,8 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
         flatShaded: (this.props.representation.props as any).flatShaded,
         resolutionFactor: (this.props.representation.props as any).resolutionFactor,
-        probeRadius: (this.props.representation.props as any).probeRadius,
-        isoValue: (this.props.representation.props as any).isoValue,
+        radiusOffset: (this.props.representation.props as any).radiusOffset,
+        smoothness: (this.props.representation.props as any).smoothness,
     }
 
     componentWillMount() {
@@ -57,8 +57,8 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
             flatShaded: (repr.props as any).flatShaded,
             resolutionFactor: (repr.props as any).resolutionFactor,
-            probeRadius: (repr.props as any).probeRadius,
-            isoValue: (repr.props as any).isoValue,
+            radiusOffset: (repr.props as any).probeRadius,
+            smoothness: (repr.props as any).smoothness,
         })
     }
 
@@ -73,8 +73,8 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
         if (state.flatShaded !== undefined) (props as any).flatShaded = state.flatShaded
         if (state.resolutionFactor !== undefined) (props as any).resolutionFactor = state.resolutionFactor
-        if (state.probeRadius !== undefined) (props as any).probeRadius = state.probeRadius
-        if (state.isoValue !== undefined) (props as any).isoValue = state.isoValue
+        if (state.radiusOffset !== undefined) (props as any).probeRadius = state.radiusOffset
+        if (state.smoothness !== undefined) (props as any).smoothness = state.smoothness
 
         await repr.createOrUpdate(props).run(
             progress => console.log(Progress.format(progress))
@@ -161,25 +161,25 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     >
                     </input>
                 </div> : '' }
-                { this.state.isoValue !== undefined ? <div>
-                    <span>Iso Value </span>
+                { this.state.smoothness !== undefined ? <div>
+                    <span>Smoothness </span>
                     <input type='range'
-                        defaultValue={this.state.isoValue.toString()}
+                        defaultValue={this.state.smoothness.toString()}
                         min='1'
                         max='3'
                         step='0.1'
-                        onInput={(e) => this.update({ isoValue: parseFloat(e.currentTarget.value) })}
+                        onInput={(e) => this.update({ smoothness: parseFloat(e.currentTarget.value) })}
                     >
                     </input>
                 </div> : '' }
-                { this.state.probeRadius !== undefined ? <div>
-                    <span>Probe Radius </span>
+                { this.state.radiusOffset !== undefined ? <div>
+                    <span>Radius Offset </span>
                     <input type='range'
-                        defaultValue={this.state.probeRadius.toString()}
+                        defaultValue={this.state.radiusOffset.toString()}
                         min='0'
                         max='10'
                         step='0.1'
-                        onInput={(e) => this.update({ probeRadius: parseFloat(e.currentTarget.value) })}
+                        onInput={(e) => this.update({ radiusOffset: parseFloat(e.currentTarget.value) })}
                     >
                     </input>
                 </div> : '' }
