@@ -57,7 +57,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
             flatShaded: (repr.props as any).flatShaded,
             resolutionFactor: (repr.props as any).resolutionFactor,
-            radiusOffset: (repr.props as any).probeRadius,
+            radiusOffset: (repr.props as any).radiusOffset,
             smoothness: (repr.props as any).smoothness,
         })
     }
@@ -73,7 +73,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
         if (state.flatShaded !== undefined) (props as any).flatShaded = state.flatShaded
         if (state.resolutionFactor !== undefined) (props as any).resolutionFactor = state.resolutionFactor
-        if (state.radiusOffset !== undefined) (props as any).probeRadius = state.radiusOffset
+        if (state.radiusOffset !== undefined) (props as any).radiusOffset = state.radiusOffset
         if (state.smoothness !== undefined) (props as any).smoothness = state.smoothness
 
         await repr.createOrUpdate(props).run(
@@ -101,7 +101,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
 
             flatShaded: (repr.props as any).flatShaded,
             resolutionFactor: (repr.props as any).resolutionFactor,
-            probeRadius: (repr.props as any).probeRadius,
+            radiusOffset: (repr.props as any).radiusOffset,
             isoValue: (repr.props as any).isoValue,
         }
         this.setState(newState)
