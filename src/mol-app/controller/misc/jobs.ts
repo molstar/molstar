@@ -5,7 +5,7 @@
  * Copyright (c) 2016 - now David Sehnal, licensed under Apache 2.0, See LICENSE file for more info.
  */
 
-import { Map } from 'immutable'
+import produce from 'immer'
 import { filter } from 'rxjs/operators';
 
 import { Controller } from '../controller'
@@ -21,7 +21,7 @@ export interface JobInfo {
 }
 
 export interface JobsState {
-    jobs: Map<number, JobInfo>
+    jobs: { [k: number]: JobInfo }
 }
 
 export class JobsController extends Controller<JobsState> {
@@ -30,38 +30,42 @@ export class JobsController extends Controller<JobsState> {
         let jobs = this.latestState.jobs!;
 
         if (!isWatched) {
-            if (jobs.has(state.jobId)) {
-                jobs = jobs.delete(state.jobId);
+            if (jobs[state.jobId] !== undefined) {
+                jobs = produce(jobs, _jobs => { delete _jobs[state.jobId] });
                 this.setState({ jobs });
             }
             return;
         }
 
-        jobs = jobs.set(state.jobId, {
-            name: state.name,
-            message: state.message,
-            abort: state.abort
-        });
+        jobs = produce(jobs, _jobs => {
+            _jobs[state.jobId] = {
+                name: state.name,
+                message: state.message,
+                abort: state.abort
+            };
+        })
         this.setState({ jobs });
     }
 
     private started(job: Job.Info) {
         this.setState({
-            jobs: this.latestState.jobs!.set(job.id, { name: job.name, message: 'Running...' })
+            jobs: produce(this.latestState.jobs!, _jobs => {
+                _jobs[job.id] = { name: job.name, message: 'Running...' }
+            })
         });
     }
 
     private completed(taskId: number) {
-        if (!this.latestState.jobs!.has(taskId)) return;
+        if (!this.latestState.jobs![taskId]) return;
 
         this.setState({
-            jobs: this.latestState.jobs!.delete(taskId)
+            jobs: produce(this.latestState.jobs!, _jobs => { delete _jobs[taskId] })
         });
     }
 
     constructor(context: Context, private type: Job.Type) {
         super(context, {
-            jobs: Map<number, JobInfo>()
+            jobs: {}
         });
 
         JobEvents.StateUpdated.getStream(this.context)

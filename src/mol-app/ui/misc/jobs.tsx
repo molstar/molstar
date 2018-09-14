@@ -30,10 +30,10 @@ export class Overlay extends View<JobsController, {}, {}> {
     render() {
         const state = this.controller.latestState;
 
-        if (!state.jobs!.count()) return <div className='molstar-empty-control' />
+        if (!Object.keys(state.jobs).length) return <div className='molstar-empty-control' />
 
         const jobs: any[] = [];
-        state.jobs!.forEach((t, k) => jobs.push(<JobState key={k} info={t!} />));
+        Object.keys(state.jobs).forEach(k => jobs.push(<JobState key={k} info={state.jobs[parseInt(k)]} />));
 
         return <div className='molstar-overlay'>
             <div className='molstar-overlay-background' />
@@ -52,10 +52,10 @@ export class BackgroundJobs extends View<JobsController, {}, {}> {
     render() {
         const state = this.controller.latestState;
 
-        if (!state.jobs!.count()) return <div className='molstar-empty-control' />
+        if (!Object.keys(state.jobs).length) return <div className='molstar-empty-control' />
 
         const jobs: any[] = [];
-        state.jobs!.forEach((t, k) => jobs.push(<JobState key={k} info={t!} isSmall={true} />));
+        Object.keys(state.jobs).forEach(k => jobs.push(<JobState key={k} info={state.jobs[parseInt(k)]} isSmall={true} />));
 
         return <div className='molstar-background-jobs'>
             {jobs}
