@@ -5,16 +5,16 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual, MeshUpdateState } from '..';
+import { UnitsVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../mesh/mesh';
-import { MeshBuilder } from '../../../mesh/mesh-builder';
+import { Mesh } from '../../../geometry/mesh/mesh';
+import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
-import { addSheet } from '../../../mesh/builder/sheet';
-import { addTube } from '../../../mesh/builder/tube';
+import { addSheet } from '../../../geometry/mesh/builder/sheet';
+import { addTube } from '../../../geometry/mesh/builder/tube';
 
 export interface PolymerTraceMeshProps {
     sizeTheme: SizeThemeProps
@@ -97,8 +97,8 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         mark: markPolymerElement,
-        setUpdateState: (state: MeshUpdateState, newProps: PolymerTraceProps, currentProps: PolymerTraceProps) => {
-            state.createMesh = (
+        setUpdateState: (state: VisualUpdateState, newProps: PolymerTraceProps, currentProps: PolymerTraceProps) => {
+            state.createGeometry = (
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.aspectRatio !== currentProps.aspectRatio ||

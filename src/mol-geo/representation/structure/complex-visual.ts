@@ -7,17 +7,17 @@
 import { Structure } from 'mol-model/structure';
 import { Visual } from '..';
 import { MeshRenderObject } from 'mol-gl/render-object';
-import { Mesh } from '../../mesh/mesh';
+import { Mesh } from '../../geometry/mesh/mesh';
 import { RuntimeContext } from 'mol-task';
 import { LocationIterator } from '../../util/location-iterator';
 import { createComplexMeshRenderObject, createColors } from './visual/util/common';
-import { StructureProps, DefaultStructureMeshProps, MeshUpdateState } from '.';
+import { StructureProps, DefaultStructureMeshProps, VisualUpdateState } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
-import { updateMeshValues, updateRenderableState } from '../util';
 import { PickingId } from '../../util/picking';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../util/marker-data';
 import { Interval } from 'mol-data/int';
+import { updateMeshValues, updateRenderableState } from '../../geometry/geometry';
 
 export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
 
@@ -32,12 +32,12 @@ export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> {
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
-    setUpdateState(state: MeshUpdateState, newProps: P, currentProps: P): void
+    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
 }
 
 export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
     const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const updateState = MeshUpdateState.create()
+    const updateState = VisualUpdateState.create()
 
     let renderObject: MeshRenderObject | undefined
     let currentProps: P
@@ -65,22 +65,22 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         if (!renderObject) return false
 
         locationIt.reset()
-        MeshUpdateState.reset(updateState)
+        VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps)
 
         const newConformationHash = Structure.conformationHash(currentStructure)
         if (newConformationHash !== conformationHash) {
             conformationHash = newConformationHash
-            updateState.createMesh = true
+            updateState.createGeometry = true
         }
 
-        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.createMesh = true
+        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.createGeometry = true
         if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
         // if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createMesh = true // TODO
 
         //
 
-        if (updateState.createMesh) {
+        if (updateState.createGeometry) {
             mesh = await createMesh(ctx, currentStructure, newProps, mesh)
             ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
             updateState.updateColor = true

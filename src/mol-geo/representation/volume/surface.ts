@@ -8,7 +8,7 @@
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
 import { Task, RuntimeContext } from 'mol-task'
 import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
-import { Mesh } from '../../mesh/mesh';
+import { Mesh } from '../../geometry/mesh/mesh';
 import { VolumeVisual } from '.';
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { ValueCell, defaults } from 'mol-util';

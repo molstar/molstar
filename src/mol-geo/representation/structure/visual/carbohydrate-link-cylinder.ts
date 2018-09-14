@@ -5,12 +5,11 @@
  */
 
 import { Unit, Structure, Link, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, ComplexVisual, MeshUpdateState } from '..';
+import { DefaultStructureProps, ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../mesh/mesh';
+import { Mesh } from '../../../geometry/mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { DefaultMeshProps } from '../../util';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../../../util/location-iterator';
 import { createLinkCylinderMesh, DefaultLinkCylinderProps, LinkCylinderProps } from './util/link';
@@ -19,6 +18,7 @@ import { ComplexMeshVisual } from '../complex-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { LinkType } from 'mol-model/structure/model/types';
 import { BitFlags } from 'mol-util';
+import { DefaultMeshProps } from '../../../geometry/geometry';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
@@ -77,8 +77,8 @@ export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {
         createLocationIterator: CarbohydrateLinkIterator,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: MeshUpdateState, newProps: CarbohydrateLinkProps, currentProps: CarbohydrateLinkProps) => {
-            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        setUpdateState: (state: VisualUpdateState, newProps: CarbohydrateLinkProps, currentProps: CarbohydrateLinkProps) => {
+            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })
 }

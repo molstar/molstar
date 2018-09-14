@@ -19,8 +19,8 @@ import { ColorThemeProps, ColorThemeNames, ColorThemeName } from 'mol-view/theme
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { Color, ColorNames } from 'mol-util/color';
 import { Slider } from '../controls/slider';
-import { VisualQuality } from 'mol-geo/representation/util';
 import { Unit } from 'mol-model/structure';
+import { VisualQuality } from 'mol-geo/geometry/geometry';
 
 interface DistanceRestraintState {
     doubleSided: boolean

@@ -8,8 +8,8 @@ import { ValueCell } from 'mol-util/value-cell'
 import { Vec3, Mat4, Mat3 } from 'mol-math/linear-algebra';
 import { ChunkedArray } from 'mol-data/util';
 import { Mesh } from './mesh';
-import { getNormalMatrix } from '../util';
-import { Primitive } from '../primitive/primitive';
+import { getNormalMatrix } from '../../util';
+import { Primitive } from '../../primitive/primitive';
 
 export interface MeshBuilderState {
     readonly currentGroup: number
@@ -67,6 +67,7 @@ export namespace MeshBuilder {
                 const nb = ChunkedArray.compact(normals, true) as Float32Array
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 return {
+                    kind: 'mesh',
                     vertexCount: vertices.elementCount,
                     triangleCount: indices.elementCount,
                     vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),

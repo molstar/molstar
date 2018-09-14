@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mesh } from 'mol-geo/mesh/mesh';
+import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Color } from 'mol-util/color';
 import { UUID, ValueCell } from 'mol-util';
 import { OrderedSet } from 'mol-data/int';

@@ -6,15 +6,15 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { RuntimeContext } from 'mol-task';
-import { Mesh } from '../../../../mesh/mesh';
-import { MeshBuilder } from '../../../../mesh/mesh-builder';
+import { Mesh } from '../../../../geometry/mesh/mesh';
+import { MeshBuilder } from '../../../../geometry/mesh/mesh-builder';
 import { LinkType } from 'mol-model/structure/model/types';
-import { DefaultMeshProps } from '../../../util';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../../primitive/cylinder';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
-import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../mesh/builder/cylinder';
+import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../geometry/mesh/builder/cylinder';
+import { DefaultMeshProps } from '../../../../geometry/geometry';
 
 export const DefaultLinkCylinderProps = {
     ...DefaultMeshProps,

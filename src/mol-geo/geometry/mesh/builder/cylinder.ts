@@ -6,8 +6,8 @@
 
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { MeshBuilder } from '../mesh-builder';
-import { Primitive } from '../../primitive/primitive';
-import { Cylinder, CylinderProps } from '../../primitive/cylinder';
+import { Primitive } from '../../../primitive/primitive';
+import { Cylinder, CylinderProps } from '../../../primitive/cylinder';
 
 const cylinderMap = new Map<string, Primitive>()
 const up = Vec3.create(0, 1, 0)

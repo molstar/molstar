@@ -5,10 +5,10 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual, MeshUpdateState } from '..';
+import { UnitsVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../mesh/mesh';
-import { MeshBuilder } from '../../../mesh/mesh-builder';
+import { Mesh } from '../../../geometry/mesh/mesh';
+import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
@@ -16,7 +16,7 @@ import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { OrderedSet } from 'mol-data/int';
-import { addCylinder } from '../../../mesh/builder/cylinder';
+import { addCylinder } from '../../../geometry/mesh/builder/cylinder';
 
 export interface PolymerBackboneCylinderProps {
     sizeTheme: SizeThemeProps
@@ -77,8 +77,8 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: MeshUpdateState, newProps: PolymerBackboneProps, currentProps: PolymerBackboneProps) => {
-            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        setUpdateState: (state: VisualUpdateState, newProps: PolymerBackboneProps, currentProps: PolymerBackboneProps) => {
+            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })
 }

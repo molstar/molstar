@@ -5,19 +5,19 @@
  */
 
 import { Unit, Structure, StructureElement } from 'mol-model/structure';
-import { ComplexVisual, MeshUpdateState } from '..';
+import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../mesh/mesh';
+import { Mesh } from '../../../geometry/mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { MeshBuilder } from '../../../mesh/mesh-builder';
+import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 import { LocationIterator } from '../../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
-import { addSphere } from '../../../mesh/builder/sphere';
+import { addSphere } from '../../../geometry/mesh/builder/sphere';
 import { Box, PerforatedBox } from '../../../primitive/box';
 import { OctagonalPyramid, PerforatedOctagonalPyramid } from '../../../primitive/pyramid';
 import { Star } from '../../../primitive/star';
@@ -154,8 +154,8 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProp
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,
-        setUpdateState: (state: MeshUpdateState, newProps: CarbohydrateSymbolProps, currentProps: CarbohydrateSymbolProps) => {
-            state.createMesh = newProps.detail !== currentProps.detail
+        setUpdateState: (state: VisualUpdateState, newProps: CarbohydrateSymbolProps, currentProps: CarbohydrateSymbolProps) => {
+            state.createGeometry = newProps.detail !== currentProps.detail
         }
     })
 }

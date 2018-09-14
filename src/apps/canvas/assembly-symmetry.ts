@@ -7,10 +7,10 @@
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
 import { Table } from 'mol-data/db';
 import { Color, ColorScale } from 'mol-util/color';
-import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
+import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { Tensor } from 'mol-math/linear-algebra';
-import { addSphere } from 'mol-geo/mesh/builder/sphere';
-import { addCylinder } from 'mol-geo/mesh/builder/cylinder';
+import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
+import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { Shape } from 'mol-model/shape';
 import { ColorTheme } from 'mol-view/theme/color';
 import { Location } from 'mol-model/location';

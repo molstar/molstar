@@ -7,7 +7,7 @@
 import { Task, RuntimeContext } from 'mol-task'
 import { ChunkedArray } from 'mol-data/util'
 import { Tensor } from 'mol-math/linear-algebra'
-import { Mesh } from '../../mesh/mesh'
+import { Mesh } from '../../geometry/mesh/mesh'
 import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
 import { ValueCell } from 'mol-util'
 
@@ -76,6 +76,7 @@ class MarchingCubesComputation {
         const os = this.parameters.oldSurface
 
         return {
+            kind: 'mesh',
             vertexCount:  this.state.vertexCount,
             triangleCount: this.state.triangleCount,
             vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),

@@ -6,7 +6,7 @@
 
 import Result from '../result'
 import { Task, RuntimeContext } from 'mol-task'
-import { Mesh } from 'mol-geo/mesh/mesh';
+import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Mesh>> {
     // TODO

@@ -9,7 +9,7 @@ import { Structure } from 'mol-model/structure';
 import { ColorThemeProps } from 'mol-view/theme/color';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { Representation, RepresentationProps } from '..';
-import { DefaultBaseProps, DefaultMeshProps } from '../util';
+import { DefaultMeshProps, DefaultBaseProps, DefaultPointProps } from '../../geometry/geometry';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
@@ -26,23 +26,32 @@ export const DefaultStructureMeshProps = {
 }
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
-export interface MeshUpdateState {
+export const DefaultStructurePointProps = {
+    ...DefaultStructureProps,
+    ...DefaultPointProps
+}
+export type StructurePointProps = typeof DefaultStructurePointProps
+
+export interface VisualUpdateState {
     updateTransform: boolean
     updateColor: boolean
-    createMesh: boolean
+    updateSize: boolean
+    createGeometry: boolean
 }
-export namespace MeshUpdateState {
-    export function create(): MeshUpdateState {
+export namespace VisualUpdateState {
+    export function create(): VisualUpdateState {
         return {
             updateTransform: false,
             updateColor: false,
-            createMesh: false
+            updateSize: false,
+            createGeometry: false
         }
     }
-    export function reset(state: MeshUpdateState) {
+    export function reset(state: VisualUpdateState) {
         state.updateTransform = false
         state.updateColor = false
-        state.createMesh = false
+        state.updateSize = false
+        state.createGeometry = false
     }
 }
 

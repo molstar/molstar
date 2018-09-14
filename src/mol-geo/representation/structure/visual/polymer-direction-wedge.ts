@@ -7,8 +7,8 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../mesh/mesh';
-import { MeshBuilder } from '../../../mesh/mesh-builder';
+import { Mesh } from '../../../geometry/mesh/mesh';
+import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';

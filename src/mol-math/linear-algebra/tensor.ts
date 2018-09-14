@@ -20,6 +20,7 @@ export namespace Tensor {
         create(array?: ArrayCtor): Tensor.Data,
         get(data: Tensor.Data, ...coords: number[]): number
         set(data: Tensor.Data, ...coordsAndValue: number[]): number
+        add(data: Tensor.Data, ...coordsAndValue: number[]): number
     }
 
     interface Layout {
@@ -45,8 +46,8 @@ export namespace Tensor {
 
     export function Space(dimensions: number[], axisOrderSlowToFast: number[], ctor?: ArrayCtor): Space {
         const layout = Layout(dimensions, axisOrderSlowToFast, ctor);
-        const { get, set } = accessors(layout);
-        return { rank: dimensions.length, dimensions, axisOrderSlowToFast, create: creator(layout), get, set };
+        const { get, set, add } = accessors(layout);
+        return { rank: dimensions.length, dimensions, axisOrderSlowToFast, create: creator(layout), get, set, add };
     }
 
     export function Data1(values: ArrayLike<number>): Data { return values as Data; }
@@ -98,52 +99,89 @@ export namespace Tensor {
         return true;
     }
 
-    function accessors(layout: Layout): { get: Space['get'], set: Space['set'] } {
+    function accessors(layout: Layout): { get: Space['get'], set: Space['set'], add: Space['add'] } {
         const { dimensions, axisOrderFastToSlow: ao } = layout;
         switch (dimensions.length) {
-            case 1: return { get: (t, d) => t[d], set: (t, d, x) => t[d] = x };
+            case 1: return {
+                get: (t, d) => t[d],
+                set: (t, d, x) => t[d] = x,
+                add: (t, d, x) => t[d] += x
+            };
             case 2: {
                 // column major
                 if (ao[0] === 0 && ao[1] === 1) {
                     const rows = dimensions[0];
-                    return { get: (t, i, j) => t[j * rows + i], set: (t, i, j, x) => t[j * rows + i] = x };
+                    return {
+                        get: (t, i, j) => t[j * rows + i],
+                        set: (t, i, j, x) => t[j * rows + i] = x,
+                        add: (t, i, j, x) => t[j * rows + i] += x
+                    };
                 }
                 if (ao[0] === 1 && ao[1] === 0) {
                     const cols = dimensions[1];
-                    return { get: (t, i, j) => t[i * cols + j], set: (t, i, j, x) => t[i * cols + j] = x };
+                    return {
+                        get: (t, i, j) => t[i * cols + j],
+                        set: (t, i, j, x) => t[i * cols + j] = x,
+                        add: (t, i, j, x) => t[i * cols + j] += x
+                    };
                 }
                 throw new Error('bad axis order')
             }
             case 3: {
                 if (ao[0] === 0 && ao[1] === 1 && ao[2] === 2) { // 012 ijk
                     const u = dimensions[0], v = dimensions[1], uv = u * v;
-                    return { get: (t, i, j, k) => t[i + j * u + k * uv], set: (t, i, j, k, x ) => t[i + j * u + k * uv] = x };
+                    return {
+                        get: (t, i, j, k) => t[i + j * u + k * uv],
+                        set: (t, i, j, k, x ) => t[i + j * u + k * uv] = x,
+                        add: (t, i, j, k, x ) => t[i + j * u + k * uv] += x
+                    };
                 }
                 if (ao[0] === 0 && ao[1] === 2 && ao[2] === 1) { // 021 ikj
                     const u = dimensions[0], v = dimensions[2], uv = u * v;
-                    return { get: (t, i, j, k) => t[i + k * u + j * uv], set: (t, i, j, k, x ) => t[i + k * u + j * uv] = x };
+                    return {
+                        get: (t, i, j, k) => t[i + k * u + j * uv],
+                        set: (t, i, j, k, x ) => t[i + k * u + j * uv] = x,
+                        add: (t, i, j, k, x ) => t[i + k * u + j * uv] += x
+                    };
                 }
                 if (ao[0] === 1 && ao[1] === 0 && ao[2] === 2) { // 102 jik
                     const u = dimensions[1], v = dimensions[0], uv = u * v;
-                    return { get: (t, i, j, k) => t[j + i * u + k * uv], set: (t, i, j, k, x ) => t[j + i * u + k * uv] = x };
+                    return {
+                        get: (t, i, j, k) => t[j + i * u + k * uv],
+                        set: (t, i, j, k, x ) => t[j + i * u + k * uv] = x,
+                        add: (t, i, j, k, x ) => t[j + i * u + k * uv] += x
+                    };
                 }
                 if (ao[0] === 1 && ao[1] === 2 && ao[2] === 0) { // 120 jki
                     const u = dimensions[1], v = dimensions[2], uv = u * v;
-                    return { get: (t, i, j, k) => t[j + k * u + i * uv], set: (t, i, j, k, x ) => t[j + k * u + i * uv] = x };
+                    return {
+                        get: (t, i, j, k) => t[j + k * u + i * uv],
+                        set: (t, i, j, k, x ) => t[j + k * u + i * uv] = x,
+                        add: (t, i, j, k, x ) => t[j + k * u + i * uv] += x
+                    };
                 }
                 if (ao[0] === 2 && ao[1] === 0 && ao[2] === 1) { // 201 kij
                     const u = dimensions[2], v = dimensions[0], uv = u * v;
-                    return { get: (t, i, j, k) => t[k + i * u + j * uv], set: (t, i, j, k, x ) => t[k + i * u + j * uv] = x };
+                    return {
+                        get: (t, i, j, k) => t[k + i * u + j * uv],
+                        set: (t, i, j, k, x ) => t[k + i * u + j * uv] = x,
+                        add: (t, i, j, k, x ) => t[k + i * u + j * uv] += x
+                    };
                 }
                 if (ao[0] === 2 && ao[1] === 1 && ao[2] === 0) { // 210 kji
                     const u = dimensions[2], v = dimensions[1], uv = u * v;
-                    return { get: (t, i, j, k) => t[k + j * u + i * uv], set: (t, i, j, k, x ) => t[k + j * u + i * uv] = x };
+                    return {
+                        get: (t, i, j, k) => t[k + j * u + i * uv],
+                        set: (t, i, j, k, x ) => t[k + j * u + i * uv] = x,
+                        add: (t, i, j, k, x ) => t[k + j * u + i * uv] += x
+                    };
                 }
                 throw new Error('bad axis order')
             }
             default: return {
                 get: (t, ...c) => t[dataOffset(layout, c)],
-                set: (t, ...c) => t[dataOffset(layout, c)] = c[c.length - 1]
+                set: (t, ...c) => t[dataOffset(layout, c)] = c[c.length - 1],
+                add: (t, ...c) => t[dataOffset(layout, c)] += c[c.length - 1]
             };
         }
     }

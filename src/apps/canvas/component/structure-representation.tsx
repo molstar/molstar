@@ -7,10 +7,10 @@
 import * as React from 'react'
 import { StructureRepresentation, StructureProps } from 'mol-geo/representation/structure';
 import Viewer from 'mol-view/viewer';
-import { VisualQuality, VisualQualityNames } from 'mol-geo/representation/util';
 import { ColorThemeProps, ColorThemeName, ColorThemeNames, ColorTheme } from 'mol-view/theme/color';
 import { Color } from 'mol-util/color';
 import { Progress } from 'mol-task';
+import { VisualQuality, VisualQualityNames } from 'mol-geo/geometry/geometry';
 
 export interface StructureRepresentationComponentProps {
     viewer: Viewer
@@ -165,7 +165,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     <span>Iso Value </span>
                     <input type='range'
                         defaultValue={this.state.isoValue.toString()}
-                        min='0.1'
+                        min='1'
                         max='3'
                         step='0.1'
                         onInput={(e) => this.update({ isoValue: parseFloat(e.currentTarget.value) })}

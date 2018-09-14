@@ -5,17 +5,17 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual, MeshUpdateState } from '..';
+import { UnitsVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../mesh/mesh';
-import { MeshBuilder } from '../../../mesh/mesh-builder';
+import { Mesh } from '../../../geometry/mesh/mesh';
+import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
-import { addSphere } from '../../../mesh/builder/sphere';
-import { addFixedCountDashedCylinder } from '../../../mesh/builder/cylinder';
+import { addSphere } from '../../../geometry/mesh/builder/sphere';
+import { addFixedCountDashedCylinder } from '../../../geometry/mesh/builder/cylinder';
 
 const segmentCount = 10
 
@@ -84,8 +84,8 @@ export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {
         createLocationIterator: PolymerGapLocationIterator.fromGroup,
         getLoci: getPolymerGapElementLoci,
         mark: markPolymerGapElement,
-        setUpdateState: (state: MeshUpdateState, newProps: PolymerGapProps, currentProps: PolymerGapProps) => {
-            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        setUpdateState: (state: VisualUpdateState, newProps: PolymerGapProps, currentProps: PolymerGapProps) => {
+            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })
 }

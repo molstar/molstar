@@ -5,10 +5,10 @@
  */
 
 import { Link, Structure, StructureElement } from 'mol-model/structure';
-import { ComplexVisual, MeshUpdateState } from '..';
+import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
-import { Mesh } from '../../../mesh/mesh';
+import { Mesh } from '../../../geometry/mesh/mesh';
 import { PickingId } from '../../../util/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
@@ -63,8 +63,8 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {
         createLocationIterator: LinkIterator.fromStructure,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: MeshUpdateState, newProps: InterUnitLinkProps, currentProps: InterUnitLinkProps) => {
-            state.createMesh = newProps.radialSegments !== currentProps.radialSegments
+        setUpdateState: (state: VisualUpdateState, newProps: InterUnitLinkProps, currentProps: InterUnitLinkProps) => {
+            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })
 }

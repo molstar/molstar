@@ -11,7 +11,7 @@ import { VolumeData } from 'mol-model/volume';
 import { PickingId } from '../../util/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../util/marker-data';
-import { DefaultBaseProps } from '../util';
+import { DefaultBaseProps } from '../../geometry/geometry';
 
 export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 

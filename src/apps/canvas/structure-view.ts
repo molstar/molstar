@@ -25,7 +25,7 @@ import { BehaviorSubject } from 'rxjs';
 import { SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
 import { DistanceRestraintRepresentation } from 'mol-geo/representation/structure/representation/distance-restraint';
 import { SurfaceRepresentation } from 'mol-geo/representation/structure/representation/surface';
-import { Progress } from 'mol-task';
+// import { Progress } from 'mol-task';
 
 export interface StructureView {
     readonly viewer: Viewer
@@ -210,7 +210,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             for (const k in structureRepresentations) {
                 if (active[k]) {
                     await structureRepresentations[k].createOrUpdate({}, structure).run(
-                        progress => console.log(Progress.format(progress))
+                        // progress => console.log(Progress.format(progress))
                     )
                     viewer.add(structureRepresentations[k])
                 } else {

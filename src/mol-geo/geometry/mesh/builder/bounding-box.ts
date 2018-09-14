@@ -7,7 +7,7 @@
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
 import { MeshBuilder } from '../mesh-builder';
-import { CylinderProps } from '../../primitive/cylinder';
+import { CylinderProps } from '../../../primitive/cylinder';
 import { addCylinder } from './cylinder';
 import { addSphere } from './sphere';
 

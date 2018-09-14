@@ -7,14 +7,14 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '..';
 import { RuntimeContext } from 'mol-task'
-import { Mesh } from '../../../mesh/mesh';
-import { MeshBuilder } from '../../../mesh/mesh-builder';
+import { Mesh } from '../../../geometry/mesh/mesh';
+import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
-import { addCylinder } from '../../../mesh/builder/cylinder';
+import { addCylinder } from '../../../geometry/mesh/builder/cylinder';
 import { Box } from '../../../primitive/box';
 import { NucleotideLocationIterator, markNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
 

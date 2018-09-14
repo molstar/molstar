@@ -8,14 +8,14 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit, StructureElement, Structure } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task';
 import { sphereVertexCount } from '../../../../primitive/sphere';
-import { Mesh } from '../../../../mesh/mesh';
-import { MeshBuilder } from '../../../../mesh/mesh-builder';
+import { Mesh } from '../../../../geometry/mesh/mesh';
+import { MeshBuilder } from '../../../../geometry/mesh/mesh-builder';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { PickingId } from '../../../../util/picking';
 import { SizeTheme, SizeThemeProps } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../../util/location-iterator';
-import { addSphere } from '../../../../mesh/builder/sphere';
+import { addSphere } from '../../../../geometry/mesh/builder/sphere';
 
 export interface ElementSphereMeshProps {
     sizeTheme: SizeThemeProps,

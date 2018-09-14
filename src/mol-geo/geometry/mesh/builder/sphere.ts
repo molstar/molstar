@@ -6,8 +6,8 @@
 
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { MeshBuilder } from '../mesh-builder';
-import { Primitive } from '../../primitive/primitive';
-import { Sphere } from '../../primitive/sphere';
+import { Primitive } from '../../../primitive/primitive';
+import { Sphere } from '../../../primitive/sphere';
 
 const sphereMap = new Map<number, Primitive>()
 const tmpSphereMat = Mat4.identity()

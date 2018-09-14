@@ -5,18 +5,16 @@
  */
 
 import { ValueCell } from 'mol-util/value-cell'
-import { Mesh } from '../geometry/mesh/mesh';
+import { Point } from '../geometry/point/point';
 
-type MeshData = {
+type PointData = {
     aPosition: ValueCell<Float32Array>,
-    aNormal: ValueCell<Float32Array>,
     aGroup: ValueCell<Float32Array>,
 }
 
-export function getMeshData(mesh: Mesh): MeshData {
+export function getPointData(point: Point): PointData {
     return {
-        aPosition: mesh.vertexBuffer,
-        aNormal: mesh.normalBuffer,
-        aGroup: mesh.groupBuffer,
+        aPosition: point.vertexBuffer,
+        aGroup: point.groupBuffer,
     }
 }

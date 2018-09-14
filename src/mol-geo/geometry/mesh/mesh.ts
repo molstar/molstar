@@ -8,9 +8,11 @@ import { Task } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
-import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../util';
+import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
 
 export interface Mesh {
+    readonly kind: 'mesh',
+
     /** Number of vertices in the mesh */
     vertexCount: number,
     /** Number of triangles in the mesh */
@@ -39,6 +41,7 @@ export namespace Mesh {
         const nb = mesh ? mesh.normalBuffer.ref.value : new Float32Array(0)
         const gb = mesh ? mesh.groupBuffer.ref.value : new Float32Array(0)
         return {
+            kind: 'mesh',
             vertexCount: 0,
             triangleCount: 0,
             vertexBuffer: mesh ? ValueCell.update(mesh.vertexBuffer, vb) : ValueCell.create(vb),

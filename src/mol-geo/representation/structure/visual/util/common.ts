@@ -8,12 +8,10 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { createUniformColor, ColorData, createGroupColor, createGroupInstanceColor, createInstanceColor, ColorType } from '../../../../util/color-data';
 import { createUniformSize, SizeData, createGroupSize, createGroupInstanceSize, createInstanceSize, SizeType } from '../../../../util/size-data';
-import { ValueCell } from 'mol-util';
 import { LocationIterator } from '../../../../util/location-iterator';
-import { Mesh } from '../../../../mesh/mesh';
+import { Mesh } from '../../../../geometry/mesh/mesh';
 import { MeshValues, PointValues } from 'mol-gl/renderable';
 import { getMeshData } from '../../../../util/mesh-data';
-import { MeshProps, createMeshValues, createRenderableState, createPointValues } from '../../../util';
 import { StructureProps } from '../..';
 import { createMarkers } from '../../../../util/marker-data';
 import { createMeshRenderObject, createPointRenderObject } from 'mol-gl/render-object';
@@ -21,8 +19,10 @@ import { ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { RuntimeContext } from 'mol-task';
 import { PointProps } from 'mol-geo/representation/structure/representation/point';
-import { fillSerial } from 'mol-util/array';
 import { TransformData, createIdentityTransform, createTransforms } from '../../../../util/transform-data';
+import { Point } from '../../../../geometry/point/point';
+import { getPointData } from '../../../../util/point-data';
+import { MeshProps, createMeshValues, createRenderableState, createPointValues } from '../../../../geometry/geometry';
 
 function getGranularity(locationIt: LocationIterator, granularity: ColorType | SizeType) {
     // Always use 'group' granularity for 'complex' location iterators,
@@ -52,7 +52,7 @@ export async function createSizes(ctx: RuntimeContext, locationIt: LocationItera
 
 // mesh
 
-type StructureMeshProps = Required<MeshProps & StructureProps>
+type StructureMeshProps = MeshProps & StructureProps
 
 async function _createMeshValues(ctx: RuntimeContext, transforms: TransformData, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps): Promise<MeshValues> {
     const { instanceCount, groupCount } = locationIt
@@ -100,19 +100,18 @@ export async function updateComplexMeshRenderObject(ctx: RuntimeContext, structu
 
 // point
 
-type StructurePointProps = Required<PointProps & StructureProps>
+type StructurePointProps = PointProps & StructureProps
 
-async function _createPointValues(ctx: RuntimeContext, transforms: TransformData, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
+async function _createPointValues(ctx: RuntimeContext, transforms: TransformData, point: Point, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
     const { instanceCount, groupCount } = locationIt
     const color = await createColors(ctx, locationIt, props.colorTheme)
     const size = await createSizes(ctx, locationIt, props.sizeTheme)
     const marker = createMarkers(instanceCount * groupCount)
 
-    const counts = { drawCount: groupCount, groupCount, instanceCount }
+    const counts = { drawCount: point.vertexCount, groupCount, instanceCount }
 
     return {
-        aPosition: vertices,
-        aGroup: ValueCell.create(fillSerial(new Float32Array(groupCount))),
+        ...getPointData(point),
         ...color,
         ...size,
         ...marker,
@@ -121,13 +120,13 @@ async function _createPointValues(ctx: RuntimeContext, transforms: TransformData
     }
 }
 
-export async function createUnitsPointValues(ctx: RuntimeContext, group: Unit.SymmetryGroup, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
+export async function createUnitsPointValues(ctx: RuntimeContext, group: Unit.SymmetryGroup, point: Point, locationIt: LocationIterator, props: StructurePointProps): Promise<PointValues> {
     const transforms = createTransforms(group)
-    return _createPointValues(ctx, transforms, vertices, locationIt, props)
+    return _createPointValues(ctx, transforms, point, locationIt, props)
 }
 
-export async function createUnitsPointRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, vertices: ValueCell<Float32Array>, locationIt: LocationIterator, props: StructurePointProps) {
-    const values = await createUnitsPointValues(ctx, group, vertices, locationIt, props)
+export async function createUnitsPointRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, point: Point, locationIt: LocationIterator, props: StructurePointProps) {
+    const values = await createUnitsPointValues(ctx, group, point, locationIt, props)
     const state = createRenderableState(props)
     return createPointRenderObject(values, state)
 }

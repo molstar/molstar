@@ -4,97 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ValueCell } from 'mol-util/value-cell'
-import { BaseValues } from 'mol-gl/renderable/schema';
-import { MeshValues, RenderableState } from 'mol-gl/renderable';
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
-
-export const DefaultBaseProps = {
-    alpha: 1,
-    visible: true,
-    depthMask: true,
-    useFog: false,
-    quality: 'auto' as VisualQuality
-}
-export type BaseProps = typeof DefaultBaseProps
-
-export const DefaultMeshProps = {
-    ...DefaultBaseProps,
-    doubleSided: false,
-    flipSided: false,
-    flatShaded: false,
-}
-export type MeshProps = typeof DefaultMeshProps
-
-export const DefaultPointProps = {
-    ...DefaultBaseProps,
-    pointSizeAttenuation: true
-}
-export type PointProps = typeof DefaultPointProps
-
-type Counts = { drawCount: number, groupCount: number, instanceCount: number }
-
-export function createBaseValues(props: Required<BaseProps>, counts: Counts) {
-    return {
-        uAlpha: ValueCell.create(props.alpha),
-        uGroupCount: ValueCell.create(counts.groupCount),
-        drawCount: ValueCell.create(counts.drawCount),
-        dUseFog: ValueCell.create(props.useFog),
-    }
-}
-
-export function createMeshValues(props: Required<MeshProps>, counts: Counts) {
-    return {
-        ...createBaseValues(props, counts),
-        dDoubleSided: ValueCell.create(props.doubleSided),
-        dFlatShaded: ValueCell.create(props.flatShaded),
-        dFlipSided: ValueCell.create(props.flipSided),
-    }
-}
-
-export function createPointValues(props: Required<PointProps>, counts: Counts) {
-    return {
-        ...createBaseValues(props, counts),
-        dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
-    }
-}
-
-export function createRenderableState(props: Required<BaseProps>): RenderableState {
-    return {
-        visible: props.visible,
-        depthMask: props.depthMask
-    }
-}
-
-export function updateBaseValues(values: BaseValues, props: Required<BaseProps>) {
-    ValueCell.updateIfChanged(values.uAlpha, props.alpha)
-    ValueCell.updateIfChanged(values.dUseFog, props.useFog)
-}
-
-export function updateMeshValues(values: MeshValues, props: Required<MeshProps>) {
-    updateBaseValues(values, props)
-    ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
-    ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
-    ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
-}
-
-export function updateRenderableState(state: RenderableState, props: Required<BaseProps>) {
-    state.visible = props.visible
-    state.depthMask = props.depthMask
-}
-
-export const VisualQualityInfo = {
-    'custom': {},
-    'auto': {},
-    'highest': {},
-    'high': {},
-    'medium': {},
-    'low': {},
-    'lowest': {},
-}
-export type VisualQuality = keyof typeof VisualQualityInfo
-export const VisualQualityNames = Object.keys(VisualQualityInfo)
+import { VisualQuality } from '../geometry/geometry';
 
 export interface QualityProps {
     quality: VisualQuality
