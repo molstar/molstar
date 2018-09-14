@@ -34,14 +34,6 @@ export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, 
     }
 }
 
-const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }
-function createEmptyColorTexture() {
-    return {
-        tColor: ValueCell.create(emptyColorTexture),
-        uColorTexDim: ValueCell.create(Vec2.create(1, 1))
-    }
-}
-
 export function createValueColor(value: Color, colorData?: ColorData): ColorData {
     if (colorData) {
         ValueCell.update(colorData.uColor, Color.toRgbNormalized(value) as Vec3)
@@ -53,7 +45,8 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
         return {
             uColor: ValueCell.create(Color.toRgbNormalized(value) as Vec3),
             aColor: ValueCell.create(new Float32Array(0)),
-            ...createEmptyColorTexture(),
+            tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
             dColorType: ValueCell.create('uniform'),
         }
     }
@@ -85,7 +78,7 @@ export function createTextureColor(colors: TextureImage, type: ColorType, colorD
 
 /** Creates color texture with color for each instance/unit */
 export async function createInstanceColor(ctx: RuntimeContext, locationIt: LocationIterator, color: LocationColor, colorData?: ColorData): Promise<ColorData> {
-    const { instanceCount} = locationIt
+    const { instanceCount } = locationIt
     const colors = colorData && colorData.tColor.ref.value.array.length >= instanceCount * 3 ? colorData.tColor.ref.value : createTextureImage(instanceCount, 3)
     let i = 0
     while (locationIt.hasNext) {
