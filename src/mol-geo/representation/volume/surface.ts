@@ -11,16 +11,13 @@ import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { VolumeVisual } from '.';
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
-import { ValueCell, defaults } from 'mol-util';
-import { Mat4 } from 'mol-math/linear-algebra';
-import { createValueColor } from '../../util/color-data';
-import { getMeshData } from '../../util/mesh-data';
-import { RenderableState, MeshValues } from 'mol-gl/renderable';
-import { PickingId } from '../../util/picking';
-import { createEmptyMarkers, MarkerAction } from '../../util/marker-data';
+import { PickingId } from '../../geometry/picking';
+import { MarkerAction } from '../../geometry/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { fillSerial } from 'mol-util/array';
-import { Color } from 'mol-util/color';
+import { LocationIterator } from '../../util/location-iterator';
+import { NullLocation } from 'mol-model/location';
+import { createIdentityTransform } from '../../geometry/transform-data';
+import { createRenderableState } from '../../geometry/geometry';
 
 export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue) {
     return Task.create<Mesh>('Volume Surface', async ctx => {
@@ -40,62 +37,32 @@ export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValu
 }
 
 export const DefaultSurfaceProps = {
+    ...Mesh.DefaultProps,
     isoValue: VolumeIsoValue.relative({ min: 0, max: 0, mean: 0, sigma: 0 }, 0),
-    alpha: 0.5,
-    visible: true,
-    flatShaded: true,
-    flipSided: true,
-    doubleSided: true,
-    depthMask: true,
-    useFog: true
 }
-export type SurfaceProps = Partial<typeof DefaultSurfaceProps>
+export type SurfaceProps = typeof DefaultSurfaceProps
 
 export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
     let renderObject: MeshRenderObject
-    let curProps = DefaultSurfaceProps
+    let currentProps = DefaultSurfaceProps
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: SurfaceProps = {}, volume?: VolumeData) {
-            props = { ...DefaultSurfaceProps, ...props }
+        async createOrUpdate(ctx: RuntimeContext, props: Partial<SurfaceProps> = {}, volume?: VolumeData) {
+            currentProps = { ...DefaultSurfaceProps, ...props }
 
             if (!volume) return
 
-            const mesh = await computeVolumeSurface(volume, curProps.isoValue).runAsChild(ctx)
+            const mesh = await computeVolumeSurface(volume, currentProps.isoValue).runAsChild(ctx)
             if (!props.flatShaded) {
                 Mesh.computeNormalsImmediate(mesh)
             }
 
-            const instanceCount = 1
-            const color = createValueColor(Color(0x7ec0ee))
-            const marker = createEmptyMarkers()
+            const locationIt = LocationIterator(1, 1, () => NullLocation)
+            const transform = createIdentityTransform()
 
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                aTransform: ValueCell.create(new Float32Array(Mat4.identity())),
-                aInstance: ValueCell.create(fillSerial(new Float32Array(instanceCount))),
-                ...color,
-                ...marker,
-
-                uAlpha: ValueCell.create(defaults(props.alpha, 1.0)),
-                uInstanceCount: ValueCell.create(instanceCount),
-                uGroupCount: ValueCell.create(mesh.triangleCount),
-
-                elements: mesh.indexBuffer,
-
-                drawCount: ValueCell.create(mesh.triangleCount * 3),
-                instanceCount: ValueCell.create(instanceCount),
-
-                dDoubleSided: ValueCell.create(defaults(props.doubleSided, true)),
-                dFlatShaded: ValueCell.create(defaults(props.flatShaded, true)),
-                dFlipSided: ValueCell.create(false),
-                dUseFog: ValueCell.create(defaults(props.useFog, true)),
-            }
-            const state: RenderableState = {
-                depthMask: defaults(props.depthMask, true),
-                visible: defaults(props.visible, true)
-            }
+            const values = await Mesh.createValues(ctx, mesh, transform, locationIt, currentProps)
+            const state = createRenderableState(currentProps)
 
             renderObject = createMeshRenderObject(values, state)
         },

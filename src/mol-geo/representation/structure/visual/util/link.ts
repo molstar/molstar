@@ -14,10 +14,8 @@ import { CylinderProps } from '../../../../primitive/cylinder';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../geometry/mesh/builder/cylinder';
-import { DefaultMeshProps } from '../../../../geometry/geometry';
 
 export const DefaultLinkCylinderProps = {
-    ...DefaultMeshProps,
     sizeTheme: { name: 'uniform', value: 0.15 } as SizeThemeProps,
     linkScale: 0.4,
     linkSpacing: 1,

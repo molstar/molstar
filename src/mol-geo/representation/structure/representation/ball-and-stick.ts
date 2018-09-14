@@ -7,11 +7,11 @@
 import { ComplexRepresentation, StructureRepresentation, UnitsRepresentation } from '..';
 import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
 import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from '../visual/intra-unit-link-cylinder';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../geometry/marker-data';
 import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { getQualityProps } from '../../util';

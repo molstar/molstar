@@ -5,11 +5,11 @@
  */
 
 import { StructureRepresentation, UnitsRepresentation } from '..';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
-import { MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../geometry/marker-data';
 import { PolymerBackboneVisual, DefaultPolymerBackboneProps } from '../visual/polymer-backbone-cylinder';
 import { getQualityProps } from '../../util';
 

@@ -7,7 +7,7 @@
 import { Unit, StructureElement } from 'mol-model/structure';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { getNucleotideElements } from 'mol-model/structure/structure/util/nucleotide';
-import { PickingId } from '../../../../util/picking';
+import { PickingId } from '../../../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { OrderedSet, Interval } from 'mol-data/int';
 

@@ -6,9 +6,9 @@
 
 import { Task, RuntimeContext } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object'
-import { PickingId } from '../util/picking';
+import { PickingId } from '../geometry/picking';
 import { Loci } from 'mol-model/loci';
-import { MarkerAction } from '../util/marker-data';
+import { MarkerAction } from '../geometry/marker-data';
 
 export interface RepresentationProps {}
 

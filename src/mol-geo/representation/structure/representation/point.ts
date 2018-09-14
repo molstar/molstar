@@ -8,9 +8,9 @@ import { UnitsRepresentation } from '..';
 import { ElementPointVisual, DefaultElementPointProps } from '../visual/element-point';
 import { StructureRepresentation } from '../units-representation';
 import { Structure } from 'mol-model/structure';
-import { MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 
 export const DefaultPointProps = {
     ...DefaultElementPointProps,

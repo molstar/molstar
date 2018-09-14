@@ -8,18 +8,18 @@ import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '../';
 import { DefaultStructureMeshProps, VisualUpdateState, DefaultStructurePointProps } from '.';
 import { RuntimeContext } from 'mol-task';
-import { PickingId } from '../../util/picking';
+import { PickingId } from '../../geometry/picking';
 import { LocationIterator } from '../../util/location-iterator';
 import { Mesh } from '../../geometry/mesh/mesh';
-import { MarkerAction, applyMarkerAction, createMarkers } from '../../util/marker-data';
+import { MarkerAction, applyMarkerAction, createMarkers } from '../../geometry/marker-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject, PointRenderObject } from 'mol-gl/render-object';
-import { createUnitsMeshRenderObject, createColors, createUnitsPointRenderObject } from './visual/util/common';
+import { createUnitsMeshRenderObject, createUnitsPointRenderObject, createUnitsTransform } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
-import { createTransforms } from '../../util/transform-data';
-import { updateMeshValues, updateRenderableState, updatePointValues } from '../../geometry/geometry';
 import { Point } from '../../geometry/point/point';
+import { updateRenderableState } from '../../geometry/geometry';
+import { createColors } from '../../geometry/color-data';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -96,7 +96,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         if (updateState.updateTransform) {
             locationIt = createLocationIterator(currentGroup)
             const { instanceCount, groupCount } = locationIt
-            createTransforms(currentGroup, renderObject.values)
+            createUnitsTransform(currentGroup, renderObject.values)
             createMarkers(instanceCount * groupCount, renderObject.values)
             updateState.updateColor = true
         }
@@ -114,7 +114,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         }
 
         // TODO why do I need to cast here?
-        updateMeshValues(renderObject.values, newProps as UnitsMeshProps)
+        Mesh.updateValues(renderObject.values, newProps as UnitsMeshProps)
         updateRenderableState(renderObject.state, newProps as UnitsMeshProps)
 
         currentProps = newProps
@@ -254,7 +254,7 @@ export function UnitsPointVisual<P extends UnitsPointProps>(builder: UnitsPointV
         if (updateState.updateTransform) {
             locationIt = createLocationIterator(currentGroup)
             const { instanceCount, groupCount } = locationIt
-            createTransforms(currentGroup, renderObject.values)
+            createUnitsTransform(currentGroup, renderObject.values)
             createMarkers(instanceCount * groupCount, renderObject.values)
             updateState.updateColor = true
         }
@@ -272,7 +272,7 @@ export function UnitsPointVisual<P extends UnitsPointProps>(builder: UnitsPointV
         }
 
         // TODO why do I need to cast here?
-        updatePointValues(renderObject.values, newProps as UnitsPointProps)
+        Point.updateValues(renderObject.values, newProps as UnitsPointProps)
         updateRenderableState(renderObject.state, newProps as UnitsPointProps)
 
         currentProps = newProps

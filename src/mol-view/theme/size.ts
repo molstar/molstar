@@ -5,7 +5,7 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { SizeType, LocationSize } from 'mol-geo/util/size-data';
+import { SizeType, LocationSize } from 'mol-geo/geometry/size-data';
 
 import { PhysicalSizeTheme } from './size/physical';
 import { UniformSizeTheme } from './size/uniform';

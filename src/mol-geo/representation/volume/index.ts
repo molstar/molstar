@@ -8,17 +8,17 @@ import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
 import { RepresentationProps, Representation, Visual } from '..';
 import { VolumeData } from 'mol-model/volume';
-import { PickingId } from '../../util/picking';
+import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
-import { DefaultBaseProps } from '../../geometry/geometry';
+import { MarkerAction } from '../../geometry/marker-data';
+import { Geometry } from '../../geometry/geometry';
 
 export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 
 export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
 
 export const DefaultVolumeProps = {
-    ...DefaultBaseProps
+    ...Geometry.DefaultProps
 }
 export type VolumeProps = typeof DefaultVolumeProps
 

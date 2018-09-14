@@ -8,9 +8,9 @@ import { UnitsRepresentation } from '..';
 import { GaussianSurfaceVisual, DefaultGaussianSurfaceProps } from '../visual/gaussian-surface-mesh';
 import { StructureRepresentation } from '../units-representation';
 import { Structure } from 'mol-model/structure';
-import { MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Task } from 'mol-task';
 import { GaussianDensityPointVisual, DefaultGaussianDensityPointProps } from '../visual/gaussian-density-point';
 

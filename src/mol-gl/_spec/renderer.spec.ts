@@ -11,14 +11,14 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { ValueCell } from 'mol-util';
 
 import Renderer from '../renderer';
-import { createValueColor } from 'mol-geo/util/color-data';
-import { createValueSize } from 'mol-geo/util/size-data';
+import { createValueColor } from 'mol-geo/geometry/color-data';
+import { createValueSize } from 'mol-geo/geometry/size-data';
 import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
 import { createPointRenderObject } from '../render-object';
 import { PointValues } from '../renderable/point';
 import Scene from '../scene';
-import { createEmptyMarkers } from 'mol-geo/util/marker-data';
+import { createEmptyMarkers } from 'mol-geo/geometry/marker-data';
 import { fillSerial } from 'mol-util/array';
 import { Color } from 'mol-util/color';
 

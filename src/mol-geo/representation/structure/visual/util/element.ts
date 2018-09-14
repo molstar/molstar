@@ -12,7 +12,7 @@ import { Mesh } from '../../../../geometry/mesh/mesh';
 import { MeshBuilder } from '../../../../geometry/mesh/mesh-builder';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
-import { PickingId } from '../../../../util/picking';
+import { PickingId } from '../../../../geometry/picking';
 import { SizeTheme, SizeThemeProps } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { addSphere } from '../../../../geometry/mesh/builder/sphere';

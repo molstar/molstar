@@ -10,7 +10,7 @@ import { UnitsVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
 import { Mesh } from '../../../geometry/mesh/mesh';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';

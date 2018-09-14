@@ -4,11 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task } from 'mol-task'
+import { Task, RuntimeContext } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
+import { MeshValues } from 'mol-gl/renderable';
+import { Geometry } from '../geometry';
+import { createMarkers } from '../marker-data';
+import { TransformData } from '../transform-data';
+import { LocationIterator } from '../../util/location-iterator';
+import { createColors } from '../color-data';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -152,6 +158,46 @@ export namespace Mesh {
             }
             return mesh;
         });
+    }
+
+    //
+
+    export const DefaultProps = {
+        ...Geometry.DefaultProps,
+        doubleSided: false,
+        flipSided: false,
+        flatShaded: false,
+    }
+    export type Props = typeof DefaultProps
+
+    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<MeshValues> {
+        const { instanceCount, groupCount } = locationIt
+        const color = await createColors(ctx, locationIt, props.colorTheme)
+        const marker = createMarkers(instanceCount * groupCount)
+
+        const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
+
+        return {
+            aPosition: mesh.vertexBuffer,
+            aNormal: mesh.normalBuffer,
+            aGroup: mesh.groupBuffer,
+            elements: mesh.indexBuffer,
+            ...color,
+            ...marker,
+            ...transform,
+
+            ...Geometry.createValues(props, counts),
+            dDoubleSided: ValueCell.create(props.doubleSided),
+            dFlatShaded: ValueCell.create(props.flatShaded),
+            dFlipSided: ValueCell.create(props.flipSided),
+        }
+    }
+
+    export function updateValues(values: MeshValues, props: Props) {
+        Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
+        ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
+        ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
     }
 }
 

@@ -21,8 +21,8 @@ import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
-import { PickingId, decodeIdRGBA } from 'mol-geo/util/picking';
-import { MarkerAction } from 'mol-geo/util/marker-data';
+import { PickingId, decodeIdRGBA } from 'mol-geo/geometry/picking';
+import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 

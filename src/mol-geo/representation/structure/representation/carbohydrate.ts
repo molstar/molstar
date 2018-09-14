@@ -5,11 +5,11 @@
  */
 
 import { ComplexRepresentation, StructureRepresentation } from '..';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../../util/marker-data';
+import { MarkerAction } from '../../../geometry/marker-data';
 import { CarbohydrateSymbolVisual, DefaultCarbohydrateSymbolProps } from '../visual/carbohydrate-symbol-mesh';
 import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from '../visual/carbohydrate-link-cylinder';
 import { SizeThemeProps } from 'mol-view/theme/size';

@@ -24,7 +24,7 @@ import { TransformListController } from 'mol-app/controller/transform/list';
 import { TransformList } from 'mol-app/ui/transform/list';
 import { SequenceView } from 'mol-app/ui/visualization/sequence-view';
 import { InteractivityEvents } from 'mol-app/event/basic';
-import { MarkerAction } from 'mol-geo/util/marker-data';
+import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { EveryLoci } from 'mol-model/loci';
 
 const elm = document.getElementById('app')

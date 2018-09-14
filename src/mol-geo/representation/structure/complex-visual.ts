@@ -10,14 +10,15 @@ import { MeshRenderObject } from 'mol-gl/render-object';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { RuntimeContext } from 'mol-task';
 import { LocationIterator } from '../../util/location-iterator';
-import { createComplexMeshRenderObject, createColors } from './visual/util/common';
+import { createComplexMeshRenderObject } from './visual/util/common';
 import { StructureProps, DefaultStructureMeshProps, VisualUpdateState } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
-import { PickingId } from '../../util/picking';
+import { PickingId } from '../../geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction } from '../../util/marker-data';
+import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { Interval } from 'mol-data/int';
-import { updateMeshValues, updateRenderableState } from '../../geometry/geometry';
+import { updateRenderableState } from '../../geometry/geometry';
+import { createColors } from '../../geometry/color-data';
 
 export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
 
@@ -90,8 +91,9 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
             await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
         }
 
-        updateMeshValues(renderObject.values, newProps)
-        updateRenderableState(renderObject.state, newProps)
+        // TODO why do I need to cast here?
+        Mesh.updateValues(renderObject.values, newProps as ComplexMeshProps)
+        updateRenderableState(renderObject.state, newProps as ComplexMeshProps)
 
         currentProps = newProps
         return true

@@ -8,10 +8,11 @@ import { ValueCell } from 'mol-util';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
-import { LocationIterator } from './location-iterator';
+import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
-import { LocationColor } from 'mol-view/theme/color';
+import { LocationColor, ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
 import { RuntimeContext } from 'mol-task';
+import { getGranularity } from './geometry';
 
 export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -21,6 +22,16 @@ export type ColorData = {
     tColor: ValueCell<TextureImage>,
     uColorTexDim: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
+}
+
+export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
+    const colorTheme = ColorTheme(props)
+    switch (getGranularity(locationIt, colorTheme.granularity)) {
+        case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'groupInstance': return createGroupInstanceColor(ctx, locationIt, colorTheme.color, colorData)
+        case 'instance': return createInstanceColor(ctx, locationIt, colorTheme.color, colorData)
+    }
 }
 
 const emptyColorTexture = { array: new Uint8Array(3), width: 1, height: 1 }

@@ -8,7 +8,7 @@ import { Unit, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../geometry/mesh/mesh';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -49,9 +49,10 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
     const { detail } = props
 
     const carbohydrates = structure.carbohydrates
+    const n = carbohydrates.elements.length
     const l = StructureElement.create()
 
-    for (let i = 0, il = carbohydrates.elements.length; i < il; ++i) {
+    for (let i = 0; i < n; ++i) {
         const c = carbohydrates.elements[i];
         const shapeType = getSaccharideShape(c.component.type)
 
@@ -133,6 +134,10 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side , side / 2))
                 builder.add(t, hexagonalPrism)
                 break
+        }
+
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'Carbohydrate symbols', current: i, max: n });
         }
     }
 

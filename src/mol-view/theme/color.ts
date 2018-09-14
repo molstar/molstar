@@ -7,7 +7,7 @@
 import { Color } from 'mol-util/color';
 import { Structure } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorType } from 'mol-geo/util/color-data';
+import { ColorType } from 'mol-geo/geometry/color-data';
 
 import { ElementIndexColorTheme } from './color/element-index';
 import { CarbohydrateSymbolColorTheme } from './color/carbohydrate-symbol';

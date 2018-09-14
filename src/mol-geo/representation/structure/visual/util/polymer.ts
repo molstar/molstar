@@ -7,7 +7,7 @@
 import { Unit, ElementIndex, StructureElement, Link } from 'mol-model/structure';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { LocationIterator } from '../../../../util/location-iterator';
-import { PickingId } from '../../../../util/picking';
+import { PickingId } from '../../../../geometry/picking';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 

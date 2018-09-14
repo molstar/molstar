@@ -7,6 +7,15 @@
 import { ValueCell } from 'mol-util'
 import { Mat4 } from 'mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
+import { Geometry } from '../geometry';
+import { PointValues } from 'mol-gl/renderable';
+import { RuntimeContext } from 'mol-task';
+import { createColors } from '../color-data';
+import { createMarkers } from '../marker-data';
+import { createSizes } from '../size-data';
+import { TransformData } from '../transform-data';
+import { LocationIterator } from '../../util/location-iterator';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 /** Point cloud */
 export interface Point {
@@ -39,5 +48,40 @@ export namespace Point {
         const v = point.vertexBuffer.ref.value
         transformPositionArray(t, v, offset, count)
         ValueCell.update(point.vertexBuffer, v);
+    }
+
+    //
+
+    export const DefaultProps = {
+        ...Geometry.DefaultProps,
+        pointSizeAttenuation: false,
+        sizeTheme: { name: 'uniform', value: 1 } as SizeThemeProps,
+    }
+    export type Props = typeof DefaultProps
+
+    export async function createValues(ctx: RuntimeContext, point: Point, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<PointValues> {
+        const { instanceCount, groupCount } = locationIt
+        const color = await createColors(ctx, locationIt, props.colorTheme)
+        const size = await createSizes(ctx, locationIt, props.sizeTheme)
+        const marker = createMarkers(instanceCount * groupCount)
+
+        const counts = { drawCount: point.vertexCount, groupCount, instanceCount }
+
+        return {
+            aPosition: point.vertexBuffer,
+            aGroup: point.groupBuffer,
+            ...color,
+            ...size,
+            ...marker,
+            ...transform,
+
+            ...Geometry.createValues(props, counts),
+            dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
+        }
+    }
+
+    export function updateValues(values: PointValues, props: Props) {
+        Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
     }
 }

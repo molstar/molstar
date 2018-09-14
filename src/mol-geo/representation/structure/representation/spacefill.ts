@@ -8,8 +8,8 @@ import { UnitsRepresentation } from '..';
 import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
 import { StructureRepresentation } from '../units-representation';
 import { Structure } from 'mol-model/structure';
-import { PickingId } from '../../../util/picking';
-import { MarkerAction } from '../../../util/marker-data';
+import { PickingId } from '../../../geometry/picking';
+import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
 import { getQualityProps } from '../../util';
 

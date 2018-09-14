@@ -5,10 +5,10 @@
  */
 
 import { Unit, Structure, Link, StructureElement } from 'mol-model/structure';
-import { DefaultStructureProps, ComplexVisual, VisualUpdateState } from '..';
+import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../geometry/mesh/mesh';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../../../util/location-iterator';
@@ -18,7 +18,7 @@ import { ComplexMeshVisual } from '../complex-visual';
 import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
 import { LinkType } from 'mol-model/structure/model/types';
 import { BitFlags } from 'mol-util';
-import { DefaultMeshProps } from '../../../geometry/geometry';
+import { DefaultUnitsMeshProps } from '../units-visual';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
@@ -61,8 +61,7 @@ async function createCarbohydrateLinkCylinderMesh(ctx: RuntimeContext, structure
 }
 
 export const DefaultCarbohydrateLinkProps = {
-    ...DefaultMeshProps,
-    ...DefaultStructureProps,
+    ...DefaultUnitsMeshProps,
     ...DefaultLinkCylinderProps,
     sizeTheme: { name: 'physical', factor: 1 } as SizeThemeProps,
     detail: 0,

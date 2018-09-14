@@ -7,9 +7,9 @@
 
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task'
-import { PickingId } from '../../util/picking';
+import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
+import { MarkerAction } from '../../geometry/marker-data';
 import { StructureProps, StructureRepresentation } from '.';
 import { ComplexVisual } from './complex-visual';
 

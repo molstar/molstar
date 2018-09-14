@@ -9,7 +9,7 @@ import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
 import { Mesh } from '../../../geometry/mesh/mesh';
-import { PickingId } from '../../../util/picking';
+import { PickingId } from '../../../geometry/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';

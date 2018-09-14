@@ -9,9 +9,9 @@ import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
 import { Representation, RepresentationProps, Visual } from '..';
-import { PickingId } from '../../util/picking';
+import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
-import { MarkerAction } from '../../util/marker-data';
+import { MarkerAction } from '../../geometry/marker-data';
 import { StructureProps } from '.';
 import { StructureGroup } from './units-visual';
 

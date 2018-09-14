@@ -9,26 +9,28 @@ import { Structure } from 'mol-model/structure';
 import { ColorThemeProps } from 'mol-view/theme/color';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { Representation, RepresentationProps } from '..';
-import { DefaultMeshProps, DefaultBaseProps, DefaultPointProps } from '../../geometry/geometry';
+import { Geometry } from '../../geometry/geometry';
+import { Mesh } from '../../geometry/mesh/mesh';
+import { Point } from '../../geometry/point/point';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
 export const DefaultStructureProps = {
-    ...DefaultBaseProps,
+    ...Geometry.DefaultProps,
     colorTheme: { name: 'unit-index' } as ColorThemeProps,
     sizeTheme: { name: 'physical' } as SizeThemeProps,
 }
 export type StructureProps = typeof DefaultStructureProps
 
 export const DefaultStructureMeshProps = {
+    ...Mesh.DefaultProps,
     ...DefaultStructureProps,
-    ...DefaultMeshProps
 }
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
 export const DefaultStructurePointProps = {
     ...DefaultStructureProps,
-    ...DefaultPointProps
+    ...Point.DefaultProps
 }
 export type StructurePointProps = typeof DefaultStructurePointProps
 

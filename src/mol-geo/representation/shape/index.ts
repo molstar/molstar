@@ -7,24 +7,22 @@
 import { Task } from 'mol-task'
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { RepresentationProps, Representation } from '..';
-import { PickingId } from '../../util/picking';
+import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
-import { MarkerAction, applyMarkerAction, createMarkers } from '../../util/marker-data';
-import { getMeshData } from '../../util/mesh-data';
-import { MeshValues } from 'mol-gl/renderable';
+import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { ValueCell } from 'mol-util';
 import { ColorThemeProps } from 'mol-view/theme/color';
 import { Shape } from 'mol-model/shape';
 import { LocationIterator } from '../../util/location-iterator';
-import { createColors } from '../structure/visual/util/common';
 import { OrderedSet, Interval } from 'mol-data/int';
-import { createIdentityTransform } from '../../util/transform-data';
-import { DefaultMeshProps, createMeshValues, createRenderableState } from '../../geometry/geometry';
+import { createIdentityTransform } from '../../geometry/transform-data';
+import { createRenderableState } from '../../geometry/geometry';
+import { Mesh } from '../../geometry/mesh/mesh';
 
 export interface ShapeRepresentation<P extends RepresentationProps = {}> extends Representation<Shape, P> { }
 
 export const DefaultShapeProps = {
-    ...DefaultMeshProps,
+    ...Mesh.DefaultProps,
 
     colorTheme: { name: 'shape-group' } as ColorThemeProps
 }
@@ -37,10 +35,10 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
-    let _props: P
+    let currentProps: P
 
     function createOrUpdate(props: Partial<P> = {}, shape?: Shape) {
-        _props = Object.assign({}, DefaultShapeProps, _props, props)
+        currentProps = Object.assign({}, DefaultShapeProps, currentProps, props)
         if (shape) _shape = shape
 
         return Task.create('ShapeRepresentation.create', async ctx => {
@@ -50,23 +48,10 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
 
             const mesh = _shape.mesh
             const locationIt = ShapeGroupIterator.fromShape(_shape)
-            const { groupCount, instanceCount } = locationIt
-
             const transform = createIdentityTransform()
-            const color = await createColors(ctx, locationIt, _props.colorTheme)
-            const marker = createMarkers(instanceCount * groupCount)
-            const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
-            const values: MeshValues = {
-                ...getMeshData(mesh),
-                ...createMeshValues(_props, counts),
-                ...transform,
-                ...color,
-                ...marker,
-
-                elements: mesh.indexBuffer,
-            }
-            const state = createRenderableState(_props)
+            const values = await Mesh.createValues(ctx, mesh, transform, locationIt, currentProps)
+            const state = createRenderableState(currentProps)
 
             _renderObject = createMeshRenderObject(values, state)
             renderObjects.push(_renderObject)
@@ -76,7 +61,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
     return {
         label: 'Shape mesh',
         get renderObjects () { return renderObjects },
-        get props () { return _props },
+        get props () { return currentProps },
         createOrUpdate,
         getLoci(pickingId: PickingId) {
             const { objectId, groupId } = pickingId

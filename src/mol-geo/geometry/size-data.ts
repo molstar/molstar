@@ -7,9 +7,11 @@
 import { ValueCell } from 'mol-util';
 import { Vec2 } from 'mol-math/linear-algebra';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
-import { LocationIterator } from './location-iterator';
+import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 import { RuntimeContext } from 'mol-task';
+import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { getGranularity } from './geometry';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -19,6 +21,16 @@ export type SizeData = {
     tSize: ValueCell<TextureImage>,
     uSizeTexDim: ValueCell<Vec2>,
     dSizeType: ValueCell<string>,
+}
+
+export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): Promise<SizeData> {
+    const sizeTheme = SizeTheme(props)
+    switch (getGranularity(locationIt, sizeTheme.granularity)) {
+        case 'uniform': return createUniformSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'group': return createGroupSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'groupInstance': return createGroupInstanceSize(ctx, locationIt, sizeTheme.size, sizeData)
+        case 'instance': return createInstanceSize(ctx, locationIt, sizeTheme.size, sizeData)
+    }
 }
 
 export type LocationSize = (location: Location) => number
