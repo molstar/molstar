@@ -19,6 +19,7 @@ export interface Renderable<T extends RenderableValues & BaseValues> {
     readonly values: T
     readonly state: RenderableState
     readonly boundingSphere: Sphere3D
+    readonly opaque: boolean
 
     render: (variant: RenderVariant) => void
     getProgram: (variant: RenderVariant) => Program
@@ -37,6 +38,7 @@ export function createRenderable<T extends Values<RenderableSchema> & BaseValues
             boundingSphere = calculateBoundingSphereFromValues(values)
             return boundingSphere
         },
+        get opaque () { return values.uAlpha.ref.value === 1 },
 
         render: (variant: RenderVariant) => renderItem.render(variant),
         getProgram: (variant: RenderVariant) => renderItem.getProgram(variant),

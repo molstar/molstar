@@ -90,12 +90,12 @@ namespace Scene {
             },
             eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach((r, o) => {
-                    if (o.values.uAlpha.ref.value === 1) callbackFn(r, o)
+                    if (r.opaque) callbackFn(r, o)
                 })
             },
             eachTransparent: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach((r, o) => {
-                    if (o.values.uAlpha.ref.value < 1) callbackFn(r, o)
+                    if (!r.opaque) callbackFn(r, o)
                 })
             },
             get count() {

@@ -20,6 +20,7 @@ import { Interval } from 'mol-data/int';
 import { Point } from '../../geometry/point/point';
 import { updateRenderableState } from '../../geometry/geometry';
 import { createColors } from '../../geometry/color-data';
+import { createSizes } from '../../geometry/size-data';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -245,7 +246,7 @@ export function UnitsPointVisual<P extends UnitsPointProps>(builder: UnitsPointV
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.createGeometry = true
+        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.updateSize = true
         if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
@@ -265,6 +266,10 @@ export function UnitsPointVisual<P extends UnitsPointProps>(builder: UnitsPointV
                 : Point.createEmpty(point)
             ValueCell.update(renderObject.values.drawCount, point.vertexCount)
             updateState.updateColor = true
+        }
+
+        if (updateState.updateSize) {
+            await createSizes(ctx, locationIt, newProps.sizeTheme, renderObject.values)
         }
 
         if (updateState.updateColor) {

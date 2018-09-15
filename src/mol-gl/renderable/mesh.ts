@@ -27,8 +27,8 @@ export function MeshRenderable(ctx: Context, id: number, values: MeshValues, sta
     const internalValues = {
         uObjectId: ValueCell.create(id)
     }
-    const schaderCode = MeshShaderCode
-    const renderItem = createRenderItem(ctx, 'triangles', schaderCode, schema, { ...values, ...internalValues })
+    const shaderCode = MeshShaderCode
+    const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
 
     return createRenderable(renderItem, values, state)
 }

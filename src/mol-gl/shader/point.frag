@@ -10,11 +10,29 @@ precision highp int;
 #pragma glslify: import('./chunks/common-frag-params.glsl')
 #pragma glslify: import('./chunks/color-frag-params.glsl')
 
+#ifdef dPointFilledCircle
+    uniform float uPointEdgeBleach;
+#endif
+
+const vec2 center = vec2(0.5);
+const float radius = 0.5;
+
 void main(){
     #pragma glslify: import('./chunks/assign-material-color.glsl')
 
-    gl_FragColor = material;
+    #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
+        gl_FragColor = material;
+    #else
+        gl_FragColor = material;
 
-    #pragma glslify: import('./chunks/apply-marker-color.glsl')
-    #pragma glslify: import('./chunks/apply-fog.glsl')
+        #ifdef dPointFilledCircle
+            float dist = distance(gl_PointCoord, center);
+            float alpha = 1.0 - smoothstep(radius - uPointEdgeBleach * 2.0, radius, dist);
+            gl_FragColor.a *= alpha;
+            if (gl_FragColor.a < 0.1) discard;
+        #endif
+
+        #pragma glslify: import('./chunks/apply-marker-color.glsl')
+        #pragma glslify: import('./chunks/apply-fog.glsl')
+    #endif
 }

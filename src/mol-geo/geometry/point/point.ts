@@ -55,6 +55,8 @@ export namespace Point {
     export const DefaultProps = {
         ...Geometry.DefaultProps,
         pointSizeAttenuation: false,
+        pointFilledCircle: false,
+        pointEdgeBleach: 0.2,
         sizeTheme: { name: 'uniform', value: 1 } as SizeThemeProps,
     }
     export type Props = typeof DefaultProps
@@ -77,11 +79,15 @@ export namespace Point {
 
             ...Geometry.createValues(props, counts),
             dPointSizeAttenuation: ValueCell.create(props.pointSizeAttenuation),
+            dPointFilledCircle: ValueCell.create(props.pointFilledCircle),
+            uPointEdgeBleach: ValueCell.create(props.pointEdgeBleach),
         }
     }
 
     export function updateValues(values: PointValues, props: Props) {
         Geometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
+        ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle)
+        ValueCell.updateIfChanged(values.uPointEdgeBleach, props.pointEdgeBleach)
     }
 }

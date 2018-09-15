@@ -73,6 +73,8 @@ function createPoints() {
         instanceCount: ValueCell.create(1),
 
         dPointSizeAttenuation: ValueCell.create(true),
+        dPointFilledCircle: ValueCell.create(false),
+        uPointEdgeBleach: ValueCell.create(0.5),
         dUseFog: ValueCell.create(true),
     }
     const state: RenderableState = {

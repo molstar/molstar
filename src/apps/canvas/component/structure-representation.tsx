@@ -11,6 +11,7 @@ import { ColorThemeProps, ColorThemeName, ColorThemeNames, ColorTheme } from 'mo
 import { Color } from 'mol-util/color';
 import { Progress } from 'mol-task';
 import { VisualQuality, VisualQualityNames } from 'mol-geo/geometry/geometry';
+import { SizeThemeProps } from 'mol-view/theme/size';
 
 export interface StructureRepresentationComponentProps {
     viewer: Viewer
@@ -23,43 +24,43 @@ export interface StructureRepresentationComponentState {
     alpha: number
     quality: VisualQuality
     colorTheme: ColorThemeProps
+    sizeTheme: SizeThemeProps
+    depthMask: boolean
 
     flatShaded?: boolean
     resolutionFactor?: number
     radiusOffset?: number
     smoothness?: number
+    pointSizeAttenuation?: boolean
+    pointFilledCircle?: boolean
+    pointEdgeBleach?: number
 }
 
 export class StructureRepresentationComponent extends React.Component<StructureRepresentationComponentProps, StructureRepresentationComponentState> {
-    state = {
-        label: this.props.representation.label,
-        visible: this.props.representation.props.visible,
-        alpha: this.props.representation.props.alpha,
-        quality: this.props.representation.props.quality,
-        colorTheme: this.props.representation.props.colorTheme,
+    state = this.stateFromRepresentation(this.props.representation)
 
-        flatShaded: (this.props.representation.props as any).flatShaded,
-        resolutionFactor: (this.props.representation.props as any).resolutionFactor,
-        radiusOffset: (this.props.representation.props as any).radiusOffset,
-        smoothness: (this.props.representation.props as any).smoothness,
-    }
-
-    componentWillMount() {
-        const repr = this.props.representation
-
-        this.setState({
-            ...this.state,
+    private stateFromRepresentation(repr: StructureRepresentation<StructureProps>) {
+        return {
             label: repr.label,
             visible: repr.props.visible,
             alpha: repr.props.alpha,
             quality: repr.props.quality,
             colorTheme: repr.props.colorTheme,
+            sizeTheme: repr.props.sizeTheme,
+            depthMask: repr.props.depthMask,
 
             flatShaded: (repr.props as any).flatShaded,
             resolutionFactor: (repr.props as any).resolutionFactor,
             radiusOffset: (repr.props as any).radiusOffset,
             smoothness: (repr.props as any).smoothness,
-        })
+            pointSizeAttenuation: (repr.props as any).pointSizeAttenuation,
+            pointFilledCircle: (repr.props as any).pointFilledCircle,
+            pointEdgeBleach: (repr.props as any).pointEdgeBleach,
+        }
+    }
+
+    componentWillMount() {
+        this.setState(this.stateFromRepresentation(this.props.representation))
     }
 
     async update(state: Partial<StructureRepresentationComponentState>) {
@@ -70,11 +71,16 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         if (state.quality !== undefined) props.quality = state.quality
         if (state.alpha !== undefined) props.alpha = state.alpha
         if (state.colorTheme !== undefined) props.colorTheme = state.colorTheme
+        if (state.sizeTheme !== undefined) props.sizeTheme = state.sizeTheme
+        if (state.depthMask !== undefined) props.depthMask = state.depthMask
 
         if (state.flatShaded !== undefined) (props as any).flatShaded = state.flatShaded
         if (state.resolutionFactor !== undefined) (props as any).resolutionFactor = state.resolutionFactor
         if (state.radiusOffset !== undefined) (props as any).radiusOffset = state.radiusOffset
         if (state.smoothness !== undefined) (props as any).smoothness = state.smoothness
+        if (state.pointSizeAttenuation !== undefined) (props as any).pointSizeAttenuation = state.pointSizeAttenuation
+        if (state.pointFilledCircle !== undefined) (props as any).pointFilledCircle = state.pointFilledCircle
+        if (state.pointEdgeBleach !== undefined) (props as any).pointEdgeBleach = state.pointEdgeBleach
 
         await repr.createOrUpdate(props).run(
             progress => console.log(Progress.format(progress))
@@ -83,38 +89,12 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         this.props.viewer.draw(true)
         console.log(this.props.viewer.stats)
 
-        console.log(
-            'drawCount',
-            repr.renderObjects[0].values.drawCount.ref.version,
-            repr.renderObjects[0].values.drawCount.ref.value,
-            'dColorType',
-            repr.renderObjects[0].values.dColorType.ref.version,
-            repr.renderObjects[0].values.dColorType.ref.value
-        )
-
-        const newState = {
-            ...this.state,
-            visible: repr.props.visible,
-            quality: repr.props.quality,
-            alpha: repr.props.alpha,
-            colorTheme: repr.props.colorTheme,
-
-            flatShaded: (repr.props as any).flatShaded,
-            resolutionFactor: (repr.props as any).resolutionFactor,
-            radiusOffset: (repr.props as any).radiusOffset,
-            isoValue: (repr.props as any).isoValue,
-        }
-        this.setState(newState)
+        this.setState(this.stateFromRepresentation(repr))
     }
 
     render() {
-        const { label, visible, quality, alpha, colorTheme } = this.state
-
+        const { label, visible, quality, alpha, colorTheme, depthMask } = this.state
         const ct = ColorTheme(colorTheme)
-
-        if (ct.legend && ct.legend.kind === 'scale-legend') {
-            // console.log(`linear-gradient(to right, ${ct.legend.colors.map(c => Color.toStyle(c)).join(', ')})`)
-        }
 
         return <div>
             <div>
@@ -125,6 +105,12 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     <span>Visible </span>
                     <button onClick={(e) => this.update({ visible: !visible }) }>
                         {visible ? 'Hide' : 'Show'}
+                    </button>
+                </div>
+                <div>
+                    <span>Depth Mask </span>
+                    <button onClick={(e) => this.update({ depthMask: !depthMask }) }>
+                        {depthMask ? 'Deactivate' : 'Activate'}
                     </button>
                 </div>
                 { this.state.flatShaded !== undefined ? <div>
@@ -180,6 +166,42 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         max='10'
                         step='0.1'
                         onInput={(e) => this.update({ radiusOffset: parseFloat(e.currentTarget.value) })}
+                    >
+                    </input>
+                </div> : '' }
+                { this.state.pointSizeAttenuation !== undefined ? <div>
+                    <span>Size Attenuation </span>
+                    <button onClick={(e) => this.update({ pointSizeAttenuation: !this.state.pointSizeAttenuation }) }>
+                        {this.state.pointSizeAttenuation ? 'Deactivate' : 'Activate'}
+                    </button>
+                </div> : '' }
+                { this.state.pointFilledCircle !== undefined ? <div>
+                    <span>Filled Circle </span>
+                    <button onClick={(e) => this.update({ pointFilledCircle: !this.state.pointFilledCircle }) }>
+                        {this.state.pointFilledCircle ? 'Deactivate' : 'Activate'}
+                    </button>
+                </div> : '' }
+                { this.state.pointEdgeBleach !== undefined ? <div>
+                    <span>Edge Bleach </span>
+                    <input type='range'
+                        defaultValue={this.state.pointEdgeBleach.toString()}
+                        min='0'
+                        max='1'
+                        step='0.05'
+                        onInput={(e) => this.update({ pointEdgeBleach: parseFloat(e.currentTarget.value) })}
+                    >
+                    </input>
+                </div> : '' }
+                { this.state.sizeTheme !== undefined && this.state.sizeTheme.name === 'uniform' ? <div>
+                    <span>Uniform Size </span>
+                    <input type='range'
+                        defaultValue={this.state.sizeTheme.value!.toString()}
+                        min='0'
+                        max='10'
+                        step='0.1'
+                        onInput={(e) => this.update({
+                            sizeTheme: { name: 'uniform', value: parseFloat(e.currentTarget.value) }
+                        })}
                     >
                     </input>
                 </div> : '' }
