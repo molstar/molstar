@@ -6,14 +6,14 @@
  */
 
 import { Model } from 'mol-model/structure';
-import { PDBe_structureQualityReport } from './properties/pdbe';
-import { RCSB_assemblySymmetry } from './properties/rcsb';
+//import { PDBe_structureQualityReport } from './properties/pdbe';
+//import { RCSB_assemblySymmetry } from './properties/rcsb';
 
 export function attachModelProperties(model: Model): Promise<any>[] {
     // return a list of promises that start attaching the props in parallel
     // (if there are downloads etc.)
     return [
-        PDBe_structureQualityReport(model),
-        RCSB_assemblySymmetry(model)
+        //PDBe_structureQualityReport(model),
+        //RCSB_assemblySymmetry(model)
     ];
 }

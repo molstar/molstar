@@ -66,7 +66,8 @@ function getNcsOperators(format: mmCIF_Format) {
     for (let i = 0; i < struct_ncs_oper._rowCount; i++) {
         const m = Tensor.toMat3(matrixSpace, matrix.value(i));
         const v = Tensor.toVec3(vectorSpace, vector.value(i));
-        opers[i] = SymmetryOperator.ofRotationAndOffset(`ncs_${id.value(i)}`, m, v);
+        if (!SymmetryOperator.checkIfRotationAndTranslation(m, v)) continue;
+        opers[opers.length] = SymmetryOperator.ofRotationAndOffset(`ncs_${id.value(i)}`, m, v);
     }
     return opers;
 }
