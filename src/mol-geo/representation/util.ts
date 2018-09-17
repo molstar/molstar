@@ -22,7 +22,8 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
     let linearSegments = defaults(props.linearSegments, 8)
 
     if (quality === 'auto' && structure) {
-        const score = structure.elementCount
+        let score = structure.elementCount
+        if (structure.isCoarse) score *= 10
         if (score > 500_000) {
             quality = 'lowest'
         } else if (score > 100_000) {

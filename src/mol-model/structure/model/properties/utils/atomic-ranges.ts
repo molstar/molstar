@@ -22,13 +22,13 @@ function getMoleculeType(compId: string, chemicalComponentMap: ChemicalComponent
     return cc ? cc.moleculeType : MoleculeType.unknown
 }
 
-function getElementIndexForAtomId(rI: ResidueIndex, atomId: string, data: AtomicData, segments: AtomicSegments, ): ElementIndex {
+function getElementIndexForAtomId(rI: ResidueIndex, atomId: string, data: AtomicData, segments: AtomicSegments): ElementIndex {
     const { offsets } = segments.residueAtomSegments
     const { label_atom_id } = data.atoms
     for (let j = offsets[rI], _j = offsets[rI + 1]; j < _j; j++) {
-        if (label_atom_id.value(j) === atomId) return j as ElementIndex
+        if (label_atom_id.value(j) === atomId) return j
     }
-    return offsets[rI] as ElementIndex
+    return offsets[rI]
 }
 
 function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, chemicalComponentMap: ChemicalComponentMap) {
@@ -46,7 +46,7 @@ function areBackboneConnected(riStart: ResidueIndex, riEnd: ResidueIndex, data: 
     const { x, y, z } = conformation
     const pStart = Vec3.create(x[eiStart], y[eiStart], z[eiStart])
     const pEnd = Vec3.create(x[eiEnd], y[eiEnd], z[eiEnd])
-    return Vec3.distance(pStart, pEnd) < 2
+    return Vec3.distance(pStart, pEnd) < 10
 }
 
 export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conformation: AtomicConformation, chemicalComponentMap: ChemicalComponentMap): AtomicRanges {
@@ -90,6 +90,13 @@ export function getAtomicRanges(data: AtomicData, segments: AtomicSegments, conf
                         startIndex = residueSegment.start
                     } else if (!residueIt.hasNext) {
                         polymerRanges.push(startIndex, residueSegment.end - 1)
+                    } else {
+                        const riStart = segments.residueAtomSegments.index[residueSegment.start]
+                        const riEnd = segments.residueAtomSegments.index[prevEnd - 1]
+                        if (!areBackboneConnected(riStart, riEnd, data, segments, conformation, chemicalComponentMap)) {
+                            polymerRanges.push(startIndex, prevEnd - 1)
+                            startIndex = residueSegment.start
+                        }
                     }
                 } else {
                     startIndex = residueSegment.start // start polymer
