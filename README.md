@@ -78,6 +78,19 @@ From the root of the project:
 
 and navigate to `build/viewer`
 
+
+**Run via Docker**
+
+Build the docker image
+
+    docker build -t molstar-proto .
+
+Run the image
+
+    docker run -p 8080:8080 molstar-proto
+
+
+
 ### Code generation
 **CIF schemas**
 
