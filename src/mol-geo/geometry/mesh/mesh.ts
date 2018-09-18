@@ -80,7 +80,7 @@ export namespace Mesh {
             Vec3.fromArray(y, v, b);
             Vec3.fromArray(z, v, c);
             Vec3.sub(d1, z, y);
-            Vec3.sub(d2, y, x);
+            Vec3.sub(d2, x, y);
             Vec3.cross(n, d1, d2);
 
             normals[a] += n[0]; normals[a + 1] += n[1]; normals[a + 2] += n[2];

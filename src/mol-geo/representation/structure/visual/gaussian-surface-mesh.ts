@@ -32,8 +32,6 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
 export const DefaultGaussianSurfaceProps = {
     ...DefaultUnitsMeshProps,
     ...DefaultGaussianDensityProps,
-
-    flipSided: true, // TODO should not be required
 }
 export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 
