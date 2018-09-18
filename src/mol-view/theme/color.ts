@@ -21,6 +21,7 @@ import { CustomColorTheme } from './color/custom';
 import { ResidueNameColorTheme } from './color/residue-name';
 import { SequenceIdColorTheme } from './color/sequence-id';
 import { SecondaryStructureColorTheme } from './color/secondary-structure';
+import { MoleculeTypeColorTheme } from './color/molecule-type';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -57,6 +58,7 @@ export function ColorTheme(props: ColorThemeProps): ColorTheme {
         case 'custom': return CustomColorTheme(props)
         case 'element-index': return ElementIndexColorTheme(props)
         case 'element-symbol': return ElementSymbolColorTheme(props)
+        case 'molecule-type': return MoleculeTypeColorTheme(props)
         case 'residue-name': return ResidueNameColorTheme(props)
         case 'secondary-structure': return SecondaryStructureColorTheme(props)
         case 'sequence-id': return SequenceIdColorTheme(props)
@@ -84,6 +86,7 @@ export const ColorThemeInfo = {
     'custom': {},
     'element-index': {},
     'element-symbol': {},
+    'molecule-type': {},
     'residue-name': {},
     'secondary-structure': {},
     'sequence-id': {},
