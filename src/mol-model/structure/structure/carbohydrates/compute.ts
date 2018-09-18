@@ -13,7 +13,7 @@ import PrincipalAxes from 'mol-math/linear-algebra/matrix/principal-axes';
 import { fillSerial } from 'mol-util/array';
 import { ResidueIndex } from '../../model';
 import { ElementSymbol, MoleculeType } from '../../model/types';
-import { getMoleculeType, getPositionMatrix } from '../../util';
+import { getAtomicMoleculeType, getPositionMatrix } from '../../util';
 import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
@@ -164,7 +164,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
 
                 const saccharideComp = SaccharideNameMap.get(label_comp_id.value(residueIndex)) || UnknownSaccharideComponent
                 if (saccharideComp === UnknownSaccharideComponent) {
-                    if (getMoleculeType(unit.model, residueIndex) !== MoleculeType.saccharide) continue
+                    if (getAtomicMoleculeType(unit.model, residueIndex) !== MoleculeType.saccharide) continue
                 }
 
                 if (!sugarResidueMap) {

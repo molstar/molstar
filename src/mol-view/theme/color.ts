@@ -19,6 +19,8 @@ import { CrossLinkColorTheme } from './color/cross-link';
 import { ShapeGroupColorTheme } from './color/shape-group';
 import { CustomColorTheme } from './color/custom';
 import { ResidueNameColorTheme } from './color/residue-name';
+import { SequenceIdColorTheme } from './color/sequence-id';
+import { SecondaryStructureColorTheme } from './color/secondary-structure';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -49,16 +51,18 @@ export interface ColorTheme {
 
 export function ColorTheme(props: ColorThemeProps): ColorTheme {
     switch (props.name) {
-        case 'element-index': return ElementIndexColorTheme(props)
         case 'carbohydrate-symbol': return CarbohydrateSymbolColorTheme(props)
-        case 'cross-link': return CrossLinkColorTheme(props)
         case 'chain-id': return ChainIdColorTheme(props)
+        case 'cross-link': return CrossLinkColorTheme(props)
+        case 'custom': return CustomColorTheme(props)
+        case 'element-index': return ElementIndexColorTheme(props)
         case 'element-symbol': return ElementSymbolColorTheme(props)
         case 'residue-name': return ResidueNameColorTheme(props)
+        case 'secondary-structure': return SecondaryStructureColorTheme(props)
+        case 'sequence-id': return SequenceIdColorTheme(props)
+        case 'shape-group': return ShapeGroupColorTheme(props)
         case 'unit-index': return UnitIndexColorTheme(props)
         case 'uniform': return UniformColorTheme(props)
-        case 'shape-group': return ShapeGroupColorTheme(props)
-        case 'custom': return CustomColorTheme(props)
     }
 }
 
@@ -74,16 +78,18 @@ export interface ColorThemeProps {
 }
 
 export const ColorThemeInfo = {
-    'element-index': {},
     'carbohydrate-symbol': {},
-    'cross-link': {},
     'chain-id': {},
+    'cross-link': {},
+    'custom': {},
+    'element-index': {},
     'element-symbol': {},
     'residue-name': {},
+    'secondary-structure': {},
+    'sequence-id': {},
+    'shape-group': {},
     'unit-index': {},
     'uniform': {},
-    'shape-group': {},
-    'custom': {}
 }
 export type ColorThemeName = keyof typeof ColorThemeInfo
 export const ColorThemeNames = Object.keys(ColorThemeInfo)
