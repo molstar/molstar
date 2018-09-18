@@ -68,7 +68,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     const active: { [k: string]: boolean } = {
         cartoon: true,
         point: false,
-        surface: false,
+        surface: true,
         ballAndStick: false,
         carbohydrate: false,
         spacefill: false,
@@ -209,7 +209,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             console.log('createStructureRepr')
             for (const k in structureRepresentations) {
                 if (active[k]) {
-                    await structureRepresentations[k].createOrUpdate({}, structure).run(
+                    await structureRepresentations[k].createOrUpdate({ colorTheme: { name: 'element-index' } }, structure).run(
                         // progress => console.log(Progress.format(progress))
                     )
                     viewer.add(structureRepresentations[k])

@@ -11,7 +11,7 @@ import { Box3D } from 'mol-math/geometry';
 import { SizeTheme } from 'mol-view/theme/size';
 
 export const DefaultGaussianDensityProps = {
-    resolutionFactor: 7,
+    resolutionFactor: 6,
     radiusOffset: 0,
     smoothness: 1.5,
 }
@@ -28,7 +28,7 @@ function getDelta(box: Box3D, resolutionFactor: number) {
     return delta
 }
 
-type Density = { transform: Mat4, field: Tensor }
+type Density = { transform: Mat4, field: Tensor, idField: Tensor }
 
 export function computeGaussianDensity(unit: Unit, structure: Structure, props: GaussianDensityProps) {
     return Task.create('Gaussian Density', async ctx => {
@@ -74,6 +74,7 @@ export async function GaussianDensity(ctx: RuntimeContext, unit: Unit, structure
     const beg = Vec3.zero()
     const end = Vec3.zero()
 
+    console.time('density grid')
     for (let i = 0; i < elementCount; i++) {
         l.element = elements[i]
         pos(elements[i], v)
@@ -109,13 +110,59 @@ export async function GaussianDensity(ctx: RuntimeContext, unit: Unit, structure
             await ctx.update({ message: 'filling density grid', current: i, max: elementCount });
         }
     }
+    console.timeEnd('density grid')
 
     const t = Mat4.identity()
     Mat4.fromScaling(t, Vec3.inverse(Vec3.zero(), delta))
     Mat4.setTranslation(t, expandedBox.min)
 
+    const { dimensions, get } = space
+    const [ xn, yn, zn ] = dimensions
+
+    const n = xn * yn * zn
+    const idData = space.create()
+    const idField = Tensor.create(space, idData)
+
+    const lookup3d = unit.lookup3d
+
+    let i = 0
+
+    // TODO use max radius of radiusTheme instead of 4
+    const _rSq = 4 + 1 / Math.max(...delta)
+    const _minDsq = _rSq * 4
+
+    console.time('id grid')
+    for (let x = 0; x < xn; ++x) {
+        for (let y = 0; y < yn; ++y) {
+            for (let z = 0; z < zn; ++z) {
+                const dens = get(data, x, y, z)
+                let group = -1
+                if (dens > 0 && dens < 2) {
+                    Vec3.set(p, x, y, z)
+                    Vec3.transformMat4(p, p, t)
+                    const r = lookup3d.find(p[0], p[1], p[2], _rSq)
+                    let minDsq = _minDsq
+                    for (let j = 0, jl = r.count; j < jl; ++j) {
+                        const dSq = r.squaredDistances[j]
+                        if (dSq < minDsq) {
+                            minDsq = dSq
+                            group = r.indices[j]
+                        }
+                    }
+                }
+                space.set(idData, x, y, z, group)
+                if (i % 1000000 === 0 && ctx.shouldUpdate) {
+                    await ctx.update({ message: 'filling id grid', current: i, max: n });
+                }
+                ++i
+            }
+        }
+    }
+    console.timeEnd('id grid')
+
     return {
         field,
+        idField,
         transform: t
     }
 }

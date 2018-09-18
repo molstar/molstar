@@ -212,7 +212,7 @@ function build(data: PositionData, cellSize?: Vec3) {
 }
 
 interface QueryContext {
-    structure: Grid3D,
+    grid: Grid3D,
     x: number,
     y: number,
     z: number,
@@ -221,12 +221,12 @@ interface QueryContext {
     isCheck: boolean
 }
 
-function createContext(structure: Grid3D): QueryContext {
-    return { structure, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, result: Result.create(), isCheck: false }
+function createContext(grid: Grid3D): QueryContext {
+    return { grid, x: 0.1, y: 0.1, z: 0.1, radius: 0.1, result: Result.create(), isCheck: false }
 }
 
 function query(ctx: QueryContext): boolean {
-    const { min, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices, radius }, delta, maxRadius } = ctx.structure;
+    const { min, size: [sX, sY, sZ], bucketOffset, bucketCounts, bucketArray, grid, data: { x: px, y: py, z: pz, indices, radius }, delta, maxRadius } = ctx.grid;
     const { radius: inputRadius, isCheck, x, y, z, result } = ctx;
 
     const r = inputRadius + maxRadius;

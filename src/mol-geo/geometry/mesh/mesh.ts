@@ -15,6 +15,7 @@ import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
+import { ChunkedArray } from 'mol-data/util';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -158,6 +159,71 @@ export namespace Mesh {
             }
             return mesh;
         });
+    }
+
+    /**
+     * Ensure that each vertices of each triangle have the same group id.
+     * Note that normals are copied over and can't be re-created from the new mesh.
+     */
+    export function uniformTriangleGroup(mesh: Mesh) {
+        const { indexBuffer, vertexBuffer, groupBuffer, normalBuffer, triangleCount, vertexCount } = mesh
+        const ib = indexBuffer.ref.value
+        const vb = vertexBuffer.ref.value
+        const gb = groupBuffer.ref.value
+        const nb = normalBuffer.ref.value
+
+        // new
+        const index = ChunkedArray.create(Uint32Array, 3, 1024, triangleCount)
+
+        // re-use
+        const vertex = ChunkedArray.create(Float32Array, 3, 1024, vb)
+        vertex.currentIndex = vertexCount * 3
+        vertex.elementCount = vertexCount
+        const normal = ChunkedArray.create(Float32Array, 3, 1024, nb)
+        normal.currentIndex = vertexCount * 3
+        normal.elementCount = vertexCount
+        const group = ChunkedArray.create(Float32Array, 1, 1024, gb)
+        group.currentIndex = vertexCount
+        group.elementCount = vertexCount
+
+        const v = Vec3.zero()
+        const n = Vec3.zero()
+
+        function add(i: number) {
+            Vec3.fromArray(v, vb, i * 3)
+            Vec3.fromArray(n, nb, i * 3)
+            ChunkedArray.add3(vertex, v[0], v[1], v[2])
+            ChunkedArray.add3(normal, n[0], n[1], n[2])
+        }
+
+        let newVertexCount = vertexCount
+        for (let i = 0, il = triangleCount; i < il; ++i) {
+            const i0 = ib[i * 3], i1 = ib[i * 3 + 1], i2 = ib[i * 3 + 2]
+            const g0 = gb[i0], g1 = gb[i1], g2 = gb[i2]
+            if (g0 !== g1 || g0 !== g2) {
+                add(i0); add(i1); add(i2)
+                ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 2)
+                const g = g1 === g2 ? g1 : g0
+                for (let j = 0; j < 3; ++j) ChunkedArray.add(group, g)
+                newVertexCount += 3
+            } else {
+                ChunkedArray.add3(index, i0, i1, i2)
+            }
+        }
+
+        const newIb = ChunkedArray.compact(index)
+        const newVb = ChunkedArray.compact(vertex)
+        const newNb = ChunkedArray.compact(normal)
+        const newGb = ChunkedArray.compact(group)
+
+        mesh.vertexCount = newVertexCount
+
+        ValueCell.update(vertexBuffer, newVb) as ValueCell<Float32Array>
+        ValueCell.update(groupBuffer, newGb) as ValueCell<Float32Array>
+        ValueCell.update(indexBuffer, newIb) as ValueCell<Uint32Array>
+        ValueCell.update(normalBuffer, newNb) as ValueCell<Float32Array>
+
+        return mesh
     }
 
     //
