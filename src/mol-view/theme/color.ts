@@ -24,12 +24,12 @@ export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
 export interface ScaleLegend {
     kind: 'scale-legend'
-    min: number,
-    max: number,
+    minLabel: string,
+    maxLabel: string,
     colors: Color[]
 }
-export function ScaleLegend(min: number, max: number, colors: Color[]): ScaleLegend {
-    return { kind: 'scale-legend', min, max, colors }
+export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[]): ScaleLegend {
+    return { kind: 'scale-legend', minLabel, maxLabel, colors }
 }
 
 export interface TableLegend {
