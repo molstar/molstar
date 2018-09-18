@@ -114,17 +114,20 @@ export function getTensor(category: CifCategory, field: string, space: Tensor.Sp
 }
 
 export function getCifFieldType(field: CifField): Column.Schema.Int | Column.Schema.Float | Column.Schema.Str {
-    let floatCount = 0, hasString = false;
+    let floatCount = 0, hasString = false, undefinedCount = 0;
     for (let i = 0, _i = field.rowCount; i < _i; i++) {
         const k = field.valueKind(i);
-        if (k !== Column.ValueKind.Present) continue;
+        if (k !== Column.ValueKind.Present) {
+            undefinedCount++;
+            continue;
+        }
         const type = getNumberType(field.str(i));
         if (type === NumberType.Int) continue;
         else if (type === NumberType.Float) floatCount++;
         else { hasString = true; break; }
     }
 
-    if (hasString) return Column.Schema.str;
+    if (hasString || undefinedCount === field.rowCount) return Column.Schema.str;
     if (floatCount > 0) return Column.Schema.float;
     return Column.Schema.int;
 }

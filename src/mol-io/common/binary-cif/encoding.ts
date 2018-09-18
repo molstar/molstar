@@ -84,12 +84,16 @@ export namespace Encoding {
         else if (data instanceof Uint32Array) srcType = Encoding.IntDataType.Uint32;
         else if (data instanceof Float32Array) srcType = Encoding.FloatDataType.Float32;
         else if (data instanceof Float64Array) srcType = Encoding.FloatDataType.Float64;
-        else throw new Error('Unsupported integer data type.');
+        else srcType = Encoding.IntDataType.Int32; // throw new Error('Unsupported integer data type.');
         return srcType;
     }
 
     export function isSignedIntegerDataType(data: TypedIntArray) {
-        return data instanceof Int8Array || data instanceof Int16Array || data instanceof Int32Array;
+        if (data instanceof Int8Array || data instanceof Int16Array || data instanceof Int32Array) return true;
+        for (let i = 0, _i = data.length; i < _i; i++) {
+            if (i < 0) return false;
+        }
+        return true;
     }
 
     // type[] -> Uint8[]

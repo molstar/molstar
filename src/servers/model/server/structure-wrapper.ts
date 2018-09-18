@@ -37,6 +37,7 @@ export interface StructureInfo {
 export interface StructureWrapper {
     info: StructureInfo,
 
+    isBinary: boolean,
     key: string,
     approximateSize: number,
     structure: Structure,
@@ -126,6 +127,7 @@ export async function readStructure(key: string, sourceId: string | '_local_', e
             sourceId,
             entryId
         },
+        isBinary: /\.bcif/.test(filename),
         key,
         approximateSize: typeof data === 'string' ? 2 * data.length : data.length,
         structure,

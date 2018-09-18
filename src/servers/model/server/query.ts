@@ -31,7 +31,6 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
     const wrappedStructure = await getStructure(job);
 
     try {
-        const encoder = CifWriter.createEncoder({ binary: job.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
         perf.start('query');
         const structure = job.queryDefinition.structureTransform
             ? await job.queryDefinition.structureTransform(job.normalizedParams, wrappedStructure.structure)
@@ -39,6 +38,13 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         const query = job.queryDefinition.query(job.normalizedParams, structure);
         const result = await StructureSelection.unionStructure(StructureQuery.run(query, structure, Config.maxQueryTimeInMs));
         perf.end('query');
+
+        const encoder = CifWriter.createEncoder({
+            binary: job.responseFormat.isBinary,
+            encoderName: `ModelServer ${Version}`,
+            binaryEncodingPovider: getEncodingProvider(wrappedStructure),
+            binaryAutoClassifyEncoding: true
+        });
 
         ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
 
@@ -66,6 +72,11 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         ConsoleLogger.errorId(job.id, e);
         return doError(job, e);
     }
+}
+
+function getEncodingProvider(structure: StructureWrapper) {
+    if (!structure.isBinary) return void 0;
+    return CifWriter.createEncodingProviderFromCifFrame(structure.cifFrame);
 }
 
 function doError(job: Job, e: any) {
