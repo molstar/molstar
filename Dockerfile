@@ -1,4 +1,4 @@
-# This is to build a container that demos the Molstar Canvas prototype
+# This is to build a container that demos the Mol* canvas app
 # Source material: https://nodejs.org/en/docs/guides/nodejs-docker-webapp/
 # Source material: https://derickbailey.com/2017/05/31/how-a-650mb-node-js-image-for-docker-uses-less-space-than-a-50mb-image/
 # Source material: https://hub.docker.com/_/node/
@@ -18,13 +18,10 @@ COPY *.json ./
 RUN npm install
 COPY . .
 
-# Build application and bundle results
+# Build library and canvas application then copy results
 RUN npm run build
-COPY build/ build/
-
-# Build Canvas application and bundle results
 RUN npm run build-canvas
-COPY build/ build/
+COPY build/canvas/ build/canvas/
 
 # Open ports for HTTP
 EXPOSE 8080/tcp
