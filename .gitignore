@@ -7,3 +7,4 @@ npm-debug.log
 *.sublime-workspace
 
 web/render-test/index.js
+.idea

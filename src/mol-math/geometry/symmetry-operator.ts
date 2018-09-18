@@ -30,6 +30,17 @@ namespace SymmetryOperator {
         return { name, matrix, inverse: Mat4.invert(Mat4.zero(), matrix), isIdentity: false, hkl: _hkl };
     }
 
+    export function checkIfRotationAndTranslation(rot: Mat3, offset: Vec3) {
+        const matrix = Mat4.identity();
+        for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+                Mat4.setValue(matrix, i, j, Mat3.getValue(rot, i, j));
+            }
+        }
+        Mat4.setTranslation(matrix, offset);
+        return Mat4.isRotationAndTranslation(matrix, RotationEpsilon);
+    }
+
     export function ofRotationAndOffset(name: string, rot: Mat3, offset: Vec3) {
         const t = Mat4.identity();
         for (let i = 0; i < 3; i++) {
