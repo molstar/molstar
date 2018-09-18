@@ -48,6 +48,14 @@ const config = {
     maxQueueLength: 30,
 
     /**
+     * Paths (relative to the root directory of the model server) to JavaScript files that specify custom properties
+     */
+    customPropertyProviders: [
+        './properties/pdbe',
+        './properties/rcsb'
+    ],
+
+    /**
      * Maps a request identifier to a filename.
      *
      * @param source

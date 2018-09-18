@@ -14,7 +14,7 @@ import * as fs from 'fs'
 import * as zlib from 'zlib'
 import { Job } from './jobs';
 import { ConsoleLogger } from 'mol-util/console-logger';
-import { attachModelProperties } from '../properties';
+import { ModelPropertiesProvider } from '../provider';
 
 require('util.promisify').shim();
 
@@ -44,12 +44,12 @@ export interface StructureWrapper {
     cifFrame: CifFrame
 }
 
-export async function getStructure(job: Job, allowCache = true): Promise<StructureWrapper> {
+export async function getStructure(job: Job, propertyProvider: ModelPropertiesProvider | undefined, allowCache = true): Promise<StructureWrapper> {
     if (allowCache && Config.cacheParams.useCache) {
         const ret = StructureCache.get(job.key);
         if (ret) return ret;
     }
-    const ret = await readStructure(job.key, job.sourceId, job.entryId);
+    const ret = await readStructure(job.key, job.sourceId, job.entryId, propertyProvider);
     if (allowCache && Config.cacheParams.useCache) {
         StructureCache.add(ret);
     }
@@ -86,7 +86,7 @@ async function parseCif(data: string|Uint8Array) {
     return parsed.result;
 }
 
-export async function readStructure(key: string, sourceId: string | '_local_', entryId: string) {
+export async function readStructure(key: string, sourceId: string | '_local_', entryId: string, propertyProvider: ModelPropertiesProvider | undefined) {
     const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
     if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
     if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
@@ -109,9 +109,11 @@ export async function readStructure(key: string, sourceId: string | '_local_', e
     perf.end('createModel');
 
     perf.start('attachProps');
-    const modelProps = attachModelProperties(models[0]);
-    for (const p of modelProps) {
-        await tryAttach(key, p);
+    if (propertyProvider) {
+        const modelProps = propertyProvider(models[0]);
+        for (const p of modelProps) {
+            await tryAttach(key, p);
+        }
     }
     perf.end('attachProps');
 
