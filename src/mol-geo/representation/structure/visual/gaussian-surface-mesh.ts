@@ -17,21 +17,16 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
     const { smoothness } = props
     const { transform, field, idField } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
 
-    console.time('mc')
     const surface = await computeMarchingCubes({
         isoLevel: Math.exp(-smoothness),
         scalarField: field,
         idField,
         oldSurface: mesh
     }).runAsChild(ctx)
-    console.timeEnd('mc')
 
     Mesh.transformImmediate(surface, transform)
     Mesh.computeNormalsImmediate(surface)
-
-    console.time('uniformTriangleGroup')
     Mesh.uniformTriangleGroup(surface)
-    console.timeEnd('uniformTriangleGroup')
 
     return surface;
 }

@@ -198,16 +198,16 @@ export namespace Mesh {
 
         let newVertexCount = vertexCount
         for (let i = 0, il = triangleCount; i < il; ++i) {
-            const i0 = ib[i * 3], i1 = ib[i * 3 + 1], i2 = ib[i * 3 + 2]
-            const g0 = gb[i0], g1 = gb[i1], g2 = gb[i2]
+            const v0 = ib[i * 3], v1 = ib[i * 3 + 1], v2 = ib[i * 3 + 2]
+            const g0 = gb[v0], g1 = gb[v1], g2 = gb[v2]
             if (g0 !== g1 || g0 !== g2) {
-                add(i0); add(i1); add(i2)
+                add(v0); add(v1); add(v2)
                 ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 2)
                 const g = g1 === g2 ? g1 : g0
                 for (let j = 0; j < 3; ++j) ChunkedArray.add(group, g)
                 newVertexCount += 3
             } else {
-                ChunkedArray.add3(index, i0, i1, i2)
+                ChunkedArray.add3(index, v0, v1, v2)
             }
         }
 

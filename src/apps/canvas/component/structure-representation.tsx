@@ -163,7 +163,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     <input type='range'
                         defaultValue={this.state.radiusOffset.toString()}
                         min='0'
-                        max='10'
+                        max='4'
                         step='0.1'
                         onInput={(e) => this.update({ radiusOffset: parseFloat(e.currentTarget.value) })}
                     >
