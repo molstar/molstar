@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.298, IHM 0.134.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.299, IHM 0.134.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -1471,6 +1471,36 @@ export const mmCIF_Schema = {
         'space_group_name_H-M': str,
     },
     /**
+     * Data items in the CHEM_COMP_IDENTIFIER category provide
+     * identifiers for chemical components.
+     */
+    pdbx_chem_comp_identifier: {
+        /**
+         * This data item is a pointer to _chem_comp.id in the CHEM_COMP
+         * category.
+         */
+        comp_id: str,
+        /**
+         * This data item contains the identifier value for this
+         * component.
+         */
+        identifier: str,
+        /**
+         * This data item contains the identifier type.
+         */
+        type: Aliased<'COMMON NAME' | 'SYSTEMATIC NAME' | 'CAS REGISTRY NUMBER' | 'PUBCHEM Identifier' | 'MDL Identifier' | 'SYNONYM'>(str),
+        /**
+         * This data item contains the name of the program
+         * or library used to compute the identifier.
+         */
+        program: str,
+        /**
+         * This data item contains the version of the program
+         * or library used to compute the identifier.
+         */
+        program_version: str,
+    },
+    /**
      * Data items in the PDBX_STRUCT_MOD_RESIDUE category list the
      * modified polymer components in the entry and provide some
      * details describing the nature of the modification.
@@ -1885,6 +1915,40 @@ export const mmCIF_Schema = {
          * Additional details describing the molecule.
          */
         details: str,
+    },
+    /**
+     * Data items in the PDBX_ENTITY_DESCRIPTOR category provide
+     * string descriptors of entity chemical structure.
+     */
+    pdbx_entity_descriptor: {
+        /**
+         * This data item is a pointer to _entity_poly.entity_id in the ENTITY
+         * category.
+         */
+        entity_id: str,
+        /**
+         * This data item contains the descriptor value for this
+         * entity.
+         */
+        descriptor: str,
+        /**
+         * This data item contains the descriptor type.
+         */
+        type: Aliased<'LINUCS' | 'IUPAC' | 'IUPAC Abbreviated'>(str),
+        /**
+         * This data item contains the name of the program
+         * or library used to compute the descriptor.
+         */
+        program: str,
+        /**
+         * This data item contains the version of the program
+         * or library used to compute the descriptor.
+         */
+        program_version: str,
+        /**
+         * Ordinal index for this category.
+         */
+        ordinal: int,
     },
     /**
      * Data items in the IHM_STARTING_MODEL_DETAILS category records the
