@@ -9,7 +9,7 @@ import { Unit, StructureElement, StructureProperties as Props, Link } from 'mol-
 import { Loci } from 'mol-model/loci';
 import { OrderedSet } from 'mol-data/int';
 
-// for `labelFirst`, don't create right away to avaiod problems with circular dependencies/imports
+// for `labelFirst`, don't create right away to avoid problems with circular dependencies/imports
 let elementLocA: StructureElement
 let elementLocB: StructureElement
 
@@ -63,7 +63,8 @@ export function elementLabel(location: StructureElement) {
         const seq_id = Props.residue.auth_seq_id(location)
         const comp_id = Props.residue.auth_comp_id(location)
         const atom_id = Props.atom.auth_atom_id(location)
-        label = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}`
+        const alt_id = Props.atom.label_alt_id(location)
+        label = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}${alt_id ? `%${alt_id}` : ''}`
     } else if (Unit.isCoarse(location.unit)) {
         const asym_id = Props.coarse.asym_id(location)
         const seq_id_begin = Props.coarse.seq_id_begin(location)
