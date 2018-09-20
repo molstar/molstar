@@ -24,11 +24,17 @@ async function runGenerateSchema(name: string, fieldNamesPath?: string, typescri
     const ihmDic = await CIF.parseText(fs.readFileSync(IHM_DIC_PATH, 'utf8')).run();
     if (ihmDic.isError) throw ihmDic
 
+    await ensureBranchDicAvailable()
+    const branchDic = await CIF.parseText(fs.readFileSync(BRANCH_DIC_PATH, 'utf8')).run();
+    if (branchDic.isError) throw branchDic
+
     const mmcifDicVersion = CIF.schema.dic(mmcifDic.result.blocks[0]).dictionary.version.value(0)
     const ihmDicVersion = CIF.schema.dic(ihmDic.result.blocks[0]).dictionary.version.value(0)
-    const version = `Dictionary versions: mmCIF ${mmcifDicVersion}, IHM ${ihmDicVersion}.`
+    // const branchDicVersion = CIF.schema.dic(branchDic.result.blocks[0]).dictionary.version.value(0)
+    const branchDicVersion = 'draft'
+    const version = `Dictionary versions: mmCIF ${mmcifDicVersion}, IHM ${ihmDicVersion}, entity_branch ${branchDicVersion}.`
 
-    const frames: CifFrame[] = [...mmcifDic.result.blocks[0].saveFrames, ...ihmDic.result.blocks[0].saveFrames]
+    const frames: CifFrame[] = [...mmcifDic.result.blocks[0].saveFrames, ...ihmDic.result.blocks[0].saveFrames, ...branchDic.result.blocks[0].saveFrames]
     const schema = generateSchema(frames)
 
     const filter = fieldNamesPath ? await getFieldNamesFilter(fieldNamesPath) : undefined
@@ -70,15 +76,20 @@ async function ensureIhmDicAvailable() {
     await ensureDicAvailable(IHM_DIC_PATH, IHM_DIC_URL)
 }
 
+async function ensureBranchDicAvailable() {
+    await ensureDicAvailable(BRANCH_DIC_PATH, BRANCH_DIC_URL)
+}
+
 async function ensureDicAvailable(dicPath: string, dicUrl: string) {
     if (FORCE_DIC_DOWNLOAD || !fs.existsSync(dicPath)) {
-        console.log('downloading mmcif dic...')
+        const name = dicUrl.substr(dicUrl.lastIndexOf('/') + 1)
+        console.log(`downloading ${name}...`)
         const data = await fetch(dicUrl)
         if (!fs.existsSync(DIC_DIR)) {
             fs.mkdirSync(DIC_DIR);
         }
         fs.writeFileSync(dicPath, await data.text())
-        console.log('done downloading mmcif dic')
+        console.log(`done downloading ${name}`)
     }
 }
 
@@ -87,10 +98,12 @@ const MMCIF_DIC_PATH = `${DIC_DIR}/mmcif_pdbx_v50.dic`
 const MMCIF_DIC_URL = 'http://mmcif.wwpdb.org/dictionaries/ascii/mmcif_pdbx_v50.dic'
 const IHM_DIC_PATH = `${DIC_DIR}/ihm-extension.dic`
 const IHM_DIC_URL = 'https://raw.githubusercontent.com/ihmwg/IHM-dictionary/master/ihm-extension.dic'
+const BRANCH_DIC_PATH = `${DIC_DIR}/entity_branch-extension.dic`
+const BRANCH_DIC_URL = 'https://raw.githubusercontent.com/wwpdb-dictionaries/mmcif_pdbx/master/extensions/entity_branch-extension.dic'
 
 const parser = new argparse.ArgumentParser({
   addHelp: true,
-  description: 'Create schema from mmcif dictionary (v50, downloaded from wwPDB)'
+  description: 'Create schema from mmcif dictionary (v50 plus IHM and entity_branch extensions, downloaded from wwPDB)'
 });
 parser.addArgument([ '--name', '-n' ], {
     defaultValue: 'mmCIF',
@@ -123,5 +136,7 @@ const args: Args = parser.parseArgs();
 const FORCE_DIC_DOWNLOAD = args.forceDicDownload
 
 if (args.name) {
-    runGenerateSchema(args.name, args.fieldNamesPath, args.typescript, args.out)
+    runGenerateSchema(args.name, args.fieldNamesPath, args.typescript, args.out).catch(e => {
+        console.error(e)
+    })
 }

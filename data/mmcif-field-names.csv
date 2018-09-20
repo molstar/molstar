@@ -106,6 +106,16 @@ pdbx_entity_branch_link.atom_stereo_config_2
 pdbx_entity_branch_link.value_order
 pdbx_entity_branch_link.details
 
+pdbx_branch_scheme.asym_id
+pdbx_branch_scheme.entity_id
+pdbx_branch_scheme.mon_id
+pdbx_branch_scheme.num
+pdbx_branch_scheme.auth_seq_num
+pdbx_branch_scheme.auth_mon_id
+pdbx_branch_scheme.auth_strand_id
+pdbx_branch_scheme.auth_ins_code
+pdbx_branch_scheme.hetero
+
 pdbx_entity_descriptor.ordinal
 pdbx_entity_descriptor.entity_id
 pdbx_entity_descriptor.descriptor
