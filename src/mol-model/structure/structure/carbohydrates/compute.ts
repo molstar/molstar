@@ -131,13 +131,13 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
     }
 
     function fixLinkDirection(iA: number, iB: number) {
-        Vec3.sub(elements[iA].geometry!.direction, elements[iB].geometry!.center, elements[iA].geometry!.center)
-        Vec3.normalize(elements[iA].geometry!.direction, elements[iA].geometry!.direction)
+        Vec3.sub(elements[iA].geometry.direction, elements[iB].geometry.center, elements[iA].geometry.center)
+        Vec3.normalize(elements[iA].geometry.direction, elements[iA].geometry.direction)
     }
 
     const tmpV = Vec3.zero()
     function fixTerminalLinkDirection(iA: number, indexB: number, unitB: Unit.Atomic) {
-        const pos = unitB.conformation.position, geo = elements[iA].geometry!;
+        const pos = unitB.conformation.position, geo = elements[iA].geometry;
         Vec3.sub(geo.direction, pos(unitB.elements[indexB], tmpV), geo.center)
         Vec3.normalize(geo.direction, geo.direction)
     }
@@ -191,36 +191,35 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                     const direction = getDirection(Vec3.zero(), unit, anomericCarbon, center)
                     Vec3.orthogonalize(direction, normal, direction)
 
-                    const altId = getRingAltId(unit, ringAtoms)
+                    const ringAltId = getRingAltId(unit, ringAtoms)
                     const elementIndex = elements.length
                     ringElements.push(elementIndex)
-                    elementsWithRingMap.set(ringElementKey(residueIndex, unit.id, altId), elementIndex)
+                    elementsWithRingMap.set(ringElementKey(residueIndex, unit.id, ringAltId), elementIndex)
                     elements.push({
                         geometry: { center, normal, direction },
                         component: saccharideComp,
-                        unit, residueIndex, anomericCarbon
+                        unit, residueIndex, anomericCarbon, ringAltId
                     })
                 }
 
                 // add carbohydrate links induced by intra-residue bonds
+                // (e.g. for structures from the PDB archive __before__ carbohydrate remediation)
                 const ringCombinations = combinations(fillSerial(new Array(sugarRings.length) as number[]), 2)
                 for (let j = 0, jl = ringCombinations.length; j < jl; ++j) {
                     const rc = ringCombinations[j];
                     const r0 = rings.all[sugarRings[rc[0]]], r1 = rings.all[sugarRings[rc[1]]];
                     // 1,6 glycosidic links are distance 3 and 1,4 glycosidic links are distance 2
                     if (IntAdjacencyGraph.areVertexSetsConnected(unit.links, r0, r1, 3)) {
-                        // TODO handle better, for now fix both directions as it is unclear where the C1 atom is
-                        //  would need to know the path connecting the two rings
-                        fixLinkDirection(ringElements[rc[0]], ringElements[rc[1]])
-                        fixLinkDirection(ringElements[rc[1]], ringElements[rc[0]])
-                        links.push({
-                            carbohydrateIndexA: ringElements[rc[0]],
-                            carbohydrateIndexB: ringElements[rc[1]]
-                        })
-                        links.push({
-                            carbohydrateIndexA: ringElements[rc[1]],
-                            carbohydrateIndexB: ringElements[rc[0]]
-                        })
+                        const re0 = ringElements[rc[0]]
+                        const re1 = ringElements[rc[1]]
+                        if (elements[re0].ringAltId === elements[re1].ringAltId) {
+                            // TODO handle better, for now fix both directions as it is unclear where the C1 atom is
+                            //  would need to know the path connecting the two rings
+                            fixLinkDirection(re0, re1)
+                            fixLinkDirection(re1, re0)
+                            links.push({ carbohydrateIndexA: re0, carbohydrateIndexB: re1 })
+                            links.push({ carbohydrateIndexA: re1, carbohydrateIndexB: re0 })
+                        }
                     }
                 }
             }
@@ -231,7 +230,36 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
         return elementsWithRingMap.get(ringElementKey(unit.getResidueIndex(index), unit.id, getAltId(unit, index)))
     }
 
+    // add carbohydrate links induced by intra-unit bonds
+    // (e.g. for structures from the PDB archive __after__ carbohydrate remediation)
+    for (let i = 0, il = elements.length; i < il; ++i) {
+        const carbohydrate = elements[i]
+        const { unit, residueIndex, anomericCarbon } = carbohydrate
+        const { offset, b } = unit.links
+        const ac = SortedArray.indexOf(unit.elements, anomericCarbon) as StructureElement.UnitIndex
+
+        for (let j = offset[ac], jl = offset[ac + 1]; j < jl; ++j) {
+            const bj = b[j] as StructureElement.UnitIndex
+            if (residueIndex !== unit.getResidueIndex(bj)) {
+                const ringElementIndex = getRingElementIndex(unit, bj)
+                if (ringElementIndex !== undefined && ringElementIndex !== i) {
+                    fixLinkDirection(i, ringElementIndex)
+                    links.push({
+                        carbohydrateIndexA: i,
+                        carbohydrateIndexB: ringElementIndex
+                    })
+                    links.push({
+                        carbohydrateIndexA: ringElementIndex,
+                        carbohydrateIndexB: i
+                    })
+                }
+            }
+        }
+
+    }
+
     // get carbohydrate links induced by inter-unit bonds
+    // (e.g. for structures from the PDB archive __before__ carbohydrate remediation)
     for (let i = 0, il = structure.units.length; i < il; ++i) {
         const unit = structure.units[i]
         if (!Unit.isAtomic(unit)) continue

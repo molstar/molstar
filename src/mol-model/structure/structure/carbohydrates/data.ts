@@ -28,6 +28,7 @@ export interface CarbohydrateElement {
     readonly unit: Unit.Atomic,
     readonly residueIndex: ResidueIndex,
     readonly component: SaccharideComponent,
+    readonly ringAltId: string,
 }
 
 // partial carbohydrate with no ring present
