@@ -83,11 +83,11 @@ and navigate to `build/viewer`
 
 Build the docker image
 
-    docker build -t molstar-proto .
+    docker build -t molstar/proto:httpd .
 
 Run the image
 
-    docker run -p 8080:8080 molstar-proto
+    docker run -d -p 80:80 molstar/proto:httpd
 
 
 
