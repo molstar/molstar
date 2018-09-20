@@ -635,7 +635,7 @@ async function parseInternal(data: string, runtimeCtx: RuntimeContext) {
         return error(tokenizer.lineNumber, `Unfinished save frame (${saveFrame.header}).`);
     }
 
-    if (blockCtx.categoryNames.length > 0) {
+    if (blockCtx.categoryNames.length > 0 || saveFrames.length > 0) {
         dataBlocks.push(Data.CifBlock(blockCtx.categoryNames, blockCtx.categories, blockHeader, saveFrames));
     }
 

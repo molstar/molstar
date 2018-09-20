@@ -10,7 +10,30 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit } from './structure';
 import Matrix from 'mol-math/linear-algebra/matrix/matrix';
 
-export function getMoleculeType(model: Model, rI: ResidueIndex) {
+export function getCoarseBegCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIndex) {
+    const entityKey = unit.coarseElements.entityKey[element]
+    const seq = unit.model.sequence.byEntityKey[entityKey]
+    const seq_id_begin = unit.coarseElements.seq_id_begin.value(element)
+    return seq.compId.value(seq_id_begin - 1) // 1-indexed
+}
+
+export function getElementMoleculeType(unit: Unit, element: ElementIndex) {
+    let compId = ''
+    switch (unit.kind) {
+        case Unit.Kind.Atomic:
+            compId = unit.model.atomicHierarchy.residues.label_comp_id.value(unit.residueIndex[element])
+            break
+        case Unit.Kind.Spheres:
+        case Unit.Kind.Gaussians:
+            compId = getCoarseBegCompId(unit, element)
+            break
+    }
+    const chemCompMap = unit.model.properties.chemicalComponentMap
+    const cc = chemCompMap.get(compId)
+    return cc ? cc.moleculeType : MoleculeType.unknown
+}
+
+export function getAtomicMoleculeType(model: Model, rI: ResidueIndex) {
     const compId = model.atomicHierarchy.residues.label_comp_id.value(rI)
     const chemCompMap = model.properties.chemicalComponentMap
     const cc = chemCompMap.get(compId)
@@ -36,7 +59,7 @@ export function getElementIndexForAtomId(model: Model, rI: ResidueIndex, atomId:
 }
 
 export function getElementIndexForAtomRole(model: Model, rI: ResidueIndex, atomRole: AtomRole) {
-    const atomId = getAtomIdForAtomRole(getMoleculeType(model, rI), atomRole)
+    const atomId = getAtomIdForAtomRole(getAtomicMoleculeType(model, rI), atomRole)
     return getElementIndexForAtomId(model, rI, atomId)
 }
 

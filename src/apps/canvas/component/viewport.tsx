@@ -15,8 +15,9 @@ interface ViewportProps {
 }
 
 interface ViewportState {
-    noWebGl: boolean,
-    info: string
+    noWebGl: boolean
+    pickingInfo: string
+    taskInfo: string
 }
 
 export class Viewport extends React.Component<ViewportProps, ViewportState> {
@@ -25,7 +26,8 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
 
     state: ViewportState = {
         noWebGl: false,
-        info: ''
+        pickingInfo: '',
+        taskInfo: ''
     };
 
     handleResize() {
@@ -55,10 +57,14 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
                     prevLoci = loci
 
                     const label = labelFirst(loci)
-                    const info = `${label}`
-                    this.setState({ info })
+                    const pickingInfo = `${label}`
+                    this.setState({ pickingInfo })
                 }
             }
+        })
+
+        this.props.app.taskCountChanged.subscribe(({ count, info }) => {
+            this.setState({ taskInfo: count > 0 ? info : '' })
         })
     }
 
@@ -94,8 +100,22 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
                     background: 'rgba(0, 0, 0, 0.2)'
                 }}
             >
-                {this.state.info}
+                {this.state.pickingInfo}
             </div>
+            { this.state.taskInfo ?
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        padding: 10,
+                        color: 'lightgrey',
+                        background: 'rgba(0, 0, 0, 0.2)'
+                    }}
+                >
+                    {this.state.taskInfo}
+                </div>
+            : '' }
         </div>;
     }
 }

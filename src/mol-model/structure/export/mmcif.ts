@@ -70,9 +70,15 @@ const Categories = [
     copy_mmCif_category('entity_poly'),
     copy_mmCif_category('entity_poly_seq'),
 
+    // Branch
+    copy_mmCif_category('pdbx_entity_branch'),
+    copy_mmCif_category('pdbx_entity_branch_link'),
+    copy_mmCif_category('pdbx_branch_scheme'),
+
     // Misc
     // TODO: filter for actual present residues?
     copy_mmCif_category('chem_comp'),
+    copy_mmCif_category('pdbx_chem_comp_identifier'),
     copy_mmCif_category('atom_sites'),
 
     _pdbx_struct_mod_residue,

@@ -2,17 +2,16 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
- import { Model } from 'mol-model/structure';
-import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-report';
-import { fetchRetry } from '../utils/fetch-retry';
+import { Model } from 'mol-model/structure';
+import { PDBe_structureQualityReport } from './providers/pdbe';
 
-export function PDBe_structureQualityReport(model: Model) {
-    return StructureQualityReport.attachFromCifOrApi(model, {
-        PDBe_apiSourceJson: async model => {
-            const rawData = await fetchRetry(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${model.label.toLowerCase()}`, 1500, 5);
-            return await rawData.json();
-        }
-    });
+export function attachModelProperties(model: Model): Promise<any>[] {
+    // return a list of promises that start attaching the props in parallel
+    // (if there are downloads etc.)
+    return [
+        PDBe_structureQualityReport(model)
+    ];
 }

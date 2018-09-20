@@ -11,7 +11,7 @@ import Iterator from 'mol-data/iterator';
 import { Vec3 } from 'mol-math/linear-algebra';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 import { CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse';
-import { getMoleculeType, getElementIndexForAtomRole } from 'mol-model/structure/util';
+import { getAtomicMoleculeType, getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { getPolymerRanges } from '../polymer';
 
 /**
@@ -165,7 +165,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.first = residueIndex === this.residueSegmentMin
             value.last = residueIndex === this.residueSegmentMax
             value.secStrucChange = this.unit.model.properties.secondaryStructure.key[residueIndex] !== this.unit.model.properties.secondaryStructure.key[residueIndex + 1]
-            value.moleculeType = getMoleculeType(this.unit.model, residueIndex)
+            value.moleculeType = getAtomicMoleculeType(this.unit.model, residueIndex)
 
             if (!residueIt.hasNext) {
                 this.state = AtomicPolymerTraceIteratorState.nextPolymer

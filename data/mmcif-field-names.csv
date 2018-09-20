@@ -41,6 +41,12 @@ chem_comp_bond.atom_id_1
 chem_comp_bond.atom_id_2
 chem_comp_bond.value_order
 
+pdbx_chem_comp_identifier.comp_id
+pdbx_chem_comp_identifier.type
+pdbx_chem_comp_identifier.program
+pdbx_chem_comp_identifier.program_version
+pdbx_chem_comp_identifier.identifier
+
 cell.entry_id
 cell.length_a
 cell.length_b
@@ -66,8 +72,8 @@ entity_poly.entity_id
 entity_poly.type
 entity_poly.nstd_linkage
 entity_poly.nstd_monomer
-entity_poly.pdbx_seq_one_letter_code  
-entity_poly.pdbx_seq_one_letter_code_can 
+entity_poly.pdbx_seq_one_letter_code
+entity_poly.pdbx_seq_one_letter_code_can
 entity_poly.pdbx_strand_id
 entity_poly.pdbx_target_identifier
 
@@ -75,6 +81,47 @@ entity_poly_seq.entity_id
 entity_poly_seq.num
 entity_poly_seq.mon_id
 entity_poly_seq.hetero
+
+pdbx_entity_branch.entity_id
+pdbx_entity_branch.type
+
+pdbx_entity_branch_list.entity_id
+pdbx_entity_branch_list.comp_id
+pdbx_entity_branch_list.num
+pdbx_entity_branch_list.component_comp_id
+pdbx_entity_branch_list.hetero
+
+pdbx_entity_branch_link.link_id
+pdbx_entity_branch_link.entity_id
+pdbx_entity_branch_link.entity_branch_list_num_1
+pdbx_entity_branch_link.comp_id_1
+pdbx_entity_branch_link.atom_id_1
+pdbx_entity_branch_link.leaving_atom_id_1
+pdbx_entity_branch_link.atom_stereo_config_1
+pdbx_entity_branch_link.entity_branch_list_num_2
+pdbx_entity_branch_link.comp_id_2
+pdbx_entity_branch_link.atom_id_2
+pdbx_entity_branch_link.leaving_atom_id_2
+pdbx_entity_branch_link.atom_stereo_config_2
+pdbx_entity_branch_link.value_order
+pdbx_entity_branch_link.details
+
+pdbx_branch_scheme.asym_id
+pdbx_branch_scheme.entity_id
+pdbx_branch_scheme.mon_id
+pdbx_branch_scheme.num
+pdbx_branch_scheme.auth_seq_num
+pdbx_branch_scheme.auth_mon_id
+pdbx_branch_scheme.auth_strand_id
+pdbx_branch_scheme.auth_ins_code
+pdbx_branch_scheme.hetero
+
+pdbx_entity_descriptor.ordinal
+pdbx_entity_descriptor.entity_id
+pdbx_entity_descriptor.descriptor
+pdbx_entity_descriptor.type
+pdbx_entity_descriptor.program
+pdbx_entity_descriptor.program_version
 
 entry.id
 

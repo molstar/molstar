@@ -11,7 +11,7 @@ import { Box3D } from 'mol-math/geometry';
 import { SizeTheme } from 'mol-view/theme/size';
 
 export const DefaultGaussianDensityProps = {
-    resolutionFactor: 7,
+    resolutionFactor: 6,
     radiusOffset: 0,
     smoothness: 1.5,
 }
@@ -28,7 +28,7 @@ function getDelta(box: Box3D, resolutionFactor: number) {
     return delta
 }
 
-type Density = { transform: Mat4, field: Tensor }
+type Density = { transform: Mat4, field: Tensor, idField: Tensor }
 
 export function computeGaussianDensity(unit: Unit, structure: Structure, props: GaussianDensityProps) {
     return Task.create('Gaussian Density', async ctx => {
@@ -62,6 +62,11 @@ export async function GaussianDensity(ctx: RuntimeContext, unit: Unit, structure
     const data = space.create()
     const field = Tensor.create(space, data)
 
+    const idData = space.create()
+    const idField = Tensor.create(space, idData)
+
+    const densData = space.create()
+
     const c = Vec3.zero()
 
     const alpha = smoothness
@@ -74,6 +79,8 @@ export async function GaussianDensity(ctx: RuntimeContext, unit: Unit, structure
     const beg = Vec3.zero()
     const end = Vec3.zero()
 
+    const gridPad = 1 / Math.max(...delta)
+
     for (let i = 0; i < elementCount; i++) {
         l.element = elements[i]
         pos(elements[i], v)
@@ -84,7 +91,7 @@ export async function GaussianDensity(ctx: RuntimeContext, unit: Unit, structure
         const radius = sizeTheme.size(l) + radiusOffset
         const rSq = radius * radius
 
-        const r2 = (radiusOffset + radius * 2)
+        const r2 = radiusOffset + radius * 2 + gridPad
         const radius2 = Vec3.create(r2, r2, r2)
         Vec3.mul(radius2, radius2, delta)
         const r2sq = r2 * r2
@@ -99,7 +106,12 @@ export async function GaussianDensity(ctx: RuntimeContext, unit: Unit, structure
                     Vec3.div(p, p, delta)
                     const distSq = Vec3.squaredDistance(p, v)
                     if (distSq <= r2sq) {
-                        space.add(data, x, y, z, Math.exp(-alpha * (distSq / rSq)))
+                        const dens = Math.exp(-alpha * (distSq / rSq))
+                        space.add(data, x, y, z, dens)
+                        if (dens > space.get(densData, x, y, z)) {
+                            space.set(densData, x, y, z, dens)
+                            space.set(idData, x, y, z, i)
+                        }
                     }
                 }
             }
@@ -110,12 +122,9 @@ export async function GaussianDensity(ctx: RuntimeContext, unit: Unit, structure
         }
     }
 
-    const t = Mat4.identity()
-    Mat4.fromScaling(t, Vec3.inverse(Vec3.zero(), delta))
-    Mat4.setTranslation(t, expandedBox.min)
+    const transform = Mat4.identity()
+    Mat4.fromScaling(transform, Vec3.inverse(Vec3.zero(), delta))
+    Mat4.setTranslation(transform, expandedBox.min)
 
-    return {
-        field,
-        transform: t
-    }
+    return { field, idField, transform }
 }

@@ -48,6 +48,14 @@ const config = {
     maxQueueLength: 30,
 
     /**
+     * Paths (relative to the root directory of the model server) to JavaScript files that specify custom properties
+     */
+    customPropertyProviders: [
+        './properties/pdbe',
+        './properties/rcsb'
+    ],
+
+    /**
      * Maps a request identifier to a filename.
      *
      * @param source
@@ -57,7 +65,8 @@ const config = {
      */
     mapFile(source: string, id: string) {
         switch (source.toLowerCase()) {
-            case 'pdb': return `e:/test/quick/${id}_updated.cif`;
+            // case 'pdb': return `e:/test/quick/${id}_updated.cif`;
+            case 'pdb': return `e:/test/mol-star/model/out/${id}_updated.bcif`;
             default: return void 0;
         }
     }

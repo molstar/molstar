@@ -9,7 +9,7 @@ import { Unit, StructureElement, StructureProperties as Props, Link } from 'mol-
 import { Loci } from 'mol-model/loci';
 import { OrderedSet } from 'mol-data/int';
 
-// for `labelFirst`, don't create right away to avaiod problems with circular dependencies/imports
+// for `labelFirst`, don't create right away to avoid problems with circular dependencies/imports
 let elementLocA: StructureElement
 let elementLocB: StructureElement
 
@@ -53,24 +53,25 @@ export function linkLabel(link: Link.Location) {
     return `${elementLabel(elementLocA)} - ${elementLabel(elementLocB)}`
 }
 
-export function elementLabel(element: StructureElement) {
-    const model = element.unit.model.label
-    const instance = element.unit.conformation.operator.name
+export function elementLabel(location: StructureElement) {
+    const model = location.unit.model.label
+    const instance = location.unit.conformation.operator.name
     let label = ''
 
-    if (Unit.isAtomic(element.unit)) {
-        const asym_id = Props.chain.auth_asym_id(element)
-        const seq_id = Props.residue.auth_seq_id(element)
-        const comp_id = Props.residue.auth_comp_id(element)
-        const atom_id = Props.atom.auth_atom_id(element)
-        label = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}`
-    } else if (Unit.isCoarse(element.unit)) {
-        const asym_id = Props.coarse.asym_id(element)
-        const seq_id_begin = Props.coarse.seq_id_begin(element)
-        const seq_id_end = Props.coarse.seq_id_end(element)
+    if (Unit.isAtomic(location.unit)) {
+        const asym_id = Props.chain.auth_asym_id(location)
+        const seq_id = Props.residue.auth_seq_id(location)
+        const comp_id = Props.residue.auth_comp_id(location)
+        const atom_id = Props.atom.auth_atom_id(location)
+        const alt_id = Props.atom.label_alt_id(location)
+        label = `[${comp_id}]${seq_id}:${asym_id}.${atom_id}${alt_id ? `%${alt_id}` : ''}`
+    } else if (Unit.isCoarse(location.unit)) {
+        const asym_id = Props.coarse.asym_id(location)
+        const seq_id_begin = Props.coarse.seq_id_begin(location)
+        const seq_id_end = Props.coarse.seq_id_end(location)
         if (seq_id_begin === seq_id_end) {
-            const entityKey = Props.coarse.entityKey(element)
-            const seq = element.unit.model.sequence.byEntityKey[entityKey]
+            const entityIndex = Props.coarse.entityKey(location)
+            const seq = location.unit.model.sequence.byEntityKey[entityIndex]
             const comp_id = seq.compId.value(seq_id_begin - 1) // 1-indexed
             label = `[${comp_id}]${seq_id_begin}:${asym_id}`
         } else {

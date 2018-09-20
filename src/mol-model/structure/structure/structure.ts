@@ -40,7 +40,8 @@ class Structure {
         models?: ReadonlyArray<Model>,
         hashCode: number,
         elementCount: number,
-    } = { hashCode: -1, elementCount: 0 };
+        polymerResidueCount: number,
+    } = { hashCode: -1, elementCount: 0, polymerResidueCount: 0 };
 
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
@@ -49,6 +50,18 @@ class Structure {
     /** Count of all elements in the structure, i.e. the sum of the elements in the units */
     get elementCount() {
         return this._props.elementCount;
+    }
+
+    /** Count of all polymer residues in the structure */
+    get polymerResidueCount() {
+        return this._props.polymerResidueCount;
+    }
+
+    /** Coarse structure, defined as Containing less than twice as many elements as polymer residues */
+    get isCoarse() {
+        const ec = this.elementCount
+        const prc = this.polymerResidueCount
+        return prc && ec ? ec / prc < 2 : false
     }
 
     get hashCode() {
@@ -123,12 +136,14 @@ class Structure {
     constructor(units: ArrayLike<Unit>) {
         const map = IntMap.Mutable<Unit>();
         let elementCount = 0;
+        let polymerResidueCount = 0;
         let isSorted = true;
         let lastId = units.length > 0 ? units[0].id : 0;
         for (let i = 0, _i = units.length; i < _i; i++) {
             const u = units[i];
             map.set(u.id, u);
             elementCount += u.elements.length;
+            polymerResidueCount += u.polymerElements.length;
             if (u.id < lastId) isSorted = false;
             lastId = u.id;
         }
@@ -136,6 +151,7 @@ class Structure {
         this.unitMap = map;
         this.units = units as ReadonlyArray<Unit>;
         this._props.elementCount = elementCount;
+        this._props.polymerResidueCount = polymerResidueCount;
     }
 }
 

@@ -15,16 +15,18 @@ import { computeGaussianDensity, DefaultGaussianDensityProps } from './util/gaus
 
 async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianSurfaceProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props
-    const { transform, field } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
+    const { transform, field, idField } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
 
     const surface = await computeMarchingCubes({
         isoLevel: Math.exp(-smoothness),
         scalarField: field,
+        idField,
         oldSurface: mesh
     }).runAsChild(ctx)
 
     Mesh.transformImmediate(surface, transform)
     Mesh.computeNormalsImmediate(surface)
+    Mesh.uniformTriangleGroup(surface)
 
     return surface;
 }
@@ -32,8 +34,6 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
 export const DefaultGaussianSurfaceProps = {
     ...DefaultUnitsMeshProps,
     ...DefaultGaussianDensityProps,
-
-    flipSided: true, // TODO should not be required
 }
 export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 
