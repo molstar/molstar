@@ -185,6 +185,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                                 <StructureRepresentationComponent
                                     representation={structureRepresentations[k]}
                                     viewer={structureView.viewer}
+                                    app={structureView.app}
                                 />
                             </div>
                         } else {

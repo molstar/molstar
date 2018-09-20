@@ -32,23 +32,46 @@ export class App {
         }
     }
 
+    setStatus(msg: string) {
+
+    }
+
+    private taskCount = 0
+    taskCountChanged = new BehaviorSubject({ count: 0, info: '' })
+
+    private changeTaskCount(delta: number, info = '') {
+        this.taskCount += delta
+        this.taskCountChanged.next({ count: this.taskCount, info })
+    }
+
+    async runTask<T>(promise: Promise<T>, info: string) {
+        this.changeTaskCount(1, info)
+        let result: T
+        try {
+            result = await promise
+        } finally {
+            this.changeTaskCount(-1)
+        }
+        return result
+    }
+
     async loadCif(cif: CifBlock, assemblyId?: string) {
-        const models = await getModelsFromMmcif(cif)
-        this.structureView = await StructureView(this.viewer, models, { assemblyId })
+        const models = await this.runTask(getModelsFromMmcif(cif), 'Build models')
+        this.structureView = await this.runTask(StructureView(this, this.viewer, models, { assemblyId }), 'Init structure view')
         this.pdbIdLoaded.next(this.structureView)
     }
 
     async loadPdbIdOrUrl(idOrUrl: string, options?: { assemblyId?: string, binary?: boolean }) {
         if (this.structureView) this.structureView.destroy();
         const url = idOrUrl.length <= 4 ? `https://files.rcsb.org/download/${idOrUrl}.cif` : idOrUrl;
-        const cif = await getCifFromUrl(url, options ? !!options.binary : false)
+        const cif = await this.runTask(getCifFromUrl(url, options ? !!options.binary : false), 'Load mmCIF from URL')
         this.loadCif(cif, options ? options.assemblyId : void 0)
     }
 
     async loadCifFile(file: File) {
         if (this.structureView) this.structureView.destroy();
         const binary = /\.bcif$/.test(file.name);
-        const cif = await getCifFromFile(file, binary)
+        const cif = await this.runTask(getCifFromFile(file, binary), 'Load mmCIF from file')
         this.loadCif(cif)
     }
 }

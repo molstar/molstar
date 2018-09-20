@@ -25,9 +25,11 @@ import { BehaviorSubject } from 'rxjs';
 import { SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
 import { DistanceRestraintRepresentation } from 'mol-geo/representation/structure/representation/distance-restraint';
 import { SurfaceRepresentation } from 'mol-geo/representation/structure/representation/surface';
-// import { Progress } from 'mol-task';
+import { App } from './app';
+import { Progress } from 'mol-task';
 
 export interface StructureView {
+    readonly app: App
     readonly viewer: Viewer
 
     readonly label: string
@@ -64,11 +66,11 @@ interface StructureViewProps {
 
 
 
-export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
+export async function StructureView(app: App, viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
         cartoon: true,
         point: false,
-        surface: true,
+        surface: false,
         ballAndStick: false,
         carbohydrate: false,
         spacefill: false,
@@ -105,7 +107,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
         if (!value) {
             assemblySymmetry = undefined
         } else {
-            await AssemblySymmetry.attachFromCifOrAPI(models[modelId])
+            await app.runTask(AssemblySymmetry.attachFromCifOrAPI(models[modelId]), 'Load symmetry annotation')
             assemblySymmetry = AssemblySymmetry.get(models[modelId])
         }
         active.symmetryAxes = value
@@ -195,7 +197,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     }
 
     async function getStructure() {
-        if (model) structure = await getStructureFromModel(model, assemblyId)
+        if (model) structure = await app.runTask(getStructureFromModel(model, assemblyId), 'Build structure')
         if (model && structure) {
             label = `${model.label} - Assembly ${assemblyId}`
         } else {
@@ -209,9 +211,9 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
             console.log('createStructureRepr')
             for (const k in structureRepresentations) {
                 if (active[k]) {
-                    await structureRepresentations[k].createOrUpdate({ colorTheme: { name: 'element-index' } }, structure).run(
-                        // progress => console.log(Progress.format(progress))
-                    )
+                    await app.runTask(structureRepresentations[k].createOrUpdate({}, structure).run(
+                        progress => console.log(Progress.format(progress))
+                    ), 'Create/update representation')
                     viewer.add(structureRepresentations[k])
                 } else {
                     viewer.remove(structureRepresentations[k])
@@ -288,6 +290,7 @@ export async function StructureView(viewer: Viewer, models: ReadonlyArray<Model>
     await setModel(0, props.assemblyId, props.symmetryFeatureId)
 
     return {
+        app,
         viewer,
 
         get label() { return label },
