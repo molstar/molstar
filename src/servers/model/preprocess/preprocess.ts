@@ -23,7 +23,8 @@ export async function preprocessFile(filename: string, outputCif?: string, outpu
 
     //const started = now();
     //ConsoleLogger.log(`${linearId}`, `Reading '${filename}'...`);
-    const input = await readStructure('entry', '_local_', filename);
+    // TODO: support the custom prop provider list here.
+    const input = await readStructure('entry', '_local_', filename, void 0);
     //ConsoleLogger.log(`${linearId}`, `Classifying CIF categories...`);
     const categories = await classifyCif(input.cifFrame);
     //clearLine();

@@ -55,8 +55,8 @@ export namespace ArrayEncoder {
     }
 
     export function fromEncoding(encoding: Encoding[]) {
-        const e = by(getProvider(encoding[0]));
-        for (let i = 1; i < encoding.length; i++) e.and(getProvider(encoding[i]));
+        let e = by(getProvider(encoding[0]));
+        for (let i = 1; i < encoding.length; i++) e = e.and(getProvider(encoding[i]));
         return e;
     }
 
@@ -358,9 +358,9 @@ export namespace ArrayEncoding {
      * Packs Int32 array. The packing level is determined automatically to either 1-, 2-, or 4-byte words.
      */
     export function integerPacking(data: Int32Array): Result {
-        if (!(data instanceof Int32Array)) {
-            throw new Error('Integer packing can only be applied to Int32 data.');
-        }
+        // if (!(data instanceof Int32Array)) {
+        //     throw new Error('Integer packing can only be applied to Int32 data.');
+        // }
 
         const packing = determinePacking(data);
 

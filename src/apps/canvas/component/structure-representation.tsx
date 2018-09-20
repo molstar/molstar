@@ -12,8 +12,10 @@ import { Color } from 'mol-util/color';
 import { Progress } from 'mol-task';
 import { VisualQuality, VisualQualityNames } from 'mol-geo/geometry/geometry';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { App } from '../app';
 
 export interface StructureRepresentationComponentProps {
+    app: App
     viewer: Viewer
     representation: StructureRepresentation<StructureProps>
 }
@@ -82,9 +84,9 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         if (state.pointFilledCircle !== undefined) (props as any).pointFilledCircle = state.pointFilledCircle
         if (state.pointEdgeBleach !== undefined) (props as any).pointEdgeBleach = state.pointEdgeBleach
 
-        await repr.createOrUpdate(props).run(
+        await this.props.app.runTask(repr.createOrUpdate(props).run(
             progress => console.log(Progress.format(progress))
-        )
+        ), 'Create/update representation')
         this.props.viewer.add(repr)
         this.props.viewer.draw(true)
         console.log(this.props.viewer.stats)
@@ -163,7 +165,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                     <input type='range'
                         defaultValue={this.state.radiusOffset.toString()}
                         min='0'
-                        max='10'
+                        max='4'
                         step='0.1'
                         onInput={(e) => this.update({ radiusOffset: parseFloat(e.currentTarget.value) })}
                     >
@@ -220,8 +222,8 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                                     background: `linear-gradient(to right, ${ct.legend.colors.map(c => Color.toStyle(c)).join(', ')})`
                                 }}
                             >
-                                <span style={{float: 'left', padding: '6px', color: 'white', fontWeight: 'bold', backgroundColor: 'rgba(0, 0, 0, 0.2)'}}>{ct.legend.min}</span>
-                                <span style={{float: 'right', padding: '6px', color: 'white', fontWeight: 'bold', backgroundColor: 'rgba(0, 0, 0, 0.2)'}}>{ct.legend.max}</span>
+                                <span style={{float: 'left', padding: '6px', color: 'white', fontWeight: 'bold', backgroundColor: 'rgba(0, 0, 0, 0.2)'}}>{ct.legend.minLabel}</span>
+                                <span style={{float: 'right', padding: '6px', color: 'white', fontWeight: 'bold', backgroundColor: 'rgba(0, 0, 0, 0.2)'}}>{ct.legend.maxLabel}</span>
                             </div>
                         : ct.legend && ct.legend.kind === 'table-legend'
                             ? <div>

@@ -19,17 +19,20 @@ import { CrossLinkColorTheme } from './color/cross-link';
 import { ShapeGroupColorTheme } from './color/shape-group';
 import { CustomColorTheme } from './color/custom';
 import { ResidueNameColorTheme } from './color/residue-name';
+import { SequenceIdColorTheme } from './color/sequence-id';
+import { SecondaryStructureColorTheme } from './color/secondary-structure';
+import { MoleculeTypeColorTheme } from './color/molecule-type';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
 export interface ScaleLegend {
     kind: 'scale-legend'
-    min: number,
-    max: number,
+    minLabel: string,
+    maxLabel: string,
     colors: Color[]
 }
-export function ScaleLegend(min: number, max: number, colors: Color[]): ScaleLegend {
-    return { kind: 'scale-legend', min, max, colors }
+export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[]): ScaleLegend {
+    return { kind: 'scale-legend', minLabel, maxLabel, colors }
 }
 
 export interface TableLegend {
@@ -49,16 +52,19 @@ export interface ColorTheme {
 
 export function ColorTheme(props: ColorThemeProps): ColorTheme {
     switch (props.name) {
-        case 'element-index': return ElementIndexColorTheme(props)
         case 'carbohydrate-symbol': return CarbohydrateSymbolColorTheme(props)
-        case 'cross-link': return CrossLinkColorTheme(props)
         case 'chain-id': return ChainIdColorTheme(props)
+        case 'cross-link': return CrossLinkColorTheme(props)
+        case 'custom': return CustomColorTheme(props)
+        case 'element-index': return ElementIndexColorTheme(props)
         case 'element-symbol': return ElementSymbolColorTheme(props)
+        case 'molecule-type': return MoleculeTypeColorTheme(props)
         case 'residue-name': return ResidueNameColorTheme(props)
+        case 'secondary-structure': return SecondaryStructureColorTheme(props)
+        case 'sequence-id': return SequenceIdColorTheme(props)
+        case 'shape-group': return ShapeGroupColorTheme(props)
         case 'unit-index': return UnitIndexColorTheme(props)
         case 'uniform': return UniformColorTheme(props)
-        case 'shape-group': return ShapeGroupColorTheme(props)
-        case 'custom': return CustomColorTheme(props)
     }
 }
 
@@ -74,16 +80,19 @@ export interface ColorThemeProps {
 }
 
 export const ColorThemeInfo = {
-    'element-index': {},
     'carbohydrate-symbol': {},
-    'cross-link': {},
     'chain-id': {},
+    'cross-link': {},
+    'custom': {},
+    'element-index': {},
     'element-symbol': {},
+    'molecule-type': {},
     'residue-name': {},
+    'secondary-structure': {},
+    'sequence-id': {},
+    'shape-group': {},
     'unit-index': {},
     'uniform': {},
-    'shape-group': {},
-    'custom': {}
 }
 export type ColorThemeName = keyof typeof ColorThemeInfo
 export const ColorThemeNames = Object.keys(ColorThemeInfo)

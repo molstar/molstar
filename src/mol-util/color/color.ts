@@ -14,6 +14,10 @@ export namespace Color {
         return `rgb(${hexColor >> 16 & 255}, ${hexColor >> 8 & 255}, ${hexColor & 255})`
     }
 
+    export function toHexString(hexColor: Color) {
+        return '0x' + ('000000' + hexColor.toString(16)).slice(-6)
+    }
+
     export function toRgb(hexColor: Color) {
         return [ hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255 ]
     }
@@ -24,6 +28,10 @@ export namespace Color {
 
     export function fromRgb(r: number, g: number, b: number ): Color {
         return ((r << 16) | (g << 8) | b) as Color
+    }
+
+    export function fromNormalizedRgb(r: number, g: number, b: number ): Color {
+        return (((r * 255) << 16) | ((g * 255) << 8) | (b * 255)) as Color
     }
 
     /** Copies hex color to rgb array */

@@ -21,7 +21,7 @@ export function getAtomicPolymerElements(unit: Unit.Atomic) {
         while (residueIt.hasNext) {
             const residueSegment = residueIt.move()
             const { start, end, index } = residueSegment
-            if (OrderedSet.areIntersecting(Interval.ofBounds(elements[start], elements[end - 1]), elements)) {
+            if (OrderedSet.areIntersecting(Interval.ofRange(elements[start], elements[end - 1]), elements)) {
                 const elementIndex = getElementIndexForAtomRole(model, index, 'trace')
                 indices.push(elementIndex === -1 ? residueAtomSegments.offsets[index] : elementIndex)
             }

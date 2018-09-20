@@ -36,6 +36,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
     const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
 
+    const isCoarse = Unit.isCoarse(unit)
     const state = createCurveSegmentState(linearSegments)
     const { curvePoints, normalVectors, binormalVectors } = state
 
@@ -54,6 +55,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure
         interpolateCurveSegment(state, v, tension, shift)
 
         let width = sizeTheme.size(v.center)
+        if (isCoarse) width *= aspectRatio / 2
 
         if (isSheet) {
             const height = width * aspectRatio

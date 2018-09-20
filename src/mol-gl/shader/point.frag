@@ -27,9 +27,9 @@ void main(){
 
         #ifdef dPointFilledCircle
             float dist = distance(gl_PointCoord, center);
-            float alpha = 1.0 - smoothstep(radius - uPointEdgeBleach * 2.0, radius, dist);
+            float alpha = 1.0 - smoothstep(radius - uPointEdgeBleach, radius, dist);
+            if (alpha < 0.0001) discard;
             gl_FragColor.a *= alpha;
-            if (gl_FragColor.a < 0.1) discard;
         #endif
 
         #pragma glslify: import('./chunks/apply-marker-color.glsl')
