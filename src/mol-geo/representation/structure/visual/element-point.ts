@@ -10,12 +10,12 @@ import { UnitsVisual, VisualUpdateState } from '..';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { SizeThemeProps } from 'mol-view/theme/size';
-import { UnitsPointVisual, DefaultUnitsPointProps } from '../units-visual';
-import { Point } from '../../../geometry/point/point';
-import { PointBuilder } from '../../../geometry/point/point-builder';
+import { UnitsPointsVisual, DefaultUnitsPointsProps } from '../units-visual';
+import { Points } from '../../../geometry/points/points';
+import { PointsBuilder } from '../../../geometry/points/points-builder';
 
 export const DefaultElementPointProps = {
-    ...DefaultUnitsPointProps,
+    ...DefaultUnitsPointsProps,
 
     sizeTheme: { name: 'uniform', value: 0.2 } as SizeThemeProps,
     pointSizeAttenuation: true,
@@ -24,10 +24,10 @@ export type ElementPointProps = typeof DefaultElementPointProps
 
 // TODO size
 
-export async function createElementPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: ElementPointProps, point: Point) {
+export async function createElementPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: ElementPointProps, points: Points) {
     const elements = unit.elements
     const n = elements.length
-    const builder = PointBuilder.create(n, n / 10, point)
+    const builder = PointsBuilder.create(n, n / 10, points)
 
     const pos = unit.conformation.invariantPosition
     const p = Vec3.zero()
@@ -40,13 +40,13 @@ export async function createElementPoint(ctx: RuntimeContext, unit: Unit, struct
             await ctx.update({ message: 'Creating points', current: i, max: n });
         }
     }
-    return builder.getPoint()
+    return builder.getPoints()
 }
 
 export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
-    return UnitsPointVisual<ElementPointProps>({
+    return UnitsPointsVisual<ElementPointProps>({
         defaultProps: DefaultElementPointProps,
-        createPoint: createElementPoint,
+        createPoints: createElementPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,

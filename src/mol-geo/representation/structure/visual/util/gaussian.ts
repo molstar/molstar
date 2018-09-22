@@ -11,7 +11,7 @@ import { Box3D } from 'mol-math/geometry';
 import { SizeTheme } from 'mol-view/theme/size';
 
 export const DefaultGaussianDensityProps = {
-    resolutionFactor: 6,
+    resolutionFactor: 4,
     radiusOffset: 0,
     smoothness: 1.5,
 }

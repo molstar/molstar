@@ -141,27 +141,43 @@ export const InternalSchema = {
     uObjectId: UniformSpec('i'),
 }
 
+export const ColorSchema = {
+    aColor: AttributeSpec('float32', 3, 0),
+    uColor: UniformSpec('v3'),
+    uColorTexDim: UniformSpec('v2'),
+    tColor: TextureSpec('rgb', 'ubyte'),
+    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
+}
+export type ColorSchema = typeof ColorSchema
+export type ColorValues = Values<ColorSchema>
+
+export const SizeSchema = {
+    aSize: AttributeSpec('float32', 1, 0),
+    uSize: UniformSpec('f'),
+    uSizeTexDim: UniformSpec('v2'),
+    tSize: TextureSpec('alpha', 'ubyte'),
+    dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
+}
+export type SizeSchema = typeof SizeSchema
+export type SizeValues = Values<SizeSchema>
+
 export const BaseSchema = {
+    ...ColorSchema,
+
     aInstance: AttributeSpec('float32', 1, 1),
-    aPosition: AttributeSpec('float32', 3, 0),
     aGroup: AttributeSpec('float32', 1, 0),
     aTransform: AttributeSpec('float32', 16, 1),
-    aColor: AttributeSpec('float32', 3, 0),
 
     uAlpha: UniformSpec('f'),
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
-    uColor: UniformSpec('v3'),
-    uColorTexDim: UniformSpec('v2'),
     uMarkerTexDim: UniformSpec('v2'),
 
-    tColor: TextureSpec('rgb', 'ubyte'),
     tMarker: TextureSpec('alpha', 'ubyte'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
 
-    dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
     dUseFog: DefineSpec('boolean'),
 }
 export type BaseSchema = typeof BaseSchema

@@ -5,7 +5,7 @@
  */
 
 import { Mesh } from './mesh/mesh';
-import { Point } from './point/point';
+import { Points } from './points/points';
 import { RenderableState } from 'mol-gl/renderable';
 import { ValueCell } from 'mol-util';
 import { BaseValues } from 'mol-gl/renderable/schema';
@@ -14,8 +14,9 @@ import { ColorThemeProps } from 'mol-view/theme/color';
 import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
+import { Lines } from './lines/lines';
 
-export type GeometryKindType = { 'mesh': Mesh, 'point': Point }
+export type GeometryKindType = { 'mesh': Mesh, 'points': Points, 'lines': Lines }
 export type GeometryKind = keyof GeometryKindType
 export type Geometry = Helpers.ValueOf<GeometryKindType>
 
@@ -23,7 +24,8 @@ export namespace Geometry {
     export function getDrawCount(geometry: Geometry) {
         switch (geometry.kind) {
             case 'mesh': return geometry.triangleCount * 3
-            case 'point': return geometry.vertexCount
+            case 'points': return geometry.pointCount
+            case 'lines': return geometry.lineCount
         }
     }
 

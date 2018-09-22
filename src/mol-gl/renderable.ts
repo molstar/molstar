@@ -8,7 +8,9 @@ import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
 import { RenderVariant, RenderItem } from './webgl/render-item';
 import { Sphere3D } from 'mol-math/geometry';
-import { calculateBoundingSphereFromValues } from './renderable/util';
+// import { calculateBoundingSphereFromValues } from './renderable/util';
+// import { Sphere } from 'mol-geo/primitive/sphere';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 export type RenderableState = {
     visible: boolean
@@ -28,27 +30,33 @@ export interface Renderable<T extends RenderableValues & BaseValues> {
 }
 
 export function createRenderable<T extends Values<RenderableSchema> & BaseValues>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
-    let boundingSphere: Sphere3D | undefined
+    // TODO
+    let boundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 50)
 
     return {
         get values () { return values },
         get state () { return state },
         get boundingSphere () {
-            if (boundingSphere) return boundingSphere
-            boundingSphere = calculateBoundingSphereFromValues(values)
             return boundingSphere
+            // TODO
+            // if (boundingSphere) return boundingSphere
+            // boundingSphere = calculateBoundingSphereFromValues(values)
+            // return boundingSphere
         },
         get opaque () { return values.uAlpha.ref.value === 1 },
 
         render: (variant: RenderVariant) => renderItem.render(variant),
         getProgram: (variant: RenderVariant) => renderItem.getProgram(variant),
         update: () => {
-            const valueChanges = renderItem.update()
-            if (valueChanges.attributes) boundingSphere = undefined
+            renderItem.update()
+            // TODO
+            // const valueChanges = renderItem.update()
+            // if (valueChanges.attributes) boundingSphere = undefined
         },
         dispose: () => renderItem.destroy()
     }
 }
 
-export { PointRenderable, PointSchema, PointValues } from './renderable/point'
 export { MeshRenderable, MeshSchema, MeshValues } from './renderable/mesh'
+export { PointsRenderable, PointsSchema, PointsValues } from './renderable/points'
+export { LinesRenderable, LinesSchema, LinesValues } from './renderable/lines'

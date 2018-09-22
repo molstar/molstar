@@ -11,7 +11,8 @@ import { SizeThemeProps } from 'mol-view/theme/size';
 import { Representation, RepresentationProps } from '..';
 import { Geometry } from '../../geometry/geometry';
 import { Mesh } from '../../geometry/mesh/mesh';
-import { Point } from '../../geometry/point/point';
+import { Points } from '../../geometry/points/points';
+import { Lines } from '../../geometry/lines/lines';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
@@ -28,11 +29,17 @@ export const DefaultStructureMeshProps = {
 }
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
-export const DefaultStructurePointProps = {
-    ...Point.DefaultProps,
+export const DefaultStructurePointsProps = {
+    ...Points.DefaultProps,
     ...DefaultStructureProps,
 }
-export type StructurePointProps = typeof DefaultStructurePointProps
+export type StructurePointsProps = typeof DefaultStructurePointsProps
+
+export const DefaultStructureLinesProps = {
+    ...Lines.DefaultProps,
+    ...DefaultStructureProps,
+}
+export type StructureLinesProps = typeof DefaultStructureLinesProps
 
 export interface VisualUpdateState {
     updateTransform: boolean

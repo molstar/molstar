@@ -8,13 +8,13 @@ import { Unit, Structure } from 'mol-model/structure';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../geometry/mesh/mesh';
 import { StructureProps } from '../..';
-import { createMeshRenderObject, createPointRenderObject } from 'mol-gl/render-object';
+import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject } from 'mol-gl/render-object';
 import { RuntimeContext } from 'mol-task';
-import { PointProps } from 'mol-geo/representation/structure/representation/point';
 import { TransformData, createIdentityTransform, createTransform } from '../../../../geometry/transform-data';
-import { Point } from '../../../../geometry/point/point';
+import { Points } from '../../../../geometry/points/points';
 import { createRenderableState } from '../../../../geometry/geometry';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { Lines } from '../../../../geometry/lines/lines';
 
 export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length
@@ -44,13 +44,25 @@ export async function createUnitsMeshRenderObject(ctx: RuntimeContext, group: Un
     return createMeshRenderObject(values, state)
 }
 
-// point
+// points
 
-type StructurePointProps = PointProps & StructureProps
+type StructurePointsProps = Points.Props & StructureProps
 
-export async function createUnitsPointRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, point: Point, locationIt: LocationIterator, props: StructurePointProps) {
+export async function createUnitsPointsRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, props: StructurePointsProps) {
     const transform = createUnitsTransform(group)
-    const values = await Point.createValues(ctx, point, transform, locationIt, props)
+    const values = await Points.createValues(ctx, points, transform, locationIt, props)
     const state = createRenderableState(props)
-    return createPointRenderObject(values, state)
+    return createPointsRenderObject(values, state)
+}
+
+// lines
+
+type StructureLinesProps = Lines.Props & StructureProps
+
+export async function createUnitsLinesRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, props: StructureLinesProps) {
+    const transform = createUnitsTransform(group)
+    const values = await Lines.createValues(ctx, lines, transform, locationIt, props)
+    console.log('values', values)
+    const state = createRenderableState(props)
+    return createLinesRenderObject(values, state)
 }

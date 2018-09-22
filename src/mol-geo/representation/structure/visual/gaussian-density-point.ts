@@ -10,14 +10,14 @@ import { UnitsVisual, VisualUpdateState } from '..';
 import { StructureElementIterator } from './util/element';
 import { EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { UnitsPointVisual, DefaultUnitsPointProps } from '../units-visual';
+import { UnitsPointsVisual, DefaultUnitsPointsProps } from '../units-visual';
 import { computeGaussianDensity, DefaultGaussianDensityProps } from './util/gaussian';
-import { Point } from '../../../geometry/point/point';
-import { PointBuilder } from '../../../geometry/point/point-builder';
+import { Points } from '../../../geometry/points/points';
+import { PointsBuilder } from '../../../geometry/points/points-builder';
 import { SizeThemeProps } from 'mol-view/theme/size';
 
 export const DefaultGaussianDensityPointProps = {
-    ...DefaultUnitsPointProps,
+    ...DefaultUnitsPointsProps,
     ...DefaultGaussianDensityProps,
 
     sizeTheme: { name: 'uniform', value: 1 } as SizeThemeProps,
@@ -25,14 +25,14 @@ export const DefaultGaussianDensityPointProps = {
 }
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
-export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityPointProps, point?: Point) {
+export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityPointProps, points?: Points) {
     const { transform, field: { space, data } } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
 
     const { dimensions, get } = space
     const [ xn, yn, zn ] = dimensions
 
     const n = xn * yn * zn * 3
-    const builder = PointBuilder.create(n, n / 10, point)
+    const builder = PointsBuilder.create(n, n / 10, points)
 
     const p = Vec3.zero()
     let i = 0
@@ -52,13 +52,13 @@ export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit
             }
         }
     }
-    return builder.getPoint()
+    return builder.getPoints()
 }
 
 export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointProps> {
-    return UnitsPointVisual<GaussianDensityPointProps>({
+    return UnitsPointsVisual<GaussianDensityPointProps>({
         defaultProps: DefaultGaussianDensityPointProps,
-        createPoint: createGaussianDensityPoint,
+        createPoints: createGaussianDensityPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: () => EmptyLoci,
         mark: () => false,

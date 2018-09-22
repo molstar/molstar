@@ -24,9 +24,14 @@ export function ShaderCode(vert: string, frag: string): ShaderCode {
     return { id: shaderCodeId(), vert, frag }
 }
 
-export const PointShaderCode = ShaderCode(
-    require('mol-gl/shader/point.vert'),
-    require('mol-gl/shader/point.frag')
+export const PointsShaderCode = ShaderCode(
+    require('mol-gl/shader/points.vert'),
+    require('mol-gl/shader/points.frag')
+)
+
+export const LinesShaderCode = ShaderCode(
+    require('mol-gl/shader/lines.vert'),
+    require('mol-gl/shader/lines.frag')
 )
 
 export const MeshShaderCode = ShaderCode(

@@ -15,8 +15,8 @@ import { createValueColor } from 'mol-geo/geometry/color-data';
 import { createValueSize } from 'mol-geo/geometry/size-data';
 import { createContext } from '../webgl/context';
 import { RenderableState } from '../renderable';
-import { createPointRenderObject } from '../render-object';
-import { PointValues } from '../renderable/point';
+import { createPointsRenderObject } from '../render-object';
+import { PointsValues } from '../renderable/points';
 import Scene from '../scene';
 import { createEmptyMarkers } from 'mol-geo/geometry/marker-data';
 import { fillSerial } from 'mol-util/array';
@@ -56,7 +56,7 @@ function createPoints() {
     const m4 = Mat4.identity()
     Mat4.toArray(m4, aTransform.ref.value, 0)
 
-    const values: PointValues = {
+    const values: PointsValues = {
         aPosition,
         aGroup,
         aTransform,
@@ -82,7 +82,7 @@ function createPoints() {
         depthMask: true,
     }
 
-    return createPointRenderObject(values, state)
+    return createPointsRenderObject(values, state)
 }
 
 describe('renderer', () => {

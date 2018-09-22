@@ -7,30 +7,27 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, TextureSpec } from './schema';
-import { PointShaderCode } from '../shader-code';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, SizeSchema } from './schema';
+import { PointsShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
-export const PointSchema = {
+export const PointsSchema = {
     ...BaseSchema,
-    aSize: AttributeSpec('float32', 1, 0),
-    uSize: UniformSpec('f'),
-    uSizeTexDim: UniformSpec('v2'),
-    tSize: TextureSpec('alpha', 'ubyte'),
-    dSizeType: DefineSpec('string', ['uniform', 'attribute']),
+    ...SizeSchema,
+    aPosition: AttributeSpec('float32', 3, 0),
     dPointSizeAttenuation: DefineSpec('boolean'),
     dPointFilledCircle: DefineSpec('boolean'),
     uPointEdgeBleach: UniformSpec('f'),
 }
-export type PointSchema = typeof PointSchema
-export type PointValues = Values<PointSchema>
+export type PointsSchema = typeof PointsSchema
+export type PointsValues = Values<PointsSchema>
 
-export function PointRenderable(ctx: Context, id: number, values: PointValues, state: RenderableState): Renderable<PointValues> {
-    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointSchema }
+export function PointsRenderable(ctx: Context, id: number, values: PointsValues, state: RenderableState): Renderable<PointsValues> {
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointsSchema }
     const internalValues = {
         uObjectId: ValueCell.create(id)
     }
-    const shaderCode = PointShaderCode
+    const shaderCode = PointsShaderCode
     const renderItem = createRenderItem(ctx, 'points', shaderCode, schema, { ...values, ...internalValues })
     const renderable = createRenderable(renderItem, values, state);
 

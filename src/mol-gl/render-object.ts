@@ -4,30 +4,33 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PointRenderable, MeshRenderable, RenderableState } from './renderable'
+import { PointsRenderable, MeshRenderable, RenderableState, MeshValues, PointsValues, LinesValues, LinesRenderable } from './renderable'
 import { RenderableValues } from './renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { Context } from './webgl/context';
-import { MeshValues } from './renderable/mesh';
-import { PointValues } from './renderable/point';
 
 const getNextId = idFactory(0, 0x7FFFFFFF)
 
 export interface BaseRenderObject { id: number, type: string, values: RenderableValues, state: RenderableState }
 export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', values: MeshValues }
-export interface PointRenderObject extends BaseRenderObject { type: 'point', values: PointValues }
-export type RenderObject = MeshRenderObject | PointRenderObject
+export interface PointsRenderObject extends BaseRenderObject { type: 'points', values: PointsValues }
+export interface LinesRenderObject extends BaseRenderObject { type: 'lines', values: LinesValues }
+export type RenderObject = MeshRenderObject | PointsRenderObject | LinesRenderObject
 
 export function createMeshRenderObject(values: MeshValues, state: RenderableState): MeshRenderObject {
     return { id: getNextId(), type: 'mesh', values, state }
 }
-export function createPointRenderObject(values: PointValues, state: RenderableState): PointRenderObject {
-    return { id: getNextId(), type: 'point', values, state }
+export function createPointsRenderObject(values: PointsValues, state: RenderableState): PointsRenderObject {
+    return { id: getNextId(), type: 'points', values, state }
+}
+export function createLinesRenderObject(values: LinesValues, state: RenderableState): LinesRenderObject {
+    return { id: getNextId(), type: 'lines', values, state }
 }
 
 export function createRenderable(ctx: Context, o: RenderObject) {
     switch (o.type) {
         case 'mesh': return MeshRenderable(ctx, o.id, o.values, o.state)
-        case 'point': return PointRenderable(ctx, o.id, o.values, o.state)
+        case 'points': return PointsRenderable(ctx, o.id, o.values, o.state)
+        case 'lines': return LinesRenderable(ctx, o.id, o.values, o.state)
     }
 }
