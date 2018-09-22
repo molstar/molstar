@@ -12,11 +12,11 @@ import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
 import { PickingId } from '../../../geometry/picking';
 import { Task } from 'mol-task';
-import { GaussianDensityPointVisual, DefaultGaussianDensityPointProps } from '../visual/gaussian-density-point';
+import { GaussianDensityPointVisual } from '../visual/gaussian-density-point';
 import { DefaultGaussianWireframeProps, GaussianWireframeVisual } from '../visual/gaussian-surface-wireframe';
 
 export const DefaultSurfaceProps = {
-    // ...DefaultGaussianSurfaceProps,
+    ...DefaultGaussianSurfaceProps,
     // ...DefaultGaussianDensityPointProps,
     ...DefaultGaussianWireframeProps,
 }
@@ -40,7 +40,7 @@ export function SurfaceRepresentation(): SurfaceRepresentation {
         createOrUpdate: (props: Partial<SurfaceProps> = {}, structure?: Structure) => {
             currentProps = Object.assign({}, DefaultSurfaceProps, currentProps, props)
             return Task.create('Creating SurfaceRepresentation', async ctx => {
-                // await gaussianSurfaceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                await gaussianSurfaceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 // await gaussianPointRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
                 await gaussianWireframeRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
             })

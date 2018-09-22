@@ -424,7 +424,7 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
             lines = newProps.unitKinds.includes(unit.kind)
                 ? await createLines(ctx, unit, currentStructure, newProps, lines)
                 : Lines.createEmpty(lines)
-            ValueCell.update(renderObject.values.drawCount, lines.lineCount)
+            ValueCell.update(renderObject.values.drawCount, lines.lineCount * 2 * 3)
             updateState.updateColor = true
         }
 

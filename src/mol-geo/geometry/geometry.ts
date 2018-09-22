@@ -25,7 +25,7 @@ export namespace Geometry {
         switch (geometry.kind) {
             case 'mesh': return geometry.triangleCount * 3
             case 'points': return geometry.pointCount
-            case 'lines': return geometry.lineCount
+            case 'lines': return geometry.lineCount * 2 * 3
         }
     }
 

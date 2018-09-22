@@ -33,10 +33,8 @@ export namespace LinesBuilder {
                 ChunkedArray.add2(mappings, -1, -1);
                 ChunkedArray.add2(mappings, 1, 1);
                 ChunkedArray.add2(mappings, 1, -1);
-                // ChunkedArray.add3(indices, offset, offset + 1, offset + 2);
-                // ChunkedArray.add3(indices, offset + 1, offset + 3, offset + 2);
-                ChunkedArray.add3(indices, offset + 2, offset + 1, offset);
-                ChunkedArray.add3(indices, offset + 2, offset + 3, offset + 1);
+                ChunkedArray.add3(indices, offset, offset + 1, offset + 2);
+                ChunkedArray.add3(indices, offset + 1, offset + 3, offset + 2);
             },
             getLines: () => {
                 const mb = ChunkedArray.compact(mappings, true) as Float32Array
@@ -44,7 +42,6 @@ export namespace LinesBuilder {
                 const gb = ChunkedArray.compact(groups, true) as Float32Array
                 const sb = ChunkedArray.compact(starts, true) as Float32Array
                 const eb = ChunkedArray.compact(ends, true) as Float32Array
-                console.log(indices.elementCount, mappings.elementCount, groups.elementCount)
                 return {
                     kind: 'lines',
                     lineCount: indices.elementCount / 2,

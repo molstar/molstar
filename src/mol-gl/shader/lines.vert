@@ -119,9 +119,4 @@ void main(){
     offset *= clip.w;
     clip.xy += offset;
     gl_Position = clip;
-
-    // gl_Position = uProjection * (modelView * vec4(aEnd.x * 5.0 - 5.0, aMapping.y * 5.0, 2.0, 1.0));
-
-    // TODO
-    // vViewPosition = (projectionMatrixInverse * clip).xyz;
 }
