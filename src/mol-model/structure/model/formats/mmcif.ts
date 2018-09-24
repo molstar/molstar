@@ -146,7 +146,8 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
             ...previous,
             id: UUID.create(),
             modelNum: atom_site.pdbx_PDB_model_num.value(0),
-            atomicConformation: atomic.conformation
+            atomicConformation: atomic.conformation,
+            _dynamicPropertyData: Object.create(null)
         };
     }
 

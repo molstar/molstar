@@ -21,7 +21,7 @@ import Type from 'mol-script/language/type';
 type IssueMap = ResidueCustomProperty<string[]>
 
 const _Descriptor = ModelPropertyDescriptor({
-    isStatic: true,
+    isStatic: false,
     name: 'structure_quality_report',
     cifExport: {
         prefix: 'pdbe',
@@ -114,7 +114,7 @@ export namespace StructureQualityReport {
         // provide JSON from api
         PDBe_apiSourceJson?: (model: Model) => Promise<any>
     }) {
-        if (model.customProperties.has(Descriptor)) return true;
+        if (get(model)) return true;
 
         let issueMap;
 
@@ -132,12 +132,12 @@ export namespace StructureQualityReport {
         }
 
         model.customProperties.add(Descriptor);
-        model._staticPropertyData.__StructureQualityReport__ = issueMap;
+        model._dynamicPropertyData.__StructureQualityReport__ = issueMap;
         return true;
     }
 
     export function get(model: Model): IssueMap | undefined {
-        return model._staticPropertyData.__StructureQualityReport__;
+        return model._dynamicPropertyData.__StructureQualityReport__;
     }
 
     const _emptyArray: string[] = [];
