@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { readStructure } from '../server/structure-wrapper';
+import { readStructureWrapper, resolveStructure } from '../server/structure-wrapper';
 import { classifyCif } from './converter';
 // import { ConsoleLogger } from 'mol-util/console-logger';
 import { Structure } from 'mol-model/structure';
@@ -24,18 +24,19 @@ export async function preprocessFile(filename: string, outputCif?: string, outpu
     //const started = now();
     //ConsoleLogger.log(`${linearId}`, `Reading '${filename}'...`);
     // TODO: support the custom prop provider list here.
-    const input = await readStructure('entry', '_local_', filename, void 0);
+    const input = await readStructureWrapper('entry', '_local_', filename, void 0);
+    const inputStructure = (await resolveStructure(input))!;
     //ConsoleLogger.log(`${linearId}`, `Classifying CIF categories...`);
     const categories = await classifyCif(input.cifFrame);
     //clearLine();
 
-    const exportCtx = CifExportContext.create(input.structure, input.structure.models[0]);
+    const exportCtx = CifExportContext.create(inputStructure, inputStructure.models[0]);
 
     if (outputCif) {
         //ConsoleLogger.log(`${linearId}`, `Encoding CIF...`);
         const writer = wrapFileToWriter(outputCif);
         const encoder = CifWriter.createEncoder({ binary: false });
-        await encode(input.structure, input.cifFrame.header, categories, encoder, exportCtx, writer);
+        await encode(inputStructure, input.cifFrame.header, categories, encoder, exportCtx, writer);
         // clearLine();
         writer.end();
     }
@@ -44,7 +45,7 @@ export async function preprocessFile(filename: string, outputCif?: string, outpu
         // ConsoleLogger.log(`${linearId}`, `Encoding BinaryCIF...`);
         const writer = wrapFileToWriter(outputBcif);
         const encoder = CifWriter.createEncoder({ binary: true, binaryAutoClassifyEncoding: true });
-        await encode(input.structure, input.cifFrame.header, categories, encoder, exportCtx, writer);
+        await encode(inputStructure, input.cifFrame.header, categories, encoder, exportCtx, writer);
         //clearLine();
         writer.end();
     }

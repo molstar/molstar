@@ -14,7 +14,7 @@ import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import Config from '../config';
 import Version from '../version';
 import { Job } from './jobs';
-import { getStructure, StructureWrapper } from './structure-wrapper';
+import { createStructureWrapperFromJob, StructureWrapper, resolveStructure } from './structure-wrapper';
 import CifField = CifWriter.Field
 import { createModelPropertiesProviderFromConfig } from '../provider';
 
@@ -31,13 +31,15 @@ const propertyProvider = createModelPropertiesProviderFromConfig();
 export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
     ConsoleLogger.logId(job.id, 'Query', 'Starting.');
 
-    const wrappedStructure = await getStructure(job, propertyProvider);
+    const wrappedStructure = await createStructureWrapperFromJob(job, propertyProvider);
 
     try {
         perf.start('query');
+        const sourceStructure = await resolveStructure(wrappedStructure);
+        if (!sourceStructure) throw new Error('Model not available');
         const structure = job.queryDefinition.structureTransform
-            ? await job.queryDefinition.structureTransform(job.normalizedParams, wrappedStructure.structure)
-            : wrappedStructure.structure;
+            ? await job.queryDefinition.structureTransform(job.normalizedParams, sourceStructure)
+            : sourceStructure;
         const query = job.queryDefinition.query(job.normalizedParams, structure);
         const result = await StructureSelection.unionStructure(StructureQuery.run(query, structure, Config.maxQueryTimeInMs));
         perf.end('query');

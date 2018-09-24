@@ -36,20 +36,22 @@ export interface StructureInfo {
 
 export interface StructureWrapper {
     info: StructureInfo,
-
     isBinary: boolean,
     key: string,
     approximateSize: number,
-    structure: Structure,
+    models: ArrayLike<Model>,
+    modelMap: Map<number, Model>,
+    structureModelMap: Map<number, Structure>,
+    propertyProvider: ModelPropertiesProvider | undefined,
     cifFrame: CifFrame
 }
 
-export async function getStructure(job: Job, propertyProvider: ModelPropertiesProvider | undefined, allowCache = true): Promise<StructureWrapper> {
+export async function createStructureWrapperFromJob(job: Job, propertyProvider: ModelPropertiesProvider | undefined, allowCache = true): Promise<StructureWrapper> {
     if (allowCache && Config.cacheParams.useCache) {
         const ret = StructureCache.get(job.key);
         if (ret) return ret;
     }
-    const ret = await readStructure(job.key, job.sourceId, job.entryId, propertyProvider);
+    const ret = await readStructureWrapper(job.key, job.sourceId, job.entryId, propertyProvider);
     if (allowCache && Config.cacheParams.useCache) {
         StructureCache.add(ret);
     }
@@ -86,7 +88,7 @@ async function parseCif(data: string|Uint8Array) {
     return parsed.result;
 }
 
-export async function readStructure(key: string, sourceId: string | '_local_', entryId: string, propertyProvider: ModelPropertiesProvider | undefined) {
+export async function readStructureWrapper(key: string, sourceId: string | '_local_', entryId: string, propertyProvider: ModelPropertiesProvider | undefined) {
     const filename = sourceId === '_local_' ? entryId : Config.mapFile(sourceId, entryId);
     if (!filename) throw new Error(`Cound not map '${key}' to a valid filename.`);
     if (!fs.existsSync(filename)) throw new Error(`Could not find source file for '${key}'.`);
@@ -108,6 +110,11 @@ export async function readStructure(key: string, sourceId: string | '_local_', e
     const models = await Model.create(Format.mmCIF(frame)).run();
     perf.end('createModel');
 
+    const modelMap = new Map<number, Model>();
+    for (const m of models) {
+        modelMap.set(m.modelNum, m);
+    }
+
     perf.start('attachProps');
     if (propertyProvider) {
         const modelProps = propertyProvider(models[0]);
@@ -117,26 +124,45 @@ export async function readStructure(key: string, sourceId: string | '_local_', e
     }
     perf.end('attachProps');
 
-    const structure = Structure.ofModel(models[0]);
-
     const ret: StructureWrapper = {
         info: {
             sourceType: StructureSourceType.File,
             readTime: perf.time('read'),
             parseTime: perf.time('parse'),
             createModelTime: perf.time('createModel'),
-            attachPropsTime: perf.time('attachProps'),
+            attachPropsTime: 0, // perf.time('attachProps'),
             sourceId,
             entryId
         },
         isBinary: /\.bcif/.test(filename),
         key,
         approximateSize: typeof data === 'string' ? 2 * data.length : data.length,
-        structure,
-        cifFrame: frame
+        models,
+        modelMap,
+        structureModelMap: new Map(),
+        cifFrame: frame,
+        propertyProvider
     };
 
     return ret;
+}
+
+export async function resolveStructure(wrapper: StructureWrapper, modelNum?: number) {
+    if (typeof modelNum === 'undefined') modelNum = wrapper.models[0].modelNum;
+    if (wrapper.structureModelMap.has(modelNum)) return wrapper.structureModelMap.get(modelNum)!;
+    if (!wrapper.modelMap.has(modelNum)) {
+        return void 0;
+    }
+
+    const model = wrapper.modelMap.get(modelNum)!;
+    const structure = Structure.ofModel(model);
+    if (wrapper.propertyProvider) {
+        const modelProps = wrapper.propertyProvider(model);
+        for (const p of modelProps) {
+            await tryAttach(wrapper.key, p);
+        }
+    }
+    return structure;
 }
 
 async function tryAttach(key: string, promise: Promise<any>) {
