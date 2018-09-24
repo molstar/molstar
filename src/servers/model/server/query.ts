@@ -6,7 +6,7 @@
 
 import { Column } from 'mol-data/db';
 import { CifWriter } from 'mol-io/writer/cif';
-import { StructureQuery, StructureSelection } from 'mol-model/structure';
+import { StructureQuery, StructureSelection, Structure } from 'mol-model/structure';
 import { encode_mmCIF_categories } from 'mol-model/structure/export/mmcif';
 import { now, Progress } from 'mol-task';
 import { ConsoleLogger } from 'mol-util/console-logger';
@@ -14,7 +14,7 @@ import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import Config from '../config';
 import Version from '../version';
 import { Job } from './jobs';
-import { createStructureWrapperFromJob, StructureWrapper, resolveStructure } from './structure-wrapper';
+import { createStructureWrapperFromJob, StructureWrapper, resolveStructures } from './structure-wrapper';
 import CifField = CifWriter.Field
 import { createModelPropertiesProviderFromConfig } from '../property-provider';
 
@@ -35,13 +35,23 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
 
     try {
         perf.start('query');
-        const sourceStructure = await resolveStructure(wrappedStructure);
-        if (!sourceStructure) throw new Error('Model not available');
-        const structure = job.queryDefinition.structureTransform
-            ? await job.queryDefinition.structureTransform(job.normalizedParams, sourceStructure)
-            : sourceStructure;
-        const query = job.queryDefinition.query(job.normalizedParams, structure);
-        const result = await StructureSelection.unionStructure(StructureQuery.run(query, structure, Config.maxQueryTimeInMs));
+        const sourceStructures = await resolveStructures(wrappedStructure);
+        if (!sourceStructures.length) throw new Error('Model not available');
+
+        let structures: Structure[] = sourceStructures;
+
+        if (job.queryDefinition.structureTransform) {
+            structures = [];
+            for (const s of sourceStructures) {
+                structures.push(await job.queryDefinition.structureTransform(job.normalizedParams, s));
+            }
+        }
+
+        const queries = structures.map(s => job.queryDefinition.query(job.normalizedParams, s));
+        const result: Structure[] = [];
+        for (let i = 0; i < structures.length; i++) {
+            result.push(await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], Config.maxQueryTimeInMs)));
+        }
         perf.end('query');
 
         const encoder = CifWriter.createEncoder({
@@ -54,7 +64,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
 
         perf.start('encode');
-        encoder.startDataBlock(structure.models[0].label.toUpperCase());
+        encoder.startDataBlock(sourceStructures[0].models[0].label.toUpperCase());
         encoder.writeCategory(_model_server_result, [job]);
         encoder.writeCategory(_model_server_params, [job]);
 

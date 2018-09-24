@@ -43,7 +43,8 @@ export interface StructureWrapper {
     modelMap: Map<number, Model>,
     structureModelMap: Map<number, Structure>,
     propertyProvider: ModelPropertiesProvider | undefined,
-    cifFrame: CifFrame
+    cifFrame: CifFrame,
+    cache: object
 }
 
 export async function createStructureWrapperFromJob(job: Job, propertyProvider: ModelPropertiesProvider | undefined, allowCache = true): Promise<StructureWrapper> {
@@ -115,15 +116,6 @@ export async function readStructureWrapper(key: string, sourceId: string | '_loc
         modelMap.set(m.modelNum, m);
     }
 
-    perf.start('attachProps');
-    if (propertyProvider) {
-        const modelProps = propertyProvider(models[0]);
-        for (const p of modelProps) {
-            await tryAttach(key, p);
-        }
-    }
-    perf.end('attachProps');
-
     const ret: StructureWrapper = {
         info: {
             sourceType: StructureSourceType.File,
@@ -141,7 +133,8 @@ export async function readStructureWrapper(key: string, sourceId: string | '_loc
         modelMap,
         structureModelMap: new Map(),
         cifFrame: frame,
-        propertyProvider
+        propertyProvider,
+        cache: Object.create(null)
     };
 
     return ret;
@@ -157,12 +150,21 @@ export async function resolveStructure(wrapper: StructureWrapper, modelNum?: num
     const model = wrapper.modelMap.get(modelNum)!;
     const structure = Structure.ofModel(model);
     if (wrapper.propertyProvider) {
-        const modelProps = wrapper.propertyProvider(model);
+        const modelProps = wrapper.propertyProvider(model, wrapper.cache);
         for (const p of modelProps) {
             await tryAttach(wrapper.key, p);
         }
     }
     return structure;
+}
+
+export async function resolveStructures(wrapper: StructureWrapper, modelNums?: number[]) {
+    const ret: Structure[] = [];
+    for (const n of modelNums || (wrapper.models as Model[]).map(m => m.modelNum)) {
+        const s = await resolveStructure(wrapper, n);
+        if (s) ret.push(s);
+    }
+    return ret;
 }
 
 async function tryAttach(key: string, promise: Promise<any>) {
