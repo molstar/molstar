@@ -5,7 +5,7 @@
  */
 
 import { CifWriter } from 'mol-io/writer/cif';
-import { Model, ModelPropertyDescriptor, ResidueIndex, Unit, ResidueCustomProperty } from 'mol-model/structure';
+import { Model, ModelPropertyDescriptor, ResidueIndex, Unit, ResidueCustomProperty, StructureProperties as P } from 'mol-model/structure';
 import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
 import CifField = CifWriter.Field;
 import { mmCIF_residueId_schema } from 'mol-io/reader/cif/schema/mmcif-extras';
@@ -50,6 +50,7 @@ type ExportCtx = ResidueCustomProperty.ExportCtx<string[]>
 const _structure_quality_report_issues_fields: CifField<number, ExportCtx>[] = [
     CifField.index('id'),
     ...residueIdFields<number, ExportCtx>((i, d) => d.elements[i]),
+    CifField.int<number, ExportCtx>('pdbx_PDB_model_num', (i, d) => P.unit.model_num(d.elements[i])),
     CifField.str<number, ExportCtx>('issues', (i, d) => d.property(i).join(','))
 ];
 
@@ -83,9 +84,10 @@ function createIssueMapFromJson(modelData: Model, data: any): IssueMap | undefin
 
 function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issues>): IssueMap | undefined {
     const ret = new Map<ResidueIndex, string[]>();
-    const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issues, _rowCount } = data;
+    const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issues, pdbx_PDB_model_num, _rowCount } = data;
 
     for (let i = 0; i < _rowCount; i++) {
+        if (pdbx_PDB_model_num.value(i) !== modelData.modelNum) continue;
         const idx = modelData.atomicHierarchy.index.findResidue(label_entity_id.value(i), label_asym_id.value(i), auth_seq_id.value(i), pdbx_PDB_ins_code.value(i));
         ret.set(idx, issues.value(i));
     }
@@ -103,6 +105,7 @@ export namespace StructureQualityReport {
         pdbe_structure_quality_report_issues: {
             id: Column.Schema.int,
             ...mmCIF_residueId_schema,
+            pdbx_PDB_model_num: Column.Schema.int,
             issues: Column.Schema.List(',', x => x)
         }
     }

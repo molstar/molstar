@@ -14,7 +14,7 @@ import * as fs from 'fs'
 import * as zlib from 'zlib'
 import { Job } from './jobs';
 import { ConsoleLogger } from 'mol-util/console-logger';
-import { ModelPropertiesProvider } from '../provider';
+import { ModelPropertiesProvider } from '../property-provider';
 
 require('util.promisify').shim();
 

@@ -16,7 +16,7 @@ import Version from '../version';
 import { Job } from './jobs';
 import { createStructureWrapperFromJob, StructureWrapper, resolveStructure } from './structure-wrapper';
 import CifField = CifWriter.Field
-import { createModelPropertiesProviderFromConfig } from '../provider';
+import { createModelPropertiesProviderFromConfig } from '../property-provider';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -54,7 +54,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
 
         perf.start('encode');
-        encoder.startDataBlock(structure.units[0].model.label.toUpperCase());
+        encoder.startDataBlock(structure.models[0].label.toUpperCase());
         encoder.writeCategory(_model_server_result, [job]);
         encoder.writeCategory(_model_server_params, [job]);
 
@@ -132,7 +132,7 @@ const _model_server_error_fields: CifField<number, string>[] = [
 const _model_server_stats_fields: CifField<number, Stats>[] = [
     int32<Stats>('io_time_ms', ctx => ctx.structure.info.readTime | 0),
     int32<Stats>('parse_time_ms', ctx => ctx.structure.info.parseTime | 0),
-    int32<Stats>('attach_props_time_ms', ctx => ctx.structure.info.attachPropsTime | 0),
+    // int32<Stats>('attach_props_time_ms', ctx => ctx.structure.info.attachPropsTime | 0),
     int32<Stats>('create_model_time_ms', ctx => ctx.structure.info.createModelTime | 0),
     int32<Stats>('query_time_ms', ctx => ctx.queryTimeMs | 0),
     int32<Stats>('encode_time_ms', ctx => ctx.encodeTimeMs | 0)

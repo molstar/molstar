@@ -21,8 +21,9 @@ export interface CifExportContext {
 }
 
 export namespace CifExportContext {
-    export function create(structure: Structure, model: Model): CifExportContext {
-        return { structure, model, cache: Object.create(null) };
+    export function create(structures: Structure | Structure[]): CifExportContext[] {
+        if (Array.isArray(structures)) return structures.map(structure => ({ structure, model: structure.models[0], cache: Object.create(null) }));
+        return [{ structure: structures, model: structures.models[0], cache: Object.create(null) }];
     }
 }
 
@@ -99,20 +100,20 @@ export const mmCIF_Export_Filters = {
 }
 
 /** Doesn't start a data block */
-export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structure: Structure, params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext }) {
-    const models = structure.models;
+export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext[] }) {
+    const first = Array.isArray(structures) ? structures[0] : (structures as Structure);
+    const models = first.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
-    const model = models[0];
 
     const _params = params || { };
-
-    const ctx: CifExportContext[] = [_params.exportCtx ? _params.exportCtx : CifExportContext.create(structure, model)];
+    const ctx: CifExportContext[] = params && params.exportCtx ? params.exportCtx : CifExportContext.create(structures);
 
     for (const cat of Categories) {
         if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
         encoder.writeCategory(cat, ctx);
     }
-    for (const customProp of model.customProperties.all) {
+
+    for (const customProp of models[0].customProperties.all) {
         if (!customProp.cifExport || customProp.cifExport.categories.length === 0) continue;
 
         const prefix = customProp.cifExport.prefix;

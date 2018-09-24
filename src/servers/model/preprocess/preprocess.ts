@@ -25,12 +25,12 @@ export async function preprocessFile(filename: string, outputCif?: string, outpu
     //ConsoleLogger.log(`${linearId}`, `Reading '${filename}'...`);
     // TODO: support the custom prop provider list here.
     const input = await readStructureWrapper('entry', '_local_', filename, void 0);
+    const categories = await classifyCif(input.cifFrame);
     const inputStructure = (await resolveStructure(input))!;
     //ConsoleLogger.log(`${linearId}`, `Classifying CIF categories...`);
-    const categories = await classifyCif(input.cifFrame);
     //clearLine();
 
-    const exportCtx = CifExportContext.create(inputStructure, inputStructure.models[0]);
+    const exportCtx = CifExportContext.create(inputStructure);
 
     if (outputCif) {
         //ConsoleLogger.log(`${linearId}`, `Encoding CIF...`);
@@ -52,7 +52,7 @@ export async function preprocessFile(filename: string, outputCif?: string, outpu
     // ConsoleLogger.log(`${linearId}`, `Finished '${filename}' in ${Math.round(now() - started)}ms`);
 }
 
-function encode(structure: Structure, header: string, categories: CifWriter.Category[], encoder: CifWriter.Encoder, exportCtx: CifExportContext, writer: Writer) {
+function encode(structure: Structure, header: string, categories: CifWriter.Category[], encoder: CifWriter.Encoder, exportCtx: CifExportContext[], writer: Writer) {
     return Task.create('Encode', async ctx => {
         const skipCategoryNames = new Set<string>(categories.map(c => c.name));
         encoder.startDataBlock(header);
