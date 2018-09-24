@@ -7,8 +7,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import * as argparse from 'argparse'
-import { preprocessFile } from './preprocess';
-import { ParallelPreprocessConfig, runMaster } from './parallel';
+import { runMaster, PreprocessEntry } from './parallel';
 
 const cmdParser = new argparse.ArgumentParser({
     addHelp: true,
@@ -17,14 +16,16 @@ const cmdParser = new argparse.ArgumentParser({
 cmdParser.addArgument(['--input', '-i'], { help: 'Input filename', required: false });
 cmdParser.addArgument(['--outCIF', '-oc'], { help: 'Output CIF filename', required: false });
 cmdParser.addArgument(['--outBCIF', '-ob'], { help: 'Output BinaryCIF filename', required: false });
-cmdParser.addArgument(['--bulk', '-b'], { help: 'Bulk JSON ({ numProcesses?: number, entries: { source: string, cif?: string, bcif?: string }[] })', required: false });
-cmdParser.addArgument(['--folderIn', '-f'], { help: 'Convert folder', required: false });
+// TODO: add back? cmdParser.addArgument(['--bulk', '-b'], { help: 'Bulk JSON ({ numProcesses?: number, entries: { source: string, cif?: string, bcif?: string }[] })', required: false });
+cmdParser.addArgument(['--cfg', '-c'], { help: 'Config file path', required: false });
+cmdParser.addArgument(['--folderIn', '-fin'], { help: 'Convert folder', required: false });
 cmdParser.addArgument(['--folderOutCIF', '-foc'], { help: 'Convert folder text output', required: false });
 cmdParser.addArgument(['--folderOutBCIF', '-fob'], { help: 'Convert folder binary output', required: false });
 cmdParser.addArgument(['--folderNumProcesses', '-fp'], { help: 'Convert folder num processes', required: false });
 
 interface CmdArgs {
-    bulk?: string,
+    // bulk?: string,
+    cfg?: string,
     input?: string,
     outCIF?: string,
     outBCIF?: string,
@@ -34,31 +35,38 @@ interface CmdArgs {
     folderNumProcesses?: string
 }
 
-const cmdArgs = cmdParser.parseArgs() as CmdArgs;
-
-if (cmdArgs.input) preprocessFile(cmdArgs.input, cmdArgs.outCIF, cmdArgs.outBCIF);
-else if (cmdArgs.bulk) runBulk(cmdArgs.bulk);
-else if (cmdArgs.folderIn) runFolder(cmdArgs);
-
-function runBulk(input: string) {
-    const config = JSON.parse(fs.readFileSync(input, 'utf8')) as ParallelPreprocessConfig;
-    runMaster(config);
+export interface PreprocessConfig {
+    numProcesses?: number,
+    customPropertyProviders?: string[]
 }
 
-function runFolder(args: CmdArgs) {
-    const files = fs.readdirSync(args.folderIn!);
-    const config: ParallelPreprocessConfig = { numProcesses: +args.folderNumProcesses! || 1, entries: [] };
+const cmdArgs = cmdParser.parseArgs() as CmdArgs;
+
+let entries: PreprocessEntry[] = []
+let config: PreprocessConfig = { numProcesses: 1, customPropertyProviders: [] }
+
+if (cmdArgs.input) entries.push({ source: cmdArgs.input, cif: cmdArgs.outCIF, bcif: cmdArgs.outBCIF });
+// else if (cmdArgs.bulk) runBulk(cmdArgs.bulk);
+else if (cmdArgs.folderIn) findEntries();
+
+if (cmdArgs.cfg) {
+    config = JSON.parse(fs.readFileSync(cmdArgs.cfg, 'utf8')) as PreprocessConfig;
+}
+
+runMaster(config, entries);
+
+function findEntries() {
+    const files = fs.readdirSync(cmdArgs.folderIn!);
     const cifTest = /\.cif$/;
     for (const f of files) {
         if (!cifTest.test(f)) continue;
 
-        config.entries.push({
-            source: path.join(args.folderIn!, f),
-            cif: cmdArgs.folderOutCIF ? path.join(args.folderOutCIF!, f) : void 0,
-            bcif: cmdArgs.folderOutBCIF ? path.join(args.folderOutBCIF!, path.parse(f).name + '.bcif') : void 0,
+        entries.push({
+            source: path.join(cmdArgs.folderIn!, f),
+            cif: cmdArgs.folderOutCIF ? path.join(cmdArgs.folderOutCIF!, f) : void 0,
+            bcif: cmdArgs.folderOutBCIF ? path.join(cmdArgs.folderOutBCIF!, path.parse(f).name + '.bcif') : void 0,
         });
     }
-    runMaster(config);
 }
 
 // example:

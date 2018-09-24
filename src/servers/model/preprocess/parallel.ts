@@ -9,6 +9,9 @@ import * as cluster from 'cluster'
 import { now } from 'mol-task';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { preprocessFile } from './preprocess';
+import { createModelPropertiesProviderFromSources } from '../property-provider';
+
+type PreprocessConfig = import('./master').PreprocessConfig
 
 export interface PreprocessEntry {
     source: string,
@@ -16,43 +19,41 @@ export interface PreprocessEntry {
     bcif?: string
 }
 
-export interface ParallelPreprocessConfig {
-    numProcesses?: number,
-    entries: PreprocessEntry[]
-}
-
-export function runMaster(config: ParallelPreprocessConfig) {
-    const parts = partitionArray(config.entries, config.numProcesses || 1);
-    // const numForks = Math.min(parts.length, config.numProcesses);
-
+export function runMaster(config: PreprocessConfig, entries: PreprocessEntry[]) {
     const started = now();
     let progress = 0;
     const onMessage = (msg: any) => {
         if (msg.type === 'tick') {
             progress++;
             const elapsed = now() - started;
-            console.log(`[${progress}/${config.entries.length}] in ${PerformanceMonitor.format(elapsed)} (avg ${PerformanceMonitor.format(elapsed / progress)}).`);
+            console.log(`[${progress}/${entries.length}] in ${PerformanceMonitor.format(elapsed)} (avg ${PerformanceMonitor.format(elapsed / progress)}).`);
         } else if (msg.type === 'error') {
             console.error(`${msg.id}: ${msg.error}`)
         }
     }
 
-    for (const _ of parts) {
-        const worker = cluster.fork();
-        worker.on('message', onMessage);
-    }
+    if (entries.length === 1) {
+        runSingle(entries[0], config, onMessage);
+    } else {
+        const parts = partitionArray(entries, config.numProcesses || 1);
+        for (const _ of parts) {
+            const worker = cluster.fork();
+            worker.on('message', onMessage);
+        }
 
-    let i = 0;
-    for (const id in cluster.workers) {
-        cluster.workers[id]!.send(parts[i++]);
+        let i = 0;
+        for (const id in cluster.workers) {
+            cluster.workers[id]!.send({ entries: parts[i++], config });
+        }
     }
 }
 
 export function runChild() {
-    process.on('message', async (entries: PreprocessEntry[]) => {
+    process.on('message', async ({ entries, config }: { entries: PreprocessEntry[], config: PreprocessConfig }) => {
+        const props = createModelPropertiesProviderFromSources(config.customPropertyProviders || []);
         for (const entry of entries) {
             try {
-                await preprocessFile(entry.source, entry.cif, entry.bcif);
+                await preprocessFile(entry.source, props, entry.cif, entry.bcif);
             } catch (e) {
                 process.send!({ type: 'error', id: path.parse(entry.source).name, error: '' + e });
             }
@@ -60,6 +61,16 @@ export function runChild() {
         }
         process.exit();
     });
+}
+
+async function runSingle(entry: PreprocessEntry, config: PreprocessConfig, onMessage: (msg: any) => void) {
+    const props = createModelPropertiesProviderFromSources(config.customPropertyProviders || []);
+    try {
+        await preprocessFile(entry.source, props, entry.cif, entry.bcif);
+    } catch (e) {
+        onMessage({ type: 'error', id: path.parse(entry.source).name, error: '' + e });
+    }
+    onMessage({ type: 'tick' });
 }
 
 function partitionArray<T>(xs: T[], count: number): T[][] {

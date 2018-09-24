@@ -16,7 +16,7 @@ import Version from '../version';
 import { Job } from './jobs';
 import { createStructureWrapperFromJob, StructureWrapper, resolveStructures } from './structure-wrapper';
 import CifField = CifWriter.Field
-import { createModelPropertiesProviderFromConfig } from '../property-provider';
+import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from '../property-provider';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -26,12 +26,17 @@ export interface Stats {
 
 const perf = new PerformanceMonitor();
 
-const propertyProvider = createModelPropertiesProviderFromConfig();
+let _propertyProvider: ModelPropertiesProvider;
+function propertyProvider() {
+    if (_propertyProvider) return _propertyProvider;
+    _propertyProvider = createModelPropertiesProviderFromConfig();
+    return _propertyProvider;
+}
 
 export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
     ConsoleLogger.logId(job.id, 'Query', 'Starting.');
 
-    const wrappedStructure = await createStructureWrapperFromJob(job, propertyProvider);
+    const wrappedStructure = await createStructureWrapperFromJob(job, propertyProvider());
 
     try {
         perf.start('query');

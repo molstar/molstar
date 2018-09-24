@@ -10,10 +10,14 @@ import Config from './config';
 export type ModelPropertiesProvider = (model: Model, cache: object) => Promise<any>[]
 
 export function createModelPropertiesProviderFromConfig(): ModelPropertiesProvider {
-    if (!Config.customPropertyProviders || Config.customPropertyProviders.length === 0) return () => [];
+    return createModelPropertiesProviderFromSources(Config.customPropertyProviders);
+}
+
+export function createModelPropertiesProviderFromSources(sources: string[]): ModelPropertiesProvider {
+    if (!sources || sources.length === 0) return () => [];
 
     const ps: ModelPropertiesProvider[] = [];
-    for (const p of Config.customPropertyProviders) {
+    for (const p of sources) {
         ps.push(require(p).attachModelProperties);
     }
 
@@ -25,4 +29,3 @@ export function createModelPropertiesProviderFromConfig(): ModelPropertiesProvid
         return ret;
     }
 }
-
