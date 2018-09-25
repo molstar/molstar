@@ -12,13 +12,13 @@ import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
 import { PickingId } from '../../../geometry/picking';
 import { Task } from 'mol-task';
-import { GaussianDensityPointVisual } from '../visual/gaussian-density-point';
 import { DefaultGaussianWireframeProps, GaussianWireframeVisual } from '../visual/gaussian-surface-wireframe';
 
 export const DefaultSurfaceProps = {
     ...DefaultGaussianSurfaceProps,
-    // ...DefaultGaussianDensityPointProps,
     ...DefaultGaussianWireframeProps,
+
+    visuals: { surface: true, wireframe: false }
 }
 export type SurfaceProps = typeof DefaultSurfaceProps
 
@@ -26,23 +26,26 @@ export type SurfaceRepresentation = StructureRepresentation<SurfaceProps>
 
 export function SurfaceRepresentation(): SurfaceRepresentation {
     let currentProps: SurfaceProps
+    let currentStructure: Structure
     const gaussianSurfaceRepr = UnitsRepresentation('Gaussian surface', GaussianSurfaceVisual)
-    const gaussianPointRepr = UnitsRepresentation('Gaussian point grid', GaussianDensityPointVisual)
     const gaussianWireframeRepr = UnitsRepresentation('Gaussian wireframe', GaussianWireframeVisual)
     return {
         label: 'Surface',
         get renderObjects() {
-            return [ ...gaussianSurfaceRepr.renderObjects, ...gaussianPointRepr.renderObjects, ...gaussianWireframeRepr.renderObjects ]
+            const renderObjects = []
+            if (currentProps.visuals.surface) renderObjects.push(...gaussianSurfaceRepr.renderObjects)
+            if (currentProps.visuals.wireframe) renderObjects.push(...gaussianWireframeRepr.renderObjects)
+            return renderObjects
         },
         get props() {
-            return { ...gaussianSurfaceRepr.props, ...gaussianPointRepr.props, ...gaussianWireframeRepr.props }
+            return { ...gaussianSurfaceRepr.props, ...gaussianWireframeRepr.props, visuals: currentProps.visuals }
         },
         createOrUpdate: (props: Partial<SurfaceProps> = {}, structure?: Structure) => {
             currentProps = Object.assign({}, DefaultSurfaceProps, currentProps, props)
+            if (structure) currentStructure = structure
             return Task.create('Creating SurfaceRepresentation', async ctx => {
-                await gaussianSurfaceRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
-                // await gaussianPointRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
-                await gaussianWireframeRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
+                if (currentProps.visuals.surface) await gaussianSurfaceRepr.createOrUpdate(currentProps, currentStructure).runInContext(ctx)
+                if (currentProps.visuals.wireframe) await gaussianWireframeRepr.createOrUpdate(currentProps, currentStructure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
@@ -53,7 +56,6 @@ export function SurfaceRepresentation(): SurfaceRepresentation {
         },
         destroy() {
             gaussianSurfaceRepr.destroy()
-            gaussianPointRepr.destroy()
             gaussianWireframeRepr.destroy()
         }
     }

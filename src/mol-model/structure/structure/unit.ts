@@ -7,7 +7,7 @@
 
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model } from '../model'
-import { GridLookup3D, Lookup3D } from 'mol-math/geometry'
+import { GridLookup3D, Lookup3D, DensityData } from 'mol-math/geometry'
 import { IntraUnitLinks, computeIntraUnitBonds } from './unit/links'
 import { CoarseElements, CoarseSphereConformation, CoarseGaussianConformation } from '../model/properties/coarse';
 import { ValueRef } from 'mol-util';
@@ -18,6 +18,8 @@ import { IntMap, SortedArray } from 'mol-data/int';
 import { hash2 } from 'mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
 import { getNucleotideElements } from './util/nucleotide';
+import { GaussianDensityProps, computeUnitGaussianDensityCached } from './unit/gaussian-density';
+import { RuntimeContext } from 'mol-task';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -180,6 +182,10 @@ namespace Unit {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
 
+        async computeGaussianDensity(props: GaussianDensityProps, ctx?: RuntimeContext) {
+            return computeUnitGaussianDensityCached(this, props, this.props.gaussianDensities, ctx);
+        }
+
         constructor(id: number, invariantId: number, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
@@ -200,6 +206,7 @@ namespace Unit {
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
         nucleotideElements: ValueRef<SortedArray<ElementIndex> | undefined>
+        gaussianDensities: Map<string, DensityData>
     }
 
     function AtomicProperties(): AtomicProperties {
@@ -210,6 +217,7 @@ namespace Unit {
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
             nucleotideElements: ValueRef.create(void 0),
+            gaussianDensities: new Map()
         };
     }
 
@@ -234,7 +242,7 @@ namespace Unit {
 
         applyOperator(id: number, operator: SymmetryOperator, dontCompose = false): Unit {
             const op = dontCompose ? operator : SymmetryOperator.compose(this.conformation.operator, operator);
-            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseElements(), this.conformation.r), this.props);
+            const ret = createCoarse(id, this.invariantId, this.model, this.kind, this.elements, SymmetryOperator.createMapping(op, this.getCoarseConformation(), this.conformation.r), this.props);
             // (ret as Coarse<K, C>)._lookup3d = this._lookup3d;
             return ret;
         }
@@ -242,25 +250,29 @@ namespace Unit {
         get lookup3d() {
             if (this.props.lookup3d.ref) return this.props.lookup3d.ref;
             // TODO: support sphere radius?
-            const { x, y, z } = this.getCoarseElements();
+            const { x, y, z } = this.getCoarseConformation();
             this.props.lookup3d.ref = GridLookup3D({ x, y, z, indices: this.elements });
             return this.props.lookup3d.ref;
         }
 
         get polymerElements() {
             if (this.props.polymerElements.ref) return this.props.polymerElements.ref;
-            this.props.polymerElements.ref = getCoarsePolymerElements(this as Unit.Spheres | Unit.Gaussians); // TODO
+            this.props.polymerElements.ref = getCoarsePolymerElements(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
             return this.props.polymerElements.ref;
         }
 
         get gapElements() {
             if (this.props.gapElements.ref) return this.props.gapElements.ref;
-            this.props.gapElements.ref = getCoarseGapElements(this as Unit.Spheres | Unit.Gaussians); // TODO
+            this.props.gapElements.ref = getCoarseGapElements(this as Unit.Spheres | Unit.Gaussians); // TODO get rid of casting
             return this.props.gapElements.ref;
         }
 
-        private getCoarseElements() {
+        private getCoarseConformation() {
             return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
+        }
+
+        async computeGaussianDensity(props: GaussianDensityProps, ctx?: RuntimeContext): Promise<DensityData> {
+            return computeUnitGaussianDensityCached(this as Unit.Spheres | Unit.Gaussians, props, this.props.gaussianDensities, ctx); // TODO get rid of casting
         }
 
         constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: CoarseProperties) {
@@ -278,6 +290,7 @@ namespace Unit {
 
     interface CoarseProperties {
         lookup3d: ValueRef<Lookup3D | undefined>,
+        gaussianDensities: Map<string, DensityData>
         polymerElements: ValueRef<SortedArray<ElementIndex> | undefined>
         gapElements: ValueRef<SortedArray<ElementIndex> | undefined>
     }
@@ -285,6 +298,7 @@ namespace Unit {
     function CoarseProperties(): CoarseProperties {
         return {
             lookup3d: ValueRef.create(void 0),
+            gaussianDensities: new Map(),
             polymerElements: ValueRef.create(void 0),
             gapElements: ValueRef.create(void 0),
         };

@@ -5,6 +5,7 @@
  */
 
 import { OrderedSet } from 'mol-data/int'
+import { Mat4, Tensor } from '../linear-algebra';
 
 export interface PositionData {
     x: ArrayLike<number>,
@@ -15,3 +16,5 @@ export interface PositionData {
     // optional element radius
     radius?: ArrayLike<number>
 }
+
+export type DensityData = { transform: Mat4, field: Tensor, idField: Tensor }

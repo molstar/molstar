@@ -36,6 +36,8 @@ export interface StructureRepresentationComponentState {
     pointSizeAttenuation?: boolean
     pointFilledCircle?: boolean
     pointEdgeBleach?: number
+
+    visuals?: { [k: string]: boolean }
 }
 
 export class StructureRepresentationComponent extends React.Component<StructureRepresentationComponentProps, StructureRepresentationComponentState> {
@@ -58,6 +60,8 @@ export class StructureRepresentationComponent extends React.Component<StructureR
             pointSizeAttenuation: (repr.props as any).pointSizeAttenuation,
             pointFilledCircle: (repr.props as any).pointFilledCircle,
             pointEdgeBleach: (repr.props as any).pointEdgeBleach,
+
+            visuals: (repr.props as any).visuals,
         }
     }
 
@@ -84,12 +88,13 @@ export class StructureRepresentationComponent extends React.Component<StructureR
         if (state.pointFilledCircle !== undefined) (props as any).pointFilledCircle = state.pointFilledCircle
         if (state.pointEdgeBleach !== undefined) (props as any).pointEdgeBleach = state.pointEdgeBleach
 
+        if (state.visuals !== undefined) (props as any).visuals = state.visuals
+
         await this.props.app.runTask(repr.createOrUpdate(props).run(
             progress => console.log(Progress.format(progress))
         ), 'Create/update representation')
         this.props.viewer.add(repr)
         this.props.viewer.draw(true)
-        console.log(this.props.viewer.stats)
 
         this.setState(this.stateFromRepresentation(repr))
     }
@@ -109,6 +114,18 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         {visible ? 'Hide' : 'Show'}
                     </button>
                 </div>
+                { this.state.visuals !== undefined ? <div>
+                    <span>Visuals: </span>
+                    { Object.keys(this.state.visuals).map(k => {
+                        return <span key={k}>{k} <input
+                            type='checkbox'
+                            checked={this.state.visuals[k]}
+                            onChange={e => {
+                                this.update({ visuals: { ...this.state.visuals, [k]: !!e.target.checked } })
+                            }}
+                        ></input> </span>
+                    }) }
+                </div> : '' }
                 <div>
                     <span>Depth Mask </span>
                     <button onClick={(e) => this.update({ depthMask: !depthMask }) }>
@@ -123,7 +140,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                 </div> : '' }
                 <div>
                     <span>Quality </span>
-                    <select value={quality} onChange={(e) => this.update({ quality: e.target.value as VisualQuality }) }>
+                    <select value={quality} onChange={e => this.update({ quality: e.target.value as VisualQuality }) }>
                         {VisualQualityNames.map(name => <option key={name} value={name}>{name}</option>)}
                     </select>
                 </div>
@@ -134,7 +151,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         min='0'
                         max='1'
                         step='0.05'
-                        onInput={(e) => this.update({ alpha: parseFloat(e.currentTarget.value) })}
+                        onInput={e => this.update({ alpha: parseFloat(e.currentTarget.value) })}
                     >
                     </input>
                 </div>
@@ -145,7 +162,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         min='4'
                         max='9'
                         step='1'
-                        onInput={(e) => this.update({ resolutionFactor: parseInt(e.currentTarget.value) })}
+                        onChange={(e) => this.update({ resolutionFactor: parseInt(e.currentTarget.value) })}
                     >
                     </input>
                 </div> : '' }
@@ -156,7 +173,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         min='1'
                         max='3'
                         step='0.1'
-                        onInput={(e) => this.update({ smoothness: parseFloat(e.currentTarget.value) })}
+                        onChange={e => this.update({ smoothness: parseFloat(e.currentTarget.value) })}
                     >
                     </input>
                 </div> : '' }
@@ -167,19 +184,19 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         min='0'
                         max='4'
                         step='0.1'
-                        onInput={(e) => this.update({ radiusOffset: parseFloat(e.currentTarget.value) })}
+                        onChange={e => this.update({ radiusOffset: parseFloat(e.currentTarget.value) })}
                     >
                     </input>
                 </div> : '' }
                 { this.state.pointSizeAttenuation !== undefined ? <div>
                     <span>Size Attenuation </span>
-                    <button onClick={(e) => this.update({ pointSizeAttenuation: !this.state.pointSizeAttenuation }) }>
+                    <button onClick={e => this.update({ pointSizeAttenuation: !this.state.pointSizeAttenuation }) }>
                         {this.state.pointSizeAttenuation ? 'Deactivate' : 'Activate'}
                     </button>
                 </div> : '' }
                 { this.state.pointFilledCircle !== undefined ? <div>
                     <span>Filled Circle </span>
-                    <button onClick={(e) => this.update({ pointFilledCircle: !this.state.pointFilledCircle }) }>
+                    <button onClick={e => this.update({ pointFilledCircle: !this.state.pointFilledCircle }) }>
                         {this.state.pointFilledCircle ? 'Deactivate' : 'Activate'}
                     </button>
                 </div> : '' }
@@ -190,7 +207,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         min='0'
                         max='1'
                         step='0.05'
-                        onInput={(e) => this.update({ pointEdgeBleach: parseFloat(e.currentTarget.value) })}
+                        onInput={e => this.update({ pointEdgeBleach: parseFloat(e.currentTarget.value) })}
                     >
                     </input>
                 </div> : '' }
@@ -201,7 +218,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                         min='0'
                         max='10'
                         step='0.1'
-                        onInput={(e) => this.update({
+                        onInput={e => this.update({
                             sizeTheme: { name: 'uniform', value: parseFloat(e.currentTarget.value) }
                         })}
                     >
@@ -209,7 +226,7 @@ export class StructureRepresentationComponent extends React.Component<StructureR
                 </div> : '' }
                 <div>
                     <span>Color Theme </span>
-                    <select value={colorTheme.name} onChange={(e) => this.update({ colorTheme: { name: e.target.value as ColorThemeName } }) }>
+                    <select value={colorTheme.name} onChange={e => this.update({ colorTheme: { name: e.target.value as ColorThemeName } }) }>
                         {ColorThemeNames.map(name => <option key={name} value={name}>{name}</option>)}
                     </select>
                     {ct.description ? <div><i>{ct.description}</i></div> : ''}

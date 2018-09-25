@@ -11,10 +11,10 @@ import { StructureElementIterator } from './util/element';
 import { EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsPointsVisual, DefaultUnitsPointsProps } from '../units-visual';
-import { computeGaussianDensity, DefaultGaussianDensityProps } from './util/gaussian';
 import { Points } from '../../../geometry/points/points';
 import { PointsBuilder } from '../../../geometry/points/points-builder';
 import { SizeThemeProps } from 'mol-view/theme/size';
+import { DefaultGaussianDensityProps, GaussianDensityProps } from 'mol-model/structure/structure/unit/gaussian-density';
 
 export const DefaultGaussianDensityPointProps = {
     ...DefaultUnitsPointsProps,
@@ -25,8 +25,8 @@ export const DefaultGaussianDensityPointProps = {
 }
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
-export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityPointProps, points?: Points) {
-    const { transform, field: { space, data } } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
+export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, points?: Points) {
+    const { transform, field: { space, data } } = await unit.computeGaussianDensity(props, ctx)
 
     const { dimensions, get } = space
     const [ xn, yn, zn ] = dimensions

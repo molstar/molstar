@@ -11,13 +11,13 @@ import { Mesh } from '../../../geometry/mesh/mesh';
 import { UnitsLinesVisual, DefaultUnitsLinesProps } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { computeMarchingCubes } from '../../../util/marching-cubes/algorithm';
-import { computeGaussianDensity, DefaultGaussianDensityProps, GaussianDensityProps } from './util/gaussian';
 import { Lines } from '../../../geometry/lines/lines';
 import { LinesBuilder } from '../../../geometry/lines/lines-builder';
+import { GaussianDensityProps, DefaultGaussianDensityProps } from 'mol-model/structure/structure/unit/gaussian-density';
 
 async function createGaussianWireframe(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props
-    const { transform, field, idField } = await computeGaussianDensity(unit, structure, props).runAsChild(ctx)
+    const { transform, field, idField } = await unit.computeGaussianDensity(props, ctx)
 
     const surface = await computeMarchingCubes({
         isoLevel: Math.exp(-smoothness),
