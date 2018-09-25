@@ -22,15 +22,6 @@ interface State {
 }
 
 class Root extends React.Component<{ state: State }, {  }> {
-    parseParams(str: string) {
-        try {
-            const params = JSON.parse(str);
-            this.props.state.params.next(params);
-        } catch {
-            this.props.state.params.next({});
-        }
-    }
-
     render() {
         return <div>
             <div>
@@ -41,7 +32,7 @@ class Root extends React.Component<{ state: State }, {  }> {
             </div>
             <div>
                 Params:<br/>
-                <textarea style={{height: '300px'}} cols={80} onChange={t => this.parseParams(t.currentTarget.value)} />
+                <QueryParams state={this.props.state} />
             </div>
             <div>
                 Model numbers (empty for all): <ModelNums state={this.props.state} />
@@ -62,6 +53,28 @@ class QuerySelect extends React.Component<{ state: State }> {
         return <select onChange={s => this.props.state.query.next(QueryList[+s.currentTarget.value].definition)}>
             { QueryList.map((q, i) => <option value={i} key={i} selected={i === 1}>{q.definition.niceName}</option>) }
         </select>
+    }
+}
+
+class QueryParams extends React.Component<{ state: State }, { prms: string }> {
+    state = { prms: '' };
+
+    parseParams(str: string) {
+        this.setState({ prms: str });
+        try {
+            const params = JSON.parse(str);
+            this.props.state.params.next(params);
+        } catch {
+            this.props.state.params.next({});
+        }
+    }
+
+    componentDidMount() {
+        this.props.state.query.subscribe(q => this.setState({ prms: formatParams(q) }))
+    }
+
+    render() {
+        return <textarea style={{height: '300px'}} value={this.state.prms} cols={80} onChange={t => this.parseParams(t.currentTarget.value)} />;
     }
 }
 
@@ -95,6 +108,14 @@ const state: State = {
     isBinary: new Rx.BehaviorSubject(false),
     models: new Rx.BehaviorSubject<number[]>([]),
     url: new Rx.Subject()
+}
+
+function formatParams(def: QueryDefinition) {
+    const prms = Object.create(null);
+    for (const p of def.params) {
+        prms[p.name] = p.exampleValues ? p.exampleValues[0] : void 0;
+    }
+    return JSON.stringify(prms, void 0, 2);
 }
 
 function formatUrl() {
