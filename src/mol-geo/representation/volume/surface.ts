@@ -7,7 +7,7 @@
 
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
 import { Task, RuntimeContext } from 'mol-task'
-import { computeMarchingCubes } from '../../util/marching-cubes/algorithm';
+import { computeMarchingCubesMesh } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { VolumeVisual } from '.';
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
@@ -23,7 +23,7 @@ export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValu
     return Task.create<Mesh>('Volume Surface', async ctx => {
         ctx.update({ message: 'Marching cubes...' });
 
-        const mesh = await computeMarchingCubes({
+        const mesh = await computeMarchingCubesMesh({
             isoLevel: VolumeIsoValue.toAbsolute(isoValue).absoluteValue,
             scalarField: volume.data
         }).runAsChild(ctx);

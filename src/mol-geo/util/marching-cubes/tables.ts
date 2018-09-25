@@ -2,6 +2,7 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Fred Ludlow <fred.ludlow@gmail.com>
  */
 
 export interface Index { i: number, j: number, k: number }
@@ -417,4 +418,38 @@ export const TriTable = [
     [0, 9, 1],
     [0, 3, 8],
     []
+];
+
+/**
+ * Triangles are constructed between points on cube edges.
+ * AllowedContours[edge1][edge1] indicates which lines from a given
+ * triangle should be shown in line mode.
+ *
+ * Values are bitmasks:
+ * In loop over cubes we keep another bitmask indicating whether our current
+ * cell is the first x-value (1),
+ * first y-value (2) or first z-value (4) of the current loop.
+ * We draw all lines on leading faces but only draw trailing face lines the first
+ * time through the loop
+ * A value of 8 below means the edge is always drawn (leading face)
+ *
+ * E.g. the first row, lines between edge0 and other edges in the bottom
+ * x-y plane are only drawn for the first value of z, edges in the
+ * x-z plane are only drawn for the first value of y. No other lines
+ * are drawn as they're redundant
+ * The line between edge 1 and 5 is always drawn as it's on the leading edge
+ */
+export const AllowedContours = [
+    [ 0, 4, 4, 4, 2, 0, 0, 0, 2, 2, 0, 0 ], // 1 2 3 4 8 9
+    [ 4, 0, 4, 4, 0, 8, 0, 0, 0, 8, 8, 0 ], // 0 2 3 5 9 10
+    [ 4, 4, 0, 4, 0, 0, 8, 0, 0, 0, 8, 8 ], // 0 1 3 6 10 11
+    [ 4, 4, 4, 0, 0, 0, 0, 1, 1, 0, 0, 1 ], // 0 1 2 7 8 11
+    [ 2, 0, 0, 0, 0, 8, 8, 8, 2, 2, 0, 0 ], // 0 5 6 7 8 9
+    [ 0, 8, 0, 0, 8, 0, 8, 8, 0, 8, 8, 0 ], // And rotate it
+    [ 0, 0, 8, 0, 8, 8, 0, 8, 0, 0, 8, 8 ],
+    [ 0, 0, 0, 1, 8, 8, 8, 0, 1, 0, 0, 1 ],
+    [ 2, 0, 0, 1, 2, 0, 0, 1, 0, 2, 0, 1 ], // 0 3 4 7 9 11
+    [ 2, 8, 0, 0, 2, 8, 0, 0, 2, 0, 8, 0 ], // And rotate some more
+    [ 0, 8, 8, 0, 0, 8, 8, 0, 0, 8, 0, 8 ],
+    [ 0, 0, 8, 1, 0, 0, 8, 1, 1, 0, 8, 0 ]
 ];

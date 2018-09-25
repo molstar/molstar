@@ -2,41 +2,78 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Task, RuntimeContext } from 'mol-task'
-import { ChunkedArray } from 'mol-data/util'
 import { Tensor } from 'mol-math/linear-algebra'
 import { Mesh } from '../../geometry/mesh/mesh'
 import { Index, EdgeIdInfo, CubeEdges, EdgeTable, TriTable } from './tables'
-import { ValueCell } from 'mol-util'
+import { defaults } from 'mol-util'
+import { MarchinCubesBuilder, MarchinCubesMeshBuilder, MarchinCubesLinesBuilder } from './builder';
+import { Lines } from '../../geometry/lines/lines';
+// import { Lines } from '../../geometry/lines/lines';
 
 /**
  * The parameters required by the algorithm.
  */
-export interface MarchingCubesParameters {
+export interface MarchingCubesParams {
     isoLevel: number,
     scalarField: Tensor,
-
-    bottomLeft?: ArrayLike<number>,
-    topRight?: ArrayLike<number>,
-
+    bottomLeft?: ReadonlyArray<number>,
+    topRight?: ReadonlyArray<number>,
     idField?: Tensor,
-
-    oldSurface?: Mesh
 }
 
-export function computeMarchingCubes(parameters: MarchingCubesParameters) {
-    return Task.create('Marching Cubes', async ctx => {
-        const comp = new MarchingCubesComputation(parameters, ctx);
-        return await comp.run();
+interface MarchingCubesInputParams extends MarchingCubesParams {
+    bottomLeft: ReadonlyArray<number>,
+    topRight: ReadonlyArray<number>,
+}
+
+function getInputParams(params: MarchingCubesParams): MarchingCubesInputParams {
+    return {
+        ...params,
+        bottomLeft: defaults(params.bottomLeft, [0, 0, 0] as ReadonlyArray<number>),
+        topRight: defaults(params.topRight, params.scalarField.space.dimensions)
+    }
+}
+
+function getExtent(inputParams: MarchingCubesInputParams) {
+    return {
+        dX: inputParams.topRight[0] - inputParams.bottomLeft[0],
+        dY: inputParams.topRight[1] - inputParams.bottomLeft[1],
+        dZ: inputParams.topRight[2] - inputParams.bottomLeft[2]
+    }
+}
+
+export function computeMarchingCubesMesh(params: MarchingCubesParams, mesh?: Mesh) {
+    return Task.create('Marching Cubes Mesh', async ctx => {
+        const inputParams = getInputParams(params)
+        const { dX, dY, dZ } = getExtent(inputParams)
+        // TODO should it be configurable? Scalar fields can produce meshes with vastly different densities.
+        const vertexChunkSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024))
+        const builder = MarchinCubesMeshBuilder(vertexChunkSize, mesh)
+        await (new MarchingCubesComputation(ctx, builder, inputParams)).run()
+        return builder.get()
+    });
+}
+
+export function computeMarchingCubesLines(params: MarchingCubesParams, lines?: Lines) {
+    return Task.create('Marching Cubes Lines', async ctx => {
+        const inputParams = getInputParams(params)
+        const { dX, dY, dZ } = getExtent(inputParams)
+        // TODO should it be configurable? Scalar fields can produce meshes with vastly different densities.
+        const vertexChunkSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024))
+        const builder = MarchinCubesLinesBuilder(vertexChunkSize, lines)
+        await (new MarchingCubesComputation(ctx, builder, inputParams)).run()
+        return builder.get()
     });
 }
 
 class MarchingCubesComputation {
     private size: number;
     private sliceSize: number;
-    private parameters: MarchingCubesParameters;
+    private edgeFilter: number
 
     private minX = 0; private minY = 0; private minZ = 0;
     private maxX = 0; private maxY = 0; private maxZ = 0;
@@ -45,7 +82,8 @@ class MarchingCubesComputation {
     private async doSlices() {
         let done = 0;
 
-        for (let k = this.minZ; k < this.maxZ; k++) {
+        this.edgeFilter = 15
+        for (let k = this.minZ; k < this.maxZ; k++, this.edgeFilter &= ~4) {
             this.slice(k);
 
             done += this.sliceSize;
@@ -56,52 +94,24 @@ class MarchingCubesComputation {
     }
 
     private slice(k: number) {
-        for (let j = this.minY; j < this.maxY; j++) {
-            for (let i = this.minX; i < this.maxX; i++) {
-                this.state.processCell(i, j, k);
+        this.edgeFilter |= 2
+        for (let j = this.minY; j < this.maxY; j++, this.edgeFilter &= ~2) {
+            this.edgeFilter |= 1
+            for (let i = this.minX; i < this.maxX; i++, this.edgeFilter &= ~1) {
+                this.state.processCell(i, j, k, this.edgeFilter);
             }
         }
         this.state.clearEdgeVertexIndexSlice(k);
-    }
-
-    private finish(): Mesh {
-        const vb = ChunkedArray.compact(this.state.vertexBuffer, true) as Float32Array;
-        const ib = ChunkedArray.compact(this.state.triangleBuffer, true) as Uint32Array;
-        const gb = ChunkedArray.compact(this.state.groupBuffer, true) as Float32Array;
-
-        this.state.vertexBuffer = <any>void 0;
-        this.state.verticesOnEdges = <any>void 0;
-        this.state.groupBuffer = <any>void 0;
-
-        const os = this.parameters.oldSurface
-
-        return {
-            kind: 'mesh',
-            vertexCount:  this.state.vertexCount,
-            triangleCount: this.state.triangleCount,
-            vertexBuffer: os ? ValueCell.update(os.vertexBuffer, vb) : ValueCell.create(vb),
-            groupBuffer: os ? ValueCell.update(os.groupBuffer, gb) : ValueCell.create(gb),
-            indexBuffer: os ? ValueCell.update(os.indexBuffer, ib) : ValueCell.create(ib),
-            normalBuffer: os ? os.normalBuffer : ValueCell.create(new Float32Array(0)),
-            normalsComputed: false
-        }
     }
 
     async run() {
         await this.ctx.update({ message: 'Computing surface...', current: 0, max: this.size });
         await this.doSlices();
         await this.ctx.update('Finalizing...');
-        return this.finish();
     }
 
-    constructor(parameters: MarchingCubesParameters, private ctx: RuntimeContext) {
-        const params = { ...parameters };
-        this.parameters = params;
-
-        if (!params.bottomLeft) params.bottomLeft = [0, 0, 0];
-        if (!params.topRight) params.topRight = params.scalarField.space.dimensions;
-
-        this.state = new MarchingCubesState(params);
+    constructor(private ctx: RuntimeContext, builder: MarchinCubesBuilder<any>, params: MarchingCubesInputParams) {
+        this.state = new MarchingCubesState(builder, params);
         this.minX = params.bottomLeft[0];
         this.minY = params.bottomLeft[1];
         this.minZ = params.bottomLeft[2];
@@ -121,18 +131,11 @@ class MarchingCubesState {
     scalarField: Tensor.Data;
     idFieldGet?: Tensor.Space['get'];
     idField?: Tensor.Data;
-    assignIds: boolean;
 
     // two layers of vertex indices. Each vertex has 3 edges associated.
     verticesOnEdges: Int32Array;
     vertList: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     i: number = 0; j: number = 0; k: number = 0;
-
-    vertexBuffer: ChunkedArray<number, 3>;
-    groupBuffer: ChunkedArray<number, 1>;
-    triangleBuffer: ChunkedArray<number, 3>;
-    vertexCount = 0;
-    triangleCount = 0;
 
     private get3dOffsetFromEdgeInfo(index: Index) {
         return (this.nX * (((this.k + index.k) % 2) * this.nY + this.j + index.j) + this.i + index.i);
@@ -153,7 +156,7 @@ class MarchingCubesState {
         const edgeId = 3 * this.get3dOffsetFromEdgeInfo(info) + info.e;
 
         const ret = this.verticesOnEdges[edgeId];
-        if (ret > 0) return (ret - 1) | 0;
+        if (ret > 0) return ret - 1;
 
         const edge = CubeEdges[edgeNum];
         const a = edge.a, b = edge.b;
@@ -163,13 +166,7 @@ class MarchingCubesState {
         const v1 = this.scalarFieldGet(this.scalarField, hi, hj, hk);
         const t = (this.isoLevel - v0) / (v0 - v1);
 
-        const id = ChunkedArray.add3(
-            this.vertexBuffer,
-            li + t * (li - hi),
-            lj + t * (lj - hj),
-            lk + t * (lk - hk)
-        ) | 0;
-
+        const id = this.builder.addVertex(li + t * (li - hi), lj + t * (lj - hj), lk + t * (lk - hk));
         this.verticesOnEdges[edgeId] = id + 1;
 
         if (this.idField) {
@@ -177,17 +174,15 @@ class MarchingCubesState {
             const v = this.idFieldGet!(this.idField, hi, hj, hk)
             let a = t < 0.5 ? u : v;
             if (a < 0) a = t < 0.5 ? v : u;
-            ChunkedArray.add(this.groupBuffer, a);
+            this.builder.addGroup(a);
         } else {
-            ChunkedArray.add(this.groupBuffer, 0);
+            this.builder.addGroup(0);
         }
-
-        this.vertexCount++;
 
         return id;
     }
 
-    constructor(params: MarchingCubesParameters) {
+    constructor(private builder: MarchinCubesBuilder<any>, params: MarchingCubesInputParams) {
         const dims = params.scalarField.space.dimensions;
         this.nX = dims[0]; this.nY = dims[1]; this.nZ = dims[2];
         this.isoLevel = params.isoLevel;
@@ -198,20 +193,6 @@ class MarchingCubesState {
             this.idFieldGet = params.idField.space.get;
         }
 
-        const dX = params.topRight![0] - params.bottomLeft![0]
-        const dY = params.topRight![1] - params.bottomLeft![1]
-        const dZ = params.topRight![2] - params.bottomLeft![2]
-        // TODO should it be configurable? Scalar fields can produce meshes with vastly different densities.
-        const vertexBufferSize = Math.min(262144, Math.max(dX * dY * dZ / 32, 1024) | 0)
-        const triangleBufferSize = Math.min(1 << 16, vertexBufferSize * 4)
-
-        this.vertexBuffer = ChunkedArray.create(Float32Array, 3, vertexBufferSize,
-            params.oldSurface && params.oldSurface.vertexBuffer.ref.value);
-        this.groupBuffer = ChunkedArray.create(Float32Array, 1, vertexBufferSize,
-            params.oldSurface && params.oldSurface.groupBuffer.ref.value);
-        this.triangleBuffer = ChunkedArray.create(Uint32Array, 3, triangleBufferSize,
-            params.oldSurface && params.oldSurface.indexBuffer.ref.value);
-
         // two layers of vertex indices. Each vertex has 3 edges associated.
         this.verticesOnEdges = new Int32Array(3 * this.nX * this.nY * 2);
     }
@@ -220,7 +201,7 @@ class MarchingCubesState {
         return this.scalarFieldGet(this.scalarField, i, j, k);
     }
 
-    processCell(i: number, j: number, k: number) {
+    processCell(i: number, j: number, k: number, edgeFilter: number) {
         let tableIndex = 0;
 
         if (this.get(i, j, k) < this.isoLevel) tableIndex |= 1;
@@ -235,7 +216,7 @@ class MarchingCubesState {
         if (tableIndex === 0 || tableIndex === 255) return;
 
         this.i = i; this.j = j; this.k = k;
-        let edgeInfo = EdgeTable[tableIndex];
+        const edgeInfo = EdgeTable[tableIndex];
         if ((edgeInfo & 1) > 0) this.vertList[0] = this.interpolate(0); // 0 1
         if ((edgeInfo & 2) > 0) this.vertList[1] = this.interpolate(1); // 1 2
         if ((edgeInfo & 4) > 0) this.vertList[2] = this.interpolate(2); // 2 3
@@ -251,8 +232,7 @@ class MarchingCubesState {
 
         const triInfo = TriTable[tableIndex];
         for (let t = 0; t < triInfo.length; t += 3) {
-            this.triangleCount++;
-            ChunkedArray.add3(this.triangleBuffer, this.vertList[triInfo[t]], this.vertList[triInfo[t + 1]], this.vertList[triInfo[t + 2]]);
+            this.builder.addTriangle(this.vertList, triInfo[t], triInfo[t + 1], triInfo[t + 2], edgeFilter)
         }
     }
 }

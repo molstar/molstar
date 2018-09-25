@@ -16,6 +16,8 @@ import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { SizeThemeProps } from 'mol-view/theme/size';
 import { LinesValues } from 'mol-gl/renderable/lines';
+import { Mesh } from '../mesh/mesh';
+import { LinesBuilder } from './lines-builder';
 
 /** Wide line */
 export interface Lines {
@@ -50,6 +52,27 @@ export namespace Lines {
             startBuffer: lines ? ValueCell.update(lines.startBuffer, sb) : ValueCell.create(sb),
             endBuffer: lines ? ValueCell.update(lines.endBuffer, eb) : ValueCell.create(eb),
         }
+    }
+
+    export function fromMesh(mesh: Mesh, lines?: Lines) {
+        const vb = mesh.vertexBuffer.ref.value
+        const ib = mesh.indexBuffer.ref.value
+        const gb = mesh.groupBuffer.ref.value
+
+        const builder = LinesBuilder.create(mesh.triangleCount * 3, mesh.triangleCount / 10, lines)
+
+        // TODO avoid duplicate lines
+        for (let i = 0, il = mesh.triangleCount * 3; i < il; i += 3) {
+            const i0 = ib[i], i1 = ib[i + 1], i2 = ib[i + 2];
+            const x0 = vb[i0 * 3], y0 = vb[i0 * 3 + 1], z0 = vb[i0 * 3 + 2];
+            const x1 = vb[i1 * 3], y1 = vb[i1 * 3 + 1], z1 = vb[i1 * 3 + 2];
+            const x2 = vb[i2 * 3], y2 = vb[i2 * 3 + 1], z2 = vb[i2 * 3 + 2];
+            builder.add(x0, y0, z0, x1, y1, z1, gb[i0])
+            builder.add(x0, y0, z0, x2, y2, z2, gb[i0])
+            builder.add(x1, y1, z1, x2, y2, z2, gb[i1])
+        }
+
+        return builder.getLines();
     }
 
     export function transformImmediate(line: Lines, t: Mat4) {

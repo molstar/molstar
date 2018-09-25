@@ -13,12 +13,14 @@ import { Loci } from 'mol-model/loci';
 import { PickingId } from '../../../geometry/picking';
 import { Task } from 'mol-task';
 import { DefaultGaussianWireframeProps, GaussianWireframeVisual } from '../visual/gaussian-surface-wireframe';
+import { ColorThemeProps } from 'mol-view/theme/color';
 
 export const DefaultSurfaceProps = {
     ...DefaultGaussianSurfaceProps,
     ...DefaultGaussianWireframeProps,
 
-    visuals: { surface: true, wireframe: false }
+    visuals: { surface: true, wireframe: false },
+    colorTheme: { name: 'element-symbol' } as ColorThemeProps,
 }
 export type SurfaceProps = typeof DefaultSurfaceProps
 

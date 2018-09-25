@@ -10,19 +10,19 @@ import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../geometry/mesh/mesh';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
-import { computeMarchingCubes } from '../../../util/marching-cubes/algorithm';
+import { computeMarchingCubesMesh } from '../../../util/marching-cubes/algorithm';
 import { DefaultGaussianDensityProps, GaussianDensityProps } from 'mol-model/structure/structure/unit/gaussian-density';
 
 async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props
     const { transform, field, idField } = await unit.computeGaussianDensity(props, ctx)
 
-    const surface = await computeMarchingCubes({
+    const params = {
         isoLevel: Math.exp(-smoothness),
         scalarField: field,
-        idField,
-        oldSurface: mesh
-    }).runAsChild(ctx)
+        idField
+    }
+    const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx)
 
     Mesh.transformImmediate(surface, transform)
     Mesh.computeNormalsImmediate(surface)
