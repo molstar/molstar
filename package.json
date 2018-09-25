@@ -21,6 +21,8 @@
     "watch-viewer": "webpack build/node_modules/apps/viewer/index.js -w --mode development -o build/viewer/index.js",
     "build-canvas": "webpack build/node_modules/apps/canvas/index.js --mode development -o build/canvas/index.js",
     "watch-canvas": "webpack build/node_modules/apps/canvas/index.js -w --mode development -o build/canvas/index.js",
+    "build-ms-query": "webpack build/node_modules/apps/model-server-query/index.js --mode development -o build/model-server-query/index.js",
+    "watch-ms-query": "webpack build/node_modules/apps/model-server-query/index.js -w --mode development -o build/model-server-query/index.js",
     "model-server": "node build/node_modules/servers/model/server.js",
     "model-server-watch": "nodemon --watch build/node_modules build/node_modules/servers/model/server.js"
   },

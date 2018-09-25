@@ -88,7 +88,7 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
         description: 'Computes structural assembly.',
         query: () => Queries.generators.all,
         structureTransform(p, s) {
-            return StructureSymmetry.buildAssembly(s, '' + p.name).run();
+            return StructureSymmetry.buildAssembly(s, '' + (p.name || '1')).run();
         },
         params: [{
             name: 'name',

@@ -40,7 +40,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
 
     try {
         perf.start('query');
-        const sourceStructures = await resolveStructures(wrappedStructure);
+        const sourceStructures = await resolveStructures(wrappedStructure, job.modelNums);
         if (!sourceStructures.length) throw new Error('Model not available');
 
         let structures: Structure[] = sourceStructures;
