@@ -45,7 +45,7 @@ export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {
         getLoci: getElementLoci,
         mark: markElement,
         setUpdateState: (state: VisualUpdateState, newProps: GaussianSurfaceProps, currentProps: GaussianSurfaceProps) => {
-            if (newProps.resolutionFactor !== currentProps.resolutionFactor) state.createGeometry = true
+            if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
         }

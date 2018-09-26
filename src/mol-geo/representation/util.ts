@@ -13,6 +13,7 @@ export interface QualityProps {
     detail: number
     radialSegments: number
     linearSegments: number
+    resolution: number
 }
 
 export function getQualityProps(props: Partial<QualityProps>, structure?: Structure) {
@@ -20,6 +21,7 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
     let detail = defaults(props.detail, 1)
     let radialSegments = defaults(props.radialSegments, 12)
     let linearSegments = defaults(props.linearSegments, 8)
+    let resolution = defaults(props.resolution, 1)
 
     if (quality === 'auto' && structure) {
         let score = structure.elementCount
@@ -40,26 +42,31 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
             detail = 3
             radialSegments = 36
             linearSegments = 18
+            resolution = 0.5
             break
         case 'high':
             detail = 2
             radialSegments = 24
             linearSegments = 12
+            resolution = 1.0
             break
         case 'medium':
             detail = 1
             radialSegments = 12
             linearSegments = 8
+            resolution = 1.5
             break
         case 'low':
             detail = 0
             radialSegments = 8
             linearSegments = 3
+            resolution = 3
             break
         case 'lowest':
             detail = 0
             radialSegments = 4
             linearSegments = 2
+            resolution = 6
             break
         case 'custom':
             // use defaults or given props as set above
@@ -69,6 +76,7 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
     return {
         detail,
         radialSegments,
-        linearSegments
+        linearSegments,
+        resolution
     }
 }

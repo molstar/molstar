@@ -43,7 +43,7 @@ export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {
         getLoci: getElementLoci,
         mark: markElement,
         setUpdateState: (state: VisualUpdateState, newProps: GaussianWireframeProps, currentProps: GaussianWireframeProps) => {
-            if (newProps.resolutionFactor !== currentProps.resolutionFactor) state.createGeometry = true
+            if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
         }

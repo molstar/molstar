@@ -11,20 +11,16 @@ import { PositionData, DensityData } from './common';
 import { OrderedSet } from 'mol-data/int';
 
 export const DefaultGaussianDensityProps = {
-    resolutionFactor: 6,
+    resolution: 1,
     radiusOffset: 0,
-    smoothness: 1.5,
-    box: Box3D.empty() // TODO remove
+    smoothness: 1.5
 }
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
-function getDelta(box: Box3D, resolutionFactor: number) {
+function getDelta(box: Box3D, resolution: number) {
     const extent = Vec3.sub(Vec3.zero(), box.max, box.min)
-    const n = Math.pow(Math.pow(2, resolutionFactor), 3)
-    const f = (extent[0] * extent[1] * extent[2]) / n
-    const s = Math.pow(f, 1 / 3)
     const size = Vec3.zero()
-    Vec3.ceil(size, Vec3.scale(size, extent, s))
+    Vec3.ceil(size, Vec3.scale(size, extent, resolution))
     const delta = Vec3.div(Vec3.zero(), extent, size)
     return delta
 }
@@ -34,7 +30,7 @@ export function computeGaussianDensity(position: PositionData, box: Box3D, radiu
 }
 
 export async function GaussianDensity(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
-    const { resolutionFactor, radiusOffset, smoothness } = props
+    const { resolution, radiusOffset, smoothness } = props
 
     const { indices, x, y, z } = position
     const n = OrderedSet.size(indices)
@@ -47,7 +43,7 @@ export async function GaussianDensity(ctx: RuntimeContext, position: PositionDat
     const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)
     const min = expandedBox.min
 
-    const delta = getDelta(Box3D.expand(Box3D.empty(), props.box, Vec3.create(pad, pad, pad)), resolutionFactor)
+    const delta = getDelta(Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad)), resolution)
     const dim = Vec3.zero()
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
 

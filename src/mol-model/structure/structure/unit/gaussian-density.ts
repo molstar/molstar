@@ -11,7 +11,7 @@ import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
 
 export const DefaultGaussianDensityProps = {
-    resolutionFactor: 6,
+    resolution: 1,
     radiusOffset: 0,
     smoothness: 1.5,
 }
@@ -43,12 +43,12 @@ export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityPro
     }
 
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensity(ctx, position, unit.lookup3d.boundary.box, radius, { ...props, box: unit.lookup3d.boundary.box });
+        return await GaussianDensity(ctx, position, unit.lookup3d.boundary.box, radius, props);
     });
 }
 
 export async function computeUnitGaussianDensityCached(unit: Unit, props: GaussianDensityProps, cache: Map<string, DensityData>, ctx?: RuntimeContext) {
-    const key = `${props.radiusOffset}|${props.resolutionFactor}|${props.smoothness}`
+    const key = `${props.radiusOffset}|${props.resolution}|${props.smoothness}`
     let density = cache.get(key)
     if (density) return density
     density = ctx ? await computeUnitGaussianDensity(unit, props).runInContext(ctx) : await computeUnitGaussianDensity(unit, props).run()

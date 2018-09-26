@@ -13,6 +13,7 @@ import { Loci } from 'mol-model/loci';
 import { PickingId } from '../../../geometry/picking';
 import { Task } from 'mol-task';
 import { DefaultGaussianWireframeProps, GaussianWireframeVisual } from '../visual/gaussian-surface-wireframe';
+import { getQualityProps } from '../../util';
 
 export const DefaultSurfaceProps = {
     ...DefaultGaussianSurfaceProps,
@@ -41,8 +42,9 @@ export function SurfaceRepresentation(): SurfaceRepresentation {
             return { ...gaussianSurfaceRepr.props, ...gaussianWireframeRepr.props, visuals: currentProps.visuals }
         },
         createOrUpdate: (props: Partial<SurfaceProps> = {}, structure?: Structure) => {
-            currentProps = Object.assign({}, DefaultSurfaceProps, currentProps, props)
             if (structure) currentStructure = structure
+            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), currentStructure)
+            currentProps = Object.assign({}, DefaultSurfaceProps, currentProps, props, qualityProps)
             return Task.create('Creating SurfaceRepresentation', async ctx => {
                 if (currentProps.visuals.surface) await gaussianSurfaceRepr.createOrUpdate(currentProps, currentStructure).runInContext(ctx)
                 if (currentProps.visuals.wireframe) await gaussianWireframeRepr.createOrUpdate(currentProps, currentStructure).runInContext(ctx)
