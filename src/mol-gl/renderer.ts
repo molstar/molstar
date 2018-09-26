@@ -26,6 +26,10 @@ export interface RendererStats {
     renderbufferCount: number
     textureCount: number
     vaoCount: number
+
+    drawCount: number
+    instanceCount: number
+    instancedDrawCount: number
 }
 
 interface Renderer {
@@ -166,7 +170,6 @@ namespace Renderer {
             },
 
             get stats(): RendererStats {
-                console.log(ctx)
                 return {
                     programCount: ctx.programCache.count,
                     shaderCount: ctx.shaderCache.count,
@@ -176,6 +179,10 @@ namespace Renderer {
                     renderbufferCount: ctx.renderbufferCount,
                     textureCount: ctx.textureCount,
                     vaoCount: ctx.vaoCount,
+
+                    drawCount: ctx.drawCount,
+                    instanceCount: ctx.instanceCount,
+                    instancedDrawCount: ctx.instancedDrawCount,
                 }
             },
             dispose: () => {

@@ -76,6 +76,10 @@ export interface Context {
     textureCount: number
     vaoCount: number
 
+    drawCount: number
+    instanceCount: number
+    instancedDrawCount: number
+
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     destroy: () => void
@@ -115,6 +119,10 @@ export function createContext(gl: WebGLRenderingContext): Context {
         renderbufferCount: 0,
         textureCount: 0,
         vaoCount: 0,
+
+        drawCount: 0,
+        instanceCount: 0,
+        instancedDrawCount: 0,
 
         unbindFramebuffer: () => unbindFramebuffer(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {

@@ -97,6 +97,10 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
     let drawCount = values.drawCount.ref.value
     let instanceCount = values.instanceCount.ref.value
 
+    ctx.drawCount += drawCount
+    ctx.instanceCount += instanceCount
+    ctx.instancedDrawCount += instanceCount * drawCount
+
     const valueChanges: ValueChanges = {
         attributes: false,
         defines: false,
@@ -157,11 +161,15 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
 
             if (values.drawCount.ref.version !== versions.drawCount) {
                 // console.log('drawCount version changed')
+                ctx.drawCount += values.drawCount.ref.value - drawCount
+                ctx.instancedDrawCount += instanceCount * values.drawCount.ref.value - instanceCount * drawCount
                 drawCount = values.drawCount.ref.value
                 versions.drawCount = values.drawCount.ref.version
             }
             if (values.instanceCount.ref.version !== versions.instanceCount) {
                 // console.log('instanceCount version changed')
+                ctx.instanceCount += values.instanceCount.ref.value - instanceCount
+                ctx.instancedDrawCount += values.instanceCount.ref.value * drawCount - instanceCount * drawCount
                 instanceCount = values.instanceCount.ref.value
                 versions.instanceCount = values.instanceCount.ref.version
             }
