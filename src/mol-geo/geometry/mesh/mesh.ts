@@ -165,7 +165,7 @@ export namespace Mesh {
      * Ensure that each vertices of each triangle have the same group id.
      * Note that normals are copied over and can't be re-created from the new mesh.
      */
-    export function uniformTriangleGroup(mesh: Mesh) {
+    export function uniformTriangleGroup(mesh: Mesh, splitTriangles = true) {
         const { indexBuffer, vertexBuffer, groupBuffer, normalBuffer, triangleCount, vertexCount } = mesh
         const ib = indexBuffer.ref.value
         const vb = vertexBuffer.ref.value
@@ -186,28 +186,113 @@ export namespace Mesh {
         group.currentIndex = vertexCount
         group.elementCount = vertexCount
 
-        const v = Vec3.zero()
-        const n = Vec3.zero()
+        const vi = Vec3.zero()
+        const vj = Vec3.zero()
+        const vk = Vec3.zero()
+        const ni = Vec3.zero()
+        const nj = Vec3.zero()
+        const nk = Vec3.zero()
 
         function add(i: number) {
-            Vec3.fromArray(v, vb, i * 3)
-            Vec3.fromArray(n, nb, i * 3)
-            ChunkedArray.add3(vertex, v[0], v[1], v[2])
-            ChunkedArray.add3(normal, n[0], n[1], n[2])
+            Vec3.fromArray(vi, vb, i * 3)
+            Vec3.fromArray(ni, nb, i * 3)
+            ChunkedArray.add3(vertex, vi[0], vi[1], vi[2])
+            ChunkedArray.add3(normal, ni[0], ni[1], ni[2])
+        }
+
+        function addMid(i: number, j: number) {
+            Vec3.fromArray(vi, vb, i * 3)
+            Vec3.fromArray(vj, vb, j * 3)
+            Vec3.scale(vi, Vec3.add(vi, vi, vj), 0.5)
+            Vec3.fromArray(ni, nb, i * 3)
+            Vec3.fromArray(nj, nb, j * 3)
+            Vec3.scale(ni, Vec3.add(ni, ni, nj), 0.5)
+            ChunkedArray.add3(vertex, vi[0], vi[1], vi[2])
+            ChunkedArray.add3(normal, ni[0], ni[1], ni[2])
+        }
+
+        function addCenter(i: number, j: number, k: number) {
+            Vec3.fromArray(vi, vb, i * 3)
+            Vec3.fromArray(vj, vb, j * 3)
+            Vec3.fromArray(vk, vb, k * 3)
+            Vec3.scale(vi, Vec3.add(vi, Vec3.add(vi, vi, vj), vk), 1/3)
+            Vec3.fromArray(ni, nb, i * 3)
+            Vec3.fromArray(nj, nb, j * 3)
+            Vec3.fromArray(nk, nb, k * 3)
+            Vec3.scale(ni, Vec3.add(ni, Vec3.add(ni, ni, nj), nk), 1/3)
+            ChunkedArray.add3(vertex, vi[0], vi[1], vi[2])
+            ChunkedArray.add3(normal, ni[0], ni[1], ni[2])
+        }
+
+        function split2(i0: number, i1: number, i2: number, g0: number, g1: number) {
+            ++newTriangleCount
+            add(i0); addMid(i0, i1); addMid(i0, i2);
+            ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 2)
+            for (let j = 0; j < 3; ++j) ChunkedArray.add(group, g0)
+            newVertexCount += 3
+
+            newTriangleCount += 2
+            add(i1); add(i2); addMid(i0, i1); addMid(i0, i2);
+            ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 3)
+            ChunkedArray.add3(index, newVertexCount, newVertexCount + 3, newVertexCount + 2)
+            for (let j = 0; j < 4; ++j) ChunkedArray.add(group, g1)
+            newVertexCount += 4
         }
 
         let newVertexCount = vertexCount
-        for (let i = 0, il = triangleCount; i < il; ++i) {
-            const v0 = ib[i * 3], v1 = ib[i * 3 + 1], v2 = ib[i * 3 + 2]
-            const g0 = gb[v0], g1 = gb[v1], g2 = gb[v2]
-            if (g0 !== g1 || g0 !== g2) {
-                add(v0); add(v1); add(v2)
-                ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 2)
-                const g = g1 === g2 ? g1 : g0
-                for (let j = 0; j < 3; ++j) ChunkedArray.add(group, g)
-                newVertexCount += 3
-            } else {
-                ChunkedArray.add3(index, v0, v1, v2)
+        let newTriangleCount = 0
+
+        if (splitTriangles) {
+            for (let i = 0, il = triangleCount; i < il; ++i) {
+                const i0 = ib[i * 3], i1 = ib[i * 3 + 1], i2 = ib[i * 3 + 2]
+                const g0 = gb[i0], g1 = gb[i1], g2 = gb[i2]
+                if (g0 === g1 && g0 === g2) {
+                    ++newTriangleCount
+                    ChunkedArray.add3(index, i0, i1, i2)
+                } else if (g0 === g1) {
+                    split2(i2, i0, i1, g2, g0)
+                } else if (g0 === g2) {
+                    split2(i1, i2, i0, g1, g2)
+                } else if (g1 === g2) {
+                    split2(i0, i1, i2, g0, g1)
+                } else {
+                    newTriangleCount += 2
+                    add(i0); addMid(i0, i1); addMid(i0, i2); addCenter(i0, i1, i2);
+                    ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 3)
+                    ChunkedArray.add3(index, newVertexCount, newVertexCount + 3, newVertexCount + 2)
+                    for (let j = 0; j < 4; ++j) ChunkedArray.add(group, g0)
+                    newVertexCount += 4
+
+                    newTriangleCount += 2
+                    add(i1); addMid(i1, i2); addMid(i1, i0); addCenter(i0, i1, i2);
+                    ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 3)
+                    ChunkedArray.add3(index, newVertexCount, newVertexCount + 3, newVertexCount + 2)
+                    for (let j = 0; j < 4; ++j) ChunkedArray.add(group, g1)
+                    newVertexCount += 4
+
+                    newTriangleCount += 2
+                    add(i2); addMid(i2, i1); addMid(i2, i0); addCenter(i0, i1, i2);
+                    ChunkedArray.add3(index, newVertexCount + 3, newVertexCount + 1, newVertexCount)
+                    ChunkedArray.add3(index, newVertexCount + 2, newVertexCount + 3, newVertexCount)
+                    for (let j = 0; j < 4; ++j) ChunkedArray.add(group, g2)
+                    newVertexCount += 4
+                }
+            }
+        } else {
+            for (let i = 0, il = triangleCount; i < il; ++i) {
+                const i0 = ib[i * 3], i1 = ib[i * 3 + 1], i2 = ib[i * 3 + 2]
+                const g0 = gb[i0], g1 = gb[i1], g2 = gb[i2]
+                if (g0 !== g1 || g0 !== g2) {
+                    ++newTriangleCount
+                    add(i0); add(i1); add(i2)
+                    ChunkedArray.add3(index, newVertexCount, newVertexCount + 1, newVertexCount + 2)
+                    const g = g1 === g2 ? g1 : g0
+                    for (let j = 0; j < 3; ++j) ChunkedArray.add(group, g)
+                    newVertexCount += 3
+                } else {
+                    ++newTriangleCount
+                    ChunkedArray.add3(index, i0, i1, i2)
+                }
             }
         }
 
@@ -217,6 +302,7 @@ export namespace Mesh {
         const newGb = ChunkedArray.compact(group)
 
         mesh.vertexCount = newVertexCount
+        mesh.triangleCount = newTriangleCount
 
         ValueCell.update(vertexBuffer, newVb) as ValueCell<Float32Array>
         ValueCell.update(groupBuffer, newGb) as ValueCell<Float32Array>
