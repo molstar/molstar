@@ -7,22 +7,25 @@
 import { Model } from 'mol-model/structure';
 import Config from './config';
 
-export type ModelPropertiesProvider = (model: Model) => Promise<any>[]
+export type ModelPropertiesProvider = (model: Model, cache: object) => Promise<any>[]
 
 export function createModelPropertiesProviderFromConfig(): ModelPropertiesProvider {
-    if (!Config.customPropertyProviders || Config.customPropertyProviders.length === 0) return () => [];
+    return createModelPropertiesProviderFromSources(Config.customPropertyProviders);
+}
+
+export function createModelPropertiesProviderFromSources(sources: string[]): ModelPropertiesProvider {
+    if (!sources || sources.length === 0) return () => [];
 
     const ps: ModelPropertiesProvider[] = [];
-    for (const p of Config.customPropertyProviders) {
+    for (const p of sources) {
         ps.push(require(p).attachModelProperties);
     }
 
-    return model => {
+    return (model, cache) => {
         const ret: Promise<any>[] = [];
         for (const p of ps) {
-            for (const e of p(model)) ret.push(e);
+            for (const e of p(model, cache)) ret.push(e);
         }
         return ret;
     }
 }
-

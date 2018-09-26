@@ -6,7 +6,7 @@
 
 import { Column } from 'mol-data/db';
 import { CifWriter } from 'mol-io/writer/cif';
-import { StructureQuery, StructureSelection } from 'mol-model/structure';
+import { StructureQuery, StructureSelection, Structure } from 'mol-model/structure';
 import { encode_mmCIF_categories } from 'mol-model/structure/export/mmcif';
 import { now, Progress } from 'mol-task';
 import { ConsoleLogger } from 'mol-util/console-logger';
@@ -14,9 +14,9 @@ import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import Config from '../config';
 import Version from '../version';
 import { Job } from './jobs';
-import { getStructure, StructureWrapper } from './structure-wrapper';
+import { createStructureWrapperFromJob, StructureWrapper, resolveStructures } from './structure-wrapper';
 import CifField = CifWriter.Field
-import { createModelPropertiesProviderFromConfig } from '../provider';
+import { createModelPropertiesProviderFromConfig, ModelPropertiesProvider } from '../property-provider';
 
 export interface Stats {
     structure: StructureWrapper,
@@ -26,20 +26,37 @@ export interface Stats {
 
 const perf = new PerformanceMonitor();
 
-const propertyProvider = createModelPropertiesProviderFromConfig();
+let _propertyProvider: ModelPropertiesProvider;
+function propertyProvider() {
+    if (_propertyProvider) return _propertyProvider;
+    _propertyProvider = createModelPropertiesProviderFromConfig();
+    return _propertyProvider;
+}
 
 export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
     ConsoleLogger.logId(job.id, 'Query', 'Starting.');
 
-    const wrappedStructure = await getStructure(job, propertyProvider);
+    const wrappedStructure = await createStructureWrapperFromJob(job, propertyProvider());
 
     try {
         perf.start('query');
-        const structure = job.queryDefinition.structureTransform
-            ? await job.queryDefinition.structureTransform(job.normalizedParams, wrappedStructure.structure)
-            : wrappedStructure.structure;
-        const query = job.queryDefinition.query(job.normalizedParams, structure);
-        const result = await StructureSelection.unionStructure(StructureQuery.run(query, structure, Config.maxQueryTimeInMs));
+        const sourceStructures = await resolveStructures(wrappedStructure, job.modelNums);
+        if (!sourceStructures.length) throw new Error('Model not available');
+
+        let structures: Structure[] = sourceStructures;
+
+        if (job.queryDefinition.structureTransform) {
+            structures = [];
+            for (const s of sourceStructures) {
+                structures.push(await job.queryDefinition.structureTransform(job.normalizedParams, s));
+            }
+        }
+
+        const queries = structures.map(s => job.queryDefinition.query(job.normalizedParams, s));
+        const result: Structure[] = [];
+        for (let i = 0; i < structures.length; i++) {
+            result.push(await StructureSelection.unionStructure(StructureQuery.run(queries[i], structures[i], Config.maxQueryTimeInMs)));
+        }
         perf.end('query');
 
         const encoder = CifWriter.createEncoder({
@@ -52,7 +69,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
         ConsoleLogger.logId(job.id, 'Query', 'Query finished.');
 
         perf.start('encode');
-        encoder.startDataBlock(structure.units[0].model.label.toUpperCase());
+        encoder.startDataBlock(sourceStructures[0].models[0].label.toUpperCase());
         encoder.writeCategory(_model_server_result, [job]);
         encoder.writeCategory(_model_server_params, [job]);
 
@@ -130,7 +147,7 @@ const _model_server_error_fields: CifField<number, string>[] = [
 const _model_server_stats_fields: CifField<number, Stats>[] = [
     int32<Stats>('io_time_ms', ctx => ctx.structure.info.readTime | 0),
     int32<Stats>('parse_time_ms', ctx => ctx.structure.info.parseTime | 0),
-    int32<Stats>('attach_props_time_ms', ctx => ctx.structure.info.attachPropsTime | 0),
+    // int32<Stats>('attach_props_time_ms', ctx => ctx.structure.info.attachPropsTime | 0),
     int32<Stats>('create_model_time_ms', ctx => ctx.structure.info.createModelTime | 0),
     int32<Stats>('query_time_ms', ctx => ctx.queryTimeMs | 0),
     int32<Stats>('encode_time_ms', ctx => ctx.encodeTimeMs | 0)

@@ -20,7 +20,7 @@ export interface QueryParamInfo {
     description?: string,
     required?: boolean,
     defaultValue?: any,
-    exampleValues?: string[],
+    exampleValues?: any[],
     validation?: (v: any) => void
 }
 
@@ -50,15 +50,15 @@ export interface QueryDefinition {
 const AtomSiteTestParams: QueryParamInfo = {
     name: 'atom_site',
     type: QueryParamType.JSON,
-    description: 'Object or array of objects describing atom properties. Name are same as in wwPDB mmCIF dictionary of the atom_site category.',
-    exampleValues: [`{ label_comp_id: 'ALA' }`, `{ label_seq_id: 123, label_asym_id: 'A' }`]
+    description: 'Object or array of objects describing atom properties. Names are same as in wwPDB mmCIF dictionary of the atom_site category.',
+    exampleValues: [{ label_comp_id: 'ALA' }, { label_seq_id: 123, label_asym_id: 'A' }]
 };
 
 const RadiusParam: QueryParamInfo = {
     name: 'radius',
     type: QueryParamType.Float,
     defaultValue: 5,
-    exampleValues: ['5'],
+    exampleValues: [5],
     description: 'Value in Angstroms.',
     validation(v: any) {
         if (v < 1 || v > 10) {
@@ -82,13 +82,14 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
         structureTransform(p, s) {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
         },
+        params: [ RadiusParam ]
     },
     'assembly': {
         niceName: 'Assembly',
         description: 'Computes structural assembly.',
         query: () => Queries.generators.all,
         structureTransform(p, s) {
-            return StructureSymmetry.buildAssembly(s, '' + p.name).run();
+            return StructureSymmetry.buildAssembly(s, '' + (p.name || '1')).run();
         },
         params: [{
             name: 'name',

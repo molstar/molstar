@@ -17,6 +17,7 @@ export type LocalInput = {
     input: string,
     output: string,
     query: string,
+    modelNums?: number[],
     params?: any
 }[];
 
@@ -27,7 +28,7 @@ export async function runLocal(input: LocalInput) {
     }
 
     for (const job of input) {
-        JobManager.add('_local_', job.input, job.query, job.params || { }, job.output);
+        JobManager.add('_local_', job.input, job.query, job.params || { }, job.modelNums, job.output);
     }
     JobManager.sort();
 
