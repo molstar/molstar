@@ -86,9 +86,11 @@ export const VisualQualityInfo = {
     'custom': {},
     'auto': {},
     'highest': {},
+    'higher': {},
     'high': {},
     'medium': {},
     'low': {},
+    'lower': {},
     'lowest': {},
 }
 export type VisualQuality = keyof typeof VisualQualityInfo

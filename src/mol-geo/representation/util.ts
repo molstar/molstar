@@ -21,19 +21,23 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
     let detail = defaults(props.detail, 1)
     let radialSegments = defaults(props.radialSegments, 12)
     let linearSegments = defaults(props.linearSegments, 8)
-    let resolution = defaults(props.resolution, 1)
+    let resolution = defaults(props.resolution, 2)
 
     if (quality === 'auto' && structure) {
         let score = structure.elementCount
         if (structure.isCoarse) score *= 10
         if (score > 500_000) {
             quality = 'lowest'
+        } else if (score > 300_000) {
+            quality = 'lower'
         } else if (score > 100_000) {
             quality = 'low'
         } else if (score > 30_000) {
             quality = 'medium'
-        } else {
+        } else if (score > 2_000) {
             quality = 'high'
+        } else {
+            quality = 'higher'
         }
     }
 
@@ -42,19 +46,25 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
             detail = 3
             radialSegments = 36
             linearSegments = 18
+            resolution = 0.3
+            break
+        case 'higher':
+            detail = 3
+            radialSegments = 28
+            linearSegments = 14
             resolution = 0.5
             break
         case 'high':
             detail = 2
-            radialSegments = 24
-            linearSegments = 12
+            radialSegments = 20
+            linearSegments = 10
             resolution = 1.0
             break
         case 'medium':
             detail = 1
             radialSegments = 12
             linearSegments = 8
-            resolution = 1.5
+            resolution = 2.0
             break
         case 'low':
             detail = 0
@@ -62,11 +72,17 @@ export function getQualityProps(props: Partial<QualityProps>, structure?: Struct
             linearSegments = 3
             resolution = 3
             break
+        case 'lower':
+            detail = 0
+            radialSegments = 8
+            linearSegments = 3
+            resolution = 5
+            break
         case 'lowest':
             detail = 0
             radialSegments = 4
             linearSegments = 2
-            resolution = 6
+            resolution = 8
             break
         case 'custom':
             // use defaults or given props as set above
