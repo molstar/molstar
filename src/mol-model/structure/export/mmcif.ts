@@ -17,13 +17,16 @@ import { _pdbx_struct_mod_residue } from './categories/modified-residues';
 export interface CifExportContext {
     structure: Structure,
     model: Model,
-    cache: any
+    localCache: any,
+    /** useful when exporting multiple models at the same time */
+    globalCache: any
 }
 
 export namespace CifExportContext {
     export function create(structures: Structure | Structure[]): CifExportContext[] {
-        if (Array.isArray(structures)) return structures.map(structure => ({ structure, model: structure.models[0], cache: Object.create(null) }));
-        return [{ structure: structures, model: structures.models[0], cache: Object.create(null) }];
+        const globalCache = Object.create(null);
+        if (Array.isArray(structures)) return structures.map(structure => ({ structure, model: structure.models[0], localCache: Object.create(null), globalCache }));
+        return [{ structure: structures, model: structures.models[0], localCache: Object.create(null), globalCache }];
     }
 }
 

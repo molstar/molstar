@@ -26,7 +26,7 @@ export namespace ResidueCustomProperty {
     };
 
     function getExportCtx<T>(exportCtx: CifExportContext, prop: ResidueCustomProperty<T>): ExportCtx<T> {
-        if (exportCtx.cache[prop.id]) return exportCtx.cache[prop.id];
+        if (exportCtx.localCache[prop.id]) return exportCtx.localCache[prop.id];
         const residueIndex = exportCtx.model.atomicHierarchy.residueAtomSegments.index;
         const elements = getStructureElements(exportCtx.structure, prop);
         return {

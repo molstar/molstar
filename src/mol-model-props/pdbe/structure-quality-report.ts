@@ -27,7 +27,9 @@ const _Descriptor = ModelPropertyDescriptor({
         prefix: 'pdbe',
         categories: [{
             name: 'pdbe_structure_quality_report',
-            instance() {
+            instance(ctx) {
+                if (ctx.globalCache.pdbe_structure_quality_report) return CifWriter.Category.Empty;
+                ctx.globalCache.pdbe_structure_quality_report = true;
                 return { fields: _structure_quality_report_fields, rowCount: 1 }
             }
         }, {
@@ -122,9 +124,7 @@ export namespace StructureQualityReport {
             const data = toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.frame.categories.pdbe_structure_quality_report);
             issueMap = createIssueMapFromCif(model, data);
         } else if (params.PDBe_apiSourceJson) {
-            const id = model.label.toLowerCase();
-            const json = await params.PDBe_apiSourceJson(model);
-            const data = json[id];
+            const data = await params.PDBe_apiSourceJson(model);
             if (!data) return false;
             issueMap = createIssueMapFromJson(model, data);
         } else {
