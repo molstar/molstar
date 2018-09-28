@@ -4,6 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import * as express from 'express';
 import Config from '../config';
 import { ConsoleLogger } from 'mol-util/console-logger';
@@ -97,7 +99,35 @@ async function processNextJob() {
 // }
 
 export function initWebApi(app: express.Express) {
-    app.get(makePath('query'), (req, res) => {
+    app.get(makePath('static/:format/:id'), async (req, res) => {
+        const binary = req.params.format === 'bcif';
+        const id = req.params.id;
+        const fn = Config.mapFile(binary ? 'pdb-bcif' : 'pdb-cif', id);
+        if (!fn || !fs.existsSync(fn)) {
+            res.status(404);
+            res.end();
+            return;
+        }
+        fs.readFile(fn, (err, data) => {
+            if (err) {
+                res.status(404);
+                res.end();
+                return;
+            }
+
+            const f = path.parse(fn);
+            res.writeHead(200, {
+                'Content-Type': binary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'X-Requested-With',
+                'Content-Disposition': `inline; filename="${f.name}${f.ext}"`
+            });
+            res.write(data);
+            res.end();
+        });
+    })
+
+    app.get(makePath('api/v1'), (req, res) => {
         const query = /\?(.*)$/.exec(req.url)![1];
         const args = JSON.parse(decodeURIComponent(query));
         const name = args.name;
