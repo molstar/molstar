@@ -12,6 +12,7 @@ import { ConsoleLogger } from 'mol-util/console-logger';
 import { resolveJob } from './query';
 import { JobManager } from './jobs';
 import { UUID } from 'mol-util';
+import { LandingPage } from './landing';
 
 function makePath(p: string) {
     return Config.appPrefix + '/' + p;
@@ -136,6 +137,10 @@ export function initWebApi(app: express.Express) {
         const jobId = JobManager.add('pdb', entryId, name, params, args.modelNums);
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
+    });
+
+    app.get('*', (req, res) => {
+        res.send(LandingPage);
     });
 
     // for (const q of QueryList) {
