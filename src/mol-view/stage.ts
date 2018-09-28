@@ -20,32 +20,36 @@ import { CarbohydrateProps } from 'mol-geo/representation/structure/representati
 
 const spacefillProps: Partial<SpacefillProps> = {
     doubleSided: true,
-    colorTheme: { name: 'chain-id' },
-    sizeTheme: { name: 'physical', factor: 1.0 },
+    colorTheme: 'chain-id',
+    sizeTheme: 'physical',
+    sizeValue: 1.0,
     quality: 'auto',
     useFog: false
 }
 
 const ballAndStickProps: Partial<BallAndStickProps> = {
     doubleSided: true,
-    colorTheme: { name: 'chain-id' },
-    sizeTheme: { name: 'uniform', value: 0.15 },
+    colorTheme: 'chain-id',
+    sizeTheme: 'uniform',
+    sizeValue: 0.15,
     quality: 'auto',
     useFog: false
 }
 
 const distanceRestraintProps: Partial<DistanceRestraintProps> = {
     doubleSided: true,
-    colorTheme: { name: 'cross-link' },
-    sizeTheme: { name: 'uniform', value: 0.6 },
+    colorTheme: 'cross-link',
+    sizeTheme: 'uniform',
+    sizeValue: 0.6,
     quality: 'auto',
     useFog: false
 }
 
 const backboneProps: Partial<BackboneProps> = {
     doubleSided: true,
-    colorTheme: { name: 'chain-id' },
-    sizeTheme: { name: 'uniform', value: 0.3 },
+    colorTheme: 'chain-id',
+    sizeTheme: 'uniform',
+    sizeValue: 0.3,
     quality: 'auto',
     useFog: false,
     alpha: 0.5
@@ -53,8 +57,9 @@ const backboneProps: Partial<BackboneProps> = {
 
 const cartoonProps: Partial<CartoonProps> = {
     doubleSided: true,
-    colorTheme: { name: 'chain-id' },
-    sizeTheme: { name: 'uniform', value: 0.13, factor: 1 },
+    colorTheme: 'chain-id',
+    sizeTheme: 'uniform',
+    sizeValue: 0.13,
     aspectRatio: 8,
     quality: 'auto',
     useFog: false
@@ -62,8 +67,9 @@ const cartoonProps: Partial<CartoonProps> = {
 
 const carbohydrateProps: Partial<CarbohydrateProps> = {
     doubleSided: true,
-    colorTheme: { name: 'carbohydrate-symbol' },
-    sizeTheme: { name: 'uniform', value: 1, factor: 1 },
+    colorTheme: 'carbohydrate-symbol',
+    sizeTheme: 'uniform',
+    sizeValue: 1,
     quality: 'highest',
     useFog: false
 }

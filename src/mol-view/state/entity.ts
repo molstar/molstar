@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { readFileAs, readUrlAs } from 'mol-util/read'
+import { readFile, readUrl } from 'mol-util/read'
 import { idFactory } from 'mol-util/id-factory'
 import { StateContext } from './context';
 import { getFileInfo } from 'mol-util/file-info';
@@ -54,7 +54,7 @@ export namespace UrlEntity {
         const { name, ext: type, compressed, binary } = getFileInfo(url)
         return StateEntity.create(ctx, 'url', {
             url, name, type,
-            getData: () => readUrlAs(url, isBinary || !!compressed || binary)
+            getData: () => readUrl(url, isBinary || !!compressed || binary)
         })
     }
 }
@@ -71,7 +71,7 @@ export namespace FileEntity {
         const { name, ext: type, compressed, binary } = getFileInfo(file)
         return StateEntity.create(ctx, 'file', {
             name, type,
-            getData: () => readFileAs(file, isBinary || !!compressed || binary)
+            getData: () => readFile(file, isBinary || !!compressed || binary)
         })
     }
 }

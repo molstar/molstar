@@ -6,27 +6,30 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { ColorThemeProps } from 'mol-view/theme/color';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { ColorThemeProps, ColorThemeName, ColorThemeOptions } from 'mol-view/theme/color';
+import { SizeThemeProps, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { Representation, RepresentationProps } from '..';
 import { Geometry } from '../../geometry/geometry';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { Points } from '../../geometry/points/points';
 import { Lines } from '../../geometry/lines/lines';
+import { SelectParam, paramDefaultValues } from 'mol-view/parameter';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
-export const DefaultStructureProps = {
-    ...Geometry.DefaultProps,
-    colorTheme: { name: 'unit-index' } as ColorThemeProps,
-    sizeTheme: { name: 'physical' } as SizeThemeProps,
+export const StructureParams = {
+    ...Geometry.Params,
+    colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'unit-index', ColorThemeOptions),
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
 }
+export const DefaultStructureProps = paramDefaultValues(StructureParams)
 export type StructureProps = typeof DefaultStructureProps
 
-export const DefaultStructureMeshProps = {
-    ...Mesh.DefaultProps,
-    ...DefaultStructureProps,
+export const StructureMeshParams = {
+    ...Mesh.Params,
+    ...StructureParams,
 }
+export const DefaultStructureMeshProps = paramDefaultValues(StructureMeshParams)
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
 export const DefaultStructurePointsProps = {

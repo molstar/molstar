@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * Adapted from https://github.com/rcsb/mmtf-javascript
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
@@ -25,13 +25,11 @@ interface State {
 
 /**
  * decode all key-value pairs of a map into an object
- * @param  {Integer} length - number of key-value pairs
- * @return {Object} decoded map
  */
 function map(state: State, length: number) {
-    let value: any = {};
+    const value: { [k: string]: any } = {};
     for (let i = 0; i < length; i++) {
-        let key = parse(state);
+        const key = parse(state);
         value[key] = parse(state);
     }
     return value;
@@ -39,8 +37,6 @@ function map(state: State, length: number) {
 
 /**
  * decode binary array
- * @param  {Integer} length - number of elements in the array
- * @return {Uint8Array} decoded array
  */
 function bin(state: State, length: number) {
     // This approach to binary parsing wastes a bit of memory to trade for speed compared to:
@@ -51,8 +47,8 @@ function bin(state: State, length: number) {
     // in the background, which causes the element access to be several times slower
     // than creating the new byte array.
 
-    let value = new Uint8Array(length);
-    let o = state.offset;
+    const value = new Uint8Array(length);
+    const o = state.offset;
     for (let i = 0; i < length; i++) value[i] = state.buffer[i + o];
     state.offset += length;
     return value;
@@ -60,22 +56,18 @@ function bin(state: State, length: number) {
 
 /**
  * decode string
- * @param  {Integer} length - number string characters
- * @return {String} decoded string
  */
 function str(state: State, length: number) {
-    let value = utf8Read(state.buffer, state.offset, length);
+    const value = utf8Read(state.buffer, state.offset, length);
     state.offset += length;
     return value;
 }
 
 /**
-     * decode array
-     * @param  {Integer} length - number of array elements
-     * @return {Array} decoded array
-     */
+ * decode array
+ */
 function array(state: State, length: number) {
-    let value: any[] = new Array(length);
+    const value: any[] = new Array(length);
     for (let i = 0; i < length; i++) {
         value[i] = parse(state);
     }
@@ -83,11 +75,10 @@ function array(state: State, length: number) {
 }
 
 /**
- * recursively parse the MessagePack data
- * @return {Object|Array|String|Number|Boolean|null} decoded MessagePack data
+ * recursively parse the MessagePack data and return decoded MessagePack data
  */
 function parse(state: State) {
-    let type = state.buffer[state.offset];
+    const type = state.buffer[state.offset];
     let value: any, length: number;
     // Positive FixInt
     if ((type & 0x80) === 0x00) {

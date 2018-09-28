@@ -6,6 +6,7 @@
  */
 
 import { Encoding, EncodedData } from './encoding'
+import { IsNativeEndianLittle, flipByteOrder } from '../binary';
 
 /**
  * Fixed point, delta, RLE, integer packing adopted from https://github.com/rcsb/mmtf-javascript/
@@ -64,32 +65,10 @@ function getFloatArray(type: Encoding.FloatDataType, size: number) {
     }
 }
 
-/* http://stackoverflow.com/questions/7869752/javascript-typed-arrays-and-endianness */
-const isLittleEndian = (function () {
-    const arrayBuffer = new ArrayBuffer(2);
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const uint16array = new Uint16Array(arrayBuffer);
-    uint8Array[0] = 0xAA;
-    uint8Array[1] = 0xBB;
-    if (uint16array[0] === 0xBBAA) return true;
-    return false;
-})();
-
 function int8(data: Uint8Array) { return new Int8Array(data.buffer, data.byteOffset); }
 
-function flipByteOrder(data: Uint8Array, bytes: number) {
-    let buffer = new ArrayBuffer(data.length);
-    let ret = new Uint8Array(buffer);
-    for (let i = 0, n = data.length; i < n; i += bytes) {
-        for (let j = 0; j < bytes; j++) {
-            ret[i + bytes - j - 1] = data[i + j];
-        }
-    }
-    return buffer;
-}
-
 function view<T>(data: Uint8Array, byteSize: number, c: new (buffer: ArrayBuffer) => T) {
-    if (isLittleEndian) return new c(data.buffer);
+    if (IsNativeEndianLittle) return new c(data.buffer);
     return new c(flipByteOrder(data, byteSize));
 }
 

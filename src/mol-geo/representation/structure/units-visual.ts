@@ -8,7 +8,7 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '../';
-import { DefaultStructureMeshProps, VisualUpdateState, DefaultStructurePointsProps, DefaultStructureLinesProps } from '.';
+import { DefaultStructureMeshProps, VisualUpdateState, DefaultStructurePointsProps, DefaultStructureLinesProps, StructureMeshParams } from '.';
 import { RuntimeContext } from 'mol-task';
 import { PickingId } from '../../geometry/picking';
 import { LocationIterator } from '../../util/location-iterator';
@@ -24,6 +24,16 @@ import { updateRenderableState } from '../../geometry/geometry';
 import { createColors } from '../../geometry/color-data';
 import { createSizes } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
+import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
+
+export const UnitKindInfo = {
+    'atomic': {},
+    'spheres': {},
+    'gaussians': {},
+}
+export type UnitKind = keyof typeof UnitKindInfo
+export const UnitKindNames = Object.keys(UnitKindInfo)
+export const UnitKindOptions = UnitKindNames.map(n => [n, n] as [UnitKind, string])
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -36,12 +46,22 @@ function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.Symmetry
     )
 }
 
+function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
+    for (let i = 0, il = unitKinds.length; i < il; ++i) {
+        if (Unit.isAtomic(unit) && unitKinds[i] === 'atomic') return true
+        if (Unit.isSpheres(unit) && unitKinds[i] === 'spheres') return true
+        if (Unit.isGaussians(unit) && unitKinds[i] === 'gaussians') return true
+    }
+    return false
+}
+
 // mesh
 
-export const DefaultUnitsMeshProps = {
-    ...DefaultStructureMeshProps,
-    unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
+export const UnitsMeshParams = {
+    ...StructureMeshParams,
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
+export const DefaultUnitsMeshProps = paramDefaultValues(UnitsMeshParams)
 export type UnitsMeshProps = typeof DefaultUnitsMeshProps
 
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> {
@@ -72,7 +92,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
-        mesh = currentProps.unitKinds.includes(unit.kind)
+        mesh = includesUnitKind(currentProps.unitKinds, unit)
             ? await createMesh(ctx, unit, currentStructure, currentProps, mesh)
             : Mesh.createEmpty(mesh)
 
@@ -223,7 +243,7 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
 
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
-        points = currentProps.unitKinds.includes(unit.kind)
+        points = includesUnitKind(currentProps.unitKinds, unit)
             ? await createPoints(ctx, unit, currentStructure, currentProps, points)
             : Points.createEmpty(points)
 
@@ -378,7 +398,7 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
 
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
-        lines = currentProps.unitKinds.includes(unit.kind)
+        lines = includesUnitKind(currentProps.unitKinds, unit)
             ? await createLines(ctx, unit, currentStructure, currentProps, lines)
             : Lines.createEmpty(lines)
 

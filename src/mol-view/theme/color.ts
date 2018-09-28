@@ -96,3 +96,4 @@ export const ColorThemeInfo = {
 }
 export type ColorThemeName = keyof typeof ColorThemeInfo
 export const ColorThemeNames = Object.keys(ColorThemeInfo)
+export const ColorThemeOptions = ColorThemeNames.map(n => [n, n] as [ColorThemeName, string])

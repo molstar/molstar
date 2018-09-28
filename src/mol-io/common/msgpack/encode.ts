@@ -17,7 +17,7 @@ export default function encode(value: any) {
 }
 
 function encodedSize(value: any) {
-    let type = typeof value;
+    const type = typeof value;
 
     // Raw Bytes
     if (type === 'string') {

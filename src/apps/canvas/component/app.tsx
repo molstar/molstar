@@ -53,7 +53,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                             if (e.keyCode === 13) {
                                 const value = e.currentTarget.value.trim()
                                 if (value) {
-                                    this.props.app.loadPdbIdOrUrl(value, { binary: this.state.binary })
+                                    this.props.app.loadPdbIdOrMmcifUrl(value, { binary: this.state.binary })
                                 }
                             }
                         }}
@@ -65,7 +65,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                         accept='*.cif'
                         type='file'
                         onChange={e => {
-                            if (e.target.files) this.props.app.loadCifFile(e.target.files[0])
+                            if (e.target.files) this.props.app.loadMmcifFile(e.target.files[0])
                         }}
                     />
                 </div>
@@ -74,7 +74,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                     <select
                         style={{width: '200px'}}
                         onChange={e => {
-                            this.props.app.loadPdbIdOrUrl(e.target.value)
+                            this.props.app.loadPdbIdOrMmcifUrl(e.target.value)
                         }}
                     >
                         <option value=''></option>

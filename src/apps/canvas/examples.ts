@@ -44,8 +44,16 @@ export const Examples: Example[] = [
         description: 'ribosome'
     },
     {
+        id: '6h7w',
+        description: 'retromer assembled on membrane'
+    },
+    {
         id: '3j3q',
         description: '...'
+    },
+    {
+        id: '5gob',
+        description: 'D-aminoacids'
     },
     {
         id: '2np2',

@@ -51,6 +51,7 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
         async createOrUpdate(ctx: RuntimeContext, props: Partial<SurfaceProps> = {}, volume?: VolumeData) {
             currentProps = { ...DefaultSurfaceProps, ...props }
 
+            console.log('MOINMOIN')
             if (!volume) return
 
             const mesh = await computeVolumeSurface(volume, currentProps.isoValue).runAsChild(ctx)
@@ -65,6 +66,7 @@ export default function SurfaceVisual(): VolumeVisual<SurfaceProps> {
             const state = createRenderableState(currentProps)
 
             renderObject = createMeshRenderObject(values, state)
+            console.log('renderObject', renderObject)
         },
         getLoci(pickingId: PickingId) {
             // TODO

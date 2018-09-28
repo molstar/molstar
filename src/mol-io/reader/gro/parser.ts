@@ -140,7 +140,7 @@ function handleBoxVectors(state: State) {
 async function parseInternal(data: string, ctx: RuntimeContext): Promise<Result<Schema.GroFile>> {
     const tokenizer = Tokenizer(data);
 
-    ctx.update({ message: 'Parsing...', current: 0, max: data.length });
+    await ctx.update({ message: 'Parsing...', current: 0, max: data.length });
     const structures: Schema.GroStructure[] = [];
     while (tokenizer.position < data.length) {
         const state = State(tokenizer, ctx);

@@ -35,3 +35,4 @@ export const SizeThemeInfo = {
 }
 export type SizeThemeName = keyof typeof SizeThemeInfo
 export const SizeThemeNames = Object.keys(SizeThemeInfo)
+export const SizeThemeOptions = SizeThemeNames.map(n => [n, n] as [SizeThemeName, string])

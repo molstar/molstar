@@ -4,9 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
+import { readUrl, readFile, readUrlAsBuffer } from 'mol-util/read';
 import CIF, { CifBlock } from 'mol-io/reader/cif'
-import { readUrlAs, readFileAs } from 'mol-util/read';
 import { Model, Format, StructureSymmetry, Structure } from 'mol-model/structure';
+import CCP4 from 'mol-io/reader/ccp4/parser'
+import { FileHandle } from 'mol-io/common/file-handle';
 // import { parse as parseObj } from 'mol-io/reader/obj/parser'
 
 // export async function getObjFromUrl(url: string) {
@@ -25,11 +27,11 @@ export async function getCifFromData(data: string | Uint8Array) {
 }
 
 export async function getCifFromUrl(url: string, binary = false) {
-    return getCifFromData(await readUrlAs(url, binary))
+    return getCifFromData(await readUrl(url, binary))
 }
 
 export async function getCifFromFile(file: File, binary = false) {
-    return getCifFromData(await readFileAs(file, binary))
+    return getCifFromData(await readFile(file, binary))
 }
 
 export async function getModelsFromMmcif(cif: CifBlock) {
@@ -43,4 +45,17 @@ export async function getStructureFromModel(model: Model, assembly: string) {
     } else if (assemblies.find(a => a.id === assembly)) {
         return await StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly).run()
     }
+}
+
+//
+
+export async function getCcp4FromUrl(url: string) {
+    return getCcp4FromData(await readUrlAsBuffer(url))
+}
+
+export async function getCcp4FromData(data: Uint8Array) {
+    const file = FileHandle.fromBuffer(data)
+    const parsed = await CCP4(file).run()
+    if (parsed.isError) throw parsed
+    return parsed.result
 }

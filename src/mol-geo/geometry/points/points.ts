@@ -15,7 +15,8 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { CheckboxParam, NumberParam, SelectParam, paramDefaultValues } from 'mol-view/parameter';
 
 /** Point cloud */
 export interface Points {
@@ -52,19 +53,21 @@ export namespace Points {
 
     //
 
-    export const DefaultProps = {
-        ...Geometry.DefaultProps,
-        pointSizeAttenuation: false,
-        pointFilledCircle: false,
-        pointEdgeBleach: 0.2,
-        sizeTheme: { name: 'uniform', value: 1 } as SizeThemeProps,
+    export const Params = {
+        ...Geometry.Params,
+        pointSizeAttenuation: CheckboxParam('Point Size Attenuation', '', false),
+        pointFilledCircle: CheckboxParam('Point Filled Circle', '', false),
+        pointEdgeBleach: NumberParam('Point Edge Bleach', '', 0.2, 0, 0.05, 1),
+        sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+        sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
     }
+    export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<PointsValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, props.colorTheme)
-        const size = await createSizes(ctx, locationIt, props.sizeTheme)
+        const color = await createColors(ctx, locationIt, { name: props.colorTheme, value: props.colorValue })
+        const size = await createSizes(ctx, locationIt, { name: props.sizeTheme, value: props.sizeValue })
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: points.pointCount, groupCount, instanceCount }

@@ -9,6 +9,9 @@ import { UnitsVisual, VisualUpdateState } from '..';
 import { createElementSphereMesh, markElement, getElementLoci, StructureElementIterator } from './util/element';
 import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
 
+export const ElementSphereParams = {
+    UnitsMe
+}
 export const DefaultElementSphereProps = {
     ...DefaultUnitsMeshProps,
     detail: 0
