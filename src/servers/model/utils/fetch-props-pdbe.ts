@@ -68,10 +68,21 @@ async function process() {
     for (const e of entries) {
         const ts = now();
         console.log(`${prog}/${entries.length} ${e.entries.length} entries.`)
-        const body = e.entries.join(',');
-        const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry`, { method: 'POST', body });
-        const data = await query.text();
-        fs.writeFileSync(path.join(cmdArgs.out, e.key + '.json'), data);
+        const data = Object.create(null);
+
+        for (let ee of e.entries) {
+             const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${ee}`);
+             try {
+                if (query.status === 200) data[ee] = (await query.json())[ee] || { };
+                else console.error(ee, query.status);
+             } catch (e) {
+                console.error(ee, '' + e);
+             }
+        }
+        //const query = await fetch(`https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry`, { method: 'POST', body });
+        //console.log(query.status);
+        //const data = await query.text();
+        fs.writeFileSync(path.join(cmdArgs.out, e.key + '.json'), JSON.stringify(data));
         const time = now() - started;
         console.log(`${++prog}/${entries.length} in ${PerformanceMonitor.format(time)} (last ${PerformanceMonitor.format(now() - ts)}, avg ${PerformanceMonitor.format(time / prog)})`);
     }
