@@ -28,17 +28,21 @@ const _Descriptor = ModelPropertyDescriptor({
         categories: [{
             name: 'pdbe_structure_quality_report',
             instance(ctx) {
-                const issues = StructureQualityReport.get(ctx.model);
-                if (typeof ctx.globalCache.pdbe_structure_quality_report !== 'undefined' && ctx.globalCache.pdbe_structure_quality_report !== ctx.model.modelNum) return CifWriter.Category.Empty;
-                ctx.globalCache.pdbe_structure_quality_report = ctx.model.modelNum;
-                return { fields: _structure_quality_report_fields, rowCount: 1, data: issues ? issues.updated : 'n/a' }
+                const structure = ctx.structures[0];
+                const issues = StructureQualityReport.get(structure.model);
+                return {
+                    fields: _structure_quality_report_fields,
+                    source: [{ data: issues ? issues.updated : 'n/a', rowCount: 1 }]
+                };
             }
         }, {
             name: 'pdbe_structure_quality_report_issues',
             instance(ctx) {
-                const issues = StructureQualityReport.get(ctx.model);
-                if (!issues || !issues.map) return CifWriter.Category.Empty;
-                return ResidueCustomProperty.createCifCategory(ctx, issues.map, _structure_quality_report_issues_fields);
+                return {
+                    fields: _structure_quality_report_issues_fields,
+                    source: ctx.structures.map(
+                        s => ResidueCustomProperty.getCifDataSource(s, StructureQualityReport.getIssueMap(s.model), ctx.cache))
+                };
             }
         }]
     },
@@ -148,6 +152,11 @@ export namespace StructureQualityReport {
 
     export function get(model: Model): Data | undefined {
         return model._dynamicPropertyData.__StructureQualityReport__;
+    }
+
+    export function getIssueMap(model: Model): IssueMap | undefined {
+        const data = get(model);
+        return data && data.map;
     }
 
     const _emptyArray: string[] = [];

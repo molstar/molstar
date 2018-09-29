@@ -38,6 +38,7 @@ class Structure {
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         carbohydrates?: Carbohydrates,
         models?: ReadonlyArray<Model>,
+        model?: Model,
         hashCode: number,
         elementCount: number,
         polymerResidueCount: number,
@@ -126,6 +127,15 @@ class Structure {
         if (this._props.models) return this._props.models;
         this._props.models = getModels(this);
         return this._props.models;
+    }
+
+    /** If the structure is based on a single model, return it. Otherwise throw an exception. */
+    get model(): Model {
+        if (this._props.model) return this._props.model;
+        const models = this.models;
+        if (models.length > 1) throw new Error('The structre is based on multiple models.');
+        this._props.model = models[0];
+        return this._props.model;
     }
 
     hasElement(e: StructureElement) {

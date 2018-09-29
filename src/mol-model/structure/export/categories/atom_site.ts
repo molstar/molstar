@@ -51,12 +51,14 @@ const atom_site_fields = CifWriter.fields<StructureElement, Structure>()
 
 export const _atom_site: CifCategory<CifExportContext> = {
     name: 'atom_site',
-    instance({ structure }: CifExportContext) {
+    instance({ structures }: CifExportContext) {
         return {
             fields: atom_site_fields,
-            data: structure,
-            rowCount: structure.elementCount,
-            keys: () => structure.elementLocations()
+            source: structures.map(s => ({
+                data: s,
+                rowCount: s.elementCount,
+                keys: () => s.elementLocations()
+            }))
         };
     }
 }

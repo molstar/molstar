@@ -40,6 +40,10 @@ export namespace CifWriter {
         fixedPoint3: E.by(E.fixedPoint(1000)).and(E.delta).and(E.integerPacking),
     };
 
+    export function categoryInstance<Key, Data>(fields: Field<Key, Data>[], source: Category.DataSource): Category.Instance {
+        return { fields, source: [source] };
+    }
+
     export function createEncodingProviderFromCifFrame(frame: CifFrame): EncodingProvider {
         return {
             get(c, f) {

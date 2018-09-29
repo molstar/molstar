@@ -22,7 +22,7 @@ const { str, int, float, Aliased, Vector, List } = Column.Schema;
 
 function getInstance(name: keyof AssemblySymmetry.Schema): (ctx: CifExportContext) => CifWriter.Category.Instance<any, any> {
     return function(ctx: CifExportContext) {
-        const assemblySymmetry = AssemblySymmetry.get(ctx.model);
+        const assemblySymmetry = AssemblySymmetry.get(ctx.structures[0].model);
         return assemblySymmetry ? Category.ofTable(assemblySymmetry.db[name]) : CifWriter.Category.Empty;
     }
 }

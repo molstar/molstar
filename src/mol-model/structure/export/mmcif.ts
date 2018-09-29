@@ -8,32 +8,30 @@
 import { CifWriter } from 'mol-io/writer/cif'
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
 import { Structure } from '../structure'
-import { Model } from '../model'
 import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
 import { _pdbx_struct_mod_residue } from './categories/modified-residues';
 
 export interface CifExportContext {
-    structure: Structure,
-    model: Model,
-    localCache: any,
-    /** useful when exporting multiple models at the same time */
-    globalCache: any
+    structures: Structure[],
+    cache: any
 }
 
 export namespace CifExportContext {
-    export function create(structures: Structure | Structure[]): CifExportContext[] {
-        const globalCache = Object.create(null);
-        if (Array.isArray(structures)) return structures.map(structure => ({ structure, model: structure.models[0], localCache: Object.create(null), globalCache }));
-        return [{ structure: structures, model: structures.models[0], localCache: Object.create(null), globalCache }];
+    export function create(structures: Structure | Structure[]): CifExportContext {
+        return {
+            structures: Array.isArray(structures) ? structures : [structures],
+            cache: Object.create(null)
+        };
     }
 }
 
 function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportContext> {
     return {
         name,
-        instance({ model }) {
+        instance({ structures }) {
+            const model = structures[0].model;
             if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
             const table = model.sourceData.data[name];
             if (!table || !table._rowCount) return CifCategory.Empty;
@@ -44,9 +42,9 @@ function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportCon
 
 const _entity: CifCategory<CifExportContext> = {
     name: 'entity',
-    instance({ structure, model}) {
-        const keys = Structure.getEntityKeys(structure);
-        return CifCategory.ofTable(model.entities.data, keys);
+    instance({ structures}) {
+        const keys = Structure.getEntityKeys(structures[0]);
+        return CifCategory.ofTable(structures[0].model.entities.data, keys);
     }
 }
 
@@ -103,13 +101,13 @@ export const mmCIF_Export_Filters = {
 }
 
 /** Doesn't start a data block */
-export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext[] }) {
+export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext }) {
     const first = Array.isArray(structures) ? structures[0] : (structures as Structure);
     const models = first.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
 
     const _params = params || { };
-    const ctx: CifExportContext[] = params && params.exportCtx ? params.exportCtx : CifExportContext.create(structures);
+    const ctx: CifExportContext = params && params.exportCtx ? params.exportCtx : CifExportContext.create(structures);
 
     for (const cat of Categories) {
         if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;

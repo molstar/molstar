@@ -7,7 +7,6 @@
 import { ResidueIndex } from '../../indexing';
 import { Unit, Structure, StructureElement } from '../../../structure';
 import { Segmentation } from 'mol-data/int';
-import { CifExportContext } from '../../../export/mmcif';
 import { UUID } from 'mol-util';
 import { CifWriter } from 'mol-io/writer/cif';
 
@@ -20,25 +19,23 @@ export interface ResidueCustomProperty<T = any> {
 
 export namespace ResidueCustomProperty {
     export interface ExportCtx<T> {
-        exportCtx: CifExportContext,
         elements: StructureElement[],
         property(index: number): T
     };
 
-    function getExportCtx<T>(exportCtx: CifExportContext, prop: ResidueCustomProperty<T>): ExportCtx<T> {
-        if (exportCtx.localCache[prop.id]) return exportCtx.localCache[prop.id];
-        const residueIndex = exportCtx.model.atomicHierarchy.residueAtomSegments.index;
-        const elements = getStructureElements(exportCtx.structure, prop);
-        return {
-            exportCtx,
-            elements,
-            property: i => prop.get(residueIndex[elements[i].element])!
-        }
+    function getExportCtx<T>(prop: ResidueCustomProperty<T>, structure: Structure): ExportCtx<T> {
+        const residueIndex = structure.model.atomicHierarchy.residueAtomSegments.index;
+        const elements = getStructureElements(structure, prop);
+        return { elements, property: i => prop.get(residueIndex[elements[i].element])! };
     }
 
-    export function createCifCategory<T>(ctx: CifExportContext, prop: ResidueCustomProperty<T>, fields: CifWriter.Field<number, ExportCtx<T>>[]): CifWriter.Category.Instance {
-        const data = getExportCtx(ctx, prop);
-        return { fields, data, rowCount: data.elements.length };
+    export function getCifDataSource<T>(structure: Structure, prop: ResidueCustomProperty<T> | undefined, cache: any): CifWriter.Category.Instance['source'][0] {
+        if (!prop) return { rowCount: 0 };
+        if (cache && cache[prop.id]) return cache[prop.id];
+        const data = getExportCtx(prop, structure);
+        const ret = { data, rowCount: data.elements.length };
+        if (cache) cache[prop.id] = ret;
+        return ret;
     }
 
     class FromMap<T> implements ResidueCustomProperty<T> {

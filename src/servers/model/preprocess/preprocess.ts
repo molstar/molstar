@@ -36,7 +36,7 @@ export async function preprocessFile(filename: string, propertyProvider?: ModelP
     }
 }
 
-function encode(structure: Structure, header: string, categories: CifWriter.Category[], encoder: CifWriter.Encoder, exportCtx: CifExportContext[], writer: Writer) {
+function encode(structure: Structure, header: string, categories: CifWriter.Category[], encoder: CifWriter.Encoder, exportCtx: CifExportContext, writer: Writer) {
     const skipCategoryNames = new Set<string>(categories.map(c => c.name));
     encoder.startDataBlock(header);
     for (const cat of categories) {

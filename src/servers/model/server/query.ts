@@ -70,8 +70,8 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
 
         perf.start('encode');
         encoder.startDataBlock(sourceStructures[0].models[0].label.toUpperCase());
-        encoder.writeCategory(_model_server_result, [job]);
-        encoder.writeCategory(_model_server_params, [job]);
+        encoder.writeCategory(_model_server_result, job);
+        encoder.writeCategory(_model_server_params, job);
 
         // encoder.setFilter(mmCIF_Export_Filters.onlyPositions);
         encode_mmCIF_categories(encoder, result);
@@ -84,7 +84,7 @@ export async function resolveJob(job: Job): Promise<CifWriter.Encoder<any>> {
             encodeTimeMs: perf.time('encode')
         };
 
-        encoder.writeCategory(_model_server_stats, [stats]);
+        encoder.writeCategory(_model_server_stats, stats);
         encoder.encode();
         ConsoleLogger.logId(job.id, 'Query', 'Encoded.');
         return encoder;
@@ -101,9 +101,9 @@ function getEncodingProvider(structure: StructureWrapper) {
 
 function doError(job: Job, e: any) {
     const encoder = CifWriter.createEncoder({ binary: job.responseFormat.isBinary, encoderName: `ModelServer ${Version}` });
-    encoder.writeCategory(_model_server_result, [job]);
-    encoder.writeCategory(_model_server_params, [job]);
-    encoder.writeCategory(_model_server_error, ['' + e]);
+    encoder.writeCategory(_model_server_result, job);
+    encoder.writeCategory(_model_server_params, job);
+    encoder.writeCategory(_model_server_error, '' + e);
     encoder.encode();
     return encoder;
 }
@@ -155,12 +155,12 @@ const _model_server_stats_fields: CifField<number, Stats>[] = [
 
 const _model_server_result: CifWriter.Category<Job> = {
     name: 'model_server_result',
-    instance: (job) => ({ data: job, fields: _model_server_result_fields, rowCount: 1 })
+    instance: (job) => CifWriter.categoryInstance(_model_server_result_fields,{ data: job, rowCount: 1 })
 };
 
 const _model_server_error: CifWriter.Category<string> = {
     name: 'model_server_error',
-    instance: (message) => ({ data: message, fields: _model_server_error_fields, rowCount: 1 })
+    instance: (message) => CifWriter.categoryInstance(_model_server_error_fields, { data: message, rowCount: 1 })
 };
 
 const _model_server_params: CifWriter.Category<Job> = {
@@ -170,17 +170,12 @@ const _model_server_params: CifWriter.Category<Job> = {
         for (const k of Object.keys(job.normalizedParams)) {
             params.push([k, JSON.stringify(job.normalizedParams[k])]);
         }
-        return {
-            data: params,
-
-            fields: _model_server_params_fields,
-            rowCount: params.length
-        }
+        return CifWriter.categoryInstance(_model_server_params_fields, { data: params, rowCount: params.length });
     }
 };
 
 
 const _model_server_stats: CifWriter.Category<Stats> = {
     name: 'model_server_stats',
-    instance: (stats) => ({ data: stats, fields: _model_server_stats_fields, rowCount: 1 })
+    instance: (stats) => CifWriter.categoryInstance(_model_server_stats_fields, { data: stats, rowCount: 1 })
 }

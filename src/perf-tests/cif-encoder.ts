@@ -23,7 +23,7 @@ function getCat(name: string): CifWriter.Category {
     return {
         name,
         instance(ctx: { fields: CifWriter.Field[], rowCount: number }) {
-            return { data: void 0, fields: ctx.fields, rowCount: ctx.rowCount };
+            return { fields: ctx.fields, source: [{ rowCount: ctx.rowCount }] };
         }
     };
 }

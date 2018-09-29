@@ -18,7 +18,10 @@ export const _struct_conf: CifCategory<CifExportContext> = {
     name: 'struct_conf',
     instance(ctx) {
         const elements = findElements(ctx, 'helix');
-        return { fields: struct_conf_fields, data: elements, rowCount: elements.length };
+        return {
+            fields: struct_conf_fields,
+            source: [{ data: elements, rowCount: elements.length }]
+        };
     }
 };
 
@@ -26,7 +29,10 @@ export const _struct_sheet_range: CifCategory<CifExportContext> = {
     name: 'struct_sheet_range',
     instance(ctx) {
         const elements = (findElements(ctx, 'sheet') as SSElement<SecondaryStructure.Sheet>[]).sort(compare_ssr);
-        return { fields: struct_sheet_range_fields, data: elements, rowCount: elements.length };
+        return {
+            fields: struct_sheet_range_fields,
+            source: [{ data: elements, rowCount: elements.length }]
+        };
     }
 };
 
@@ -63,11 +69,12 @@ interface SSElement<T extends SecondaryStructure.Element> {
 }
 
 function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContext, kind: SecondaryStructure.Element['kind']) {
-    const { key, elements } = ctx.model.properties.secondaryStructure;
+    // TODO: encode secondary structure for different models?
+    const { key, elements } = ctx.structures[0].model.properties.secondaryStructure;
 
     const ssElements: SSElement<any>[] = [];
 
-    for (const unit of ctx.structure.units) {
+    for (const unit of ctx.structures[0].units) {
         // currently can only support this for "identity" operators.
         if (!Unit.isAtomic(unit) || !unit.conformation.operator.isIdentity) continue;
 

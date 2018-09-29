@@ -27,7 +27,7 @@ async function getCIF(ctx: RuntimeContext, path: string) {
 function getCategoryInstanceProvider(cat: CifCategory, fields: CifWriter.Field[]): CifWriter.Category {
     return {
         name: cat.name,
-        instance: () => ({ data: cat, fields, rowCount: cat.rowCount })
+        instance: () => CifWriter.categoryInstance(fields, { data: cat, rowCount: cat.rowCount })
     };
 }
 
