@@ -28,11 +28,12 @@ export interface Job {
     outputFilename?: string
 }
 
-export function createJob(sourceId: '_local_' | string, entryId: string, queryName: string, params: any, modelNums?: number[], outputFilename?: string): Job {
+export function createJob(sourceId: '_local_' | string, entryId: string, queryName: string, queryParams: any,
+        options ?: { modelNums?: number[], outputFilename?: string, binary?: boolean }): Job {
     const queryDefinition = getQueryByName(queryName);
     if (!queryDefinition) throw new Error(`Query '${queryName}' is not supported.`);
 
-    const normalizedParams = normalizeQueryParams(queryDefinition, params);
+    const normalizedParams = normalizeQueryParams(queryDefinition, queryParams);
 
     return {
         id: UUID.create(),
@@ -42,9 +43,9 @@ export function createJob(sourceId: '_local_' | string, entryId: string, queryNa
         entryId,
         queryDefinition,
         normalizedParams,
-        responseFormat: { isBinary: !!params.binary },
-        modelNums,
-        outputFilename
+        responseFormat: { isBinary: !!(options && options.binary) },
+        modelNums: options && options.modelNums,
+        outputFilename: options && options.outputFilename
     };
 }
 
@@ -55,8 +56,9 @@ class _JobQueue {
         return this.list.count;
     }
 
-    add(sourceId: '_local_' | string, entryId: string, queryName: string, params: any, modelNums?: number[], outputFilename?: string) {
-        const job = createJob(sourceId, entryId, queryName, params, modelNums, outputFilename);
+    add(sourceId: '_local_' | string, entryId: string, queryName: string, queryParams: any,
+            options?: { modelNums?: number[], outputFilename?: string, binary?: boolean }) {
+        const job = createJob(sourceId, entryId, queryName, queryParams, options);
         this.list.addLast(job);
         return job.id;
     }

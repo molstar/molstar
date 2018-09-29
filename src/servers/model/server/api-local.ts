@@ -18,7 +18,8 @@ export type LocalInput = {
     output: string,
     query: string,
     modelNums?: number[],
-    params?: any
+    params?: any,
+    binary?: boolean
 }[];
 
 export async function runLocal(input: LocalInput) {
@@ -28,7 +29,12 @@ export async function runLocal(input: LocalInput) {
     }
 
     for (const job of input) {
-        JobManager.add('_local_', job.input, job.query, job.params || { }, job.modelNums, job.output);
+        const binary = /\.bcif/.test(job.output);
+        JobManager.add('_local_', job.input, job.query, job.params || { }, {
+            modelNums: job.modelNums,
+            outputFilename: job.output,
+            binary
+        });
     }
     JobManager.sort();
 

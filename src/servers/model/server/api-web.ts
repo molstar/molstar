@@ -133,8 +133,8 @@ export function initWebApi(app: express.Express) {
         const args = JSON.parse(decodeURIComponent(query));
         const name = args.name;
         const entryId = args.id;
-        const params = args.params || { };
-        const jobId = JobManager.add('pdb', entryId, name, params, args.modelNums);
+        const queryParams = args.params || { };
+        const jobId = JobManager.add('pdb', entryId, name, queryParams, { modelNums: args.modelNums, binary: args.binary });
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
     });
