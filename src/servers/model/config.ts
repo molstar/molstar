@@ -51,8 +51,8 @@ const config = {
      * Paths (relative to the root directory of the model server) to JavaScript files that specify custom properties
      */
     customPropertyProviders: [
-        './properties/pdbe',
-        './properties/rcsb'
+        // './properties/pdbe',
+        // './properties/rcsb'
     ],
 
     /**
@@ -66,9 +66,9 @@ const config = {
     mapFile(source: string, id: string) {
         switch (source.toLowerCase()) {
             // case 'pdb': return `e:/test/quick/${id}_updated.cif`;
-            case 'pdb': return `e:/test/mol-star/model/out/${id}_updated.bcif`;
-            case 'pdb-bcif': return `e:/test/mol-star/model/out/${id}_updated.bcif`;
-            case 'pdb-cif': return `e:/test/mol-star/model/out/${id}_updated.cif`;
+            case 'pdb': return `c:/test/mol-star/model/out/${id}_updated.bcif`;
+            case 'pdb-bcif': return `c:/test/mol-star/model/out/${id}_updated.bcif`;
+            case 'pdb-cif': return `c:/test/mol-star/model/out/${id}_updated.cif`;
             default: return void 0;
         }
     }

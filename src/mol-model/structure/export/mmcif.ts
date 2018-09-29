@@ -42,9 +42,9 @@ function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportCon
 
 const _entity: CifCategory<CifExportContext> = {
     name: 'entity',
-    instance({ structures}) {
-        const keys = Structure.getEntityKeys(structures[0]);
-        return CifCategory.ofTable(structures[0].model.entities.data, keys);
+    instance({ structures }) {
+        const indices = structures[0].entityIndices;
+        return CifCategory.ofTable(structures[0].model.entities.data, indices);
     }
 }
 
