@@ -133,7 +133,7 @@ class Structure {
         return this._props.models;
     }
 
-    get uniqueResidueName() {
+    get uniqueResidueNames() {
         return this._props.uniqueResidueNames
             || (this._props.uniqueResidueNames = getUniqueResidueNames(this));
     }

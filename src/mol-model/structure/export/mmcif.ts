@@ -12,16 +12,21 @@ import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
 import { _pdbx_struct_mod_residue } from './categories/modified-residues';
+import { _chem_comp, _pdbx_chem_comp_identifier } from './categories/misc';
+import { Model } from '../model';
 
 export interface CifExportContext {
     structures: Structure[],
+    firstModel: Model,
     cache: any
 }
 
 export namespace CifExportContext {
     export function create(structures: Structure | Structure[]): CifExportContext {
+        const structureArray = Array.isArray(structures) ? structures : [structures];
         return {
-            structures: Array.isArray(structures) ? structures : [structures],
+            structures: structureArray,
+            firstModel: structureArray[0].model,
             cache: Object.create(null)
         };
     }
@@ -68,9 +73,9 @@ const Categories = [
     _struct_sheet_range,
 
     // Sequence
-    copy_mmCif_category('struct_asym'), // TODO: filter only present chains?
-    copy_mmCif_category('entity_poly'),
-    copy_mmCif_category('entity_poly_seq'),
+    copy_mmCif_category('struct_asym'), // TODO: filter only present entities?
+    copy_mmCif_category('entity_poly'), // TODO: filter only present entities?
+    copy_mmCif_category('entity_poly_seq'), // TODO: filter only present entities?
 
     // Branch
     copy_mmCif_category('pdbx_entity_branch'),
@@ -79,8 +84,8 @@ const Categories = [
 
     // Misc
     // TODO: filter for actual present residues?
-    copy_mmCif_category('chem_comp'),
-    copy_mmCif_category('pdbx_chem_comp_identifier'),
+    _chem_comp,
+    _pdbx_chem_comp_identifier,
     copy_mmCif_category('atom_sites'),
 
     _pdbx_struct_mod_residue,
