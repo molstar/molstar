@@ -64,7 +64,7 @@ function create() {
         <textarea style="height: 280px; width: 600px; font-family: monospace" id="query-text"></textarea><br>
         <button class="button button-primary" style="width: 600px" id="query">Query</button>
         <div id='error' style='color: red; font-weight: blue'></div>
-        <div>Static input files available as CIF and BinaryCIF at <a href='ModelServer/static/cif/1cbs' target='_blank'>static/cif/id</a> and <a href='ModelServer/static/bcif/1cbs' target='_blank'>static/bcif/id</a> respectively.</div>
+        <div>Static input files available as CIF and BinaryCIF at <a href='/ModelServer/static/cif/1cbs' target='_blank'>static/cif/id</a> and <a href='/ModelServer/static/bcif/1cbs' target='_blank'>static/bcif/id</a> respectively.</div>
         <script>
             var Examples = ${JSON.stringify(examples)};
             var err = document.getElementById('error');
@@ -78,7 +78,7 @@ function create() {
                 err.innerText = '';
                 try {
                     var q = JSON.parse(queryTextEl.value);
-                    var path = 'ModelServer/api/v1?' + encodeURIComponent(JSON.stringify(q));
+                    var path = '/ModelServer/api/v1?' + encodeURIComponent(JSON.stringify(q));
                     console.log(path);
                     window.open(path, '_blank');
                 } catch (e) {
