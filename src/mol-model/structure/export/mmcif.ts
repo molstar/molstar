@@ -14,6 +14,8 @@ import { _struct_conf, _struct_sheet_range } from './categories/secondary-struct
 import { _pdbx_struct_mod_residue } from './categories/modified-residues';
 import { _chem_comp, _pdbx_chem_comp_identifier } from './categories/misc';
 import { Model } from '../model';
+import { getUniqueEntityIndicesFromStructures } from './categories/utils';
+import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
 
 export interface CifExportContext {
     structures: Structure[],
@@ -48,7 +50,7 @@ function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportCon
 const _entity: CifCategory<CifExportContext> = {
     name: 'entity',
     instance({ structures }) {
-        const indices = structures[0].entityIndices;
+        const indices = getUniqueEntityIndicesFromStructures(structures);
         return CifCategory.ofTable(structures[0].model.entities.data, indices);
     }
 }
@@ -73,9 +75,9 @@ const Categories = [
     _struct_sheet_range,
 
     // Sequence
-    copy_mmCif_category('struct_asym'), // TODO: filter only present entities?
-    copy_mmCif_category('entity_poly'), // TODO: filter only present entities?
-    copy_mmCif_category('entity_poly_seq'), // TODO: filter only present entities?
+    _struct_asym,
+    _entity_poly,
+    _entity_poly_seq,
 
     // Branch
     copy_mmCif_category('pdbx_entity_branch'),
