@@ -11,21 +11,22 @@ import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { ValueCell } from 'mol-util';
-import { ColorThemeProps } from 'mol-view/theme/color';
+import { ColorThemeName, ColorThemeOptions } from 'mol-view/theme/color';
 import { Shape } from 'mol-model/shape';
 import { LocationIterator } from '../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { createIdentityTransform } from '../../geometry/transform-data';
 import { createRenderableState } from '../../geometry/geometry';
 import { Mesh } from '../../geometry/mesh/mesh';
+import { paramDefaultValues, SelectParam } from 'mol-view/parameter';
 
 export interface ShapeRepresentation<P extends RepresentationProps = {}> extends Representation<Shape, P> { }
 
-export const DefaultShapeProps = {
-    ...Mesh.DefaultProps,
-
-    colorTheme: { name: 'shape-group' } as ColorThemeProps
+export const ShapeParams = {
+    ...Mesh.Params,
+    colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
 }
+export const DefaultShapeProps = paramDefaultValues(ShapeParams)
 export type ShapeProps = typeof DefaultShapeProps
 
 // TODO
@@ -60,6 +61,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
 
     return {
         label: 'Shape mesh',
+        params: ShapeParams,
         get renderObjects () { return renderObjects },
         get props () { return currentProps },
         createOrUpdate,

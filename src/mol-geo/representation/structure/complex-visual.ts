@@ -11,7 +11,7 @@ import { Mesh } from '../../geometry/mesh/mesh';
 import { RuntimeContext } from 'mol-task';
 import { LocationIterator } from '../../util/location-iterator';
 import { createComplexMeshRenderObject } from './visual/util/common';
-import { StructureProps, DefaultStructureMeshProps, VisualUpdateState } from '.';
+import { StructureProps, VisualUpdateState, StructureMeshParams } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
 import { PickingId } from '../../geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
@@ -19,12 +19,16 @@ import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { Interval } from 'mol-data/int';
 import { updateRenderableState } from '../../geometry/geometry';
 import { createColors } from '../../geometry/color-data';
+import { UnitKindOptions, UnitKind } from './units-visual';
+import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
 
 export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
 
-export const DefaultComplexMeshProps = {
-    ...DefaultStructureMeshProps
+export const ComplexMeshParams = {
+    ...StructureMeshParams,
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
+export const DefaultComplexMeshProps = paramDefaultValues(ComplexMeshParams)
 export type ComplexMeshProps = typeof DefaultComplexMeshProps
 
 export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> {
@@ -48,8 +52,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
     let conformationHash: number
 
     async function create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
-        currentProps = Object.assign({}, defaultProps, props)
-        currentProps.colorTheme.structure = structure
+        currentProps = Object.assign({}, defaultProps, props, { structure })
         currentStructure = structure
 
         conformationHash = Structure.conformationHash(currentStructure)
@@ -61,7 +64,6 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
 
     async function update(ctx: RuntimeContext, props: Partial<P>) {
         const newProps = Object.assign({}, currentProps, props)
-        newProps.colorTheme.structure = currentStructure
 
         if (!renderObject) return false
 
@@ -88,7 +90,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
+            await createColors(ctx, locationIt, newProps, renderObject.values)
         }
 
         // TODO why do I need to cast here?

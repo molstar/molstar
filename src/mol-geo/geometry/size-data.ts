@@ -10,8 +10,9 @@ import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 import { RuntimeContext } from 'mol-task';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeTheme, SizeThemeName } from 'mol-view/theme/size';
 import { getGranularity } from './geometry';
+import { Structure } from 'mol-model/structure';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -23,8 +24,24 @@ export type SizeData = {
     dSizeType: ValueCell<string>,
 }
 
-export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, props: SizeThemeProps, sizeData?: SizeData): Promise<SizeData> {
-    const sizeTheme = SizeTheme(props)
+export interface SizeProps {
+    sizeTheme: SizeThemeName
+    sizeValue?: number
+    sizeFactor?: number
+    structure?: Structure
+}
+
+export function getSizeThemeProps(props: SizeProps): SizeThemeProps {
+    return {
+        name: props.sizeTheme,
+        value: props.sizeValue,
+        factor: props.sizeFactor,
+        structure: props.structure,
+    }
+}
+
+export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, props: SizeProps, sizeData?: SizeData): Promise<SizeData> {
+    const sizeTheme = SizeTheme(getSizeThemeProps(props))
     switch (getGranularity(locationIt, sizeTheme.granularity)) {
         case 'uniform': return createUniformSize(ctx, locationIt, sizeTheme.size, sizeData)
         case 'group': return createGroupSize(ctx, locationIt, sizeTheme.size, sizeData)

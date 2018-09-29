@@ -11,8 +11,7 @@ import { BehaviorSubject } from 'rxjs';
 import { CifBlock } from 'mol-io/reader/cif';
 import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
 import { VolumeRepresentation } from 'mol-geo/representation/volume';
-import SurfaceVisual from 'mol-geo/representation/volume/surface';
-import { VolumeIsoValue } from 'mol-model/volume';
+import IsosurfaceVisual from 'mol-geo/representation/volume/isosurface';
 
 export class App {
     viewer: Viewer
@@ -88,9 +87,9 @@ export class App {
         const ccp4 = await getCcp4FromUrl(url)
         console.log(ccp4)
         const volume = await volumeFromCcp4(ccp4).run()
-        const volRepr = VolumeRepresentation(SurfaceVisual)
+        const volRepr = VolumeRepresentation(IsosurfaceVisual)
         await volRepr.createOrUpdate({
-            isoValue: VolumeIsoValue.relative(volume.dataStats, 1)
+            isoValue: 1
         }, volume).run()
         this.viewer.add(volRepr)
         console.log('volRepr', volRepr)

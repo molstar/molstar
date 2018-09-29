@@ -5,24 +5,28 @@
  */
 
 import { ComplexRepresentation, StructureRepresentation, UnitsRepresentation } from '..';
-import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
-import { IntraUnitLinkVisual, DefaultIntraUnitLinkProps } from '../visual/intra-unit-link-cylinder';
+import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
+import { IntraUnitLinkVisual, IntraUnitLinkParams } from '../visual/intra-unit-link-cylinder';
 import { PickingId } from '../../../geometry/picking';
-import { Structure, Unit } from 'mol-model/structure';
+import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { getQualityProps } from '../../util';
+import { paramDefaultValues, SelectParam, NumberParam, MultiSelectParam } from 'mol-view/parameter';
+import { UnitKind, UnitKindOptions } from '../units-visual';
 
-export const DefaultBallAndStickProps = {
-    ...DefaultElementSphereProps,
-    ...DefaultIntraUnitLinkProps,
-
-    sizeTheme: { name: 'uniform', value: 0.2 } as SizeThemeProps,
-    unitKinds: [ Unit.Kind.Atomic ] as Unit.Kind[]
+export const BallAndStickParams = {
+    ...ElementSphereParams,
+    ...IntraUnitLinkParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
+    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic'], UnitKindOptions),
 }
+export const DefaultBallAndStickProps = paramDefaultValues(BallAndStickParams)
 export type BallAndStickProps = typeof DefaultBallAndStickProps
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>
@@ -35,6 +39,7 @@ export function BallAndStickRepresentation(): BallAndStickRepresentation {
     let currentProps: BallAndStickProps
     return {
         label: 'Ball & Stick',
+        params: BallAndStickParams,
         get renderObjects() {
             return [ ...elmementRepr.renderObjects, ...intraLinkRepr.renderObjects, ...interLinkRepr.renderObjects ]
         },

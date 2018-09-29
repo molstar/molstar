@@ -9,17 +9,19 @@ import { RuntimeContext } from 'mol-task'
 import { UnitsVisual, VisualUpdateState } from '..';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { SizeThemeProps } from 'mol-view/theme/size';
-import { UnitsPointsVisual, DefaultUnitsPointsProps } from '../units-visual';
+import { SizeThemeOptions, SizeThemeName } from 'mol-view/theme/size';
+import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { Points } from '../../../geometry/points/points';
 import { PointsBuilder } from '../../../geometry/points/points-builder';
+import { SelectParam, NumberParam, BooleanParam, paramDefaultValues } from 'mol-view/parameter';
 
-export const DefaultElementPointProps = {
-    ...DefaultUnitsPointsProps,
-
-    sizeTheme: { name: 'uniform', value: 0.2 } as SizeThemeProps,
-    pointSizeAttenuation: true,
+export const ElementPointParams = {
+    ...UnitsPointsParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', true),
 }
+export const DefaultElementPointProps = paramDefaultValues(ElementPointParams)
 export type ElementPointProps = typeof DefaultElementPointProps
 
 // TODO size

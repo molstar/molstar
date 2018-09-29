@@ -9,12 +9,14 @@ import { SizeTheme } from 'mol-view/theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
+import { NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
-export const DefaultGaussianDensityProps = {
-    resolution: 1,
-    radiusOffset: 0,
-    smoothness: 1.5,
+export const GaussianDensityParams = {
+    resolution: NumberParam('Resolution', '', 1, 0.1, 10, 0.1),
+    radiusOffset: NumberParam('Radius Offset', '', 0, 0, 10, 0.1),
+    smoothness: NumberParam('Smoothness', '', 1.5, 0, 4, 0.1),
 }
+export const DefaultGaussianDensityProps = paramDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
 function getConformation(unit: Unit) {

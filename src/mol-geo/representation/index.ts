@@ -9,11 +9,13 @@ import { RenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../geometry/picking';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../geometry/marker-data';
+import { Params } from 'mol-view/parameter';
 
 export interface RepresentationProps {}
 
 export interface Representation<D, P extends RepresentationProps = {}> {
     readonly label: string
+    readonly params: Params
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
     createOrUpdate: (props?: Partial<P>, data?: D) => Task<void>

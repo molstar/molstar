@@ -16,7 +16,7 @@ import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
-import { CheckboxParam, paramDefaultValues } from 'mol-view/parameter';
+import { BooleanParam, paramDefaultValues } from 'mol-view/parameter';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -317,16 +317,16 @@ export namespace Mesh {
 
     export const Params = {
         ...Geometry.Params,
-        doubleSided: CheckboxParam('Double Sided', '', false),
-        flipSided: CheckboxParam('Flip Sided', '', false),
-        flatShaded: CheckboxParam('Flat Shaded', '', false),
+        doubleSided: BooleanParam('Double Sided', '', false),
+        flipSided: BooleanParam('Flip Sided', '', false),
+        flatShaded: BooleanParam('Flat Shaded', '', false),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<MeshValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, { name: props.colorTheme, value: props.colorValue })
+        const color = await createColors(ctx, locationIt, props)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }

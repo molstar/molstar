@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure, Link, StructureElement } from 'mol-model/structure';
+import { Structure, Link, StructureElement } from 'mol-model/structure';
 import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../geometry/mesh/mesh';
@@ -12,13 +12,14 @@ import { PickingId } from '../../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../../../util/location-iterator';
-import { createLinkCylinderMesh, DefaultLinkCylinderProps, LinkCylinderProps } from './util/link';
+import { createLinkCylinderMesh, LinkCylinderProps, LinkCylinderParams } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { LinkType } from 'mol-model/structure/model/types';
 import { BitFlags } from 'mol-util';
-import { DefaultUnitsMeshProps } from '../units-visual';
+import { UnitsMeshParams } from '../units-visual';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
@@ -36,7 +37,7 @@ const radiusFactor = 0.3
 
 async function createCarbohydrateLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const { links, elements } = structure.carbohydrates
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const location = StructureElement.create()
 
     const builderProps = {
@@ -60,13 +61,14 @@ async function createCarbohydrateLinkCylinderMesh(ctx: RuntimeContext, structure
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
-export const DefaultCarbohydrateLinkProps = {
-    ...DefaultUnitsMeshProps,
-    ...DefaultLinkCylinderProps,
-    sizeTheme: { name: 'physical', factor: 1 } as SizeThemeProps,
-    detail: 0,
-    unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
+export const CarbohydrateLinkParams = {
+    ...UnitsMeshParams,
+    ...LinkCylinderParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    detail: NumberParam('Sphere Detail', '', 0, 0, 3, 1),
 }
+export const DefaultCarbohydrateLinkProps = paramDefaultValues(CarbohydrateLinkParams)
 export type CarbohydrateLinkProps = typeof DefaultCarbohydrateLinkProps
 
 export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {

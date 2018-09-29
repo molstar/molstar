@@ -7,15 +7,16 @@
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
+import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Mesh } from '../../../geometry/mesh/mesh';
 import { PickingId } from '../../../geometry/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
+import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
 import { Interval } from 'mol-data/int';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { BitFlags } from 'mol-util';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
 async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links
@@ -23,7 +24,7 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
     const location = StructureElement.create()
 
     const builderProps = {
@@ -48,12 +49,14 @@ async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: S
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
-export const DefaultInterUnitLinkProps = {
-    ...DefaultComplexMeshProps,
-    ...DefaultLinkCylinderProps,
-
-    sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
+export const InterUnitLinkParams = {
+    ...ComplexMeshParams,
+    ...LinkCylinderParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
 }
+export const DefaultInterUnitLinkProps = paramDefaultValues(InterUnitLinkParams)
 export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps
 
 export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {

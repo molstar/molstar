@@ -18,7 +18,7 @@ import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { LinesValues } from 'mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';
-import { CheckboxParam, SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { BooleanParam, SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
 /** Wide line */
 export interface Lines {
@@ -93,17 +93,18 @@ export namespace Lines {
 
     export const Params = {
         ...Geometry.Params,
-        lineSizeAttenuation: CheckboxParam('Line Size Attenuation', '', false),
+        lineSizeAttenuation: BooleanParam('Line Size Attenuation', '', false),
         sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
         sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
+        sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<LinesValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, { name: props.colorTheme, value: props.colorValue })
-        const size = await createSizes(ctx, locationIt, { name: props.sizeTheme, value: props.sizeValue })
+        const color = await createColors(ctx, locationIt, props)
+        const size = await createSizes(ctx, locationIt, props)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount }

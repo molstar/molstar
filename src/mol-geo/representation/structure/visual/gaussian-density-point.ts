@@ -10,19 +10,21 @@ import { UnitsVisual, VisualUpdateState } from '..';
 import { StructureElementIterator } from './util/element';
 import { EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { UnitsPointsVisual, DefaultUnitsPointsProps } from '../units-visual';
+import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { Points } from '../../../geometry/points/points';
 import { PointsBuilder } from '../../../geometry/points/points-builder';
-import { SizeThemeProps } from 'mol-view/theme/size';
-import { DefaultGaussianDensityProps, GaussianDensityProps } from 'mol-model/structure/structure/unit/gaussian-density';
+import { SizeThemeOptions, SizeThemeName } from 'mol-view/theme/size';
+import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
+import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-view/parameter';
 
-export const DefaultGaussianDensityPointProps = {
-    ...DefaultUnitsPointsProps,
-    ...DefaultGaussianDensityProps,
-
-    sizeTheme: { name: 'uniform', value: 1 } as SizeThemeProps,
-    pointSizeAttenuation: false,
+export const GaussianDensityPointParams = {
+    ...UnitsPointsParams,
+    ...GaussianDensityParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', false),
 }
+export const DefaultGaussianDensityPointProps = paramDefaultValues(GaussianDensityPointParams)
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
 export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, points?: Points) {

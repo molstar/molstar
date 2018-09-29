@@ -5,6 +5,7 @@
  */
 
 import { Color } from 'mol-util/color';
+import { Structure } from 'mol-model/structure';
 
 export interface BaseParam<T> {
     label: string
@@ -30,11 +31,11 @@ export function MultiSelectParam<E extends string, T = E[]>(label: string, descr
     return { type: 'multi-select', label, description, defaultValue, options }
 }
 
-export interface CheckboxParam extends BaseParam<boolean> {
-    type: 'checkbox'
+export interface BooleanParam extends BaseParam<boolean> {
+    type: 'boolean'
 }
-export function CheckboxParam(label: string, description: string, defaultValue: boolean): CheckboxParam {
-    return { type: 'checkbox', label, description, defaultValue }
+export function BooleanParam(label: string, description: string, defaultValue: boolean): BooleanParam {
+    return { type: 'boolean', label, description, defaultValue }
 }
 
 export interface RangeParam extends BaseParam<number> {
@@ -73,9 +74,18 @@ export function NumberParam(label: string, description: string, defaultValue: nu
     return { type: 'number', label, description, defaultValue, min, max, step }
 }
 
-export type Param = SelectParam<any> | MultiSelectParam<any> | CheckboxParam | RangeParam | TextParam | ColorParam | NumberParam
+export interface StructureParam extends BaseParam<Structure> {
+    type: 'structure'
+}
+export function StructureParam(label: string, description: string, defaultValue: Structure): StructureParam {
+    return { type: 'structure', label, description, defaultValue }
+}
 
-export function paramDefaultValues<T extends { [k: string]: Param }>(params: T) {
+export type Param = SelectParam<any> | MultiSelectParam<any> | BooleanParam | RangeParam | TextParam | ColorParam | NumberParam | StructureParam
+
+export type Params = { [k: string]: Param }
+
+export function paramDefaultValues<T extends Params>(params: T) {
     const d: { [k: string]: any } = {}
     Object.keys(params).forEach(k => d[k] = params[k].defaultValue)
     return d as { [k in keyof T]: T[k]['defaultValue'] }

@@ -10,7 +10,7 @@ import { Task } from 'mol-task'
 import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../geometry/marker-data';
-import { StructureProps, StructureRepresentation } from '.';
+import { StructureProps, StructureRepresentation, StructureParams } from '.';
 import { ComplexVisual } from './complex-visual';
 
 export function ComplexRepresentation<P extends StructureProps>(label: string, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
@@ -40,6 +40,7 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, v
 
     return {
         label,
+        params: StructureParams, // TODO
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },

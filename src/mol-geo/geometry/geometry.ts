@@ -15,7 +15,8 @@ import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
-import { paramDefaultValues, RangeParam, CheckboxParam, SelectParam, ColorParam } from 'mol-view/parameter'
+import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, StructureParam } from 'mol-view/parameter'
+import { Structure } from 'mol-model/structure';
 
 //
 
@@ -53,12 +54,13 @@ export namespace Geometry {
 
     export const Params = {
         alpha: RangeParam('Opacity', '', 1, 0, 1, 0.01),
-        visible: CheckboxParam('Visible', '', true),
-        depthMask: CheckboxParam('Depth Mask', '', true),
-        useFog: CheckboxParam('Use Fog', '', false),
+        visible: BooleanParam('Visible', '', true),
+        depthMask: BooleanParam('Depth Mask', '', true),
+        useFog: BooleanParam('Use Fog', '', false),
         quality: SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
         colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
         colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
+        structure: StructureParam('Structure', '', Structure.Empty),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps

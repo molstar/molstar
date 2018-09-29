@@ -12,14 +12,16 @@ import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../geometry/marker-data';
 import { Geometry } from '../../geometry/geometry';
+import { paramDefaultValues } from 'mol-view/parameter';
 
 export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 
 export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
 
-export const DefaultVolumeProps = {
-    ...Geometry.DefaultProps
+export const VolumeParams = {
+    ...Geometry.Params
 }
+export const DefaultVolumeProps = paramDefaultValues(VolumeParams)
 export type VolumeProps = typeof DefaultVolumeProps
 
 export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
@@ -43,6 +45,7 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
 
     return {
         label: 'Volume mesh',
+        params: VolumeParams,
         get renderObjects () { return renderObjects },
         get props () { return _props },
         createOrUpdate,

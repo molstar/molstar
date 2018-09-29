@@ -11,24 +11,30 @@ import { Mesh } from '../../../geometry/mesh/mesh';
 import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
+import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { addSphere } from '../../../geometry/mesh/builder/sphere';
 import { addFixedCountDashedCylinder } from '../../../geometry/mesh/builder/cylinder';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { LinkCylinderParams } from './util/link';
 
 const segmentCount = 10
 
-export interface PolymerGapCylinderProps {
-    sizeTheme: SizeThemeProps
-    radialSegments: number
+export const PolymerGapCylinderParams = {
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
+    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
 }
+export const DefaultPolymerGapCylinderProps = paramDefaultValues(PolymerGapCylinderParams)
+export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps
 
 async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerGapCylinderProps, mesh?: Mesh) {
     const polymerGapCount = unit.gapElements.length
     if (!polymerGapCount) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeValue })
     const { radialSegments } = props
 
     const vertexCountEstimate = segmentCount * radialSegments * 2 * polymerGapCount * 2
@@ -71,10 +77,21 @@ async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, str
     return builder.getMesh()
 }
 
-export const DefaultPolymerGapProps = {
-    ...DefaultUnitsMeshProps,
-    radialSegments: 16
+export const InterUnitLinkParams = {
+    ...UnitsMeshParams,
+    ...LinkCylinderParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
 }
+export const DefaultIntraUnitLinkProps = paramDefaultValues(InterUnitLinkParams)
+export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
+
+export const PolymerGapParams = {
+    ...UnitsMeshParams,
+    ...PolymerGapCylinderParams
+}
+export const DefaultPolymerGapProps = paramDefaultValues(PolymerGapParams)
 export type PolymerGapProps = typeof DefaultPolymerGapProps
 
 export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {

@@ -15,8 +15,8 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { SizeThemeProps, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
-import { CheckboxParam, NumberParam, SelectParam, paramDefaultValues } from 'mol-view/parameter';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { BooleanParam, NumberParam, SelectParam, paramDefaultValues } from 'mol-view/parameter';
 
 /** Point cloud */
 export interface Points {
@@ -55,19 +55,20 @@ export namespace Points {
 
     export const Params = {
         ...Geometry.Params,
-        pointSizeAttenuation: CheckboxParam('Point Size Attenuation', '', false),
-        pointFilledCircle: CheckboxParam('Point Filled Circle', '', false),
-        pointEdgeBleach: NumberParam('Point Edge Bleach', '', 0.2, 0, 0.05, 1),
+        pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', false),
+        pointFilledCircle: BooleanParam('Point Filled Circle', '', false),
+        pointEdgeBleach: NumberParam('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
         sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
+        sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+        sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<PointsValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, { name: props.colorTheme, value: props.colorValue })
-        const size = await createSizes(ctx, locationIt, { name: props.sizeTheme, value: props.sizeValue })
+        const color = await createColors(ctx, locationIt, props)
+        const size = await createSizes(ctx, locationIt, props)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: points.pointCount, groupCount, instanceCount }

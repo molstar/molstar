@@ -13,12 +13,13 @@ import { MeshBuilder } from '../../../../geometry/mesh/mesh-builder';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { PickingId } from '../../../../geometry/picking';
-import { SizeTheme, SizeThemeProps } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName } from 'mol-view/theme/size';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { addSphere } from '../../../../geometry/mesh/builder/sphere';
 
 export interface ElementSphereMeshProps {
-    sizeTheme: SizeThemeProps,
+    sizeTheme: SizeThemeName,
+    sizeValue: number,
     detail: number,
 }
 
@@ -26,7 +27,7 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, s
     const { detail } = props
 
     const { elements } = unit;
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail)
     const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)

@@ -8,20 +8,21 @@
 import { Unit, Link, StructureElement, Structure } from 'mol-model/structure';
 import { UnitsVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { DefaultLinkCylinderProps, LinkCylinderProps, createLinkCylinderMesh, LinkIterator } from './util/link';
+import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Mesh } from '../../../geometry/mesh/mesh';
 import { PickingId } from '../../../geometry/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { Interval } from 'mol-data/int';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { BitFlags } from 'mol-util';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
 async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
     const location = StructureElement.create(unit)
 
     const elements = unit.elements;
@@ -62,12 +63,14 @@ async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, 
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
-export const DefaultIntraUnitLinkProps = {
-    ...DefaultUnitsMeshProps,
-    ...DefaultLinkCylinderProps,
-
-    sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
+export const IntraUnitLinkParams = {
+    ...UnitsMeshParams,
+    ...LinkCylinderParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
 }
+export const DefaultIntraUnitLinkProps = paramDefaultValues(IntraUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
 
 export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {

@@ -10,14 +10,17 @@ import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
-import { CrossLinkRestraintVisual, DefaultCrossLinkRestraintProps } from '../visual/cross-link-restraint-cylinder';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { CrossLinkRestraintVisual, CrossLinkRestraintParams } from '../visual/cross-link-restraint-cylinder';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { getQualityProps } from '../../util';
+import { paramDefaultValues, SelectParam, NumberParam } from 'mol-view/parameter';
 
-export const DefaultDistanceRestraintProps = {
-    ...DefaultCrossLinkRestraintProps,
-    sizeTheme: { name: 'uniform', value: 0.25 } as SizeThemeProps,
+export const DistanceRestraintParams = {
+    ...CrossLinkRestraintParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 0.25, 0, 0.05, 20),
 }
+export const DefaultDistanceRestraintProps = paramDefaultValues(DistanceRestraintParams)
 export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 
 export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
@@ -28,6 +31,7 @@ export function DistanceRestraintRepresentation(): DistanceRestraintRepresentati
     let currentProps: DistanceRestraintProps
     return {
         label: 'Distance restraint',
+        params: DistanceRestraintParams,
         get renderObjects() {
             return [ ...crossLinkRepr.renderObjects ]
         },

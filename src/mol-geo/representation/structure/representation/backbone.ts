@@ -10,12 +10,14 @@ import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
-import { PolymerBackboneVisual, DefaultPolymerBackboneProps } from '../visual/polymer-backbone-cylinder';
+import { PolymerBackboneVisual, PolymerBackboneParams } from '../visual/polymer-backbone-cylinder';
 import { getQualityProps } from '../../util';
+import { paramDefaultValues } from 'mol-view/parameter';
 
-export const DefaultBackboneProps = {
-    ...DefaultPolymerBackboneProps
+export const BackboneParams = {
+    ...PolymerBackboneParams
 }
+export const DefaultBackboneProps = paramDefaultValues(BackboneParams)
 export type BackboneProps = typeof DefaultBackboneProps
 
 export type BackboneRepresentation = StructureRepresentation<BackboneProps>
@@ -26,6 +28,7 @@ export function BackboneRepresentation(): BackboneRepresentation {
     let currentProps: BackboneProps
     return {
         label: 'Backbone',
+        params: BackboneParams,
         get renderObjects() {
             return [ ...traceRepr.renderObjects ]
         },

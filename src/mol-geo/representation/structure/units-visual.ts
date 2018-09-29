@@ -8,7 +8,7 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '../';
-import { DefaultStructureMeshProps, VisualUpdateState, DefaultStructurePointsProps, DefaultStructureLinesProps, StructureMeshParams } from '.';
+import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams } from '.';
 import { RuntimeContext } from 'mol-task';
 import { PickingId } from '../../geometry/picking';
 import { LocationIterator } from '../../util/location-iterator';
@@ -86,8 +86,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
     let currentConformationId: UUID
 
     async function create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
-        currentProps = Object.assign({}, defaultProps, props)
-        currentProps.colorTheme.structure = currentStructure
+        currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentGroup = group
 
         const unit = group.units[0]
@@ -105,7 +104,6 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props)
-        newProps.colorTheme.structure = currentStructure
         const unit = currentGroup.units[0]
 
         locationIt.reset()
@@ -120,8 +118,8 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.createGeometry = true
-        if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
+        if (newProps.sizeTheme !== currentProps.sizeTheme) updateState.createGeometry = true
+        if (newProps.colorTheme !== currentProps.colorTheme) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
@@ -135,7 +133,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         }
 
         if (updateState.createGeometry) {
-            mesh = newProps.unitKinds.includes(unit.kind)
+            mesh = includesUnitKind(newProps.unitKinds, unit)
                 ? await createMesh(ctx, unit, currentStructure, newProps, mesh)
                 : Mesh.createEmpty(mesh)
             ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
@@ -143,7 +141,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
+            await createColors(ctx, locationIt, newProps, renderObject.values)
         }
 
         // TODO why do I need to cast here?
@@ -209,10 +207,11 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
 // points
 
-export const DefaultUnitsPointsProps = {
-    ...DefaultStructurePointsProps,
-    unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
+export const UnitsPointsParams = {
+    ...StructurePointsParams,
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
+export const DefaultUnitsPointsProps = paramDefaultValues(UnitsPointsParams)
 export type UnitsPointsProps = typeof DefaultUnitsPointsProps
 
 export interface UnitsPointVisualBuilder<P extends UnitsPointsProps> {
@@ -237,8 +236,7 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
     let currentConformationId: UUID
 
     async function create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
-        currentProps = Object.assign({}, defaultProps, props)
-        currentProps.colorTheme.structure = currentStructure
+        currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentGroup = group
 
         const unit = group.units[0]
@@ -256,7 +254,6 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props)
-        newProps.colorTheme.structure = currentStructure
         const unit = currentGroup.units[0]
 
         locationIt.reset()
@@ -271,8 +268,8 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.updateSize = true
-        if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
+        if (newProps.sizeTheme !== currentProps.sizeTheme) updateState.updateSize = true
+        if (newProps.colorTheme !== currentProps.colorTheme) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
@@ -286,7 +283,7 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
         }
 
         if (updateState.createGeometry) {
-            points = newProps.unitKinds.includes(unit.kind)
+            points = includesUnitKind(newProps.unitKinds, unit)
                 ? await createPoints(ctx, unit, currentStructure, newProps, points)
                 : Points.createEmpty(points)
             ValueCell.update(renderObject.values.drawCount, points.pointCount)
@@ -294,11 +291,11 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
         }
 
         if (updateState.updateSize) {
-            await createSizes(ctx, locationIt, newProps.sizeTheme, renderObject.values)
+            await createSizes(ctx, locationIt, newProps, renderObject.values)
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
+            await createColors(ctx, locationIt, newProps, renderObject.values)
         }
 
         // TODO why do I need to cast here?
@@ -364,10 +361,11 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
 
 // lines
 
-export const DefaultUnitsLinesProps = {
-    ...DefaultStructureLinesProps,
-    unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
+export const UnitsLinesParams = {
+    ...StructureLinesParams,
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
+export const DefaultUnitsLinesProps = paramDefaultValues(UnitsLinesParams)
 export type UnitsLinesProps = typeof DefaultUnitsLinesProps
 
 export interface UnitsLinesVisualBuilder<P extends UnitsLinesProps> {
@@ -392,8 +390,7 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
     let currentConformationId: UUID
 
     async function create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
-        currentProps = Object.assign({}, defaultProps, props)
-        currentProps.colorTheme.structure = currentStructure
+        currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentGroup = group
 
         const unit = group.units[0]
@@ -411,7 +408,6 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props)
-        newProps.colorTheme.structure = currentStructure
         const unit = currentGroup.units[0]
 
         locationIt.reset()
@@ -426,8 +422,8 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.updateSize = true
-        if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
+        if (newProps.sizeTheme !== currentProps.sizeTheme) updateState.updateSize = true
+        if (newProps.colorTheme !== currentProps.colorTheme) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
@@ -441,7 +437,7 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
         }
 
         if (updateState.createGeometry) {
-            lines = newProps.unitKinds.includes(unit.kind)
+            lines = includesUnitKind(newProps.unitKinds, unit)
                 ? await createLines(ctx, unit, currentStructure, newProps, lines)
                 : Lines.createEmpty(lines)
             ValueCell.update(renderObject.values.drawCount, lines.lineCount * 2 * 3)
@@ -449,11 +445,11 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
         }
 
         if (updateState.updateSize) {
-            await createSizes(ctx, locationIt, newProps.sizeTheme, renderObject.values)
+            await createSizes(ctx, locationIt, newProps, renderObject.values)
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx, locationIt, newProps.colorTheme, renderObject.values)
+            await createColors(ctx, locationIt, newProps, renderObject.values)
         }
 
         // TODO why do I need to cast here?

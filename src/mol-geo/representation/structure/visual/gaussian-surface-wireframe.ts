@@ -7,11 +7,12 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { UnitsLinesVisual, DefaultUnitsLinesProps } from '../units-visual';
+import { UnitsLinesVisual, UnitsLinesParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { computeMarchingCubesLines } from '../../../util/marching-cubes/algorithm';
 import { Lines } from '../../../geometry/lines/lines';
-import { GaussianDensityProps, DefaultGaussianDensityProps } from 'mol-model/structure/structure/unit/gaussian-density';
+import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
+import { paramDefaultValues } from 'mol-view/parameter';
 
 async function createGaussianWireframe(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props
@@ -29,10 +30,11 @@ async function createGaussianWireframe(ctx: RuntimeContext, unit: Unit, structur
     return wireframe
 }
 
-export const DefaultGaussianWireframeProps = {
-    ...DefaultUnitsLinesProps,
-    ...DefaultGaussianDensityProps,
+export const GaussianWireframeParams = {
+    ...UnitsLinesParams,
+    ...GaussianDensityParams,
 }
+export const DefaultGaussianWireframeProps = paramDefaultValues(GaussianWireframeParams)
 export type GaussianWireframeProps = typeof DefaultGaussianWireframeProps
 
 export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {

@@ -13,10 +13,11 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
-import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { addCylinder } from '../../../geometry/mesh/builder/cylinder';
 import { Box } from '../../../primitive/box';
 import { NucleotideLocationIterator, markNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
+import { paramDefaultValues } from 'mol-view/parameter';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -110,9 +111,10 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, struct
     return builder.getMesh()
 }
 
-export const DefaultNucleotideBlockProps = {
-    ...DefaultUnitsMeshProps
+export const NucleotideBlockParams = {
+    ...UnitsMeshParams
 }
+export const DefaultNucleotideBlockProps = paramDefaultValues(NucleotideBlockParams)
 export type NucleotideBlockProps = typeof DefaultNucleotideBlockProps
 
 export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {

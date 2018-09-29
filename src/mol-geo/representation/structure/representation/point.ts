@@ -5,16 +5,18 @@
  */
 
 import { UnitsRepresentation } from '..';
-import { ElementPointVisual, DefaultElementPointProps } from '../visual/element-point';
+import { ElementPointVisual, ElementPointParams } from '../visual/element-point';
 import { StructureRepresentation } from '../units-representation';
 import { Structure } from 'mol-model/structure';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
 import { PickingId } from '../../../geometry/picking';
+import { paramDefaultValues } from 'mol-view/parameter';
 
-export const DefaultPointProps = {
-    ...DefaultElementPointProps,
+export const PointParams = {
+    ...ElementPointParams,
 }
+export const DefaultPointProps = paramDefaultValues(PointParams)
 export type PointProps = typeof DefaultPointProps
 
 export type PointRepresentation = StructureRepresentation<PointProps>
@@ -24,6 +26,7 @@ export function PointRepresentation(): PointRepresentation {
     const pointRepr = UnitsRepresentation('Point', ElementPointVisual)
     return {
         label: 'Point',
+        params: PointParams,
         get renderObjects() {
             return [ ...pointRepr.renderObjects ]
         },

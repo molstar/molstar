@@ -9,19 +9,23 @@ import { RuntimeContext } from 'mol-task';
 import { Mesh } from '../../../../geometry/mesh/mesh';
 import { MeshBuilder } from '../../../../geometry/mesh/mesh-builder';
 import { LinkType } from 'mol-model/structure/model/types';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../../primitive/cylinder';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../geometry/mesh/builder/cylinder';
+import { SelectParam, RangeParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
-export const DefaultLinkCylinderProps = {
-    sizeTheme: { name: 'uniform', value: 0.15 } as SizeThemeProps,
-    linkScale: 0.4,
-    linkSpacing: 1,
-    linkRadius: 0.25,
-    radialSegments: 16
+export const LinkCylinderParams = {
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+    linkScale: RangeParam('Link Scale', '', 0.4, 0, 1, 0.1),
+    linkSpacing: RangeParam('Link Spacing', '', 1, 0, 2, 0.01),
+    linkRadius: RangeParam('Link Radius', '', 0.25, 0, 10, 0.05),
+    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
 }
+export const DefaultLinkCylinderProps = paramDefaultValues(LinkCylinderParams)
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps
 
 const tmpShiftV12 = Vec3.zero()

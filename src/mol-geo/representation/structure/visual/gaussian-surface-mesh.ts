@@ -8,10 +8,11 @@ import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../geometry/mesh/mesh';
-import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { computeMarchingCubesMesh } from '../../../util/marching-cubes/algorithm';
-import { DefaultGaussianDensityProps, GaussianDensityProps } from 'mol-model/structure/structure/unit/gaussian-density';
+import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
+import { paramDefaultValues } from 'mol-view/parameter';
 
 async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props
@@ -31,10 +32,11 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
     return surface;
 }
 
-export const DefaultGaussianSurfaceProps = {
-    ...DefaultUnitsMeshProps,
-    ...DefaultGaussianDensityProps,
+export const GaussianSurfaceParams = {
+    ...UnitsMeshParams,
+    ...GaussianDensityParams,
 }
+export const DefaultGaussianSurfaceProps = paramDefaultValues(GaussianSurfaceParams)
 export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 
 export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {

@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure, StructureElement } from 'mol-model/structure';
+import { Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
 import { Mesh } from '../../../geometry/mesh/mesh';
@@ -15,14 +15,15 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 import { LocationIterator } from '../../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
-import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { addSphere } from '../../../geometry/mesh/builder/sphere';
 import { Box, PerforatedBox } from '../../../primitive/box';
 import { OctagonalPyramid, PerforatedOctagonalPyramid } from '../../../primitive/pyramid';
 import { Star } from '../../../primitive/star';
 import { Octahedron, PerforatedOctahedron } from '../../../primitive/octahedron';
 import { DiamondPrism, PentagonalPrism, HexagonalPrism } from '../../../primitive/prism';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -45,7 +46,7 @@ const hexagonalPrism = HexagonalPrism()
 async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, props: CarbohydrateSymbolProps, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const { detail } = props
 
     const carbohydrates = structure.carbohydrates
@@ -144,12 +145,13 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
     return builder.getMesh()
 }
 
-export const DefaultCarbohydrateSymbolProps = {
-    ...DefaultComplexMeshProps,
-    sizeTheme: { name: 'uniform', value: 1, factor: 1 } as SizeThemeProps,
-    detail: 0,
-    unitKinds: [ Unit.Kind.Atomic, Unit.Kind.Spheres ] as Unit.Kind[]
+export const CarbohydrateSymbolParams = {
+    ...ComplexMeshParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    detail: NumberParam('Sphere Detail', '', 0, 0, 3, 1),
 }
+export const DefaultCarbohydrateSymbolProps = paramDefaultValues(CarbohydrateSymbolParams)
 export type CarbohydrateSymbolProps = typeof DefaultCarbohydrateSymbolProps
 
 export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProps> {

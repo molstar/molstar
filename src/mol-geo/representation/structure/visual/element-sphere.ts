@@ -7,15 +7,17 @@
 
 import { UnitsVisual, VisualUpdateState } from '..';
 import { createElementSphereMesh, markElement, getElementLoci, StructureElementIterator } from './util/element';
-import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
+import { NumberParam, paramDefaultValues, SelectParam } from 'mol-view/parameter';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 
 export const ElementSphereParams = {
-    UnitsMe
+    ...UnitsMeshParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    detail: NumberParam('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultElementSphereProps = {
-    ...DefaultUnitsMeshProps,
-    detail: 0
-}
+export const DefaultElementSphereProps = paramDefaultValues(ElementSphereParams)
 export type ElementSphereProps = typeof DefaultElementSphereProps
 
 export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {

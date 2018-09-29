@@ -10,21 +10,23 @@ import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
-import { PolymerTraceVisual, DefaultPolymerTraceProps } from '../visual/polymer-trace-mesh';
-import { PolymerGapVisual, DefaultPolymerGapProps } from '../visual/polymer-gap-cylinder';
-import { NucleotideBlockVisual, DefaultNucleotideBlockProps } from '../visual/nucleotide-block-mesh';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { PolymerTraceVisual,  PolymerTraceParams } from '../visual/polymer-trace-mesh';
+import { PolymerGapVisual, PolymerGapParams } from '../visual/polymer-gap-cylinder';
+import { NucleotideBlockVisual, NucleotideBlockParams } from '../visual/nucleotide-block-mesh';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { getQualityProps } from '../../util';
+import { paramDefaultValues, SelectParam, NumberParam } from 'mol-view/parameter';
 // import { PolymerDirectionVisual, DefaultPolymerDirectionProps } from '../visual/polymer-direction-wedge';
 
-export const DefaultCartoonProps = {
-    ...DefaultPolymerTraceProps,
-    ...DefaultPolymerGapProps,
-    ...DefaultNucleotideBlockProps,
-    // ...DefaultPolymerDirectionProps,
-
-    sizeTheme: { name: 'uniform', value: 0.2 } as SizeThemeProps,
+export const CartoonParams = {
+    ...PolymerTraceParams,
+    ...PolymerGapParams,
+    ...NucleotideBlockParams,
+    // ...PolymerDirectionParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 0.6, 0, 0.1, 20),
 }
+export const DefaultCartoonProps = paramDefaultValues(CartoonParams)
 export type CartoonProps = typeof DefaultCartoonProps
 
 export type CartoonRepresentation = StructureRepresentation<CartoonProps>
@@ -38,6 +40,7 @@ export function CartoonRepresentation(): CartoonRepresentation {
     let currentProps: CartoonProps
     return {
         label: 'Cartoon',
+        params: CartoonParams,
         get renderObjects() {
             return [ ...traceRepr.renderObjects, ...gapRepr.renderObjects,
                 ...blockRepr.renderObjects // , ...directionRepr.renderObjects

@@ -10,17 +10,20 @@ import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
-import { CarbohydrateSymbolVisual, DefaultCarbohydrateSymbolProps } from '../visual/carbohydrate-symbol-mesh';
-import { CarbohydrateLinkVisual, DefaultCarbohydrateLinkProps } from '../visual/carbohydrate-link-cylinder';
-import { SizeThemeProps } from 'mol-view/theme/size';
+import { CarbohydrateSymbolVisual, CarbohydrateSymbolParams } from '../visual/carbohydrate-symbol-mesh';
+import { CarbohydrateLinkVisual, CarbohydrateLinkParams } from '../visual/carbohydrate-link-cylinder';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { getQualityProps } from '../../util';
+import { paramDefaultValues, SelectParam, NumberParam } from 'mol-view/parameter';
 
-export const DefaultCarbohydrateProps = {
-    ...DefaultCarbohydrateSymbolProps,
-    ...DefaultCarbohydrateLinkProps,
-
-    sizeTheme: { name: 'uniform', value: 1, factor: 1 } as SizeThemeProps,
+export const CarbohydrateParams = {
+    ...CarbohydrateSymbolParams,
+    ...CarbohydrateLinkParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
+    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
 }
+export const DefaultCarbohydrateProps = paramDefaultValues(CarbohydrateParams)
 export type CarbohydrateProps = typeof DefaultCarbohydrateProps
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateProps>
@@ -32,6 +35,7 @@ export function CarbohydrateRepresentation(): CarbohydrateRepresentation {
     let currentProps: CarbohydrateProps
     return {
         label: 'Carbohydrate',
+        params: CarbohydrateParams,
         get renderObjects() {
             return [ ...carbohydrateSymbolRepr.renderObjects, ...carbohydrateLinkRepr.renderObjects ]
         },

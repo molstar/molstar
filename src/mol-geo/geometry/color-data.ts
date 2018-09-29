@@ -10,9 +10,10 @@ import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
-import { LocationColor, ColorThemeProps, ColorTheme } from 'mol-view/theme/color';
+import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName } from 'mol-view/theme/color';
 import { RuntimeContext } from 'mol-task';
 import { getGranularity } from './geometry';
+import { Structure } from 'mol-model/structure';
 
 export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -24,8 +25,27 @@ export type ColorData = {
     dColorType: ValueCell<string>,
 }
 
-export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorThemeProps, colorData?: ColorData): Promise<ColorData> {
-    const colorTheme = ColorTheme(props)
+export interface ColorProps {
+    colorTheme: ColorThemeName
+    colorValue?: Color
+    structure?: Structure
+}
+
+export function getColorThemeProps(props: ColorProps): ColorThemeProps {
+    return {
+        name: props.colorTheme,
+        // domain: [number, number],
+        value: props.colorValue,
+        structure: props.structure,
+        // color?: LocationColor,
+        // granularity?: ColorType,
+        // description?: string,
+        // legend?: ScaleLegend | TableLegend
+    }
+}
+
+export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorProps, colorData?: ColorData): Promise<ColorData> {
+    const colorTheme = ColorTheme(getColorThemeProps(props))
     switch (getGranularity(locationIt, colorTheme.granularity)) {
         case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)

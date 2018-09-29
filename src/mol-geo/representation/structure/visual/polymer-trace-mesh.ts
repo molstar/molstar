@@ -11,18 +11,23 @@ import { Mesh } from '../../../geometry/mesh/mesh';
 import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
-import { UnitsMeshVisual, DefaultUnitsMeshProps } from '../units-visual';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { addSheet } from '../../../geometry/mesh/builder/sheet';
 import { addTube } from '../../../geometry/mesh/builder/tube';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
-export interface PolymerTraceMeshProps {
-    sizeTheme: SizeThemeProps
-    linearSegments: number
-    radialSegments: number
-    aspectRatio: number
-    arrowFactor: number
+export const PolymerTraceMeshParams = {
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
+    linearSegments: NumberParam('Linear Segments', '', 8, 1, 48, 1),
+    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
+    aspectRatio: NumberParam('Aspect Ratio', '', 5, 0.1, 5, 0.1),
+    arrowFactor: NumberParam('Arrow Factor', '', 1.5, 0.1, 5, 0.1),
 }
+export const DefaultPolymerTraceMeshProps = paramDefaultValues(PolymerTraceMeshParams)
+export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
 // TODO handle polymer ends properly
 
@@ -30,7 +35,7 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
     const { linearSegments, radialSegments, aspectRatio, arrowFactor } = props
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
@@ -83,13 +88,11 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure
     return builder.getMesh()
 }
 
-export const DefaultPolymerTraceProps = {
-    ...DefaultUnitsMeshProps,
-    linearSegments: 8,
-    radialSegments: 12,
-    aspectRatio: 5,
-    arrowFactor: 1.5
+export const PolymerTraceParams = {
+    ...UnitsMeshParams,
+    ...PolymerTraceMeshParams
 }
+export const DefaultPolymerTraceProps = paramDefaultValues(PolymerTraceParams)
 export type PolymerTraceProps = typeof DefaultPolymerTraceProps
 
 export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {

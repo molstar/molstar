@@ -5,17 +5,19 @@
  */
 
 import { UnitsRepresentation } from '..';
-import { ElementSphereVisual, DefaultElementSphereProps } from '../visual/element-sphere';
+import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
 import { StructureRepresentation } from '../units-representation';
 import { Structure } from 'mol-model/structure';
 import { PickingId } from '../../../geometry/picking';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
 import { getQualityProps } from '../../util';
+import { paramDefaultValues } from 'mol-view/parameter';
 
-export const DefaultSpacefillProps = {
-    ...DefaultElementSphereProps
+export const SpacefillParams = {
+    ...ElementSphereParams
 }
+export const DefaultSpacefillProps = paramDefaultValues(SpacefillParams)
 export type SpacefillProps = typeof DefaultSpacefillProps
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>
@@ -25,6 +27,7 @@ export function SpacefillRepresentation(): SpacefillRepresentation {
     const sphereRepr = UnitsRepresentation('Sphere mesh', ElementSphereVisual)
     return {
         label: 'Spacefill',
+        params: SpacefillParams,
         get renderObjects() {
             return [ ...sphereRepr.renderObjects ]
         },

@@ -13,7 +13,7 @@ import { downloadCif } from './helpers'
 import CIF from 'mol-io/reader/cif'
 import { DensityServer_Data_Database } from 'mol-io/reader/cif/schema/density-server';
 import { Table } from 'mol-data/db';
-import { computeVolumeSurface } from 'mol-geo/representation/volume/surface';
+import { computeVolumeSurface } from 'mol-geo/representation/volume/isosurface';
 import { StringBuilder } from 'mol-util';
 
 require('util.promisify').shim();

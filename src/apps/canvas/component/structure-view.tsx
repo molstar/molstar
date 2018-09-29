@@ -7,7 +7,8 @@
 import * as React from 'react'
 import { StructureView } from '../structure-view';
 import { StructureRepresentation } from 'mol-geo/representation/structure';
-import { StructureRepresentationComponent } from './structure-representation';
+import { RepresentationComponent } from './representation';
+import { Representation } from 'mol-geo/representation';
 
 // export function FileInput (props: {
 //     accept: string
@@ -182,8 +183,8 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                     { Object.keys(structureRepresentations).map((k, i) => {
                         if (active[k]) {
                             return <div key={i}>
-                                <StructureRepresentationComponent
-                                    representation={structureRepresentations[k]}
+                                <RepresentationComponent
+                                    repr={structureRepresentations[k] as Representation<any>}
                                     viewer={structureView.viewer}
                                     app={structureView.app}
                                 />

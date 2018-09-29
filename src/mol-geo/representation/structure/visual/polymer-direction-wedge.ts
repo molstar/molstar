@@ -12,9 +12,10 @@ import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
-import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { Wedge } from '../../../primitive/wedge';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -28,15 +29,18 @@ const heightFactor = 6
 
 const wedge = Wedge()
 
-export interface PolymerDirectionWedgeProps {
-    sizeTheme: SizeThemeProps
+export const PolymerDirectionWedgeParams = {
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
 }
+export const DefaultPolymerDirectionWedgeProps = paramDefaultValues(PolymerDirectionWedgeParams)
+export type PolymerDirectionWedgeProps = typeof DefaultPolymerDirectionWedgeProps
 
 async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
 
     const vertexCount = polymerElementCount * 24
     const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
@@ -85,9 +89,11 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
     return builder.getMesh()
 }
 
-export const DefaultPolymerDirectionProps = {
-    ...DefaultUnitsMeshProps
+export const PolymerDirectionParams = {
+    ...UnitsMeshParams,
+    ...PolymerDirectionWedgeParams
 }
+export const DefaultPolymerDirectionProps = paramDefaultValues(PolymerDirectionParams)
 export type PolymerDirectionProps = typeof DefaultPolymerDirectionProps
 
 export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {

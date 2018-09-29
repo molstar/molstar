@@ -12,22 +12,26 @@ import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { DefaultUnitsMeshProps, UnitsMeshVisual } from '../units-visual';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
+import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-view/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { OrderedSet } from 'mol-data/int';
 import { addCylinder } from '../../../geometry/mesh/builder/cylinder';
+import { paramDefaultValues, NumberParam, SelectParam } from 'mol-view/parameter';
 
-export interface PolymerBackboneCylinderProps {
-    sizeTheme: SizeThemeProps
-    radialSegments: number
+export const PolymerBackboneCylinderParams = {
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
 }
+export const DefaultPolymerBackboneCylinderProps = paramDefaultValues(PolymerBackboneCylinderParams)
+export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps
 
 async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const { radialSegments } = props
 
     const vertexCountEstimate = radialSegments * 2 * polymerElementCount * 2
@@ -63,10 +67,11 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
     return builder.getMesh()
 }
 
-export const DefaultPolymerBackboneProps = {
-    ...DefaultUnitsMeshProps,
-    radialSegments: 16
+export const PolymerBackboneParams = {
+    ...UnitsMeshParams,
+    ...PolymerBackboneCylinderParams,
 }
+export const DefaultPolymerBackboneProps = paramDefaultValues(PolymerBackboneParams)
 export type PolymerBackboneProps = typeof DefaultPolymerBackboneProps
 
 export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {

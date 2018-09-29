@@ -6,8 +6,8 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { ColorThemeProps, ColorThemeName, ColorThemeOptions } from 'mol-view/theme/color';
-import { SizeThemeProps, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { ColorThemeName, ColorThemeOptions } from 'mol-view/theme/color';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { Representation, RepresentationProps } from '..';
 import { Geometry } from '../../geometry/geometry';
 import { Mesh } from '../../geometry/mesh/mesh';
@@ -32,16 +32,18 @@ export const StructureMeshParams = {
 export const DefaultStructureMeshProps = paramDefaultValues(StructureMeshParams)
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
-export const DefaultStructurePointsProps = {
-    ...Points.DefaultProps,
-    ...DefaultStructureProps,
+export const StructurePointsParams = {
+    ...Points.Params,
+    ...StructureParams,
 }
+export const DefaultStructurePointsProps = paramDefaultValues(StructurePointsParams)
 export type StructurePointsProps = typeof DefaultStructurePointsProps
 
-export const DefaultStructureLinesProps = {
-    ...Lines.DefaultProps,
-    ...DefaultStructureProps,
+export const StructureLinesParams = {
+    ...Lines.Params,
+    ...StructureParams,
 }
+export const DefaultStructureLinesProps = paramDefaultValues(StructureLinesParams)
 export type StructureLinesProps = typeof DefaultStructureLinesProps
 
 export interface VisualUpdateState {

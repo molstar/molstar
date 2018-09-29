@@ -7,24 +7,25 @@
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual, VisualUpdateState } from '..';
 import { RuntimeContext } from 'mol-task'
-import { LinkCylinderProps, DefaultLinkCylinderProps, createLinkCylinderMesh } from './util/link';
+import { LinkCylinderProps, createLinkCylinderMesh, LinkCylinderParams } from './util/link';
 import { Mesh } from '../../../geometry/mesh/mesh';
 import { PickingId } from '../../../geometry/picking';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { ComplexMeshVisual, DefaultComplexMeshProps } from '../complex-visual';
+import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
 import { LocationIterator } from '../../../util/location-iterator';
 import { Interval } from 'mol-data/int';
-import { SizeThemeProps, SizeTheme } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-view/theme/size';
 import { BitFlags } from 'mol-util';
 import { LinkType } from 'mol-model/structure/model/types';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
 
 async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
 
     const crossLinks = structure.crossLinkRestraints
     if (!crossLinks.count) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme(props.sizeTheme)
+    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const location = StructureElement.create()
 
     const builderProps = {
@@ -49,13 +50,13 @@ async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structu
     return createLinkCylinderMesh(ctx, builderProps, props, mesh)
 }
 
-export const DefaultCrossLinkRestraintProps = {
-    ...DefaultComplexMeshProps,
-    ...DefaultLinkCylinderProps,
-    sizeTheme: { name: 'physical', factor: 0.3 } as SizeThemeProps,
-    flipSided: false,
-    flatShaded: false,
+export const CrossLinkRestraintParams = {
+    ...ComplexMeshParams,
+    ...LinkCylinderParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
 }
+export const DefaultCrossLinkRestraintProps = paramDefaultValues(CrossLinkRestraintParams)
 export type CrossLinkRestraintProps = typeof DefaultCrossLinkRestraintProps
 
 export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {

@@ -12,7 +12,7 @@ import { Representation, RepresentationProps, Visual } from '..';
 import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../geometry/marker-data';
-import { StructureProps } from '.';
+import { StructureProps, StructureParams } from '.';
 import { StructureGroup } from './units-visual';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
@@ -132,6 +132,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
 
     return {
         label,
+        params: StructureParams, // TODO
         get renderObjects() {
             const renderObjects: RenderObject[] = []
             visuals.forEach(({ visual }) => {
