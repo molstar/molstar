@@ -6,12 +6,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Iterator } from 'mol-data'
 import { Column } from 'mol-data/db'
 import StringBuilder from 'mol-util/string-builder'
 import { Category, Field, Encoder } from '../encoder'
 import Writer from '../../writer'
-import { getFieldDigitCount, getIncludedFields } from './util';
+import { getFieldDigitCount, getIncludedFields, getCategoryInstanceData, CategoryInstanceData } from './util';
 
 export default class TextEncoder implements Encoder<string> {
     private builder = StringBuilder.create();
@@ -33,7 +32,7 @@ export default class TextEncoder implements Encoder<string> {
         StringBuilder.write(this.builder, `data_${(header || '').replace(/[ \n\t]/g, '').toUpperCase()}\n#\n`);
     }
 
-    writeCategory<Ctx>(category: Category<Ctx>, contexts?: Ctx[]) {
+    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx) {
         if (this.encoded) {
             throw new Error('The writer contents have already been encoded, no more writing.');
         }
@@ -43,19 +42,13 @@ export default class TextEncoder implements Encoder<string> {
         }
 
         if (!this.filter.includeCategory(category.name)) return;
-
-        const src = !contexts || !contexts.length ? [category.instance(<any>void 0)] : contexts.map(c => category.instance(c));
-        const instances = src.filter(c => c && c.rowCount > 0);
-        if (!instances.length) return;
-
-        const rowCount = instances.reduce((v, c) => v + c.rowCount, 0);
-
-        if (rowCount === 0) return;
+        const { instance, rowCount, source } = getCategoryInstanceData(category, context);
+        if (!rowCount) return;
 
         if (rowCount === 1) {
-            writeCifSingleRecord(category, instances[0]!, this.builder, this.filter, this.formatter);
+            writeCifSingleRecord(category, instance, source, this.builder, this.filter, this.formatter);
         } else {
-            writeCifLoop(category, instances, this.builder, this.filter, this.formatter);
+            writeCifLoop(category, instance, source, this.builder, this.filter, this.formatter);
         }
     }
 
@@ -110,18 +103,18 @@ function getFloatPrecisions(categoryName: string, fields: Field[], formatter: Ca
     return ret;
 }
 
-function writeCifSingleRecord(category: Category, instance: Category.Instance, builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
+function writeCifSingleRecord(category: Category, instance: Category.Instance, source: CategoryInstanceData['source'], builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
     const fields = getIncludedFields(instance);
-    const data = instance.data;
+    const src = source[0];
+    const data = src.data;
     let width = fields.reduce((w, f) => filter.includeField(category.name, f.name) ? Math.max(w, f.name.length) : 0, 0);
 
     // this means no field from this category is included.
     if (width === 0) return;
     width += category.name.length + 6;
 
-    const it = instance.keys ? instance.keys() : Iterator.Range(0, instance.rowCount - 1);
+    const it = src.keys();
     const key = it.move();
-
     const precisions = getFloatPrecisions(category.name, instance.fields, formatter);
 
     for (let _f = 0; _f < fields.length; _f++) {
@@ -135,8 +128,8 @@ function writeCifSingleRecord(category: Category, instance: Category.Instance, b
     StringBuilder.write(builder, '#\n');
 }
 
-function writeCifLoop(category: Category, instances: Category.Instance[], builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
-    const fieldSource = getIncludedFields(instances[0]);
+function writeCifLoop(category: Category, instance: Category.Instance, source: CategoryInstanceData['source'], builder: StringBuilder, filter: Category.Filter, formatter: Category.Formatter) {
+    const fieldSource = getIncludedFields(instance);
     const fields = filter === Category.DefaultFilter ? fieldSource : fieldSource.filter(f => filter.includeField(category.name, f.name));
     const fieldCount = fields.length;
     if (fieldCount === 0) return;
@@ -149,13 +142,13 @@ function writeCifLoop(category: Category, instances: Category.Instance[], builde
     }
 
     let index = 0;
-    for (let _c = 0; _c < instances.length; _c++) {
-        const instance = instances[_c];
-        const data = instance.data;
+    for (let _c = 0; _c < source.length; _c++) {
+        const src = source[_c];
+        const data = src.data;
 
-        if (instance.rowCount === 0) continue;
+        if (src.rowCount === 0) continue;
 
-        const it = instance.keys ? instance.keys() : Iterator.Range(0, instance.rowCount - 1);
+        const it = src.keys();
         while (it.hasNext)  {
             const key = it.move();
 
