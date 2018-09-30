@@ -24,7 +24,7 @@ export const CartoonParams = {
     ...NucleotideBlockParams,
     // ...PolymerDirectionParams,
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 0.6, 0, 0.1, 20),
+    sizeValue: NumberParam('Size Value', '', 0.6, 0, 10, 0.1),
 }
 export const DefaultCartoonProps = paramDefaultValues(CartoonParams)
 export type CartoonProps = typeof DefaultCartoonProps

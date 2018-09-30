@@ -21,7 +21,7 @@ import { paramDefaultValues, NumberParam, SelectParam } from 'mol-view/parameter
 
 export const PolymerBackboneCylinderParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
     radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
 }
 export const DefaultPolymerBackboneCylinderProps = paramDefaultValues(PolymerBackboneCylinderParams)

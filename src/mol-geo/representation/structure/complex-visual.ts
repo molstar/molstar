@@ -63,7 +63,7 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P>) {
-        const newProps = Object.assign({}, currentProps, props)
+        const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
 
         if (!renderObject) return false
 

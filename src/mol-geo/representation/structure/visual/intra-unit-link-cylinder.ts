@@ -67,8 +67,8 @@ export const IntraUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
+    sizeValue: NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
 }
 export const DefaultIntraUnitLinkProps = paramDefaultValues(IntraUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps

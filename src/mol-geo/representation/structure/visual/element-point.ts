@@ -18,8 +18,8 @@ import { SelectParam, NumberParam, BooleanParam, paramDefaultValues } from 'mol-
 export const ElementPointParams = {
     ...UnitsPointsParams,
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', true),
+    sizeValue: NumberParam('Size Value', '', 3, 0, 20, 0.1),
+    pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', false),
 }
 export const DefaultElementPointProps = paramDefaultValues(ElementPointParams)
 export type ElementPointProps = typeof DefaultElementPointProps

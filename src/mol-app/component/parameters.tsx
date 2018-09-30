@@ -10,6 +10,7 @@ import { BooleanParamComponent } from './parameter/boolean';
 import { NumberParamComponent } from './parameter/number';
 import { RangeParamComponent } from './parameter/range';
 import { SelectParamComponent } from './parameter/select';
+import { MultiSelectParamComponent } from './parameter/multi-select';
 
 interface ParametersProps<P extends Params> {
     params: P
@@ -29,6 +30,8 @@ function getParamComponent<P extends Param>(p: Param, value: P['defaultValue'], 
             return <RangeParamComponent param={p} value={value} onChange={onChange} />
         case 'select':
             return <SelectParamComponent param={p} value={value} onChange={onChange} />
+        case 'multi-select':
+            return <MultiSelectParamComponent param={p} value={value} onChange={onChange} />
     }
     return ''
 }

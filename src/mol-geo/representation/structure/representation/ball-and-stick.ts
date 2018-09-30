@@ -22,7 +22,7 @@ export const BallAndStickParams = {
     ...ElementSphereParams,
     ...IntraUnitLinkParams,
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
+    sizeValue: NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
     sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic'], UnitKindOptions),
 }

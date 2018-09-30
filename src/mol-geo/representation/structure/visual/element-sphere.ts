@@ -14,7 +14,8 @@ import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 export const ElementSphereParams = {
     ...UnitsMeshParams,
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeValue: NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     detail: NumberParam('Sphere Detail', '', 0, 0, 3, 1),
 }
 export const DefaultElementSphereProps = paramDefaultValues(ElementSphereParams)

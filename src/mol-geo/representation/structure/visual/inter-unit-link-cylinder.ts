@@ -53,8 +53,8 @@ export const InterUnitLinkParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
+    sizeValue: NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
 }
 export const DefaultInterUnitLinkProps = paramDefaultValues(InterUnitLinkParams)
 export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps

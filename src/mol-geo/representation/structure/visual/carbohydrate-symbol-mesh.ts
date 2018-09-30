@@ -148,7 +148,7 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
     detail: NumberParam('Sphere Detail', '', 0, 0, 3, 1),
 }
 export const DefaultCarbohydrateSymbolProps = paramDefaultValues(CarbohydrateSymbolParams)

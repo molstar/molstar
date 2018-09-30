@@ -23,7 +23,7 @@ const segmentCount = 10
 
 export const PolymerGapCylinderParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
     sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
     radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
 }

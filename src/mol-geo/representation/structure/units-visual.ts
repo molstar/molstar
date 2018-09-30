@@ -21,8 +21,8 @@ import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { Points } from '../../geometry/points/points';
 import { updateRenderableState } from '../../geometry/geometry';
-import { createColors } from '../../geometry/color-data';
-import { createSizes } from '../../geometry/size-data';
+import { createColors, ColorProps } from '../../geometry/color-data';
+import { createSizes, SizeProps } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
 import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
 
@@ -53,6 +53,21 @@ function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
         if (Unit.isGaussians(unit) && unitKinds[i] === 'gaussians') return true
     }
     return false
+}
+
+function sizeChanged(oldProps: SizeProps, newProps: SizeProps) {
+    return (
+        oldProps.sizeTheme !== newProps.sizeTheme ||
+        oldProps.sizeValue !== newProps.sizeValue ||
+        oldProps.sizeFactor !== newProps.sizeFactor
+    )
+}
+
+function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
+    return (
+        oldProps.colorTheme !== newProps.colorTheme ||
+        oldProps.colorValue !== newProps.colorValue
+    )
 }
 
 // mesh
@@ -103,7 +118,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
     async function update(ctx: RuntimeContext, props: Partial<P> = {}) {
         if (!renderObject) return
 
-        const newProps = Object.assign({}, currentProps, props)
+        const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
         const unit = currentGroup.units[0]
 
         locationIt.reset()
@@ -118,8 +133,8 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (newProps.sizeTheme !== currentProps.sizeTheme) updateState.createGeometry = true
-        if (newProps.colorTheme !== currentProps.colorTheme) updateState.updateColor = true
+        if (sizeChanged(currentProps, newProps)) updateState.createGeometry = true
+        if (colorChanged(currentProps, newProps)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
@@ -253,7 +268,7 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
     async function update(ctx: RuntimeContext, props: Partial<P> = {}) {
         if (!renderObject) return
 
-        const newProps = Object.assign({}, currentProps, props)
+        const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
         const unit = currentGroup.units[0]
 
         locationIt.reset()
@@ -268,8 +283,8 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (newProps.sizeTheme !== currentProps.sizeTheme) updateState.updateSize = true
-        if (newProps.colorTheme !== currentProps.colorTheme) updateState.updateColor = true
+        if (sizeChanged(currentProps, newProps)) updateState.updateSize = true
+        if (colorChanged(currentProps, newProps)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
@@ -407,7 +422,7 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
     async function update(ctx: RuntimeContext, props: Partial<P> = {}) {
         if (!renderObject) return
 
-        const newProps = Object.assign({}, currentProps, props)
+        const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
         const unit = currentGroup.units[0]
 
         locationIt.reset()
@@ -422,8 +437,8 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (newProps.sizeTheme !== currentProps.sizeTheme) updateState.updateSize = true
-        if (newProps.colorTheme !== currentProps.colorTheme) updateState.updateColor = true
+        if (sizeChanged(currentProps, newProps)) updateState.updateSize = true
+        if (colorChanged(currentProps, newProps)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
