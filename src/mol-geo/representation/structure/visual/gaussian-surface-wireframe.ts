@@ -12,7 +12,8 @@ import { StructureElementIterator, getElementLoci, markElement } from './util/el
 import { computeMarchingCubesLines } from '../../../util/marching-cubes/algorithm';
 import { Lines } from '../../../geometry/lines/lines';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-view/parameter';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 
 async function createGaussianWireframe(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props
@@ -33,6 +34,9 @@ async function createGaussianWireframe(ctx: RuntimeContext, unit: Unit, structur
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: NumberParam('Size Value', '', 2, 0, 10, 0.1),
+    lineSizeAttenuation: BooleanParam('Line Size Attenuation', '', false),
 }
 export const DefaultGaussianWireframeProps = paramDefaultValues(GaussianWireframeParams)
 export type GaussianWireframeProps = typeof DefaultGaussianWireframeProps

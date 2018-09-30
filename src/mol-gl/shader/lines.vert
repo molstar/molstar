@@ -60,8 +60,6 @@ void main(){
         float size = readFromTexture(tSize, aInstance * float(uGroupCount) + aGroup, uSizeTexDim).r;
     #endif
 
-    float linewidth = 3.0; // size;
-
     mat4 modelView = uView * uModel * aTransform;
 
     // camera space
@@ -105,6 +103,14 @@ void main(){
 
     // sign flip
     if (aMapping.x < 0.0) offset *= -1.0;
+
+    // calculate linewidth
+    float linewidth;
+    #ifdef dLineSizeAttenuation
+        linewidth = size * uPixelRatio * ((uViewportHeight / 2.0) / -start.z) * 5.0;
+    #else
+        linewidth = size * uPixelRatio;
+    #endif
 
     // adjust for linewidth
     offset *= linewidth;

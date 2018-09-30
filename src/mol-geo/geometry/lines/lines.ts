@@ -95,7 +95,7 @@ export namespace Lines {
         ...Geometry.Params,
         lineSizeAttenuation: BooleanParam('Line Size Attenuation', '', false),
         sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
+        sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
         sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     }
     export const DefaultProps = paramDefaultValues(Params)
