@@ -117,7 +117,8 @@ function getAssemblyOperators(matrices: Matrices, operatorNames: string[][], sta
         }
         // TODO currently using the original operator name for the symmetry operator to be able
         // to link it to the original operator but it might be clearer to introduce an extra field???
-        operators[operators.length] = SymmetryOperator.create(`A-${op.join(',')}`, m);
+        // Operator names are joined together by 'x' to indicate matrix multiplication.
+        operators[operators.length] = SymmetryOperator.create(`A-${op.join('x')}`, m);
     }
 
     return operators;
