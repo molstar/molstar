@@ -12,11 +12,12 @@ import { resolveJob } from './query';
 import { StructureCache } from './structure-wrapper';
 import { now } from 'mol-task';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
+import { QueryName } from './api';
 
 export type LocalInput = {
     input: string,
     output: string,
-    query: string,
+    query: QueryName,
     modelNums?: number[],
     params?: any,
     binary?: boolean
@@ -30,10 +31,15 @@ export async function runLocal(input: LocalInput) {
 
     for (const job of input) {
         const binary = /\.bcif/.test(job.output);
-        JobManager.add('_local_', job.input, job.query, job.params || { }, {
-            modelNums: job.modelNums,
-            outputFilename: job.output,
-            binary
+        JobManager.add({
+            entryId: job.input,
+            queryName: job.query,
+            queryParams: job.params || { },
+            options: {
+                modelNums: job.modelNums,
+                outputFilename: job.output,
+                binary
+            }
         });
     }
     JobManager.sort();

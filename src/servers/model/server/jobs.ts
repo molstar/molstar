@@ -5,7 +5,7 @@
  */
 
 import { UUID } from 'mol-util';
-import { getQueryByName, normalizeQueryParams, QueryDefinition } from './api';
+import { getQueryByName, normalizeQueryParams, QueryDefinition, QueryName, QueryParams } from './api';
 import { LinkedList } from 'mol-data/generic';
 
 export interface ResponseFormat {
@@ -28,24 +28,31 @@ export interface Job {
     outputFilename?: string
 }
 
-export function createJob(sourceId: '_local_' | string, entryId: string, queryName: string, queryParams: any,
-        options ?: { modelNums?: number[], outputFilename?: string, binary?: boolean }): Job {
-    const queryDefinition = getQueryByName(queryName);
-    if (!queryDefinition) throw new Error(`Query '${queryName}' is not supported.`);
+export interface JobDefinition<Name extends QueryName> {
+    sourceId?: string, // = '_local_',
+    entryId: string,
+    queryName: Name,
+    queryParams: QueryParams<Name>,
+    options?: { modelNums?: number[], outputFilename?: string, binary?: boolean }
+}
 
-    const normalizedParams = normalizeQueryParams(queryDefinition, queryParams);
+export function createJob<Name extends QueryName>(definition: JobDefinition<Name>): Job {
+    const queryDefinition = getQueryByName(definition.queryName);
+    if (!queryDefinition) throw new Error(`Query '${definition.queryName}' is not supported.`);
+
+    const normalizedParams = normalizeQueryParams(queryDefinition, definition.queryParams);
 
     return {
         id: UUID.create(),
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
-        key: `${sourceId}/${entryId}`,
-        sourceId,
-        entryId,
+        key: `${definition.sourceId}/${definition.entryId}`,
+        sourceId: definition.sourceId || '_local_',
+        entryId: definition.entryId,
         queryDefinition,
         normalizedParams,
-        responseFormat: { isBinary: !!(options && options.binary) },
-        modelNums: options && options.modelNums,
-        outputFilename: options && options.outputFilename
+        responseFormat: { isBinary: !!(definition.options && definition.options.binary) },
+        modelNums: definition.options && definition.options.modelNums,
+        outputFilename: definition.options && definition.options.outputFilename
     };
 }
 
@@ -56,9 +63,8 @@ class _JobQueue {
         return this.list.count;
     }
 
-    add(sourceId: '_local_' | string, entryId: string, queryName: string, queryParams: any,
-            options?: { modelNums?: number[], outputFilename?: string, binary?: boolean }) {
-        const job = createJob(sourceId, entryId, queryName, queryParams, options);
+    add<Name extends QueryName>(definition: JobDefinition<Name>) {
+        const job = createJob(definition);
         this.list.addLast(job);
         return job.id;
     }
