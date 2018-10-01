@@ -10,9 +10,13 @@ import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-r
 import { fetchRetry } from '../../utils/fetch-retry';
 import { UUID } from 'mol-util';
 
+const USE_FILE_SOURCE = false;
+
 export function PDBe_structureQualityReport(model: Model, cache: any) {
     return StructureQualityReport.attachFromCifOrApi(model, {
-        PDBe_apiSourceJson: residuewise_outlier_summary.getDataFromFile
+        PDBe_apiSourceJson: USE_FILE_SOURCE
+            ? residuewise_outlier_summary.getDataFromFile
+            : residuewise_outlier_summary.getDataFromApiProvider(cache)
     });
 }
 

@@ -42,19 +42,19 @@ if (!fs.existsSync(outPath)) fs.mkdirSync(outPath);
 async function run() {
     try {
         // const testFile = '1crn.cif'
-        const testFile = '1grm_updated.cif'
-        // const request = createJob({
-        //     entryId: path.join(examplesPath, testFile),
-        //     queryName: 'full',
-        //     queryParams: { }
-        // });
+        const testFile = '1cbs_updated.cif'
         const request = createJob({
             entryId: path.join(examplesPath, testFile),
-            queryName: 'atoms',
-            queryParams: {
-                atom_site: { label_comp_id: 'ALA' }
-            }
+            queryName: 'full',
+            queryParams: { }
         });
+        // const request = createJob({
+        //     entryId: path.join(examplesPath, testFile),
+        //     queryName: 'atoms',
+        //     queryParams: {
+        //         atom_site: { label_comp_id: 'ALA' }
+        //     }
+        // });
         const encoder = await resolveJob(request);
         const writer = wrapFile(path.join(outPath, testFile));
         encoder.writeTo(writer);

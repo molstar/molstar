@@ -51,7 +51,7 @@ const config = {
      * Paths (relative to the root directory of the model server) to JavaScript files that specify custom properties
      */
     customPropertyProviders: [
-        // './properties/pdbe',
+        './properties/pdbe',
         // './properties/rcsb'
     ],
 

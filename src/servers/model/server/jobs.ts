@@ -41,12 +41,12 @@ export function createJob<Name extends QueryName>(definition: JobDefinition<Name
     if (!queryDefinition) throw new Error(`Query '${definition.queryName}' is not supported.`);
 
     const normalizedParams = normalizeQueryParams(queryDefinition, definition.queryParams);
-
+    const sourceId = definition.sourceId || '_local_';
     return {
         id: UUID.create(),
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
-        key: `${definition.sourceId}/${definition.entryId}`,
-        sourceId: definition.sourceId || '_local_',
+        key: `${sourceId}/${definition.entryId}`,
+        sourceId,
         entryId: definition.entryId,
         queryDefinition,
         normalizedParams,

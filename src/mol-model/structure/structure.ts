@@ -13,3 +13,4 @@ import StructureProperties from './structure/properties'
 
 export { StructureElement, Link, Structure, Unit, StructureSymmetry, StructureProperties }
 export * from './structure/unit/rings'
+export * from './export/mmcif'
