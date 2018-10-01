@@ -63,18 +63,22 @@ export const _atom_site: CifCategory<CifExportContext> = {
     }
 }
 
-function prefixed(prefix: string, name: string) {
-    return prefix ? `${prefix}_${name}` : name;
+function prepostfixed(prefix: string | undefined, postfix: string | undefined, name: string) {
+    if (prefix && postfix) return `${prefix}_${name}_${postfix}`;
+    if (prefix) return `${prefix}_${name}`;
+    if (postfix) return `${name}_${postfix}`;
+    return name;
 }
 
 function mappedProp<K, D>(loc: (key: K, data: D) => StructureElement, prop: (e: StructureElement) => any) {
     return (k: K, d: D) => prop(loc(k, d));
 }
 
-export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, prefix = ''): CifField<K, D>[] {
+export function residueIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: { prefix?: string, postfix?: string }): CifField<K, D>[] {
+    const prefix = options && options.prefix, postfix = options && options.postfix;
     return CifWriter.fields<K, D>()
-        .str(prefixed(prefix, `label_comp_id`), mappedProp(getLocation, P.residue.label_comp_id))
-        .int(prefixed(prefix, `label_seq_id`), mappedProp(getLocation, P.residue.label_seq_id), {
+        .str(prepostfixed(prefix, postfix, `label_comp_id`), mappedProp(getLocation, P.residue.label_comp_id))
+        .int(prepostfixed(prefix, postfix, `label_seq_id`), mappedProp(getLocation, P.residue.label_seq_id), {
             encoder: E.deltaRLE,
             valueKind: (k, d) => {
                 const e = getLocation(k, d);
@@ -82,21 +86,55 @@ export function residueIdFields<K, D>(getLocation: (key: K, data: D) => Structur
                 return m.atomicHierarchy.residues.label_seq_id.valueKind(m.atomicHierarchy.residueAtomSegments.index[e.element]);
             }
         })
-        .str(prefixed(prefix, `pdbx_PDB_ins_code`), mappedProp(getLocation, P.residue.pdbx_PDB_ins_code))
+        .str(prepostfixed(prefix, postfix, `pdbx_PDB_ins_code`), mappedProp(getLocation, P.residue.pdbx_PDB_ins_code))
 
-        .str(prefixed(prefix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
-        .str(prefixed(prefix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
+        .str(prepostfixed(prefix, postfix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
+        .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
 
-        .str(prefixed(prefix, `auth_comp_id`), mappedProp(getLocation, P.residue.auth_comp_id))
-        .int(prefixed(prefix, `auth_seq_id`), mappedProp(getLocation, P.residue.auth_seq_id), { encoder: E.deltaRLE })
-        .str(prefixed(prefix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
+        .str(prepostfixed(prefix, postfix, `auth_comp_id`), mappedProp(getLocation, P.residue.auth_comp_id))
+        .int(prepostfixed(prefix, postfix, `auth_seq_id`), mappedProp(getLocation, P.residue.auth_seq_id), { encoder: E.deltaRLE })
+        .str(prepostfixed(prefix, postfix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
         .getFields();
 }
 
-export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, prefix = ''): CifField<K, D>[] {
+export function chainIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: { prefix?: string, postfix?: string }): CifField<K, D>[] {
+    const prefix = options && options.prefix, postfix = options && options.postfix;
     return CifField.build<K, D>()
-        .str(prefixed(prefix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
-        .str(prefixed(prefix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
-        .str(prefixed(prefix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
+        .str(prepostfixed(prefix, postfix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
+        .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
+        .str(prepostfixed(prefix, postfix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
+        .getFields();
+}
+
+export function entityIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: { prefix?: string, postfix?: string }): CifField<K, D>[] {
+    const prefix = options && options.prefix, postfix = options && options.postfix;
+    return CifField.build<K, D>()
+        .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
+        .getFields();
+}
+
+export function atomIdFields<K, D>(getLocation: (key: K, data: D) => StructureElement, options?: { prefix?: string, postfix?: string }): CifField<K, D>[] {
+    const prefix = options && options.prefix, postfix = options && options.postfix;
+    return CifWriter.fields<K, D>()
+        .str(prepostfixed(prefix, postfix, `label_atom_id`), mappedProp(getLocation, P.atom.label_atom_id))
+        .str(prepostfixed(prefix, postfix, `label_comp_id`), mappedProp(getLocation, P.residue.label_comp_id))
+        .int(prepostfixed(prefix, postfix, `label_seq_id`), mappedProp(getLocation, P.residue.label_seq_id), {
+            encoder: E.deltaRLE,
+            valueKind: (k, d) => {
+                const e = getLocation(k, d);
+                const m = e.unit.model;
+                return m.atomicHierarchy.residues.label_seq_id.valueKind(m.atomicHierarchy.residueAtomSegments.index[e.element]);
+            }
+        })
+        .str(prepostfixed(prefix, postfix, `label_alt_id`), mappedProp(getLocation, P.atom.label_alt_id))
+        .str(prepostfixed(prefix, postfix, `pdbx_PDB_ins_code`), mappedProp(getLocation, P.residue.pdbx_PDB_ins_code))
+
+        .str(prepostfixed(prefix, postfix, `label_asym_id`), mappedProp(getLocation, P.chain.label_asym_id))
+        .str(prepostfixed(prefix, postfix, `label_entity_id`), mappedProp(getLocation, P.chain.label_entity_id))
+
+        .str(prepostfixed(prefix, postfix, `auth_atom_id`), mappedProp(getLocation, P.atom.auth_atom_id))
+        .str(prepostfixed(prefix, postfix, `auth_comp_id`), mappedProp(getLocation, P.residue.auth_comp_id))
+        .int(prepostfixed(prefix, postfix, `auth_seq_id`), mappedProp(getLocation, P.residue.auth_seq_id), { encoder: E.deltaRLE })
+        .str(prepostfixed(prefix, postfix, `auth_asym_id`), mappedProp(getLocation, P.chain.auth_asym_id))
         .getFields();
 }
