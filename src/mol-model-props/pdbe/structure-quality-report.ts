@@ -8,7 +8,7 @@ import { Column, Table } from 'mol-data/db';
 import { toTable } from 'mol-io/reader/cif/schema';
 import { mmCIF_residueId_schema } from 'mol-io/reader/cif/schema/mmcif-extras';
 import { CifWriter } from 'mol-io/writer/cif';
-import { Model, ModelPropertyDescriptor, ResidueCustomProperty, ResidueIndex, StructureProperties as P, Unit } from 'mol-model/structure';
+import { Model, ModelPropertyDescriptor, ResidueIndex, StructureProperties as P, Unit, IndexedCustomProperty } from 'mol-model/structure';
 import { residueIdFields } from 'mol-model/structure/export/categories/atom_site';
 import { StructureElement } from 'mol-model/structure/structure';
 import { CustomPropSymbol } from 'mol-script/language/symbol';
@@ -18,7 +18,7 @@ import { PropertyWrapper } from '../common/wrapper';
 import CifField = CifWriter.Field;
 
 export namespace StructureQualityReport {
-    export type IssueMap = ResidueCustomProperty<string[]>
+    export type IssueMap = IndexedCustomProperty.Residue<string[]>
     export type Property = PropertyWrapper<IssueMap | undefined>
 
     export function get(model: Model): Property | undefined {
@@ -38,7 +38,7 @@ export namespace StructureQualityReport {
                     instance(ctx) {
                         return {
                             fields: _structure_quality_report_issues_fields,
-                            source: ctx.structures.map(s => ResidueCustomProperty.getCifDataSource(s, StructureQualityReport.getIssueMap(s.model), ctx.cache))
+                            source: ctx.structures.map(s => IndexedCustomProperty.getCifDataSource(s, StructureQualityReport.getIssueMap(s.model), ctx.cache))
                         };
                     }
                 }]
@@ -111,13 +111,13 @@ export namespace StructureQualityReport {
     }
 }
 
-type ExportCtx = ResidueCustomProperty.ExportCtx<string[]>
-const _structure_quality_report_issues_fields: CifField<number, ExportCtx>[] = [
-    CifField.index('id'),
-    ...residueIdFields<number, ExportCtx>((i, d) => d.elements[i]),
-    CifField.int<number, ExportCtx>('pdbx_PDB_model_num', (i, d) => P.unit.model_num(d.elements[i])),
-    CifField.str<number, ExportCtx>('issues', (i, d) => d.property(i).join(','))
-];
+type ExportCtx = IndexedCustomProperty.ExportCtx<string[]>
+const _structure_quality_report_issues_fields: CifField<number, ExportCtx>[] = CifWriter.fields()
+    .index('id')
+    .many(residueIdFields((i, d) => d.elements[i]))
+    .int('pdbx_PDB_model_num', (i, d) => P.unit.model_num(d.elements[i]))
+    .str('issues', (i, d) => d.property(i).join(','))
+    .getFields()
 
 function createIssueMapFromJson(modelData: Model, data: any): StructureQualityReport.IssueMap | undefined {
     const ret = new Map<ResidueIndex, string[]>();
@@ -140,7 +140,7 @@ function createIssueMapFromJson(modelData: Model, data: any): StructureQualityRe
         }
     }
 
-    return ResidueCustomProperty.fromMap(ret, Unit.Kind.Atomic);
+    return IndexedCustomProperty.fromResidueMap(ret, Unit.Kind.Atomic);
 }
 
 function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issues>): StructureQualityReport.IssueMap | undefined {
@@ -153,5 +153,5 @@ function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQua
         ret.set(idx, issues.value(i));
     }
 
-    return ResidueCustomProperty.fromMap(ret, Unit.Kind.Atomic);
+    return IndexedCustomProperty.fromResidueMap(ret, Unit.Kind.Atomic);
 }

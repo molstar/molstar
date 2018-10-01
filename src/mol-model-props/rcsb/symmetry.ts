@@ -178,6 +178,9 @@ export namespace AssemblySymmetry {
 
         let db: Database
 
+        // TODO: there should be a "meta field" that indicates the property was added (see for example PDBe structure report)
+        // the reason for this is that the feature might not be present and therefore the "default" categories would
+        // not be created. This would result in an unnecessarily failed web request.
         if (model.sourceData.kind === 'mmCIF' && model.sourceData.frame.categoryNames.includes('rcsb_assembly_symmetry_feature')) {
             const rcsb_assembly_symmetry_feature = toTable(Schema.rcsb_assembly_symmetry_feature, model.sourceData.frame.categories.rcsb_assembly_symmetry_feature)
 

@@ -95,6 +95,11 @@ export namespace Field {
             return this;
         }
 
+        many(fields: ArrayLike<Field<K, D>>) {
+            for (let i = 0; i < fields.length; i++) this.fields.push(fields[i]);
+            return this;
+        }
+
         getFields() { return this.fields; }
     }
 

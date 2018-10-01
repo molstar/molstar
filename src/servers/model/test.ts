@@ -55,6 +55,14 @@ async function run() {
         //         atom_site: { label_comp_id: 'ALA' }
         //     }
         // });
+        // const request = createJob({
+        //     entryId: path.join(examplesPath, testFile),
+        //     queryName: 'residueInteraction',
+        //     queryParams: {
+        //         atom_site: { label_comp_id: 'REA' },
+        //         radius: 5
+        //     }
+        // });
         const encoder = await resolveJob(request);
         const writer = wrapFile(path.join(outPath, testFile));
         encoder.writeTo(writer);
