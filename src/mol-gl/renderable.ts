@@ -5,7 +5,7 @@
  */
 
 import { Program } from './webgl/program';
-import { RenderableValues, Values, RenderableSchema, BaseValues } from './renderable/schema';
+import { RenderableValues, Values, RenderableSchema } from './renderable/schema';
 import { RenderVariant, RenderItem } from './webgl/render-item';
 import { Sphere3D } from 'mol-math/geometry';
 // import { calculateBoundingSphereFromValues } from './renderable/util';
@@ -17,7 +17,7 @@ export type RenderableState = {
     depthMask: boolean
 }
 
-export interface Renderable<T extends RenderableValues & BaseValues> {
+export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
     readonly boundingSphere: Sphere3D
@@ -29,7 +29,7 @@ export interface Renderable<T extends RenderableValues & BaseValues> {
     dispose: () => void
 }
 
-export function createRenderable<T extends Values<RenderableSchema> & BaseValues>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
+export function createRenderable<T extends Values<RenderableSchema>>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
     // TODO
     let boundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 50)
 
@@ -43,7 +43,7 @@ export function createRenderable<T extends Values<RenderableSchema> & BaseValues
             // boundingSphere = calculateBoundingSphereFromValues(values)
             // return boundingSphere
         },
-        get opaque () { return values.uAlpha.ref.value === 1 },
+        get opaque () { return values.uAlpha && values.uAlpha.ref.value === 1 },
 
         render: (variant: RenderVariant) => renderItem.render(variant),
         getProgram: (variant: RenderVariant) => renderItem.getProgram(variant),

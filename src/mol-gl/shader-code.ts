@@ -39,6 +39,11 @@ export const MeshShaderCode = ShaderCode(
     require('mol-gl/shader/mesh.frag')
 )
 
+export const GaussianDensityShaderCode = ShaderCode(
+    require('mol-gl/shader/gaussian-density.vert'),
+    require('mol-gl/shader/gaussian-density.frag')
+)
+
 export type ShaderDefines = {
     [k: string]: ValueCell<DefineType>
 }

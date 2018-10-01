@@ -4,10 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PointsRenderable, MeshRenderable, RenderableState, MeshValues, PointsValues, LinesValues, LinesRenderable } from './renderable'
+import { PointsRenderable, MeshRenderable, RenderableState, MeshValues, PointsValues, LinesValues, LinesRenderable, Renderable } from './renderable'
 import { RenderableValues } from './renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { Context } from './webgl/context';
+import { GaussianDensityValues, GaussianDensityRenderable } from './renderable/gaussian-density';
 
 const getNextId = idFactory(0, 0x7FFFFFFF)
 
@@ -15,7 +16,8 @@ export interface BaseRenderObject { id: number, type: string, values: Renderable
 export interface MeshRenderObject extends BaseRenderObject { type: 'mesh', values: MeshValues }
 export interface PointsRenderObject extends BaseRenderObject { type: 'points', values: PointsValues }
 export interface LinesRenderObject extends BaseRenderObject { type: 'lines', values: LinesValues }
-export type RenderObject = MeshRenderObject | PointsRenderObject | LinesRenderObject
+export interface GaussianDensityRenderObject extends BaseRenderObject { type: 'gaussian-density', values: GaussianDensityValues }
+export type RenderObject = MeshRenderObject | PointsRenderObject | LinesRenderObject | GaussianDensityRenderObject
 
 export function createMeshRenderObject(values: MeshValues, state: RenderableState): MeshRenderObject {
     return { id: getNextId(), type: 'mesh', values, state }
@@ -26,11 +28,15 @@ export function createPointsRenderObject(values: PointsValues, state: Renderable
 export function createLinesRenderObject(values: LinesValues, state: RenderableState): LinesRenderObject {
     return { id: getNextId(), type: 'lines', values, state }
 }
+export function createGaussianDensityRenderObject(values: GaussianDensityValues, state: RenderableState): GaussianDensityRenderObject {
+    return { id: getNextId(), type: 'gaussian-density', values, state }
+}
 
-export function createRenderable(ctx: Context, o: RenderObject) {
+export function createRenderable(ctx: Context, o: RenderObject): Renderable<any> {
     switch (o.type) {
         case 'mesh': return MeshRenderable(ctx, o.id, o.values, o.state)
         case 'points': return PointsRenderable(ctx, o.id, o.values, o.state)
         case 'lines': return LinesRenderable(ctx, o.id, o.values, o.state)
+        case 'gaussian-density': return GaussianDensityRenderable(ctx, o.id, o.values, o.state)
     }
 }
