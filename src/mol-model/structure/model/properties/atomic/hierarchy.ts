@@ -154,9 +154,22 @@ export interface AtomicIndex {
      * Find the residue index where the spefied residue should be inserted to maintain the ordering (entity_id, asym_id, seq_id, ins_code).
      * Useful for determining ranges for sequence-level annotations.
      * @param pdbx_PDB_ins_code Empty string for undefined
-     * @returns index or -1 if entity or chain is not present.
      */
     findResidueInsertion(key: AtomicIndex.ResidueLabelKey): ResidueIndex,
+
+    /**
+     * Find element index of an atom.
+     * @param key
+     * @returns index or -1 if the atom is not present.
+     */
+    findAtom(key: AtomicIndex.AtomKey): ElementIndex,
+
+    /**
+     * Find element index of an atom.
+     * @param key
+     * @returns index or -1 if the atom is not present.
+     */
+    findAtomAuth(key: AtomicIndex.AtomAuthKey): ElementIndex
 
     // TODO: add indices that support comp_id?
 }
@@ -170,6 +183,9 @@ export namespace AtomicIndex {
 
     export interface ResidueAuthKey { auth_asym_id: string, auth_comp_id: string, auth_seq_id: number, pdbx_PDB_ins_code?: string }
     export interface ResidueLabelKey { label_entity_id: string, label_asym_id: string, label_seq_id: number, pdbx_PDB_ins_code?: string }
+
+    export interface AtomKey extends ResidueKey { label_atom_id: string, label_alt_id?: string }
+    export interface AtomAuthKey extends ResidueAuthKey { auth_atom_id: string, label_alt_id?: string }
 }
 
 export interface AtomicRanges {
