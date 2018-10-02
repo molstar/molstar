@@ -196,7 +196,7 @@ function writeChecked(builder: StringBuilder, val: string) {
         return false;
     }
 
-    let escape = false, escapeCharStart = '\'', escapeCharEnd = '\' ';
+    let escape = val.charCodeAt(0) === 95 /* _ */, escapeCharStart = '\'', escapeCharEnd = '\' ';
     let hasWhitespace = false;
     let hasSingle = false;
     let hasDouble = false;

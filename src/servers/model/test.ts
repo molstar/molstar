@@ -42,13 +42,13 @@ if (!fs.existsSync(outPath)) fs.mkdirSync(outPath);
 async function run() {
     try {
         // const testFile = '1crn.cif'
-        // const testFile = '1grm_updated.cif'
-        const testFile = 'C:/Projects/mol-star/molstar-proto/build/test/1grm_updated.cif'
+        const testFile = '1grm_updated.cif'
+        //const testFile = 'C:/Projects/mol-star/molstar-proto/build/test/1grm_updated.cif'
         const request = createJob({
-            entryId: testFile, //path.join(examplesPath, testFile),
+            entryId: path.join(examplesPath, testFile),
             queryName: 'full',
             queryParams: { },
-            options: { modelNums: [ 2, 3 ] }
+            // options: { modelNums: [ 2, 3 ] }
         });
         // const request = createJob({
         //     entryId: path.join(examplesPath, testFile),
