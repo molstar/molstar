@@ -6,7 +6,6 @@
 
 import { CifWriter } from 'mol-io/writer/cif';
 import { Model } from 'mol-model/structure';
-import { CifExportContext } from 'mol-model/structure';
 import { dateToUtcString } from 'mol-util/date';
 
 interface PropertyWrapper<Data> {
@@ -23,22 +22,21 @@ namespace PropertyWrapper {
         return { timestamp_utc: dateToUtcString(new Date()) };
     }
 
-    export function defaultInfoCategory(name: string, getter: (model: Model) => PropertyWrapper<unknown> | undefined): CifWriter.Category<CifExportContext> {
+    export function defaultInfoCategory<Ctx>(name: string, getter: (ctx: Ctx) => Info | undefined): CifWriter.Category<Ctx> {
         return {
             name,
             instance(ctx) {
-                const prop = getter(ctx.firstModel);
-                if (!prop) return CifWriter.Category.Empty;
+                const info = getter(ctx);
                 return {
                     fields: _info_fields,
-                    source: [{ data: prop.info.timestamp_utc, rowCount: 1 }]
+                    source: [{ data: info, rowCount: 1 }]
                 };
             }
         }
     }
 
-    const _info_fields: CifWriter.Field<number, string>[] = [
-        CifWriter.Field.str('updated_datetime_utc', (_, date) => date)
+    const _info_fields: CifWriter.Field<number, Info>[] = [
+        CifWriter.Field.str('updated_datetime_utc', (_, date) => date.timestamp_utc)
     ];
 
     export function tryGetInfoFromCif(categoryName: string, model: Model): Info | undefined {

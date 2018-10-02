@@ -16,6 +16,7 @@ import { _chem_comp, _pdbx_chem_comp_identifier } from './categories/misc';
 import { Model } from '../model';
 import { getUniqueEntityIndicesFromStructures } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
+import { ModelPropertyDescriptor } from '../model/properties/custom';
 
 export interface CifExportContext {
     structures: Structure[],
@@ -126,10 +127,20 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
 
         const prefix = customProp.cifExport.prefix;
         const cats = customProp.cifExport.categories;
+
+        let propCtx = ctx;
+        if (customProp.cifExport.context) {
+            const propId = ModelPropertyDescriptor.getUUID(customProp);
+            if (ctx.cache[propId + '__ctx']) propCtx = ctx.cache[propId + '__ctx'];
+            else {
+                propCtx = customProp.cifExport.context(ctx) || ctx;
+                ctx.cache[propId + '__ctx'] = propCtx;
+            }
+        }
         for (const cat of cats) {
             if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
             if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
-            encoder.writeCategory(cat, ctx);
+            encoder.writeCategory(cat, propCtx);
         }
     }
 }

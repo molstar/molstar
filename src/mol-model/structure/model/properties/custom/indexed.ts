@@ -17,14 +17,14 @@ export interface IndexedCustomProperty<Idx extends IndexedCustomProperty.Index, 
     readonly level: IndexedCustomProperty.Level,
     has(idx: Idx): boolean,
     get(idx: Idx): T | undefined,
-    getExportContext(structure: Structure): IndexedCustomProperty.ExportCtx<T>
+    getElements(structure: Structure): IndexedCustomProperty.Elements<T>
 }
 
 export namespace IndexedCustomProperty {
     export type Index = ElementIndex | ResidueIndex | ChainIndex | EntityIndex
     export type Level = 'atom' | 'residue' | 'chain' | 'entity'
 
-    export interface ExportCtx<T> {
+    export interface Elements<T> {
         elements: StructureElement[],
         property(index: number): T
     }
@@ -32,7 +32,7 @@ export namespace IndexedCustomProperty {
     export function getCifDataSource<Idx extends Index, T>(structure: Structure, prop: IndexedCustomProperty<Idx, T> | undefined, cache: any): CifWriter.Category.Instance['source'][0] {
         if (!prop) return { rowCount: 0 };
         if (cache && cache[prop.id]) return cache[prop.id];
-        const data = prop.getExportContext(structure);
+        const data = prop.getElements(structure);
         const ret = { data, rowCount: data.elements.length };
         if (cache) cache[prop.id] = ret;
         return ret;
@@ -117,7 +117,7 @@ class SegmentedMappedIndexedCustomProperty<Idx extends IndexedCustomProperty.Ind
         return loci;
     }
 
-    getExportContext(structure: Structure): IndexedCustomProperty.ExportCtx<T> {
+    getElements(structure: Structure): IndexedCustomProperty.Elements<T> {
         const index = this.segmentGetter(structure.model).index;
         const elements = this.getStructureElements(structure);
         return { elements, property: i => this.get(index[elements[i].element])! };
@@ -162,7 +162,7 @@ class ElementMappedCustomProperty<T = any> implements IndexedCustomProperty<Elem
         return loci;
     }
 
-    getExportContext(structure: Structure): IndexedCustomProperty.ExportCtx<T> {
+    getElements(structure: Structure): IndexedCustomProperty.Elements<T> {
         const elements = this.getStructureElements(structure);
         return { elements, property: i => this.get(elements[i].element)! };
     }
@@ -210,7 +210,7 @@ class EntityMappedCustomProperty<T = any> implements IndexedCustomProperty<Entit
         return loci;
     }
 
-    getExportContext(structure: Structure): IndexedCustomProperty.ExportCtx<T> {
+    getElements(structure: Structure): IndexedCustomProperty.Elements<T> {
         const elements = this.getStructureElements(structure);
         const chainIndex = structure.model.atomicHierarchy.chainAtomSegments.index;
         const index = structure.model.atomicHierarchy.index;

@@ -18,7 +18,7 @@ export class QueryRuntimeTable {
         this.map.set(runtime.symbol.id, runtime);
     }
 
-    addCustomProp(desc: ModelPropertyDescriptor) {
+    addCustomProp(desc: ModelPropertyDescriptor<any>) {
         if (!desc.symbols) return;
 
         for (const k of Object.keys(desc.symbols)) {
