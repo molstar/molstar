@@ -140,7 +140,7 @@ function createIssueMapFromJson(modelData: Model, data: any): StructureQualityRe
         }
     }
 
-    return IndexedCustomProperty.fromResidueMap(ret, Unit.Kind.Atomic);
+    return IndexedCustomProperty.fromResidueMap(ret);
 }
 
 function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issues>): StructureQualityReport.IssueMap | undefined {
@@ -153,5 +153,5 @@ function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQua
         ret.set(idx, issues.value(i));
     }
 
-    return IndexedCustomProperty.fromResidueMap(ret, Unit.Kind.Atomic);
+    return IndexedCustomProperty.fromResidueMap(ret);
 }
