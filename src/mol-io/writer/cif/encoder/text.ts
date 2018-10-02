@@ -164,7 +164,7 @@ function writeCifLoop(category: Category, instance: Category.Instance, source: C
 }
 
 function isMultiline(value: string) {
-    return !!value && value.indexOf('\n') >= 0;
+    return typeof value === 'string' && value.indexOf('\n') >= 0;
 }
 
 function writeLine(builder: StringBuilder, val: string) {
