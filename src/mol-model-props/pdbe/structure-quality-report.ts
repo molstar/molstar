@@ -36,10 +36,50 @@ export namespace StructureQualityReport {
                 {
                     name: 'pdbe_structure_quality_report_issues',
                     instance(ctx) {
+                        const prop = get(ctx.firstModel);
+                        if (!prop) return CifWriter.Category.Empty;
+
+                        let groupCtx: ReportExportContext;
+                        if (ctx.cache.pdbe_structure_quality_report_issues) groupCtx = ctx.cache.pdbe_structure_quality_report_issues;
+                        else {
+                            const exportCtx = prop.data!.getExportContext(ctx.structures[0]);
+                            groupCtx = createExportContext(exportCtx);
+                            ctx.cache.pdbe_structure_quality_report_issues = groupCtx;
+                        }
+
                         return {
                             fields: _structure_quality_report_issues_fields,
-                            source: ctx.structures.map(s => IndexedCustomProperty.getCifDataSource(s, StructureQualityReport.getIssueMap(s.model), ctx.cache))
-                        };
+                            source: [{ data: groupCtx, rowCount: groupCtx.elements.length }]
+                        }
+
+                        // return {
+                        //     fields: _structure_quality_report_issues_fields,
+                        //     source: ctx.structures.map(s => IndexedCustomProperty.getCifDataSource(s, StructureQualityReport.getIssueMap(s.model), ctx.cache))
+                        // };
+                    }
+                }, {
+                    name: 'pdbe_structure_quality_report_issue_types',
+                    instance(ctx) {
+                        const prop = get(ctx.firstModel);
+                        if (!prop) return CifWriter.Category.Empty;
+
+                        let groupCtx: ReportExportContext;
+                        if (ctx.cache.pdbe_structure_quality_report_issues) groupCtx = ctx.cache.pdbe_structure_quality_report_issues;
+                        else {
+                            const exportCtx = prop.data!.getExportContext(ctx.structures[0]);
+                            groupCtx = createExportContext(exportCtx);
+                            ctx.cache.pdbe_structure_quality_report_issues = groupCtx;
+                        }
+
+                        return {
+                            fields: _structure_quality_report_issue_types_fields,
+                            source: [{ data: groupCtx, rowCount: groupCtx.rows.length }]
+                        }
+
+                        // return {
+                        //     fields: _structure_quality_report_issues_fields,
+                        //     source: ctx.structures.map(s => IndexedCustomProperty.getCifDataSource(s, StructureQualityReport.getIssueMap(s.model), ctx.cache))
+                        // };
                     }
                 }]
         },
@@ -58,13 +98,20 @@ export namespace StructureQualityReport {
             id: Column.Schema.int,
             ...mmCIF_residueId_schema,
             pdbx_PDB_model_num: Column.Schema.int,
-            issues: Column.Schema.List(',', x => x)
+            issue_group_id: Column.Schema.int
+        },
+        pdbe_structure_quality_report_issue_types: {
+            group_id: Column.Schema.int,
+            issue_type: Column.Schema.str
         }
     }
 
     function getCifData(model: Model) {
         if (model.sourceData.kind !== 'mmCIF') throw new Error('Data format must be mmCIF.');
-        return toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.frame.categories.pdbe_structure_quality_report_issues);
+        return {
+            residues: toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.frame.categories.pdbe_structure_quality_report_issues),
+            groups: toTable(Schema.pdbe_structure_quality_report_issue_types, model.sourceData.frame.categories.pdbe_structure_quality_report_issue_types),
+        }
     }
 
     export async function attachFromCifOrApi(model: Model, params: {
@@ -77,7 +124,7 @@ export namespace StructureQualityReport {
         let info = PropertyWrapper.tryGetInfoFromCif('pdbe_structure_quality_report', model);
         if (info) {
             const data = getCifData(model);
-            issueMap = createIssueMapFromCif(model, data);
+            issueMap = createIssueMapFromCif(model, data.residues, data.groups);
         } else if (params.PDBe_apiSourceJson) {
             const data = await params.PDBe_apiSourceJson(model);
             if (!data) return false;
@@ -112,12 +159,39 @@ export namespace StructureQualityReport {
 }
 
 type ExportCtx = IndexedCustomProperty.ExportCtx<string[]>
-const _structure_quality_report_issues_fields: CifField<number, ExportCtx>[] = CifWriter.fields()
+const _structure_quality_report_issues_fields: CifField<number, ReportExportContext>[] = CifWriter.fields<number, ReportExportContext>()
     .index('id')
-    .many(residueIdFields((i, d) => d.elements[i]))
-    .int('pdbx_PDB_model_num', (i, d) => P.unit.model_num(d.elements[i]))
-    .str('issues', (i, d) => d.property(i).join(','))
-    .getFields()
+    .many(residueIdFields((i, d) => d.elements[i], { includeModelNum: true }))
+    .int('group_id', (i, d) => d.groupId[i])
+    .getFields();
+
+interface ReportExportContext extends ExportCtx {
+    groupId: number[],
+    rows: [number, string][]
+}
+const _structure_quality_report_issue_types_fields: CifField<number, ReportExportContext>[] = CifWriter.fields<number, ReportExportContext>()
+    .int('group_id', (i, d) => d.rows[i][0])
+    .str('issue_type', (i, d) => d.rows[i][1])
+    .getFields();
+
+function createExportContext(ctx: ExportCtx): ReportExportContext {
+    const groupMap = new Map<string, number>();
+    const groupId: number[] = [];
+    const rows: ReportExportContext['rows'] = [];
+    for (let i = 0; i < ctx.elements.length; i++) {
+        const issues = ctx.property(i);
+        const key = issues.join(',');
+        if (!groupMap.has(key)) {
+            const idx = groupMap.size + 1;
+            groupMap.set(key, idx);
+            for (const issue of issues) {
+                rows.push([idx, issue]);
+            }
+        }
+        groupId[i] = groupMap.get(key)!;
+    }
+    return { ...ctx, groupId, rows };
+}
 
 function createIssueMapFromJson(modelData: Model, data: any): StructureQualityReport.IssueMap | undefined {
     const ret = new Map<ResidueIndex, string[]>();
@@ -143,15 +217,36 @@ function createIssueMapFromJson(modelData: Model, data: any): StructureQualityRe
     return IndexedCustomProperty.fromResidueMap(ret);
 }
 
-function createIssueMapFromCif(modelData: Model, data: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issues>): StructureQualityReport.IssueMap | undefined {
+function createIssueMapFromCif(modelData: Model,
+    residueData: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issues>,
+    groupData: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issue_types>): StructureQualityReport.IssueMap | undefined {
+
     const ret = new Map<ResidueIndex, string[]>();
-    const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issues, pdbx_PDB_model_num, _rowCount } = data;
+    const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issue_group_id, pdbx_PDB_model_num, _rowCount } = residueData;
+
+    const groups = parseIssueTypes(groupData);
 
     for (let i = 0; i < _rowCount; i++) {
         if (pdbx_PDB_model_num.value(i) !== modelData.modelNum) continue;
         const idx = modelData.atomicHierarchy.index.findResidue(label_entity_id.value(i), label_asym_id.value(i), auth_seq_id.value(i), pdbx_PDB_ins_code.value(i));
-        ret.set(idx, issues.value(i));
+        ret.set(idx, groups.get(issue_group_id.value(i))!);
     }
 
     return IndexedCustomProperty.fromResidueMap(ret);
+}
+
+function parseIssueTypes(groupData: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issue_types>): Map<number, string[]> {
+    const ret = new Map<number, string[]>();
+    const { group_id, issue_type } = groupData;
+    for (let i = 0; i < groupData._rowCount; i++) {
+        let group: string[];
+        const id = group_id.value(i);
+        if (ret.has(id)) group = ret.get(id)!;
+        else {
+            group = [];
+            ret.set(id, group);
+        }
+        group.push(issue_type.value(i));
+    }
+    return ret;
 }

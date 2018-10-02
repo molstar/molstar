@@ -43,11 +43,11 @@ async function run() {
     try {
         // const testFile = '1crn.cif'
         const testFile = '1cbs_updated.cif'
-        const request = createJob({
-            entryId: path.join(examplesPath, testFile),
-            queryName: 'full',
-            queryParams: { }
-        });
+        // const request = createJob({
+        //     entryId: path.join(examplesPath, testFile),
+        //     queryName: 'full',
+        //     queryParams: { }
+        // });
         // const request = createJob({
         //     entryId: path.join(examplesPath, testFile),
         //     queryName: 'atoms',
@@ -55,14 +55,14 @@ async function run() {
         //         atom_site: { label_comp_id: 'ALA' }
         //     }
         // });
-        // const request = createJob({
-        //     entryId: path.join(examplesPath, testFile),
-        //     queryName: 'residueInteraction',
-        //     queryParams: {
-        //         atom_site: { label_comp_id: 'REA' },
-        //         radius: 5
-        //     }
-        // });
+        const request = createJob({
+            entryId: path.join(examplesPath, testFile),
+            queryName: 'residueInteraction',
+            queryParams: {
+                atom_site: { label_comp_id: 'REA' },
+                radius: 5
+            }
+        });
         const encoder = await resolveJob(request);
         const writer = wrapFile(path.join(outPath, testFile));
         encoder.writeTo(writer);
