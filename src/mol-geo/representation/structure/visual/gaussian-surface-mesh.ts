@@ -26,6 +26,32 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
     const surface = await computeMarchingCubesMesh(params, mesh).runAsChild(ctx)
 
     Mesh.transformImmediate(surface, transform)
+
+    if (props.useGpu) {
+        console.time('find closest atom for vertices')
+        const { lookup3d } = unit
+        const maxRadius = 2
+        const maxRadiusSq = maxRadius * maxRadius
+
+        const { vertexCount, vertexBuffer, groupBuffer } = surface
+        const vertices = vertexBuffer.ref.value
+        const groups = groupBuffer.ref.value
+        for (let i = 0; i < vertexCount; ++i) {
+            const r = lookup3d.find(vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2], maxRadiusSq)
+            let minDsq = Infinity
+            let group = 0
+            for (let j = 0, jl = r.count; j < jl; ++j) {
+                const dSq = r.squaredDistances[j]
+                if (dSq < minDsq) {
+                    minDsq = dSq
+                    group = r.indices[j]
+                }
+            }
+            groups[i] = group
+        }
+        console.timeEnd('find closest atom for vertices')
+    }
+
     Mesh.computeNormalsImmediate(surface)
     Mesh.uniformTriangleGroup(surface)
 
