@@ -10,6 +10,7 @@ import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-r
 import { fetchRetry } from '../../utils/fetch-retry';
 import { UUID } from 'mol-util';
 import { PDBePreferredAssembly } from 'mol-model-props/pdbe/preferred-assembly';
+import { PDBeStructRefDomain } from 'mol-model-props/pdbe/struct-ref-domain';
 
 const USE_FILE_SOURCE = false;
 
@@ -29,8 +30,20 @@ export function PDBe_preferredAssembly(model: Model, cache: any) {
     });
 }
 
+export function PDBe_structRefDomain(model: Model, cache: any) {
+    return PDBeStructRefDomain.attachFromCifOrApi(model, {
+        PDBe_apiSourceJson: USE_FILE_SOURCE
+            ? void 0
+            : struct_ref_domain.getDataFromApiProvider(cache)
+    });
+}
+
 namespace preferred_assembly {
     export const getDataFromApiProvider = apiQueryProvider('https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary');
+}
+
+namespace struct_ref_domain {
+    export const getDataFromApiProvider = apiQueryProvider('https://www.ebi.ac.uk/pdbe/api/mappings/sequence_domains');
 }
 
 namespace residuewise_outlier_summary {

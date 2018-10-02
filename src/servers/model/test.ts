@@ -49,7 +49,7 @@ async function run() {
         //     queryName: 'full',
         //     queryParams: { },
         // });
-        const testFile = '1grm_updated.cif'
+        const testFile = '1cbs_updated.cif'
         const request = createJob({
             entryId: path.join(examplesPath, testFile),
             queryName: 'full',

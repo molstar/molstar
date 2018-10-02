@@ -6,13 +6,14 @@
  */
 
 import { Model } from 'mol-model/structure';
-import { PDBe_structureQualityReport, PDBe_preferredAssembly } from './providers/pdbe';
+import { PDBe_structureQualityReport, PDBe_preferredAssembly, PDBe_structRefDomain } from './providers/pdbe';
 
 export function attachModelProperties(model: Model, cache: object): Promise<any>[] {
     // return a list of promises that start attaching the props in parallel
     // (if there are downloads etc.)
     return [
         PDBe_structureQualityReport(model, cache),
-        PDBe_preferredAssembly(model, cache)
+        PDBe_preferredAssembly(model, cache),
+        PDBe_structRefDomain(model, cache)
     ];
 }
