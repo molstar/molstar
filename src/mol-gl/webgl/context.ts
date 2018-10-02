@@ -80,6 +80,8 @@ export interface Context {
     instanceCount: number
     instancedDrawCount: number
 
+    readonly maxTextureSize: number
+
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
     destroy: () => void
@@ -106,6 +108,10 @@ export function createContext(gl: WebGLRenderingContext): Context {
     const shaderCache = createShaderCache()
     const programCache = createProgramCache()
 
+    const parameters = {
+        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE)
+    }
+
     return {
         gl,
         extensions: { angleInstancedArrays, standardDerivatives, oesElementIndexUint, oesVertexArrayObject },
@@ -123,6 +129,8 @@ export function createContext(gl: WebGLRenderingContext): Context {
         drawCount: 0,
         instanceCount: 0,
         instancedDrawCount: 0,
+
+        get maxTextureSize () { return parameters.maxTextureSize },
 
         unbindFramebuffer: () => unbindFramebuffer(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {

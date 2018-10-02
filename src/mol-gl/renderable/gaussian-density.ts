@@ -24,6 +24,7 @@ export const GaussianDensitySchema = {
     uBboxMax: UniformSpec('v3'),
     uBboxSize: UniformSpec('v3'),
     uGridDim: UniformSpec('v3'),
+    uAlpha: UniformSpec('f'),
 }
 export type GaussianDensitySchema = typeof GaussianDensitySchema
 export type GaussianDensityValues = Values<GaussianDensitySchema>

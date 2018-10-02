@@ -17,6 +17,7 @@ uniform vec3 uGridDim;
 uniform float uCurrentSlice;
 uniform float uCurrentX;
 uniform float uCurrentY;
+uniform float uAlpha;
 
 void main() {
     vec3 tmpVec = gl_FragCoord.xyz;
@@ -28,8 +29,6 @@ void main() {
         (uCurrentSlice) / uGridDim.z
     );
     float dist = length(fragPos * uBboxSize - position * uBboxSize);
-    float density = 1.0 - smoothstep( 0.0, radius * 2.0, dist);
+    float density = exp(-uAlpha * ((dist * dist) / (radius * radius)));
     gl_FragColor = vec4(1, 1, 1, density);
-    // density = 1.0 - clamp((dist - (radius + 1.4)) + 0.5, 0.0, 1.0);				
-    // gl_FragColor = vec4(vec3(density), 1.0);
 }

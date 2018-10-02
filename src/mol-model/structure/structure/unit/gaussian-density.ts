@@ -9,12 +9,15 @@ import { SizeTheme } from 'mol-view/theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
-import { NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { NumberParam, paramDefaultValues, BooleanParam } from 'mol-view/parameter';
 
 export const GaussianDensityParams = {
     resolution: NumberParam('Resolution', '', 1, 0.1, 10, 0.1),
     radiusOffset: NumberParam('Radius Offset', '', 0, 0, 10, 0.1),
     smoothness: NumberParam('Smoothness', '', 1.5, 0, 4, 0.1),
+    useGpu: BooleanParam('Use GPU', '', true),
+    readSlices: BooleanParam('Read Slices', '', false),
+    ignoreCache: BooleanParam('Ignore Cache', '', false),
 }
 export const DefaultGaussianDensityProps = paramDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
@@ -52,8 +55,8 @@ export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityPro
 export async function computeUnitGaussianDensityCached(unit: Unit, props: GaussianDensityProps, cache: Map<string, DensityData>, ctx?: RuntimeContext) {
     const key = `${props.radiusOffset}|${props.resolution}|${props.smoothness}`
     let density = cache.get(key)
-    if (density) return density
+    if (density && !props.ignoreCache) return density
     density = ctx ? await computeUnitGaussianDensity(unit, props).runInContext(ctx) : await computeUnitGaussianDensity(unit, props).run()
-    cache.set(key, density)
+    if (!props.ignoreCache) cache.set(key, density)
     return density
 }

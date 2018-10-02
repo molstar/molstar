@@ -52,6 +52,9 @@ export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
+            if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
+            if (newProps.readSlices !== currentProps.readSlices) state.createGeometry = true
+            if (newProps.ignoreCache !== currentProps.ignoreCache) state.createGeometry = true
         }
     })
 }

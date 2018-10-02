@@ -10,6 +10,7 @@ import { App } from '../app';
 import { Params } from 'mol-view/parameter';
 import { Representation } from 'mol-geo/representation';
 import { ParametersComponent } from 'mol-app/component/parameters';
+import { Progress } from 'mol-task';
 
 export interface RepresentationComponentProps {
     app: App
@@ -24,7 +25,9 @@ export interface RepresentationComponentState {
 export class RepresentationComponent extends React.Component<RepresentationComponentProps, RepresentationComponentState> {
 
     async onChange(k: string, v: any) {
-        await this.props.app.runTask(this.props.repr.createOrUpdate({ [k]: v }).run(), 'Representation Update')
+        await this.props.app.runTask(this.props.repr.createOrUpdate({ [k]: v }).run(
+            progress => console.log(Progress.format(progress))
+        ), 'Representation Update')
         this.props.viewer.add(this.props.repr)
         this.props.viewer.requestDraw(true)
     }
