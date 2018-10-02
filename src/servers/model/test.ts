@@ -34,22 +34,28 @@ function wrapFile(fn: string) {
     return w;
 }
 
-const basePath = path.join(__dirname, '..', '..', '..', '..')
-const examplesPath = path.join(basePath, 'examples')
-const outPath = path.join(basePath, 'build', 'test')
+export const basePath = path.join(__dirname, '..', '..', '..', '..')
+export const examplesPath = path.join(basePath, 'examples')
+export const outPath = path.join(basePath, 'build', 'test')
 if (!fs.existsSync(outPath)) fs.mkdirSync(outPath);
 
 async function run() {
     try {
         // const testFile = '1crn.cif'
+        // const testFile = '1grm_updated.cif'
+        // const testFile = 'C:/Projects/mol-star/molstar-proto/build/test/in/1grm_updated.cif'
+        // const request = createJob({
+        //     entryId: testFile,
+        //     queryName: 'full',
+        //     queryParams: { },
+        // });
         const testFile = '1grm_updated.cif'
-        //const testFile = 'C:/Projects/mol-star/molstar-proto/build/test/1grm_updated.cif'
         const request = createJob({
             entryId: path.join(examplesPath, testFile),
             queryName: 'full',
-            queryParams: { },
-            // options: { modelNums: [ 2, 3 ] }
+            queryParams: { }
         });
+
         // const request = createJob({
         //     entryId: path.join(examplesPath, testFile),
         //     queryName: 'atoms',
@@ -67,6 +73,7 @@ async function run() {
         // });
         const encoder = await resolveJob(request);
         const writer = wrapFile(path.join(outPath, testFile));
+        // const writer = wrapFile(path.join(outPath, '1grm_test.cif'));
         encoder.writeTo(writer);
         writer.end();
     } catch (e) {

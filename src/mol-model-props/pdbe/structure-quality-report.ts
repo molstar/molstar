@@ -33,7 +33,7 @@ export namespace StructureQualityReport {
             id: Column.Schema.int,
             ...mmCIF_residueId_schema,
             pdbx_PDB_model_num: Column.Schema.int,
-            issue_group_id: Column.Schema.int
+            issue_type_group_id: Column.Schema.int
         },
         pdbe_structure_quality_report_issue_types: {
             group_id: Column.Schema.int,
@@ -129,7 +129,7 @@ export namespace StructureQualityReport {
 const _structure_quality_report_issues_fields = CifWriter.fields<number, ReportExportContext['models'][0]>()
     .index('id')
     .many(residueIdFields((i, d) => d.elements[i], { includeModelNum: true }))
-    .int('group_id', (i, d) => d.groupId[i])
+    .int('issue_type_group_id', (i, d) => d.groupId[i])
     .getFields();
 
 interface ReportExportContext {
@@ -208,17 +208,15 @@ function createIssueMapFromCif(modelData: Model,
     groupData: Table<typeof StructureQualityReport.Schema.pdbe_structure_quality_report_issue_types>): StructureQualityReport.IssueMap | undefined {
 
     const ret = new Map<ResidueIndex, string[]>();
-    const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issue_group_id, pdbx_PDB_model_num, _rowCount } = residueData;
+    const { label_entity_id, label_asym_id, auth_seq_id, pdbx_PDB_ins_code, issue_type_group_id, pdbx_PDB_model_num, _rowCount } = residueData;
 
     const groups = parseIssueTypes(groupData);
 
     for (let i = 0; i < _rowCount; i++) {
         if (pdbx_PDB_model_num.value(i) !== modelData.modelNum) continue;
         const idx = modelData.atomicHierarchy.index.findResidue(label_entity_id.value(i), label_asym_id.value(i), auth_seq_id.value(i), pdbx_PDB_ins_code.value(i));
-        ret.set(idx, groups.get(issue_group_id.value(i))!);
+        ret.set(idx, groups.get(issue_type_group_id.value(i))!);
     }
-
-    console.log(ret);
 
     return IndexedCustomProperty.fromResidueMap(ret);
 }
