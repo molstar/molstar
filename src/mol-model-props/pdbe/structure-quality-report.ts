@@ -22,7 +22,7 @@ export namespace StructureQualityReport {
 
     export function get(model: Model): Property | undefined {
         // must be defined before the descriptor so it's not undefined.
-        return model._dynamicPropertyData.__StructureQualityReport__;
+        return model._dynamicPropertyData.__PDBeStructureQualityReport__;
     }
 
     export const Schema = {
@@ -44,7 +44,7 @@ export namespace StructureQualityReport {
 
     export const Descriptor = ModelPropertyDescriptor({
         isStatic: false,
-        name: 'structure_quality_report',
+        name: 'pdbe_structure_quality_report',
         cifExport: {
             prefix: 'pdbe',
             context(ctx) {
@@ -108,7 +108,7 @@ export namespace StructureQualityReport {
     }
 
     function set(model: Model, prop: Property) {
-        (model._dynamicPropertyData.__StructureQualityReport__ as Property) = prop;
+        (model._dynamicPropertyData.__PDBeStructureQualityReport__ as Property) = prop;
     }
 
     export function getIssueMap(model: Model): IssueMap | undefined {

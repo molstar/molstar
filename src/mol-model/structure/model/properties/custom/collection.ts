@@ -21,7 +21,7 @@ export class CustomProperties {
         this._set.add(desc);
     }
 
-    has(desc: ModelPropertyDescriptor): boolean {
+    has(desc: ModelPropertyDescriptor<any>): boolean {
         return this._set.has(desc);
     }
 }
