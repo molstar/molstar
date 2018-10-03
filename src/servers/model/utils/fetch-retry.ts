@@ -24,6 +24,7 @@ export async function fetchRetry(url: string, timeout: number, retryCount: numbe
         retryCount
     });
 
-    if (result.status >= 200 && result.status < 300) return result;
-    throw new Error(result.statusText);
+    return result;
+    // if (result.status >= 200 && result.status < 300) return result;
+    // throw new Error(result.statusText);
 }

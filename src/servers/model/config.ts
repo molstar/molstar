@@ -48,12 +48,27 @@ const config = {
     maxQueueLength: 30,
 
     /**
-     * Paths (relative to the root directory of the model server) to JavaScript files that specify custom properties
+     * Provide a property config or a path a JSON file with the config.
      */
-    customPropertyProviders: [
-        './properties/pdbe',
-        // './properties/rcsb'
-    ],
+    customProperties: <import('./property-provider').ModelPropertyProviderConfig | string>{
+        sources: [
+            './properties/pdbe',
+            // './properties/rcsb'
+        ],
+        params: {
+            PDBe: {
+                UseFileSource: false,
+                API: {
+                    residuewise_outlier_summary: 'https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry',
+                    preferred_assembly: 'https://www.ebi.ac.uk/pdbe/api/pdb/entry/summary',
+                    struct_ref_domain: 'https://www.ebi.ac.uk/pdbe/api/mappings/sequence_domains'
+                },
+                File: {
+                    residuewise_outlier_summary: 'e:/test/mol-star/model/props/'
+                }
+            }
+        }
+    },
 
     /**
      * Maps a request identifier to a filename.

@@ -34,6 +34,9 @@ export namespace ConsoleLogger {
         if (e.stack) console.error(e.stack);
     }
 
+    export function warn(ctx: string, e: any) {
+        console.error(`[Warn] (${ctx}) ${e}`);
+    }
 
     export function errorId(guid: string | String, e: any) {
         console.error(`[${guid}][Error] ${e}`);

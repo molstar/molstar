@@ -9,7 +9,7 @@ import * as cluster from 'cluster'
 import { now } from 'mol-task';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { preprocessFile } from './preprocess';
-import { createModelPropertiesProviderFromSources } from '../property-provider';
+import { createModelPropertiesProvider } from '../property-provider';
 
 type PreprocessConfig = import('./master').PreprocessConfig
 
@@ -50,7 +50,7 @@ export function runMaster(config: PreprocessConfig, entries: PreprocessEntry[]) 
 
 export function runChild() {
     process.on('message', async ({ entries, config }: { entries: PreprocessEntry[], config: PreprocessConfig }) => {
-        const props = createModelPropertiesProviderFromSources(config.customPropertyProviders || []);
+        const props = createModelPropertiesProvider(config.customProperties);
         for (const entry of entries) {
             try {
                 await preprocessFile(entry.source, props, entry.cif, entry.bcif);
@@ -64,7 +64,7 @@ export function runChild() {
 }
 
 async function runSingle(entry: PreprocessEntry, config: PreprocessConfig, onMessage: (msg: any) => void) {
-    const props = createModelPropertiesProviderFromSources(config.customPropertyProviders || []);
+    const props = createModelPropertiesProvider(config.customProperties);
     try {
         await preprocessFile(entry.source, props, entry.cif, entry.bcif);
     } catch (e) {
