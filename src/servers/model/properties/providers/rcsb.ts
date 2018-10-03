@@ -4,9 +4,9 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from 'mol-model/structure';
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
+import { AttachModelProperty } from '../../property-provider';
 
-export function RCSB_assemblySymmetry(model: Model) {
+export const RCSB_assemblySymmetry: AttachModelProperty = ({ model }) => {
     return AssemblySymmetry.attachFromCifOrAPI(model)
 }

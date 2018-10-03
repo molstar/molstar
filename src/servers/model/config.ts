@@ -53,7 +53,7 @@ const config = {
     customProperties: <import('./property-provider').ModelPropertyProviderConfig | string>{
         sources: [
             './properties/pdbe',
-            // './properties/rcsb'
+            './properties/rcsb'
         ],
         params: {
             PDBe: {
