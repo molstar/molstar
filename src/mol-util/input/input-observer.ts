@@ -189,7 +189,7 @@ namespace InputObserver {
         function attach () {
             element.addEventListener( 'contextmenu', onContextMenu, false )
 
-            element.addEventListener('wheel', onMouseWheel, false)
+            element.addEventListener('wheel', onMouseWheel as any, false)
             element.addEventListener('mousedown', onPointerDown as any, false)
             // for dragging to work outside canvas bounds,
             // mouse move/up events have to be added to a parent, i.e. window
@@ -214,7 +214,7 @@ namespace InputObserver {
 
             element.removeEventListener( 'contextmenu', onContextMenu, false )
 
-            element.removeEventListener('wheel', onMouseWheel, false)
+            element.removeEventListener('wheel', onMouseWheel as any, false)
             element.removeEventListener('mousedown', onMouseDown as any, false)
             window.removeEventListener('mousemove', onMouseMove as any, false)
             window.removeEventListener('mouseup', onMouseUp as any, false)

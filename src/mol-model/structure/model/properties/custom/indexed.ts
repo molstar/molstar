@@ -78,7 +78,7 @@ export namespace IndexedCustomProperty {
 
 function arrayToMap<Idx extends IndexedCustomProperty.Index, T>(array: ArrayLike<T>): Map<Idx, T> {
     const ret = new Map<Idx, T>();
-    for (let i = 0 as Idx, _i = array.length; i < _i; i++) ret.set(i, array[i]);
+    for (let i = 0 as Idx, _i = array.length; i < _i; i++) ret.set(i, array[i as number]);
     return ret;
 }
 
