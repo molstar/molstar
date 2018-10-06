@@ -6,7 +6,7 @@
 
 import { Context, createImageData } from './context'
 import { idFactory } from 'mol-util/id-factory';
-import { createTexture } from './texture';
+import { createTexture, Texture } from './texture';
 import { createFramebuffer } from './framebuffer';
 import { createRenderbuffer } from './renderbuffer';
 import { TextureImage } from '../renderable/util';
@@ -17,7 +17,8 @@ export interface RenderTarget {
     readonly id: number
     readonly width: number
     readonly height: number
-    readonly image: Readonly<TextureImage>
+    readonly image: TextureImage
+    readonly texture: Texture
 
     bind: () => void
     setSize: (width: number, height: number) => void
@@ -30,13 +31,13 @@ export interface RenderTarget {
 export function createRenderTarget (ctx: Context, _width: number, _height: number): RenderTarget {
     const { gl } = ctx
 
-    const image: TextureImage = {
+    const image: Helpers.Mutable<TextureImage> = {
         array: new Uint8Array(_width * _height * 4),
         width: _width,
         height: _height
     }
 
-    const targetTexture = createTexture(ctx, 'rgba', 'ubyte')
+    const targetTexture = createTexture(ctx, 'rgba', 'ubyte', 'linear')
     targetTexture.load(image)
 
     const framebuffer = createFramebuffer(ctx)
@@ -64,6 +65,7 @@ export function createRenderTarget (ctx: Context, _width: number, _height: numbe
         get width () { return _width },
         get height () { return _height },
         image,
+        texture: targetTexture,
 
         bind: () => {
             framebuffer.bind()

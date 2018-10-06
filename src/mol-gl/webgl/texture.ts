@@ -16,6 +16,7 @@ const getNextTextureId = idFactory()
 export type TextureFormat = 'alpha' | 'rgb' | 'rgba'
 export type TextureType = 'ubyte' | 'uint'
 export type TextureAttachment = 'depth' | 'stencil' | 'color0'
+export type TextureFilter = 'nearest' | 'linear'
 
 export function getFormat(ctx: Context, format: TextureFormat) {
     const { gl } = ctx
@@ -31,6 +32,14 @@ export function getType(ctx: Context, type: TextureType) {
     switch (type) {
         case 'ubyte': return gl.UNSIGNED_BYTE
         case 'uint': return gl.UNSIGNED_INT
+    }
+}
+
+export function getFilter(ctx: Context, type: TextureFilter) {
+    const { gl } = ctx
+    switch (type) {
+        case 'nearest': return gl.NEAREST
+        case 'linear': return gl.LINEAR
     }
 }
 
@@ -63,7 +72,7 @@ export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 1
 export type TextureValues = { [k: string]: ValueCell<TextureImage> }
 export type Textures = { [k: string]: Texture }
 
-export function createTexture(ctx: Context, _format: TextureFormat, _type: TextureType): Texture {
+export function createTexture(ctx: Context, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
     const id = getNextTextureId()
     const { gl } = ctx
     const texture = gl.createTexture()
@@ -71,8 +80,7 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
         throw new Error('Could not create WebGL texture')
     }
 
-    const magFilter = gl.NEAREST
-    const minFilter = gl.NEAREST
+    const filter = getFilter(ctx, _filter)
     const format = getFormat(ctx, _format)
     const type = getType(ctx, _type)
 
@@ -99,8 +107,8 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
             gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, type, array)
             _width = width
             _height = height
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter)
             // clamp-to-edge needed for non-power-of-two textures
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -132,7 +140,7 @@ export function createTextures(ctx: Context, schema: RenderableSchema, values: T
     Object.keys(schema).forEach((k, i) => {
         const spec = schema[k]
         if (spec.type === 'texture') {
-            const texture = createTexture(ctx, spec.format, spec.dataType)
+            const texture = createTexture(ctx, spec.format, spec.dataType, spec.filter)
             texture.load(values[k].ref.value)
             textures[k] = texture
         }

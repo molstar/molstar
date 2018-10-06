@@ -17,9 +17,9 @@ export function calculateTextureInfo (n: number, itemSize: number) {
 }
 
 export interface TextureImage {
-    array: Uint8Array
-    width: number
-    height: number
+    readonly array: Uint8Array
+    readonly width: number
+    readonly height: number
 }
 
 export function createTextureImage (n: number, itemSize: number): TextureImage {
