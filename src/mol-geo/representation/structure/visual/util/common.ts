@@ -8,13 +8,14 @@ import { Unit, Structure } from 'mol-model/structure';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../geometry/mesh/mesh';
 import { StructureProps } from '../..';
-import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject } from 'mol-gl/render-object';
+import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { RuntimeContext } from 'mol-task';
 import { TransformData, createIdentityTransform, createTransform } from '../../../../geometry/transform-data';
 import { Points } from '../../../../geometry/points/points';
 import { createRenderableState } from '../../../../geometry/geometry';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { Lines } from '../../../../geometry/lines/lines';
+import { DirectVolume } from '../../../../geometry/direct-volume/direct-volume';
 
 export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length
@@ -65,4 +66,16 @@ export async function createUnitsLinesRenderObject(ctx: RuntimeContext, group: U
     console.log('values', values)
     const state = createRenderableState(props)
     return createLinesRenderObject(values, state)
+}
+
+// direct-volume
+
+type StructureDirectVolumeProps = DirectVolume.Props & StructureProps
+
+export async function createUnitsDirectVolumeRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, props: StructureDirectVolumeProps) {
+    // TODO transform support
+    const transform = createUnitsTransform(group)
+    const values = await DirectVolume.createValues(ctx, directVolume, props)
+    const state = createRenderableState(props)
+    return createDirectVolumeRenderObject(values, state)
 }

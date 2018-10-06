@@ -8,15 +8,15 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '../';
-import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams } from '.';
+import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from '.';
 import { RuntimeContext } from 'mol-task';
 import { PickingId } from '../../geometry/picking';
 import { LocationIterator } from '../../util/location-iterator';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { MarkerAction, applyMarkerAction, createMarkers } from '../../geometry/marker-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MeshRenderObject, PointsRenderObject, LinesRenderObject } from 'mol-gl/render-object';
-import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject } from './visual/util/common';
+import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
+import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { Points } from '../../geometry/points/points';
@@ -25,6 +25,7 @@ import { createColors, ColorProps } from '../../geometry/color-data';
 import { createSizes, SizeProps } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
 import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
+import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
 
 export const UnitKindInfo = {
     'atomic': {},
@@ -520,6 +521,137 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
                 ValueCell.update(tMarker, tMarker.ref.value)
             }
             return changed
+        },
+        destroy() {
+            // TODO
+            renderObject = undefined
+        }
+    }
+}
+
+// direct-volume
+
+export const UnitsDirectVolumeParams = {
+    ...StructureDirectVolumeParams,
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+}
+export const DefaultUnitsDirectVolumeProps = paramDefaultValues(UnitsDirectVolumeParams)
+export type UnitsDirectVolumeProps = typeof DefaultUnitsDirectVolumeProps
+
+export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> {
+    defaultProps: P
+    createDirectVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, directVolume?: DirectVolume): Promise<DirectVolume>
+    createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
+    getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
+    mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
+    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
+}
+
+export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builder: UnitsDirectVolumeVisualBuilder<P>): UnitsVisual<P> {
+    const { defaultProps, createDirectVolume, createLocationIterator, getLoci, setUpdateState } = builder
+    const updateState = VisualUpdateState.create()
+
+    let renderObject: DirectVolumeRenderObject | undefined
+    let currentProps: P
+    let directVolume: DirectVolume
+    let currentGroup: Unit.SymmetryGroup
+    let currentStructure: Structure
+    let locationIt: LocationIterator
+    let currentConformationId: UUID
+
+    async function create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
+        currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
+        currentGroup = group
+
+        const unit = group.units[0]
+        currentConformationId = Unit.conformationId(unit)
+        directVolume = includesUnitKind(currentProps.unitKinds, unit)
+            ? await createDirectVolume(ctx, unit, currentStructure, currentProps, directVolume)
+            : DirectVolume.createEmpty(directVolume)
+
+        // TODO create empty location iterator when not in unitKinds
+        locationIt = createLocationIterator(group)
+        renderObject = await createUnitsDirectVolumeRenderObject(ctx, group, directVolume, locationIt, currentProps)
+    }
+
+    async function update(ctx: RuntimeContext, props: Partial<P> = {}) {
+        if (!renderObject) return
+
+        const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
+        const unit = currentGroup.units[0]
+
+        locationIt.reset()
+        VisualUpdateState.reset(updateState)
+        setUpdateState(updateState, newProps, currentProps)
+
+        const newConformationId = Unit.conformationId(unit)
+        if (newConformationId !== currentConformationId) {
+            currentConformationId = newConformationId
+            updateState.createGeometry = true
+        }
+
+        if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
+
+        if (sizeChanged(currentProps, newProps)) updateState.createGeometry = true
+        if (colorChanged(currentProps, newProps)) updateState.updateColor = true
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
+
+        //
+
+        // if (updateState.updateTransform) {
+        //     locationIt = createLocationIterator(currentGroup)
+        //     const { instanceCount, groupCount } = locationIt
+        //     createUnitsTransform(currentGroup, renderObject.values)
+        //     createMarkers(instanceCount * groupCount, renderObject.values)
+        //     updateState.updateColor = true
+        // }
+
+        if (updateState.createGeometry) {
+            directVolume = includesUnitKind(newProps.unitKinds, unit)
+                ? await createDirectVolume(ctx, unit, currentStructure, newProps, directVolume)
+                : DirectVolume.createEmpty(directVolume)
+            updateState.updateColor = true
+        }
+
+        // if (updateState.updateColor) {
+        //     await createColors(ctx, locationIt, newProps, renderObject.values)
+        // }
+
+        // TODO why do I need to cast here?
+        DirectVolume.updateValues(renderObject.values, newProps as UnitsDirectVolumeProps)
+        updateRenderableState(renderObject.state, newProps as UnitsDirectVolumeProps)
+
+        currentProps = newProps
+    }
+
+    return {
+        get renderObject () { return renderObject },
+        async createOrUpdate(ctx: RuntimeContext, props: Partial<P> = {}, structureGroup?: StructureGroup) {
+            if (structureGroup) currentStructure = structureGroup.structure
+            const group = structureGroup ? structureGroup.group : undefined
+            if (!group && !currentGroup) {
+                throw new Error('missing group')
+            } else if (group && (!currentGroup || !renderObject)) {
+                // console.log('unit-visual first create')
+                await create(ctx, group, props)
+            } else if (group && group.hashCode !== currentGroup.hashCode) {
+                // console.log('unit-visual group.hashCode !== currentGroup.hashCode')
+                await create(ctx, group, props)
+            } else {
+                // console.log('unit-visual update')
+                if (group && !sameGroupConformation(group, currentGroup)) {
+                    // console.log('unit-visual new conformation')
+                    currentGroup = group
+                }
+                await update(ctx, props)
+            }
+        },
+        getLoci(pickingId: PickingId) {
+            return renderObject ? getLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
+        },
+        mark(loci: Loci, action: MarkerAction) {
+            // TODO
+            return false
         },
         destroy() {
             // TODO

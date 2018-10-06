@@ -29,12 +29,18 @@ export function lerp (start: number, stop: number, alpha: number) {
     return start + (stop - start) * alpha
 }
 
+/** Catmul-Rom spline */
 export function spline (p0: number, p1: number, p2: number, p3: number, t: number, tension: number) {
     const v0 = (p2 - p0) * tension
     const v1 = (p3 - p1) * tension
     const t2 = t * t
     const t3 = t * t2
     return (2 * p1 - 2 * p2 + v0 + v1) * t3 + (-3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 + v0 * t + p1
+}
+
+export function quadraticBezier(p0: number, p1: number, p2: number, t: number) {
+    const k = 1 - t
+    return (k * k * p0) + (2 * k * t * p1) + (t * t * p2)
 }
 
 export function smoothstep (min: number, max: number, x: number) {

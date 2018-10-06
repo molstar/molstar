@@ -14,14 +14,18 @@ import { PickingId } from '../../../geometry/picking';
 import { Task } from 'mol-task';
 import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaussian-surface-wireframe';
 import { getQualityProps } from '../../util';
-import { paramDefaultValues, MultiSelectParam } from 'mol-view/parameter';
+import { paramDefaultValues, MultiSelectParam, SelectParam } from 'mol-view/parameter';
+import { GaussianDensityVolumeParams, GaussianDensityVolumeVisual } from '../visual/gaussian-density-volume';
+import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 
-const VisualOptions = [['surface', 'Surface'], ['wireframe', 'Wireframe']] as [string, string][]
+const VisualOptions = [['surface', 'Surface'], ['wireframe', 'Wireframe'], ['volume', 'Volume']] as [string, string][]
 
 export const MolecularSurfaceParams = {
     ...GaussianSurfaceParams,
     ...GaussianWireframeParams,
+    ...GaussianDensityVolumeParams,
 
+    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
     visuals: MultiSelectParam<string>('Visuals', '', ['surface'], VisualOptions)
 }
 export const DefaultMolecularSurfaceProps = paramDefaultValues(MolecularSurfaceParams)
@@ -34,6 +38,7 @@ export function MolecularSurfaceRepresentation(): MolecularSurfaceRepresentation
     let currentStructure: Structure
     const gaussianSurfaceRepr = UnitsRepresentation('Gaussian surface', GaussianSurfaceVisual)
     const gaussianWireframeRepr = UnitsRepresentation('Gaussian wireframe', GaussianWireframeVisual)
+    const gaussianVolumeRepr = UnitsRepresentation('Gaussian volume', GaussianDensityVolumeVisual)
     return {
         label: 'Molecular Surface',
         params: MolecularSurfaceParams,
@@ -41,10 +46,11 @@ export function MolecularSurfaceRepresentation(): MolecularSurfaceRepresentation
             const renderObjects = []
             if (currentProps.visuals.includes('surface')) renderObjects.push(...gaussianSurfaceRepr.renderObjects)
             if (currentProps.visuals.includes('wireframe')) renderObjects.push(...gaussianWireframeRepr.renderObjects)
+            if (currentProps.visuals.includes('volume')) renderObjects.push(...gaussianVolumeRepr.renderObjects)
             return renderObjects
         },
         get props() {
-            return { ...gaussianSurfaceRepr.props, ...gaussianWireframeRepr.props, visuals: currentProps.visuals }
+            return { ...gaussianSurfaceRepr.props, ...gaussianWireframeRepr.props, ...gaussianVolumeRepr.props, visuals: currentProps.visuals }
         },
         createOrUpdate: (props: Partial<MolecularSurfaceProps> = {}, structure?: Structure) => {
             if (structure) currentStructure = structure
@@ -53,6 +59,7 @@ export function MolecularSurfaceRepresentation(): MolecularSurfaceRepresentation
             return Task.create('Creating MolecularSurfaceRepresentation', async ctx => {
                 if (currentProps.visuals.includes('surface')) await gaussianSurfaceRepr.createOrUpdate(currentProps, currentStructure).runInContext(ctx)
                 if (currentProps.visuals.includes('wireframe')) await gaussianWireframeRepr.createOrUpdate(currentProps, currentStructure).runInContext(ctx)
+                if (currentProps.visuals.includes('volume')) await gaussianVolumeRepr.createOrUpdate(currentProps, currentStructure).runInContext(ctx)
             })
         },
         getLoci: (pickingId: PickingId) => {
@@ -64,6 +71,7 @@ export function MolecularSurfaceRepresentation(): MolecularSurfaceRepresentation
         destroy() {
             gaussianSurfaceRepr.destroy()
             gaussianWireframeRepr.destroy()
+            gaussianVolumeRepr.destroy()
         }
     }
 }

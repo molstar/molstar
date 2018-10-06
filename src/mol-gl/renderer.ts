@@ -68,9 +68,17 @@ namespace Renderer {
         }
         setClearColor(clearColor)
 
+        const view = Mat4.clone(camera.view)
+        const invView = Mat4.invert(Mat4.identity(), view)
+        const modelView = Mat4.clone(camera.view)
+        const invModelView = Mat4.invert(Mat4.identity(), modelView)
+
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
-            uView: ValueCell.create(Mat4.clone(camera.view)),
+            uView: ValueCell.create(camera.view),
+            uInvView: ValueCell.create(invView),
+            uModelView: ValueCell.create(modelView),
+            uInvModelView: ValueCell.create(invModelView),
             uProjection: ValueCell.create(Mat4.clone(camera.projection)),
 
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
@@ -131,6 +139,9 @@ namespace Renderer {
         const render = (scene: Scene, variant: RenderVariant) => {
             ValueCell.update(globalUniforms.uModel, scene.view)
             ValueCell.update(globalUniforms.uView, camera.view)
+            ValueCell.update(globalUniforms.uInvView, Mat4.invert(invView, camera.view))
+            ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, scene.view, camera.view))
+            ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView))
             ValueCell.update(globalUniforms.uProjection, camera.projection)
 
             ValueCell.update(globalUniforms.uFogFar, camera.fogFar)
