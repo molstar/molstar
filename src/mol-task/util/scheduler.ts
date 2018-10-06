@@ -129,7 +129,7 @@ function createImmediateActions() {
     }
 
     function installReadyStateChangeImplementation() {
-        const html = doc!.documentElement;
+        const html = doc!.documentElement!;
         registerImmediate = function(handle) {
             // Create a <script> element; its readystatechange event will be fired asynchronously once it is inserted
             // into the document. Do so, thus queuing up the task. Remember to clean up once it's been called.
@@ -178,8 +178,8 @@ const immediateActions = (function () {
     if (typeof setImmediate !== 'undefined') {
         if (typeof window !== 'undefined') {
             return {
-                setImmediate: (handler: any, ...args: any[]) => window.setImmediate(handler, ...args as any),
-                clearImmediate: (handle: any) => window.clearImmediate(handle)
+                setImmediate: (handler: any, ...args: any[]) => (window as any).setImmediate(handler, ...args as any) as number,
+                clearImmediate: (handle: any) => (window as any).clearImmediate(handle)
             };
         } else {
             return { setImmediate, clearImmediate }

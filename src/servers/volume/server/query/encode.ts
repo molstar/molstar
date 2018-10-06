@@ -102,7 +102,7 @@ const _volume_data_3d_info: CifWriter.Category<ResultContext> = {
             sampledValuesInfo: result.query.data.header.sampling[result.query.samplingInfo.sampling.index].valuesInfo[result.channelIndex]
         };
 
-        return { data: ctx, fields: _volume_data_3d_info_fields, rowCount: 1 }
+        return { fields: _volume_data_3d_info_fields, source: [{ data: ctx, rowCount: 1 }] }
     }
 };
 
@@ -136,7 +136,7 @@ const _volume_data_3d: CifWriter.Category<ResultContext> = {
         }
 
         const fields = [CifWriter.Field.float('values', _volume_data_3d_number, { encoder, typedArray, digitCount: 6 })];
-        return { data, fields, rowCount: data.length };
+        return CifWriter.categoryInstance(fields, { data, rowCount: data.length });
     }
 }
 
@@ -174,12 +174,12 @@ const _density_server_result_fields = [
 
 const _density_server_result: CifWriter.Category<Data.QueryContext> = {
     name: 'density_server_result',
-    instance: ctx => ({ data: ctx, fields: _density_server_result_fields, rowCount: 1 })
+    instance: ctx => CifWriter.categoryInstance(_density_server_result_fields, { data: ctx, rowCount: 1 })
 }
 
 function write(encoder: CifWriter.Encoder, query: Data.QueryContext) {
     encoder.startDataBlock('SERVER');
-    encoder.writeCategory(_density_server_result, [query]);
+    encoder.writeCategory(_density_server_result, query);
 
     switch (query.kind) {
         case 'Data':
@@ -189,7 +189,7 @@ function write(encoder: CifWriter.Encoder, query: Data.QueryContext) {
         const header = query.data.header;
         for (let i = 0; i < header.channels.length; i++) {
             encoder.startDataBlock(header.channels[i]);
-            const ctx: ResultContext[] = [{ query, channelIndex: i }];
+            const ctx: ResultContext = { query, channelIndex: i };
 
             encoder.writeCategory(_volume_data_3d_info, ctx);
             encoder.writeCategory(_volume_data_3d, ctx);

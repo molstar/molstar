@@ -31,10 +31,11 @@ export namespace StructConn {
             categories: [{
                 name: 'struct_conn',
                 instance(ctx) {
-                    const struct_conn = getStructConn(ctx.model);
+                    const structure = ctx.structures[0], model = structure.model;
+                    const struct_conn = getStructConn(model);
                     if (!struct_conn) return CifWriter.Category.Empty;
 
-                    const strConn = get(ctx.model);
+                    const strConn = get(model);
                     if (!strConn || strConn.entries.length === 0) return CifWriter.Category.Empty;
 
                     const foundAtoms = new Set<ElementIndex>();
@@ -45,7 +46,7 @@ export namespace StructConn {
                         for (let i = 0, _i = partners.length; i < _i; i++) {
                             const atom = partners[i].atomIndex;
                             if (foundAtoms.has(atom)) continue;
-                            if (hasAtom(ctx.structure, atom)) {
+                            if (hasAtom(structure, atom)) {
                                 foundAtoms.add(atom);
                             } else {
                                 hasAll = false;

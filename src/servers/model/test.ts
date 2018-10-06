@@ -34,21 +34,46 @@ function wrapFile(fn: string) {
     return w;
 }
 
-const basePath = path.join(__dirname, '..', '..', '..', '..')
-const examplesPath = path.join(basePath, 'examples')
-const outPath = path.join(basePath, 'build', 'test')
+export const basePath = path.join(__dirname, '..', '..', '..', '..')
+export const examplesPath = path.join(basePath, 'examples')
+export const outPath = path.join(basePath, 'build', 'test')
 if (!fs.existsSync(outPath)) fs.mkdirSync(outPath);
 
 async function run() {
     try {
-        // const request = createJob('_local_', 'e:/test/quick/1cbs_updated.cif', 'residueInteraction', { label_comp_id: 'REA' });
-        // const encoder = await resolveJob(request);
-        // const writer = wrapFile('e:/test/mol-star/1cbs_full.cif');
         // const testFile = '1crn.cif'
-        const testFile = '1grm_updated.cif'
-        const request = createJob('_local_', path.join(examplesPath, testFile), 'full', {});
+        // const testFile = '1grm_updated.cif'
+        // const testFile = 'C:/Projects/mol-star/molstar-proto/build/test/in/1grm_updated.cif'
+        // const request = createJob({
+        //     entryId: testFile,
+        //     queryName: 'full',
+        //     queryParams: { },
+        // });
+        const testFile = '1cbs_updated.cif'
+        const request = createJob({
+            entryId: path.join(examplesPath, testFile),
+            queryName: 'full',
+            queryParams: { }
+        });
+
+        // const request = createJob({
+        //     entryId: path.join(examplesPath, testFile),
+        //     queryName: 'atoms',
+        //     queryParams: {
+        //         atom_site: { label_comp_id: 'ALA' }
+        //     }
+        // });
+        // const request = createJob({
+        //     entryId: path.join(examplesPath, testFile),
+        //     queryName: 'residueInteraction',
+        //     queryParams: {
+        //         atom_site: { label_comp_id: 'REA' },
+        //         radius: 5
+        //     }
+        // });
         const encoder = await resolveJob(request);
         const writer = wrapFile(path.join(outPath, testFile));
+        // const writer = wrapFile(path.join(outPath, '1grm_test.cif'));
         encoder.writeTo(writer);
         writer.end();
     } catch (e) {

@@ -8,6 +8,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as argparse from 'argparse'
 import { runMaster, PreprocessEntry } from './parallel';
+import { ModelPropertyProviderConfig } from '../property-provider';
 
 const cmdParser = new argparse.ArgumentParser({
     addHelp: true,
@@ -37,13 +38,13 @@ interface CmdArgs {
 
 export interface PreprocessConfig {
     numProcesses?: number,
-    customPropertyProviders?: string[]
+    customProperties?: ModelPropertyProviderConfig | string
 }
 
 const cmdArgs = cmdParser.parseArgs() as CmdArgs;
 
 let entries: PreprocessEntry[] = []
-let config: PreprocessConfig = { numProcesses: 1, customPropertyProviders: [] }
+let config: PreprocessConfig = { numProcesses: 1, customProperties: void 0 }
 
 if (cmdArgs.input) entries.push({ source: cmdArgs.input, cif: cmdArgs.outCIF, bcif: cmdArgs.outBCIF });
 // else if (cmdArgs.bulk) runBulk(cmdArgs.bulk);

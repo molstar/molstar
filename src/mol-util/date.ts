@@ -4,4 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export default '0.8.0';
+export function dateToUtcString(date: Date) {
+    return date.toISOString().replace(/T/, ' ').replace(/\..+/, '');
+}

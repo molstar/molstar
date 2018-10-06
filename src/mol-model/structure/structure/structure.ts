@@ -18,12 +18,13 @@ import { InterUnitBonds, computeInterUnitBonds } from './unit/links';
 import { PairRestraints, CrossLinkRestraint, extractCrossLinkRestraints } from './unit/pair-restraints';
 import StructureSymmetry from './symmetry';
 import StructureProperties from './properties';
-import { ResidueIndex, ChainIndex } from '../model/indexing';
+import { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing';
 import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { idFactory } from 'mol-util/id-factory';
 import { GridLookup3D } from 'mol-math/geometry';
+import { UUID } from 'mol-util';
 
 class Structure {
     /** Maps unit.id to unit */
@@ -38,6 +39,10 @@ class Structure {
         unitSymmetryGroups?: ReadonlyArray<Unit.SymmetryGroup>,
         carbohydrates?: Carbohydrates,
         models?: ReadonlyArray<Model>,
+        model?: Model,
+        uniqueResidueNames?: Set<string>,
+        entityIndices?: ReadonlyArray<EntityIndex>,
+        uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
         hashCode: number,
         elementCount: number,
         polymerResidueCount: number,
@@ -128,6 +133,29 @@ class Structure {
         return this._props.models;
     }
 
+    get uniqueResidueNames() {
+        return this._props.uniqueResidueNames
+            || (this._props.uniqueResidueNames = getUniqueResidueNames(this));
+    }
+
+    get entityIndices() {
+        return this._props.entityIndices || (this._props.entityIndices = getEntityIndices(this));
+    }
+
+    get uniqueAtomicResidueIndices() {
+        return this._props.uniqueAtomicResidueIndices
+            || (this._props.uniqueAtomicResidueIndices = getUniqueAtomicResidueIndices(this));
+    }
+
+    /** If the structure is based on a single model, return it. Otherwise throw an exception. */
+    get model(): Model {
+        if (this._props.model) return this._props.model;
+        const models = this.models;
+        if (models.length > 1) throw new Error('The structre is based on multiple models.');
+        this._props.model = models[0];
+        return this._props.model;
+    }
+
     hasElement(e: StructureElement) {
         if (!this.unitMap.has(e.unit.id)) return false;
         return SortedArray.has(this.unitMap.get(e.unit.id).elements, e.element);
@@ -164,6 +192,81 @@ function getModels(s: Structure) {
         UniqueArray.add(arr, u.model.id, u.model);
     }
     return arr.array;
+}
+
+function getUniqueResidueNames(s: Structure) {
+    const prop = StructureProperties.residue.label_comp_id;
+    const names = new Set<string>();
+    const loc = StructureElement.create();
+    for (const unit of s.units) {
+        // TODO: support coarse unit?
+        if (!Unit.isAtomic(unit)) continue;
+        const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
+        loc.unit = unit;
+        while (residues.hasNext) {
+            const seg = residues.move();
+            loc.element = unit.elements[seg.start];
+            names.add(prop(loc));
+        }
+    }
+    return names;
+}
+
+function getEntityIndices(structure: Structure): ReadonlyArray<EntityIndex> {
+    const { units } = structure;
+    const l = StructureElement.create();
+    const keys = UniqueArray.create<number, EntityIndex>();
+
+    for (const unit of units) {
+        const prop = unit.kind === Unit.Kind.Atomic ? StructureProperties.entity.key : StructureProperties.coarse.entityKey;
+
+        l.unit = unit;
+        const elements = unit.elements;
+
+        const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
+        while (chainsIt.hasNext) {
+            const chainSegment = chainsIt.move();
+            l.element = elements[chainSegment.start];
+            const key = prop(l);
+            UniqueArray.add(keys, key, key);
+        }
+    }
+
+    sortArray(keys.array);
+    return keys.array;
+}
+
+function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>> {
+    const map = new Map<UUID, UniqueArray<ResidueIndex, ResidueIndex>>();
+    const modelIds: UUID[] = [];
+
+    const unitGroups = structure.unitSymmetryGroups;
+    for (const unitGroup of unitGroups) {
+        const unit = unitGroup.units[0];
+        if (!Unit.isAtomic(unit)) continue;
+
+        let uniqueResidues: UniqueArray<ResidueIndex, ResidueIndex>;
+        if (map.has(unit.model.id)) uniqueResidues = map.get(unit.model.id)!;
+        else {
+            uniqueResidues = UniqueArray.create<ResidueIndex, ResidueIndex>();
+            modelIds.push(unit.model.id);
+            map.set(unit.model.id, uniqueResidues);
+        }
+
+        const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
+        while (residues.hasNext) {
+            const seg = residues.move();
+            UniqueArray.add(uniqueResidues, seg.index, seg.index);
+        }
+    }
+
+    const ret = new Map<UUID, ReadonlyArray<ResidueIndex>>();
+    for (const id of modelIds) {
+        const array = map.get(id)!.array;
+        sortArray(array);
+        ret.set(id, array)
+    }
+    return ret;
 }
 
 namespace Structure {
@@ -334,49 +437,6 @@ namespace Structure {
                 this.current.unit = structure.units[0];
             }
         }
-    }
-
-    export function getEntityKeys(structure: Structure) {
-        const { units } = structure;
-        const l = StructureElement.create();
-        const keys = UniqueArray.create<number, number>();
-
-        for (const unit of units) {
-            const prop = unit.kind === Unit.Kind.Atomic ? StructureProperties.entity.key : StructureProperties.coarse.entityKey;
-
-            l.unit = unit;
-            const elements = unit.elements;
-
-            const chainsIt = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, elements);
-            while (chainsIt.hasNext) {
-                const chainSegment = chainsIt.move();
-                l.element = elements[chainSegment.start];
-                const key = prop(l);
-                UniqueArray.add(keys, key, key);
-            }
-        }
-
-        sortArray(keys.array);
-        return keys.array;
-    }
-
-    export function getUniqueAtomicResidueIndices(structure: Structure, model: Model): ReadonlyArray<ResidueIndex> {
-        const uniqueResidues = UniqueArray.create<ResidueIndex, ResidueIndex>();
-        const unitGroups = structure.unitSymmetryGroups;
-        for (const unitGroup of unitGroups) {
-            const unit = unitGroup.units[0];
-            if (unit.model !== model || !Unit.isAtomic(unit)) {
-                continue;
-            }
-
-            const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
-            while (residues.hasNext) {
-                const seg = residues.move();
-                UniqueArray.add(uniqueResidues, seg.index, seg.index);
-            }
-        }
-        sortArray(uniqueResidues.array);
-        return uniqueResidues.array;
     }
 
     const distVec = Vec3.zero();

@@ -5,7 +5,7 @@
  */
 
 import { UUID } from 'mol-util';
-import { getQueryByName, normalizeQueryParams, QueryDefinition } from './api';
+import { getQueryByName, normalizeQueryParams, QueryDefinition, QueryName, QueryParams } from './api';
 import { LinkedList } from 'mol-data/generic';
 
 export interface ResponseFormat {
@@ -28,23 +28,31 @@ export interface Job {
     outputFilename?: string
 }
 
-export function createJob(sourceId: '_local_' | string, entryId: string, queryName: string, params: any, modelNums?: number[], outputFilename?: string): Job {
-    const queryDefinition = getQueryByName(queryName);
-    if (!queryDefinition) throw new Error(`Query '${queryName}' is not supported.`);
+export interface JobDefinition<Name extends QueryName> {
+    sourceId?: string, // = '_local_',
+    entryId: string,
+    queryName: Name,
+    queryParams: QueryParams<Name>,
+    options?: { modelNums?: number[], outputFilename?: string, binary?: boolean }
+}
 
-    const normalizedParams = normalizeQueryParams(queryDefinition, params);
+export function createJob<Name extends QueryName>(definition: JobDefinition<Name>): Job {
+    const queryDefinition = getQueryByName(definition.queryName);
+    if (!queryDefinition) throw new Error(`Query '${definition.queryName}' is not supported.`);
 
+    const normalizedParams = normalizeQueryParams(queryDefinition, definition.queryParams);
+    const sourceId = definition.sourceId || '_local_';
     return {
         id: UUID.create(),
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
-        key: `${sourceId}/${entryId}`,
+        key: `${sourceId}/${definition.entryId}`,
         sourceId,
-        entryId,
+        entryId: definition.entryId,
         queryDefinition,
         normalizedParams,
-        responseFormat: { isBinary: !!params.binary },
-        modelNums,
-        outputFilename
+        responseFormat: { isBinary: !!(definition.options && definition.options.binary) },
+        modelNums: definition.options && definition.options.modelNums,
+        outputFilename: definition.options && definition.options.outputFilename
     };
 }
 
@@ -55,8 +63,8 @@ class _JobQueue {
         return this.list.count;
     }
 
-    add(sourceId: '_local_' | string, entryId: string, queryName: string, params: any, modelNums?: number[], outputFilename?: string) {
-        const job = createJob(sourceId, entryId, queryName, params, modelNums, outputFilename);
+    add<Name extends QueryName>(definition: JobDefinition<Name>) {
+        const job = createJob(definition);
         this.list.addLast(job);
         return job.id;
     }

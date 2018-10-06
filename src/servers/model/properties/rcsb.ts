@@ -5,13 +5,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Model } from 'mol-model/structure';
+import { AttachModelProperties } from '../property-provider';
 import { RCSB_assemblySymmetry } from './providers/rcsb';
 
-export function attachModelProperties(model: Model): Promise<any>[] {
+export const attachModelProperties: AttachModelProperties = (args) => {
     // return a list of promises that start attaching the props in parallel
     // (if there are downloads etc.)
     return [
-        RCSB_assemblySymmetry(model)
+        RCSB_assemblySymmetry(args)
     ];
 }

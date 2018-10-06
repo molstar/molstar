@@ -4,12 +4,15 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import * as express from 'express';
 import Config from '../config';
 import { ConsoleLogger } from 'mol-util/console-logger';
 import { resolveJob } from './query';
 import { JobManager } from './jobs';
 import { UUID } from 'mol-util';
+import { LandingPage } from './landing';
 
 function makePath(p: string) {
     return Config.appPrefix + '/' + p;
@@ -97,15 +100,53 @@ async function processNextJob() {
 // }
 
 export function initWebApi(app: express.Express) {
-    app.get(makePath('query'), (req, res) => {
+    app.get(makePath('static/:format/:id'), async (req, res) => {
+        const binary = req.params.format === 'bcif';
+        const id = req.params.id;
+        const fn = Config.mapFile(binary ? 'pdb-bcif' : 'pdb-cif', id);
+        if (!fn || !fs.existsSync(fn)) {
+            res.status(404);
+            res.end();
+            return;
+        }
+        fs.readFile(fn, (err, data) => {
+            if (err) {
+                res.status(404);
+                res.end();
+                return;
+            }
+
+            const f = path.parse(fn);
+            res.writeHead(200, {
+                'Content-Type': binary ? 'application/octet-stream' : 'text/plain; charset=utf-8',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Headers': 'X-Requested-With',
+                'Content-Disposition': `inline; filename="${f.name}${f.ext}"`
+            });
+            res.write(data);
+            res.end();
+        });
+    })
+
+    app.get(makePath('api/v1'), (req, res) => {
         const query = /\?(.*)$/.exec(req.url)![1];
         const args = JSON.parse(decodeURIComponent(query));
         const name = args.name;
         const entryId = args.id;
-        const params = args.params || { };
-        const jobId = JobManager.add('pdb', entryId, name, params, args.modelNums);
+        const queryParams = args.params || { };
+        const jobId = JobManager.add({
+            sourceId: 'pdb',
+            entryId,
+            queryName: name,
+            queryParams,
+            options: { modelNums: args.modelNums, binary: args.binary }
+        });
         responseMap.set(jobId, res);
         if (JobManager.size === 1) processNextJob();
+    });
+
+    app.get('*', (req, res) => {
+        res.send(LandingPage);
     });
 
     // for (const q of QueryList) {

@@ -26,10 +26,10 @@ export namespace ComponentBond {
             categories: [{
                 name: 'chem_comp_bond',
                 instance(ctx) {
-                    const chem_comp_bond = getChemCompBond(ctx.model);
+                    const chem_comp_bond = getChemCompBond(ctx.structures[0].model);
                     if (!chem_comp_bond) return CifWriter.Category.Empty;
 
-                    const comp_names = getUniqueResidueNames(ctx.structure);
+                    const comp_names = getUniqueResidueNames(ctx.structures[0]);
                     const { comp_id, _rowCount } = chem_comp_bond;
                     const indices: number[] = [];
                     for (let i = 0; i < _rowCount; i++) {

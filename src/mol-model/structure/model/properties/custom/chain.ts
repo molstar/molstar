@@ -4,32 +4,32 @@
 //  * @author David Sehnal <david.sehnal@gmail.com>
 //  */
 
-// import { ResidueIndex } from '../../indexing';
+// import { ChainIndex } from '../../indexing';
 // import { Unit, Structure, StructureElement } from '../../../structure';
 // import { Segmentation } from 'mol-data/int';
 // import { UUID } from 'mol-util';
 // import { CifWriter } from 'mol-io/writer/cif';
 
-// export interface ResidueCustomProperty<T = any> {
+// export interface ChainCustomProperty<T = any> {
 //     readonly id: UUID,
 //     readonly kind: Unit.Kind,
-//     has(idx: ResidueIndex): boolean
-//     get(idx: ResidueIndex): T | undefined
+//     has(idx: ChainIndex): boolean
+//     get(idx: ChainIndex): T | undefined
 // }
 
-// export namespace ResidueCustomProperty {
+// export namespace ChainCustomProperty {
 //     export interface ExportCtx<T> {
 //         elements: StructureElement[],
 //         property(index: number): T
 //     };
 
-//     function getExportCtx<T>(prop: ResidueCustomProperty<T>, structure: Structure): ExportCtx<T> {
-//         const residueIndex = structure.model.atomicHierarchy.residueAtomSegments.index;
+//     function getExportCtx<T>(prop: ChainCustomProperty<T>, structure: Structure): ExportCtx<T> {
+//         const chainIndex = structure.model.atomicHierarchy.chainAtomSegments.index;
 //         const elements = getStructureElements(structure, prop);
-//         return { elements, property: i => prop.get(residueIndex[elements[i].element])! };
+//         return { elements, property: i => prop.get(chainIndex[elements[i].element])! };
 //     }
 
-//     export function getCifDataSource<T>(structure: Structure, prop: ResidueCustomProperty<T> | undefined, cache: any): CifWriter.Category.Instance['source'][0] {
+//     export function getCifDataSource<T>(structure: Structure, prop: ChainCustomProperty<T> | undefined, cache: any): CifWriter.Category.Instance['source'][0] {
 //         if (!prop) return { rowCount: 0 };
 //         if (cache && cache[prop.id]) return cache[prop.id];
 //         const data = getExportCtx(prop, structure);
@@ -38,22 +38,22 @@
 //         return ret;
 //     }
 
-//     class FromMap<T> implements ResidueCustomProperty<T> {
+//     class FromMap<T> implements ChainCustomProperty<T> {
 //         readonly id = UUID.create();
 
-//         has(idx: ResidueIndex): boolean {
+//         has(idx: ChainIndex): boolean {
 //             return this.map.has(idx);
 //         }
 
-//         get(idx: ResidueIndex) {
+//         get(idx: ChainIndex) {
 //             return this.map.get(idx);
 //         }
 
-//         constructor(private map: Map<ResidueIndex, T>, public kind: Unit.Kind) {
+//         constructor(private map: Map<ChainIndex, T>, public kind: Unit.Kind) {
 //         }
 //     }
 
-//     export function fromMap<T>(map: Map<ResidueIndex, T>, kind: Unit.Kind) {
+//     export function fromMap<T>(map: Map<ChainIndex, T>, kind: Unit.Kind) {
 //         return new FromMap(map, kind);
 //     }
 
@@ -61,11 +61,11 @@
 //      * Gets all StructureElements that correspond to 1st atoms of residues that have an property assigned.
 //      * Only works correctly for structures with a single model.
 //      */
-//     export function getStructureElements(structure: Structure, property: ResidueCustomProperty) {
+//     export function getStructureElements(structure: Structure, property: ChainCustomProperty) {
 //         const models = structure.models;
 //         if (models.length !== 1) throw new Error(`Only works on structures with a single model.`);
 
-//         const seenResidues = new Set<ResidueIndex>();
+//         const seenChains = new Set<ChainIndex>();
 //         const unitGroups = structure.unitSymmetryGroups;
 //         const loci: StructureElement[] = [];
 
@@ -75,12 +75,12 @@
 //                 continue;
 //             }
 
-//             const residues = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements);
-//             while (residues.hasNext) {
-//                 const seg = residues.move();
-//                 if (!property.has(seg.index) || seenResidues.has(seg.index)) continue;
+//             const chains = Segmentation.transientSegments(unit.model.atomicHierarchy.chainAtomSegments, unit.elements);
+//             while (chains.hasNext) {
+//                 const seg = chains.move();
+//                 if (!property.has(seg.index) || seenChains.has(seg.index)) continue;
 
-//                 seenResidues.add(seg.index);
+//                 seenChains.add(seg.index);
 //                 loci[loci.length] = StructureElement.create(unit, unit.elements[seg.start]);
 //             }
 //         }

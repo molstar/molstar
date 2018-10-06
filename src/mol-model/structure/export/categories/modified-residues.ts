@@ -27,7 +27,9 @@ const pdbx_struct_mod_residue_fields: CifField<number, StructureElement[]>[] = [
     CifField.str('details', (i, xs) => xs[i].unit.model.properties.modifiedResidues.details.get(P.residue.label_comp_id(xs[i]))!)
 ];
 
-function getModifiedResidues({ model, structure }: CifExportContext): StructureElement[] {
+function getModifiedResidues({ structures }: CifExportContext): StructureElement[] {
+    // TODO: can different models have differnt modified residues?
+    const structure = structures[0], model = structure.model;
     const map = model.properties.modifiedResidues.parentId;
     if (!map.size) return [];
 
@@ -54,6 +56,9 @@ export const _pdbx_struct_mod_residue: CifCategory<CifExportContext> = {
     name: 'pdbx_struct_mod_residue',
     instance(ctx) {
         const residues = getModifiedResidues(ctx);
-        return { fields: pdbx_struct_mod_residue_fields, data: residues, rowCount: residues.length };
+        return {
+            fields: pdbx_struct_mod_residue_fields,
+            source: [{ data: residues, rowCount: residues.length }]
+        };
     }
 }

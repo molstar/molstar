@@ -19,17 +19,17 @@ let exampleWorkload: LocalInput = [{
         input: 'c:/test/quick/1tqn.cif',
         output: 'c:/test/quick/localapi/1tqn_full.bcif',
         query: 'full',
-        params: { binary: true }
+        params: {}
     }, {
         input: 'c:/test/quick/1cbs_updated.cif',
         output: 'c:/test/quick/localapi/1cbs_ligint.cif',
         query: 'residueInteraction', // action is case sensitive
-        params: { label_comp_id: 'REA' }
+        params: { atom_site: { label_comp_id: 'REA' }, radius: 5 }
     }, {
         input: 'c:/test/quick/1cbs_updated.cif', // multiple files that are repeated will only be parsed once
         output: 'c:/test/quick/localapi/1cbs_ligint.bcif',
         query: 'residueInteraction',
-        params: { label_comp_id: 'REA', binary: true } // parameters are just a JSON version of the query string
+        params: { atom_site: { label_comp_id: 'REA' } } // parameters are just a JSON version of the query string
     }
 ];
 

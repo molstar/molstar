@@ -7,9 +7,10 @@
 import { AtomicData, AtomicSegments } from '../atomic'
 import { Interval, Segmentation, SortedArray } from 'mol-data/int'
 import { Entities } from '../common'
-import { ChainIndex, ResidueIndex, EntityIndex } from '../../indexing';
+import { ChainIndex, ResidueIndex, EntityIndex, ElementIndex } from '../../indexing';
 import { AtomicIndex, AtomicHierarchy } from '../atomic/hierarchy';
 import { cantorPairing } from 'mol-data/util';
+import { Column } from 'mol-data/db';
 
 function getResidueId(seq_id: number, ins_code: string) {
     if (!ins_code) return seq_id;
@@ -38,6 +39,9 @@ function missingEntity(k: string) {
 interface Mapping {
     entities: Entities,
     label_seq_id: SortedArray,
+    label_atom_id: Column<string>,
+    auth_atom_id: Column<string>,
+    label_alt_id: Column<string>,
     segments: AtomicSegments,
 
     chain_index_entity_index: EntityIndex[],
@@ -46,7 +50,7 @@ interface Mapping {
     chain_index_label_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>,
 
     auth_asym_id: Map<string, ChainIndex>,
-    chain_index_auth_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>,
+    chain_index_auth_seq_id: Map<ChainIndex, Map<string | number, ResidueIndex>>
 }
 
 function createMapping(entities: Entities, data: AtomicData, segments: AtomicSegments): Mapping {
@@ -54,6 +58,9 @@ function createMapping(entities: Entities, data: AtomicData, segments: AtomicSeg
         entities,
         segments,
         label_seq_id: SortedArray.ofSortedArray(data.residues.label_seq_id.toArray({ array: Int32Array })),
+        label_atom_id: data.atoms.label_atom_id,
+        auth_atom_id: data.atoms.auth_atom_id,
+        label_alt_id: data.atoms.label_alt_id,
         chain_index_entity_index: new Int32Array(data.chains._rowCount) as any,
         entity_index_label_asym_id: new Map(),
         chain_index_label_seq_id: new Map(),
@@ -125,9 +132,44 @@ class Index implements AtomicIndex {
         return idx;
     }
 
+    findAtom(key: AtomicIndex.AtomKey): ElementIndex {
+        const rI = this.findResidue(key);
+        if (rI < 0) return -1 as ElementIndex;
+        const offsets = this.map.segments.residueAtomSegments.offsets;
+        if (typeof key.label_alt_id === 'undefined') {
+            return findAtomByName(offsets[rI], offsets[rI + 1], this.map.label_atom_id, key.label_atom_id);
+        }
+        return findAtomByNameAndAltLoc(offsets[rI], offsets[rI + 1], this.map.label_atom_id, this.map.label_alt_id, key.label_atom_id, key.label_alt_id);
+    }
+
+    findAtomAuth(key: AtomicIndex.AtomAuthKey): ElementIndex {
+        const rI = this.findResidueAuth(key);
+        if (rI < 0) return -1 as ElementIndex;
+        const offsets = this.map.segments.residueAtomSegments.offsets;
+        if (typeof key.label_alt_id === 'undefined') {
+            return findAtomByName(offsets[rI], offsets[rI + 1], this.map.auth_atom_id, key.auth_atom_id);
+        }
+        return findAtomByNameAndAltLoc(offsets[rI], offsets[rI + 1], this.map.auth_atom_id, this.map.label_alt_id, key.auth_atom_id, key.label_alt_id);
+    }
+
     constructor(private map: Mapping) {
         this.entityIndex = map.entities.getEntityIndex;
     }
+}
+
+function findAtomByName(start: ElementIndex, end: ElementIndex, data: Column<string>, atomName: string): ElementIndex {
+    for (let i = start; i < end; i++) {
+        if (data.value(i) === atomName) return i;
+    }
+    return -1 as ElementIndex;
+}
+
+function findAtomByNameAndAltLoc(start: ElementIndex, end: ElementIndex, nameData: Column<string>, altLocData: Column<string>,
+    atomName: string, altLoc: string): ElementIndex {
+    for (let i = start; i < end; i++) {
+        if (nameData.value(i) === atomName && altLocData.value(i) === altLoc) return i;
+    }
+    return -1 as ElementIndex;
 }
 
 export function getAtomicIndex(data: AtomicData, entities: Entities, segments: AtomicSegments): AtomicIndex {

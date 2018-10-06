@@ -8,29 +8,38 @@
 import { CifWriter } from 'mol-io/writer/cif'
 import { mmCIF_Schema } from 'mol-io/reader/cif/schema/mmcif'
 import { Structure } from '../structure'
-import { Model } from '../model'
 import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
 import { _pdbx_struct_mod_residue } from './categories/modified-residues';
+import { _chem_comp, _pdbx_chem_comp_identifier } from './categories/misc';
+import { Model } from '../model';
+import { getUniqueEntityIndicesFromStructures } from './categories/utils';
+import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
+import { ModelPropertyDescriptor } from '../model/properties/custom';
 
 export interface CifExportContext {
-    structure: Structure,
-    model: Model,
+    structures: Structure[],
+    firstModel: Model,
     cache: any
 }
 
 export namespace CifExportContext {
-    export function create(structures: Structure | Structure[]): CifExportContext[] {
-        if (Array.isArray(structures)) return structures.map(structure => ({ structure, model: structure.models[0], cache: Object.create(null) }));
-        return [{ structure: structures, model: structures.models[0], cache: Object.create(null) }];
+    export function create(structures: Structure | Structure[]): CifExportContext {
+        const structureArray = Array.isArray(structures) ? structures : [structures];
+        return {
+            structures: structureArray,
+            firstModel: structureArray[0].model,
+            cache: Object.create(null)
+        };
     }
 }
 
 function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportContext> {
     return {
         name,
-        instance({ model }) {
+        instance({ structures }) {
+            const model = structures[0].model;
             if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
             const table = model.sourceData.data[name];
             if (!table || !table._rowCount) return CifCategory.Empty;
@@ -41,9 +50,9 @@ function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportCon
 
 const _entity: CifCategory<CifExportContext> = {
     name: 'entity',
-    instance({ structure, model}) {
-        const keys = Structure.getEntityKeys(structure);
-        return CifCategory.ofTable(model.entities.data, keys);
+    instance({ structures }) {
+        const indices = getUniqueEntityIndicesFromStructures(structures);
+        return CifCategory.ofTable(structures[0].model.entities.data, indices);
     }
 }
 
@@ -67,9 +76,9 @@ const Categories = [
     _struct_sheet_range,
 
     // Sequence
-    copy_mmCif_category('struct_asym'), // TODO: filter only present chains?
-    copy_mmCif_category('entity_poly'),
-    copy_mmCif_category('entity_poly_seq'),
+    _struct_asym,
+    _entity_poly,
+    _entity_poly_seq,
 
     // Branch
     copy_mmCif_category('pdbx_entity_branch'),
@@ -78,8 +87,8 @@ const Categories = [
 
     // Misc
     // TODO: filter for actual present residues?
-    copy_mmCif_category('chem_comp'),
-    copy_mmCif_category('pdbx_chem_comp_identifier'),
+    _chem_comp,
+    _pdbx_chem_comp_identifier,
     copy_mmCif_category('atom_sites'),
 
     _pdbx_struct_mod_residue,
@@ -100,13 +109,13 @@ export const mmCIF_Export_Filters = {
 }
 
 /** Doesn't start a data block */
-export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext[] }) {
+export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: Structure | Structure[], params?: { skipCategoryNames?: Set<string>, exportCtx?: CifExportContext }) {
     const first = Array.isArray(structures) ? structures[0] : (structures as Structure);
     const models = first.models;
     if (models.length !== 1) throw 'Can\'t export stucture composed from multiple models.';
 
     const _params = params || { };
-    const ctx: CifExportContext[] = params && params.exportCtx ? params.exportCtx : CifExportContext.create(structures);
+    const ctx: CifExportContext = params && params.exportCtx ? params.exportCtx : CifExportContext.create(structures);
 
     for (const cat of Categories) {
         if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
@@ -118,10 +127,20 @@ export function encode_mmCIF_categories(encoder: CifWriter.Encoder, structures: 
 
         const prefix = customProp.cifExport.prefix;
         const cats = customProp.cifExport.categories;
+
+        let propCtx = ctx;
+        if (customProp.cifExport.context) {
+            const propId = ModelPropertyDescriptor.getUUID(customProp);
+            if (ctx.cache[propId + '__ctx']) propCtx = ctx.cache[propId + '__ctx'];
+            else {
+                propCtx = customProp.cifExport.context(ctx) || ctx;
+                ctx.cache[propId + '__ctx'] = propCtx;
+            }
+        }
         for (const cat of cats) {
             if (_params.skipCategoryNames && _params.skipCategoryNames.has(cat.name)) continue;
             if (cat.name.indexOf(prefix) !== 0) throw new Error(`Custom category '${cat.name}' name must start with prefix '${prefix}.'`);
-            encoder.writeCategory(cat, ctx);
+            encoder.writeCategory(cat, propCtx);
         }
     }
 }

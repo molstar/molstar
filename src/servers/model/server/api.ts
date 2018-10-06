@@ -24,28 +24,33 @@ export interface QueryParamInfo {
     validation?: (v: any) => void
 }
 
-export interface QueryDefinition {
+export interface QueryDefinition<Params = any> {
     name: string,
     niceName: string,
     exampleId: string, // default is 1cbs
     query: (params: any, structure: Structure) => StructureQuery,
     description: string,
     params: QueryParamInfo[],
-    structureTransform?: (params: any, s: Structure) => Promise<Structure>
+    structureTransform?: (params: any, s: Structure) => Promise<Structure>,
+    '@params': Params
 }
 
-// const AtomSiteParams = {
-//     entity_id: <QueryParamInfo>{ name: 'entity_id', type: QueryParamType.String, description: 'Corresponds to the \'_entity.id\' or \'*.label_entity_id\' field, depending on the context.' },
+export interface AtomSiteSchema {
+    label_entity_id?: string,
 
-//     label_asym_id: <QueryParamInfo>{ name: 'label_asym_id', type: QueryParamType.String, description: 'Corresponds to the \'_atom_site.label_asym_id\' field.' },
-//     auth_asym_id: <QueryParamInfo>{ name: 'auth_asym_id', type: QueryParamType.String, exampleValue: 'A', description: 'Corresponds to the \'_atom_site.auth_asym_id\' field.' },
+    label_asym_id?: string,
+    auth_asym_id?: string,
 
-//     label_seq_id: <QueryParamInfo>{ name: 'label_seq_id', type: QueryParamType.Integer, description: 'Residue seq. number. Corresponds to the \'_atom_site.label_seq_id\' field.' },
-//     auth_seq_id: <QueryParamInfo>{ name: 'auth_seq_id', type: QueryParamType.Integer, exampleValue: '200', description: 'Author residue seq. number. Corresponds to the \'_atom_site.auth_seq_id\' field.' },
-//     label_comp_id: <QueryParamInfo>{ name: 'label_comp_id', type: QueryParamType.String, description: 'Residue name. Corresponds to the \'_atom_site.label_comp_id\' field.' },
-//     auth_comp_id: <QueryParamInfo>{ name: 'auth_comp_id', type: QueryParamType.String, exampleValue: 'REA', description: 'Author residue name. Corresponds to the \'_atom_site.auth_comp_id\' field.' },
-//     pdbx_PDB_ins_code: <QueryParamInfo>{ name: 'pdbx_PDB_ins_code', type: QueryParamType.String, description: 'Corresponds to the \'_atom_site.pdbx_PDB_ins_code\' field.' },
-// };
+    label_comp_id?: string,
+    auth_comp_id?: string,
+    label_seq_id?: string,
+    auth_seq_id?: string,
+    pdbx_PDB_ins_code?: string,
+
+    label_atom_id?: string,
+    auth_atom_id?: string,
+    type_symbol?: string
+}
 
 const AtomSiteTestParams: QueryParamInfo = {
     name: 'atom_site',
@@ -67,15 +72,19 @@ const RadiusParam: QueryParamInfo = {
     }
 };
 
-const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
-    'full': { niceName: 'Full Structure', query: () => Queries.generators.all, description: 'The full structure.' },
-    'atoms': {
+function Q<Params = any>(definition: Partial<QueryDefinition<Params>>) {
+    return definition;
+}
+
+const QueryMap = {
+    'full': Q<{} | undefined>({ niceName: 'Full Structure', query: () => Queries.generators.all, description: 'The full structure.' }),
+    'atoms': Q<{ atom_site: AtomSiteSchema }>({
         niceName: 'Atoms',
         description: 'Atoms satisfying the given criteria.',
         query: p => Queries.combinators.merge(getAtomsTests(p.atom_site).map(test => Queries.generators.atoms(test))),
         params: [ AtomSiteTestParams ]
-    },
-    'symmetryMates': {
+    }),
+    'symmetryMates': Q<{ radius: number }>({
         niceName: 'Symmetry Mates',
         description: 'Computes crystal symmetry mates within the specified radius.',
         query: () => Queries.generators.all,
@@ -83,8 +92,8 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
         },
         params: [ RadiusParam ]
-    },
-    'assembly': {
+    }),
+    'assembly': Q<{ name: string }>({
         niceName: 'Assembly',
         description: 'Computes structural assembly.',
         query: () => Queries.generators.all,
@@ -98,8 +107,8 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
             exampleValues: ['1'],
             description: 'Assembly name.'
         }]
-    },
-    'residueInteraction': {
+    }),
+    'residueInteraction': Q<{ atom_site: AtomSiteSchema, radius: number }>({
         niceName: 'Residue Interaction',
         description: 'Identifies all residues within the given radius from the source residue. Takes crystal symmetry into account.',
         query(p) {
@@ -116,16 +125,19 @@ const QueryMap: { [id: string]: Partial<QueryDefinition> } = {
             return StructureSymmetry.builderSymmetryMates(s, p.radius).run();
         },
         params: [ AtomSiteTestParams, RadiusParam ]
-    },
+    }),
 };
 
-export function getQueryByName(name: string): QueryDefinition {
+export type QueryName = keyof typeof QueryMap
+export type QueryParams<Q extends QueryName> = Partial<(typeof QueryMap)[Q]['@params']>
+
+export function getQueryByName(name: QueryName): QueryDefinition {
     return QueryMap[name] as QueryDefinition;
 }
 
 export const QueryList = (function () {
     const list: { name: string, definition: QueryDefinition }[] = [];
-    for (const k of Object.keys(QueryMap)) list.push({ name: k, definition: <QueryDefinition>QueryMap[k] });
+    for (const k of Object.keys(QueryMap)) list.push({ name: k, definition: <QueryDefinition>QueryMap[k as QueryName] });
     list.sort(function (a, b) { return a.name < b.name ? -1 : a.name > b.name ? 1 : 0 });
     return list;
 })();

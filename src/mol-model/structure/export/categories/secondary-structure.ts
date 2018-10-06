@@ -18,7 +18,10 @@ export const _struct_conf: CifCategory<CifExportContext> = {
     name: 'struct_conf',
     instance(ctx) {
         const elements = findElements(ctx, 'helix');
-        return { fields: struct_conf_fields, data: elements, rowCount: elements.length };
+        return {
+            fields: struct_conf_fields,
+            source: [{ data: elements, rowCount: elements.length }]
+        };
     }
 };
 
@@ -26,7 +29,10 @@ export const _struct_sheet_range: CifCategory<CifExportContext> = {
     name: 'struct_sheet_range',
     instance(ctx) {
         const elements = (findElements(ctx, 'sheet') as SSElement<SecondaryStructure.Sheet>[]).sort(compare_ssr);
-        return { fields: struct_sheet_range_fields, data: elements, rowCount: elements.length };
+        return {
+            fields: struct_sheet_range_fields,
+            source: [{ data: elements, rowCount: elements.length }]
+        };
     }
 };
 
@@ -38,8 +44,8 @@ function compare_ssr(x: SSElement<SecondaryStructure.Sheet>, y: SSElement<Second
 const struct_conf_fields: CifField[] = [
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('conf_type_id', (i, data) => data[i].element.type_id),
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('id', (i, data, idx) => `${data[i].element.type_id}${idx + 1}`),
-    ...residueIdFields<number, SSElement<SecondaryStructure.Helix>[]>((i, e) => e[i].start, 'beg'),
-    ...residueIdFields<number, SSElement<SecondaryStructure.Helix>[]>((i, e) => e[i].end, 'end'),
+    ...residueIdFields<number, SSElement<SecondaryStructure.Helix>[]>((i, e) => e[i].start, { prefix: 'beg' }),
+    ...residueIdFields<number, SSElement<SecondaryStructure.Helix>[]>((i, e) => e[i].end, { prefix: 'end' }),
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('pdbx_PDB_helix_class', (i, data) => data[i].element.helix_class),
     CifField.str<number, SSElement<SecondaryStructure.Helix>[]>('details', (i, data) => data[i].element.details || '', {
         valueKind: (i, d) => !!d[i].element.details ? Column.ValueKind.Present : Column.ValueKind.Unknown
@@ -50,8 +56,8 @@ const struct_conf_fields: CifField[] = [
 const struct_sheet_range_fields: CifField[] = [
     CifField.str<number, SSElement<SecondaryStructure.Sheet>[]>('sheet_id', (i, data) => data[i].element.sheet_id),
     CifField.index('id'),
-    ...residueIdFields<number, SSElement<SecondaryStructure.Sheet>[]>((i, e) => e[i].start, 'beg'),
-    ...residueIdFields<number, SSElement<SecondaryStructure.Sheet>[]>((i, e) => e[i].end, 'end'),
+    ...residueIdFields<number, SSElement<SecondaryStructure.Sheet>[]>((i, e) => e[i].start, { prefix: 'beg' }),
+    ...residueIdFields<number, SSElement<SecondaryStructure.Sheet>[]>((i, e) => e[i].end, { prefix: 'end' }),
     CifField.str('symmetry', (i, data) => '', { valueKind: (i, d) => Column.ValueKind.Unknown })
 ];
 
@@ -63,11 +69,12 @@ interface SSElement<T extends SecondaryStructure.Element> {
 }
 
 function findElements<T extends SecondaryStructure.Element>(ctx: CifExportContext, kind: SecondaryStructure.Element['kind']) {
-    const { key, elements } = ctx.model.properties.secondaryStructure;
+    // TODO: encode secondary structure for different models?
+    const { key, elements } = ctx.structures[0].model.properties.secondaryStructure;
 
     const ssElements: SSElement<any>[] = [];
 
-    for (const unit of ctx.structure.units) {
+    for (const unit of ctx.structures[0].units) {
         // currently can only support this for "identity" operators.
         if (!Unit.isAtomic(unit) || !unit.conformation.operator.isIdentity) continue;
 

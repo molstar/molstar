@@ -14,14 +14,14 @@ export class CustomProperties {
         return this._list;
     }
 
-    add(desc: ModelPropertyDescriptor) {
+    add(desc: ModelPropertyDescriptor<any>) {
         if (this._set.has(desc)) return;
 
         this._list.push(desc);
         this._set.add(desc);
     }
 
-    has(desc: ModelPropertyDescriptor): boolean {
+    has(desc: ModelPropertyDescriptor<any>): boolean {
         return this._set.has(desc);
     }
 }

@@ -36,7 +36,11 @@ export namespace Field {
         typedArray?: ArrayEncoding.TypedArrayCtor
     }
 
-    export type ParamsBase<K, D> = { valueKind?: (k: K, d: D) => Column.ValueKind, encoder?: ArrayEncoder, shouldInclude?: (data: D) => boolean }
+    export type ParamsBase<K, D> = {
+        valueKind?: (k: K, d: D) => Column.ValueKind,
+        encoder?: ArrayEncoder,
+        shouldInclude?: (data: D) => boolean
+    }
 
     export function str<K, D = any>(name: string, value: (k: K, d: D, index: number) => string, params?: ParamsBase<K, D>): Field<K, D> {
         return { name, type: Type.Str, value, valueKind: params && params.valueKind, defaultFormat: params && params.encoder ? { encoder: params.encoder } : void 0, shouldInclude: params && params.shouldInclude };
@@ -91,6 +95,11 @@ export namespace Field {
             return this;
         }
 
+        many(fields: ArrayLike<Field<K, D>>) {
+            for (let i = 0; i < fields.length; i++) this.fields.push(fields[i]);
+            return this;
+        }
+
         getFields() { return this.fields; }
     }
 
@@ -105,13 +114,17 @@ export interface Category<Ctx = any> {
 }
 
 export namespace Category {
-    export const Empty: Instance = { fields: [], rowCount: 0 };
+    export const Empty: Instance = { fields: [], source: [] };
 
-    export interface Instance<Key = any, Data = any> {
-        fields: Field[],
+    export interface DataSource<Key = any, Data = any> {
         data?: Data,
         rowCount: number,
         keys?: () => Iterator<Key>
+    }
+
+    export interface Instance<Key = any, Data = any> {
+        fields: Field[],
+        source: DataSource<Key, Data>[]
     }
 
     export interface Filter {
@@ -134,9 +147,15 @@ export namespace Category {
 
     export function ofTable(table: Table<Table.Schema>, indices?: ArrayLike<number>): Category.Instance {
         if (indices) {
-            return { fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: indices.length, keys: () => Iterator.Array(indices) };
+            return {
+                fields: cifFieldsFromTableSchema(table._schema),
+                source: [{ data: table, rowCount: indices.length, keys: () => Iterator.Array(indices) }]
+            };
         }
-        return { fields: cifFieldsFromTableSchema(table._schema), data: table, rowCount: table._rowCount };
+        return {
+            fields: cifFieldsFromTableSchema(table._schema),
+            source: [{ data: table, rowCount: table._rowCount }]
+        };
     }
 }
 
@@ -145,7 +164,7 @@ export interface Encoder<T = string | Uint8Array> extends EncoderBase {
     setFormatter(formatter?: Category.Formatter): void,
 
     startDataBlock(header: string): void,
-    writeCategory<Ctx>(category: Category<Ctx>, contexts?: Ctx[]): void,
+    writeCategory<Ctx>(category: Category<Ctx>, context?: Ctx): void,
     getData(): T
 }
 
