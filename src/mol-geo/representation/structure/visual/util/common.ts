@@ -74,7 +74,7 @@ type StructureDirectVolumeProps = DirectVolume.Props & StructureProps
 
 export async function createUnitsDirectVolumeRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, props: StructureDirectVolumeProps) {
     // TODO transform support
-    const transform = createUnitsTransform(group)
+    // const transform = createUnitsTransform(group)
     const values = await DirectVolume.createValues(ctx, directVolume, props)
     const state = createRenderableState(props)
     return createDirectVolumeRenderObject(values, state)
