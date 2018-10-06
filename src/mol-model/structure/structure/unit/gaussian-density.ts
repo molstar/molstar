@@ -14,7 +14,7 @@ import { NumberParam, paramDefaultValues, BooleanParam } from 'mol-view/paramete
 export const GaussianDensityParams = {
     resolution: NumberParam('Resolution', '', 1, 0.1, 10, 0.1),
     radiusOffset: NumberParam('Radius Offset', '', 0, 0, 10, 0.1),
-    smoothness: NumberParam('Smoothness', '', 1.5, 0, 4, 0.1),
+    smoothness: NumberParam('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
     useGpu: BooleanParam('Use GPU', '', true),
     readSlices: BooleanParam('Read Slices', '', false),
     ignoreCache: BooleanParam('Ignore Cache', '', false),

@@ -20,7 +20,17 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const v = Vec3.zero()
     const p = Vec3.zero()
 
-    const pad = (radiusOffset + 3) * 3 // TODO calculate max radius
+    let maxRadius = 0
+    for (let i = 0; i < n; ++i) {
+        const r = radius(OrderedSet.getAt(indices, i)) + radiusOffset
+        if (maxRadius < r) maxRadius = r
+
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'calculating max radius', current: i, max: n })
+        }
+    }
+
+    const pad = maxRadius * 2 + resolution
     const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad))
     const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)
     const min = expandedBox.min
@@ -43,7 +53,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
 
     const alpha = smoothness
 
-    const _r2 = (radiusOffset + 1.4 * 2)
+    const _r2 = maxRadius * 2
     const _radius2 = Vec3.create(_r2, _r2, _r2)
     Vec3.mul(_radius2, _radius2, delta)
     const updateChunk = Math.ceil(10000 / (_radius2[0] * _radius2[1] * _radius2[2]))

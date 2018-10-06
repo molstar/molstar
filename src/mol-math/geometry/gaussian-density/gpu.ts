@@ -6,7 +6,7 @@
  */
 
 import { RuntimeContext } from 'mol-task'
-import { PositionData } from '../common'
+import { PositionData, DensityData } from '../common'
 import { Box3D } from '../../geometry'
 import { GaussianDensityProps, getDelta } from '../gaussian-density'
 import { OrderedSet } from 'mol-data/int'
@@ -18,7 +18,7 @@ import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/rend
 import { createRenderTarget } from 'mol-gl/webgl/render-target'
 import { Context, createContext } from 'mol-gl/webgl/context';
 
-export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps) { // }: Promise<DensityData> {
+export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
     const { resolution, radiusOffset, smoothness, readSlices } = props
 
     const { indices, x, y, z } = position
@@ -27,7 +27,24 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     const positions = new Float32Array(n * 3)
     const radii = new Float32Array(n)
 
-    const pad = (radiusOffset + 3) * 3 // TODO calculate max radius
+    let maxRadius = 0
+
+    for (let i = 0; i < n; ++i) {
+        const j = OrderedSet.getAt(indices, i);
+
+        positions[i * 3] = x[j]
+        positions[i * 3 + 1] = y[j]
+        positions[i * 3 + 2] = z[j]
+        const r = radius(j) + radiusOffset
+        if (maxRadius < r) maxRadius = r
+        radii[i] = r
+
+        if (i % 10000 === 0 && ctx.shouldUpdate) {
+            await ctx.update({ message: 'preparing density data', current: i, max: n })
+        }
+    }
+
+    const pad = maxRadius * 2 + resolution
     const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad));
     const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)
 
@@ -36,23 +53,10 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
     console.log('grid dim', dim)
 
-    const _r2 = (radiusOffset + 1.4 * 2)
+    const _r2 = maxRadius * 2
     const _radius2 = Vec3.create(_r2, _r2, _r2)
     Vec3.mul(_radius2, _radius2, delta)
     const updateChunk = Math.ceil(10000 / (_radius2[0] * _radius2[1] * _radius2[2]))
-
-    for (let i = 0; i < n; ++i) {
-        const j = OrderedSet.getAt(indices, i);
-
-        positions[i * 3] = x[j]
-        positions[i * 3 + 1] = y[j]
-        positions[i * 3 + 2] = z[j]
-        radii[i] = radius(j) + radiusOffset
-
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'preparing density data', current: i, max: n })
-        }
-    }
 
     //
 
@@ -86,7 +90,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     //
 
     // TODO fallback to lower resolution when texture size is not large enough
-    const maxTexSize = webgl.maxTextureSize
+    const maxTexSize = 1024 // webgl.maxTextureSize
     let fboTexDimX = 0
     let fboTexDimY = dim[1]
     let fboTexRows = 1
@@ -99,6 +103,8 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     } else {
         fboTexDimX = dim[0] * dim[2]
     }
+
+    console.log('dim', dim, 'cols', fboTexCols, 'rows', fboTexRows)
 
     //
 
@@ -124,7 +130,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     gl.cullFace(gl.BACK)
 
     gl.depthMask(true)
-    gl.clearColor(0, 0, 0, 1)
+    gl.clearColor(0, 0, 0, 0)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
     gl.depthMask(false)
 
@@ -173,6 +179,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     if (!readSlices) {
         console.time('gpu gaussian density full')
         renderTarget.getBuffer()
+        const { array } = renderTarget.image
         let idx = 0
         let tmpCol = 0
         let tmpRow = 0
@@ -183,7 +190,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
             }
             for (let iy = 0; iy < dim[1]; ++iy) {
                 for (let ix = 0; ix < dim[0]; ++ix) {
-                    data[idx] = renderTarget.image.array[4 * (tmpCol * dim[0] + (iy + tmpRow) * fboTexDimX + ix)] / 255
+                    data[idx] = array[4 * (tmpCol * dim[0] + (iy + tmpRow) * fboTexDimX + ix)] / 255
                     idx++
                 }
             }
@@ -198,7 +205,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     Mat4.fromScaling(transform, Vec3.inverse(Vec3.zero(), delta))
     Mat4.setTranslation(transform, expandedBox.min)
 
-    return { field, idField, transform }
+    return { field, idField, transform, renderTarget, bbox: expandedBox, gridDimension: dim }
 }
 
 let webglContext: Context
@@ -206,9 +213,9 @@ function getWebGLContext() {
     if (webglContext) return webglContext
     const canvas = document.createElement('canvas')
     const gl = canvas.getContext('webgl', {
-        alpha: false,
-        antialias: true,
-        depth: true,
+        alpha: true,
+        antialias: false,
+        depth: false,
         preserveDrawingBuffer: true
     })
     if (!gl) throw new Error('Could not create a WebGL rendering context')
