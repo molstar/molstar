@@ -29,5 +29,8 @@
             "mol-view": ["./mol-view"]
         }
     },
-    "include": [ "**/*" ]
+    "include": [ "**/*" ],
+    "files": [
+        "./node_modules/@types/webgl2/index.d.ts"
+    ],
 }

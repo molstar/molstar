@@ -16,7 +16,7 @@ import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
 import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
-import { createContext } from 'mol-gl/webgl/context';
+import { createContext, getGLContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
@@ -59,17 +59,6 @@ interface Viewer {
     dispose: () => void
 }
 
-function getWebGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes) {
-    function getContext(contextId: 'webgl' | 'experimental-webgl') {
-        try {
-            return canvas.getContext(contextId, contextAttributes)
-        } catch (e) {
-            return null
-        }
-    }
-    return getContext('webgl') || getContext('experimental-webgl')
-}
-
 namespace Viewer {
     export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
         const reprMap = new Map<Representation<any>, Set<RenderObject>>()
@@ -87,7 +76,7 @@ namespace Viewer {
         })
         // camera.lookAt(Vec3.create(0, 0, 0))
 
-        const gl = getWebGLContext(canvas, {
+        const gl = getGLContext(canvas, {
             alpha: false,
             antialias: true,
             depth: true,

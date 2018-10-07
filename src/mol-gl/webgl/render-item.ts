@@ -50,7 +50,7 @@ const RenderVariantDefines = {
 export type RenderVariant = keyof typeof RenderVariantDefines
 
 type ProgramVariants = { [k: string]: ReferenceItem<Program> }
-type VertexArrayVariants = { [k: string]: WebGLVertexArrayObjectOES | undefined }
+type VertexArrayVariants = { [k: string]: WebGLVertexArrayObjectOES | null }
 
 interface ValueChanges {
     attributes: boolean
@@ -70,7 +70,7 @@ interface ValueChanges {
 export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues): RenderItem {
     const id = getNextRenderItemId()
     const { programCache } = ctx
-    const { angleInstancedArrays, oesVertexArrayObject } = ctx.extensions
+    const { instancedArrays, vertexArrayObject } = ctx.extensions
 
     const { attributeValues, defineValues, textureValues, uniformValues } = splitValues(schema, values)
     const versions = getValueVersions(values)
@@ -127,8 +127,8 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             const program = programs[variant].value
             const vertexArray = vertexArrays[variant]
             program.setUniforms(uniformValues)
-            if (oesVertexArrayObject && vertexArray) {
-                oesVertexArrayObject.bindVertexArrayOES(vertexArray)
+            if (vertexArrayObject && vertexArray) {
+                vertexArrayObject.bindVertexArray(vertexArray)
                 // need to bind elements buffer explicitely since it is not always recorded in the VAO
                 if (elementsBuffer) elementsBuffer.bind()
             } else {
@@ -137,9 +137,9 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             }
             program.bindTextures(textures)
             if (elementsBuffer) {
-                angleInstancedArrays.drawElementsInstancedANGLE(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
+                instancedArrays.drawElementsInstanced(glDrawMode, drawCount, elementsBuffer._dataType, 0, instanceCount);
             } else {
-                angleInstancedArrays.drawArraysInstancedANGLE(glDrawMode, 0, drawCount, instanceCount)
+                instancedArrays.drawArraysInstanced(glDrawMode, 0, drawCount, instanceCount)
             }
         },
         update: () => {

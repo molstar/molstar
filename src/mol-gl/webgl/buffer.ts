@@ -113,8 +113,8 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
     const _itemCount = Math.floor(_length / itemSize)
 
     function updateData(array: ArrayType) {
-        gl.bindBuffer(_bufferType, _buffer)
-        gl.bufferData(_bufferType, array, _usageHint)
+        gl.bindBuffer(_bufferType, _buffer);
+        (gl as WebGLRenderingContext).bufferData(_bufferType, array, _usageHint) // TODO remove cast when webgl2 types are fixed
     }
     updateData(array)
 
@@ -136,15 +136,15 @@ export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferIte
 
         updateData,
         updateSubData: (array: ArrayType, offset: number, count: number) => {
-            gl.bindBuffer(_bufferType, _buffer)
-            gl.bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count))
+            gl.bindBuffer(_bufferType, _buffer);
+            (gl as WebGLRenderingContext).bufferSubData(_bufferType, offset * _bpe, array.subarray(offset, offset + count)) // TODO remove cast when webgl2 types are fixed
         },
 
         destroy: () => {
             if (destroyed) return
-            gl.bindBuffer(_bufferType, _buffer)
+            gl.bindBuffer(_bufferType, _buffer);
             // set size to 1 before deleting
-            gl.bufferData(_bufferType, 1, _usageHint)
+            (gl as WebGLRenderingContext).bufferData(_bufferType, 1, _usageHint) // TODO remove cast when webgl2 types are fixed
             gl.deleteBuffer(_buffer)
             destroyed = true
             ctx.bufferCount -= 1
@@ -164,7 +164,7 @@ export interface AttributeBuffer extends Buffer {
 
 export function createAttributeBuffer<T extends ArrayType, S extends BufferItemSize>(ctx: Context, array: ArrayType, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
     const { gl } = ctx
-    const { angleInstancedArrays } = ctx.extensions
+    const { instancedArrays } = ctx.extensions
 
     const buffer = createBuffer(ctx, array, itemSize, usageHint, 'attribute')
     const { _buffer, _bufferType, _dataType, _bpe } = buffer
@@ -177,12 +177,12 @@ export function createAttributeBuffer<T extends ArrayType, S extends BufferItemS
                 for (let i = 0; i < 4; ++i) {
                     gl.enableVertexAttribArray(location + i)
                     gl.vertexAttribPointer(location + i, 4, _dataType, false, 4 * 4 * _bpe, i * 4 * _bpe)
-                    angleInstancedArrays.vertexAttribDivisorANGLE(location + i, divisor)
+                    instancedArrays.vertexAttribDivisor(location + i, divisor)
                 }
             } else {
                 gl.enableVertexAttribArray(location)
                 gl.vertexAttribPointer(location, itemSize, _dataType, false, 0, 0)
-                angleInstancedArrays.vertexAttribDivisorANGLE(location, divisor)
+                instancedArrays.vertexAttribDivisor(location, divisor)
             }
         }
     }

@@ -39,11 +39,11 @@ function createUniformSetter(ctx: Context, program: WebGLProgram, name: string, 
     switch (kind) {
         case 'f': return (value: number) => gl.uniform1f(location, value)
         case 'i': case 't2': return (value: number) => gl.uniform1i(location, value)
-        case 'v2': return (value: Vec2) => gl.uniform2fv(location, value)
-        case 'v3': return (value: Vec3) => gl.uniform3fv(location, value)
-        case 'v4': return (value: Vec4) => gl.uniform4fv(location, value)
-        case 'm3': return (value: Mat3) => gl.uniformMatrix3fv(location, false, value)
-        case 'm4': return (value: Mat4) => gl.uniformMatrix4fv(location, false, value)
+        case 'v2': return (value: Vec2) => (gl as WebGLRenderingContext).uniform2fv(location, value) // TODO remove cast when webgl2 types are fixed
+        case 'v3': return (value: Vec3) => (gl as WebGLRenderingContext).uniform3fv(location, value)
+        case 'v4': return (value: Vec4) => (gl as WebGLRenderingContext).uniform4fv(location, value)
+        case 'm3': return (value: Mat3) => (gl as WebGLRenderingContext).uniformMatrix3fv(location, false, value)
+        case 'm4': return (value: Mat4) => (gl as WebGLRenderingContext).uniformMatrix4fv(location, false, value)
     }
 }
 

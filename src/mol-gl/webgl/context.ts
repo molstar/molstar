@@ -6,12 +6,24 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint } from './compat';
+
+export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
+    function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
+        try {
+           return canvas.getContext(contextId, contextAttributes) as GLRenderingContext | null
+        } catch (e) {
+            return null
+        }
+    }
+    return getContext('webgl2') ||  getContext('webgl') || getContext('experimental-webgl')
+}
 
 function getPixelRatio() {
     return (typeof window !== 'undefined') ? window.devicePixelRatio : 1
 }
 
-function unbindResources (gl: WebGLRenderingContext) {
+function unbindResources (gl: GLRenderingContext) {
     // bind null to all texture units
     const maxTextureImageUnits = gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS)
     for (let i = 0; i < maxTextureImageUnits; ++i) {
@@ -35,7 +47,7 @@ function unbindResources (gl: WebGLRenderingContext) {
     unbindFramebuffer(gl)
 }
 
-function unbindFramebuffer(gl: WebGLRenderingContext) {
+function unbindFramebuffer(gl: GLRenderingContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 }
 
@@ -55,20 +67,21 @@ export function createImageData(buffer: Uint8Array, width: number, height: numbe
 }
 
 type Extensions = {
-    angleInstancedArrays: ANGLE_instanced_arrays
-    standardDerivatives: OES_standard_derivatives
-    oesElementIndexUint: OES_element_index_uint | null
-    oesVertexArrayObject: OES_vertex_array_object | null
+    instancedArrays: COMPAT_instanced_arrays
+    standardDerivatives: COMPAT_standard_derivatives
+    elementIndexUint: COMPAT_element_index_uint | null
+    vertexArrayObject: COMPAT_vertex_array_object | null
 }
 
 /** A WebGL context object, including the rendering context, resource caches and counts */
 export interface Context {
-    gl: WebGLRenderingContext
-    extensions: Extensions
-    pixelRatio: number
+    readonly gl: GLRenderingContext
+    readonly isWebGL2: boolean
+    readonly extensions: Extensions
+    readonly pixelRatio: number
 
-    shaderCache: ShaderCache
-    programCache: ProgramCache
+    readonly shaderCache: ShaderCache
+    readonly programCache: ProgramCache
 
     bufferCount: number
     framebufferCount: number
@@ -87,22 +100,24 @@ export interface Context {
     destroy: () => void
 }
 
-export function createContext(gl: WebGLRenderingContext): Context {
-    const angleInstancedArrays = gl.getExtension('ANGLE_instanced_arrays')
-    if (angleInstancedArrays === null) {
-        throw new Error('Could not get "ANGLE_instanced_arrays" extension')
+
+
+export function createContext(gl: GLRenderingContext): Context {
+    const instancedArrays = getInstancedArrays(gl)
+    if (instancedArrays === null) {
+        throw new Error('Could not find support for "instanced_arrays"')
     }
-    const standardDerivatives = gl.getExtension('OES_standard_derivatives')
+    const standardDerivatives = getStandardDerivatives(gl)
     if (standardDerivatives === null) {
-        throw new Error('Could not get "OES_standard_derivatives" extension')
+        throw new Error('Could not find support for "standard_derivatives"')
     }
-    const oesElementIndexUint = gl.getExtension('OES_element_index_uint')
-    if (oesElementIndexUint === null) {
-        console.warn('Could not get "OES_element_index_uint" extension')
+    const elementIndexUint = getElementIndexUint(gl)
+    if (elementIndexUint === null) {
+        console.warn('Could not find support for "element_index_uint"')
     }
-    const oesVertexArrayObject = gl.getExtension('OES_vertex_array_object')
-    if (oesVertexArrayObject === null) {
-        console.log('Could not get "OES_vertex_array_object" extension')
+    const vertexArrayObject = getVertexArrayObject(gl)
+    if (vertexArrayObject === null) {
+        console.log('Could not find support for "vertex_array_object"')
     }
 
     const shaderCache = createShaderCache()
@@ -114,7 +129,8 @@ export function createContext(gl: WebGLRenderingContext): Context {
 
     return {
         gl,
-        extensions: { angleInstancedArrays, standardDerivatives, oesElementIndexUint, oesVertexArrayObject },
+        isWebGL2: isWebGL2(gl),
+        extensions: { instancedArrays, standardDerivatives, elementIndexUint, vertexArrayObject },
         pixelRatio: getPixelRatio(),
 
         shaderCache,

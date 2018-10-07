@@ -104,7 +104,7 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
             // unpack alignment of 1 since we use textures only for data
             gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
             // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-            gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, type, array)
+            (gl as WebGLRenderingContext).texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, type, array) // TODO remove cast when webgl2 types are fixed
             _width = width
             _height = height
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter)

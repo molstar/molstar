@@ -9,23 +9,23 @@ import { Program } from './program';
 import { AttributeBuffers, ElementsBuffer } from './buffer';
 
 export function createVertexArray(ctx: Context, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
-    const { oesVertexArrayObject } = ctx.extensions
-    let vertexArray: WebGLVertexArrayObjectOES | undefined = undefined
-    if (oesVertexArrayObject) {
-        vertexArray = oesVertexArrayObject.createVertexArrayOES()
-        oesVertexArrayObject.bindVertexArrayOES(vertexArray)
+    const { vertexArrayObject } = ctx.extensions
+    let vertexArray: WebGLVertexArrayObject | null = null
+    if (vertexArrayObject) {
+        vertexArray = vertexArrayObject.createVertexArray()
+        vertexArrayObject.bindVertexArray(vertexArray)
         if (elementsBuffer) elementsBuffer.bind()
         program.bindAttributes(attributeBuffers)
         ctx.vaoCount += 1
-        oesVertexArrayObject.bindVertexArrayOES(null!)
+        vertexArrayObject.bindVertexArray(null!)
     }
     return vertexArray
 }
 
-export function deleteVertexArray(ctx: Context, vertexArray?: WebGLVertexArrayObjectOES) {
-    const { oesVertexArrayObject } = ctx.extensions
-    if (oesVertexArrayObject && vertexArray) {
-        oesVertexArrayObject.deleteVertexArrayOES(vertexArray)
+export function deleteVertexArray(ctx: Context, vertexArray: WebGLVertexArrayObject | null) {
+    const { vertexArrayObject } = ctx.extensions
+    if (vertexArrayObject && vertexArray) {
+        vertexArrayObject.deleteVertexArray(vertexArray)
         ctx.vaoCount -= 1
     }
 }
