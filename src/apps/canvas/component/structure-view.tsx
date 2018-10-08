@@ -10,17 +10,6 @@ import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { RepresentationComponent } from './representation';
 import { Representation } from 'mol-geo/representation';
 
-// export function FileInput (props: {
-//     accept: string
-//     onChange: (v: FileList | null) => void,
-// }) {
-//     return <input
-//         accept={props.accept || '*.*'}
-//         type='file'
-//         onChange={e => props.onChange.call(null, e.target.files)}
-//     />
-// }
-
 export interface StructureViewComponentProps {
     structureView: StructureView
 }

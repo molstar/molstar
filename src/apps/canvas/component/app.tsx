@@ -10,6 +10,8 @@ import { App } from '../app';
 import { Viewport } from './viewport';
 import { StructureViewComponent } from './structure-view';
 import { Examples } from '../examples';
+import { VolumeViewComponent } from './volume-view';
+import { VolumeView } from '../volume-view';
 
 export interface AppProps {
     app: App
@@ -17,25 +19,28 @@ export interface AppProps {
 
 export interface AppState {
     structureView: StructureView | null,
+    volumeView: VolumeView | null,
     binary: boolean
 }
 
 export class AppComponent extends React.Component<AppProps, AppState> {
     state = {
         structureView: this.props.app.structureView,
+        volumeView: this.props.app.volumeView,
         binary: false
     }
 
     componentDidMount() {
-        this.props.app.pdbIdLoaded.subscribe((structureView) => {
-            this.setState({
-                structureView: this.props.app.structureView
-            })
+        this.props.app.structureLoaded.subscribe((structureView) => {
+            this.setState({ structureView: this.props.app.structureView })
+        })
+        this.props.app.volumeLoaded.subscribe((volumeView) => {
+            this.setState({ volumeView: this.props.app.volumeView })
         })
     }
 
     render() {
-        const { structureView } = this.state
+        const { structureView, volumeView } = this.state
 
         return <div style={{width: '100%', height: '100%'}}>
             <div style={{left: '0px', right: '350px', height: '100%', position: 'absolute'}}>
@@ -70,6 +75,16 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                     />
                 </div>
                 <div>
+                    <span>Load CCP4/MRC file </span>
+                    <input
+                        accept='*.ccp4,*.mrc, *.map'
+                        type='file'
+                        onChange={e => {
+                            if (e.target.files) this.props.app.loadCcp4File(e.target.files[0])
+                        }}
+                    />
+                </div>
+                <div>
                     <span>Load example </span>
                     <select
                         style={{width: '200px'}}
@@ -86,6 +101,10 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                 <hr/>
                 <div style={{marginBottom: '10px'}}>
                     {structureView ? <StructureViewComponent structureView={structureView} /> : ''}
+                </div>
+                <hr/>
+                <div style={{marginBottom: '10px'}}>
+                    {volumeView ? <VolumeViewComponent volumeView={volumeView} /> : ''}
                 </div>
             </div>
         </div>;

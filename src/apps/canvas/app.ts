@@ -5,21 +5,22 @@
  */
 
 import Viewer from 'mol-view/viewer';
-import { getCifFromUrl, getModelsFromMmcif, getCifFromFile, getCcp4FromUrl } from './util';
+import { getCifFromUrl, getModelsFromMmcif, getCifFromFile, getCcp4FromUrl, getVolumeFromCcp4, getCcp4FromFile } from './util';
 import { StructureView } from './structure-view';
 import { BehaviorSubject } from 'rxjs';
 import { CifBlock } from 'mol-io/reader/cif';
-import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
-import { VolumeRepresentation } from 'mol-geo/representation/volume';
-import IsosurfaceVisual from 'mol-geo/representation/volume/isosurface';
+import { VolumeView } from './volume-view';
+import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 
 export class App {
     viewer: Viewer
     container: HTMLDivElement | null = null;
     canvas: HTMLCanvasElement | null = null;
     structureView: StructureView | null = null;
+    volumeView: VolumeView | null = null;
 
-    pdbIdLoaded: BehaviorSubject<StructureView | null> = new BehaviorSubject<StructureView | null>(null)
+    structureLoaded: BehaviorSubject<StructureView | null> = new BehaviorSubject<StructureView | null>(null)
+    volumeLoaded: BehaviorSubject<VolumeView | null> = new BehaviorSubject<VolumeView | null>(null)
 
     initViewer(_canvas: HTMLCanvasElement, _container: HTMLDivElement) {
         this.canvas = _canvas
@@ -63,7 +64,7 @@ export class App {
     async loadMmcif(cif: CifBlock, assemblyId?: string) {
         const models = await this.runTask(getModelsFromMmcif(cif), 'Build models')
         this.structureView = await this.runTask(StructureView(this, this.viewer, models, { assemblyId }), 'Init structure view')
-        this.pdbIdLoaded.next(this.structureView)
+        this.structureLoaded.next(this.structureView)
     }
 
     async loadPdbIdOrMmcifUrl(idOrUrl: string, options?: { assemblyId?: string, binary?: boolean }) {
@@ -82,17 +83,21 @@ export class App {
 
     //
 
-    async loadCcp4File() {
-        const url = 'http://localhost:8091/ngl/data/betaGal.mrc'
-        const ccp4 = await getCcp4FromUrl(url)
-        console.log(ccp4)
-        const volume = await volumeFromCcp4(ccp4).run()
-        const volRepr = VolumeRepresentation(IsosurfaceVisual)
-        await volRepr.createOrUpdate({
-            isoValue: 1
-        }, volume).run()
-        this.viewer.add(volRepr)
-        console.log('volRepr', volRepr)
-        this.viewer.requestDraw(true)
+    async loadCcp4(ccp4: Ccp4File) {
+        const volume = await this.runTask(getVolumeFromCcp4(ccp4), 'Get Volume')
+        this.volumeView = await this.runTask(VolumeView(this, this.viewer, volume), 'Init volume view')
+        this.volumeLoaded.next(this.volumeView)
+    }
+
+    async loadCcp4File(file: File) {
+        if (this.volumeView) this.volumeView.destroy();
+        const ccp4 = await this.runTask(getCcp4FromFile(file), 'Load CCP4 from file')
+        this.loadCcp4(ccp4)
+    }
+
+    async loadCcp4Url(url: string) {
+        if (this.volumeView) this.volumeView.destroy();
+        const ccp4 = await this.runTask(getCcp4FromUrl(url), 'Load CCP4 from URL')
+        this.loadCcp4(ccp4)
     }
 }

@@ -4,11 +4,13 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { readUrl, readFile, readUrlAsBuffer } from 'mol-util/read';
+import { readUrl, readFile, readUrlAsBuffer, readFileAsBuffer } from 'mol-util/read';
 import CIF, { CifBlock } from 'mol-io/reader/cif'
 import { Model, Format, StructureSymmetry, Structure } from 'mol-model/structure';
 import CCP4 from 'mol-io/reader/ccp4/parser'
 import { FileHandle } from 'mol-io/common/file-handle';
+import { Ccp4File } from 'mol-io/reader/ccp4/schema';
+import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
 // import { parse as parseObj } from 'mol-io/reader/obj/parser'
 
 // export async function getObjFromUrl(url: string) {
@@ -53,9 +55,17 @@ export async function getCcp4FromUrl(url: string) {
     return getCcp4FromData(await readUrlAsBuffer(url))
 }
 
+export async function getCcp4FromFile(file: File) {
+    return getCcp4FromData(await readFileAsBuffer(file))
+}
+
 export async function getCcp4FromData(data: Uint8Array) {
     const file = FileHandle.fromBuffer(data)
     const parsed = await CCP4(file).run()
     if (parsed.isError) throw parsed
     return parsed.result
+}
+
+export async function getVolumeFromCcp4(ccp4: Ccp4File) {
+    return await volumeFromCcp4(ccp4).run()
 }
