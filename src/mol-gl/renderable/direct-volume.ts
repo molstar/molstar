@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec } from './schema';
+import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
@@ -37,7 +37,8 @@ export type DirectVolumeValues = Values<DirectVolumeSchema>
 
 export function DirectVolumeRenderable(ctx: Context, id: number, values: DirectVolumeValues, state: RenderableState): Renderable<DirectVolumeValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema }
-    const internalValues = {
+    const internalValues: InternalValues = {
+        dWebGL2: ValueCell.create(ctx.isWebGL2),
         uObjectId: ValueCell.create(id)
     }
     const shaderCode = DirectVolumeShaderCode

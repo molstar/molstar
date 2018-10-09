@@ -13,8 +13,9 @@ import { downloadCif } from './helpers'
 import CIF from 'mol-io/reader/cif'
 import { DensityServer_Data_Database } from 'mol-io/reader/cif/schema/density-server';
 import { Table } from 'mol-data/db';
-import { computeVolumeSurface } from 'mol-geo/representation/volume/isosurface';
+import { createVolumeSurface } from 'mol-geo/representation/volume/isosurface-mesh';
 import { StringBuilder } from 'mol-util';
+import { Task } from 'mol-task';
 
 require('util.promisify').shim();
 const writeFileAsync = util.promisify(fs.writeFile);
@@ -37,7 +38,7 @@ function print(data: Volume) {
 }
 
 async function doMesh(data: Volume, filename: string) {
-    const mesh = await computeVolumeSurface(data.volume, VolumeIsoValue.relative(data.volume.dataStats, 1.5)).run();
+    const mesh = await Task.create('', ctx => createVolumeSurface(ctx, data.volume, VolumeIsoValue.relative(data.volume.dataStats, 1.5))).run();
     console.log({ vc: mesh.vertexCount, tc: mesh.triangleCount });
 
     // Export the mesh in OBJ format.

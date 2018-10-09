@@ -60,7 +60,12 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
 
     //
 
+    // TODO do in OffscreenCanvas (https://www.chromestatus.com/feature/5681560598609920)?
+    const webgl = getWebGLContext()
+
     const values: GaussianDensityValues = {
+        dWebGL2: ValueCell.create(webgl.isWebGL2),
+
         drawCount: ValueCell.create(n),
         instanceCount: ValueCell.create(1),
 
@@ -81,16 +86,13 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
         depthMask: false
     }
 
-    // TODO do in OffscreenCanvas (https://www.chromestatus.com/feature/5681560598609920)
-    const webgl = getWebGLContext()
-
     const renderObject = createGaussianDensityRenderObject(values, state)
     const renderable = createRenderable(webgl, renderObject)
 
     //
 
     // TODO fallback to lower resolution when texture size is not large enough
-    const maxTexSize = 1024 // webgl.maxTextureSize
+    const maxTexSize = webgl.maxTextureSize
     let fboTexDimX = 0
     let fboTexDimY = dim[1]
     let fboTexRows = 1

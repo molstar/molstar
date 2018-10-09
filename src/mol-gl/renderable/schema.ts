@@ -141,8 +141,11 @@ export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
 export const InternalSchema = {
+    dWebGL2: DefineSpec('boolean'),
     uObjectId: UniformSpec('i'),
 }
+export type InternalSchema = typeof InternalSchema
+export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }
 
 export const ColorSchema = {
     aColor: AttributeSpec('float32', 3, 0),

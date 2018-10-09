@@ -6,10 +6,10 @@
  */
 
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume'
-import { Task, RuntimeContext } from 'mol-task'
+import { RuntimeContext } from 'mol-task'
 import { computeMarchingCubesMesh } from '../../util/marching-cubes/algorithm';
 import { Mesh } from '../../geometry/mesh/mesh';
-import { VolumeVisual } from '.';
+import { VolumeVisual, VolumeRepresentation } from '.';
 import { createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
 import { PickingId } from '../../geometry/picking';
 import { MarkerAction } from '../../geometry/marker-data';
@@ -21,22 +21,20 @@ import { createRenderableState, updateRenderableState } from '../../geometry/geo
 import { paramDefaultValues, NumberParam } from 'mol-view/parameter';
 import { ValueCell } from 'mol-util';
 
-export function computeVolumeSurface(volume: VolumeData, isoValue: VolumeIsoValue, mesh?: Mesh) {
-    return Task.create<Mesh>('Volume Surface', async ctx => {
-        ctx.update({ message: 'Marching cubes...' });
+export async function createVolumeSurface(ctx: RuntimeContext, volume: VolumeData, isoValue: VolumeIsoValue, mesh?: Mesh) {
+    ctx.update({ message: 'Marching cubes...' });
 
-        const surface = await computeMarchingCubesMesh({
-            isoLevel: VolumeIsoValue.toAbsolute(isoValue).absoluteValue,
-            scalarField: volume.data
-        }, mesh).runAsChild(ctx);
+    const surface = await computeMarchingCubesMesh({
+        isoLevel: VolumeIsoValue.toAbsolute(isoValue).absoluteValue,
+        scalarField: volume.data
+    }, mesh).runAsChild(ctx);
 
-        const transform = VolumeData.getGridToCartesianTransform(volume);
-        ctx.update({ message: 'Transforming mesh...' });
-        Mesh.transformImmediate(surface, transform);
-        Mesh.computeNormalsImmediate(surface)
+    const transform = VolumeData.getGridToCartesianTransform(volume);
+    ctx.update({ message: 'Transforming mesh...' });
+    Mesh.transformImmediate(surface, transform);
+    Mesh.computeNormalsImmediate(surface)
 
-        return surface;
-    });
+    return surface;
 }
 
 export const IsosurfaceParams = {
@@ -46,7 +44,7 @@ export const IsosurfaceParams = {
 export const DefaultIsosurfaceProps = paramDefaultValues(IsosurfaceParams)
 export type IsosurfaceProps = typeof DefaultIsosurfaceProps
 
-export default function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
+export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
     let currentProps = DefaultIsosurfaceProps
     let renderObject: MeshRenderObject
     let currentVolume: VolumeData
@@ -55,7 +53,7 @@ export default function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
     async function create(ctx: RuntimeContext, volume: VolumeData, props: Partial<IsosurfaceProps> = {}) {
         currentProps = { ...DefaultIsosurfaceProps, ...props }
 
-        mesh = await computeVolumeSurface(volume,  VolumeIsoValue.relative(volume.dataStats, currentProps.isoValue)).runAsChild(ctx)
+        mesh = await createVolumeSurface(ctx, volume,  VolumeIsoValue.relative(volume.dataStats, currentProps.isoValue))
 
         const locationIt = LocationIterator(1, 1, () => NullLocation)
         const transform = createIdentityTransform()
@@ -74,7 +72,7 @@ export default function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
         if (newProps.isoValue !== currentProps.isoValue) createMesh = true
 
         if (createMesh) {
-            mesh = await computeVolumeSurface(currentVolume,  VolumeIsoValue.relative(currentVolume.dataStats, currentProps.isoValue), mesh).runAsChild(ctx)
+            mesh = await createVolumeSurface(ctx, currentVolume,  VolumeIsoValue.relative(currentVolume.dataStats, currentProps.isoValue), mesh)
             ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
         }
 
@@ -82,7 +80,6 @@ export default function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
-        return true
     }
 
     return {
@@ -101,7 +98,6 @@ export default function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
             }
 
             currentProps = { ...DefaultIsosurfaceProps, ...props }
-
         },
         getLoci(pickingId: PickingId) {
             // TODO
@@ -113,6 +109,34 @@ export default function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
         },
         destroy() {
             // TODO
+        }
+    }
+}
+
+export function IsosurfaceRepresentation(): VolumeRepresentation<IsosurfaceProps> {
+    let currentProps: IsosurfaceProps
+    const volumeRepr = VolumeRepresentation(IsosurfaceVisual)
+    return {
+        label: 'Isosurface',
+        params: IsosurfaceParams,
+        get renderObjects() {
+            return [ ...volumeRepr.renderObjects ]
+        },
+        get props() {
+            return { ...volumeRepr.props }
+        },
+        createOrUpdate: (props: Partial<IsosurfaceProps> = {}, volume?: VolumeData) => {
+            currentProps = Object.assign({}, DefaultIsosurfaceProps, currentProps, props)
+            return volumeRepr.createOrUpdate(currentProps, volume)
+        },
+        getLoci: (pickingId: PickingId) => {
+            return volumeRepr.getLoci(pickingId)
+        },
+        mark: (loci: Loci, action: MarkerAction) => {
+            return volumeRepr.mark(loci, action)
+        },
+        destroy() {
+            volumeRepr.destroy()
         }
     }
 }

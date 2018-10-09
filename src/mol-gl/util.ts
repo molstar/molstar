@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-function debugTexture(imageData: ImageData, scale = 1) {
+export function debugTexture(imageData: ImageData, scale = 1) {
     const canvas = document.createElement('canvas')
     canvas.width = imageData.width
     canvas.height = imageData.height
@@ -20,6 +20,7 @@ function debugTexture(imageData: ImageData, scale = 1) {
         img.style.position = 'absolute'
         img.style.top = '0px'
         img.style.left = '0px'
+        img.style.border = 'solid grey'
         document.body.appendChild(img)
     }, 'image/png')
 }

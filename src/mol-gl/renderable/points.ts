@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, SizeSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues } from './schema';
 import { PointsShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
@@ -24,7 +24,8 @@ export type PointsValues = Values<PointsSchema>
 
 export function PointsRenderable(ctx: Context, id: number, values: PointsValues, state: RenderableState): Renderable<PointsValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointsSchema }
-    const internalValues = {
+    const internalValues: InternalValues = {
+        dWebGL2: ValueCell.create(ctx.isWebGL2),
         uObjectId: ValueCell.create(id)
     }
     const shaderCode = PointsShaderCode

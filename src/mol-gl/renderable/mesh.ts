@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema } from './schema';
+import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema, InternalValues } from './schema';
 import { MeshShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
@@ -25,7 +25,8 @@ export type MeshValues = Values<MeshSchema>
 
 export function MeshRenderable(ctx: Context, id: number, values: MeshValues, state: RenderableState): Renderable<MeshValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema }
-    const internalValues = {
+    const internalValues: InternalValues = {
+        dWebGL2: ValueCell.create(ctx.isWebGL2),
         uObjectId: ValueCell.create(id)
     }
     const shaderCode = MeshShaderCode

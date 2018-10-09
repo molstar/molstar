@@ -10,8 +10,8 @@ import { App } from './app';
 import { Progress } from 'mol-task';
 import { VolumeData } from 'mol-model/volume';
 import { VolumeRepresentation } from 'mol-geo/representation/volume';
-import IsosurfaceVisual from 'mol-geo/representation/volume/isosurface';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { IsosurfaceRepresentation } from 'mol-geo/representation/volume/isosurface-mesh';
+import { DirectVolumeRepresentation } from 'mol-geo/representation/volume/direct-volume';
 
 export interface VolumeView {
     readonly app: App
@@ -28,19 +28,19 @@ export interface VolumeView {
     destroy: () => void
 }
 
-interface StructureViewProps {
-    assemblyId?: string
-    symmetryFeatureId?: number
+interface VolumeViewProps {
+
 }
 
-export async function VolumeView(app: App, viewer: Viewer, volume: VolumeData, props: StructureViewProps = {}): Promise<VolumeView> {
+export async function VolumeView(app: App, viewer: Viewer, volume: VolumeData, props: VolumeViewProps = {}): Promise<VolumeView> {
     const active: { [k: string]: boolean } = {
         isosurface: true,
-        volume: false,
+        directVolume: false,
     }
 
     const volumeRepresentations: { [k: string]: VolumeRepresentation<any> } = {
-        isosurface: VolumeRepresentation(IsosurfaceVisual),
+        isosurface: IsosurfaceRepresentation(),
+        directVolume: DirectVolumeRepresentation(),
     }
 
     const updated: BehaviorSubject<null> = new BehaviorSubject<null>(null)

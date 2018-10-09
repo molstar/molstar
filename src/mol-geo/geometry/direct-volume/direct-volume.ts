@@ -85,6 +85,7 @@ export namespace DirectVolume {
     }
 
     export function updateValues(values: DirectVolumeValues, props: Props) {
+        console.log('DirectVolumeValues', props, values)
         ValueCell.updateIfChanged(values.uIsoValue, props.isoValue)
         ValueCell.updateIfChanged(values.uAlpha, props.alpha)
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)

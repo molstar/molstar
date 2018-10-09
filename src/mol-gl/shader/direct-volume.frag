@@ -84,13 +84,13 @@ vec3 palette1(in float t) {
 vec4 textureVal(vec3 pos) {
     float zSlice0 = floor(pos.z * uGridDim.z);
     float column0 = myMod(zSlice0 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
-    float row0 = floor(myDiv((zSlice0 * uGridDim.x), uGridTexDim.x));
+    float row0 = floor(myDiv(zSlice0 * uGridDim.x, uGridTexDim.x));
     vec2 coord0 = (vec2(column0 * uGridDim.x, row0 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
     vec4 color0 = texture2D(tGridTex, coord0);
 
     float zSlice1 = zSlice0 + 1.0;
     float column1 = myMod(zSlice1 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
-    float row1 = floor(myDiv((zSlice1 * uGridDim.x), uGridTexDim.x));
+    float row1 = floor(myDiv(zSlice1 * uGridDim.x, uGridTexDim.x));
     vec2 coord1 = (vec2(column1 * uGridDim.x, row1 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
     vec4 color1 = texture2D(tGridTex, coord1);
 

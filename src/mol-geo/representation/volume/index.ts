@@ -12,7 +12,6 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../geometry/marker-data';
 import { Geometry } from '../../geometry/geometry';
 import { paramDefaultValues } from 'mol-view/parameter';
-import { IsosurfaceParams } from './isosurface';
 
 export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 
@@ -20,7 +19,6 @@ export interface VolumeRepresentation<P extends RepresentationProps = {}> extend
 
 export const VolumeParams = {
     ...Geometry.Params,
-    ...IsosurfaceParams
 }
 export const DefaultVolumeProps = paramDefaultValues(VolumeParams)
 export type VolumeProps = typeof DefaultVolumeProps
@@ -52,7 +50,7 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
     }
 
     return {
-        label: 'Volume mesh',
+        label: 'Volume',
         params: VolumeParams,
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
