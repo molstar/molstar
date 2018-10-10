@@ -9,7 +9,7 @@ import { ArrayKind, BufferItemSize, ElementsKind, AttributeValues } from '../web
 import { UniformKind, UniformValues } from '../webgl/uniform';
 import { DefineKind, DefineValues } from '../shader-code';
 import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
-import { TextureImage } from './util';
+import { TextureImage, TextureVolume } from './util';
 import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind } from '../webgl/texture';
 
 export type ValueKindType = {
@@ -41,6 +41,8 @@ export type KindValue = {
 
     'image-uint8': TextureImage<Uint8Array>
     'image-float32': TextureImage<Float32Array>
+    'volume-uint8': TextureVolume<Uint8Array>
+    'volume-float32': TextureVolume<Float32Array>
 
     'number': number
     'string': string
@@ -143,6 +145,7 @@ export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<
 
 export const InternalSchema = {
     dWebGL2: DefineSpec('boolean'),
+    dGlslVersion: DefineSpec('string', ['100es', '300es']),
     uObjectId: UniformSpec('i'),
 }
 export type InternalSchema = typeof InternalSchema

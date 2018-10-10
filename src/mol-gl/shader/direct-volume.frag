@@ -5,6 +5,11 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
+#if defined(dGridTexType_2d)
+    precision mediump sampler2D;
+#elif defined(dGridTexType_3d)
+    precision mediump sampler3D;
+#endif
 precision highp float;
 
 varying vec3 unitCoord;
@@ -18,10 +23,15 @@ uniform float uIsoValue;
 uniform vec3 uBboxMin;
 uniform vec3 uBboxMax;
 uniform vec3 uBboxSize;
-uniform sampler2D tGridTex;
 uniform vec3 uGridDim;
-uniform vec2 uGridTexDim;
 uniform sampler2D tTransferTex;
+
+#if defined(dGridTexType_2d)
+    uniform sampler2D tGridTex;
+    uniform vec2 uGridTexDim;
+#elif defined(dGridTexType_3d)
+    uniform sampler3D tGridTex;
+#endif
 
 // float uIsoValue = exp(-1.5);
 // float uIsoValue = 0.7;
@@ -65,14 +75,6 @@ vec3 extractCameraPos(const in mat4 modelView) {
     return top / -denom;
 }
 
-// TODO workaround due to some kind of GPU bug
-float myMod(float a, float b) {
-    return a - b * float(int(a) / int(b));
-}
-float myDiv(float a, float b) {
-    return float(int(a) / int(b));
-}
-
 vec3 palette(in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d) {
     return a + b * cos(6.28318 * (c * t + d));
 }
@@ -81,66 +83,51 @@ vec3 palette1(in float t) {
     return palette(t, vec3(0.5,0.5,0.5),vec3(0.5,0.5,0.5),vec3(1.0,1.0,1.0),vec3(0.0,0.10,0.20));
 }
 
-vec4 textureVal(vec3 pos) {
-    float zSlice0 = floor(pos.z * uGridDim.z);
-    float column0 = myMod(zSlice0 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
-    float row0 = floor(myDiv(zSlice0 * uGridDim.x, uGridTexDim.x));
-    vec2 coord0 = (vec2(column0 * uGridDim.x, row0 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
-    vec4 color0 = texture2D(tGridTex, coord0);
+#if defined(dGridTexType_2d)
+    // TODO workaround due to some kind of GPU bug
+    float myMod(float a, float b) {
+        return a - b * float(int(a) / int(b));
+    }
+    float myDiv(float a, float b) {
+        return float(int(a) / int(b));
+    }
 
-    float zSlice1 = zSlice0 + 1.0;
-    float column1 = myMod(zSlice1 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
-    float row1 = floor(myDiv(zSlice1 * uGridDim.x, uGridTexDim.x));
-    vec2 coord1 = (vec2(column1 * uGridDim.x, row1 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
-    vec4 color1 = texture2D(tGridTex, coord1);
+    vec4 textureVal(vec3 pos) {
+        float zSlice0 = floor(pos.z * uGridDim.z);
+        float column0 = myMod(zSlice0 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
+        float row0 = floor(myDiv(zSlice0 * uGridDim.x, uGridTexDim.x));
+        vec2 coord0 = (vec2(column0 * uGridDim.x, row0 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
+        vec4 color0 = texture2D(tGridTex, coord0);
 
-    float delta0 = abs((pos.z * uGridDim.z) - zSlice0);
-    return mix(color0, color1, delta0);
-}
+        float zSlice1 = zSlice0 + 1.0;
+        float column1 = myMod(zSlice1 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
+        float row1 = floor(myDiv(zSlice1 * uGridDim.x, uGridTexDim.x));
+        vec2 coord1 = (vec2(column1 * uGridDim.x, row1 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
+        vec4 color1 = texture2D(tGridTex, coord1);
+
+        float delta0 = abs((pos.z * uGridDim.z) - zSlice0);
+        return mix(color0, color1, delta0);
+    }
+#elif defined(dGridTexType_3d)
+    vec4 textureVal(vec3 pos) {
+        return texture(tGridTex, pos);
+    }
+#endif
 
 vec4 transferFunction(float value) {
     return texture2D(tTransferTex, vec2(value, 0.0));
 }
 
-// vec4 textureVal(vec3 pos) {
-//     vec4 color0 = textureVal1(pos);
-//     vec4 color1 = textureVal1(vec3(pos.xy, pos.z + 1.1 / uGridDim.z));
-//     float delta0 = abs((pos.z * uGridDim.z) - floor(pos.z * uGridDim.z));
-//     vec3 tmpCol = vec3(0.45, 0.55, 0.8);
-
-//     // coord = pos.xy;
-//     // coord.x += col1;
-//     // coord.x /= uGridTexDim.x;
-//     // coord.y += row1;
-//     // coord.y /= uGridTexDim.y;
-//     // vec4 color1 = texture2D(tGridTex, coord);
-//     // vec4 color1 = texture2D(tGridTex, unitCoordToGridCoord(pos));
-
-//     return vec4(tmpCol.rgb, mix(color0.a, color1.a, delta0));
-//     // return vec4(tmpCol.rgb, color0.a);
-//     // return vec4(mix(color0, color1, delta0).w, tmpCol.x, tmpCol.y, tmpCol.z);
-//     // return vec4(color0.x, tmpCol.x, tmpCol.y, tmpCol.z);
-//     // return vec4(color0.xyz, 1.0);
-//     // return vec4(color0.xyz, 1.0);
-// }
-
-vec3 scaleVol = vec3(1.0) / uGridDim;
 const float gradOffset = 0.5;
-vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
-vec3 dy = vec3(0.0, gradOffset * scaleVol.y, 0.0);
-vec3 dz = vec3(0.0, 0.0, gradOffset * scaleVol.z);
-
-vec3 color = vec3(0.45, 0.55, 0.8);
+const vec3 color = vec3(0.45, 0.55, 0.8);
 
 vec4 raymarch(vec3 cameraPos) {
     vec3 pos = unitCoord;
     float prevValue = -127.0;
     float value = 0.0;
-    float MAX_STEPS_F = max(max(uGridDim.x, uGridDim.y), uGridDim.z);
+    // float MAX_STEPS_F = max(max(uGridDim.x, uGridDim.y), uGridDim.z);
     // int MAX_STEPS = 2 * int(length(vec3(imgresx, imgresy, imgresz)));
-    // TODO define this from outside (recompile shader per data set)
-    const int MAX_STEPS = 300;
-    float stepSize = 1.0 / MAX_STEPS_F;
+    float stepSize = 1.0 / float(dMaxSteps);
     vec4 src = vec4(0.0);
     vec4 dst = vec4(0.0);
 
@@ -152,6 +139,11 @@ vec4 raymarch(vec3 cameraPos) {
     vec3 gradient = vec3(1.0);
     vec3 step = rayDir * (1.0 / uGridDim) * 0.5;
 
+    vec3 scaleVol = vec3(1.0) / uGridDim;
+    vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
+    vec3 dy = vec3(0.0, gradOffset * scaleVol.y, 0.0);
+    vec3 dz = vec3(0.0, 0.0, gradOffset * scaleVol.z);
+
     // dst = vec4(textureVal(vec3(pos.xy, 0.6)).xyz, 0.5);
     // vec2 foo = (vec2(5.0 * uGridDim.x, 5.0 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
     // dst = texture2D(tGridTex, foo);
@@ -159,7 +151,7 @@ vec4 raymarch(vec3 cameraPos) {
     // dst.xyz = pos;
     // return mix(dst, vec4(1.0, 0.0, 0.0, 1.0), 0.5);
 
-    for(int i = 0; i < MAX_STEPS; ++i){
+    for(int i = 0; i < dMaxSteps; ++i){
         if( pos.x <= 1.0 && pos.y <= 1.0 && pos.z <= 1.0 && pos.x >= 0.0 && pos.y >= 0.0 && pos.z >= 0.0) {
             value = textureVal(pos).a; // current voxel value
         } else {
@@ -189,7 +181,7 @@ vec4 raymarch(vec3 cameraPos) {
                 gradient.z = textureVal(isoPos - dz).a - textureVal(isoPos + dz).a;
                 gradient = normalize(gradient);
 
-                float d = float(dot(gradient, rayDir) > 0.0);
+                float d = float(dot(gradient, normalize(cameraPos)) > 0.0);
                 gradient = (2.0 * d - 1.0) * gradient;
 
                 src.rgb = color.rgb * abs(dot(gradient, normalize(cameraPos)));
@@ -215,8 +207,8 @@ vec4 raymarch(vec3 cameraPos) {
 }
 
 void main () {
-    // vec3 cameraPos = uInvView[3].xyz / uInvView[3].w;
-    vec3 cameraPos = extractCameraPos(uModelView);
+    vec3 cameraPos = uInvView[3].xyz / uInvView[3].w;
+    // vec3 cameraPos = extractCameraPos(uModelView);
     // vec3 cameraPos = vec3(10.0, 0.0, 0.0);
     gl_FragColor = raymarch(cameraPos);
     if (length(gl_FragColor.rgb) < 0.00001) discard;

@@ -1,4 +1,3 @@
-
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
@@ -8,7 +7,7 @@
 import { ValueCell } from 'mol-util';
 import { idFactory } from 'mol-util/id-factory';
 
-export type DefineKind = 'boolean' | 'string'
+export type DefineKind = 'boolean' | 'string' | 'number'
 export type DefineType = boolean | string
 export type DefineValues = { [k: string]: ValueCell<DefineType> }
 
@@ -62,19 +61,40 @@ function getDefinesCode (defines: ShaderDefines) {
         if (v) {
             if (typeof v === 'string') {
                 lines.push(`#define ${name}_${v}`)
-            } else {
+            } else if (typeof v === 'number') {
+                lines.push(`#define ${name} ${v}`)
+            } else if (typeof v === 'boolean') {
                 lines.push(`#define ${name}`)
+            } else {
+                throw new Error('unknown define type')
             }
         }
     }
     return lines.join('\n') + '\n'
 }
 
+const glsl300VertPrefix = `#version 300 es
+#define attribute in
+#define varying out
+#define texture2D texture
+`
+
+const glsl300FragPrefix = `#version 300 es
+#define varying in
+out highp vec4 out_FragColor;
+#define gl_FragColor out_FragColor
+#define gl_FragDepthEXT gl_FragDepth
+#define texture2D texture
+`
+
 export function addShaderDefines(defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
+    const isGlsl300es = defines.dGlslVersion && defines.dGlslVersion.ref.value === '300es'
     const header = getDefinesCode(defines)
+    const vertPrefix = isGlsl300es ? glsl300VertPrefix : ''
+    const fragPrefix = isGlsl300es ? glsl300FragPrefix : ''
     return {
         id: shaderCodeId(),
-        vert: `${header}${shaders.vert}`,
-        frag: `${header}${shaders.frag}`
+        vert: `${vertPrefix}${header}${shaders.vert}`,
+        frag: `${fragPrefix}${header}${shaders.frag}`
     }
 }

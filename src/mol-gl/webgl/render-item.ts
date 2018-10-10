@@ -64,7 +64,7 @@ interface ValueChanges {
 
 /**
  * Creates a render item
- * 
+ *
  * - assumes that `values.drawCount` and `values.instanceCount` exist
  */
 export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues): RenderItem {

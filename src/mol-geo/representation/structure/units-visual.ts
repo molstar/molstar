@@ -15,7 +15,7 @@ import { LocationIterator } from '../../util/location-iterator';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { MarkerAction, applyMarkerAction, createMarkers } from '../../geometry/marker-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
+import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolume2dRenderObject } from 'mol-gl/render-object';
 import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
@@ -25,7 +25,7 @@ import { createColors, ColorProps } from '../../geometry/color-data';
 import { createSizes, SizeProps } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
 import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
-import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
+import { DirectVolume2d } from '../../geometry/direct-volume/direct-volume';
 
 export const UnitKindInfo = {
     'atomic': {},
@@ -540,7 +540,7 @@ export type UnitsDirectVolumeProps = typeof DefaultUnitsDirectVolumeProps
 
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> {
     defaultProps: P
-    createDirectVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, directVolume?: DirectVolume): Promise<DirectVolume>
+    createDirectVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, directVolume?: DirectVolume2d): Promise<DirectVolume2d>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
     mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
@@ -551,9 +551,9 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
     const { defaultProps, createDirectVolume, createLocationIterator, getLoci, setUpdateState } = builder
     const updateState = VisualUpdateState.create()
 
-    let renderObject: DirectVolumeRenderObject | undefined
+    let renderObject: DirectVolume2dRenderObject | undefined
     let currentProps: P
-    let directVolume: DirectVolume
+    let directVolume: DirectVolume2d
     let currentGroup: Unit.SymmetryGroup
     let currentStructure: Structure
     let locationIt: LocationIterator
@@ -567,7 +567,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         currentConformationId = Unit.conformationId(unit)
         directVolume = includesUnitKind(currentProps.unitKinds, unit)
             ? await createDirectVolume(ctx, unit, currentStructure, currentProps, directVolume)
-            : DirectVolume.createEmpty(directVolume)
+            : DirectVolume2d.createEmpty(directVolume)
 
         // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
@@ -609,7 +609,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         if (updateState.createGeometry) {
             directVolume = includesUnitKind(newProps.unitKinds, unit)
                 ? await createDirectVolume(ctx, unit, currentStructure, newProps, directVolume)
-                : DirectVolume.createEmpty(directVolume)
+                : DirectVolume2d.createEmpty(directVolume)
             updateState.updateColor = true
         }
 
@@ -618,7 +618,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         // }
 
         // TODO why do I need to cast here?
-        DirectVolume.updateValues(renderObject.values, newProps as UnitsDirectVolumeProps)
+        DirectVolume2d.updateValues(renderObject.values, newProps as UnitsDirectVolumeProps)
         updateRenderableState(renderObject.state, newProps as UnitsDirectVolumeProps)
 
         currentProps = newProps

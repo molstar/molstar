@@ -27,6 +27,7 @@ export function MeshRenderable(ctx: Context, id: number, values: MeshValues, sta
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema }
     const internalValues: InternalValues = {
         dWebGL2: ValueCell.create(ctx.isWebGL2),
+        dGlslVersion: ValueCell.create('100es'),
         uObjectId: ValueCell.create(id)
     }
     const shaderCode = MeshShaderCode

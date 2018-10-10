@@ -11,11 +11,11 @@ import { UnitsDirectVolumeVisual, UnitsDirectVolumeParams } from '../units-visua
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
 import { paramDefaultValues } from 'mol-view/parameter';
-import { DirectVolume } from '../../../geometry/direct-volume/direct-volume';
+import { DirectVolume2d } from '../../../geometry/direct-volume/direct-volume';
 import { ValueCell } from 'mol-util';
 import { Vec3, Vec2 } from 'mol-math/linear-algebra';
 
-async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
+async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume2d): Promise<DirectVolume2d> {
     const p = { ...props, useGpu: true, ignoreCache: true }
     const { transform, renderTarget, bbox, gridDimension } = await unit.computeGaussianDensity(p, ctx)
     if (!renderTarget || !bbox || !gridDimension) throw new Error('missing renderTarget and/or boundingBox and/or gridDimension')
@@ -30,7 +30,7 @@ async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, stru
         ValueCell.update(directVolume.transform, transform)
     } else {
         directVolume = {
-            kind: 'direct-volume' as 'direct-volume',
+            kind: 'direct-volume-2d' as 'direct-volume-2d',
             gridDimension: ValueCell.create(gridDimension),
             gridTexture: ValueCell.create(renderTarget.image),
             gridTextureDim: ValueCell.create(Vec2.create(renderTarget.width, renderTarget.height)),

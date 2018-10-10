@@ -37,7 +37,7 @@ export function createRenderTarget (ctx: Context, _width: number, _height: numbe
         height: _height
     }
 
-    const targetTexture = createTexture(ctx, 'rgba', 'ubyte', 'linear')
+    const targetTexture = createTexture(ctx, 'image-uint8', 'rgba', 'ubyte', 'linear')
     targetTexture.load(image)
 
     const framebuffer = createFramebuffer(ctx)

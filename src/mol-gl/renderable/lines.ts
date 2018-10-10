@@ -29,6 +29,7 @@ export function LinesRenderable(ctx: Context, id: number, values: LinesValues, s
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...LinesSchema }
     const internalValues: InternalValues = {
         dWebGL2: ValueCell.create(ctx.isWebGL2),
+        dGlslVersion: ValueCell.create('100es'),
         uObjectId: ValueCell.create(id)
     }
     const shaderCode = LinesShaderCode
