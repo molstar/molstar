@@ -10,7 +10,7 @@ import { UniformKind, UniformValues } from '../webgl/uniform';
 import { DefineKind, DefineValues } from '../shader-code';
 import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
 import { TextureImage } from './util';
-import { TextureValues, TextureType, TextureFormat, TextureFilter } from '../webgl/texture';
+import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind } from '../webgl/texture';
 
 export type ValueKindType = {
     'number': number
@@ -39,7 +39,8 @@ export type KindValue = {
     'int32': Int32Array
     'float32': Float32Array
 
-    'image': TextureImage
+    'image-uint8': TextureImage<Uint8Array>
+    'image-float32': TextureImage<Float32Array>
 
     'number': number
     'string': string
@@ -84,9 +85,9 @@ export function UniformSpec<K extends UniformKind>(kind: K): UniformSpec<K> {
     return { type: 'uniform', kind }
 }
 
-export type TextureSpec = { type: 'texture', kind: 'image', format: TextureFormat, dataType: TextureType, filter: TextureFilter }
-export function TextureSpec(format: TextureFormat, dataType: TextureType, filter: TextureFilter): TextureSpec {
-    return { type: 'texture', kind: 'image', format, dataType, filter }
+export type TextureSpec<K extends TextureKind> = { type: 'texture', kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter }
+export function TextureSpec<K extends TextureKind>(kind: K, format: TextureFormat, dataType: TextureType, filter: TextureFilter): TextureSpec<K> {
+    return { type: 'texture', kind, format, dataType, filter }
 }
 
 export type ElementsSpec<K extends ElementsKind> = { type: 'elements', kind: K }
@@ -108,7 +109,7 @@ export function ValueSpec<K extends ValueKind>(kind: K): ValueSpec<K> {
 
 export type RenderableSchema = {
     [k: string]: (
-        AttributeSpec<ArrayKind> | UniformSpec<UniformKind> | TextureSpec |
+        AttributeSpec<ArrayKind> | UniformSpec<UniformKind> | TextureSpec<TextureKind> |
         ValueSpec<ValueKind> | DefineSpec<DefineKind> | ElementsSpec<ElementsKind>
     )
 }
@@ -151,7 +152,7 @@ export const ColorSchema = {
     aColor: AttributeSpec('float32', 3, 0),
     uColor: UniformSpec('v3'),
     uColorTexDim: UniformSpec('v2'),
-    tColor: TextureSpec('rgb', 'ubyte', 'nearest'),
+    tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),
     dColorType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
 }
 export type ColorSchema = typeof ColorSchema
@@ -161,7 +162,7 @@ export const SizeSchema = {
     aSize: AttributeSpec('float32', 1, 0),
     uSize: UniformSpec('f'),
     uSizeTexDim: UniformSpec('v2'),
-    tSize: TextureSpec('alpha', 'ubyte', 'nearest'),
+    tSize: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
     dSizeType: DefineSpec('string', ['uniform', 'attribute', 'instance', 'group', 'group_instance']),
 }
 export type SizeSchema = typeof SizeSchema
@@ -179,7 +180,7 @@ export const BaseSchema = {
     uGroupCount: UniformSpec('i'),
     uMarkerTexDim: UniformSpec('v2'),
 
-    tMarker: TextureSpec('alpha', 'ubyte', 'nearest'),
+    tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),

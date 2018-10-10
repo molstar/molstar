@@ -39,25 +39,29 @@ namespace VolumeIsoValue {
     export function absolute(stats: VolumeData['dataStats'], value: number): Absolute { return { kind: 'absolute', stats, absoluteValue: value }; }
     export function relative(stats: VolumeData['dataStats'], value: number): Relative { return { kind: 'relative', stats, relativeValue: value }; }
 
+    export function calcAbsolute(stats: VolumeData['dataStats'], relativeValue: number): number {
+        return relativeValue * stats.sigma + stats.mean
+    }
+
+    export function calcRelative(stats: VolumeData['dataStats'], absoluteValue: number): number {
+        return (stats.mean - absoluteValue) / stats.sigma
+    }
+
     export function toAbsolute(value: VolumeIsoValue): Absolute {
         if (value.kind === 'absolute') return value;
-
-        const { mean, sigma } = value.stats
         return {
             kind: 'absolute',
             stats: value.stats,
-            absoluteValue: value.relativeValue * sigma + mean
+            absoluteValue: calcAbsolute(value.stats, value.relativeValue)
         }
     }
 
     export function toRelative(value: VolumeIsoValue): Relative {
         if (value.kind === 'relative') return value;
-
-        const { mean, sigma } = value.stats
         return {
             kind: 'relative',
             stats: value.stats,
-            relativeValue: (mean - value.absoluteValue) / sigma
+            relativeValue: calcRelative(value.stats, value.absoluteValue)
         }
     }
 }

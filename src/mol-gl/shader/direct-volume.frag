@@ -134,7 +134,7 @@ vec3 color = vec3(0.45, 0.55, 0.8);
 
 vec4 raymarch(vec3 cameraPos) {
     vec3 pos = unitCoord;
-    float prevValue = -1.0;
+    float prevValue = -127.0;
     float value = 0.0;
     float MAX_STEPS_F = max(max(uGridDim.x, uGridDim.y), uGridDim.z);
     // int MAX_STEPS = 2 * int(length(vec3(imgresx, imgresy, imgresz)));
@@ -196,8 +196,9 @@ vec4 raymarch(vec3 cameraPos) {
                 src.a = uAlpha;
 
                 // draw interior darker
-                if( (prevValue - uIsoValue) < 0.0 )
+                if( (prevValue - uIsoValue) > 0.0 ) {
                     src.rgb *= 0.5;
+                }
 
                 src.rgb *= src.a;
                 dst = (1.0 - dst.a) * src + dst; // standard blending

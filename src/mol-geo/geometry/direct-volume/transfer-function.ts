@@ -19,7 +19,7 @@ export function getControlPointsFromString(s: string): ControlPoint[] {
     })
 }
 // TODO move core function to mol-view/color
-export function createTransferFunctionTexture(controlPoints: ControlPoint[], texture?: ValueCell<TextureImage>): ValueCell<TextureImage> {
+export function createTransferFunctionTexture(controlPoints: ControlPoint[], texture?: ValueCell<TextureImage<Uint8Array>>): ValueCell<TextureImage<Uint8Array>> {
     const cp = [
         { x: 0, alpha: 0 },
         { x: 0, alpha: 0 },

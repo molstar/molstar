@@ -6,7 +6,6 @@
 
 import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
 import { Context } from './context';
-import { TextureImage } from '../renderable/util';
 import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 
@@ -21,7 +20,7 @@ export type UniformKindValue = {
     't2': number
 }
 export type UniformKind = keyof UniformKindValue
-export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4 | TextureImage
+export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4
 export interface UniformUpdater {
     set: (value: UniformType) => void,
     clear: () => void

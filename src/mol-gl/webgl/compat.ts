@@ -61,7 +61,7 @@ export interface COMPAT_element_index_uint {
 }
 
 export function getElementIndexUint(gl: GLRenderingContext): COMPAT_element_index_uint | null {
-    return isWebGL2(gl) ? {} : gl.getExtension('OES_standard_derivatives')
+    return isWebGL2(gl) ? {} : gl.getExtension('OES_element_index_uint')
 }
 
 export interface COMPAT_vertex_array_object {
@@ -92,4 +92,18 @@ export function getVertexArrayObject(gl: GLRenderingContext): COMPAT_vertex_arra
             isVertexArray: ext.isVertexArrayOES.bind(ext)
         }
     }
+}
+
+export interface COMPAT_texture_float {
+}
+
+export function getTextureFloat(gl: GLRenderingContext): COMPAT_texture_float | null {
+    return isWebGL2(gl) ? {} : gl.getExtension('OES_texture_float')
+}
+
+export interface COMPAT_texture_float_linear {
+}
+
+export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_float_linear | null {
+    return gl.getExtension('OES_texture_float_linear')
 }

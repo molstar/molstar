@@ -19,7 +19,7 @@ export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 export type SizeData = {
     uSize: ValueCell<number>,
     aSize: ValueCell<Float32Array>,
-    tSize: ValueCell<TextureImage>,
+    tSize: ValueCell<TextureImage<Uint8Array>>,
     uSizeTexDim: ValueCell<Vec2>,
     dSizeType: ValueCell<string>,
 }
@@ -82,7 +82,7 @@ export async function createUniformSize(ctx: RuntimeContext, locationIt: Locatio
     return createValueSize(sizeFn(NullLocation), sizeData)
 }
 
-export function createTextureSize(sizes: TextureImage, type: SizeType, sizeData?: SizeData): SizeData {
+export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeType, sizeData?: SizeData): SizeData {
     if (sizeData) {
         ValueCell.update(sizeData.tSize, sizes)
         ValueCell.update(sizeData.uSizeTexDim, Vec2.create(sizes.width, sizes.height))

@@ -11,7 +11,7 @@ import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema
 import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
-export const DirectVolumeSchema = {
+const DirectVolumeBaseSchema = {
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
 
@@ -27,20 +27,30 @@ export const DirectVolumeSchema = {
     uBboxSize: UniformSpec('v3'),
     uTransform: UniformSpec('m4'),
     uGridDim: UniformSpec('v3'),
-    uGridTexDim: UniformSpec('v2'),
-    tGridTex: TextureSpec('rgba', 'ubyte', 'linear'),
     dRenderMode: DefineSpec('string', ['isosurface', 'volume']),
-    tTransferTex: TextureSpec('rgba', 'ubyte', 'linear'),
+    tTransferTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'linear'),
 }
-export type DirectVolumeSchema = typeof DirectVolumeSchema
-export type DirectVolumeValues = Values<DirectVolumeSchema>
 
-export function DirectVolumeRenderable(ctx: Context, id: number, values: DirectVolumeValues, state: RenderableState): Renderable<DirectVolumeValues> {
-    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema }
-    const internalValues: InternalValues = {
+function getInternalValues(ctx: Context, id: number): InternalValues {
+    return {
         dWebGL2: ValueCell.create(ctx.isWebGL2),
         uObjectId: ValueCell.create(id)
     }
+}
+
+//
+
+export const DirectVolume2dSchema = {
+    ...DirectVolumeBaseSchema,
+    uGridTexDim: UniformSpec('v2'),
+    tGridTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'linear'),
+}
+export type DirectVolume2dSchema = typeof DirectVolume2dSchema
+export type DirectVolume2dValues = Values<DirectVolume2dSchema>
+
+export function DirectVolume2dRenderable(ctx: Context, id: number, values: DirectVolume2dValues, state: RenderableState): Renderable<DirectVolume2dValues> {
+    const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolume2dSchema }
+    const internalValues = getInternalValues(ctx, id)
     const shaderCode = DirectVolumeShaderCode
     const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
     const renderable = createRenderable(renderItem, values, state);

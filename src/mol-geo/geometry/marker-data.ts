@@ -9,7 +9,7 @@ import { Vec2 } from 'mol-math/linear-algebra'
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 
 export type MarkerData = {
-    tMarker: ValueCell<TextureImage>
+    tMarker: ValueCell<TextureImage<Uint8Array>>
     uMarkerTexDim: ValueCell<Vec2>
 }
 

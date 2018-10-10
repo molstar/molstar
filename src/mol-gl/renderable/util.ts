@@ -16,13 +16,20 @@ export function calculateTextureInfo (n: number, itemSize: number) {
     return { width, height, length: width * height * itemSize }
 }
 
-export interface TextureImage {
-    readonly array: Uint8Array
+export interface TextureImage<T extends Uint8Array | Float32Array> {
+    readonly array: T
     readonly width: number
     readonly height: number
 }
 
-export function createTextureImage (n: number, itemSize: number): TextureImage {
+export interface TextureVolume<T extends Uint8Array | Float32Array> {
+    readonly array: T
+    readonly width: number
+    readonly height: number
+    readonly depth: number
+}
+
+export function createTextureImage(n: number, itemSize: number): TextureImage<Uint8Array> {
     const { length, width, height } = calculateTextureInfo(n, itemSize)
     return { array: new Uint8Array(length), width, height }
 }

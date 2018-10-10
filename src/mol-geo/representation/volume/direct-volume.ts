@@ -12,10 +12,10 @@ import { PickingId } from '../../geometry/picking';
 import { MarkerAction } from '../../geometry/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { createRenderableState, updateRenderableState, Geometry } from '../../geometry/geometry';
-import { paramDefaultValues, RangeParam } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-view/parameter';
 import { ValueCell } from 'mol-util';
 import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
-import { Vec2, Vec3, Tensor } from 'mol-math/linear-algebra';
+import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
 import { createImageData } from 'mol-gl/webgl/context';
 import { debugTexture } from 'mol-gl/util';
@@ -38,15 +38,14 @@ function getFlattedVolumeLayout(dim: Vec3, maxTextureSize = 4096) {
     return { width, height, columns, rows }
 }
 
-// let foo = 0
-
-function createFlattendVolumeTexture(tensor: Tensor, itemSize = 4) {
+function createFlattendVolumeTexture(volume: VolumeData) {
+    const { data: tensor, dataStats: stats } = volume
     const { space, data } = tensor
     const dim = space.dimensions as Vec3
     const { get } = space
     const { width, height, columns, rows } = getFlattedVolumeLayout(dim)
 
-    const array = new Uint8Array(width * height * itemSize)
+    const array = new Uint8Array(width * height * 4)
     const textureImage = { array, width, height }
 
     const [ xl, yl, zl ] = dim
@@ -57,15 +56,8 @@ function createFlattendVolumeTexture(tensor: Tensor, itemSize = 4) {
         const column = Math.floor(((z * xlp) % width) / xlp)
         const row = Math.floor((z * xlp) / width)
         const px = column * xlp + x
-        // const py = row * ylp + y
-        const index = itemSize * ((row * ylp * width) + (y * width) + px);
-        array[index] = value * 255;
-        array[index + 1] = value * 255;
-        array[index + 3] = value;
-        // if (foo % 1000 === 0) {
-        //     console.log(value * 255, x, y, z, index, '|', column, row);
-        // }
-        // ++foo;
+        const index = 4 * ((row * ylp * width) + (y * width) + px)
+        array[index + 3] = ((value - stats.min) / (stats.max - stats.min)) * 255
     }
 
     console.log('dim', dim)
@@ -85,7 +77,7 @@ function createFlattendVolumeTexture(tensor: Tensor, itemSize = 4) {
 export function createDirectVolume(ctx: RuntimeContext, volume: VolumeData, directVolume?: DirectVolume) {
     const gridDimension = volume.data.space.dimensions as Vec3
     // const textureImage = createTextureImage(1, 4)
-    const textureImage = createFlattendVolumeTexture(volume.data)
+    const textureImage = createFlattendVolumeTexture(volume)
     const transform = VolumeData.getGridToCartesianTransform(volume)
 
     console.log('textureImage', textureImage)
@@ -128,8 +120,7 @@ export function createDirectVolume(ctx: RuntimeContext, volume: VolumeData, dire
 
 export const DirectVolumeParams = {
     ...Geometry.Params,
-    ...DirectVolume.Params,
-    isoValue: RangeParam('Iso Value', '', 2, -15, 15, 0.01),
+    ...DirectVolume.Params
 }
 export const DefaultDirectVolumeProps = paramDefaultValues(DirectVolumeParams)
 export type DirectVolumeProps = typeof DefaultDirectVolumeProps
@@ -142,6 +133,9 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
 
     async function create(ctx: RuntimeContext, volume: VolumeData, props: Partial<DirectVolumeProps> = {}) {
         currentProps = { ...DefaultDirectVolumeProps, ...props }
+        if (props.isoValueRelative) {
+            // currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
+        }
 
         directVolume = await createDirectVolume(ctx, volume, directVolume)
 
@@ -154,6 +148,9 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
     async function update(ctx: RuntimeContext, props: Partial<DirectVolumeProps> = {}) {
         console.log('props', props)
         const newProps = { ...currentProps, ...props }
+        if (props.isoValueRelative) {
+            // newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
+        }
 
         DirectVolume.updateValues(renderObject.values, newProps)
         updateRenderableState(renderObject.state, newProps)

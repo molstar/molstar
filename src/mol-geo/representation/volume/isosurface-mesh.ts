@@ -18,14 +18,14 @@ import { LocationIterator } from '../../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { createIdentityTransform } from '../../geometry/transform-data';
 import { createRenderableState, updateRenderableState } from '../../geometry/geometry';
-import { paramDefaultValues, NumberParam } from 'mol-view/parameter';
+import { paramDefaultValues, RangeParam } from 'mol-view/parameter';
 import { ValueCell } from 'mol-util';
 
-export async function createVolumeSurface(ctx: RuntimeContext, volume: VolumeData, isoValue: VolumeIsoValue, mesh?: Mesh) {
+export async function createVolumeSurface(ctx: RuntimeContext, volume: VolumeData, isoValueAbsolute: number, mesh?: Mesh) {
     ctx.update({ message: 'Marching cubes...' });
 
     const surface = await computeMarchingCubesMesh({
-        isoLevel: VolumeIsoValue.toAbsolute(isoValue).absoluteValue,
+        isoLevel: isoValueAbsolute,
         scalarField: volume.data
     }, mesh).runAsChild(ctx);
 
@@ -39,7 +39,8 @@ export async function createVolumeSurface(ctx: RuntimeContext, volume: VolumeDat
 
 export const IsosurfaceParams = {
     ...Mesh.Params,
-    isoValue: NumberParam('Iso Value', '', 2, -15, 15, 0.01),
+    isoValueAbsolute: RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
+    isoValueRelative: RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
 export const DefaultIsosurfaceProps = paramDefaultValues(IsosurfaceParams)
 export type IsosurfaceProps = typeof DefaultIsosurfaceProps
@@ -52,8 +53,12 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
 
     async function create(ctx: RuntimeContext, volume: VolumeData, props: Partial<IsosurfaceProps> = {}) {
         currentProps = { ...DefaultIsosurfaceProps, ...props }
+        if (props.isoValueRelative) {
+            currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
+            console.log('create props.isoValueRelative', props.isoValueRelative, currentProps.isoValueAbsolute, currentVolume.dataStats)
+        }
 
-        mesh = await createVolumeSurface(ctx, volume,  VolumeIsoValue.relative(volume.dataStats, currentProps.isoValue))
+        mesh = await createVolumeSurface(ctx, volume, currentProps.isoValueAbsolute)
 
         const locationIt = LocationIterator(1, 1, () => NullLocation)
         const transform = createIdentityTransform()
@@ -66,13 +71,17 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
 
     async function update(ctx: RuntimeContext, props: Partial<IsosurfaceProps> = {}) {
         const newProps = { ...currentProps, ...props }
+        if (props.isoValueRelative) {
+            newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
+            console.log('update props.isoValueRelative', props.isoValueRelative, newProps.isoValueAbsolute, currentVolume.dataStats)
+        }
 
         let createMesh = false
 
-        if (newProps.isoValue !== currentProps.isoValue) createMesh = true
+        if (newProps.isoValueAbsolute !== currentProps.isoValueAbsolute) createMesh = true
 
         if (createMesh) {
-            mesh = await createVolumeSurface(ctx, currentVolume,  VolumeIsoValue.relative(currentVolume.dataStats, currentProps.isoValue), mesh)
+            mesh = await createVolumeSurface(ctx, currentVolume, newProps.isoValueAbsolute, mesh)
             ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
         }
 

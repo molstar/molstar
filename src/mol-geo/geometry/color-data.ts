@@ -20,7 +20,7 @@ export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 export type ColorData = {
     uColor: ValueCell<Vec3>,
     aColor: ValueCell<Float32Array>,
-    tColor: ValueCell<TextureImage>,
+    tColor: ValueCell<TextureImage<Uint8Array>>,
     uColorTexDim: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
 }
@@ -77,7 +77,7 @@ export async function createUniformColor(ctx: RuntimeContext, locationIt: Locati
     return createValueColor(color(NullLocation, false), colorData)
 }
 
-export function createTextureColor(colors: TextureImage, type: ColorType, colorData?: ColorData): ColorData {
+export function createTextureColor(colors: TextureImage<Uint8Array>, type: ColorType, colorData?: ColorData): ColorData {
     if (colorData) {
         ValueCell.update(colorData.tColor, colors)
         ValueCell.update(colorData.uColorTexDim, Vec2.create(colors.width, colors.height))

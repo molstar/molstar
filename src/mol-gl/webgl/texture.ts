@@ -13,8 +13,13 @@ import { Framebuffer } from './framebuffer';
 
 const getNextTextureId = idFactory()
 
+export type TextureKindValue = {
+    'image-uint8': TextureImage<Uint8Array>
+    'image-float32': TextureImage<Float32Array>
+}
+export type TextureKind = keyof TextureKindValue
+export type TextureType = 'ubyte' | 'float'
 export type TextureFormat = 'alpha' | 'rgb' | 'rgba'
-export type TextureType = 'ubyte' | 'uint'
 export type TextureAttachment = 'depth' | 'stencil' | 'color0'
 export type TextureFilter = 'nearest' | 'linear'
 
@@ -27,11 +32,35 @@ export function getFormat(ctx: Context, format: TextureFormat) {
     }
 }
 
+export function getInternalFormat(ctx: Context, format: TextureFormat, type: TextureType) {
+    const { gl, isWebGL2 } = ctx
+    if (isWebGL2) {
+        switch (format) {
+            case 'alpha':
+                switch (type) {
+                    case 'ubyte': return gl.ALPHA
+                    case 'float': throw new Error('invalid format/type combination alpha/float')
+                }
+            case 'rgb':
+                switch (type) {
+                    case 'ubyte': return gl.RGB
+                    case 'float': return (gl as WebGL2RenderingContext).RGB32F
+                }
+            case 'rgba':
+                switch (type) {
+                    case 'ubyte': return gl.RGBA
+                    case 'float': return (gl as WebGL2RenderingContext).RGBA32F
+                }
+        }
+    }
+    return getFormat(ctx, format)
+}
+
 export function getType(ctx: Context, type: TextureType) {
     const { gl } = ctx
     switch (type) {
         case 'ubyte': return gl.UNSIGNED_BYTE
-        case 'uint': return gl.UNSIGNED_INT
+        case 'float': return gl.FLOAT
     }
 }
 
@@ -55,12 +84,10 @@ export function getAttachment(ctx: Context, attachment: TextureAttachment) {
 export interface Texture {
     readonly id: number
     readonly format: number
+    readonly internalFormat: number
     readonly type: number
 
-    readonly width: number
-    readonly height: number
-
-    load: (image: TextureImage) => void
+    load: (image: TextureImage<any>) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
     attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => void
@@ -69,7 +96,7 @@ export interface Texture {
 
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 
-export type TextureValues = { [k: string]: ValueCell<TextureImage> }
+export type TextureValues = { [k: string]: ValueCell<TextureImage<any>> }
 export type Textures = { [k: string]: Texture }
 
 export function createTexture(ctx: Context, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
@@ -80,12 +107,12 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
         throw new Error('Could not create WebGL texture')
     }
 
+
+
     const filter = getFilter(ctx, _filter)
     const format = getFormat(ctx, _format)
+    const internalFormat = getInternalFormat(ctx, _format, _type)
     const type = getType(ctx, _type)
-
-    let _width = 0
-    let _height = 0
 
     let destroyed = false
     ctx.textureCount += 1
@@ -93,20 +120,16 @@ export function createTexture(ctx: Context, _format: TextureFormat, _type: Textu
     return {
         id,
         format,
+        internalFormat,
         type,
 
-        get width () { return _width },
-        get height () { return _height },
-
-        load: (image: TextureImage) => {
+        load: (image: TextureImage<any>) => {
             const { array, width, height } = image
             gl.bindTexture(gl.TEXTURE_2D, texture)
             // unpack alignment of 1 since we use textures only for data
             gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-            // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-            (gl as WebGLRenderingContext).texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, type, array) // TODO remove cast when webgl2 types are fixed
-            _width = width
-            _height = height
+            gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+            (gl as WebGLRenderingContext).texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, array) // TODO remove cast when webgl2 types are fixed
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter)
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter)
             // clamp-to-edge needed for non-power-of-two textures

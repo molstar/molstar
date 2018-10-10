@@ -6,7 +6,7 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear } from './compat';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -51,7 +51,7 @@ function unbindFramebuffer(gl: GLRenderingContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 }
 
-export function createImageData(buffer: Uint8Array, width: number, height: number) {
+export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
     const w = width * 4
     const h = height
     const data = new Uint8ClampedArray(width * height * 4)
@@ -69,6 +69,8 @@ export function createImageData(buffer: Uint8Array, width: number, height: numbe
 type Extensions = {
     instancedArrays: COMPAT_instanced_arrays
     standardDerivatives: COMPAT_standard_derivatives
+    textureFloat: COMPAT_texture_float,
+    textureFloatLinear: COMPAT_texture_float_linear,
     elementIndexUint: COMPAT_element_index_uint | null
     vertexArrayObject: COMPAT_vertex_array_object | null
 }
@@ -111,6 +113,14 @@ export function createContext(gl: GLRenderingContext): Context {
     if (standardDerivatives === null) {
         throw new Error('Could not find support for "standard_derivatives"')
     }
+    const textureFloat = getTextureFloat(gl)
+    if (textureFloat === null) {
+        throw new Error('Could not find support for "texture_float"')
+    }
+    const textureFloatLinear = getTextureFloatLinear(gl)
+    if (textureFloatLinear === null) {
+        throw new Error('Could not find support for "texture_float_linear"')
+    }
     const elementIndexUint = getElementIndexUint(gl)
     if (elementIndexUint === null) {
         console.warn('Could not find support for "element_index_uint"')
@@ -130,7 +140,14 @@ export function createContext(gl: GLRenderingContext): Context {
     return {
         gl,
         isWebGL2: isWebGL2(gl),
-        extensions: { instancedArrays, standardDerivatives, elementIndexUint, vertexArrayObject },
+        extensions: {
+            instancedArrays,
+            standardDerivatives,
+            textureFloat,
+            textureFloatLinear,
+            elementIndexUint,
+            vertexArrayObject
+        },
         pixelRatio: getPixelRatio(),
 
         shaderCache,
