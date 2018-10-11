@@ -47,7 +47,7 @@ async function createBaseValues(ctx: RuntimeContext, directVolume: DirectVolumeB
     const controlPoints = getControlPointsFromString(props.controlPoints)
     const transferTex = createTransferFunctionTexture(controlPoints)
 
-    const maxSteps = Math.round(Vec3.magnitude(bboxSize.ref.value))
+    const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value)) * 2
     console.log('maxSteps', maxSteps)
 
     return {
