@@ -6,7 +6,7 @@
 
 import { QueryPredicate, StructureElement, StructureProperties as Props } from 'mol-model/structure';
 import { AtomsQueryParams } from 'mol-model/structure/query/queries/generators';
-import { AtomSiteSchema } from '../server/api';
+import { AtomSiteSchema, AtomSiteSchemaElement } from '../server/api';
 
 export function getAtomsTests(params: AtomSiteSchema): Partial<AtomsQueryParams>[] {
     if (!params) return [{ }];
@@ -17,7 +17,7 @@ export function getAtomsTests(params: AtomSiteSchema): Partial<AtomsQueryParams>
     }
 }
 
-function atomsTest(params: AtomSiteSchema): Partial<AtomsQueryParams> {
+function atomsTest(params: AtomSiteSchemaElement): Partial<AtomsQueryParams> {
     return {
         entityTest: entityTest(params),
         chainTest: chainTest(params),
@@ -26,13 +26,13 @@ function atomsTest(params: AtomSiteSchema): Partial<AtomsQueryParams> {
     };
 }
 
-function entityTest(params: AtomSiteSchema): QueryPredicate | undefined {
+function entityTest(params: AtomSiteSchemaElement): QueryPredicate | undefined {
     if (!params || typeof params.label_entity_id === 'undefined') return void 0;
     const p = Props.entity.id, id = '' + params.label_entity_id;
     return ctx => p(ctx.element) === id;
 }
 
-function chainTest(params: AtomSiteSchema): QueryPredicate | undefined {
+function chainTest(params: AtomSiteSchemaElement): QueryPredicate | undefined {
     if (!params) return void 0;
 
     if (typeof params.label_asym_id !== 'undefined') {
@@ -46,7 +46,7 @@ function chainTest(params: AtomSiteSchema): QueryPredicate | undefined {
     return void 0;
 }
 
-function residueTest(params: AtomSiteSchema): QueryPredicate | undefined {
+function residueTest(params: AtomSiteSchemaElement): QueryPredicate | undefined {
     if (!params) return void 0;
 
     const props: StructureElement.Property<any>[] = [], values: any[] = [];
@@ -79,7 +79,7 @@ function residueTest(params: AtomSiteSchema): QueryPredicate | undefined {
     return andEqual(props, values);
 }
 
-function atomTest(params: AtomSiteSchema): QueryPredicate | undefined {
+function atomTest(params: AtomSiteSchemaElement): QueryPredicate | undefined {
     if (!params) return void 0;
 
     const props: StructureElement.Property<any>[] = [], values: any[] = [];

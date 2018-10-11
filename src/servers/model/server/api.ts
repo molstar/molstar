@@ -35,7 +35,7 @@ export interface QueryDefinition<Params = any> {
     '@params': Params
 }
 
-export interface AtomSiteSchema {
+export interface AtomSiteSchemaElement {
     label_entity_id?: string,
 
     label_asym_id?: string,
@@ -51,6 +51,8 @@ export interface AtomSiteSchema {
     auth_atom_id?: string,
     type_symbol?: string
 }
+
+export type AtomSiteSchema = AtomSiteSchemaElement | AtomSiteSchemaElement[]
 
 const AtomSiteTestParams: QueryParamInfo = {
     name: 'atom_site',
