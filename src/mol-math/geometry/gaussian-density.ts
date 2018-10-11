@@ -8,8 +8,12 @@ import { Box3D } from '../geometry';
 import { Vec3 } from '../linear-algebra';
 import { RuntimeContext, Task } from 'mol-task';
 import { PositionData, DensityData } from './common';
-import { GaussianDensityGPU } from './gaussian-density/gpu';
 import { GaussianDensityCPU } from './gaussian-density/cpu';
+
+// import { GaussianDensityGPU } from './gaussian-density/gpu';
+const GaussianDensityGPU = typeof document !== 'undefined'
+    ? (require('./gaussian-density/gpu') as typeof import('./gaussian-density/gpu')).GaussianDensityGPU
+    : void 0;
 
 export const DefaultGaussianDensityProps = {
     resolution: 1,
@@ -36,6 +40,7 @@ export function computeGaussianDensity(position: PositionData, box: Box3D, radiu
 
 export async function GaussianDensity(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
     if (props.useGpu) {
+        if (!GaussianDensityGPU) throw 'GPU computation not supported on this platform';
         return await GaussianDensityGPU(ctx, position, box, radius, props)
     } else {
         return await GaussianDensityCPU(ctx, position, box, radius, props)

@@ -81,7 +81,7 @@ const config = {
     mapFile(source: string, id: string) {
         switch (source.toLowerCase()) {
             // case 'pdb': return `e:/test/quick/${id}_updated.cif`;
-            case 'pdb': return `c:/test/mol-star/model/out/${id}_updated.bcif`;
+            case 'pdb': return `e:/test/mol-star/model/out/${id}_updated.bcif`;
             case 'pdb-bcif': return `c:/test/mol-star/model/out/${id}_updated.bcif`;
             case 'pdb-cif': return `c:/test/mol-star/model/out/${id}_updated.cif`;
             default: return void 0;
