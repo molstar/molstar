@@ -30,6 +30,14 @@ export namespace Viewport {
         viewport.height = height
         return viewport
     }
+
+    export function toVec4(v4: Vec4, viewport: Viewport): Vec4 {
+        v4[0] = viewport.x
+        v4[1] = viewport.y
+        v4[2] = viewport.width
+        v4[3] = viewport.height
+        return v4
+    }
 }
 
 const tmpVec3 = Vec3.zero()

@@ -10,7 +10,7 @@ import { Camera } from 'mol-view/camera/base';
 
 import Scene from './scene';
 import { Context, createImageData } from './webgl/context';
-import { Mat4, Vec3 } from 'mol-math/linear-algebra';
+import { Mat4, Vec3, Vec4 } from 'mol-math/linear-algebra';
 import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
 import { ValueCell } from 'mol-util';
@@ -54,6 +54,7 @@ namespace Renderer {
         let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
 
         const viewport = Viewport.clone(_viewport)
+        const viewportVec4 = Viewport.toVec4(Vec4.zero(), viewport)
 
         // const lightPosition = Vec3.create(0, 0, -100)
         const lightColor = Vec3.create(1.0, 1.0, 1.0)
@@ -72,6 +73,9 @@ namespace Renderer {
         const invView = Mat4.invert(Mat4.identity(), view)
         const modelView = Mat4.clone(camera.view)
         const invModelView = Mat4.invert(Mat4.identity(), modelView)
+        const invProjection = Mat4.invert(Mat4.identity(), camera.projection)
+        const modelViewProjection = Mat4.mul(Mat4.identity(), modelView, camera.projection)
+        const invModelViewProjection = Mat4.invert(Mat4.identity(), modelViewProjection)
 
         const globalUniforms: GlobalUniformValues = {
             uModel: ValueCell.create(Mat4.identity()),
@@ -79,10 +83,14 @@ namespace Renderer {
             uInvView: ValueCell.create(invView),
             uModelView: ValueCell.create(modelView),
             uInvModelView: ValueCell.create(invModelView),
+            uInvProjection: ValueCell.create(invProjection),
             uProjection: ValueCell.create(Mat4.clone(camera.projection)),
+            uModelViewProjection: ValueCell.create(modelViewProjection),
+            uInvModelViewProjection: ValueCell.create(invModelViewProjection),
 
             uPixelRatio: ValueCell.create(ctx.pixelRatio),
             uViewportHeight: ValueCell.create(viewport.height),
+            uViewport: ValueCell.create(viewportVec4),
 
             uLightColor: ValueCell.create(Vec3.clone(lightColor)),
             uLightAmbient: ValueCell.create(Vec3.clone(lightAmbient)),
@@ -143,6 +151,9 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uModelView, Mat4.mul(modelView, scene.view, camera.view))
             ValueCell.update(globalUniforms.uInvModelView, Mat4.invert(invModelView, modelView))
             ValueCell.update(globalUniforms.uProjection, camera.projection)
+            ValueCell.update(globalUniforms.uInvProjection, Mat4.invert(invProjection, camera.projection))
+            ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection))
+            ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection))
 
             ValueCell.update(globalUniforms.uFogFar, camera.fogFar)
             ValueCell.update(globalUniforms.uFogNear, camera.fogNear)
@@ -171,6 +182,7 @@ namespace Renderer {
                 Viewport.set(viewport, x, y, width, height)
                 gl.viewport(x, y, width, height)
                 ValueCell.update(globalUniforms.uViewportHeight, height)
+                ValueCell.update(globalUniforms.uViewport, Vec4.set(viewportVec4, x, y, width, height))
             },
             getImageData: () => {
                 const { width, height } = viewport

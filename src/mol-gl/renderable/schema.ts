@@ -126,12 +126,16 @@ export const GlobalUniformSchema = {
     uModelView: UniformSpec('m4'),
     uInvModelView: UniformSpec('m4'),
     uProjection: UniformSpec('m4'),
+    uInvProjection: UniformSpec('m4'),
+    uModelViewProjection: UniformSpec('m4'),
+    uInvModelViewProjection: UniformSpec('m4'),
     // uLightPosition: Uniform('v3'),
     uLightColor: UniformSpec('v3'),
     uLightAmbient: UniformSpec('v3'),
 
     uPixelRatio: UniformSpec('f'),
     uViewportHeight: UniformSpec('f'),
+    uViewport: UniformSpec('v4'),
 
     uHighlightColor: UniformSpec('v3'),
     uSelectColor: UniformSpec('v3'),

@@ -134,8 +134,9 @@ function createVolumeTexture3d(volume: VolumeData) {
 
     let i = 0
     for (let z = 0; z < depth; ++z) {
+        for (let y = 0; y < height; ++y) {
         for (let x = 0; x < width; ++x) {
-            for (let y = 0; y < height; ++y) {
+
                 array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
                 i += 4
             }
