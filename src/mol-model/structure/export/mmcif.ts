@@ -12,9 +12,9 @@ import { _atom_site } from './categories/atom_site';
 import CifCategory = CifWriter.Category
 import { _struct_conf, _struct_sheet_range } from './categories/secondary-structure';
 import { _pdbx_struct_mod_residue } from './categories/modified-residues';
-import { _chem_comp, _pdbx_chem_comp_identifier } from './categories/misc';
+import { _chem_comp, _pdbx_chem_comp_identifier, _pdbx_nonpoly_scheme } from './categories/misc';
 import { Model } from '../model';
-import { getUniqueEntityIndicesFromStructures } from './categories/utils';
+import { getUniqueEntityIndicesFromStructures, copy_mmCif_category } from './categories/utils';
 import { _struct_asym, _entity_poly, _entity_poly_seq } from './categories/sequence';
 import { ModelPropertyDescriptor } from '../model/properties/custom';
 
@@ -35,25 +35,16 @@ export namespace CifExportContext {
     }
 }
 
-function copy_mmCif_category(name: keyof mmCIF_Schema): CifCategory<CifExportContext> {
-    return {
-        name,
-        instance({ structures }) {
-            const model = structures[0].model;
-            if (model.sourceData.kind !== 'mmCIF') return CifCategory.Empty;
-            const table = model.sourceData.data[name];
-            if (!table || !table._rowCount) return CifCategory.Empty;
-            return CifCategory.ofTable(table);
-        }
-    };
-}
-
 const _entity: CifCategory<CifExportContext> = {
     name: 'entity',
     instance({ structures }) {
         const indices = getUniqueEntityIndicesFromStructures(structures);
         return CifCategory.ofTable(structures[0].model.entities.data, indices);
     }
+}
+
+function isWithoutSymmetry(structure: Structure) {
+    return structure.units.every(u => u.conformation.operator.isIdentity)
 }
 
 const Categories = [
@@ -63,13 +54,13 @@ const Categories = [
     _entity,
 
     // Symmetry
-    copy_mmCif_category('cell'),
-    copy_mmCif_category('symmetry'),
+    copy_mmCif_category('cell', isWithoutSymmetry),
+    copy_mmCif_category('symmetry', isWithoutSymmetry),
 
     // Assemblies
-    copy_mmCif_category('pdbx_struct_assembly'),
-    copy_mmCif_category('pdbx_struct_assembly_gen'),
-    copy_mmCif_category('pdbx_struct_oper_list'),
+    copy_mmCif_category('pdbx_struct_assembly', isWithoutSymmetry),
+    copy_mmCif_category('pdbx_struct_assembly_gen', isWithoutSymmetry),
+    copy_mmCif_category('pdbx_struct_oper_list', isWithoutSymmetry),
 
     // Secondary structure
     _struct_conf,
@@ -91,6 +82,7 @@ const Categories = [
     _pdbx_chem_comp_identifier,
     copy_mmCif_category('atom_sites'),
 
+    _pdbx_nonpoly_scheme,
     _pdbx_struct_mod_residue,
 
     // Atoms

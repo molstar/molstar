@@ -33,3 +33,13 @@ export const _pdbx_chem_comp_identifier: CifCategory<CifExportContext> = {
         return CifCategory.ofTable(pdbx_chem_comp_identifier, indices);
     }
 }
+
+export const _pdbx_nonpoly_scheme: CifCategory<CifExportContext> = {
+    name: 'pdbx_nonpoly_scheme',
+    instance({ firstModel, structures, cache }) {
+        const pdbx_nonpoly_scheme = getModelMmCifCategory(firstModel, 'pdbx_nonpoly_scheme');
+        if (!pdbx_nonpoly_scheme) return CifCategory.Empty;
+        // TODO: filter?
+        return CifCategory.ofTable(pdbx_nonpoly_scheme);
+    }
+}

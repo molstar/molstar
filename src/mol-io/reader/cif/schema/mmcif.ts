@@ -1950,6 +1950,18 @@ export const mmCIF_Schema = {
          */
         ordinal: int,
     },
+    pdbx_nonpoly_scheme: {
+        asym_id: str,
+        entity_id: str,
+        mon_id: str,
+        ndb_seq_num: int,
+        pdb_seq_num: int,
+        auth_seq_num: int,
+        pdb_mon_id: str,
+        auth_mon_id: str,
+        pdb_strand_id: str,
+        pdb_ins_code: str
+    },
     /**
      * Data items in the IHM_STARTING_MODEL_DETAILS category records the
      * details about structural models used as starting inputs in

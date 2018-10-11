@@ -35,7 +35,7 @@ export interface QueryDefinition<Params = any> {
     '@params': Params
 }
 
-export interface AtomSiteSchema {
+export interface AtomSiteSchemaElement {
     label_entity_id?: string,
 
     label_asym_id?: string,
@@ -51,6 +51,8 @@ export interface AtomSiteSchema {
     auth_atom_id?: string,
     type_symbol?: string
 }
+
+export type AtomSiteSchema = AtomSiteSchemaElement | AtomSiteSchemaElement[]
 
 const AtomSiteTestParams: QueryParamInfo = {
     name: 'atom_site',
@@ -126,6 +128,16 @@ const QueryMap = {
         },
         params: [ AtomSiteTestParams, RadiusParam ]
     }),
+    'residueSurroundings': Q<{ atom_site: AtomSiteSchema, radius: number }>({
+        niceName: 'Residue Surroundings',
+        description: 'Identifies all residues within the given radius from the source residue.',
+        query(p) {
+            const tests = getAtomsTests(p.atom_site);
+            const center = Queries.combinators.merge(tests.map(test => Queries.generators.atoms(test)));
+            return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
+        },
+        params: [ AtomSiteTestParams, RadiusParam ]
+    })
 };
 
 export type QueryName = keyof typeof QueryMap

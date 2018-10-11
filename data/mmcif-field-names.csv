@@ -123,6 +123,17 @@ pdbx_entity_descriptor.type
 pdbx_entity_descriptor.program
 pdbx_entity_descriptor.program_version
 
+pdbx_nonpoly_scheme.asym_id
+pdbx_nonpoly_scheme.entity_id
+pdbx_nonpoly_scheme.mon_id
+pdbx_nonpoly_scheme.ndb_seq_num
+pdbx_nonpoly_scheme.pdb_seq_num
+pdbx_nonpoly_scheme.auth_seq_num
+pdbx_nonpoly_scheme.pdb_mon_id
+pdbx_nonpoly_scheme.auth_mon_id
+pdbx_nonpoly_scheme.pdb_strand_id
+pdbx_nonpoly_scheme.pdb_ins_code
+
 entry.id
 
 exptl.entry_id
