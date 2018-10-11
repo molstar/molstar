@@ -43,13 +43,14 @@ export function getUniqueEntityIndicesFromStructures(structures: Structure[]): R
     return ret.array;
 }
 
-export function copy_mmCif_category(name: keyof mmCIF_Schema, condition?: (model: Model) => boolean): CifWriter.Category<CifExportContext> {
+export function copy_mmCif_category(name: keyof mmCIF_Schema, condition?: (structure: Structure) => boolean): CifWriter.Category<CifExportContext> {
     return {
         name,
         instance({ structures }) {
+            if (condition && !condition(structures[0])) return CifWriter.Category.Empty;
+
             const model = structures[0].model;
             if (model.sourceData.kind !== 'mmCIF') return CifWriter.Category.Empty;
-            if (condition && !condition(model)) return CifWriter.Category.Empty;
 
             const table = model.sourceData.data[name];
             if (!table || !table._rowCount) return CifWriter.Category.Empty;

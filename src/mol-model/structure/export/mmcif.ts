@@ -43,6 +43,10 @@ const _entity: CifCategory<CifExportContext> = {
     }
 }
 
+function isWithoutSymmetry(structure: Structure) {
+    return structure.units.every(u => u.conformation.operator.isIdentity)
+}
+
 const Categories = [
     // Basics
     copy_mmCif_category('entry'),
@@ -50,13 +54,13 @@ const Categories = [
     _entity,
 
     // Symmetry
-    copy_mmCif_category('cell'),
-    copy_mmCif_category('symmetry'),
+    copy_mmCif_category('cell', isWithoutSymmetry),
+    copy_mmCif_category('symmetry', isWithoutSymmetry),
 
     // Assemblies
-    copy_mmCif_category('pdbx_struct_assembly'),
-    copy_mmCif_category('pdbx_struct_assembly_gen'),
-    copy_mmCif_category('pdbx_struct_oper_list'),
+    copy_mmCif_category('pdbx_struct_assembly', isWithoutSymmetry),
+    copy_mmCif_category('pdbx_struct_assembly_gen', isWithoutSymmetry),
+    copy_mmCif_category('pdbx_struct_oper_list', isWithoutSymmetry),
 
     // Secondary structure
     _struct_conf,
