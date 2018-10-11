@@ -11,6 +11,8 @@ import { Structure } from '../../structure';
 import { EntityIndex } from '../../model/indexing';
 import { UniqueArray } from 'mol-data/generic';
 import { sortArray } from 'mol-data/util';
+import { CifWriter } from 'mol-io/writer/cif';
+import { CifExportContext } from '../mmcif';
 
 export function getModelMmCifCategory<K extends keyof mmCIF_Schema>(model: Model, name: K): mmCIF_Database[K] | undefined {
     if (model.sourceData.kind !== 'mmCIF') return;
@@ -39,4 +41,19 @@ export function getUniqueEntityIndicesFromStructures(structures: Structure[]): R
     }
     sortArray(ret.array);
     return ret.array;
+}
+
+export function copy_mmCif_category(name: keyof mmCIF_Schema, condition?: (model: Model) => boolean): CifWriter.Category<CifExportContext> {
+    return {
+        name,
+        instance({ structures }) {
+            const model = structures[0].model;
+            if (model.sourceData.kind !== 'mmCIF') return CifWriter.Category.Empty;
+            if (condition && !condition(model)) return CifWriter.Category.Empty;
+
+            const table = model.sourceData.data[name];
+            if (!table || !table._rowCount) return CifWriter.Category.Empty;
+            return CifWriter.Category.ofTable(table);
+        }
+    };
 }
