@@ -14,6 +14,14 @@ npm install
 
 Customize configuration at ``src/server/model/config.ts`` to point to your data and which custom properties to include (see the [Custom Properties](#custom-properties) section). Alternatively, the config can be edited in the compiled version in ``build/node_modules/servers/model/config.js``.
 
+Afterwards, build the project:
+
+```
+npm run build
+```
+
+(or run watch mode for automatic rebuilds: ``npm run watch``)
+
 Running the server locally for testing:
 ```
 npm run model-server
