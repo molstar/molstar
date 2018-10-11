@@ -126,6 +126,16 @@ const QueryMap = {
         },
         params: [ AtomSiteTestParams, RadiusParam ]
     }),
+    'residueSurroundings': Q<{ atom_site: AtomSiteSchema, radius: number }>({
+        niceName: 'Residue Surroundings',
+        description: 'Identifies all residues within the given radius from the source residue.',
+        query(p) {
+            const tests = getAtomsTests(p.atom_site);
+            const center = Queries.combinators.merge(tests.map(test => Queries.generators.atoms(test)));
+            return Queries.modifiers.includeSurroundings(center, { radius: p.radius, wholeResidues: true });
+        },
+        params: [ AtomSiteTestParams, RadiusParam ]
+    })
 };
 
 export type QueryName = keyof typeof QueryMap
