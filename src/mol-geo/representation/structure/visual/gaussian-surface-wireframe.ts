@@ -44,7 +44,7 @@ export type GaussianWireframeProps = typeof DefaultGaussianWireframeProps
 export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {
     return UnitsLinesVisual<GaussianWireframeProps>({
         defaultProps: DefaultGaussianWireframeProps,
-        createLines: createGaussianWireframe,
+        createGeometry: createGaussianWireframe,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,

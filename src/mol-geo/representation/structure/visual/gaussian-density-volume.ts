@@ -59,7 +59,7 @@ export type GaussianDensityVolumeProps = typeof DefaultGaussianDensityVolumeProp
 export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolumeProps> {
     return UnitsDirectVolumeVisual<GaussianDensityVolumeProps>({
         defaultProps: DefaultGaussianDensityVolumeProps,
-        createDirectVolume: createGaussianDensityVolume,
+        createGeometry: createGaussianDensityVolume,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,

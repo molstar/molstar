@@ -8,7 +8,7 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '../';
-import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from '.';
+import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureProps } from '.';
 import { RuntimeContext } from 'mol-task';
 import { PickingId } from '../../geometry/picking';
 import { LocationIterator } from '../../util/location-iterator';
@@ -20,7 +20,7 @@ import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnits
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { Points } from '../../geometry/points/points';
-import { updateRenderableState } from '../../geometry/geometry';
+import { updateRenderableState, Geometry } from '../../geometry/geometry';
 import { createColors, ColorProps } from '../../geometry/color-data';
 import { createSizes, SizeProps } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
@@ -71,26 +71,31 @@ function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
     )
 }
 
-// mesh
-
-export const UnitsMeshParams = {
-    ...StructureMeshParams,
+const UnitsParams = {
     unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
-export const DefaultUnitsMeshProps = paramDefaultValues(UnitsMeshParams)
-export type UnitsMeshProps = typeof DefaultUnitsMeshProps
 
-export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> {
+interface UnitsVisualBuilder<P extends StructureProps, G extends Geometry> {
     defaultProps: P
-    createMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, mesh?: Mesh): Promise<Mesh>
+    createGeometry(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, geometry?: G): Promise<G>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
     mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
 }
 
+// mesh
+
+export const UnitsMeshParams = {
+    ...StructureMeshParams,
+    ...UnitsParams,
+}
+export const DefaultUnitsMeshProps = paramDefaultValues(UnitsMeshParams)
+export type UnitsMeshProps = typeof DefaultUnitsMeshProps
+export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> extends UnitsVisualBuilder<P, Mesh> { }
+
 export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisualBuilder<P>): UnitsVisual<P> {
-    const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: MeshRenderObject | undefined
@@ -108,7 +113,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
         mesh = includesUnitKind(currentProps.unitKinds, unit)
-            ? await createMesh(ctx, unit, currentStructure, currentProps, mesh)
+            ? await createGeometry(ctx, unit, currentStructure, currentProps, mesh)
             : Mesh.createEmpty(mesh)
 
         // TODO create empty location iterator when not in unitKinds
@@ -150,7 +155,7 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
         if (updateState.createGeometry) {
             mesh = includesUnitKind(newProps.unitKinds, unit)
-                ? await createMesh(ctx, unit, currentStructure, newProps, mesh)
+                ? await createGeometry(ctx, unit, currentStructure, newProps, mesh)
                 : Mesh.createEmpty(mesh)
             ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
             updateState.updateColor = true
@@ -225,22 +230,14 @@ export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisu
 
 export const UnitsPointsParams = {
     ...StructurePointsParams,
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+    ...UnitsParams,
 }
 export const DefaultUnitsPointsProps = paramDefaultValues(UnitsPointsParams)
 export type UnitsPointsProps = typeof DefaultUnitsPointsProps
-
-export interface UnitsPointVisualBuilder<P extends UnitsPointsProps> {
-    defaultProps: P
-    createPoints(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, points?: Points): Promise<Points>
-    createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
-    getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
-    mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
-}
+export interface UnitsPointVisualBuilder<P extends UnitsPointsProps> extends UnitsVisualBuilder<P, Points> { }
 
 export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPointVisualBuilder<P>): UnitsVisual<P> {
-    const { defaultProps, createPoints, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: PointsRenderObject | undefined
@@ -258,7 +255,7 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
         points = includesUnitKind(currentProps.unitKinds, unit)
-            ? await createPoints(ctx, unit, currentStructure, currentProps, points)
+            ? await createGeometry(ctx, unit, currentStructure, currentProps, points)
             : Points.createEmpty(points)
 
         // TODO create empty location iterator when not in unitKinds
@@ -300,7 +297,7 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
 
         if (updateState.createGeometry) {
             points = includesUnitKind(newProps.unitKinds, unit)
-                ? await createPoints(ctx, unit, currentStructure, newProps, points)
+                ? await createGeometry(ctx, unit, currentStructure, newProps, points)
                 : Points.createEmpty(points)
             ValueCell.update(renderObject.values.drawCount, points.pointCount)
             updateState.updateColor = true
@@ -379,22 +376,14 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
 
 export const UnitsLinesParams = {
     ...StructureLinesParams,
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+    ...UnitsParams,
 }
 export const DefaultUnitsLinesProps = paramDefaultValues(UnitsLinesParams)
 export type UnitsLinesProps = typeof DefaultUnitsLinesProps
-
-export interface UnitsLinesVisualBuilder<P extends UnitsLinesProps> {
-    defaultProps: P
-    createLines(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, lines?: Lines): Promise<Lines>
-    createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
-    getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
-    mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
-}
+export interface UnitsLinesVisualBuilder<P extends UnitsLinesProps> extends UnitsVisualBuilder<P, Lines> { }
 
 export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesVisualBuilder<P>): UnitsVisual<P> {
-    const { defaultProps, createLines, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: LinesRenderObject | undefined
@@ -412,7 +401,7 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
         lines = includesUnitKind(currentProps.unitKinds, unit)
-            ? await createLines(ctx, unit, currentStructure, currentProps, lines)
+            ? await createGeometry(ctx, unit, currentStructure, currentProps, lines)
             : Lines.createEmpty(lines)
 
         // TODO create empty location iterator when not in unitKinds
@@ -454,7 +443,7 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
 
         if (updateState.createGeometry) {
             lines = includesUnitKind(newProps.unitKinds, unit)
-                ? await createLines(ctx, unit, currentStructure, newProps, lines)
+                ? await createGeometry(ctx, unit, currentStructure, newProps, lines)
                 : Lines.createEmpty(lines)
             ValueCell.update(renderObject.values.drawCount, lines.lineCount * 2 * 3)
             updateState.updateColor = true
@@ -533,22 +522,14 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
 
 export const UnitsDirectVolumeParams = {
     ...StructureDirectVolumeParams,
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+    ...UnitsParams,
 }
 export const DefaultUnitsDirectVolumeProps = paramDefaultValues(UnitsDirectVolumeParams)
 export type UnitsDirectVolumeProps = typeof DefaultUnitsDirectVolumeProps
-
-export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> {
-    defaultProps: P
-    createDirectVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, directVolume?: DirectVolume2d): Promise<DirectVolume2d>
-    createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
-    getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
-    mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
-}
+export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> extends UnitsVisualBuilder<P, DirectVolume2d> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builder: UnitsDirectVolumeVisualBuilder<P>): UnitsVisual<P> {
-    const { defaultProps, createDirectVolume, createLocationIterator, getLoci, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, setUpdateState } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: DirectVolume2dRenderObject | undefined
@@ -566,7 +547,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
         directVolume = includesUnitKind(currentProps.unitKinds, unit)
-            ? await createDirectVolume(ctx, unit, currentStructure, currentProps, directVolume)
+            ? await createGeometry(ctx, unit, currentStructure, currentProps, directVolume)
             : DirectVolume2d.createEmpty(directVolume)
 
         // TODO create empty location iterator when not in unitKinds
@@ -608,7 +589,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
 
         if (updateState.createGeometry) {
             directVolume = includesUnitKind(newProps.unitKinds, unit)
-                ? await createDirectVolume(ctx, unit, currentStructure, newProps, directVolume)
+                ? await createGeometry(ctx, unit, currentStructure, newProps, directVolume)
                 : DirectVolume2d.createEmpty(directVolume)
             updateState.updateColor = true
         }

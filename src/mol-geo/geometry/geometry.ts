@@ -17,6 +17,7 @@ import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
 import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, StructureParam } from 'mol-view/parameter'
 import { Structure } from 'mol-model/structure';
+import { DirectVolume2d, DirectVolume3d } from './direct-volume/direct-volume';
 
 //
 
@@ -37,7 +38,13 @@ export const VisualQualityOptions = VisualQualityNames.map(n => [n, n] as [Visua
 
 //
 
-export type GeometryKindType = { 'mesh': Mesh, 'points': Points, 'lines': Lines }
+export type GeometryKindType = {
+    'mesh': Mesh,
+    'points': Points,
+    'lines': Lines,
+    'direct-volume-2d': DirectVolume2d,
+    'direct-volume-3d': DirectVolume3d
+}
 export type GeometryKind = keyof GeometryKindType
 export type Geometry = Helpers.ValueOf<GeometryKindType>
 
@@ -47,6 +54,8 @@ export namespace Geometry {
             case 'mesh': return geometry.triangleCount * 3
             case 'points': return geometry.pointCount
             case 'lines': return geometry.lineCount * 2 * 3
+            case 'direct-volume-2d': return 12 * 3
+            case 'direct-volume-3d': return 12 * 3
         }
     }
 

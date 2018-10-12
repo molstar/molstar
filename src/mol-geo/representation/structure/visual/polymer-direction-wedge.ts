@@ -99,7 +99,7 @@ export type PolymerDirectionProps = typeof DefaultPolymerDirectionProps
 export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {
     return UnitsMeshVisual<PolymerDirectionProps>({
         defaultProps: DefaultPolymerDirectionProps,
-        createMesh: createPolymerDirectionWedgeMesh,
+        createGeometry: createPolymerDirectionWedgeMesh,
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         mark: markPolymerElement,

@@ -76,7 +76,7 @@ export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
 export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
     return UnitsMeshVisual<IntraUnitLinkProps>({
         defaultProps: DefaultIntraUnitLinkProps,
-        createMesh: createIntraUnitLinkCylinderMesh,
+        createGeometry: createIntraUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
         mark: markLink,

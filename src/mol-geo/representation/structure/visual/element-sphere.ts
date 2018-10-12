@@ -24,7 +24,7 @@ export type ElementSphereProps = typeof DefaultElementSphereProps
 export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
     return UnitsMeshVisual<ElementSphereProps>({
         defaultProps: DefaultElementSphereProps,
-        createMesh: createElementSphereMesh,
+        createGeometry: createElementSphereMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,

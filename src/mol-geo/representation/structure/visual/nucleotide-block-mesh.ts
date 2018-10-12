@@ -120,7 +120,7 @@ export type NucleotideBlockProps = typeof DefaultNucleotideBlockProps
 export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
     return UnitsMeshVisual<NucleotideBlockProps>({
         defaultProps: DefaultNucleotideBlockProps,
-        createMesh: createNucleotideBlockMesh,
+        createGeometry: createNucleotideBlockMesh,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,
         mark: markNucleotideElement,

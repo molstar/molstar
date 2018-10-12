@@ -77,7 +77,7 @@ export type PolymerBackboneProps = typeof DefaultPolymerBackboneProps
 export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
     return UnitsMeshVisual<PolymerBackboneProps>({
         defaultProps: DefaultPolymerBackboneProps,
-        createMesh: createPolymerBackboneCylinderMesh,
+        createGeometry: createPolymerBackboneCylinderMesh,
         // TODO create a specialized location iterator
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,

@@ -48,7 +48,7 @@ export async function createElementPoint(ctx: RuntimeContext, unit: Unit, struct
 export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
     return UnitsPointsVisual<ElementPointProps>({
         defaultProps: DefaultElementPointProps,
-        createPoints: createElementPoint,
+        createGeometry: createElementPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,

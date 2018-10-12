@@ -60,7 +60,7 @@ export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit
 export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointProps> {
     return UnitsPointsVisual<GaussianDensityPointProps>({
         defaultProps: DefaultGaussianDensityPointProps,
-        createPoints: createGaussianDensityPoint,
+        createGeometry: createGaussianDensityPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: () => EmptyLoci,
         mark: () => false,

@@ -98,7 +98,7 @@ export type PolymerTraceProps = typeof DefaultPolymerTraceProps
 export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
     return UnitsMeshVisual<PolymerTraceProps>({
         defaultProps: DefaultPolymerTraceProps,
-        createMesh: createPolymerTraceMesh,
+        createGeometry: createPolymerTraceMesh,
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         mark: markPolymerElement,

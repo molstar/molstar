@@ -97,7 +97,7 @@ export type PolymerGapProps = typeof DefaultPolymerGapProps
 export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {
     return UnitsMeshVisual<PolymerGapProps>({
         defaultProps: DefaultPolymerGapProps,
-        createMesh: createPolymerGapCylinderMesh,
+        createGeometry: createPolymerGapCylinderMesh,
         createLocationIterator: PolymerGapLocationIterator.fromGroup,
         getLoci: getPolymerGapElementLoci,
         mark: markPolymerGapElement,

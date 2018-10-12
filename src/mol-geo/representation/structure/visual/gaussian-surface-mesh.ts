@@ -84,7 +84,7 @@ export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {
     return UnitsMeshVisual<GaussianSurfaceProps>({
         defaultProps: DefaultGaussianSurfaceProps,
-        createMesh: createGaussianSurfaceMesh,
+        createGeometry: createGaussianSurfaceMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
