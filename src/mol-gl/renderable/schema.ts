@@ -148,8 +148,6 @@ export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
 export const InternalSchema = {
-    dWebGL2: DefineSpec('boolean'),
-    dGlslVersion: DefineSpec('string', ['100es', '300es']),
     uObjectId: UniformSpec('i'),
 }
 export type InternalSchema = typeof InternalSchema

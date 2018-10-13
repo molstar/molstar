@@ -72,7 +72,7 @@ function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
 }
 
 const UnitsParams = {
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
 }
 
 interface UnitsVisualBuilder<P extends StructureProps, G extends Geometry> {

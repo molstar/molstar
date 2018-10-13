@@ -61,7 +61,7 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
         throw new Error('Could not create WebGL program')
     }
 
-    const shaderCode = addShaderDefines(defineValues, _shaderCode)
+    const shaderCode = addShaderDefines(ctx, defineValues, _shaderCode)
     const vertShaderRef = shaderCache.get(ctx, { type: 'vert', source: shaderCode.vert })
     const fragShaderRef = shaderCache.get(ctx, { type: 'frag', source: shaderCode.frag })
 

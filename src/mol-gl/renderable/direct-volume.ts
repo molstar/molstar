@@ -36,8 +36,6 @@ export type DirectVolumeBaseValues = Values<DirectVolumeBaseSchema>
 
 function getInternalValues(ctx: Context, id: number, version: '100es' | '300es'): InternalValues {
     return {
-        dWebGL2: ValueCell.create(ctx.isWebGL2),
-        dGlslVersion: ValueCell.create(version),
         uObjectId: ValueCell.create(id)
     }
 }

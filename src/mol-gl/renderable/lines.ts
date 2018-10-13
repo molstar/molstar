@@ -28,8 +28,6 @@ export type LinesValues = Values<LinesSchema>
 export function LinesRenderable(ctx: Context, id: number, values: LinesValues, state: RenderableState): Renderable<LinesValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...LinesSchema }
     const internalValues: InternalValues = {
-        dWebGL2: ValueCell.create(ctx.isWebGL2),
-        dGlslVersion: ValueCell.create('100es'),
         uObjectId: ValueCell.create(id)
     }
     const shaderCode = LinesShaderCode

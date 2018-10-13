@@ -6,6 +6,7 @@
 
 import { ValueCell } from 'mol-util';
 import { idFactory } from 'mol-util/id-factory';
+import { Context } from './webgl/context';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
 export type DefineType = boolean | string
@@ -73,6 +74,9 @@ function getDefinesCode (defines: ShaderDefines) {
     return lines.join('\n') + '\n'
 }
 
+const glsl100FragPrefix = `#extension GL_OES_standard_derivatives : enable
+`
+
 const glsl300VertPrefix = `#version 300 es
 #define attribute in
 #define varying out
@@ -87,11 +91,11 @@ out highp vec4 out_FragColor;
 #define texture2D texture
 `
 
-export function addShaderDefines(defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
-    const isGlsl300es = defines.dGlslVersion && defines.dGlslVersion.ref.value === '300es'
+export function addShaderDefines(ctx: Context, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
+    const { isWebGL2 } = ctx
     const header = getDefinesCode(defines)
-    const vertPrefix = isGlsl300es ? glsl300VertPrefix : ''
-    const fragPrefix = isGlsl300es ? glsl300FragPrefix : ''
+    const vertPrefix = isWebGL2 ? glsl300VertPrefix : ''
+    const fragPrefix = isWebGL2 ? glsl300FragPrefix : glsl100FragPrefix
     return {
         id: shaderCodeId(),
         vert: `${vertPrefix}${header}${shaders.vert}`,
