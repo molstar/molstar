@@ -59,13 +59,13 @@ function getDefinesCode (defines: ShaderDefines) {
     for (const name in defines) {
         const define = defines[name]
         const v = define.ref.value
-        if (v) {
+        if (v !== undefined) {
             if (typeof v === 'string') {
                 lines.push(`#define ${name}_${v}`)
             } else if (typeof v === 'number') {
                 lines.push(`#define ${name} ${v}`)
             } else if (typeof v === 'boolean') {
-                lines.push(`#define ${name}`)
+                if (v) lines.push(`#define ${name}`)
             } else {
                 throw new Error('unknown define type')
             }
@@ -85,7 +85,7 @@ const glsl300VertPrefix = `#version 300 es
 
 const glsl300FragPrefix = `#version 300 es
 #define varying in
-out highp vec4 out_FragColor;
+layout(location = 0) out highp vec4 out_FragColor;
 #define gl_FragColor out_FragColor
 #define gl_FragDepthEXT gl_FragDepth
 #define texture2D texture

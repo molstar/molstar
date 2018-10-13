@@ -11,8 +11,6 @@ import { AttributeSpec, Values, UniformSpec, ValueSpec, DefineSpec } from './sch
 import { GaussianDensityShaderCode } from '../shader-code';
 
 export const GaussianDensitySchema = {
-    dWebGL2: DefineSpec('boolean'),
-
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
 
@@ -27,6 +25,8 @@ export const GaussianDensitySchema = {
     uBboxSize: UniformSpec('v3'),
     uGridDim: UniformSpec('v3'),
     uAlpha: UniformSpec('f'),
+
+    dDrawBuffers: DefineSpec('number'),
 }
 export type GaussianDensitySchema = typeof GaussianDensitySchema
 export type GaussianDensityValues = Values<GaussianDensitySchema>

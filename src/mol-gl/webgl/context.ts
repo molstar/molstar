@@ -96,6 +96,7 @@ export interface Context {
     instancedDrawCount: number
 
     readonly maxTextureSize: number
+    readonly maxDrawBuffers: number
 
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
@@ -134,7 +135,8 @@ export function createContext(gl: GLRenderingContext): Context {
     const programCache = createProgramCache()
 
     const parameters = {
-        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE)
+        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+        maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) : 0,
     }
 
     return {
@@ -164,6 +166,7 @@ export function createContext(gl: GLRenderingContext): Context {
         instancedDrawCount: 0,
 
         get maxTextureSize () { return parameters.maxTextureSize },
+        get maxDrawBuffers () { return parameters.maxDrawBuffers },
 
         unbindFramebuffer: () => unbindFramebuffer(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
