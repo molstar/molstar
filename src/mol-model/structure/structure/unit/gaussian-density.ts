@@ -16,7 +16,6 @@ export const GaussianDensityParams = {
     radiusOffset: NumberParam('Radius Offset', '', 0, 0, 10, 0.1),
     smoothness: NumberParam('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
     useGpu: BooleanParam('Use GPU', '', true),
-    readSlices: BooleanParam('Read Slices', '', false),
     ignoreCache: BooleanParam('Ignore Cache', '', false),
 }
 export const DefaultGaussianDensityProps = paramDefaultValues(GaussianDensityParams)

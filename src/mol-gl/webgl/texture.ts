@@ -114,7 +114,11 @@ export interface Texture {
     readonly internalFormat: number
     readonly type: number
 
-    define: (x: number, y: number, z: number) => void
+    readonly width: number
+    readonly height: number
+    readonly depth: number
+
+    define: (width: number, height: number, depth?: number) => void
     load: (image: TextureImage<any>) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
@@ -151,6 +155,8 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
     gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(target, null)
 
+    let width = 0, height = 0, depth = 0
+
     let destroyed = false
     ctx.textureCount += 1
 
@@ -161,7 +167,12 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
         internalFormat,
         type,
 
-        define: (width: number, height: number, depth?: number) => {
+        get width () { return width },
+        get height () { return height },
+        get depth () { return depth },
+
+        define: (_width: number, _height: number, _depth?: number) => {
+            width = _width, height = _height, depth = _depth || 0
             gl.bindTexture(target, texture)
             if (target === gl.TEXTURE_2D) {
                 // TODO remove cast when webgl2 types are fixed
@@ -178,11 +189,13 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
             gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
             gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
             if (target === gl.TEXTURE_2D) {
-                const { array, width, height } = data as TextureImage<any>;
+                const { array, width: _width, height: _height } = data as TextureImage<any>
+                width = _width, height = _height;
                 // TODO remove cast when webgl2 types are fixed
                 (gl as WebGLRenderingContext).texImage2D(target, 0, internalFormat, width, height, 0, format, type, array)
             } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D) {
-                const { array, width, height, depth } = data as TextureVolume<any>;
+                const { array, width: _width, height: _height, depth: _depth } = data as TextureVolume<any>
+                width = _width, height = _height, depth = _depth;
                 (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, array)
             } else {
                 throw new Error('unknown texture target')

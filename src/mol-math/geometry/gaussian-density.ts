@@ -19,7 +19,6 @@ export const DefaultGaussianDensityProps = {
     resolution: 1,
     radiusOffset: 0,
     smoothness: 1.5,
-    readSlices: false,
     useGpu: true,
 }
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps

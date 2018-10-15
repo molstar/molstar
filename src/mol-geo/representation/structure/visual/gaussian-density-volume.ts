@@ -68,7 +68,6 @@ export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolume
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true
             if (newProps.useGpu !== currentProps.useGpu) state.createGeometry = true
-            if (newProps.readSlices !== currentProps.readSlices) state.createGeometry = true
             if (newProps.ignoreCache !== currentProps.ignoreCache) state.createGeometry = true
         }
     })
