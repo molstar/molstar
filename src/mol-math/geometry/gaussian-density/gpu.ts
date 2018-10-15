@@ -72,7 +72,7 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
         }
     }
 
-    
+
     const pad = maxRadius * 2 + resolution
     const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad));
     const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)
@@ -85,7 +85,7 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
     return { drawCount: n, positions, radii, delta, expandedBox, dim }
 }
 
-function getGaussianDensityRenderObject(drawCount: number, positions: Float32Array, radii: Float32Array, box: Box3D, dimensions: Vec3, smoothness: number) {
+function getGaussianDensityRenderObject(webgl: Context, drawCount: number, positions: Float32Array, radii: Float32Array, box: Box3D, dimensions: Vec3, smoothness: number) {
     const extent = Vec3.sub(Vec3.zero(), box.max, box.min)
 
     const values: GaussianDensityValues = {
@@ -104,7 +104,7 @@ function getGaussianDensityRenderObject(drawCount: number, positions: Float32Arr
         uGridDim: ValueCell.create(dimensions),
         uAlpha: ValueCell.create(smoothness),
 
-        dDrawBuffers: ValueCell.create(0),
+        dDrawBuffers: ValueCell.create(Math.min(8, webgl.maxDrawBuffers)),
     }
     const state: RenderableState = {
         visible: true,
@@ -120,7 +120,7 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
     const { readSlices, smoothness } = props
 
     const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
-    const renderObject = getGaussianDensityRenderObject(drawCount, positions, radii, expandedBox, dim, smoothness)
+    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, expandedBox, dim, smoothness)
     const renderable = createRenderable(webgl, renderObject)
 
     //
@@ -165,11 +165,6 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
     gl.disable(gl.CULL_FACE)
     gl.frontFace(gl.CCW)
     gl.cullFace(gl.BACK)
-
-    gl.depthMask(true)
-    gl.clearColor(0, 0, 0, 0)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    gl.depthMask(false)
 
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
     gl.blendEquation(gl.FUNC_ADD)
@@ -245,8 +240,9 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     const { smoothness } = props
 
     const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
-    const renderObject = getGaussianDensityRenderObject(drawCount, positions, radii, expandedBox, dim, smoothness)
+    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, expandedBox, dim, smoothness)
     const renderable = createRenderable(webgl, renderObject)
+    const drawBuffers = Math.min(8, webgl.maxDrawBuffers)
 
     //
 
@@ -261,13 +257,8 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
 
     //
 
-    console.log('webgl.maxDrawBuffers', webgl.maxDrawBuffers)
-
     const gl = webgl.gl as WebGL2RenderingContext
     const { uCurrentSlice } = renderObject.values
-
-    const program = renderable.getProgram('draw')
-    const renderTarget = createRenderTarget(webgl, dx, dy)
 
     const fb = gl.createFramebuffer()
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
@@ -278,30 +269,26 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
     gl.texImage3D(gl.TEXTURE_3D, 0, gl.RGBA8, dx, dy, dz, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
 
-    gl.drawBuffers([
-        gl.COLOR_ATTACHMENT0,
-        gl.COLOR_ATTACHMENT1,
-        gl.COLOR_ATTACHMENT2,
-        gl.COLOR_ATTACHMENT3,
-        gl.COLOR_ATTACHMENT4,
-        gl.COLOR_ATTACHMENT5,
-        gl.COLOR_ATTACHMENT6,
-        gl.COLOR_ATTACHMENT7,
-    ]);
+    if (drawBuffers === 1) {
+        gl.drawBuffers([
+            gl.COLOR_ATTACHMENT0,
+        ]);
+    } else if (drawBuffers === 4) {
+        gl.drawBuffers([
+            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
+        ]);
+    } else if (drawBuffers === 8) {
+        gl.drawBuffers([
+            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
+            gl.COLOR_ATTACHMENT4, gl.COLOR_ATTACHMENT5, gl.COLOR_ATTACHMENT6, gl.COLOR_ATTACHMENT7,
+        ]);
+    }
 
-    program.use()
     gl.viewport(0, 0, dx, dy)
-
-    // renderTarget.bind()
 
     gl.disable(gl.CULL_FACE)
     gl.frontFace(gl.CCW)
     gl.cullFace(gl.BACK)
-
-    gl.depthMask(true)
-    gl.clearColor(0, 0, 0, 0)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-    gl.depthMask(false)
 
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
     gl.blendEquation(gl.FUNC_ADD)
@@ -309,31 +296,58 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
 
     const slice = new Uint8Array(dx * dy * 4)
 
-    const dzFactor = Math.floor(dz / webgl.maxDrawBuffers)
-    const dzFull = dzFactor * webgl.maxDrawBuffers
-    const dzRest = dz - dzFull
-    console.log(dz, webgl.maxDrawBuffers, dzFull, dzRest)
+    //
 
-    console.time('gpu gaussian density 3d texture slices')
-    let j = 0
-    for (let i = 0; i < dz; i += 8) {
+    const dzMulti = Math.floor(dz / drawBuffers) * drawBuffers
+
+    const programMulti = renderable.getProgram('draw')
+    programMulti.use()
+
+    console.time('gpu gaussian density 3d texture slices multi')
+    for (let i = 0; i < dzMulti; i += drawBuffers) {
         ValueCell.update(uCurrentSlice, i)
-        for (let k = 0; k < webgl.maxDrawBuffers && k + i < dz; ++k) {
+        for (let k = 0; k < drawBuffers; ++k) {
             gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + k, tex, 0, i + k)
         }
         renderable.render('draw')
-        for (let k = 0; k < webgl.maxDrawBuffers && k + i < dz; ++k) {
-            gl.readBuffer(gl.COLOR_ATTACHMENT0 + k);
-            gl.readPixels(0, 0, dx, dy, gl.RGBA, gl.UNSIGNED_BYTE, slice)
-            for (let iy = 0; iy < dim[1]; ++iy) {
-                for (let ix = 0; ix < dim[0]; ++ix) {
-                    data[j] = slice[4 * (iy * dim[0] + ix)] / 255
-                    ++j
-                }
+    }
+    console.timeEnd('gpu gaussian density 3d texture slices multi')
+
+    ValueCell.updateIfChanged(renderable.values.dDrawBuffers, 1)
+    renderable.update()
+    const programSingle = renderable.getProgram('draw')
+    programSingle.use()
+
+    console.time('gpu gaussian density 3d texture slices single')
+    for (let i = dzMulti; i < dz; ++i) {
+        ValueCell.update(uCurrentSlice, i)
+        gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex, 0, i)
+        renderable.render('draw')
+    }
+    console.timeEnd('gpu gaussian density 3d texture slices single')
+
+    console.time('gpu gaussian density 3d texture slices read')
+    // Must unset framebufferTextureLayer attachments before reading
+    for (let k = 0; k < drawBuffers; ++k) {
+        gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + k, null, 0, 0)
+    }
+
+    let j = 0
+    for (let i = 0; i < dz; ++i) {
+        gl.framebufferTextureLayer(gl.READ_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, tex, 0, i)
+        gl.readBuffer(gl.COLOR_ATTACHMENT0)
+        gl.readPixels(0, 0, dx, dy, gl.RGBA, gl.UNSIGNED_BYTE, slice)
+        for (let iy = 0; iy < dim[1]; ++iy) {
+            for (let ix = 0; ix < dim[0]; ++ix) {
+                data[j] = slice[4 * (iy * dim[0] + ix)] / 255
+                ++j
             }
         }
     }
-    console.timeEnd('gpu gaussian density 3d texture slices')
+    console.timeEnd('gpu gaussian density 3d texture slices read')
+
+    // clean up
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 
     //
 
@@ -341,5 +355,11 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     Mat4.fromScaling(transform, Vec3.inverse(Vec3.zero(), delta))
     Mat4.setTranslation(transform, expandedBox.min)
 
+    // throw new Error('foo')
+
+    const renderTarget = createRenderTarget(webgl, dx, dy)
+
     return { field, idField, transform, renderTarget, bbox: expandedBox, gridDimension: dim }
 }
+
+// const wait = (ms: number) => new Promise(r => setTimeout(r, ms))

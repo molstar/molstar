@@ -114,13 +114,18 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
 
 export type ProgramCache = ReferenceCache<Program, ProgramProps, Context>
 
+function defineValueHash(v: boolean | number | string): number {
+    return typeof v === 'boolean' ? (v ? 1 : 0) :
+        typeof v === 'number' ? v : hashString(v)
+}
+
 export function createProgramCache(): ProgramCache {
     return createReferenceCache(
         (props: ProgramProps) => {
             const array = [ props.shaderCode.id ]
             Object.keys(props.defineValues).forEach(k => {
                 const v = props.defineValues[k].ref.value
-                array.push(hashString(k), typeof v === 'boolean' ? v ? 1 : 0 : hashString(v))
+                array.push(hashString(k), defineValueHash(v))
             })
             return hashFnv32a(array).toString()
         },
