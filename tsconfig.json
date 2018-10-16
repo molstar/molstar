@@ -24,6 +24,7 @@
             "mol-model-props": ["./mol-model-props", "./mol-model-props/index.ts"],
             "mol-ql": ["./mol-ql"],
             "mol-script": ["./mol-script"],
+            "mol-state": ["./mol-state", "./mol-state/index.ts"],
             "mol-task": ["./mol-task", "./mol-task/index.ts"],
             "mol-util": ["./mol-util", "./mol-util/index.ts"],
             "mol-view": ["./mol-view"]
