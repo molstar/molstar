@@ -13,6 +13,13 @@ export interface BaseParam<T> {
     defaultValue: T
 }
 
+export interface ValueParam<T> extends BaseParam<T> {
+    type: 'value'
+}
+export function ValueParam<T>(label: string, description: string, defaultValue: T): ValueParam<T> {
+    return { type: 'value', label, description, defaultValue }
+}
+
 export interface SelectParam<T extends string> extends BaseParam<T> {
     type: 'select'
     /** array of (value, label) tupels */
@@ -81,7 +88,7 @@ export function StructureParam(label: string, description: string, defaultValue:
     return { type: 'structure', label, description, defaultValue }
 }
 
-export type Param = SelectParam<any> | MultiSelectParam<any> | BooleanParam | RangeParam | TextParam | ColorParam | NumberParam | StructureParam
+export type Param = ValueParam<any> | SelectParam<any> | MultiSelectParam<any> | BooleanParam | RangeParam | TextParam | ColorParam | NumberParam | StructureParam
 
 export type Params = { [k: string]: Param }
 

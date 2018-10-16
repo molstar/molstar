@@ -17,8 +17,8 @@ import { Vec3, Vec2 } from 'mol-math/linear-algebra';
 
 async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume2d): Promise<DirectVolume2d> {
     const p = { ...props, useGpu: true, ignoreCache: true }
-    const { transform, renderTarget, bbox, gridDimension } = await unit.computeGaussianDensity(p, ctx)
-    if (!renderTarget || !bbox || !gridDimension) throw new Error('missing renderTarget and/or boundingBox and/or gridDimension')
+    const { transform, texture, bbox, gridDimension } = await unit.computeGaussianDensity(p, ctx)
+    if (!texture || !bbox || !gridDimension) throw new Error('missing renderTarget and/or boundingBox and/or gridDimension')
 
     if (directVolume) {
         ValueCell.update(directVolume.gridDimension, gridDimension)

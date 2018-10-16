@@ -15,9 +15,11 @@ import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
-import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, StructureParam } from 'mol-view/parameter'
+import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, StructureParam, ValueParam } from 'mol-view/parameter'
 import { Structure } from 'mol-model/structure';
 import { DirectVolume2d, DirectVolume3d } from './direct-volume/direct-volume';
+import { GLRenderingContext } from 'mol-gl/webgl/compat';
+import { Context } from 'mol-gl/webgl/context';
 
 //
 
@@ -70,6 +72,7 @@ export namespace Geometry {
         colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
         colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
         structure: StructureParam('Structure', '', Structure.Empty),
+        webgl: ValueParam('WebGL Context', '', undefined as Context | undefined),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps

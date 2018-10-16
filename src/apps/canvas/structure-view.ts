@@ -211,7 +211,8 @@ export async function StructureView(app: App, viewer: Viewer, models: ReadonlyAr
             console.log('createStructureRepr')
             for (const k in structureRepresentations) {
                 if (active[k]) {
-                    await app.runTask(structureRepresentations[k].createOrUpdate({}, structure).run(
+                    const p = { webgl: viewer.webgl }
+                    await app.runTask(structureRepresentations[k].createOrUpdate(p, structure).run(
                         progress => console.log(Progress.format(progress))
                     ), 'Create/update representation')
                     viewer.add(structureRepresentations[k])

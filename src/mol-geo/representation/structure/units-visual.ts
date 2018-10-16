@@ -541,6 +541,9 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
     let currentConformationId: UUID
 
     async function create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
+        const { webgl } = props
+        if (webgl === undefined) throw new Error('UnitsDirectVolumeVisual requires `webgl` in props')
+
         currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentGroup = group
 
@@ -550,12 +553,17 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
             ? await createGeometry(ctx, unit, currentStructure, currentProps, directVolume)
             : DirectVolume2d.createEmpty(directVolume)
 
+        console.log('directVolume', directVolume)
+
         // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
         renderObject = await createUnitsDirectVolumeRenderObject(ctx, group, directVolume, locationIt, currentProps)
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P> = {}) {
+        const { webgl } = props
+        if (webgl === undefined) throw new Error('UnitsDirectVolumeVisual requires `webgl` in props')
+
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })

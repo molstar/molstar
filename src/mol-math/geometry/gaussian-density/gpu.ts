@@ -15,7 +15,6 @@ import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
 import { ValueCell } from 'mol-util'
 import { RenderableState } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
-import { createRenderTarget } from 'mol-gl/webgl/render-target'
 import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
 import { createTexture, Texture, TextureAttachment } from 'mol-gl/webgl/texture';
@@ -26,6 +25,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     const webgl = getWebGLContext()
 
     const useMultiDraw = webgl.maxDrawBuffers > 0
+    console.log('useMultiDraw', useMultiDraw)
 
     console.time('gpu gaussian density render')
     const { texture, scale, bbox, dim } = useMultiDraw ?
@@ -46,9 +46,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     Mat4.fromScaling(transform, scale)
     Mat4.setTranslation(transform, bbox.min)
 
-    const renderTarget = createRenderTarget(webgl, dim[0], dim[1])
-
-    return { field, idField, transform, renderTarget, bbox, gridDimension: dim }
+    return { field, idField, transform, texture, bbox, gridDimension: dim }
 }
 
 //
