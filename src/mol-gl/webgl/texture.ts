@@ -160,7 +160,7 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
     gl.bindTexture(target, texture)
     gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter)
     gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter)
-    // clamp-to-edge needed for non-power-of-two textures
+    // clamp-to-edge needed for non-power-of-two textures in webgl
     gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.bindTexture(target, null)

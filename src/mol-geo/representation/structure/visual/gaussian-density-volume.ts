@@ -22,30 +22,9 @@ async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, stru
     const densityTextureData = await computeUnitGaussianDensityTexture(unit, p, oldTexture).runInContext(ctx)
     const { transform, texture, bbox, gridDimension } = densityTextureData
 
-    directVolume = texture.depth == 0 ?
-        DirectVolume2d.create(bbox, gridDimension, transform, texture, directVolume as DirectVolume2d) :    
+    directVolume = texture.depth === 0 ?
+        DirectVolume2d.create(bbox, gridDimension, transform, texture, directVolume as DirectVolume2d) :
         DirectVolume3d.create(bbox, gridDimension, transform, texture, directVolume as DirectVolume3d)
-        
-
-    // if (directVolume) {
-    //     ValueCell.update(directVolume.gridDimension, gridDimension)
-    //     ValueCell.update(directVolume.gridTextureDim, Vec2.set(directVolume.gridTextureDim.ref.value, texture.width, texture.height))
-    //     ValueCell.update(directVolume.bboxMin, bbox.min)
-    //     ValueCell.update(directVolume.bboxMax, bbox.max)
-    //     ValueCell.update(directVolume.bboxSize, Vec3.sub(directVolume.bboxSize.ref.value, bbox.max, bbox.min))
-    //     ValueCell.update(directVolume.transform, transform)
-    // } else {
-    //     directVolume = {
-    //         kind: 'direct-volume-2d' as 'direct-volume-2d',
-    //         gridDimension: ValueCell.create(gridDimension),
-    //         gridTexture: ValueCell.create(texture),
-    //         gridTextureDim: ValueCell.create(Vec2.create(texture.width, texture.height)),
-    //         bboxMin: ValueCell.create(bbox.min),
-    //         bboxMax: ValueCell.create(bbox.max),
-    //         bboxSize: ValueCell.create(Vec3.sub(Vec3.zero(), bbox.max, bbox.min)),
-    //         transform: ValueCell.create(transform),
-    //     }
-    // }
 
     return directVolume;
 }
