@@ -5,16 +5,16 @@
  */
 
 import { Task } from 'mol-task';
-import { StateObject } from '../model/object';
-import { TransformContext } from './context';
+import { StateObject } from './object';
+import { TransformContext } from './tree/context';
 
 export interface Transformer<A extends StateObject, B extends StateObject, P = any> {
     readonly id: Transformer.Id,
     readonly name: string,
     readonly namespace: string,
     readonly description?: string,
-    readonly from: StateObject.TypeOf<A>[],
-    readonly to: StateObject.TypeOf<B>[],
+    readonly from: StateObject.Type[],
+    readonly to: StateObject.Type[],
 
     /**
      * Apply the actual transformation. It must be pure (i.e. with no side effects).
@@ -39,6 +39,9 @@ export interface Transformer<A extends StateObject, B extends StateObject, P = a
 
     /** Check the parameters and return a list of errors if the are not valid. */
     validateParams?(a: A, params: P, context: TransformContext): string[] | undefined,
+
+    /** Optional custom parameter equality. Use deep structural equal by default. */
+    areParamsEqual?(oldParams: P, newParams: P): boolean,
 
     /** Test if the transform can be applied to a given node */
     isApplicable?(a: A, context: TransformContext): boolean,

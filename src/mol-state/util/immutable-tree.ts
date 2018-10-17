@@ -6,6 +6,8 @@
 
 import { Map as ImmutableMap, OrderedSet } from 'immutable';
 
+// TODO: use generic "node keys" instead of string
+
 /**
  * An immutable tree where each node requires a unique reference.
  * Represented as an immutable map.

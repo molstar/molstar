@@ -4,9 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export interface StateObject<T = any> {
+/** A mutable state object */
+export interface StateObject<T extends StateObject.Type = any> {
     '@type': T,
-    readonly label: string
+    label: string,
+    version: number
 }
 
 export namespace StateObject {
@@ -26,4 +28,6 @@ export namespace StateObject {
         // The object is currently being created
         Processing
     }
+
+    export type Type = string & { '@type': 'state-object-type' }
 }
