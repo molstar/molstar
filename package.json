@@ -116,6 +116,7 @@
     "graphql": "^14.0.2",
     "graphql-request": "^1.8.2",
     "immer": "^1.7.1",
+    "immutable": "^3.8.2",
     "node-fetch": "^2.2.0",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",

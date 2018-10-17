@@ -5,10 +5,10 @@
  */
 
 import { Transform } from './transform';
-import { ModelNode } from '../model/node';
+import { StateObject } from '../model/object';
 import { Transformer } from './transformer';
 
-export interface Transform<A extends ModelNode, B extends ModelNode, P = any> {
+export interface Transform<A extends StateObject, B extends StateObject, P = any> {
     readonly instanceId: number,
 
     readonly transformer: Transformer<A, B, P>,
