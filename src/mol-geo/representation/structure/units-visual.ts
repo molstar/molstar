@@ -15,7 +15,7 @@ import { LocationIterator } from '../../util/location-iterator';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { MarkerAction, applyMarkerAction, createMarkers } from '../../geometry/marker-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
-import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolume2dRenderObject } from 'mol-gl/render-object';
+import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolume2dRenderObject, DirectVolume3dRenderObject } from 'mol-gl/render-object';
 import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
@@ -25,7 +25,7 @@ import { createColors, ColorProps } from '../../geometry/color-data';
 import { createSizes, SizeProps } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
 import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
-import { DirectVolume2d } from '../../geometry/direct-volume/direct-volume';
+import { DirectVolume2d, DirectVolume3d } from '../../geometry/direct-volume/direct-volume';
 
 export const UnitKindInfo = {
     'atomic': {},
@@ -526,15 +526,15 @@ export const UnitsDirectVolumeParams = {
 }
 export const DefaultUnitsDirectVolumeProps = paramDefaultValues(UnitsDirectVolumeParams)
 export type UnitsDirectVolumeProps = typeof DefaultUnitsDirectVolumeProps
-export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> extends UnitsVisualBuilder<P, DirectVolume2d> { }
+export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> extends UnitsVisualBuilder<P, DirectVolume2d | DirectVolume3d> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builder: UnitsDirectVolumeVisualBuilder<P>): UnitsVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, setUpdateState } = builder
     const updateState = VisualUpdateState.create()
 
-    let renderObject: DirectVolume2dRenderObject | undefined
+    let renderObject: DirectVolume2dRenderObject | DirectVolume3dRenderObject | undefined
     let currentProps: P
-    let directVolume: DirectVolume2d
+    let directVolume: DirectVolume2d | DirectVolume3d
     let currentGroup: Unit.SymmetryGroup
     let currentStructure: Structure
     let locationIt: LocationIterator
@@ -551,7 +551,9 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         currentConformationId = Unit.conformationId(unit)
         directVolume = includesUnitKind(currentProps.unitKinds, unit)
             ? await createGeometry(ctx, unit, currentStructure, currentProps, directVolume)
-            : DirectVolume2d.createEmpty(directVolume)
+            : (webgl.isWebGL2 ? 
+                DirectVolume2d.createEmpty(directVolume as DirectVolume2d) :
+                DirectVolume3d.createEmpty(directVolume as DirectVolume3d))
 
         console.log('directVolume', directVolume)
 
@@ -598,7 +600,9 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         if (updateState.createGeometry) {
             directVolume = includesUnitKind(newProps.unitKinds, unit)
                 ? await createGeometry(ctx, unit, currentStructure, newProps, directVolume)
-                : DirectVolume2d.createEmpty(directVolume)
+                : (webgl.isWebGL2 ? 
+                    DirectVolume2d.createEmpty(directVolume as DirectVolume2d) :
+                    DirectVolume3d.createEmpty(directVolume as DirectVolume3d))
             updateState.updateColor = true
         }
 
@@ -606,9 +610,12 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         //     await createColors(ctx, locationIt, newProps, renderObject.values)
         // }
 
-        // TODO why do I need to cast here?
-        DirectVolume2d.updateValues(renderObject.values, newProps as UnitsDirectVolumeProps)
-        updateRenderableState(renderObject.state, newProps as UnitsDirectVolumeProps)
+        if (renderObject.type === 'direct-volume-2d') {
+            DirectVolume2d.updateValues(renderObject.values, newProps)
+        } else {
+            DirectVolume3d.updateValues(renderObject.values, newProps)
+        }
+        updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
     }

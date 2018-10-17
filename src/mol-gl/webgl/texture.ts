@@ -19,7 +19,10 @@ export type TextureKindValue = {
     'image-float32': TextureImage<Float32Array>
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
+    'texture2d': Texture
+    'texture3d': Texture
 }
+export type TextureValueType = Helpers.ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
 export type TextureType = 'ubyte' | 'float'
 export type TextureFormat = 'alpha' | 'rgb' | 'rgba'
@@ -32,9 +35,16 @@ export function getTarget(ctx: Context, kind: TextureKind): number {
     switch (kind) {
         case 'image-uint8': return gl.TEXTURE_2D
         case 'image-float32': return gl.TEXTURE_2D
-        case 'volume-uint8': return (gl as WebGL2RenderingContext).TEXTURE_3D
-        case 'volume-float32': return (gl as WebGL2RenderingContext).TEXTURE_3D
+        case 'texture2d': return gl.TEXTURE_2D
     }
+    if(isWebGL2(gl)) {
+        switch (kind) {
+            case 'volume-uint8': return gl.TEXTURE_3D
+            case 'volume-float32': return gl.TEXTURE_3D
+            case 'texture3d': return gl.TEXTURE_3D
+        }
+    }
+    throw new Error('unknown texture kind')
 }
 
 export function getFormat(ctx: Context, format: TextureFormat): number {
@@ -119,7 +129,7 @@ export interface Texture {
     readonly depth: number
 
     define: (width: number, height: number, depth?: number) => void
-    load: (image: TextureImage<any>) => void
+    load: (image: TextureImage<any> | TextureVolume<any>) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
     /** Use `layer` to attach a z-slice of a 3D texture */
@@ -130,7 +140,7 @@ export interface Texture {
 
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 
-export type TextureValues = { [k: string]: ValueCell<TextureImage<any>> }
+export type TextureValues = { [k: string]: ValueCell<TextureValueType> }
 export type Textures = { [k: string]: Texture }
 
 export function createTexture(ctx: Context, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
@@ -241,9 +251,13 @@ export function createTextures(ctx: Context, schema: RenderableSchema, values: T
     Object.keys(schema).forEach((k, i) => {
         const spec = schema[k]
         if (spec.type === 'texture') {
-            const texture = createTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter)
-            texture.load(values[k].ref.value)
-            textures[k] = texture
+            if (spec.kind === 'texture2d' || spec.kind === 'texture3d') {
+                textures[k] = values[k].ref.value as Texture
+            } else {
+                const texture = createTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter)
+                texture.load(values[k].ref.value as TextureImage<any> | TextureVolume<any>)
+                textures[k] = texture
+            }
         }
     })
     return textures

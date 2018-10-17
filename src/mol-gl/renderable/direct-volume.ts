@@ -59,7 +59,7 @@ export const DirectVolume2dSchema = {
     ...DirectVolumeBaseSchema,
     dGridTexType: DefineSpec('string', ['2d']),
     uGridTexDim: UniformSpec('v2'),
-    tGridTex: TextureSpec('image-uint8', 'rgba', 'ubyte', 'linear'),
+    tGridTex: TextureSpec('texture2d', 'rgba', 'ubyte', 'linear'),
 }
 export type DirectVolume2dSchema = typeof DirectVolume2dSchema
 export type DirectVolume2dValues = Values<DirectVolume2dSchema>
@@ -73,7 +73,7 @@ export function DirectVolume2dRenderable(ctx: Context, id: number, values: Direc
 export const DirectVolume3dSchema = {
     ...DirectVolumeBaseSchema,
     dGridTexType: DefineSpec('string', ['3d']),
-    tGridTex: TextureSpec('volume-uint8', 'rgba', 'ubyte', 'linear'),
+    tGridTex: TextureSpec('texture3d', 'rgba', 'ubyte', 'linear'),
 }
 export type DirectVolume3dSchema = typeof DirectVolume3dSchema
 export type DirectVolume3dValues = Values<DirectVolume3dSchema>

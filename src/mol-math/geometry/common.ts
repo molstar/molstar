@@ -24,8 +24,11 @@ export type DensityData = {
     transform: Mat4,
     field: Tensor,
     idField: Tensor,
+}
 
-    texture?: Texture,
-    bbox?: Box3D,
-    gridDimension?: Vec3
+export type DensityTextureData = {
+    transform: Mat4,
+    texture: Texture,
+    bbox: Box3D,
+    gridDimension: Vec3
 }

@@ -9,7 +9,10 @@ import { SizeTheme } from 'mol-view/theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
-import { NumberParam, paramDefaultValues, BooleanParam } from 'mol-view/parameter';
+import { NumberParam, paramDefaultValues, BooleanParam, ValueParam } from 'mol-view/parameter';
+import { Context } from 'mol-gl/webgl/context';
+import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
+import { Texture } from 'mol-gl/webgl/texture';
 
 export const GaussianDensityParams = {
     resolution: NumberParam('Resolution', '', 1, 0.1, 10, 0.1),
@@ -17,6 +20,7 @@ export const GaussianDensityParams = {
     smoothness: NumberParam('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
     useGpu: BooleanParam('Use GPU', '', true),
     ignoreCache: BooleanParam('Ignore Cache', '', false),
+    webgl: ValueParam('WebGL Context', '', undefined as Context | undefined),
 }
 export const DefaultGaussianDensityProps = paramDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
@@ -29,7 +33,7 @@ function getConformation(unit: Unit) {
     }
 }
 
-export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityProps) {
+function getConformationAndRadius(unit: Unit) {
     const conformation = getConformation(unit)
     const { elements } = unit
     const position = {
@@ -46,8 +50,22 @@ export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityPro
         return sizeTheme.size(l)
     }
 
+    return { position, radius }
+}
+
+export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityProps) {
+    const { position, radius } = getConformationAndRadius(unit)
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensity(ctx, position, unit.lookup3d.boundary.box, radius, props);
+    });
+}
+
+export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDensityProps, texture?: Texture) {
+    const webgl = props.webgl
+    if (!webgl) throw new Error('nned webgl context for computeUnitGaussianDensityTexture')
+    const { position, radius } = getConformationAndRadius(unit)
+    return Task.create('Gaussian Density', async ctx => {
+        return await GaussianDensityTexture(ctx, webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });
 }
 

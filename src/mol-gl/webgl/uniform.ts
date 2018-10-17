@@ -17,7 +17,7 @@ export type UniformKindValue = {
     'v4': Vec4
     'm3': Mat3
     'm4': Mat4
-    't2': number
+    't': number
 }
 export type UniformKind = keyof UniformKindValue
 export type UniformType = number | Vec2 | Vec3 | Vec4 | Mat3 | Mat4
@@ -37,7 +37,7 @@ function createUniformSetter(ctx: Context, program: WebGLProgram, name: string, 
     }
     switch (kind) {
         case 'f': return (value: number) => gl.uniform1f(location, value)
-        case 'i': case 't2': return (value: number) => gl.uniform1i(location, value)
+        case 'i': case 't': return (value: number) => gl.uniform1i(location, value)
         case 'v2': return (value: Vec2) => (gl as WebGLRenderingContext).uniform2fv(location, value) // TODO remove cast when webgl2 types are fixed
         case 'v3': return (value: Vec3) => (gl as WebGLRenderingContext).uniform3fv(location, value)
         case 'v4': return (value: Vec4) => (gl as WebGLRenderingContext).uniform4fv(location, value)
@@ -78,7 +78,7 @@ export function getTextureUniformUpdaters(ctx: Context, program: WebGLProgram, s
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
         if (spec.type === 'texture') {
-            updaters[k] = createUniformUpdater(ctx, program, k, 't2')
+            updaters[k] = createUniformUpdater(ctx, program, k, 't')
         }
     })
     return updaters

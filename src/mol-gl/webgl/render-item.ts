@@ -14,6 +14,7 @@ import { idFactory } from 'mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
 import { ValueCell } from 'mol-util';
 import { ReferenceItem } from 'mol-util/reference-cache';
+import { TextureImage, TextureVolume } from 'mol-gl/renderable/util';
 
 const getNextRenderItemId = idFactory()
 
@@ -227,9 +228,11 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                 const value = textureValues[k]
                 if (value.ref.version !== versions[k]) {
                     // console.log('texture version changed, uploading image', k)
-                    textures[k].load(value.ref.value)
-                    versions[k] = value.ref.version
-                    valueChanges.textures = true
+                    if (schema[k].kind !== 'texture2d' && schema[k].kind !== 'texture3d') {
+                        textures[k].load(value.ref.value as TextureImage<any> | TextureVolume<any>)
+                        versions[k] = value.ref.version
+                        valueChanges.textures = true
+                    }
                 }
             })
 

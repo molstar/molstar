@@ -18,7 +18,6 @@ import { Lines } from './lines/lines';
 import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, StructureParam, ValueParam } from 'mol-view/parameter'
 import { Structure } from 'mol-model/structure';
 import { DirectVolume2d, DirectVolume3d } from './direct-volume/direct-volume';
-import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { Context } from 'mol-gl/webgl/context';
 
 //

@@ -6,13 +6,13 @@
  */
 
 import { RuntimeContext } from 'mol-task'
-import { PositionData, DensityData } from '../common'
+import { PositionData, DensityData, DensityTextureData } from '../common'
 import { Box3D } from '../../geometry'
 import { GaussianDensityProps, getDelta } from '../gaussian-density'
 import { OrderedSet } from 'mol-data/int'
 import { Vec3, Tensor, Mat4 } from '../../linear-algebra'
 import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
-import { ValueCell } from 'mol-util'
+import { ValueCell, defaults } from 'mol-util'
 import { RenderableState } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
 import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
@@ -20,38 +20,38 @@ import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
 import { createTexture, Texture, TextureAttachment } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 
-export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
-    // TODO allow passing a context via props
-    const webgl = getWebGLContext()
+export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
+    const webgl = defaults(props.webgl, getWebGLContext())
 
-    const useMultiDraw = webgl.maxDrawBuffers > 0
-    console.log('useMultiDraw', useMultiDraw)
-
-    console.time('gpu gaussian density render')
-    const { texture, scale, bbox, dim } = useMultiDraw ?
-        await GaussianDensityMultiDrawBuffer(ctx, webgl, position, box, radius, props) :
-        await GaussianDensitySingleDrawBuffer(ctx, webgl, position, box, radius, props)
-    console.timeEnd('gpu gaussian density render')
+    const { transform, texture, gridDimension } = await GaussianDensityTexture(ctx, webgl, position, box, radius, props)
 
     console.time('gpu gaussian density read')
-    const field = useMultiDraw ?
-        fieldFromTexture3d(webgl, texture, dim) :
-        fieldFromTexture2d(webgl, texture, dim)
+    const field = webgl.maxDrawBuffers > 0 ?
+        fieldFromTexture3d(webgl, texture, gridDimension) :
+        fieldFromTexture2d(webgl, texture, gridDimension)
     console.timeEnd('gpu gaussian density read')
 
     const idData = field.space.create()
     const idField = Tensor.create(field.space, idData)
 
+    return { field, idField, transform }
+}
+
+export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
+    const { texture, scale, bbox, dim } = webgl.maxDrawBuffers > 0 ?
+        await GaussianDensityMultiDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture) :
+        await GaussianDensitySingleDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture)
+
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
     Mat4.setTranslation(transform, bbox.min)
 
-    return { field, idField, transform, texture, bbox, gridDimension: dim }
+    return { transform, texture, bbox, gridDimension: dim }
 }
 
 //
 
-async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps) {
+async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -83,7 +83,9 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
     const framebuffer = createFramebuffer(webgl)
     framebuffer.bind()
 
-    const texture = createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
+    if (!texture) {
+        texture = createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
+    }
     texture.define(fboTexDimX, fboTexDimY)
 
     const program = renderable.getProgram('draw')
@@ -114,7 +116,7 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
 
-async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps) {
+async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -131,7 +133,9 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     const framebuffer = createFramebuffer(webgl)
     framebuffer.bind()
 
-    const texture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
+    if (!texture) {
+        texture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
+    }
     texture.define(dx, dy, dz)
 
     if (drawBuffers === 1) {
@@ -204,7 +208,7 @@ function getWebGLContext() {
     return webglContext
 }
 
-async function prepareGaussianDensityData(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps) {
+async function prepareGaussianDensityData(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps) {
     const { resolution, radiusOffset } = props
 
     const { indices, x, y, z } = position

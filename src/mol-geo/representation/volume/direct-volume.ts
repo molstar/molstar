@@ -13,13 +13,19 @@ import { MarkerAction } from '../../geometry/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { createRenderableState, updateRenderableState, Geometry } from '../../geometry/geometry';
 import { paramDefaultValues } from 'mol-view/parameter';
-import { ValueCell } from 'mol-util';
 import { DirectVolume2d, DirectVolume3d } from '../../geometry/direct-volume/direct-volume';
-import { Vec2, Vec3 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
-import { createImageData, Context } from 'mol-gl/webgl/context';
-import { debugTexture } from 'mol-gl/util';
+import { Context } from 'mol-gl/webgl/context';
 import { DirectVolume3dValues, DirectVolume2dValues } from 'mol-gl/renderable/direct-volume';
+import { createTexture } from 'mol-gl/webgl/texture';
+
+function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
+    const bbox = Box3D.empty()
+    Box3D.add(bbox, gridDimension)
+    Box3D.transform(bbox, bbox, transform)
+    return bbox
+}
 
 // 2d volume texture
 
@@ -80,46 +86,17 @@ function createVolumeTexture2d(volume: VolumeData, maxTextureSize: number) {
 export function createDirectVolume2d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume2d) {
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureImage = createVolumeTexture2d(volume, webgl.maxTextureSize)
+    // debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
     const transform = VolumeData.getGridToCartesianTransform(volume)
-
-    console.log('textureImage', textureImage)
-    debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
-
-    const bbox = Box3D.empty()
-    Box3D.add(bbox, gridDimension)
-    Box3D.transform(bbox, bbox, transform)
-
+    const bbox = getBoundingBox(gridDimension, transform)
     const dim = Vec3.create(gridDimension[0], gridDimension[1], gridDimension[2])
     dim[0] += 1 // horizontal padding
     dim[0] += 1 // vertical padding
 
-    if (directVolume) {
-        ValueCell.update(directVolume.gridDimension, dim)
-        ValueCell.update(directVolume.gridTexture, textureImage)
-        ValueCell.update(directVolume.gridTextureDim, Vec2.set(directVolume.gridTextureDim.ref.value, textureImage.width, textureImage.height))
-        ValueCell.update(directVolume.bboxMin, bbox.min)
-        ValueCell.update(directVolume.bboxMax, bbox.max)
-        ValueCell.update(directVolume.bboxSize, Vec3.sub(directVolume.bboxSize.ref.value, bbox.max, bbox.min))
-        ValueCell.update(directVolume.transform, transform)
-    } else {
-        directVolume = {
-            kind: 'direct-volume-2d' as 'direct-volume-2d',
-            gridDimension: ValueCell.create(dim),
-            gridTexture: ValueCell.create(textureImage),
-            gridTextureDim: ValueCell.create(Vec2.create(textureImage.width, textureImage.height)),
-            bboxMin: ValueCell.create(bbox.min),
-            bboxMax: ValueCell.create(bbox.max),
-            bboxSize: ValueCell.create(Vec3.sub(Vec3.zero(), bbox.max, bbox.min)),
-            transform: ValueCell.create(transform),
-        }
-    }
+    const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
+    texture.load(textureImage)
 
-    console.log('gridDimension', dim)
-    console.log('gridTextureDim', textureImage.width, textureImage.height)
-    console.log('boundingBox', bbox)
-    console.log('transform', transform)
-
-    return directVolume;
+    return DirectVolume2d.create(bbox, dim, transform, texture, directVolume)
 }
 
 // 3d volume texture
@@ -150,33 +127,12 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: Context, volume
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureVolume = createVolumeTexture3d(volume)
     const transform = VolumeData.getGridToCartesianTransform(volume)
+    const bbox = getBoundingBox(gridDimension, transform)
 
-    console.log('textureVolume', textureVolume)
+    const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
+    texture.load(textureVolume)
 
-    const bbox = Box3D.empty()
-    Box3D.add(bbox, gridDimension)
-    Box3D.transform(bbox, bbox, transform)
-
-    if (directVolume) {
-        ValueCell.update(directVolume.gridDimension, gridDimension)
-        ValueCell.update(directVolume.gridTexture, textureVolume)
-        ValueCell.update(directVolume.bboxMin, bbox.min)
-        ValueCell.update(directVolume.bboxMax, bbox.max)
-        ValueCell.update(directVolume.bboxSize, Vec3.sub(directVolume.bboxSize.ref.value, bbox.max, bbox.min))
-        ValueCell.update(directVolume.transform, transform)
-    } else {
-        directVolume = {
-            kind: 'direct-volume-3d' as 'direct-volume-3d',
-            gridDimension: ValueCell.create(gridDimension),
-            gridTexture: ValueCell.create(textureVolume),
-            bboxMin: ValueCell.create(bbox.min),
-            bboxMax: ValueCell.create(bbox.max),
-            bboxSize: ValueCell.create(Vec3.sub(Vec3.zero(), bbox.max, bbox.min)),
-            transform: ValueCell.create(transform),
-        }
-    }
-
-    return directVolume;
+    return DirectVolume3d.create(bbox, gridDimension, transform, texture, directVolume)
 }
 
 //
