@@ -34,15 +34,15 @@ export const DirectVolumeBaseSchema = {
 export type DirectVolumeBaseSchema = typeof DirectVolumeBaseSchema
 export type DirectVolumeBaseValues = Values<DirectVolumeBaseSchema>
 
-function getInternalValues(ctx: Context, id: number, version: '100es' | '300es'): InternalValues {
+function getInternalValues(ctx: Context, id: number): InternalValues {
     return {
         uObjectId: ValueCell.create(id)
     }
 }
 
-function DirectVolumeRenderable<T extends DirectVolumeBaseValues, S extends DirectVolumeBaseSchema>(ctx: Context, id: number, values: T, state: RenderableState, schema: S, version: '100es' | '300es'): Renderable<T> {
+function DirectVolumeRenderable<T extends DirectVolumeBaseValues, S extends DirectVolumeBaseSchema>(ctx: Context, id: number, values: T, state: RenderableState, schema: S): Renderable<T> {
     const fullSchema = Object.assign({}, GlobalUniformSchema, InternalSchema, schema)
-    const internalValues = getInternalValues(ctx, id, version)
+    const internalValues = getInternalValues(ctx, id)
     const fullValues = Object.assign({}, values, internalValues)
     const shaderCode = DirectVolumeShaderCode
     const renderItem = createRenderItem(ctx, 'triangles', shaderCode, fullSchema, fullValues)
@@ -65,7 +65,7 @@ export type DirectVolume2dSchema = typeof DirectVolume2dSchema
 export type DirectVolume2dValues = Values<DirectVolume2dSchema>
 
 export function DirectVolume2dRenderable(ctx: Context, id: number, values: DirectVolume2dValues, state: RenderableState): Renderable<DirectVolume2dValues> {
-    return DirectVolumeRenderable(ctx, id, values, state, DirectVolume2dSchema, '100es')
+    return DirectVolumeRenderable(ctx, id, values, state, DirectVolume2dSchema)
 }
 
 // via 3d texture
@@ -79,5 +79,5 @@ export type DirectVolume3dSchema = typeof DirectVolume3dSchema
 export type DirectVolume3dValues = Values<DirectVolume3dSchema>
 
 export function DirectVolume3dRenderable(ctx: Context, id: number, values: DirectVolume3dValues, state: RenderableState): Renderable<DirectVolume3dValues> {
-    return DirectVolumeRenderable(ctx, id, values, state, DirectVolume3dSchema, '300es')
+    return DirectVolumeRenderable(ctx, id, values, state, DirectVolume3dSchema)
 }

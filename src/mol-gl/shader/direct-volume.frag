@@ -69,7 +69,7 @@ const vec3 color = vec3(0.45, 0.55, 0.8);
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
     vec3 scaleVol = vec3(1.0) / uGridDim;
     vec3 pos = startLoc + scaleVol * 0.5;
-    float prevValue = -127.0;
+    float prevValue = -1.0;
     float value = 0.0;
     vec4 src = vec4(0.0);
     vec4 dst = vec4(0.0);

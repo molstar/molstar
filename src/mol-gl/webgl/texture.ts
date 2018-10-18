@@ -37,7 +37,7 @@ export function getTarget(ctx: Context, kind: TextureKind): number {
         case 'image-float32': return gl.TEXTURE_2D
         case 'texture2d': return gl.TEXTURE_2D
     }
-    if(isWebGL2(gl)) {
+    if (isWebGL2(gl)) {
         switch (kind) {
             case 'volume-uint8': return gl.TEXTURE_3D
             case 'volume-float32': return gl.TEXTURE_3D
@@ -198,6 +198,7 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
             // unpack alignment of 1 since we use textures only for data
             gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
             gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
             if (target === gl.TEXTURE_2D) {
                 const { array, width: _width, height: _height } = data as TextureImage<any>
                 width = _width, height = _height;

@@ -5,7 +5,7 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-precision mediump float;
+precision highp float;
 
 attribute vec3 aPosition;
 attribute float aRadius;

@@ -25,11 +25,9 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
 
     const { transform, texture, gridDimension } = await GaussianDensityTexture(ctx, webgl, position, box, radius, props)
 
-    console.time('gpu gaussian density read')
     const field = webgl.maxDrawBuffers > 0 ?
         fieldFromTexture3d(webgl, texture, gridDimension) :
         fieldFromTexture2d(webgl, texture, gridDimension)
-    console.timeEnd('gpu gaussian density read')
 
     const idData = field.space.create()
     const idField = Tensor.create(field.space, idData)
@@ -38,9 +36,11 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
 }
 
 export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
+    console.time(`GaussianDensityTexture, ${webgl.maxDrawBuffers > 0 ? 'multi' : 'single'}`)
     const { texture, scale, bbox, dim } = webgl.maxDrawBuffers > 0 ?
         await GaussianDensityMultiDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture) :
         await GaussianDensitySingleDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture)
+    console.timeEnd(`GaussianDensityTexture, ${webgl.maxDrawBuffers > 0 ? 'multi' : 'single'}`)
 
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
@@ -283,12 +283,13 @@ function setRenderingDefaults(gl: GLRenderingContext) {
     gl.frontFace(gl.CCW)
     gl.cullFace(gl.BACK)
 
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+    gl.blendFunc(gl.ONE, gl.ONE)
     gl.blendEquation(gl.FUNC_ADD)
     gl.enable(gl.BLEND)
 }
 
 function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
+    console.time('fieldFromTexture2d')
     const { gl } = ctx
     const [ dx, dy, dz ] = dim
     const { width, height } = texture
@@ -316,7 +317,7 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
         }
         for (let iy = 0; iy < dy; ++iy) {
             for (let ix = 0; ix < dx; ++ix) {
-                data[idx] = image[4 * (tmpCol * dx + (iy + tmpRow) * width + ix)] / 255
+                data[idx] = image[4 * (tmpCol * dx + (iy + tmpRow) * width + ix) + 3] / 255
                 idx++
             }
         }
@@ -324,11 +325,13 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
     }
 
     framebuffer.destroy()
+    console.timeEnd('fieldFromTexture2d')
 
     return field
 }
 
 function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
+    console.time('fieldFromTexture3d')
     const { gl } = ctx
     const { width, height, depth } = texture
 
@@ -347,13 +350,14 @@ function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, slice)
         for (let iy = 0; iy < height; ++iy) {
             for (let ix = 0; ix < width; ++ix) {
-                data[j] = slice[4 * (iy * width + ix)] / 255
+                data[j] = slice[4 * (iy * width + ix) + 3] / 255
                 ++j
             }
         }
     }
 
     framebuffer.destroy()
+    console.timeEnd('fieldFromTexture3d')
 
     return field
 }

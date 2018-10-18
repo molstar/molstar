@@ -551,7 +551,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         currentConformationId = Unit.conformationId(unit)
         directVolume = includesUnitKind(currentProps.unitKinds, unit)
             ? await createGeometry(ctx, unit, currentStructure, currentProps, directVolume)
-            : (webgl.isWebGL2 ? 
+            : (webgl.isWebGL2 ?
                 DirectVolume2d.createEmpty(directVolume as DirectVolume2d) :
                 DirectVolume3d.createEmpty(directVolume as DirectVolume3d))
 
@@ -600,7 +600,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         if (updateState.createGeometry) {
             directVolume = includesUnitKind(newProps.unitKinds, unit)
                 ? await createGeometry(ctx, unit, currentStructure, newProps, directVolume)
-                : (webgl.isWebGL2 ? 
+                : (webgl.isWebGL2 ?
                     DirectVolume2d.createEmpty(directVolume as DirectVolume2d) :
                     DirectVolume3d.createEmpty(directVolume as DirectVolume3d))
             updateState.updateColor = true
