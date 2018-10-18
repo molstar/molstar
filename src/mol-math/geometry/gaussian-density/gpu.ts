@@ -113,6 +113,9 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
 
     framebuffer.destroy() // clean up
 
+    await ctx.update({ message: 'gpu gaussian density calculation' });
+    await webgl.waitForGpuCommandsComplete()
+
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
 
@@ -133,28 +136,14 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     const framebuffer = createFramebuffer(webgl)
     framebuffer.bind()
 
+    setDrawBuffers(gl, drawBuffers)
+    gl.viewport(0, 0, dx, dy)
+    setRenderingDefaults(gl)
+
     if (!texture) {
         texture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
     }
     texture.define(dx, dy, dz)
-
-    if (drawBuffers === 1) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0,
-        ]);
-    } else if (drawBuffers === 4) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
-        ]);
-    } else if (drawBuffers === 8) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
-            gl.COLOR_ATTACHMENT4, gl.COLOR_ATTACHMENT5, gl.COLOR_ATTACHMENT6, gl.COLOR_ATTACHMENT7,
-        ]);
-    }
-
-    gl.viewport(0, 0, dx, dy)
-    setRenderingDefaults(gl)
 
     // z-slices to be render with multi render targets
     const dzMulti = Math.floor(dz / drawBuffers) * drawBuffers
@@ -167,7 +156,7 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
         for (let k = 0; k < drawBuffers; ++k) {
             texture.attachFramebuffer(framebuffer, k as TextureAttachment, i + k)
         }
-        renderable.render('draw')
+        renderable.render('draw');
     }
 
     // render single target
@@ -187,6 +176,9 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     }
 
     framebuffer.destroy() // clean up
+
+    await ctx.update({ message: 'gpu gaussian density calculation' });
+    await webgl.waitForGpuCommandsComplete()
 
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
@@ -286,6 +278,23 @@ function setRenderingDefaults(gl: GLRenderingContext) {
     gl.blendFunc(gl.ONE, gl.ONE)
     gl.blendEquation(gl.FUNC_ADD)
     gl.enable(gl.BLEND)
+}
+
+function setDrawBuffers(gl: WebGL2RenderingContext, drawBuffers: number) {
+    if (drawBuffers === 1) {
+        gl.drawBuffers([
+            gl.COLOR_ATTACHMENT0,
+        ]);
+    } else if (drawBuffers === 4) {
+        gl.drawBuffers([
+            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
+        ]);
+    } else if (drawBuffers === 8) {
+        gl.drawBuffers([
+            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
+            gl.COLOR_ATTACHMENT4, gl.COLOR_ATTACHMENT5, gl.COLOR_ATTACHMENT6, gl.COLOR_ATTACHMENT7,
+        ]);
+    }
 }
 
 function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {

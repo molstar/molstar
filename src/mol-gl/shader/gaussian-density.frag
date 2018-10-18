@@ -43,7 +43,7 @@ const vec3 color = vec3(1.0, 1.0, 1.0);
 void main() {
     float radiusSq = radius * radius;
     vec2 v = gl_FragCoord.xy - vec2(uCurrentX, uCurrentY) - 0.5;
-    out_FragColor = vec4(color, calcDensity(v.x, v.y, uCurrentSlice, radiusSq));
+    gl_FragColor = vec4(color, calcDensity(v.x, v.y, uCurrentSlice, radiusSq));
     #if dDrawBuffers >= 4
         out1 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 1.0, radiusSq));
         out2 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 2.0, radiusSq));
