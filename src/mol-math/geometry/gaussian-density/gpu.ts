@@ -226,7 +226,6 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
         }
     }
 
-
     const pad = maxRadius * 2 + resolution
     const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad));
     const extent = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min)

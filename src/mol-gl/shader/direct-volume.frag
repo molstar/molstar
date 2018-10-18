@@ -144,6 +144,6 @@ void main () {
     gl_FragColor = raymarch(startLoc, step, normalize(cameraPos));
     if (length(gl_FragColor.rgb) < 0.00001) discard;
     #if defined(dRenderMode_volume)
-        gl_FragColor.a = uAlpha;
+        gl_FragColor.a *= uAlpha;
     #endif
 }
