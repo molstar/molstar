@@ -17,7 +17,7 @@ import { RenderableState } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
 import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
-import { createTexture, Texture, TextureAttachment } from 'mol-gl/webgl/texture';
+import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 
 export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
@@ -36,11 +36,11 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
 }
 
 export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
-    console.time(`GaussianDensityTexture, ${webgl.maxDrawBuffers > 0 ? 'multi' : 'single'}`)
-    const { texture, scale, bbox, dim } = webgl.maxDrawBuffers > 0 ?
-        await GaussianDensityMultiDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture) :
-        await GaussianDensitySingleDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture)
-    console.timeEnd(`GaussianDensityTexture, ${webgl.maxDrawBuffers > 0 ? 'multi' : 'single'}`)
+    console.time(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
+    const { texture, scale, bbox, dim } = webgl.isWebGL2 ?
+        await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, oldTexture) :
+        await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props, oldTexture)
+    console.timeEnd(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
 
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
@@ -51,7 +51,7 @@ export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context
 
 //
 
-async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -119,14 +119,13 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
 
-async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
     const [ dx, dy, dz ] = dim
     const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, expandedBox, dim, smoothness)
     const renderable = createRenderable(webgl, renderObject)
-    const drawBuffers = Math.min(8, webgl.maxDrawBuffers)
 
     //
 
@@ -136,7 +135,6 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     const framebuffer = createFramebuffer(webgl)
     framebuffer.bind()
 
-    setDrawBuffers(gl, drawBuffers)
     gl.viewport(0, 0, dx, dy)
     setRenderingDefaults(gl)
 
@@ -145,34 +143,12 @@ async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Contex
     }
     texture.define(dx, dy, dz)
 
-    // z-slices to be render with multi render targets
-    const dzMulti = Math.floor(dz / drawBuffers) * drawBuffers
-
-    // render multi target
-    const programMulti = renderable.getProgram('draw')
-    programMulti.use()
-    for (let i = 0; i < dzMulti; i += drawBuffers) {
-        ValueCell.update(uCurrentSlice, i)
-        for (let k = 0; k < drawBuffers; ++k) {
-            texture.attachFramebuffer(framebuffer, k as TextureAttachment, i + k)
-        }
-        renderable.render('draw');
-    }
-
-    // render single target
-    ValueCell.updateIfChanged(renderable.values.dDrawBuffers, 1)
-    renderable.update()
-    const programSingle = renderable.getProgram('draw')
-    programSingle.use()
-    for (let i = dzMulti; i < dz; ++i) {
+    const programDensity = renderable.getProgram('draw')
+    programDensity.use()
+    for (let i = 0; i < dz; ++i) {
         ValueCell.update(uCurrentSlice, i)
         texture.attachFramebuffer(framebuffer, 0, i)
         renderable.render('draw')
-    }
-
-    // must detach framebuffer attachments before reading is possible
-    for (let k = 0; k < drawBuffers; ++k) {
-        texture.detachFramebuffer(framebuffer, k as TextureAttachment)
     }
 
     framebuffer.destroy() // clean up
@@ -256,8 +232,6 @@ function getGaussianDensityRenderObject(webgl: Context, drawCount: number, posit
         uBboxSize: ValueCell.create(extent),
         uGridDim: ValueCell.create(dimensions),
         uAlpha: ValueCell.create(smoothness),
-
-        dDrawBuffers: ValueCell.create(Math.min(8, webgl.maxDrawBuffers)),
     }
     const state: RenderableState = {
         visible: true,
@@ -277,23 +251,6 @@ function setRenderingDefaults(gl: GLRenderingContext) {
     gl.blendFunc(gl.ONE, gl.ONE)
     gl.blendEquation(gl.FUNC_ADD)
     gl.enable(gl.BLEND)
-}
-
-function setDrawBuffers(gl: WebGL2RenderingContext, drawBuffers: number) {
-    if (drawBuffers === 1) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0,
-        ]);
-    } else if (drawBuffers === 4) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
-        ]);
-    } else if (drawBuffers === 8) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
-            gl.COLOR_ATTACHMENT4, gl.COLOR_ATTACHMENT5, gl.COLOR_ATTACHMENT6, gl.COLOR_ATTACHMENT7,
-        ]);
-    }
 }
 
 function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
