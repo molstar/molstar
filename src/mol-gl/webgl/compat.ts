@@ -107,3 +107,18 @@ export interface COMPAT_texture_float_linear {
 export function getTextureFloatLinear(gl: GLRenderingContext): COMPAT_texture_float_linear | null {
     return gl.getExtension('OES_texture_float_linear')
 }
+
+export interface COMPAT_blend_minmax {
+    readonly MIN: number
+    readonly MAX: number
+}
+
+export function getBlendMinMax(gl: GLRenderingContext): COMPAT_blend_minmax | null {
+    if (isWebGL2(gl)) {
+        return { MIN: gl.MIN, MAX: gl.MAX }
+    } else {
+        const ext = gl.getExtension('EXT_blend_minmax')
+        if (ext === null) return null
+        return { MIN: ext.MIN_EXT, MAX: ext.MAX_EXT }
+    }
+}

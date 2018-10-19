@@ -5,11 +5,6 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-#if defined(dGridTexType_2d)
-    precision mediump sampler2D;
-#elif defined(dGridTexType_3d)
-    precision mediump sampler3D;
-#endif
 precision highp float;
 
 varying vec3 unitCoord;
@@ -22,9 +17,11 @@ uniform vec3 uGridDim;
 uniform sampler2D tTransferTex;
 
 #if defined(dGridTexType_2d)
+    precision mediump sampler2D;
     uniform sampler2D tGridTex;
     uniform vec2 uGridTexDim;
 #elif defined(dGridTexType_3d)
+    precision mediump sampler3D;
     uniform sampler3D tGridTex;
 #endif
 

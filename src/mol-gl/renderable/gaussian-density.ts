@@ -25,9 +25,11 @@ export const GaussianDensitySchema = {
     uBboxMax: UniformSpec('v3'),
     uBboxSize: UniformSpec('v3'),
     uGridDim: UniformSpec('v3'),
+    uGridTexDim: UniformSpec('v2'),
     uAlpha: UniformSpec('f'),
-    tMinDistanceTex: TextureSpec('texture2d', 'rgba', 'ubyte', 'nearest'),
+    tMinDistanceTex: TextureSpec('texture3d', 'rgba', 'ubyte', 'nearest'),
 
+    dGridTexType: DefineSpec('string', ['2d', '3d']),
     dCalcType: DefineSpec('string', ['density', 'minDistance', 'groupId']),
 }
 export type GaussianDensitySchema = typeof GaussianDensitySchema

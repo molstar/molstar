@@ -6,7 +6,7 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax } from './compat';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -100,8 +100,9 @@ export function createImageData(buffer: ArrayLike<number>, width: number, height
 type Extensions = {
     instancedArrays: COMPAT_instanced_arrays
     standardDerivatives: COMPAT_standard_derivatives
-    textureFloat: COMPAT_texture_float,
-    textureFloatLinear: COMPAT_texture_float_linear,
+    blendMinMax: COMPAT_blend_minmax
+    textureFloat: COMPAT_texture_float
+    textureFloatLinear: COMPAT_texture_float_linear
     elementIndexUint: COMPAT_element_index_uint | null
     vertexArrayObject: COMPAT_vertex_array_object | null
 }
@@ -144,6 +145,10 @@ export function createContext(gl: GLRenderingContext): Context {
     if (standardDerivatives === null) {
         throw new Error('Could not find support for "standard_derivatives"')
     }
+    const blendMinMax = getBlendMinMax(gl)
+    if (blendMinMax === null) {
+        throw new Error('Could not find support for "blend_minmax"')
+    }
     const textureFloat = getTextureFloat(gl)
     if (textureFloat === null) {
         throw new Error('Could not find support for "texture_float"')
@@ -175,6 +180,7 @@ export function createContext(gl: GLRenderingContext): Context {
         extensions: {
             instancedArrays,
             standardDerivatives,
+            blendMinMax,
             textureFloat,
             textureFloatLinear,
             elementIndexUint,
