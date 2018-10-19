@@ -19,18 +19,18 @@ import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
+import { decodeIdRGBA } from 'mol-geo/geometry/picking';
 
 export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
     const webgl = defaults(props.webgl, getWebGLContext())
 
     const { transform, texture, gridDimension } = await GaussianDensityTexture(ctx, webgl, position, box, radius, props)
 
-    const field = webgl.maxDrawBuffers > 0 ?
+    const { field, idField } = webgl.isWebGL2 ?
         fieldFromTexture3d(webgl, texture, gridDimension) :
         fieldFromTexture2d(webgl, texture, gridDimension)
 
-    const idData = field.space.create()
-    const idField = Tensor.create(field.space, idData)
+    console.log(idField)
 
     return { field, idField, transform }
 }
@@ -54,9 +54,11 @@ export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context
 async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
-    const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
+    const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
     const [ dx, dy, dz ] = dim
-    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, expandedBox, dim, smoothness)
+    const minDistanceTexture = getMinDistanceTexture(webgl, dx, dy)
+
+    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, groups, minDistanceTexture, expandedBox, dim, smoothness)
     const renderable = createRenderable(webgl, renderObject)
 
     //
@@ -122,9 +124,12 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, pos
 async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
-    const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
+    const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
     const [ dx, dy, dz ] = dim
-    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, expandedBox, dim, smoothness)
+    const minDistanceTexture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'nearest')
+    minDistanceTexture.define(dx, dy, dz)
+
+    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, groups, minDistanceTexture, expandedBox, dim, smoothness)
     const renderable = createRenderable(webgl, renderObject)
 
     //
@@ -143,8 +148,36 @@ async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, pos
     }
     texture.define(dx, dy, dz)
 
+    ValueCell.update(renderable.values.dCalcType, 'minDistance')
+    renderable.update()
+    const programMinDistance = renderable.getProgram('draw')
+    programMinDistance.use()
+    gl.blendFunc(gl.ONE, gl.ONE)
+    gl.blendEquation(gl.MAX)
+    for (let i = 0; i < dz; ++i) {
+        ValueCell.update(uCurrentSlice, i)
+        minDistanceTexture.attachFramebuffer(framebuffer, 0, i)
+        renderable.render('draw')
+    }
+
+    ValueCell.update(renderable.values.dCalcType, 'density')
+    renderable.update()
     const programDensity = renderable.getProgram('draw')
     programDensity.use()
+    gl.blendFunc(gl.ONE, gl.ONE)
+    gl.blendEquation(gl.FUNC_ADD)
+    for (let i = 0; i < dz; ++i) {
+        ValueCell.update(uCurrentSlice, i)
+        texture.attachFramebuffer(framebuffer, 0, i)
+        renderable.render('draw')
+    }
+
+    ValueCell.update(renderable.values.dCalcType, 'groupId')
+    renderable.update()
+    const programGroupId = renderable.getProgram('draw')
+    programGroupId.use()
+    gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE)
+    gl.blendEquation(gl.FUNC_ADD)
     for (let i = 0; i < dz; ++i) {
         ValueCell.update(uCurrentSlice, i)
         texture.attachFramebuffer(framebuffer, 0, i)
@@ -184,6 +217,7 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
 
     const positions = new Float32Array(n * 3)
     const radii = new Float32Array(n)
+    const groups = new Float32Array(n)
 
     let maxRadius = 0
 
@@ -196,6 +230,7 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
         const r = radius(j) + radiusOffset
         if (maxRadius < r) maxRadius = r
         radii[i] = r
+        groups[i] = i
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'preparing density data', current: i, max: n })
@@ -211,10 +246,16 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
     console.log('grid dim gpu', dim)
 
-    return { drawCount: n, positions, radii, delta, expandedBox, dim }
+    return { drawCount: n, positions, radii, groups, delta, expandedBox, dim }
 }
 
-function getGaussianDensityRenderObject(webgl: Context, drawCount: number, positions: Float32Array, radii: Float32Array, box: Box3D, dimensions: Vec3, smoothness: number) {
+function getMinDistanceTexture(webgl: Context, width: number, height: number) {
+    const minDistanceTexture = createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'nearest')
+    minDistanceTexture.define(width, height)
+    return minDistanceTexture
+}
+
+function getGaussianDensityRenderObject(webgl: Context, drawCount: number, positions: Float32Array, radii: Float32Array, groups: Float32Array, minDistanceTexture: Texture, box: Box3D, dimensions: Vec3, smoothness: number) {
     const extent = Vec3.sub(Vec3.zero(), box.max, box.min)
 
     const values: GaussianDensityValues = {
@@ -223,6 +264,7 @@ function getGaussianDensityRenderObject(webgl: Context, drawCount: number, posit
 
         aRadius: ValueCell.create(radii),
         aPosition: ValueCell.create(positions),
+        aGroup: ValueCell.create(groups),
 
         uCurrentSlice: ValueCell.create(0),
         uCurrentX: ValueCell.create(0),
@@ -232,6 +274,9 @@ function getGaussianDensityRenderObject(webgl: Context, drawCount: number, posit
         uBboxSize: ValueCell.create(extent),
         uGridDim: ValueCell.create(dimensions),
         uAlpha: ValueCell.create(smoothness),
+        tMinDistanceTex: ValueCell.create(minDistanceTexture),
+
+        dCalcType: ValueCell.create('density'),
     }
     const state: RenderableState = {
         visible: true,
@@ -263,6 +308,8 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
     const space = Tensor.Space(dim, [2, 1, 0], Float32Array)
     const data = space.create()
     const field = Tensor.create(space, data)
+    const idData = space.create()
+    const idField = Tensor.create(space, idData)
 
     const image = new Uint8Array(width * height * 4)
 
@@ -292,7 +339,7 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
     framebuffer.destroy()
     console.timeEnd('fieldFromTexture2d')
 
-    return field
+    return { field, idField }
 }
 
 function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
@@ -303,6 +350,8 @@ function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
     const space = Tensor.Space(dim, [2, 1, 0], Float32Array)
     const data = space.create()
     const field = Tensor.create(space, data)
+    const idData = space.create()
+    const idField = Tensor.create(space, idData)
 
     const slice = new Uint8Array(width * height * 4)
 
@@ -315,7 +364,9 @@ function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
         gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, slice)
         for (let iy = 0; iy < height; ++iy) {
             for (let ix = 0; ix < width; ++ix) {
-                data[j] = slice[4 * (iy * width + ix) + 3] / 255
+                const idx = 4 * (iy * width + ix)
+                data[j] = slice[idx + 3] / 255
+                idData[j] = decodeIdRGBA(slice[idx], slice[idx + 1], slice[idx + 2])
                 ++j
             }
         }
@@ -324,5 +375,5 @@ function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
     framebuffer.destroy()
     console.timeEnd('fieldFromTexture3d')
 
-    return field
+    return { field, idField }
 }

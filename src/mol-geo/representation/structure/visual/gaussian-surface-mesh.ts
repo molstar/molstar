@@ -29,44 +29,44 @@ async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, struct
 
     Mesh.transformImmediate(surface, transform)
 
-    if (props.useGpu) {
-        console.time('find max element radius')
-        const { elements } = unit
-        const n = OrderedSet.size(elements)
-        const l = StructureElement.create(unit)
-        const sizeTheme = SizeTheme({ name: 'physical' })
-        const radius = (index: number) => {
-            l.element = index as ElementIndex
-            return sizeTheme.size(l)
-        }
-        let maxRadius = 0
-        for (let i = 0; i < n; ++i) {
-            const r = radius(OrderedSet.getAt(elements, i)) + radiusOffset
-            if (maxRadius < r) maxRadius = r
-        }
-        console.timeEnd('find max element radius')
+    // if (props.useGpu) {
+    //     console.time('find max element radius')
+    //     const { elements } = unit
+    //     const n = OrderedSet.size(elements)
+    //     const l = StructureElement.create(unit)
+    //     const sizeTheme = SizeTheme({ name: 'physical' })
+    //     const radius = (index: number) => {
+    //         l.element = index as ElementIndex
+    //         return sizeTheme.size(l)
+    //     }
+    //     let maxRadius = 0
+    //     for (let i = 0; i < n; ++i) {
+    //         const r = radius(OrderedSet.getAt(elements, i)) + radiusOffset
+    //         if (maxRadius < r) maxRadius = r
+    //     }
+    //     console.timeEnd('find max element radius')
 
-        console.time('find closest element for vertices')
-        const { lookup3d } = unit
+    //     console.time('find closest element for vertices')
+    //     const { lookup3d } = unit
 
-        const { vertexCount, vertexBuffer, groupBuffer } = surface
-        const vertices = vertexBuffer.ref.value
-        const groups = groupBuffer.ref.value
-        for (let i = 0; i < vertexCount; ++i) {
-            const r = lookup3d.find(vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2], maxRadius * 2)
-            let minDsq = Infinity
-            let group = 0
-            for (let j = 0, jl = r.count; j < jl; ++j) {
-                const dSq = r.squaredDistances[j]
-                if (dSq < minDsq) {
-                    minDsq = dSq
-                    group = r.indices[j]
-                }
-            }
-            groups[i] = group
-        }
-        console.timeEnd('find closest element for vertices')
-    }
+    //     const { vertexCount, vertexBuffer, groupBuffer } = surface
+    //     const vertices = vertexBuffer.ref.value
+    //     const groups = groupBuffer.ref.value
+    //     for (let i = 0; i < vertexCount; ++i) {
+    //         const r = lookup3d.find(vertices[i * 3], vertices[i * 3 + 1], vertices[i * 3 + 2], maxRadius * 2)
+    //         let minDsq = Infinity
+    //         let group = 0
+    //         for (let j = 0, jl = r.count; j < jl; ++j) {
+    //             const dSq = r.squaredDistances[j]
+    //             if (dSq < minDsq) {
+    //                 minDsq = dSq
+    //                 group = r.indices[j]
+    //             }
+    //         }
+    //         groups[i] = group
+    //     }
+    //     console.timeEnd('find closest element for vertices')
+    // }
 
     Mesh.computeNormalsImmediate(surface)
     Mesh.uniformTriangleGroup(surface)
