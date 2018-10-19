@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { EventDispatcher } from '../context/event';
+import { EventDispatcher } from '../event/event';
 
 export interface TransformContext {
     /** An event dispatcher for executing child tasks. */

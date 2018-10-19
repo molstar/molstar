@@ -7,9 +7,24 @@
 import { StateObject } from './object';
 import { TransformTree } from './tree/tree';
 import { Transform } from './tree/transform';
+import { Map as ImmutableMap } from 'immutable';
+import { StateContext } from './context/context';
 
-export interface State {
-    tree: TransformTree,
-    objects: Map<Transform.InstanceId, StateObject>,
-    history: TransformTree[]
+export interface State<ObjectProps = unknown> {
+    definition: State.Definition<ObjectProps>,
+    objects: Map<Transform.InstanceId, StateObject>
+}
+
+export namespace State {
+    export type ObjectProps<P> = ImmutableMap<Transform.InstanceId, P>
+
+    export interface Definition<P = unknown> {
+        tree: TransformTree,
+        // things like object visibility
+        props: ObjectProps<P>
+    }
+
+    export async function update<P>(context: StateContext, old: State<P>, tree: Definition<P>, props?: ObjectProps<P>): Promise<State<P>> {
+        throw 'nyi';
+    }
 }

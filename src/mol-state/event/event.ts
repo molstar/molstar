@@ -4,6 +4,6 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export interface TreeTransaction {
-    
+export interface EventDispatcher {
+    // TODO
 }

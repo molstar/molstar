@@ -4,6 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-export interface TreeTransaction {
-    
-}
+// TODO: relactive transformer params controller
