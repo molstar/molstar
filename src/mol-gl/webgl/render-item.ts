@@ -14,6 +14,7 @@ import { idFactory } from 'mol-util/id-factory';
 import { deleteVertexArray, createVertexArray } from './vertex-array';
 import { ValueCell } from 'mol-util';
 import { ReferenceItem } from 'mol-util/reference-cache';
+import { TextureImage, TextureVolume } from 'mol-gl/renderable/util';
 
 const getNextRenderItemId = idFactory()
 
@@ -226,10 +227,13 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
             Object.keys(textureValues).forEach(k => {
                 const value = textureValues[k]
                 if (value.ref.version !== versions[k]) {
-                    // console.log('texture version changed, uploading image', k)
-                    textures[k].load(value.ref.value)
-                    versions[k] = value.ref.version
-                    valueChanges.textures = true
+                    // update of textures with kind 'texture2d' or 'texture3d' is done externally
+                    if (schema[k].kind !== 'texture2d' && schema[k].kind !== 'texture3d') {
+                        // console.log('texture version changed, uploading image', k)
+                        textures[k].load(value.ref.value as TextureImage<any> | TextureVolume<any>)
+                        versions[k] = value.ref.version
+                        valueChanges.textures = true
+                    }
                 }
             })
 
@@ -241,7 +245,12 @@ export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: S
                     programs[k].free()
                     deleteVertexArray(ctx, vertexArrays[k])
                 })
-                Object.keys(textures).forEach(k => textures[k].destroy())
+                Object.keys(textures).forEach(k => {
+                    // lifetime of textures with kind 'texture2d' or 'texture3d' is defined externally
+                    if (schema[k].kind !== 'texture2d' && schema[k].kind !== 'texture3d') {
+                        textures[k].destroy()
+                    }
+                })
                 Object.keys(attributeBuffers).forEach(k => attributeBuffers[k].destroy())
                 if (elementsBuffer) elementsBuffer.destroy()
                 destroyed = true

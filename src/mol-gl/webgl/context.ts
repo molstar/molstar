@@ -51,6 +51,35 @@ function unbindFramebuffer(gl: GLRenderingContext) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
 }
 
+const tmpPixel = new Uint8Array(1 * 4);
+async function waitForGpuCommandsComplete(gl: GLRenderingContext) {
+    if (isWebGL2(gl)) {
+        const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
+        if (sync) {
+            // TODO too slow in Firefox
+            // await new Promise(resolve => {
+            //     const check = async () => {
+            //         if (gl.getSyncParameter(sync, gl.SYNC_STATUS) === gl.SIGNALED) {
+            //             gl.deleteSync(sync)
+            //             resolve();
+            //         } else {
+            //             setTimeout(check, 50)
+            //         }
+            //     };
+            //     setTimeout(check, 10)
+            // })
+            gl.deleteSync(sync)
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+        } else {
+            console.warn('unable to get webgl sync object')
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+        }
+    } else {
+        console.info('webgl sync object not supported in webgl 1')
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+    }
+}
+
 export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
     const w = width * 4
     const h = height
@@ -65,6 +94,8 @@ export function createImageData(buffer: ArrayLike<number>, width: number, height
     }
     return new ImageData(data, width, height);
 }
+
+//
 
 type Extensions = {
     instancedArrays: COMPAT_instanced_arrays
@@ -96,13 +127,13 @@ export interface Context {
     instancedDrawCount: number
 
     readonly maxTextureSize: number
+    readonly maxDrawBuffers: number
 
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
+    waitForGpuCommandsComplete: () => Promise<void>
     destroy: () => void
 }
-
-
 
 export function createContext(gl: GLRenderingContext): Context {
     const instancedArrays = getInstancedArrays(gl)
@@ -134,7 +165,8 @@ export function createContext(gl: GLRenderingContext): Context {
     const programCache = createProgramCache()
 
     const parameters = {
-        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE)
+        maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+        maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) : 0,
     }
 
     return {
@@ -164,6 +196,7 @@ export function createContext(gl: GLRenderingContext): Context {
         instancedDrawCount: 0,
 
         get maxTextureSize () { return parameters.maxTextureSize },
+        get maxDrawBuffers () { return parameters.maxDrawBuffers },
 
         unbindFramebuffer: () => unbindFramebuffer(gl),
         readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
@@ -175,6 +208,7 @@ export function createContext(gl: GLRenderingContext): Context {
             //     console.error('Reading pixels failed. Framebuffer not complete.')
             // }
         },
+        waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
 
         destroy: () => {
             unbindResources(gl)

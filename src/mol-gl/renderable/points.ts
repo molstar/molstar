@@ -25,8 +25,6 @@ export type PointsValues = Values<PointsSchema>
 export function PointsRenderable(ctx: Context, id: number, values: PointsValues, state: RenderableState): Renderable<PointsValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointsSchema }
     const internalValues: InternalValues = {
-        dWebGL2: ValueCell.create(ctx.isWebGL2),
-        dGlslVersion: ValueCell.create('100es'),
         uObjectId: ValueCell.create(id)
     }
     const shaderCode = PointsShaderCode

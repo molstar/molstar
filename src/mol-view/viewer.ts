@@ -16,7 +16,7 @@ import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
 import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
-import { createContext, getGLContext } from 'mol-gl/webgl/context';
+import { createContext, getGLContext, Context } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
@@ -27,6 +27,8 @@ import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 
 interface Viewer {
+    webgl: Context,
+
     center: (p: Vec3) => void
 
     hide: (repr: Representation<any>) => void
@@ -247,6 +249,8 @@ namespace Viewer {
         handleResize()
 
         return {
+            webgl: ctx,
+
             center: (p: Vec3) => {
                 Vec3.set(controls.target, p[0], p[1], p[2])
             },

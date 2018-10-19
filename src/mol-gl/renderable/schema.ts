@@ -10,7 +10,7 @@ import { UniformKind, UniformValues } from '../webgl/uniform';
 import { DefineKind, DefineValues } from '../shader-code';
 import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
 import { TextureImage, TextureVolume } from './util';
-import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind } from '../webgl/texture';
+import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind, Texture } from '../webgl/texture';
 
 export type ValueKindType = {
     'number': number
@@ -29,7 +29,7 @@ export type KindValue = {
     'v4': Vec4
     'm3': Mat3
     'm4': Mat4
-    't2': number
+    't': number
 
     'uint8': Uint8Array
     'int8': Int8Array
@@ -43,6 +43,8 @@ export type KindValue = {
     'image-float32': TextureImage<Float32Array>
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
+    'texture2d': Texture
+    'texture3d': Texture
 
     'number': number
     'string': string
@@ -148,8 +150,6 @@ export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
 export const InternalSchema = {
-    dWebGL2: DefineSpec('boolean'),
-    dGlslVersion: DefineSpec('string', ['100es', '300es']),
     uObjectId: UniformSpec('i'),
 }
 export type InternalSchema = typeof InternalSchema

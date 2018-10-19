@@ -5,7 +5,7 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-precision mediump float;
+precision highp float;
 
 varying vec3 position;
 varying float radius;
@@ -19,16 +19,40 @@ uniform float uCurrentX;
 uniform float uCurrentY;
 uniform float uAlpha;
 
+#if dDrawBuffers >= 4
+    layout(location = 1) out vec4 out1;
+    layout(location = 2) out vec4 out2;
+    layout(location = 3) out vec4 out3;
+#endif
+#if dDrawBuffers >= 8
+    layout(location = 4) out vec4 out4;
+    layout(location = 5) out vec4 out5;
+    layout(location = 6) out vec4 out6;
+    layout(location = 7) out vec4 out7;
+#endif
+
+float calcDensity(float x, float y, float z, float radiusSq) {
+    vec3 fragPos = vec3(x, y, z) / uGridDim;
+    float dist = distance(fragPos * uBboxSize, position * uBboxSize);
+    float density = exp(-uAlpha * ((dist * dist) / radiusSq));
+    return density;
+}
+
+const vec3 color = vec3(1.0, 1.0, 1.0);
+
 void main() {
-    vec3 tmpVec = gl_FragCoord.xyz;
-    tmpVec.x = tmpVec.x - uCurrentX;
-    tmpVec.y = tmpVec.y - uCurrentY;
-    vec3 fragPos = vec3(
-        (tmpVec.x - 0.5) / uGridDim.x,
-        (tmpVec.y - 0.5) / uGridDim.y,
-        (uCurrentSlice) / uGridDim.z
-    );
-    float dist = length(fragPos * uBboxSize - position * uBboxSize);
-    float density = exp(-uAlpha * ((dist * dist) / (radius * radius)));
-    gl_FragColor = vec4(1, 1, 1, density);
+    float radiusSq = radius * radius;
+    vec2 v = gl_FragCoord.xy - vec2(uCurrentX, uCurrentY) - 0.5;
+    gl_FragColor = vec4(color, calcDensity(v.x, v.y, uCurrentSlice, radiusSq));
+    #if dDrawBuffers >= 4
+        out1 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 1.0, radiusSq));
+        out2 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 2.0, radiusSq));
+        out3 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 3.0, radiusSq));
+    #endif
+    #if dDrawBuffers >= 8
+        out4 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 4.0, radiusSq));
+        out5 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 5.0, radiusSq));
+        out6 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 6.0, radiusSq));
+        out7 = vec4(color, calcDensity(v.x, v.y, uCurrentSlice + 7.0, radiusSq));
+    #endif
 }

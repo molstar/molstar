@@ -6,6 +6,7 @@
 
 import { ValueCell } from 'mol-util';
 import { idFactory } from 'mol-util/id-factory';
+import { Context } from './webgl/context';
 
 export type DefineKind = 'boolean' | 'string' | 'number'
 export type DefineType = boolean | string
@@ -58,13 +59,13 @@ function getDefinesCode (defines: ShaderDefines) {
     for (const name in defines) {
         const define = defines[name]
         const v = define.ref.value
-        if (v) {
+        if (v !== undefined) {
             if (typeof v === 'string') {
                 lines.push(`#define ${name}_${v}`)
             } else if (typeof v === 'number') {
                 lines.push(`#define ${name} ${v}`)
             } else if (typeof v === 'boolean') {
-                lines.push(`#define ${name}`)
+                if (v) lines.push(`#define ${name}`)
             } else {
                 throw new Error('unknown define type')
             }
@@ -72,6 +73,9 @@ function getDefinesCode (defines: ShaderDefines) {
     }
     return lines.join('\n') + '\n'
 }
+
+const glsl100FragPrefix = `#extension GL_OES_standard_derivatives : enable
+`
 
 const glsl300VertPrefix = `#version 300 es
 #define attribute in
@@ -81,17 +85,17 @@ const glsl300VertPrefix = `#version 300 es
 
 const glsl300FragPrefix = `#version 300 es
 #define varying in
-out highp vec4 out_FragColor;
+layout(location = 0) out highp vec4 out_FragColor;
 #define gl_FragColor out_FragColor
 #define gl_FragDepthEXT gl_FragDepth
 #define texture2D texture
 `
 
-export function addShaderDefines(defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
-    const isGlsl300es = defines.dGlslVersion && defines.dGlslVersion.ref.value === '300es'
+export function addShaderDefines(ctx: Context, defines: ShaderDefines, shaders: ShaderCode): ShaderCode {
+    const { isWebGL2 } = ctx
     const header = getDefinesCode(defines)
-    const vertPrefix = isGlsl300es ? glsl300VertPrefix : ''
-    const fragPrefix = isGlsl300es ? glsl300FragPrefix : ''
+    const vertPrefix = isWebGL2 ? glsl300VertPrefix : ''
+    const fragPrefix = isWebGL2 ? glsl300FragPrefix : glsl100FragPrefix
     return {
         id: shaderCodeId(),
         vert: `${vertPrefix}${header}${shaders.vert}`,

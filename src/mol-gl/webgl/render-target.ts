@@ -69,7 +69,7 @@ export function createRenderTarget (ctx: Context, _width: number, _height: numbe
 
         bind: () => {
             framebuffer.bind()
-            gl.viewport(0, 0, _width, _height);
+            gl.viewport(0, 0, _width, _height)
         },
         setSize: (width: number, height: number) => {
             _width = width

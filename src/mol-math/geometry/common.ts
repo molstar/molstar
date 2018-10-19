@@ -7,8 +7,8 @@
 
 import { OrderedSet } from 'mol-data/int'
 import { Mat4, Tensor, Vec3 } from '../linear-algebra';
-import { RenderTarget } from 'mol-gl/webgl/render-target';
 import { Box3D } from '../geometry';
+import { Texture } from 'mol-gl/webgl/texture';
 
 export interface PositionData {
     x: ArrayLike<number>,
@@ -24,8 +24,11 @@ export type DensityData = {
     transform: Mat4,
     field: Tensor,
     idField: Tensor,
+}
 
-    renderTarget?: RenderTarget,
-    bbox?: Box3D,
-    gridDimension?: Vec3
+export type DensityTextureData = {
+    transform: Mat4,
+    texture: Texture,
+    bbox: Box3D,
+    gridDimension: Vec3
 }

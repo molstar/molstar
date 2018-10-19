@@ -23,4 +23,4 @@ const assemblyId = urlQueryParameter('assembly')
 const pdbId = urlQueryParameter('pdb')
 if (pdbId) app.loadPdbIdOrMmcifUrl(pdbId, { assemblyId })
 
-app.loadCcp4Url('http://localhost:8091/ngl/data/betaGal.mrc')
+// app.loadCcp4Url('http://localhost:8091/ngl/data/betaGal.mrc')

@@ -13,17 +13,23 @@ import { MarkerAction } from '../../geometry/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { createRenderableState, updateRenderableState, Geometry } from '../../geometry/geometry';
 import { paramDefaultValues } from 'mol-view/parameter';
-import { ValueCell } from 'mol-util';
 import { DirectVolume2d, DirectVolume3d } from '../../geometry/direct-volume/direct-volume';
-import { Vec2, Vec3 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
-import { createImageData } from 'mol-gl/webgl/context';
-import { debugTexture } from 'mol-gl/util';
+import { Context } from 'mol-gl/webgl/context';
 import { DirectVolume3dValues, DirectVolume2dValues } from 'mol-gl/renderable/direct-volume';
+import { createTexture } from 'mol-gl/webgl/texture';
+
+function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
+    const bbox = Box3D.empty()
+    Box3D.add(bbox, gridDimension)
+    Box3D.transform(bbox, bbox, transform)
+    return bbox
+}
 
 // 2d volume texture
 
-function getVolumeTexture2dLayout(dim: Vec3, maxTextureSize = 4096) {
+function getVolumeTexture2dLayout(dim: Vec3, maxTextureSize: number) {
     let width = 0
     let height = dim[1]
     let rows = 1
@@ -41,19 +47,19 @@ function getVolumeTexture2dLayout(dim: Vec3, maxTextureSize = 4096) {
     return { width, height, columns, rows }
 }
 
-function createVolumeTexture2d(volume: VolumeData) {
+function createVolumeTexture2d(volume: VolumeData, maxTextureSize: number) {
     const { data: tensor, dataStats: stats } = volume
     const { space, data } = tensor
     const dim = space.dimensions as Vec3
     const { get } = space
-    const { width, height, columns, rows } = getVolumeTexture2dLayout(dim)
+    const { width, height, columns, rows } = getVolumeTexture2dLayout(dim, maxTextureSize)
 
     const array = new Uint8Array(width * height * 4)
     const textureImage = { array, width, height }
 
     const [ xl, yl, zl ] = dim
-    const xlp = xl + 1
-    const ylp = yl + 1
+    const xlp = xl + 1 // horizontal padding
+    const ylp = yl + 1 // vertical padding
 
     function setTex(value: number, x: number, y: number, z: number) {
         const column = Math.floor(((z * xlp) % width) / xlp)
@@ -77,48 +83,20 @@ function createVolumeTexture2d(volume: VolumeData) {
     return textureImage
 }
 
-export function createDirectVolume2d(ctx: RuntimeContext, volume: VolumeData, directVolume?: DirectVolume2d) {
+export function createDirectVolume2d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume2d) {
     const gridDimension = volume.data.space.dimensions as Vec3
-    // const textureImage = createTextureImage(1, 4)
-    const textureImage = createVolumeTexture2d(volume)
+    const textureImage = createVolumeTexture2d(volume, webgl.maxTextureSize)
+    // debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
     const transform = VolumeData.getGridToCartesianTransform(volume)
+    const bbox = getBoundingBox(gridDimension, transform)
+    const dim = Vec3.create(gridDimension[0], gridDimension[1], gridDimension[2])
+    dim[0] += 1 // horizontal padding
+    dim[0] += 1 // vertical padding
 
-    console.log('textureImage', textureImage)
-    debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
+    const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
+    texture.load(textureImage)
 
-    const bbox = Box3D.empty()
-    Box3D.add(bbox, gridDimension)
-    Box3D.transform(bbox, bbox, transform)
-
-    const dim = Vec3.create(gridDimension[0] + 1, gridDimension[1] + 1, gridDimension[2])
-
-    if (directVolume) {
-        ValueCell.update(directVolume.gridDimension, dim)
-        ValueCell.update(directVolume.gridTexture, textureImage)
-        ValueCell.update(directVolume.gridTextureDim, Vec2.set(directVolume.gridTextureDim.ref.value, textureImage.width, textureImage.height))
-        ValueCell.update(directVolume.bboxMin, bbox.min)
-        ValueCell.update(directVolume.bboxMax, bbox.max)
-        ValueCell.update(directVolume.bboxSize, Vec3.sub(directVolume.bboxSize.ref.value, bbox.max, bbox.min))
-        ValueCell.update(directVolume.transform, transform)
-    } else {
-        directVolume = {
-            kind: 'direct-volume-2d' as 'direct-volume-2d',
-            gridDimension: ValueCell.create(dim),
-            gridTexture: ValueCell.create(textureImage),
-            gridTextureDim: ValueCell.create(Vec2.create(textureImage.width, textureImage.height)),
-            bboxMin: ValueCell.create(bbox.min),
-            bboxMax: ValueCell.create(bbox.max),
-            bboxSize: ValueCell.create(Vec3.sub(Vec3.zero(), bbox.max, bbox.min)),
-            transform: ValueCell.create(transform),
-        }
-    }
-
-    console.log('gridDimension', dim)
-    console.log('gridTextureDim', textureImage.width, textureImage.height)
-    console.log('boundingBox', bbox)
-    console.log('transform', transform)
-
-    return directVolume;
+    return DirectVolume2d.create(bbox, dim, transform, texture, directVolume)
 }
 
 // 3d volume texture
@@ -135,8 +113,7 @@ function createVolumeTexture3d(volume: VolumeData) {
     let i = 0
     for (let z = 0; z < depth; ++z) {
         for (let y = 0; y < height; ++y) {
-        for (let x = 0; x < width; ++x) {
-
+            for (let x = 0; x < width; ++x) {
                 array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
                 i += 4
             }
@@ -146,44 +123,19 @@ function createVolumeTexture3d(volume: VolumeData) {
     return textureVolume
 }
 
-export function createDirectVolume3d(ctx: RuntimeContext, volume: VolumeData, directVolume?: DirectVolume3d) {
+export function createDirectVolume3d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume3d) {
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureVolume = createVolumeTexture3d(volume)
     const transform = VolumeData.getGridToCartesianTransform(volume)
+    const bbox = getBoundingBox(gridDimension, transform)
 
-    console.log('textureVolume', textureVolume)
+    const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
+    texture.load(textureVolume)
 
-    const bbox = Box3D.empty()
-    Box3D.add(bbox, gridDimension)
-    Box3D.transform(bbox, bbox, transform)
-
-    if (directVolume) {
-        ValueCell.update(directVolume.gridDimension, gridDimension)
-        ValueCell.update(directVolume.gridTexture, textureVolume)
-        ValueCell.update(directVolume.bboxMin, bbox.min)
-        ValueCell.update(directVolume.bboxMax, bbox.max)
-        ValueCell.update(directVolume.bboxSize, Vec3.sub(directVolume.bboxSize.ref.value, bbox.max, bbox.min))
-        ValueCell.update(directVolume.transform, transform)
-    } else {
-        directVolume = {
-            kind: 'direct-volume-3d' as 'direct-volume-3d',
-            gridDimension: ValueCell.create(gridDimension),
-            gridTexture: ValueCell.create(textureVolume),
-            bboxMin: ValueCell.create(bbox.min),
-            bboxMax: ValueCell.create(bbox.max),
-            bboxSize: ValueCell.create(Vec3.sub(Vec3.zero(), bbox.max, bbox.min)),
-            transform: ValueCell.create(transform),
-        }
-    }
-
-    return directVolume;
+    return DirectVolume3d.create(bbox, gridDimension, transform, texture, directVolume)
 }
 
 //
-
-function hasWebGL2() {
-    return true
-}
 
 export const DirectVolumeParams = {
     ...Geometry.Params,
@@ -199,6 +151,9 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
     let directVolume: DirectVolume2d | DirectVolume3d
 
     async function create(ctx: RuntimeContext, volume: VolumeData, props: Partial<DirectVolumeProps> = {}) {
+        const { webgl } = props
+        if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
+
         currentProps = { ...DefaultDirectVolumeProps, ...props }
         if (props.isoValueRelative) {
             // currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
@@ -206,26 +161,28 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
 
         const state = createRenderableState(currentProps)
 
-        if (hasWebGL2()) {
-            console.log('createing 3d volume')
-            directVolume = await createDirectVolume3d(ctx, volume, directVolume as DirectVolume3d)
+        if (webgl.isWebGL2) {
+            console.log('creating 3d volume')
+            directVolume = await createDirectVolume3d(ctx, webgl, volume, directVolume as DirectVolume3d)
             const values = await DirectVolume3d.createValues(ctx, directVolume as DirectVolume3d, currentProps)
             renderObject = createDirectVolume3dRenderObject(values, state)
         } else {
-            directVolume = await createDirectVolume2d(ctx, volume, directVolume as DirectVolume2d)
+            directVolume = await createDirectVolume2d(ctx, webgl, volume, directVolume as DirectVolume2d)
             const values = await DirectVolume2d.createValues(ctx, directVolume as DirectVolume2d, currentProps)
             renderObject = createDirectVolume2dRenderObject(values, state)
         }
     }
 
     async function update(ctx: RuntimeContext, props: Partial<DirectVolumeProps> = {}) {
-        console.log('props', props)
+        const { webgl } = props
+        if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
+
         const newProps = { ...currentProps, ...props }
         if (props.isoValueRelative) {
             // newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
         }
 
-        if (hasWebGL2()) {
+        if (webgl.isWebGL2) {
             DirectVolume3d.updateValues(renderObject.values as DirectVolume3dValues, newProps)
         } else {
             DirectVolume2d.updateValues(renderObject.values as DirectVolume2dValues, newProps)

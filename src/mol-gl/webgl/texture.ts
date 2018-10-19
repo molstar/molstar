@@ -10,6 +10,7 @@ import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { Framebuffer } from './framebuffer';
+import { isWebGL2 } from './compat';
 
 const getNextTextureId = idFactory()
 
@@ -18,11 +19,15 @@ export type TextureKindValue = {
     'image-float32': TextureImage<Float32Array>
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
+    'texture2d': Texture
+    'texture3d': Texture
 }
+export type TextureValueType = Helpers.ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
 export type TextureType = 'ubyte' | 'float'
 export type TextureFormat = 'alpha' | 'rgb' | 'rgba'
-export type TextureAttachment = 'depth' | 'stencil' | 'color0'
+/** Numbers are shortcuts for color attachment */
+export type TextureAttachment = 'depth' | 'stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type TextureFilter = 'nearest' | 'linear'
 
 export function getTarget(ctx: Context, kind: TextureKind): number {
@@ -30,9 +35,16 @@ export function getTarget(ctx: Context, kind: TextureKind): number {
     switch (kind) {
         case 'image-uint8': return gl.TEXTURE_2D
         case 'image-float32': return gl.TEXTURE_2D
-        case 'volume-uint8': return (gl as WebGL2RenderingContext).TEXTURE_3D
-        case 'volume-float32': return (gl as WebGL2RenderingContext).TEXTURE_3D
+        case 'texture2d': return gl.TEXTURE_2D
     }
+    if (isWebGL2(gl)) {
+        switch (kind) {
+            case 'volume-uint8': return gl.TEXTURE_3D
+            case 'volume-float32': return gl.TEXTURE_3D
+            case 'texture3d': return gl.TEXTURE_3D
+        }
+    }
+    throw new Error('unknown texture kind')
 }
 
 export function getFormat(ctx: Context, format: TextureFormat): number {
@@ -89,8 +101,20 @@ export function getAttachment(ctx: Context, attachment: TextureAttachment): numb
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT
         case 'stencil': return gl.STENCIL_ATTACHMENT
-        case 'color0': return gl.COLOR_ATTACHMENT0
+        case 'color0': case 0: return gl.COLOR_ATTACHMENT0
     }
+    if (isWebGL2(gl)) {
+        switch (attachment) {
+            case 'color1': case 1: return gl.COLOR_ATTACHMENT1
+            case 'color2': case 2: return gl.COLOR_ATTACHMENT2
+            case 'color3': case 3: return gl.COLOR_ATTACHMENT3
+            case 'color4': case 4: return gl.COLOR_ATTACHMENT4
+            case 'color5': case 5: return gl.COLOR_ATTACHMENT5
+            case 'color6': case 6: return gl.COLOR_ATTACHMENT6
+            case 'color7': case 7: return gl.COLOR_ATTACHMENT7
+        }
+    }
+    throw new Error('unknown texture attachment')
 }
 
 export interface Texture {
@@ -100,16 +124,23 @@ export interface Texture {
     readonly internalFormat: number
     readonly type: number
 
-    load: (image: TextureImage<any>) => void
+    readonly width: number
+    readonly height: number
+    readonly depth: number
+
+    define: (width: number, height: number, depth?: number) => void
+    load: (image: TextureImage<any> | TextureVolume<any>) => void
     bind: (id: TextureId) => void
     unbind: (id: TextureId) => void
-    attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => void
+    /** Use `layer` to attach a z-slice of a 3D texture */
+    attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) => void
+    detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => void
     destroy: () => void
 }
 
 export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15
 
-export type TextureValues = { [k: string]: ValueCell<TextureImage<any>> }
+export type TextureValues = { [k: string]: ValueCell<TextureValueType> }
 export type Textures = { [k: string]: Texture }
 
 export function createTexture(ctx: Context, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
@@ -126,6 +157,16 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
     const internalFormat = getInternalFormat(ctx, _format, _type)
     const type = getType(ctx, _type)
 
+    gl.bindTexture(target, texture)
+    gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter)
+    gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter)
+    // clamp-to-edge needed for non-power-of-two textures in webgl
+    gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.bindTexture(target, null)
+
+    let width = 0, height = 0, depth = 0
+
     let destroyed = false
     ctx.textureCount += 1
 
@@ -136,26 +177,40 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
         internalFormat,
         type,
 
+        get width () { return width },
+        get height () { return height },
+        get depth () { return depth },
+
+        define: (_width: number, _height: number, _depth?: number) => {
+            width = _width, height = _height, depth = _depth || 0
+            gl.bindTexture(target, texture)
+            if (target === gl.TEXTURE_2D) {
+                // TODO remove cast when webgl2 types are fixed
+                (gl as WebGLRenderingContext).texImage2D(target, 0, internalFormat, width, height, 0, format, type, null)
+            } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D && depth !== undefined) {
+                (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, null)
+            } else {
+                throw new Error('unknown texture target')
+            }
+        },
         load: (data: TextureImage<any> | TextureVolume<any>) => {
             gl.bindTexture(target, texture)
             // unpack alignment of 1 since we use textures only for data
             gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
             gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
             if (target === gl.TEXTURE_2D) {
-                const { array, width, height } = data as TextureImage<any>;
+                const { array, width: _width, height: _height } = data as TextureImage<any>
+                width = _width, height = _height;
                 // TODO remove cast when webgl2 types are fixed
                 (gl as WebGLRenderingContext).texImage2D(target, 0, internalFormat, width, height, 0, format, type, array)
             } else if (target === (gl as WebGL2RenderingContext).TEXTURE_3D) {
-                const { array, width, height, depth } = data as TextureVolume<any>;
+                const { array, width: _width, height: _height, depth: _depth } = data as TextureVolume<any>
+                width = _width, height = _height, depth = _depth;
                 (gl as WebGL2RenderingContext).texImage3D(target, 0, internalFormat, width, height, depth, 0, format, type, array)
             } else {
                 throw new Error('unknown texture target')
             }
-            gl.texParameteri(target, gl.TEXTURE_MAG_FILTER, filter)
-            gl.texParameteri(target, gl.TEXTURE_MIN_FILTER, filter)
-            // clamp-to-edge needed for non-power-of-two textures
-            gl.texParameteri(target, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(target, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.bindTexture(target, null)
         },
         bind: (id: TextureId) => {
@@ -166,10 +221,22 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
             gl.activeTexture(gl.TEXTURE0 + id)
             gl.bindTexture(target, null)
         },
-        attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => {
-            if (target !== gl.TEXTURE_2D) throw new Error('framebuffer texture must be 2d')
+        attachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment, layer?: number) => {
             framebuffer.bind()
-            gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(ctx, attachment), gl.TEXTURE_2D, texture, 0)
+            if (target === (gl as WebGL2RenderingContext).TEXTURE_3D) {
+                if (layer === undefined) throw new Error('need `layer` to attach 3D texture');
+                (gl as WebGL2RenderingContext).framebufferTextureLayer(gl.FRAMEBUFFER, getAttachment(ctx, attachment), texture, 0, layer)
+            } else {
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(ctx, attachment), gl.TEXTURE_2D, texture, 0)
+            }
+        },
+        detachFramebuffer: (framebuffer: Framebuffer, attachment: TextureAttachment) => {
+            framebuffer.bind()
+            if (target === (gl as WebGL2RenderingContext).TEXTURE_3D) {
+                (gl as WebGL2RenderingContext).framebufferTextureLayer(gl.FRAMEBUFFER, getAttachment(ctx, attachment), null, 0, 0)
+            } else {
+                gl.framebufferTexture2D(gl.FRAMEBUFFER, getAttachment(ctx, attachment), gl.TEXTURE_2D, null, 0)
+            }
         },
         destroy: () => {
             if (destroyed) return
@@ -185,9 +252,13 @@ export function createTextures(ctx: Context, schema: RenderableSchema, values: T
     Object.keys(schema).forEach((k, i) => {
         const spec = schema[k]
         if (spec.type === 'texture') {
-            const texture = createTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter)
-            texture.load(values[k].ref.value)
-            textures[k] = texture
+            if (spec.kind === 'texture2d' || spec.kind === 'texture3d') {
+                textures[k] = values[k].ref.value as Texture
+            } else {
+                const texture = createTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter)
+                texture.load(values[k].ref.value as TextureImage<any> | TextureVolume<any>)
+                textures[k] = texture
+            }
         }
     })
     return textures

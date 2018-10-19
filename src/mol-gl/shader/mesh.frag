@@ -4,10 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-#ifdef dFlatShaded
-    #extension GL_OES_standard_derivatives : enable
-#endif
-
 precision highp float;
 precision highp int;
 
