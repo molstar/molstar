@@ -19,6 +19,9 @@ import { Box3D } from 'mol-math/geometry';
 import { Context } from 'mol-gl/webgl/context';
 import { DirectVolume3dValues, DirectVolume2dValues } from 'mol-gl/renderable/direct-volume';
 import { createTexture } from 'mol-gl/webgl/texture';
+import { LocationIterator } from 'mol-geo/util/location-iterator';
+import { NullLocation } from 'mol-model/location';
+import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()
@@ -160,15 +163,17 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
         }
 
         const state = createRenderableState(currentProps)
+        const locationIt = LocationIterator(1, 1, () => NullLocation)
+        const transform = createIdentityTransform()
 
         if (webgl.isWebGL2) {
             console.log('creating 3d volume')
             directVolume = await createDirectVolume3d(ctx, webgl, volume, directVolume as DirectVolume3d)
-            const values = await DirectVolume3d.createValues(ctx, directVolume as DirectVolume3d, currentProps)
+            const values = await DirectVolume3d.createValues(ctx, directVolume as DirectVolume3d, transform, locationIt, currentProps)
             renderObject = createDirectVolume3dRenderObject(values, state)
         } else {
             directVolume = await createDirectVolume2d(ctx, webgl, volume, directVolume as DirectVolume2d)
-            const values = await DirectVolume2d.createValues(ctx, directVolume as DirectVolume2d, currentProps)
+            const values = await DirectVolume2d.createValues(ctx, directVolume as DirectVolume2d, transform, locationIt, currentProps)
             renderObject = createDirectVolume2dRenderObject(values, state)
         }
     }

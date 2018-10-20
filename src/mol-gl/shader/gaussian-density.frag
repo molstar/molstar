@@ -21,7 +21,7 @@ varying float vRadius;
     varying float vGroup;
 #endif
 
-#pragma glslify: encodeIdRGBA = require(./utils/encode-id-rgba.glsl)
+#pragma glslify: encodeIdRGB = require(./utils/encode-id-rgb.glsl)
 #pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl)
 
 uniform vec3 uBboxSize;
@@ -66,6 +66,6 @@ void main() {
         float minDistance = decodeDistLog(1.0 - textureMinDist(fragPos).a);
         if (dist > minDistance + length(uBboxSize / uGridDim) / 1.5)
             discard;
-        gl_FragColor = encodeIdRGBA(vGroup);
+        gl_FragColor.rgb = encodeIdRGB(vGroup);
     #endif
 }

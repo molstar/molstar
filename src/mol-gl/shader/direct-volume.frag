@@ -9,12 +9,22 @@ precision highp float;
 
 varying vec3 unitCoord;
 varying vec3 origPos;
+varying float instance;
 
 uniform float uAlpha;
 uniform mat4 uInvView;
 uniform float uIsoValue;
 uniform vec3 uGridDim;
 uniform sampler2D tTransferTex;
+
+uniform int uObjectId;
+uniform int uInstanceCount;
+uniform int uGroupCount;
+
+uniform vec3 uHighlightColor;
+uniform vec3 uSelectColor;
+uniform vec2 uMarkerTexDim;
+uniform sampler2D tMarker;
 
 #if defined(dGridTexType_2d)
     precision mediump sampler2D;
@@ -25,34 +35,33 @@ uniform sampler2D tTransferTex;
     uniform sampler3D tGridTex;
 #endif
 
+#if defined(dColorType_uniform)
+    uniform vec3 uColor;
+#elif defined(dColorType_instance) || defined(dColorType_group) || defined(dColorType_groupInstance)
+    uniform vec2 uColorTexDim;
+    uniform sampler2D tColor;
+#endif
+
+#pragma glslify: readFromTexture = require(./utils/read-from-texture.glsl)
+#pragma glslify: encodeIdRGB = require(./utils/encode-id-rgb.glsl)
+#pragma glslify: decodeIdRGB = require(./utils/decode-id-rgb.glsl)
+#pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl)
+#pragma glslify: texture3dFrom2dLinear = require(./utils/texture3d-from-2d-linear.glsl)
+
 #if defined(dGridTexType_2d)
-    // TODO workaround due to some kind of GPU bug
-    float myMod(float a, float b) {
-        return a - b * float(int(a) / int(b));
-    }
-    float myDiv(float a, float b) {
-        return float(int(a) / int(b));
-    }
-
     vec4 textureVal(vec3 pos) {
-        float zSlice0 = floor(pos.z * uGridDim.z);
-        float column0 = myMod(zSlice0 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
-        float row0 = floor(myDiv(zSlice0 * uGridDim.x, uGridTexDim.x));
-        vec2 coord0 = (vec2(column0 * uGridDim.x, row0 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
-        vec4 color0 = texture2D(tGridTex, coord0);
-
-        float zSlice1 = zSlice0 + 1.0;
-        float column1 = myMod(zSlice1 * uGridDim.x, uGridTexDim.x) / uGridDim.x;
-        float row1 = floor(myDiv(zSlice1 * uGridDim.x, uGridTexDim.x));
-        vec2 coord1 = (vec2(column1 * uGridDim.x, row1 * uGridDim.y) + (pos.xy * uGridDim.xy)) / uGridTexDim;
-        vec4 color1 = texture2D(tGridTex, coord1);
-
-        float delta0 = abs((pos.z * uGridDim.z) - zSlice0);
-        return mix(color0, color1, delta0);
+        return texture3dFrom2dLinear(tGridTex, pos, uGridDim, uGridTexDim);
+    }
+    vec4 textureGroup(vec3 pos) {
+        vec3 nearestPos = floor(pos * uGridDim + 0.5) / uGridDim + 0.5 / uGridDim;
+        return texture3dFrom2dNearest(tGridTex, nearestPos, uGridDim, uGridTexDim);
     }
 #elif defined(dGridTexType_3d)
     vec4 textureVal(vec3 pos) {
         return texture(tGridTex, pos);
+    }
+    vec4 textureGroup(vec3 pos) {
+        return texelFetch(tGridTex, ivec3(pos * uGridDim), 0);
     }
 #endif
 
@@ -61,7 +70,6 @@ vec4 transferFunction(float value) {
 }
 
 const float gradOffset = 0.5;
-const vec3 color = vec3(0.45, 0.55, 0.8);
 
 vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
     vec3 scaleVol = vec3(1.0) / uGridDim;
@@ -75,6 +83,7 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
         vec3 isoPos;
         float tmp;
 
+        vec3 color = vec3(0.45, 0.55, 0.8);
         vec3 gradient = vec3(1.0);
         vec3 dx = vec3(gradOffset * scaleVol.x, 0.0, 0.0);
         vec3 dy = vec3(0.0, gradOffset * scaleVol.y, 0.0);
@@ -100,28 +109,47 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                 tmp = ((prevValue - uIsoValue) / ((prevValue - uIsoValue) - (value - uIsoValue)));
                 isoPos = mix(pos - step, pos, tmp);
 
-                // compute gradient by central differences
-                gradient.x = textureVal(isoPos - dx).a - textureVal(isoPos + dx).a;
-                gradient.y = textureVal(isoPos - dy).a - textureVal(isoPos + dy).a;
-                gradient.z = textureVal(isoPos - dz).a - textureVal(isoPos + dz).a;
-                gradient = normalize(gradient);
+                #if defined(dColorType_objectPicking)
+                    return vec4(encodeIdRGB(float(uObjectId)), 1.0);
+                #elif defined(dColorType_instancePicking)
+                    return vec4(encodeIdRGB(instance), 1.0);
+                #elif defined(dColorType_groupPicking)
+                    float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
+                    return vec4(encodeIdRGB(group), 1.0);
+                #else
+                    // compute gradient by central differences
+                    gradient.x = textureVal(isoPos - dx).a - textureVal(isoPos + dx).a;
+                    gradient.y = textureVal(isoPos - dy).a - textureVal(isoPos + dy).a;
+                    gradient.z = textureVal(isoPos - dz).a - textureVal(isoPos + dz).a;
+                    gradient = normalize(gradient);
 
-                float d = float(dot(gradient, viewDir) > 0.0);
-                gradient = (2.0 * d - 1.0) * gradient;
+                    float d = float(dot(gradient, viewDir) > 0.0);
+                    gradient = (2.0 * d - 1.0) * gradient;
 
-                src.rgb = color.rgb * abs(dot(gradient, viewDir));
-                src.a = uAlpha;
+                    #if defined(dColorType_instance)
+                        color = readFromTexture(tColor, instance, uColorTexDim).rgb;
+                    #elif defined(dColorType_group)
+                        float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
+                        color = readFromTexture(tColor, group, uColorTexDim).rgb;
+                    #elif defined(dColorType_groupInstance)
+                        float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
+                        color = readFromTexture(tColor, instance * float(uGroupCount) + group, uColorTexDim).rgb;
+                    #endif
 
-                // draw interior darker
-                if( (prevValue - uIsoValue) > 0.0 ) {
-                    src.rgb *= 0.5;
-                }
+                    src.rgb = color * abs(dot(gradient, viewDir));
+                    src.a = uAlpha;
 
-                src.rgb *= src.a;
-                dst = (1.0 - dst.a) * src + dst; // standard blending
-                if(dst.a >= 1.0) {
-                    break;
-                }
+                    // draw interior darker
+                    if( (prevValue - uIsoValue) > 0.0 ) {
+                        src.rgb *= 0.5;
+                    }
+
+                    src.rgb *= src.a;
+                    dst = (1.0 - dst.a) * src + dst; // standard blending
+                    if(dst.a >= 1.0) {
+                        break;
+                    }
+                #endif
             }
             prevValue = value;
         #endif

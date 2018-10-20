@@ -19,7 +19,7 @@ import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
-import { decodeIdRGBA } from 'mol-geo/geometry/picking';
+import { decodeIdRGB } from 'mol-geo/geometry/picking';
 
 export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
     const webgl = defaults(props.webgl, getWebGLContext())
@@ -344,7 +344,7 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
             for (let ix = 0; ix < dx; ++ix) {
                 const idx = 4 * (tmpCol * dx + (iy + tmpRow) * width + ix)
                 data[j] = image[idx + 3] / 255
-                idData[j] = decodeIdRGBA(image[idx], image[idx + 1], image[idx + 2])
+                idData[j] = decodeIdRGB(image[idx], image[idx + 1], image[idx + 2])
                 j++
             }
         }
@@ -381,7 +381,7 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
 //             for (let ix = 0; ix < width; ++ix) {
 //                 const idx = 4 * (iy * width + ix)
 //                 data[j] = slice[idx + 3] / 255
-//                 idData[j] = decodeIdRGBA(slice[idx], slice[idx + 1], slice[idx + 2])
+//                 idData[j] = decodeIdRGB(slice[idx], slice[idx + 1], slice[idx + 2])
 //                 ++j
 //             }
 //         }

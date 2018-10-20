@@ -11,7 +11,7 @@ function decodeFloatRGBA(r: number, g: number, b: number) {
     return r * 256 * 256 + g * 256 + b
 }
 
-export function decodeIdRGBA(r: number, g: number, b: number) {
+export function decodeIdRGB(r: number, g: number, b: number) {
     return decodeFloatRGBA(r, g, b) - 1
 }
 

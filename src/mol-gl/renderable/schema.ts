@@ -59,7 +59,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     const defineValues: DefineValues = {}
     const textureValues: TextureValues = {}
     const uniformValues: UniformValues = {}
-    Object.keys(values).forEach(k => {
+    Object.keys(schema).forEach(k => {
         if (schema[k].type === 'attribute') attributeValues[k] = values[k]
         if (schema[k].type === 'define') defineValues[k] = values[k]
         if (schema[k].type === 'texture') textureValues[k] = values[k]

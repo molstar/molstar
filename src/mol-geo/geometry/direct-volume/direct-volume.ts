@@ -7,12 +7,17 @@
 import { RuntimeContext } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Sphere3D, Box3D } from 'mol-math/geometry'
-import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, TextParam } from 'mol-view/parameter';
+import { paramDefaultValues, RangeParam, SelectParam, TextParam } from 'mol-view/parameter';
 import { DirectVolume2dValues, DirectVolumeBaseValues, DirectVolume3dValues } from 'mol-gl/renderable/direct-volume';
 import { Vec3, Vec2, Mat4 } from 'mol-math/linear-algebra';
 import { Box } from '../../primitive/box';
 import { getControlPointsFromString, createTransferFunctionTexture } from './transfer-function';
 import { Texture } from 'mol-gl/webgl/texture';
+import { LocationIterator } from 'mol-geo/util/location-iterator';
+import { TransformData } from '../transform-data';
+import { createColors } from '../color-data';
+import { createMarkers } from '../marker-data';
+import { Geometry } from '../geometry';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -29,10 +34,7 @@ interface DirectVolumeBase {
 }
 
 const BaseParams = {
-    alpha: RangeParam('Opacity', '', 1, 0, 1, 0.01),
-    visible: BooleanParam('Visible', '', true),
-    depthMask: BooleanParam('Depth Mask', '', true),
-    useFog: BooleanParam('Use Fog', '', false),
+    ...Geometry.Params,
     isoValueAbsolute: RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
     isoValueRelative: RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
     renderMode: SelectParam('Render Mode', '', 'volume', RenderModeOptions),
@@ -41,31 +43,35 @@ const BaseParams = {
 const DefaultBaseProps = paramDefaultValues(BaseParams)
 type BaseProps = typeof DefaultBaseProps
 
-async function createBaseValues(ctx: RuntimeContext, directVolume: DirectVolumeBase, props: BaseProps): Promise<DirectVolumeBaseValues> {
-    const { bboxSize, bboxMin, bboxMax, gridDimension, transform } = directVolume
+async function createBaseValues(ctx: RuntimeContext, directVolume: DirectVolumeBase, transform: TransformData, locationIt: LocationIterator, props: BaseProps): Promise<DirectVolumeBaseValues> {
+    const { instanceCount, groupCount } = locationIt
+    const color = await createColors(ctx, locationIt, props)
+    const marker = createMarkers(instanceCount * groupCount)
+
+    const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
+
+    const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume
 
     const controlPoints = getControlPointsFromString(props.controlPoints)
     const transferTex = createTransferFunctionTexture(controlPoints)
 
     const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value)) * 2
-    console.log('maxSteps', maxSteps)
 
     return {
-        drawCount: ValueCell.create(VolumeBox.indices.length),
-        instanceCount: ValueCell.create(1),
+        ...color,
+        ...marker,
+        ...transform,
+        ...Geometry.createValues(props, counts),
 
         aPosition: ValueCell.create(VolumeBox.vertices as Float32Array),
         elements: ValueCell.create(VolumeBox.indices as Uint32Array),
-
-        uAlpha: ValueCell.create(props.alpha),
-        dUseFog: ValueCell.create(props.useFog),
 
         uIsoValue: ValueCell.create(props.isoValueAbsolute),
         uBboxMin: bboxMin,
         uBboxMax: bboxMax,
         uBboxSize: bboxSize,
         dMaxSteps: ValueCell.create(maxSteps),
-        uTransform: transform,
+        uTransform: gridTransform,
         uGridDim: gridDimension,
         dRenderMode: ValueCell.create(props.renderMode),
         tTransferTex: transferTex,
@@ -73,7 +79,6 @@ async function createBaseValues(ctx: RuntimeContext, directVolume: DirectVolumeB
 }
 
 function updateBaseValues(values: DirectVolumeBaseValues, props: BaseProps) {
-    console.log('DirectVolumeBaseValues', props, values)
     ValueCell.updateIfChanged(values.uIsoValue, props.isoValueAbsolute)
     ValueCell.updateIfChanged(values.uAlpha, props.alpha)
     ValueCell.updateIfChanged(values.dUseFog, props.useFog)
@@ -123,11 +128,11 @@ export namespace DirectVolume2d {
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume2d, props: Props): Promise<DirectVolume2dValues> {
+    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume2d, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<DirectVolume2dValues> {
         const { gridTexture, gridTextureDim } = directVolume
 
         return {
-            ...await createBaseValues(ctx, directVolume, props),
+            ...await createBaseValues(ctx, directVolume, transform, locationIt, props),
             dGridTexType: ValueCell.create('2d'),
             uGridTexDim: gridTextureDim,
             tGridTex: gridTexture,
@@ -176,11 +181,11 @@ export namespace DirectVolume3d {
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume3d, props: Props): Promise<DirectVolume3dValues> {
+    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume3d, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<DirectVolume3dValues> {
         const { gridTexture } = directVolume
 
         return {
-            ...await createBaseValues(ctx, directVolume, props),
+            ...await createBaseValues(ctx, directVolume, transform, locationIt, props),
             dGridTexType: ValueCell.create('3d'),
             tGridTex: gridTexture,
         }

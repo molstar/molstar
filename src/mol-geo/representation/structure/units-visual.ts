@@ -555,8 +555,6 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
                 DirectVolume2d.createEmpty(directVolume as DirectVolume2d) :
                 DirectVolume3d.createEmpty(directVolume as DirectVolume3d))
 
-        console.log('directVolume', directVolume)
-
         // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
         renderObject = await createUnitsDirectVolumeRenderObject(ctx, group, directVolume, locationIt, currentProps)
@@ -589,13 +587,13 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
 
         //
 
-        // if (updateState.updateTransform) {
-        //     locationIt = createLocationIterator(currentGroup)
-        //     const { instanceCount, groupCount } = locationIt
-        //     createUnitsTransform(currentGroup, renderObject.values)
-        //     createMarkers(instanceCount * groupCount, renderObject.values)
-        //     updateState.updateColor = true
-        // }
+        if (updateState.updateTransform) {
+            locationIt = createLocationIterator(currentGroup)
+            const { instanceCount, groupCount } = locationIt
+            createUnitsTransform(currentGroup, renderObject.values)
+            createMarkers(instanceCount * groupCount, renderObject.values)
+            updateState.updateColor = true
+        }
 
         if (updateState.createGeometry) {
             directVolume = includesUnitKind(newProps.unitKinds, unit)
@@ -606,9 +604,9 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
             updateState.updateColor = true
         }
 
-        // if (updateState.updateColor) {
-        //     await createColors(ctx, locationIt, newProps, renderObject.values)
-        // }
+        if (updateState.updateColor) {
+            await createColors(ctx, locationIt, newProps, renderObject.values)
+        }
 
         if (renderObject.type === 'direct-volume-2d') {
             DirectVolume2d.updateValues(renderObject.values, newProps)

@@ -73,10 +73,9 @@ export async function createUnitsLinesRenderObject(ctx: RuntimeContext, group: U
 type StructureDirectVolumeProps = DirectVolume2d.Props & DirectVolume3d.Props & StructureProps
 
 export async function createUnitsDirectVolumeRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, directVolume: DirectVolume2d | DirectVolume3d, locationIt: LocationIterator, props: StructureDirectVolumeProps) {
-    // TODO transform support
-    // const transform = createUnitsTransform(group)
+    const transform = createUnitsTransform(group)
     const state = createRenderableState(props)
     return directVolume.kind === 'direct-volume-2d' ?
-        createDirectVolume2dRenderObject(await DirectVolume2d.createValues(ctx, directVolume, props), state) :
-        createDirectVolume3dRenderObject(await DirectVolume3d.createValues(ctx, directVolume, props), state)
+        createDirectVolume2dRenderObject(await DirectVolume2d.createValues(ctx, directVolume, transform, locationIt, props), state) :
+        createDirectVolume3dRenderObject(await DirectVolume3d.createValues(ctx, directVolume, transform, locationIt, props), state)
 }

@@ -8,9 +8,12 @@
 precision highp float;
 
 attribute vec3 aPosition;
+attribute mat4 aTransform;
+attribute float aInstance;
 
 varying vec3 unitCoord;
 varying vec3 origPos;
+varying float instance;
 
 uniform vec3 uBboxSize;
 uniform vec3 uBboxMin;
@@ -23,5 +26,6 @@ void main() {
     unitCoord = aPosition + vec3(0.5);
     vec4 mvPosition = uModelView * vec4(unitCoord * uBboxSize + uBboxMin, 1.0);
     origPos = unitCoord * uBboxSize + uBboxMin;
+    instance = aInstance;
     gl_Position = uProjection * mvPosition;
 }
