@@ -7,7 +7,7 @@
 import CCP4 from '../ccp4/parser'
 import { FileHandle } from '../../common/file-handle';
 
-const ccp4Buffer = new Uint8Array([])
+const ccp4Buffer = new Uint8Array(4 * 64)
 
 describe('ccp4 reader', () => {
     it('basic', async () => {
