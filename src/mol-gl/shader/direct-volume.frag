@@ -122,22 +122,30 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                     gradient.y = textureVal(isoPos - dy).a - textureVal(isoPos + dy).a;
                     gradient.z = textureVal(isoPos - dz).a - textureVal(isoPos + dz).a;
                     gradient = normalize(gradient);
-
                     float d = float(dot(gradient, viewDir) > 0.0);
                     gradient = (2.0 * d - 1.0) * gradient;
+
+                    float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
 
                     #if defined(dColorType_instance)
                         color = readFromTexture(tColor, instance, uColorTexDim).rgb;
                     #elif defined(dColorType_group)
-                        float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
                         color = readFromTexture(tColor, group, uColorTexDim).rgb;
                     #elif defined(dColorType_groupInstance)
-                        float group = floor(decodeIdRGB(textureGroup(isoPos).rgb) + 0.5);
                         color = readFromTexture(tColor, instance * float(uGroupCount) + group, uColorTexDim).rgb;
                     #endif
 
                     src.rgb = color * abs(dot(gradient, viewDir));
                     src.a = uAlpha;
+
+                    float marker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a * 256.0;
+                    if (marker > 0.1) {
+                        if (mod(marker, 2.0) < 0.1) {
+                            src.rgb = mix(uHighlightColor, src.rgb, 0.3);
+                        } else {
+                            src.rgb = mix(uSelectColor, src.rgb, 0.3);
+                        }
+                    }
 
                     // draw interior darker
                     if( (prevValue - uIsoValue) > 0.0 ) {

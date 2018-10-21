@@ -9,7 +9,7 @@ import { GaussianSurfaceVisual, GaussianSurfaceParams } from '../visual/gaussian
 import { StructureRepresentation } from '../units-representation';
 import { Structure } from 'mol-model/structure';
 import { MarkerAction } from '../../../geometry/marker-data';
-import { Loci } from 'mol-model/loci';
+import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { PickingId } from '../../../geometry/picking';
 import { Task } from 'mol-task';
 import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaussian-surface-wireframe';
@@ -63,10 +63,24 @@ export function MolecularSurfaceRepresentation(): MolecularSurfaceRepresentation
             })
         },
         getLoci: (pickingId: PickingId) => {
-            return gaussianSurfaceRepr.getLoci(pickingId)
+            const surfaceLoci = gaussianSurfaceRepr.getLoci(pickingId)
+            const wireframeLoci = gaussianWireframeRepr.getLoci(pickingId)
+            const volumeLoci = gaussianVolumeRepr.getLoci(pickingId)
+            if (isEmptyLoci(surfaceLoci)) {
+                if (isEmptyLoci(wireframeLoci)) {
+                    return volumeLoci
+                } else {
+                    return wireframeLoci
+                }
+            } else {
+                return surfaceLoci
+            }
         },
         mark: (loci: Loci, action: MarkerAction) => {
-            return gaussianSurfaceRepr.mark(loci, action)
+            const markSurfaceElement = gaussianSurfaceRepr.mark(loci, action)
+            const markWireframeElement = gaussianWireframeRepr.mark(loci, action)
+            const markVolumeElement = gaussianVolumeRepr.mark(loci, action)
+            return markSurfaceElement || markWireframeElement || markVolumeElement
         },
         destroy() {
             gaussianSurfaceRepr.destroy()

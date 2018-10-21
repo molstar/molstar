@@ -529,7 +529,7 @@ export type UnitsDirectVolumeProps = typeof DefaultUnitsDirectVolumeProps
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> extends UnitsVisualBuilder<P, DirectVolume2d | DirectVolume3d> { }
 
 export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builder: UnitsDirectVolumeVisualBuilder<P>): UnitsVisual<P> {
-    const { defaultProps, createGeometry, createLocationIterator, getLoci, setUpdateState } = builder
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: DirectVolume2dRenderObject | DirectVolume3dRenderObject | undefined
@@ -644,8 +644,26 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
             return renderObject ? getLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
-            // TODO
-            return false
+            if (!renderObject) return false
+            const { tMarker } = renderObject.values
+            const { groupCount, instanceCount } = locationIt
+
+            function apply(interval: Interval) {
+                const start = Interval.start(interval)
+                const end = Interval.end(interval)
+                return applyMarkerAction(tMarker.ref.value.array, start, end, action)
+            }
+
+            let changed = false
+            if (isEveryLoci(loci)) {
+                changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
+            } else {
+                changed = mark(loci, currentGroup, apply)
+            }
+            if (changed) {
+                ValueCell.update(tMarker, tMarker.ref.value)
+            }
+            return changed
         },
         destroy() {
             // TODO
