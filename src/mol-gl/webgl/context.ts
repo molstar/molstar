@@ -6,7 +6,7 @@
 
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
-import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax } from './compat';
+import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth } from './compat';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -105,6 +105,7 @@ type Extensions = {
     textureFloatLinear: COMPAT_texture_float_linear
     elementIndexUint: COMPAT_element_index_uint | null
     vertexArrayObject: COMPAT_vertex_array_object | null
+    fragDepth: COMPAT_frag_depth | null
 }
 
 /** A WebGL context object, including the rendering context, resource caches and counts */
@@ -165,6 +166,10 @@ export function createContext(gl: GLRenderingContext): Context {
     if (vertexArrayObject === null) {
         console.log('Could not find support for "vertex_array_object"')
     }
+    const fragDepth = getFragDepth(gl)
+    if (fragDepth === null) {
+        console.log('Could not find support for "frag_depth"')
+    }
 
     const shaderCache = createShaderCache()
     const programCache = createProgramCache()
@@ -172,6 +177,11 @@ export function createContext(gl: GLRenderingContext): Context {
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
         maxDrawBuffers: isWebGL2(gl) ? gl.getParameter(gl.MAX_DRAW_BUFFERS) : 0,
+        maxVertexTextureImageUnits: gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS),
+    }
+
+    if (parameters.maxVertexTextureImageUnits < 4) {
+        throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 4')
     }
 
     return {
@@ -184,7 +194,8 @@ export function createContext(gl: GLRenderingContext): Context {
             textureFloat,
             textureFloatLinear,
             elementIndexUint,
-            vertexArrayObject
+            vertexArrayObject,
+            fragDepth
         },
         pixelRatio: getPixelRatio(),
 

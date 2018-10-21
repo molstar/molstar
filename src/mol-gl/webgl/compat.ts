@@ -122,3 +122,10 @@ export function getBlendMinMax(gl: GLRenderingContext): COMPAT_blend_minmax | nu
         return { MIN: ext.MIN_EXT, MAX: ext.MAX_EXT }
     }
 }
+
+export interface COMPAT_frag_depth {
+}
+
+export function getFragDepth(gl: GLRenderingContext): COMPAT_frag_depth | null {
+    return isWebGL2(gl) ? {} : gl.getExtension('EXT_frag_depth')
+}
