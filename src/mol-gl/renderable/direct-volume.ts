@@ -63,7 +63,7 @@ function DirectVolumeRenderable<T extends DirectVolumeBaseValues, S extends Dire
     const renderItem = createRenderItem(ctx, 'triangles', shaderCode, fullSchema, fullValues)
     const renderable = createRenderable(renderItem, values, state);
 
-    Object.defineProperty(renderable, 'opaque', { get: () => true });
+    Object.defineProperty(renderable, 'opaque', { get: () => false });
 
     return renderable
 }

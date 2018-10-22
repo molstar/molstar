@@ -33,7 +33,6 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
     Mat4.setTranslation(transform, bbox.min)
-    console.log(idField)
 
     return { field, idField, transform }
 }

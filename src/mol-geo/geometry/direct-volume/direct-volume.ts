@@ -37,7 +37,7 @@ const BaseParams = {
     ...Geometry.Params,
     isoValueAbsolute: RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
     isoValueRelative: RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
-    renderMode: SelectParam('Render Mode', '', 'volume', RenderModeOptions),
+    renderMode: SelectParam('Render Mode', '', 'isosurface', RenderModeOptions),
     controlPoints: TextParam('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
 }
 const DefaultBaseProps = paramDefaultValues(BaseParams)

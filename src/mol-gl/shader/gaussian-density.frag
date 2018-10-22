@@ -66,7 +66,7 @@ void main() {
         float minDistance = decodeDistLog(1.0 - textureMinDist(fragPos).a);
         // TODO verify `length(uBboxSize / uGridDim) * 2.0`
         //      on some machines `* 2.0` is needed while on others `* 0.5` works
-        if (dist > minDistance + length(uBboxSize / uGridDim) * 2.0)
+        if (dist > minDistance + length(uBboxSize / uGridDim) * 0.5)
             discard;
         gl_FragColor.rgb = encodeIdRGB(vGroup);
     #endif
