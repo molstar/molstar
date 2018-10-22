@@ -5,20 +5,19 @@
  * @author Michael Krone <michael.krone@uni-tuebingen.de>
  */
 
-// TODO workaround due to some kind of GPU quirk
-float myMod(float a, float b) { return a - b * float(int(a) / int(b)); }
-float myDiv(float a, float b) { return float(int(a) / int(b)); }
+float intDiv(float a, float b) { return float(int(a) / int(b)); }
+float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
 
 vec4 texture3dFrom2dLinear(sampler2D tex, vec3 pos, vec3 gridDim, vec2 texDim) {
     float zSlice0 = floor(pos.z * gridDim.z);
-    float column0 = myMod(zSlice0 * gridDim.x, texDim.x) / gridDim.x;
-    float row0 = floor(myDiv(zSlice0 * gridDim.x, texDim.x));
+    float column0 = intMod(zSlice0 * gridDim.x, texDim.x) / gridDim.x;
+    float row0 = floor(intDiv(zSlice0 * gridDim.x, texDim.x));
     vec2 coord0 = (vec2(column0 * gridDim.x, row0 * gridDim.y) + (pos.xy * gridDim.xy)) / texDim;
     vec4 color0 = texture2D(tex, coord0);
 
     float zSlice1 = zSlice0 + 1.0;
-    float column1 = myMod(zSlice1 * gridDim.x, texDim.x) / gridDim.x;
-    float row1 = floor(myDiv(zSlice1 * gridDim.x, texDim.x));
+    float column1 = intMod(zSlice1 * gridDim.x, texDim.x) / gridDim.x;
+    float row1 = floor(intDiv(zSlice1 * gridDim.x, texDim.x));
     vec2 coord1 = (vec2(column1 * gridDim.x, row1 * gridDim.y) + (pos.xy * gridDim.xy)) / texDim;
     vec4 color1 = texture2D(tex, coord1);
 
