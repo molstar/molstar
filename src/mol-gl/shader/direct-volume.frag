@@ -48,6 +48,20 @@ uniform sampler2D tMarker;
 #pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl)
 #pragma glslify: texture3dFrom2dLinear = require(./utils/texture3d-from-2d-linear.glsl)
 
+// uniform vec3 uLightPosition;
+uniform vec3 uLightColor;
+uniform vec3 uLightAmbient;
+uniform mat4 uView;
+
+#pragma glslify: attenuation = require(./utils/attenuation.glsl)
+#pragma glslify: calculateSpecular = require(./utils/phong-specular.glsl)
+#pragma glslify: calculateDiffuse = require(./utils/oren-nayar-diffuse.glsl)
+
+const float specularScale = 0.15;
+const float shininess = 200.0;
+const float roughness = 100.0;
+const float albedo = 0.95;
+
 #if defined(dGridTexType_2d)
     vec4 textureVal(vec3 pos) {
         return texture3dFrom2dLinear(tGridTex, pos, uGridDim, uGridTexDim);
@@ -135,7 +149,19 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                         color = readFromTexture(tColor, instance * float(uGroupCount) + group, uColorTexDim).rgb;
                     #endif
 
-                    src.rgb = color * abs(dot(gradient, viewDir));
+                    vec3 L = normalize(viewDir); // light direction
+                    vec3 V = normalize(viewDir); // eye direction
+                    vec3 N = normalize(gradient); // surface normal
+
+                    // compute our diffuse & specular terms
+                    float specular = calculateSpecular(L, V, N, shininess) * specularScale;
+                    vec3 diffuse = uLightColor * calculateDiffuse(L, V, N, roughness, albedo);
+                    vec3 ambient = uLightAmbient;
+
+                    // add the lighting
+                    vec3 finalColor = color.rgb * (diffuse + ambient) + specular;
+
+                    src.rgb = finalColor;
                     src.a = uAlpha;
 
                     float marker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a * 256.0;
