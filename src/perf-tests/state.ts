@@ -82,8 +82,8 @@ export async function testState() {
     const tree = state.definition.tree;
     const builder = StateTreeBuilder.create(tree)
     builder.toRoot<Root>()
-        .apply(CreateSquare.apply({ a: 10 }, { ref: 'square' }))
-        .apply(CaclArea.apply());
+        .apply(CreateSquare, { a: 10 }, { ref: 'square' })
+        .apply(CaclArea);
     const tree1 = builder.getTree();
 
     printTTree(tree1);

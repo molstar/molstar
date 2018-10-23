@@ -8,6 +8,7 @@ import { ImmutableTree } from '../util/immutable-tree';
 import { TransformTree } from './tree';
 import { StateObject } from '../object';
 import { Transform } from './transform';
+import { Transformer } from '../transformer';
 
 export interface StateTreeBuilder {
     getTree(): TransformTree
@@ -24,6 +25,7 @@ export namespace StateTreeBuilder {
 
     export class Root implements StateTreeBuilder {
         private state: State;
+        //to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref); }
         to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref); }
         toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.rootRef as any); }
         getTree(): TransformTree { return this.state.tree.asImmutable(); }
@@ -31,7 +33,8 @@ export namespace StateTreeBuilder {
     }
 
     export class To<A extends StateObject> implements StateTreeBuilder {
-        apply<B extends StateObject>(t: Transform<A, B, any>): To<B> {
+        apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Props>): To<Transformer.To<T>> {
+            const t = tr.apply(params, props);
             this.state.tree.add(this.ref, t);
             return new To(this.state, t.ref);
         }

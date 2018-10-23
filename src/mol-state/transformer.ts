@@ -18,6 +18,7 @@ export interface Transformer<A extends StateObject = StateObject, B extends Stat
 export namespace Transformer {
     export type Id = string & { '@type': 'transformer-id' }
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
+    export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
     export type ControlsFor<Props> = { [P in keyof Props]?: any }
 
     export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
