@@ -1,22 +1,26 @@
+
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { Transform } from './tree/transform';
+
 /** A mutable state object */
-export interface StateObject<T extends StateObject.Type = any> {
-    '@type': T,
-    label: string,
-    version: number
+export interface StateObject<P = unknown, D = unknown> {
+    ref: Transform.Ref,
+    readonly type: StateObject.Type,
+    readonly props: P,
+    readonly data: D
 }
 
 export namespace StateObject {
-    export type TypeOf<T>
-        = T extends StateObject<infer X> ? [X]
-        : T extends [StateObject<infer X>] ? [X]
-        : T extends [StateObject<infer X>, StateObject<infer Y>] ? [X, Y]
-        : unknown[];
+    // export type TypeOf<T>
+    //     = T extends StateObject<infer X> ? [X]
+    //     : T extends [StateObject<infer X>] ? [X]
+    //     : T extends [StateObject<infer X>, StateObject<infer Y>] ? [X, Y]
+    //     : unknown[];
 
     export enum StateType {
         // The object has been successfully created
@@ -29,5 +33,28 @@ export namespace StateObject {
         Processing
     }
 
-    export type Type = string & { '@type': 'state-object-type' }
+    export interface Type<Info = any> {
+        kind: string,
+        info: Info
+    }
+
+    export function factory<TypeInfo, CommonProps>() {
+        return <D = { }, P = {}>(kind: string, info: TypeInfo) => create<P & CommonProps, D, TypeInfo>(kind, info);
+    }
+
+    export function create<Props, Data, TypeInfo>(kind: string, typeInfo: TypeInfo) {
+        const dataType: Type<TypeInfo> = { kind, info: typeInfo };
+        return class implements StateObject<Props, Data> {
+            static type = dataType;
+            type = dataType;
+            ref = 'not set' as Transform.Ref;
+            constructor(public props: Props, public data: Data) { }
+        }
+    }
+
+    export interface Wrapped {
+        obj: StateObject,
+        state: StateType,
+        version: string
+    }
 }

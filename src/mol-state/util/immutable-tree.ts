@@ -6,31 +6,36 @@
 
 import { Map as ImmutableMap, OrderedSet } from 'immutable';
 
-// TODO: use generic "node keys" instead of string
-
 /**
  * An immutable tree where each node requires a unique reference.
  * Represented as an immutable map.
  */
 export interface ImmutableTree<T> {
-    readonly rootRef: string,
+    readonly rootRef: ImmutableTree.Ref,
     readonly version: number,
     readonly nodes: ImmutableTree.Nodes<T>,
-    getRef(e: T): string
+    getRef(e: T): ImmutableTree.Ref,
+    getValue(ref: ImmutableTree.Ref): T | undefined
 }
 
 export namespace ImmutableTree {
-    export interface MutableNode<T> { ref: string, value: T, version: number, parent: string, children: OrderedSet<string> }
+    export type Ref = string
+    export interface MutableNode<T> { ref: ImmutableTree.Ref, value: T, version: number, parent: ImmutableTree.Ref, children: OrderedSet<ImmutableTree.Ref> }
     export interface Node<T> extends Readonly<MutableNode<T>> { }
-    export interface Nodes<T> extends ImmutableMap<string, Node<T>> { }
+    export interface Nodes<T> extends ImmutableMap<ImmutableTree.Ref, Node<T>> { }
 
     class Impl<T> implements ImmutableTree<T> {
-        readonly rootRef: string;
+        readonly rootRef: ImmutableTree.Ref;
         readonly version: number;
         readonly nodes: ImmutableTree.Nodes<T>;
-        readonly getRef: (e: T) => string;
+        readonly getRef: (e: T) => ImmutableTree.Ref;
 
-        constructor(rootRef: string, nodes: ImmutableTree.Nodes<T>, getRef: (e: T) => string, version: number) {
+        getValue(ref: Ref) {
+            const n = this.nodes.get(ref);
+            return n ? n.value : void 0;
+        }
+
+        constructor(rootRef: ImmutableTree.Ref, nodes: ImmutableTree.Nodes<T>, getRef: (e: T) => ImmutableTree.Ref, version: number) {
             this.rootRef = rootRef;
             this.nodes = nodes;
             this.getRef = getRef;
@@ -41,7 +46,7 @@ export namespace ImmutableTree {
     /**
      * Create an instance of an immutable tree.
      */
-    export function create<T>(root: T, getRef: (t: T) => string): ImmutableTree<T> {
+    export function create<T>(root: T, getRef: (t: T) => ImmutableTree.Ref): ImmutableTree<T> {
         const ref = getRef(root);
         const r: Node<T> = { ref, value: root, version: 0, parent: ref, children: OrderedSet() };
         return new Impl(ref, ImmutableMap([[ref, r]]), getRef, 0);
@@ -56,7 +61,7 @@ export namespace ImmutableTree {
 
     type VisitorCtx = { nodes: Ns, state: any, f: (node: N, nodes: Ns, state: any) => boolean | undefined | void };
 
-    function _postOrderFunc(this: VisitorCtx, c: string | undefined) { _doPostOrder(this, this.nodes.get(c!)!); }
+    function _postOrderFunc(this: VisitorCtx, c: ImmutableTree.Ref | undefined) { _doPostOrder(this, this.nodes.get(c!)!); }
     function _doPostOrder<T, S>(ctx: VisitorCtx, root: N) {
         if (root.children.size) {
             root.children.forEach(_postOrderFunc, ctx);
@@ -73,9 +78,10 @@ export namespace ImmutableTree {
         return ctx.state;
     }
 
-    function _preOrderFunc(this: VisitorCtx, c: string | undefined) { _doPreOrder(this, this.nodes.get(c!)!); }
+    function _preOrderFunc(this: VisitorCtx, c: ImmutableTree.Ref | undefined) { _doPreOrder(this, this.nodes.get(c!)!); }
     function _doPreOrder<T, S>(ctx: VisitorCtx, root: N) {
-        ctx.f(root, ctx.nodes, ctx.state);
+        const ret = ctx.f(root, ctx.nodes, ctx.state);
+        if (typeof ret === 'boolean' && !ret) return;
         if (root.children.size) {
             root.children.forEach(_preOrderFunc, ctx);
         }
@@ -83,6 +89,7 @@ export namespace ImmutableTree {
 
     /**
      * Visit all nodes in a subtree in "pre order", meaning leafs get visited last.
+     * If the visitor function returns false, the visiting for that branch is interrupted.
      */
     export function doPreOrder<T, S>(tree: ImmutableTree<T>, root: Node<T>, state: S, f: (node: Node<T>, nodes: Nodes<T>, state: S) => boolean | undefined | void) {
         const ctx: VisitorCtx = { nodes: tree.nodes, state, f };
@@ -98,25 +105,71 @@ export namespace ImmutableTree {
         return doPostOrder<T, Node<T>[]>(tree, root, [], _subtree);
     }
 
-    function checkSetRef(oldRef: string, newRef: string) {
+
+    function _visitChildToJson(this: Ref[], ref: Ref) { this.push(ref); }
+    interface ToJsonCtx { nodes: Ref[], parent: any, children: any, values: any, valueToJSON: (v: any) => any }
+    function _visitNodeToJson(this: ToJsonCtx, node: Node<any>) {
+        this.nodes.push(node.ref);
+        const children: Ref[] = [];
+        node.children.forEach(_visitChildToJson as any, children);
+        this.parent[node.ref] = node.parent;
+        this.children[node.ref] = children;
+        this.values[node.ref] = this.valueToJSON(node.value);
+    }
+
+    export interface Serialized {
+        root: Ref,
+        nodes: Ref[],
+        parent: { [key: string]: string },
+        children: { [key: string]: any },
+        values: { [key: string]: any }
+    }
+
+    export function toJSON<T>(tree: ImmutableTree<T>, valueToJSON: (v: T) => any): Serialized {
+        const ctx: ToJsonCtx = { nodes: [], parent: { }, children: {}, values: {}, valueToJSON };
+        tree.nodes.forEach(_visitNodeToJson as any, ctx);
+        return {
+            root: tree.rootRef,
+            nodes: ctx.nodes,
+            parent: ctx.parent,
+            children: ctx.children,
+            values: ctx.values
+        };
+    }
+
+    export function fromJSON<T>(data: Serialized, getRef: (v: T) => Ref, valueFromJSON: (v: any) => T): ImmutableTree<T> {
+        const nodes = ImmutableMap<ImmutableTree.Ref, Node<T>>().asMutable();
+        for (const ref of data.nodes) {
+            nodes.set(ref, {
+                ref,
+                value: valueFromJSON(data.values[ref]),
+                version: 0,
+                parent: data.parent[ref],
+                children: OrderedSet(data.children[ref])
+            });
+        }
+        return new Impl(data.root, nodes.asImmutable(), getRef, 0);
+    }
+
+    function checkSetRef(oldRef: ImmutableTree.Ref, newRef: ImmutableTree.Ref) {
         if (oldRef !== newRef) {
             throw new Error(`Cannot setValue of node '${oldRef}' because the new value has a different ref '${newRef}'.`);
         }
     }
 
-    function ensureNotPresent(nodes: Ns, ref: string) {
+    function ensureNotPresent(nodes: Ns, ref: ImmutableTree.Ref) {
         if (nodes.has(ref)) {
             throw new Error(`Cannot add node '${ref}' because a different node with this ref already present in the tree.`);
         }
     }
 
-    function ensurePresent(nodes: Ns, ref: string) {
+    function ensurePresent(nodes: Ns, ref: ImmutableTree.Ref) {
         if (!nodes.has(ref)) {
             throw new Error(`Node '${ref}' is not present in the tree.`);
         }
     }
 
-    function mutateNode(nodes: Ns, mutations: Map<string, N>, ref: string): N {
+    function mutateNode(nodes: Ns, mutations: Map<ImmutableTree.Ref, N>, ref: ImmutableTree.Ref): N {
         ensurePresent(nodes, ref);
         if (mutations.has(ref)) {
             return mutations.get(ref)!;
@@ -131,9 +184,9 @@ export namespace ImmutableTree {
     export class Transient<T> implements ImmutableTree<T> {
         nodes = this.tree.nodes.asMutable();
         version: number = this.tree.version + 1;
-        private mutations: Map<string, Node<T>> = new Map();
+        private mutations: Map<ImmutableTree.Ref, Node<T>> = new Map();
 
-        mutate(ref: string): MutableNode<T> {
+        mutate(ref: ImmutableTree.Ref): MutableNode<T> {
             return mutateNode(this.nodes, this.mutations, ref);
         }
 
@@ -142,7 +195,12 @@ export namespace ImmutableTree {
             return this.tree.getRef(e);
         }
 
-        add(parentRef: string, value: T) {
+        getValue(ref: Ref) {
+            const n = this.nodes.get(ref);
+            return n ? n.value : void 0;
+        }
+
+        add(parentRef: ImmutableTree.Ref, value: T) {
             const ref = this.getRef(value);
             ensureNotPresent(this.nodes, ref);
             const parent = this.mutate(parentRef);
@@ -153,14 +211,14 @@ export namespace ImmutableTree {
             return node;
         }
 
-        setValue(ref: string, value: T): Node<T> {
+        setValue(ref: ImmutableTree.Ref, value: T): Node<T> {
             checkSetRef(ref, this.getRef(value));
             const node = this.mutate(ref);
             node.value = value;
             return node;
         }
 
-        remove<T>(ref: string): Node<T>[] {
+        remove<T>(ref: ImmutableTree.Ref): Node<T>[] {
             const { nodes, mutations, mutate } = this;
             const node = nodes.get(ref);
             if (!node) return [];
@@ -180,7 +238,7 @@ export namespace ImmutableTree {
             return st;
         }
 
-        removeChildren(ref: string): Node<T>[] {
+        removeChildren(ref: ImmutableTree.Ref): Node<T>[] {
             const { nodes, mutations, mutate } = this;
             let node = nodes.get(ref);
             if (!node || !node.children.size) return [];
