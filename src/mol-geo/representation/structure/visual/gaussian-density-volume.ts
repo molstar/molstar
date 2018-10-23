@@ -11,9 +11,9 @@ import { UnitsDirectVolumeVisual, UnitsDirectVolumeParams } from '../units-visua
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams, computeUnitGaussianDensityTexture } from 'mol-model/structure/structure/unit/gaussian-density';
 import { paramDefaultValues } from 'mol-view/parameter';
-import { DirectVolume2d, DirectVolume3d } from '../../../geometry/direct-volume/direct-volume';
+import { DirectVolume } from '../../../geometry/direct-volume/direct-volume';
 
-async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume2d | DirectVolume3d): Promise<DirectVolume2d | DirectVolume3d> {
+async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { webgl } = props
     if (webgl === undefined) throw new Error('createGaussianDensityVolume requires `webgl` in props')
 
@@ -22,11 +22,7 @@ async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, stru
     const densityTextureData = await computeUnitGaussianDensityTexture(unit, p, oldTexture).runInContext(ctx)
     const { transform, texture, bbox, gridDimension } = densityTextureData
 
-    directVolume = texture.depth === 0 ?
-        DirectVolume2d.create(bbox, gridDimension, transform, texture, directVolume as DirectVolume2d) :
-        DirectVolume3d.create(bbox, gridDimension, transform, texture, directVolume as DirectVolume3d)
-
-    return directVolume;
+    return DirectVolume.create(bbox, gridDimension, transform, texture, directVolume)
 }
 
 export const GaussianDensityVolumeParams = {

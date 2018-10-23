@@ -19,8 +19,7 @@ export type TextureKindValue = {
     'image-float32': TextureImage<Float32Array>
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
-    'texture2d': Texture
-    'texture3d': Texture
+    'texture': Texture
 }
 export type TextureValueType = Helpers.ValueOf<TextureKindValue>
 export type TextureKind = keyof TextureKindValue
@@ -35,13 +34,11 @@ export function getTarget(ctx: Context, kind: TextureKind): number {
     switch (kind) {
         case 'image-uint8': return gl.TEXTURE_2D
         case 'image-float32': return gl.TEXTURE_2D
-        case 'texture2d': return gl.TEXTURE_2D
     }
     if (isWebGL2(gl)) {
         switch (kind) {
             case 'volume-uint8': return gl.TEXTURE_3D
             case 'volume-float32': return gl.TEXTURE_3D
-            case 'texture3d': return gl.TEXTURE_3D
         }
     }
     throw new Error('unknown texture kind')
@@ -252,7 +249,7 @@ export function createTextures(ctx: Context, schema: RenderableSchema, values: T
     Object.keys(schema).forEach((k, i) => {
         const spec = schema[k]
         if (spec.type === 'texture') {
-            if (spec.kind === 'texture2d' || spec.kind === 'texture3d') {
+            if (spec.kind === 'texture') {
                 textures[k] = values[k].ref.value as Texture
             } else {
                 const texture = createTexture(ctx, spec.kind, spec.format, spec.dataType, spec.filter)

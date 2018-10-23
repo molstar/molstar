@@ -17,7 +17,7 @@ import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
 import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, StructureParam, ValueParam } from 'mol-view/parameter'
 import { Structure } from 'mol-model/structure';
-import { DirectVolume2d, DirectVolume3d } from './direct-volume/direct-volume';
+import { DirectVolume } from './direct-volume/direct-volume';
 import { Context } from 'mol-gl/webgl/context';
 
 //
@@ -43,8 +43,7 @@ export type GeometryKindType = {
     'mesh': Mesh,
     'points': Points,
     'lines': Lines,
-    'direct-volume-2d': DirectVolume2d,
-    'direct-volume-3d': DirectVolume3d
+    'direct-volume': DirectVolume,
 }
 export type GeometryKind = keyof GeometryKindType
 export type Geometry = Helpers.ValueOf<GeometryKindType>
@@ -55,8 +54,7 @@ export namespace Geometry {
             case 'mesh': return geometry.triangleCount * 3
             case 'points': return geometry.pointCount
             case 'lines': return geometry.lineCount * 2 * 3
-            case 'direct-volume-2d': return 12 * 3
-            case 'direct-volume-3d': return 12 * 3
+            case 'direct-volume': return 12 * 3
         }
     }
 

@@ -13,7 +13,7 @@ varying float vRadius;
     #if defined(dGridTexType_2d)
         precision mediump sampler2D;
         uniform sampler2D tMinDistanceTex;
-        uniform vec2 uGridTexDim;
+        uniform vec3 uGridTexDim;
     #elif defined(dGridTexType_3d)
         precision highp sampler3D;
         uniform sampler3D tMinDistanceTex;
@@ -36,7 +36,7 @@ uniform float uAlpha;
 #if defined(dCalcType_groupId)
     #if defined(dGridTexType_2d)
         vec4 textureMinDist(vec3 pos) {
-            return texture3dFrom2dNearest(tMinDistanceTex, pos, uGridDim, uGridTexDim);
+            return texture3dFrom2dNearest(tMinDistanceTex, pos, uGridDim, uGridTexDim.xy);
         }
     #elif defined(dGridTexType_3d)
         vec4 textureMinDist(vec3 pos) {

@@ -8,14 +8,14 @@ import { Unit, Structure } from 'mol-model/structure';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Mesh } from '../../../../geometry/mesh/mesh';
 import { StructureProps } from '../..';
-import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolume2dRenderObject, createDirectVolume3dRenderObject } from 'mol-gl/render-object';
+import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { RuntimeContext } from 'mol-task';
 import { TransformData, createIdentityTransform, createTransform } from '../../../../geometry/transform-data';
 import { Points } from '../../../../geometry/points/points';
 import { createRenderableState } from '../../../../geometry/geometry';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { Lines } from '../../../../geometry/lines/lines';
-import { DirectVolume2d, DirectVolume3d } from '../../../../geometry/direct-volume/direct-volume';
+import { DirectVolume } from '../../../../geometry/direct-volume/direct-volume';
 
 export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length
@@ -63,19 +63,17 @@ type StructureLinesProps = Lines.Props & StructureProps
 export async function createUnitsLinesRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, props: StructureLinesProps) {
     const transform = createUnitsTransform(group)
     const values = await Lines.createValues(ctx, lines, transform, locationIt, props)
-    console.log('values', values)
     const state = createRenderableState(props)
     return createLinesRenderObject(values, state)
 }
 
 // direct-volume
 
-type StructureDirectVolumeProps = DirectVolume2d.Props & DirectVolume3d.Props & StructureProps
+type StructureDirectVolumeProps = DirectVolume.Props & StructureProps
 
-export async function createUnitsDirectVolumeRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, directVolume: DirectVolume2d | DirectVolume3d, locationIt: LocationIterator, props: StructureDirectVolumeProps) {
+export async function createUnitsDirectVolumeRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, props: StructureDirectVolumeProps) {
     const transform = createUnitsTransform(group)
+    const values = await DirectVolume.createValues(ctx, directVolume, transform, locationIt, props)
     const state = createRenderableState(props)
-    return directVolume.kind === 'direct-volume-2d' ?
-        createDirectVolume2dRenderObject(await DirectVolume2d.createValues(ctx, directVolume, transform, locationIt, props), state) :
-        createDirectVolume3dRenderObject(await DirectVolume3d.createValues(ctx, directVolume, transform, locationIt, props), state)
+    return createDirectVolumeRenderObject(values, state)
 }

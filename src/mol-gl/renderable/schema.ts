@@ -43,6 +43,7 @@ export type KindValue = {
     'image-float32': TextureImage<Float32Array>
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
+    'texture': Texture
     'texture2d': Texture
     'texture3d': Texture
 

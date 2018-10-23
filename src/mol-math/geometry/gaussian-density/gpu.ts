@@ -10,7 +10,7 @@ import { PositionData, DensityData, DensityTextureData } from '../common'
 import { Box3D } from '../../geometry'
 import { GaussianDensityProps, getDelta } from '../gaussian-density'
 import { OrderedSet } from 'mol-data/int'
-import { Vec3, Tensor, Mat4, Vec2 } from '../../linear-algebra'
+import { Vec3, Tensor, Mat4 } from '../../linear-algebra'
 import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
 import { ValueCell, defaults } from 'mol-util'
 import { RenderableState, Renderable } from 'mol-gl/renderable'
@@ -241,7 +241,7 @@ function getGaussianDensityRenderObject(webgl: Context, drawCount: number, posit
         uBboxMax: ValueCell.create(box.max),
         uBboxSize: ValueCell.create(extent),
         uGridDim: ValueCell.create(dimensions),
-        uGridTexDim: ValueCell.create(Vec2.create(texDimX, texDimY)),
+        uGridTexDim: ValueCell.create(Vec3.create(texDimX, texDimY, 0)),
         uAlpha: ValueCell.create(smoothness),
         tMinDistanceTex: ValueCell.create(minDistanceTexture),
 

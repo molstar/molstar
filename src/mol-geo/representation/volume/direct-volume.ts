@@ -7,17 +7,16 @@
 import { VolumeData } from 'mol-model/volume'
 import { RuntimeContext } from 'mol-task'
 import { VolumeVisual, VolumeRepresentation } from '.';
-import { DirectVolume2dRenderObject, createDirectVolume2dRenderObject, DirectVolume3dRenderObject, createDirectVolume3dRenderObject } from 'mol-gl/render-object';
+import { DirectVolumeRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { PickingId } from '../../geometry/picking';
 import { MarkerAction } from '../../geometry/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { createRenderableState, updateRenderableState, Geometry } from '../../geometry/geometry';
 import { paramDefaultValues } from 'mol-view/parameter';
-import { DirectVolume2d, DirectVolume3d } from '../../geometry/direct-volume/direct-volume';
+import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
 import { Context } from 'mol-gl/webgl/context';
-import { DirectVolume3dValues, DirectVolume2dValues } from 'mol-gl/renderable/direct-volume';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
@@ -86,7 +85,7 @@ function createVolumeTexture2d(volume: VolumeData, maxTextureSize: number) {
     return textureImage
 }
 
-export function createDirectVolume2d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume2d) {
+export function createDirectVolume2d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume) {
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureImage = createVolumeTexture2d(volume, webgl.maxTextureSize)
     // debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
@@ -99,7 +98,7 @@ export function createDirectVolume2d(ctx: RuntimeContext, webgl: Context, volume
     const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
     texture.load(textureImage)
 
-    return DirectVolume2d.create(bbox, dim, transform, texture, directVolume)
+    return DirectVolume.create(bbox, dim, transform, texture, directVolume)
 }
 
 // 3d volume texture
@@ -126,7 +125,7 @@ function createVolumeTexture3d(volume: VolumeData) {
     return textureVolume
 }
 
-export function createDirectVolume3d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume3d) {
+export function createDirectVolume3d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume) {
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureVolume = createVolumeTexture3d(volume)
     const transform = VolumeData.getGridToCartesianTransform(volume)
@@ -135,23 +134,23 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: Context, volume
     const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
     texture.load(textureVolume)
 
-    return DirectVolume3d.create(bbox, gridDimension, transform, texture, directVolume)
+    return DirectVolume.create(bbox, gridDimension, transform, texture, directVolume)
 }
 
 //
 
 export const DirectVolumeParams = {
     ...Geometry.Params,
-    ...DirectVolume2d.Params
+    ...DirectVolume.Params
 }
 export const DefaultDirectVolumeProps = paramDefaultValues(DirectVolumeParams)
 export type DirectVolumeProps = typeof DefaultDirectVolumeProps
 
 export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
     let currentProps = DefaultDirectVolumeProps
-    let renderObject: DirectVolume2dRenderObject | DirectVolume3dRenderObject
+    let renderObject: DirectVolumeRenderObject
     let currentVolume: VolumeData
-    let directVolume: DirectVolume2d | DirectVolume3d
+    let directVolume: DirectVolume
 
     async function create(ctx: RuntimeContext, volume: VolumeData, props: Partial<DirectVolumeProps> = {}) {
         const { webgl } = props
@@ -167,14 +166,13 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
         const transform = createIdentityTransform()
 
         if (webgl.isWebGL2) {
-            console.log('creating 3d volume')
-            directVolume = await createDirectVolume3d(ctx, webgl, volume, directVolume as DirectVolume3d)
-            const values = await DirectVolume3d.createValues(ctx, directVolume as DirectVolume3d, transform, locationIt, currentProps)
-            renderObject = createDirectVolume3dRenderObject(values, state)
+            directVolume = await createDirectVolume3d(ctx, webgl, volume, directVolume)
+            const values = await DirectVolume.createValues(ctx, directVolume, transform, locationIt, currentProps)
+            renderObject = createDirectVolumeRenderObject(values, state)
         } else {
-            directVolume = await createDirectVolume2d(ctx, webgl, volume, directVolume as DirectVolume2d)
-            const values = await DirectVolume2d.createValues(ctx, directVolume as DirectVolume2d, transform, locationIt, currentProps)
-            renderObject = createDirectVolume2dRenderObject(values, state)
+            directVolume = await createDirectVolume2d(ctx, webgl, volume, directVolume)
+            const values = await DirectVolume.createValues(ctx, directVolume, transform, locationIt, currentProps)
+            renderObject = createDirectVolumeRenderObject(values, state)
         }
     }
 
@@ -187,11 +185,7 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
             // newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
         }
 
-        if (webgl.isWebGL2) {
-            DirectVolume3d.updateValues(renderObject.values as DirectVolume3dValues, newProps)
-        } else {
-            DirectVolume2d.updateValues(renderObject.values as DirectVolume2dValues, newProps)
-        }
+        DirectVolume.updateValues(renderObject.values, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps

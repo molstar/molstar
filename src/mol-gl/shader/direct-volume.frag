@@ -29,7 +29,7 @@ uniform sampler2D tMarker;
 #if defined(dGridTexType_2d)
     precision mediump sampler2D;
     uniform sampler2D tGridTex;
-    uniform vec2 uGridTexDim;
+    uniform vec3 uGridTexDim;
 #elif defined(dGridTexType_3d)
     precision mediump sampler3D;
     uniform sampler3D tGridTex;
@@ -64,11 +64,11 @@ const float albedo = 0.95;
 
 #if defined(dGridTexType_2d)
     vec4 textureVal(vec3 pos) {
-        return texture3dFrom2dLinear(tGridTex, pos, uGridDim, uGridTexDim);
+        return texture3dFrom2dLinear(tGridTex, pos, uGridDim, uGridTexDim.xy);
     }
     vec4 textureGroup(vec3 pos) {
         vec3 nearestPos = floor(pos * uGridDim + 0.5) / uGridDim + 0.5 / uGridDim;
-        return texture3dFrom2dNearest(tGridTex, nearestPos, uGridDim, uGridTexDim);
+        return texture3dFrom2dNearest(tGridTex, nearestPos, uGridDim, uGridTexDim.xy);
     }
 #elif defined(dGridTexType_3d)
     vec4 textureVal(vec3 pos) {
