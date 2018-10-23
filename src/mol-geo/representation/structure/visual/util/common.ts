@@ -16,6 +16,8 @@ import { createRenderableState } from '../../../../geometry/geometry';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { Lines } from '../../../../geometry/lines/lines';
 import { DirectVolume } from '../../../../geometry/direct-volume/direct-volume';
+import { SizeProps } from 'mol-geo/geometry/size-data';
+import { ColorProps } from 'mol-geo/geometry/color-data';
 
 export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length
@@ -25,6 +27,39 @@ export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformDat
         Mat4.toArray(units[i].conformation.operator.matrix, array, i * 16)
     }
     return createTransform(array, unitCount, transformData)
+}
+
+export const UnitKindInfo = {
+    'atomic': {},
+    'spheres': {},
+    'gaussians': {},
+}
+export type UnitKind = keyof typeof UnitKindInfo
+export const UnitKindNames = Object.keys(UnitKindInfo)
+export const UnitKindOptions = UnitKindNames.map(n => [n, n] as [UnitKind, string])
+
+export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
+    for (let i = 0, il = unitKinds.length; i < il; ++i) {
+        if (Unit.isAtomic(unit) && unitKinds[i] === 'atomic') return true
+        if (Unit.isSpheres(unit) && unitKinds[i] === 'spheres') return true
+        if (Unit.isGaussians(unit) && unitKinds[i] === 'gaussians') return true
+    }
+    return false
+}
+
+export function sizeChanged(oldProps: SizeProps, newProps: SizeProps) {
+    return (
+        oldProps.sizeTheme !== newProps.sizeTheme ||
+        oldProps.sizeValue !== newProps.sizeValue ||
+        oldProps.sizeFactor !== newProps.sizeFactor
+    )
+}
+
+export function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
+    return (
+        oldProps.colorTheme !== newProps.colorTheme ||
+        oldProps.colorValue !== newProps.colorValue
+    )
 }
 
 // mesh

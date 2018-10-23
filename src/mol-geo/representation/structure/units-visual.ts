@@ -6,7 +6,7 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '../';
-import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureProps, StructureParams } from '.';
+import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureParams } from '.';
 import { RuntimeContext } from 'mol-task';
 import { PickingId } from '../../geometry/picking';
 import { LocationIterator } from '../../util/location-iterator';
@@ -14,26 +14,17 @@ import { Mesh } from '../../geometry/mesh/mesh';
 import { MarkerAction, applyMarkerAction, createMarkers } from '../../geometry/marker-data';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
-import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject } from './visual/util/common';
+import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, UnitKind, UnitKindOptions, includesUnitKind, colorChanged, sizeChanged } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { Points } from '../../geometry/points/points';
 import { updateRenderableState, Geometry } from '../../geometry/geometry';
-import { createColors, ColorProps } from '../../geometry/color-data';
-import { createSizes, SizeProps } from '../../geometry/size-data';
+import { createColors } from '../../geometry/color-data';
+import { createSizes } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
 import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
 import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
 import { RenderableValues } from 'mol-gl/renderable/schema';
-
-export const UnitKindInfo = {
-    'atomic': {},
-    'spheres': {},
-    'gaussians': {},
-}
-export type UnitKind = keyof typeof UnitKindInfo
-export const UnitKindNames = Object.keys(UnitKindInfo)
-export const UnitKindOptions = UnitKindNames.map(n => [n, n] as [UnitKind, string])
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -46,30 +37,6 @@ function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.Symmetry
     )
 }
 
-function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
-    for (let i = 0, il = unitKinds.length; i < il; ++i) {
-        if (Unit.isAtomic(unit) && unitKinds[i] === 'atomic') return true
-        if (Unit.isSpheres(unit) && unitKinds[i] === 'spheres') return true
-        if (Unit.isGaussians(unit) && unitKinds[i] === 'gaussians') return true
-    }
-    return false
-}
-
-function sizeChanged(oldProps: SizeProps, newProps: SizeProps) {
-    return (
-        oldProps.sizeTheme !== newProps.sizeTheme ||
-        oldProps.sizeValue !== newProps.sizeValue ||
-        oldProps.sizeFactor !== newProps.sizeFactor
-    )
-}
-
-function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
-    return (
-        oldProps.colorTheme !== newProps.colorTheme ||
-        oldProps.colorValue !== newProps.colorValue
-    )
-}
-
 const UnitsParams = {
     ...StructureParams,
     unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
@@ -79,7 +46,7 @@ type UnitsProps = typeof DefaultUnitsProps
 
 type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
-interface UnitsVisualBuilder<P extends StructureProps, G extends Geometry> {
+interface UnitsVisualBuilder<P extends UnitsProps, G extends Geometry> {
     defaultProps: P
     createGeometry(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, geometry?: G): Promise<G>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
@@ -88,7 +55,7 @@ interface UnitsVisualBuilder<P extends StructureProps, G extends Geometry> {
     setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
 }
 
-interface UnitsVisualGeometryBuilder<P extends StructureProps, G extends Geometry> extends UnitsVisualBuilder<P, G> {
+interface UnitsVisualGeometryBuilder<P extends UnitsProps, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, currentProps: P): Promise<UnitsRenderObject>
     updateValues(values: RenderableValues, newProps: P): void

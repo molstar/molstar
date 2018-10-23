@@ -157,7 +157,7 @@ export type CarbohydrateSymbolProps = typeof DefaultCarbohydrateSymbolProps
 export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProps> {
     return ComplexMeshVisual<CarbohydrateSymbolProps>({
         defaultProps: DefaultCarbohydrateSymbolProps,
-        createMesh: createCarbohydrateSymbolMesh,
+        createGeometry: createCarbohydrateSymbolMesh,
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,

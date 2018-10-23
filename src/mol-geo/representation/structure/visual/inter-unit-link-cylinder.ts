@@ -62,7 +62,7 @@ export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps
 export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {
     return ComplexMeshVisual<InterUnitLinkProps>({
         defaultProps: DefaultInterUnitLinkProps,
-        createMesh: createInterUnitLinkCylinderMesh,
+        createGeometry: createInterUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromStructure,
         getLoci: getLinkLoci,
         mark: markLink,

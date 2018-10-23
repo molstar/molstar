@@ -6,47 +6,57 @@
 
 import { Structure } from 'mol-model/structure';
 import { Visual } from '..';
-import { MeshRenderObject } from 'mol-gl/render-object';
+import { MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
 import { Mesh } from '../../geometry/mesh/mesh';
 import { RuntimeContext } from 'mol-task';
 import { LocationIterator } from '../../util/location-iterator';
-import { createComplexMeshRenderObject } from './visual/util/common';
-import { StructureProps, VisualUpdateState, StructureMeshParams } from '.';
+import { createComplexMeshRenderObject, sizeChanged, colorChanged, UnitKind, UnitKindOptions } from './visual/util/common';
+import { StructureProps, VisualUpdateState, StructureMeshParams, StructureParams } from '.';
 import { deepEqual, ValueCell } from 'mol-util';
 import { PickingId } from '../../geometry/picking';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { Interval } from 'mol-data/int';
-import { updateRenderableState } from '../../geometry/geometry';
+import { updateRenderableState, Geometry } from '../../geometry/geometry';
 import { createColors } from '../../geometry/color-data';
-import { UnitKindOptions, UnitKind } from './units-visual';
 import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
+import { RenderableValues } from 'mol-gl/renderable/schema';
+import { createSizes } from 'mol-geo/geometry/size-data';
 
 export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
 
-export const ComplexMeshParams = {
-    ...StructureMeshParams,
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+const ComplexParams = {
+    ...StructureParams,
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
 }
-export const DefaultComplexMeshProps = paramDefaultValues(ComplexMeshParams)
-export type ComplexMeshProps = typeof DefaultComplexMeshProps
+const DefaultComplexProps = paramDefaultValues(ComplexParams)
+type ComplexProps = typeof DefaultComplexProps
 
-export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> {
+type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
+
+interface ComplexVisualBuilder<P extends ComplexProps, G extends Geometry> {
     defaultProps: P
-    createMesh(ctx: RuntimeContext, structure: Structure, props: P, mesh?: Mesh): Promise<Mesh>
+    createGeometry(ctx: RuntimeContext, structure: Structure, props: P, geometry?: G): Promise<G>
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
     setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
 }
 
-export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
-    const { defaultProps, createMesh, createLocationIterator, getLoci, mark, setUpdateState } = builder
+interface ComplexVisualGeometryBuilder<P extends ComplexProps, G extends Geometry> extends ComplexVisualBuilder<P, G> {
+    createEmptyGeometry(geometry?: G): G
+    createRenderObject(ctx: RuntimeContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, currentProps: P): Promise<ComplexRenderObject>
+    updateValues(values: RenderableValues, newProps: P): void
+}
+
+export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
+    const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
+    const { createRenderObject, updateValues } = builder
     const updateState = VisualUpdateState.create()
 
-    let renderObject: MeshRenderObject | undefined
+    let renderObject: ComplexRenderObject | undefined
     let currentProps: P
-    let mesh: Mesh
+    let geometry: Geometry
     let currentStructure: Structure
     let locationIt: LocationIterator
     let conformationHash: number
@@ -56,10 +66,10 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
         currentStructure = structure
 
         conformationHash = Structure.conformationHash(currentStructure)
-        mesh = await createMesh(ctx, currentStructure, currentProps, mesh)
+        geometry = await createGeometry(ctx, currentStructure, currentProps, geometry)
 
         locationIt = createLocationIterator(structure)
-        renderObject = await createComplexMeshRenderObject(ctx, structure, mesh, locationIt, currentProps)
+        renderObject = await createRenderObject(ctx, structure, geometry, locationIt, currentProps)
     }
 
     async function update(ctx: RuntimeContext, props: Partial<P>) {
@@ -77,25 +87,30 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
             updateState.createGeometry = true
         }
 
-        if (!deepEqual(newProps.sizeTheme, currentProps.sizeTheme)) updateState.createGeometry = true
-        if (!deepEqual(newProps.colorTheme, currentProps.colorTheme)) updateState.updateColor = true
-        // if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createMesh = true // TODO
+        if (colorChanged(currentProps, newProps)) updateState.updateColor = true
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
 
         if (updateState.createGeometry) {
-            mesh = await createMesh(ctx, currentStructure, newProps, mesh)
-            ValueCell.update(renderObject.values.drawCount, mesh.triangleCount * 3)
+            geometry = await createGeometry(ctx, currentStructure, newProps, geometry)
+            ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
             updateState.updateColor = true
+        }
+
+        if (updateState.updateSize) {
+            // not all geometries have size data, so check here
+            if ('uSize' in renderObject.values) {
+                await createSizes(ctx, locationIt, newProps, renderObject.values)
+            }
         }
 
         if (updateState.updateColor) {
             await createColors(ctx, locationIt, newProps, renderObject.values)
         }
 
-        // TODO why do I need to cast here?
-        Mesh.updateValues(renderObject.values, newProps as ComplexMeshProps)
-        updateRenderableState(renderObject.state, newProps as ComplexMeshProps)
+        updateValues(renderObject.values, newProps)
+        updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
         return true
@@ -147,4 +162,28 @@ export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMe
             renderObject = undefined
         }
     }
+}
+
+// mesh
+
+export const ComplexMeshParams = {
+    ...StructureMeshParams,
+    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+}
+export const DefaultComplexMeshProps = paramDefaultValues(ComplexMeshParams)
+export type ComplexMeshProps = typeof DefaultComplexMeshProps
+
+export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> extends ComplexVisualBuilder<P, Mesh> { }
+
+export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
+    return ComplexVisual({
+        ...builder,
+        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P) => {
+            builder.setUpdateState(state, newProps, currentProps)
+            if (sizeChanged(currentProps, newProps)) state.createGeometry = true
+        },
+        createEmptyGeometry: Mesh.createEmpty,
+        createRenderObject: createComplexMeshRenderObject,
+        updateValues: Mesh.updateValues
+    })
 }
