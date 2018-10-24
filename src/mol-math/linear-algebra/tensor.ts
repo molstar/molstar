@@ -212,15 +212,21 @@ export namespace Tensor {
         return ret;
     }
 
-    export function getCanonicalAxisIndicesFastToSlow(order: number[]) {
-        const indices = new Int32Array(order.length) as any as number[];
-        for (let i = 0; i < order.length; i++) indices[order[i]] = i;
-        return indices;
+    function reorder(xs: number[], indices: number[]) {
+        const ret: number[] = [];
+        for (let i = 0; i < xs.length; i++) ret[i] = xs[indices[i]];
+        return ret;
     }
 
-    export function getCanonicalAxisIndicesSlowToFast(order: number[]) {
+    export function convertToCanonicalAxisIndicesFastToSlow(order: number[]) {
+        const indices = new Int32Array(order.length) as any as number[];
+        for (let i = 0; i < order.length; i++) indices[order[i]] = i;
+        return (xs: number[]) => reorder(xs, indices);
+    }
+
+    export function convertToCanonicalAxisIndicesSlowToFast(order: number[]) {
         const indices = new Int32Array(order.length) as any as number[];
         for (let i = 0; i < order.length; i++) indices[order[order.length - i - 1]] = i;
-        return indices;
+        return (xs: number[]) => reorder(xs, indices);
     }
 }

@@ -109,9 +109,7 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
 }
 
 export function parse(file: FileHandle) {
-    return Task.create<Result<Schema.Ccp4File>>('Parse CCP4', async ctx => {
-        return await parseInternal(file, ctx);
-    });
+    return Task.create<Result<Schema.Ccp4File>>('Parse CCP4', ctx => parseInternal(file, ctx));
 }
 
 export default parse;
