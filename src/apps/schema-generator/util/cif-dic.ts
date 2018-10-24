@@ -189,6 +189,20 @@ const SEMICOLON_SEPARATED_LIST_FIELDS = [
     '_chem_comp.pdbx_synonyms' // GLYCERIN; PROPANE-1,2,3-TRIOL
 ]
 
+/**
+ * Useful when a dictionary extension will add enum values to an existing dictionary.
+ * By adding them here, the dictionary extension can be tested before the added enum
+ * values are available in the existing dictionary.
+ */
+const EXTRA_ENUM_VALUES: { [k: string]: string[] } = {
+    // TODO for carbohydrate extension draft, remove when added to chem_comp dic
+    '_pdbx_chem_comp_identifier.type': [
+        'CONDENSED IUPAC CARB SYMBOL',
+        'IUPAC CARB SYMBOL',
+        'SNFG CARB SYMBOL'
+    ]
+}
+
 export function generateSchema (frames: CifFrame[]) {
     const schema: Database = {}
 
@@ -308,6 +322,13 @@ export function generateSchema (frames: CifFrame[]) {
                         } else if (SEMICOLON_SEPARATED_LIST_FIELDS.includes(d.header)) {
                             fieldType = ListCol('str', ';', description)
                             console.log(`forcing space separated: ${d.header}`)
+                        }
+                    }
+                    if (d.header in EXTRA_ENUM_VALUES) {
+                        if (fieldType.type === 'enum') {
+                            fieldType.values.push(...EXTRA_ENUM_VALUES[d.header])
+                        } else {
+                            console.warn(`expected enum: ${d.header}`)
                         }
                     }
                     fields[itemName] = fieldType

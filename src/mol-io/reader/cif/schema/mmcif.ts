@@ -1536,7 +1536,7 @@ export const mmCIF_Schema = {
         /**
          * This data item contains the identifier type.
          */
-        type: Aliased<'COMMON NAME' | 'SYSTEMATIC NAME' | 'CAS REGISTRY NUMBER' | 'PUBCHEM Identifier' | 'MDL Identifier' | 'SYNONYM'>(str),
+        type: Aliased<'COMMON NAME' | 'SYSTEMATIC NAME' | 'CAS REGISTRY NUMBER' | 'PUBCHEM Identifier' | 'MDL Identifier' | 'SYNONYM' | 'CONDENSED IUPAC CARB SYMBOL' | 'IUPAC CARB SYMBOL' | 'SNFG CARB SYMBOL'>(str),
         /**
          * This data item contains the name of the program
          * or library used to compute the identifier.
