@@ -14,7 +14,7 @@ import { Mesh } from '../../geometry/mesh/mesh';
 import { Points } from '../../geometry/points/points';
 import { Lines } from '../../geometry/lines/lines';
 import { SelectParam, paramDefaultValues } from 'mol-view/parameter';
-import { DirectVolume2d, DirectVolume3d } from '../../geometry/direct-volume/direct-volume';
+import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
 
@@ -48,8 +48,7 @@ export const DefaultStructureLinesProps = paramDefaultValues(StructureLinesParam
 export type StructureLinesProps = typeof DefaultStructureLinesProps
 
 export const StructureDirectVolumeParams = {
-    ...DirectVolume2d.Params,
-    ...DirectVolume3d.Params,
+    ...DirectVolume.Params,
     ...StructureParams,
 }
 export const DefaultStructureDirectVolumeProps = paramDefaultValues(StructureDirectVolumeParams)

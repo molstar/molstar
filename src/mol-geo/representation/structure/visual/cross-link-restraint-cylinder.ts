@@ -62,7 +62,7 @@ export type CrossLinkRestraintProps = typeof DefaultCrossLinkRestraintProps
 export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {
     return ComplexMeshVisual<CrossLinkRestraintProps>({
         defaultProps: DefaultCrossLinkRestraintProps,
-        createMesh: createCrossLinkRestraintCylinderMesh,
+        createGeometry: createCrossLinkRestraintCylinderMesh,
         createLocationIterator: CrossLinkRestraintIterator,
         getLoci: getLinkLoci,
         mark: markLink,

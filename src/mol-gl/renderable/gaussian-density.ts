@@ -7,7 +7,7 @@
 import { Renderable, RenderableState, createRenderable } from '../renderable'
 import { Context } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
-import { AttributeSpec, Values, UniformSpec, ValueSpec, DefineSpec } from './schema';
+import { AttributeSpec, Values, UniformSpec, ValueSpec, DefineSpec, TextureSpec } from './schema';
 import { GaussianDensityShaderCode } from '../shader-code';
 
 export const GaussianDensitySchema = {
@@ -16,6 +16,7 @@ export const GaussianDensitySchema = {
 
     aRadius: AttributeSpec('float32', 1, 0),
     aPosition: AttributeSpec('float32', 3, 0),
+    aGroup: AttributeSpec('float32', 1, 0),
 
     uCurrentSlice: UniformSpec('f'),
     uCurrentX: UniformSpec('f'),
@@ -24,9 +25,12 @@ export const GaussianDensitySchema = {
     uBboxMax: UniformSpec('v3'),
     uBboxSize: UniformSpec('v3'),
     uGridDim: UniformSpec('v3'),
+    uGridTexDim: UniformSpec('v3'),
     uAlpha: UniformSpec('f'),
+    tMinDistanceTex: TextureSpec('texture', 'rgba', 'ubyte', 'nearest'),
 
-    dDrawBuffers: DefineSpec('number'),
+    dGridTexType: DefineSpec('string', ['2d', '3d']),
+    dCalcType: DefineSpec('string', ['density', 'minDistance', 'groupId']),
 }
 export type GaussianDensitySchema = typeof GaussianDensitySchema
 export type GaussianDensityValues = Values<GaussianDensitySchema>

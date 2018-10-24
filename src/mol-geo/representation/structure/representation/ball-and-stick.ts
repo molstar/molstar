@@ -16,7 +16,7 @@ import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
 import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
 import { getQualityProps } from '../../util';
 import { paramDefaultValues, SelectParam, NumberParam, MultiSelectParam } from 'mol-view/parameter';
-import { UnitKind, UnitKindOptions } from '../units-visual';
+import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 export const BallAndStickParams = {
     ...ElementSphereParams,

@@ -103,6 +103,28 @@ export namespace Mesh {
         mesh.normalsComputed = true;
     }
 
+    export function checkForDuplicateVertices(mesh: Mesh, fractionDigits = 3) {
+        const v = mesh.vertexBuffer.ref.value
+
+        const map = new Map<string, number>()
+        const hash = (v: Vec3, d: number) => `${v[0].toFixed(d)}|${v[1].toFixed(d)}|${v[2].toFixed(d)}`
+        let duplicates = 0
+
+        const a = Vec3.zero()
+        for (let i = 0, il = mesh.vertexCount; i < il; ++i) {
+            Vec3.fromArray(a, v, i * 3)
+            const k = hash(a, fractionDigits)
+            const count = map.get(k)
+            if (count !== undefined) {
+                duplicates += 1
+                map.set(k, count + 1)
+            } else {
+                map.set(k, 1)
+            }
+        }
+        return duplicates
+    }
+
     export function computeNormals(surface: Mesh): Task<Mesh> {
         return Task.create<Mesh>('Surface (Compute Normals)', async ctx => {
             if (surface.normalsComputed) return surface;

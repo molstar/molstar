@@ -13,34 +13,36 @@ import { OrderedSet } from 'mol-data/int'
 import { Vec3, Tensor, Mat4 } from '../../linear-algebra'
 import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
 import { ValueCell, defaults } from 'mol-util'
-import { RenderableState } from 'mol-gl/renderable'
+import { RenderableState, Renderable } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
 import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
-import { createTexture, Texture, TextureAttachment } from 'mol-gl/webgl/texture';
+import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
+import { decodeIdRGB } from 'mol-geo/geometry/picking';
 
 export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
     const webgl = defaults(props.webgl, getWebGLContext())
+    // always use texture2d when the gaussian density needs to be downloaded from the GPU,
+    // it's faster than texture3d
+    console.time('GaussianDensityTexture2d')
+    const { scale, bbox, texture, dim } = await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props)
+    console.timeEnd('GaussianDensityTexture2d')
+    const { field, idField } = fieldFromTexture2d(webgl, texture, dim)
 
-    const { transform, texture, gridDimension } = await GaussianDensityTexture(ctx, webgl, position, box, radius, props)
-
-    const field = webgl.maxDrawBuffers > 0 ?
-        fieldFromTexture3d(webgl, texture, gridDimension) :
-        fieldFromTexture2d(webgl, texture, gridDimension)
-
-    const idData = field.space.create()
-    const idField = Tensor.create(field.space, idData)
+    const transform = Mat4.identity()
+    Mat4.fromScaling(transform, scale)
+    Mat4.setTranslation(transform, bbox.min)
 
     return { field, idField, transform }
 }
 
 export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
-    console.time(`GaussianDensityTexture, ${webgl.maxDrawBuffers > 0 ? 'multi' : 'single'}`)
-    const { texture, scale, bbox, dim } = webgl.maxDrawBuffers > 0 ?
-        await GaussianDensityMultiDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture) :
-        await GaussianDensitySingleDrawBuffer(ctx, webgl, position, box, radius, props, oldTexture)
-    console.timeEnd(`GaussianDensityTexture, ${webgl.maxDrawBuffers > 0 ? 'multi' : 'single'}`)
+    console.time(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
+    const { texture, scale, bbox, dim } = webgl.isWebGL2 ?
+        await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, oldTexture) :
+        await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props, oldTexture)
+    console.timeEnd(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
 
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
@@ -51,29 +53,18 @@ export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context
 
 //
 
-async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
-    const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
+    const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
     const [ dx, dy, dz ] = dim
-    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, expandedBox, dim, smoothness)
+    const { texDimX, texDimY, texCols } = getTexture2dSize(webgl.maxTextureSize, dim)
+
+    const minDistanceTexture = createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'nearest')
+    minDistanceTexture.define(texDimX, texDimY)
+
+    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, groups, minDistanceTexture, expandedBox, dim, smoothness)
     const renderable = createRenderable(webgl, renderObject)
-
-    //
-
-    const maxTexSize = webgl.maxTextureSize
-    let fboTexDimX = 0
-    let fboTexDimY = dim[1]
-    let fboTexRows = 1
-    let fboTexCols = dim[0]
-    if (maxTexSize < dim[0] * dim[2]) {
-        fboTexCols =  Math.floor(maxTexSize / dim[0])
-        fboTexRows = Math.ceil(dim[2] / fboTexCols)
-        fboTexDimX = fboTexCols * dim[0]
-        fboTexDimY *= fboTexRows
-    } else {
-        fboTexDimX = dim[0] * dim[2]
-    }
 
     //
 
@@ -82,34 +73,40 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
 
     const framebuffer = createFramebuffer(webgl)
     framebuffer.bind()
-
-    if (!texture) {
-        texture = createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
-    }
-    texture.define(fboTexDimX, fboTexDimY)
-
-    const program = renderable.getProgram('draw')
-    program.use()
     setRenderingDefaults(gl)
-    texture.attachFramebuffer(framebuffer, 0)
 
-    let currCol = 0
-    let currY = 0
-    let currX = 0
-    for (let i = 0; i < dz; ++i) {
-        if (currCol >= fboTexCols) {
-            currCol -= fboTexCols
-            currY += dy
-            currX = 0
+    if (!texture) texture = createTexture(webgl, 'image-uint8', 'rgba', 'ubyte', 'linear')
+    texture.define(texDimX, texDimY)
+
+    function render(fbTex: Texture) {
+        fbTex.attachFramebuffer(framebuffer, 0)
+        let currCol = 0
+        let currY = 0
+        let currX = 0
+        for (let i = 0; i < dz; ++i) {
+            if (currCol >= texCols) {
+                currCol -= texCols
+                currY += dy
+                currX = 0
+            }
+            gl.viewport(currX, currY, dx, dy)
+            ValueCell.update(uCurrentSlice, i)
+            ValueCell.update(uCurrentX, currX)
+            ValueCell.update(uCurrentY, currY)
+            renderable.render('draw')
+            ++currCol
+            currX += dx
         }
-        gl.viewport(currX, currY, dx, dy)
-        ValueCell.update(uCurrentSlice, i)
-        ValueCell.update(uCurrentX, currX)
-        ValueCell.update(uCurrentY, currY)
-        renderable.render('draw')
-        ++currCol
-        currX += dx
     }
+
+    setupMinDistanceRendering(webgl, renderable)
+    render(minDistanceTexture)
+
+    setupDensityRendering(webgl, renderable)
+    render(texture)
+
+    setupGroupIdRendering(webgl, renderable)
+    render(texture)
 
     framebuffer.destroy() // clean up
 
@@ -119,61 +116,46 @@ async function GaussianDensitySingleDrawBuffer(ctx: RuntimeContext, webgl: Conte
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
 
-async function GaussianDensityMultiDrawBuffer(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
-    const { drawCount, positions, radii, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
+    const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
     const [ dx, dy, dz ] = dim
-    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, expandedBox, dim, smoothness)
+    const minDistanceTexture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'nearest')
+    minDistanceTexture.define(dx, dy, dz)
+
+    const renderObject = getGaussianDensityRenderObject(webgl, drawCount, positions, radii, groups, minDistanceTexture, expandedBox, dim, smoothness)
     const renderable = createRenderable(webgl, renderObject)
-    const drawBuffers = Math.min(8, webgl.maxDrawBuffers)
 
     //
 
-    const gl = webgl.gl as WebGL2RenderingContext
+    const { gl } = webgl
     const { uCurrentSlice } = renderObject.values
 
     const framebuffer = createFramebuffer(webgl)
     framebuffer.bind()
-
-    setDrawBuffers(gl, drawBuffers)
-    gl.viewport(0, 0, dx, dy)
     setRenderingDefaults(gl)
+    gl.viewport(0, 0, dx, dy)
 
-    if (!texture) {
-        texture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
-    }
+    if (!texture) texture = createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
     texture.define(dx, dy, dz)
 
-    // z-slices to be render with multi render targets
-    const dzMulti = Math.floor(dz / drawBuffers) * drawBuffers
-
-    // render multi target
-    const programMulti = renderable.getProgram('draw')
-    programMulti.use()
-    for (let i = 0; i < dzMulti; i += drawBuffers) {
-        ValueCell.update(uCurrentSlice, i)
-        for (let k = 0; k < drawBuffers; ++k) {
-            texture.attachFramebuffer(framebuffer, k as TextureAttachment, i + k)
+    function render(fbTex: Texture) {
+        for (let i = 0; i < dz; ++i) {
+            ValueCell.update(uCurrentSlice, i)
+            fbTex.attachFramebuffer(framebuffer, 0, i)
+            renderable.render('draw')
         }
-        renderable.render('draw');
     }
 
-    // render single target
-    ValueCell.updateIfChanged(renderable.values.dDrawBuffers, 1)
-    renderable.update()
-    const programSingle = renderable.getProgram('draw')
-    programSingle.use()
-    for (let i = dzMulti; i < dz; ++i) {
-        ValueCell.update(uCurrentSlice, i)
-        texture.attachFramebuffer(framebuffer, 0, i)
-        renderable.render('draw')
-    }
+    setupMinDistanceRendering(webgl, renderable)
+    render(minDistanceTexture)
 
-    // must detach framebuffer attachments before reading is possible
-    for (let k = 0; k < drawBuffers; ++k) {
-        texture.detachFramebuffer(framebuffer, k as TextureAttachment)
-    }
+    setupDensityRendering(webgl, renderable)
+    render(texture)
+
+    setupGroupIdRendering(webgl, renderable)
+    render(texture)
 
     framebuffer.destroy() // clean up
 
@@ -208,6 +190,7 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
 
     const positions = new Float32Array(n * 3)
     const radii = new Float32Array(n)
+    const groups = new Float32Array(n)
 
     let maxRadius = 0
 
@@ -220,12 +203,12 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
         const r = radius(j) + radiusOffset
         if (maxRadius < r) maxRadius = r
         radii[i] = r
+        groups[i] = i
 
         if (i % 10000 === 0 && ctx.shouldUpdate) {
             await ctx.update({ message: 'preparing density data', current: i, max: n })
         }
     }
-
 
     const pad = maxRadius * 2 + resolution
     const expandedBox = Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad));
@@ -236,11 +219,12 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
     console.log('grid dim gpu', dim)
 
-    return { drawCount: n, positions, radii, delta, expandedBox, dim }
+    return { drawCount: n, positions, radii, groups, delta, expandedBox, dim }
 }
 
-function getGaussianDensityRenderObject(webgl: Context, drawCount: number, positions: Float32Array, radii: Float32Array, box: Box3D, dimensions: Vec3, smoothness: number) {
+function getGaussianDensityRenderObject(webgl: Context, drawCount: number, positions: Float32Array, radii: Float32Array, groups: Float32Array, minDistanceTexture: Texture, box: Box3D, dimensions: Vec3, smoothness: number) {
     const extent = Vec3.sub(Vec3.zero(), box.max, box.min)
+    const { texDimX, texDimY } = getTexture2dSize(webgl.maxTextureSize, dimensions)
 
     const values: GaussianDensityValues = {
         drawCount: ValueCell.create(drawCount),
@@ -248,6 +232,7 @@ function getGaussianDensityRenderObject(webgl: Context, drawCount: number, posit
 
         aRadius: ValueCell.create(radii),
         aPosition: ValueCell.create(positions),
+        aGroup: ValueCell.create(groups),
 
         uCurrentSlice: ValueCell.create(0),
         uCurrentX: ValueCell.create(0),
@@ -256,9 +241,12 @@ function getGaussianDensityRenderObject(webgl: Context, drawCount: number, posit
         uBboxMax: ValueCell.create(box.max),
         uBboxSize: ValueCell.create(extent),
         uGridDim: ValueCell.create(dimensions),
+        uGridTexDim: ValueCell.create(Vec3.create(texDimX, texDimY, 0)),
         uAlpha: ValueCell.create(smoothness),
+        tMinDistanceTex: ValueCell.create(minDistanceTexture),
 
-        dDrawBuffers: ValueCell.create(Math.min(8, webgl.maxDrawBuffers)),
+        dGridTexType: ValueCell.create(minDistanceTexture.depth > 0 ? '3d' : '2d'),
+        dCalcType: ValueCell.create('density'),
     }
     const state: RenderableState = {
         visible: true,
@@ -274,27 +262,52 @@ function setRenderingDefaults(gl: GLRenderingContext) {
     gl.disable(gl.CULL_FACE)
     gl.frontFace(gl.CCW)
     gl.cullFace(gl.BACK)
-
-    gl.blendFunc(gl.ONE, gl.ONE)
-    gl.blendEquation(gl.FUNC_ADD)
     gl.enable(gl.BLEND)
 }
 
-function setDrawBuffers(gl: WebGL2RenderingContext, drawBuffers: number) {
-    if (drawBuffers === 1) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0,
-        ]);
-    } else if (drawBuffers === 4) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
-        ]);
-    } else if (drawBuffers === 8) {
-        gl.drawBuffers([
-            gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1, gl.COLOR_ATTACHMENT2, gl.COLOR_ATTACHMENT3,
-            gl.COLOR_ATTACHMENT4, gl.COLOR_ATTACHMENT5, gl.COLOR_ATTACHMENT6, gl.COLOR_ATTACHMENT7,
-        ]);
+function setupMinDistanceRendering(webgl: Context, renderable: Renderable<any>) {
+    const { gl } = webgl
+    ValueCell.update(renderable.values.dCalcType, 'minDistance')
+    renderable.update()
+    renderable.getProgram('draw').use()
+    gl.blendFunc(gl.ONE, gl.ONE)
+    // the shader writes 1 - dist so we set blending to MAX
+    gl.blendEquation(webgl.extensions.blendMinMax.MAX)
+}
+
+function setupDensityRendering(webgl: Context, renderable: Renderable<any>) {
+    const { gl } = webgl
+    ValueCell.update(renderable.values.dCalcType, 'density')
+    renderable.update()
+    renderable.getProgram('draw').use()
+    gl.blendFunc(gl.ONE, gl.ONE)
+    gl.blendEquation(gl.FUNC_ADD)
+}
+
+function setupGroupIdRendering(webgl: Context, renderable: Renderable<any>) {
+    const { gl } = webgl
+    ValueCell.update(renderable.values.dCalcType, 'groupId')
+    renderable.update()
+    renderable.getProgram('draw').use()
+    // overwrite color, don't change alpha
+    gl.blendFuncSeparate(gl.ONE, gl.ZERO, gl.ZERO, gl.ONE)
+    gl.blendEquation(gl.FUNC_ADD)
+}
+
+function getTexture2dSize(maxTexSize: number, gridDim: Vec3) {
+    let texDimX = 0
+    let texDimY = gridDim[1]
+    let texRows = 1
+    let texCols = gridDim[0]
+    if (maxTexSize < gridDim[0] * gridDim[2]) {
+        texCols =  Math.floor(maxTexSize / gridDim[0])
+        texRows = Math.ceil(gridDim[2] / texCols)
+        texDimX = texCols * gridDim[0]
+        texDimY *= texRows
+    } else {
+        texDimX = gridDim[0] * gridDim[2]
     }
+    return { texDimX, texDimY, texRows, texCols }
 }
 
 function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
@@ -307,6 +320,8 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
     const space = Tensor.Space(dim, [2, 1, 0], Float32Array)
     const data = space.create()
     const field = Tensor.create(space, data)
+    const idData = space.create()
+    const idField = Tensor.create(space, idData)
 
     const image = new Uint8Array(width * height * 4)
 
@@ -316,7 +331,7 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
     texture.attachFramebuffer(framebuffer, 0)
     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, image)
 
-    let idx = 0
+    let j = 0
     let tmpCol = 0
     let tmpRow = 0
     for (let iz = 0; iz < dz; ++iz) {
@@ -326,8 +341,10 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
         }
         for (let iy = 0; iy < dy; ++iy) {
             for (let ix = 0; ix < dx; ++ix) {
-                data[idx] = image[4 * (tmpCol * dx + (iy + tmpRow) * width + ix) + 3] / 255
-                idx++
+                const idx = 4 * (tmpCol * dx + (iy + tmpRow) * width + ix)
+                data[j] = image[idx + 3] / 255
+                idData[j] = decodeIdRGB(image[idx], image[idx + 1], image[idx + 2])
+                j++
             }
         }
         tmpCol++
@@ -336,37 +353,41 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
     framebuffer.destroy()
     console.timeEnd('fieldFromTexture2d')
 
-    return field
+    return { field, idField }
 }
 
-function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
-    console.time('fieldFromTexture3d')
-    const { gl } = ctx
-    const { width, height, depth } = texture
+// function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
+//     console.time('fieldFromTexture3d')
+//     const { gl } = ctx
+//     const { width, height, depth } = texture
 
-    const space = Tensor.Space(dim, [2, 1, 0], Float32Array)
-    const data = space.create()
-    const field = Tensor.create(space, data)
+//     const space = Tensor.Space(dim, [2, 1, 0], Float32Array)
+//     const data = space.create()
+//     const field = Tensor.create(space, data)
+//     const idData = space.create()
+//     const idField = Tensor.create(space, idData)
 
-    const slice = new Uint8Array(width * height * 4)
+//     const slice = new Uint8Array(width * height * 4)
 
-    const framebuffer = createFramebuffer(ctx)
-    framebuffer.bind()
+//     const framebuffer = createFramebuffer(ctx)
+//     framebuffer.bind()
 
-    let j = 0
-    for (let i = 0; i < depth; ++i) {
-        texture.attachFramebuffer(framebuffer, 0, i)
-        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, slice)
-        for (let iy = 0; iy < height; ++iy) {
-            for (let ix = 0; ix < width; ++ix) {
-                data[j] = slice[4 * (iy * width + ix) + 3] / 255
-                ++j
-            }
-        }
-    }
+//     let j = 0
+//     for (let i = 0; i < depth; ++i) {
+//         texture.attachFramebuffer(framebuffer, 0, i)
+//         gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, slice)
+//         for (let iy = 0; iy < height; ++iy) {
+//             for (let ix = 0; ix < width; ++ix) {
+//                 const idx = 4 * (iy * width + ix)
+//                 data[j] = slice[idx + 3] / 255
+//                 idData[j] = decodeIdRGB(slice[idx], slice[idx + 1], slice[idx + 2])
+//                 ++j
+//             }
+//         }
+//     }
 
-    framebuffer.destroy()
-    console.timeEnd('fieldFromTexture3d')
+//     framebuffer.destroy()
+//     console.timeEnd('fieldFromTexture3d')
 
-    return field
-}
+//     return { field, idField }
+// }

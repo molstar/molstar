@@ -8,7 +8,6 @@ import { Task, RuntimeContext } from 'mol-task';
 import * as Schema from './schema'
 import Result from '../result'
 import { FileHandle } from '../../common/file-handle';
-import { flipByteOrder } from '../../common/binary';
 
 async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Result<Schema.Ccp4File>> {
     await ctx.update({ message: 'Parsing CCP4 file...' });
@@ -32,9 +31,12 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
     // 54  MACHST      Machine stamp indicating machine type which wrote file
     //                 17 and 17 for big-endian or 68 and 65 for little-endian
     const MACHST = [ dv.getUint8(53 * 4), dv.getUint8(53 * 4 + 1) ]
-
-    if (MACHST[ 0 ] === 17 && MACHST[ 1 ] === 17) {
-        flipByteOrder(buffer, buffer.length)
+    // found MRC files that don't have the MACHST stamp set and are big-endian
+    if (MACHST[0] !== 68 && MACHST[1] !== 65) {
+        // flip byte order in-place
+        for (let i = 0, il = bin.byteLength; i < il; i += 4) {
+            dv.setFloat32(i, dv.getFloat32(i), true)
+        }
     }
 
     const header: Schema.Ccp4Header = {
@@ -91,17 +93,13 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
         // TODO bytes 57-256 LABEL
     }
 
+    const offset = 256 * 4 + header.NSYMBT
+    const count = header.NC * header.NR * header.NS
     let values
     if (header.MODE === 2) {
-        values = new Float32Array(
-            bin, 256 * 4 + header.NSYMBT,
-            header.NX * header.NY * header.NZ
-        )
+        values = new Float32Array(bin, offset, count)
     } else if (header.MODE === 0) {
-        values = new Float32Array(new Int8Array(
-            bin, 256 * 4 + header.NSYMBT,
-            header.NX * header.NY * header.NZ
-        ))
+        values = new Int8Array(bin, offset, count)
     } else {
         return Result.error(`ccp4 mode '${header.MODE}' unsupported`);
     }

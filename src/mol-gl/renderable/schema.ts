@@ -43,6 +43,7 @@ export type KindValue = {
     'image-float32': TextureImage<Float32Array>
     'volume-uint8': TextureVolume<Uint8Array>
     'volume-float32': TextureVolume<Float32Array>
+    'texture': Texture
     'texture2d': Texture
     'texture3d': Texture
 
@@ -59,7 +60,7 @@ export function splitValues(schema: RenderableSchema, values: RenderableValues) 
     const defineValues: DefineValues = {}
     const textureValues: TextureValues = {}
     const uniformValues: UniformValues = {}
-    Object.keys(values).forEach(k => {
+    Object.keys(schema).forEach(k => {
         if (schema[k].type === 'attribute') attributeValues[k] = values[k]
         if (schema[k].type === 'define') defineValues[k] = values[k]
         if (schema[k].type === 'texture') textureValues[k] = values[k]

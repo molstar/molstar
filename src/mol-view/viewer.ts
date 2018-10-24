@@ -21,7 +21,7 @@ import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
-import { PickingId, decodeIdRGBA } from 'mol-geo/geometry/picking';
+import { PickingId, decodeIdRGB } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
@@ -231,15 +231,15 @@ namespace Viewer {
 
             objectPickTarget.bind()
             ctx.readPixels(xp, yp, 1, 1, buffer)
-            const objectId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+            const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             instancePickTarget.bind()
             ctx.readPixels(xp, yp, 1, 1, buffer)
-            const instanceId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+            const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             groupPickTarget.bind()
             ctx.readPixels(xp, yp, 1, 1, buffer)
-            const groupId = decodeIdRGBA(buffer[0], buffer[1], buffer[2])
+            const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             isPicking = false
 

@@ -24,3 +24,12 @@ const pdbId = urlQueryParameter('pdb')
 if (pdbId) app.loadPdbIdOrMmcifUrl(pdbId, { assemblyId })
 
 // app.loadCcp4Url('http://localhost:8091/ngl/data/betaGal.mrc')
+
+// app.loadPdbIdOrMmcifUrl('3pqr')
+// app.loadVolCifUrl('https://webchem.ncbr.muni.cz/DensityServer/x-ray/3pqr/cell?space=fractional', true)
+
+// app.loadPdbIdOrMmcifUrl('5ire')
+// app.loadVolcifUrl('https://webchem.ncbr.muni.cz/DensityServer/em/emd-8116/cell?space=cartesian&detail=6', true)
+
+// app.loadPdbIdOrMmcifUrl('5gag')
+// app.loadVolcifUrl('https://webchem.ncbr.muni.cz/DensityServer/em/emd-8003/cell?detail=3', true)

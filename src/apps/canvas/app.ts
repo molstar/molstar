@@ -5,7 +5,7 @@
  */
 
 import Viewer from 'mol-view/viewer';
-import { getCifFromUrl, getModelsFromMmcif, getCifFromFile, getCcp4FromUrl, getVolumeFromCcp4, getCcp4FromFile } from './util';
+import { getCifFromUrl, getModelsFromMmcif, getCifFromFile, getCcp4FromUrl, getVolumeFromCcp4, getCcp4FromFile, getVolumeFromVolcif } from './util';
 import { StructureView } from './structure-view';
 import { BehaviorSubject } from 'rxjs';
 import { CifBlock } from 'mol-io/reader/cif';
@@ -71,14 +71,14 @@ export class App {
         if (this.structureView) this.structureView.destroy();
         const url = idOrUrl.length <= 4 ? `https://files.rcsb.org/download/${idOrUrl}.cif` : idOrUrl;
         const cif = await this.runTask(getCifFromUrl(url, options ? !!options.binary : false), 'Load mmCIF from URL')
-        this.loadMmcif(cif, options ? options.assemblyId : void 0)
+        this.loadMmcif(cif.blocks[0], options ? options.assemblyId : void 0)
     }
 
     async loadMmcifFile(file: File) {
         if (this.structureView) this.structureView.destroy();
         const binary = /\.bcif$/.test(file.name);
         const cif = await this.runTask(getCifFromFile(file, binary), 'Load mmCIF from file')
-        this.loadMmcif(cif)
+        this.loadMmcif(cif.blocks[0])
     }
 
     //
@@ -99,5 +99,26 @@ export class App {
         if (this.volumeView) this.volumeView.destroy();
         const ccp4 = await this.runTask(getCcp4FromUrl(url), 'Load CCP4 from URL')
         this.loadCcp4(ccp4)
+    }
+
+    //
+
+    async loadVolcif(cif: CifBlock) {
+        const volume = await this.runTask(getVolumeFromVolcif(cif), 'Get Volume')
+        this.volumeView = await this.runTask(VolumeView(this, this.viewer, volume), 'Init volume view')
+        this.volumeLoaded.next(this.volumeView)
+    }
+
+    async loadVolcifFile(file: File) {
+        if (this.volumeView) this.volumeView.destroy();
+        const binary = /\.bcif$/.test(file.name);
+        const cif = await this.runTask(getCifFromFile(file, binary), 'Load volCif from file')
+        this.loadVolcif(cif.blocks[1])
+    }
+
+    async loadVolcifUrl(url: string, binary?: boolean) {
+        if (this.volumeView) this.volumeView.destroy();
+        const cif = await this.runTask(getCifFromUrl(url, binary), 'Load volCif from URL')
+        this.loadVolcif(cif.blocks[1])
     }
 }

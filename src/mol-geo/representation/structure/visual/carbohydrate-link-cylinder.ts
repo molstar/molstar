@@ -74,7 +74,7 @@ export type CarbohydrateLinkProps = typeof DefaultCarbohydrateLinkProps
 export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {
     return ComplexMeshVisual<CarbohydrateLinkProps>({
         defaultProps: DefaultCarbohydrateLinkProps,
-        createMesh: createCarbohydrateLinkCylinderMesh,
+        createGeometry: createCarbohydrateLinkCylinderMesh,
         createLocationIterator: CarbohydrateLinkIterator,
         getLoci: getLinkLoci,
         mark: markLink,

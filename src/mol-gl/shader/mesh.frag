@@ -15,7 +15,7 @@ uniform vec3 uLightColor;
 uniform vec3 uLightAmbient;
 uniform mat4 uView;
 
-#ifndef dFlatShaded
+#if !defined(dFlatShaded) || !defined(enabledStandardDerivatives)
     varying vec3 vNormal;
 #endif
 
@@ -23,9 +23,9 @@ uniform mat4 uView;
 #pragma glslify: calculateSpecular = require(./utils/phong-specular.glsl)
 #pragma glslify: calculateDiffuse = require(./utils/oren-nayar-diffuse.glsl)
 
-const float specularScale = 0.65;
-const float shininess = 100.0;
-const float roughness = 5.0;
+const float specularScale = 0.15;
+const float shininess = 200.0;
+const float roughness = 100.0;
 const float albedo = 0.95;
 
 void main() {
@@ -45,7 +45,7 @@ void main() {
         vec3 V = normalize(vViewPosition); // eye direction
 
         // surface normal
-        #ifdef dFlatShaded
+        #if defined(dFlatShaded) && defined(enabledStandardDerivatives)
             vec3 fdx = dFdx(vViewPosition);
             vec3 fdy = dFdy(vViewPosition);
             vec3 N = -normalize(cross(fdx, fdy));
