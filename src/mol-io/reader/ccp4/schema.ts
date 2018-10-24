@@ -6,11 +6,11 @@
  */
 
 export interface Ccp4Header {
-    /** columns (fastest changing) */
+    /** number of columns (fastest changing) */
     NC: number
-    /** rows */
+    /** number of rows */
     NR: number
-    /** sections (slowest changing) */
+    /** number of sections (slowest changing) */
     NS: number
     /**
      * 0 image : signed 8-bit bytes range -128 to 127
@@ -49,11 +49,11 @@ export interface Ccp4Header {
     beta: number
     /** gamma cell angle (Degrees) */
     gamma: number
-    /** axis corresponds for columns (1,2,3 for X,Y,Z) */
+    /** axis corresponds to columns (1,2,3 for X,Y,Z) */
     MAPC: number
-    /** axis corresponds for rows (1,2,3 for X,Y,Z) */
+    /** axis corresponds to rows (1,2,3 for X,Y,Z) */
     MAPR: number
-    /** axis corresponds for sections (1,2,3 for X,Y,Z) */
+    /** axis corresponds to sections (1,2,3 for X,Y,Z) */
     MAPS: number
     /** minimum density value */
     AMIN: number
@@ -67,8 +67,8 @@ export interface Ccp4Header {
     NSYMBT: number
     /** flag for skew transformation, =0 none, =1 if foll */
     LSKFLG: number
-    /** Skew matrix S (in order S11, S12, S13, S21 etc) if LSKFLG .ne. 0
-     *
+    /**
+     * Skew matrix S (in order S11, S12, S13, S21 etc) if LSKFLG .ne. 0
      * May be used in CCP4 but not in MRC
      */
     SKWMAT: number[]

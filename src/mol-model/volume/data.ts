@@ -7,8 +7,8 @@
 import { SpacegroupCell, Box3D } from 'mol-math/geometry'
 import { Tensor, Mat4, Vec3 } from 'mol-math/linear-algebra'
 
+/** The basic unit cell that contains the data. */
 interface VolumeData {
-    // The basic unit cell that contains the data.
     readonly cell: SpacegroupCell,
     readonly fractionalBox: Box3D,
     readonly data: Tensor,
