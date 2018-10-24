@@ -16,6 +16,7 @@ import { SecondaryStructure } from './properties/seconday-structure';
 
 import from_mmCIF from './formats/mmcif'
 import { ChemicalComponentMap } from './properties/chemical-component';
+import { SaccharideComponentMap } from '../structure/carbohydrates/constants';
 
 /**
  * Interface to the "source data" of the molecule.
@@ -50,6 +51,8 @@ export interface Model extends Readonly<{
         readonly asymIdSerialMap: ReadonlyMap<string, number>
         /** maps residue name to `ChemicalComponent` data */
         readonly chemicalComponentMap: ChemicalComponentMap
+        /** maps residue name to `SaccharideComponent` data */
+        readonly saccharideComponentMap: SaccharideComponentMap
     },
 
     customProperties: CustomProperties,

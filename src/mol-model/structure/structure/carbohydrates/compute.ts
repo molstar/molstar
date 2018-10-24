@@ -11,13 +11,13 @@ import { IntAdjacencyGraph } from 'mol-math/graph';
 import { Vec3 } from 'mol-math/linear-algebra';
 import PrincipalAxes from 'mol-math/linear-algebra/matrix/principal-axes';
 import { fillSerial } from 'mol-util/array';
-import { ResidueIndex } from '../../model';
+import { ResidueIndex, Model } from '../../model';
 import { ElementSymbol, MoleculeType } from '../../model/types';
 import { getAtomicMoleculeType, getPositionMatrix } from '../../util';
 import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
-import { SaccharideNameMap, UnknownSaccharideComponent } from './constants';
+import { SaccharideCompIdMap, UnknownSaccharideComponent, SaccharideComponent, SaccharidesSnfgMap } from './constants';
 import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink, PartialCarbohydrateElement } from './data';
 import { UnitRings, UnitRing } from '../unit/rings';
 import { ElementIndex } from '../../model/indexing';
@@ -118,6 +118,10 @@ function filterFusedRings(unitRings: UnitRings, rings: UnitRings.Index[] | undef
     }
 }
 
+function getSaccharideComp(compId: string, model: Model): SaccharideComponent {
+    return model.properties.saccharideComponentMap.get(compId) || UnknownSaccharideComponent
+}
+
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
     const links: CarbohydrateLink[] = []
     const terminalLinks: CarbohydrateTerminalLink[] = []
@@ -162,7 +166,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
             while (residueIt.hasNext) {
                 const { index: residueIndex } = residueIt.move();
 
-                const saccharideComp = SaccharideNameMap.get(label_comp_id.value(residueIndex)) || UnknownSaccharideComponent
+                const saccharideComp = getSaccharideComp(label_comp_id.value(residueIndex), model)
                 if (saccharideComp === UnknownSaccharideComponent) {
                     if (getAtomicMoleculeType(unit.model, residueIndex) !== MoleculeType.saccharide) continue
                 }

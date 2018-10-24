@@ -174,6 +174,15 @@ const Monosaccharides: SaccharideComponent[] = [
     { abbr: 'Psi', name: 'Psicose', color: SaccharideColors.Pink, type: SaccharideType.Assigned },
 ]
 
+export const SaccharidesSnfgMap = (function () {
+    const map = new Map<string, SaccharideComponent>()
+    for (let i = 0, il = Monosaccharides.length; i < il; ++i) {
+        const saccharide = Monosaccharides[i]
+        map.set(saccharide.abbr, saccharide)
+    }
+    return map
+})()
+
 export const MonosaccharidesColorTable: [string, Color][] = [
     ['Glc-family', SaccharideColors.Blue],
     ['Man-family', SaccharideColors.Green],
@@ -287,7 +296,7 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Psi: [],
 }
 
-export const SaccharideNameMap = (function () {
+export const SaccharideCompIdMap = (function () {
     const map = new Map<string, SaccharideComponent>()
     for (let i = 0, il = Monosaccharides.length; i < il; ++i) {
         const saccharide = Monosaccharides[i]
@@ -300,3 +309,5 @@ export const SaccharideNameMap = (function () {
     }
     return map
 })()
+
+export type SaccharideComponentMap = ReadonlyMap<string, SaccharideComponent>

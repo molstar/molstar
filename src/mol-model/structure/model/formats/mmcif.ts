@@ -27,6 +27,7 @@ import { ChemicalComponent, ChemicalComponentMap } from '../properties/chemical-
 import { ComponentType, getMoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
+import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, UnknownSaccharideComponent, SaccharideCompIdMap } from 'mol-model/structure/structure/carbohydrates/constants';
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -125,17 +126,41 @@ function getChemicalComponentMap(format: mmCIF_Format): ChemicalComponentMap {
     return map
 }
 
+function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap {
+    const map = new Map<string, SaccharideComponent>();
+    const { pdbx_chem_comp_identifier } = format.data
+    if (pdbx_chem_comp_identifier._rowCount > 0) {
+        const { type, comp_id, identifier } = pdbx_chem_comp_identifier
+        for (let i = 0, il = pdbx_chem_comp_identifier._rowCount; i < il; ++i) {
+            if (type.value(i) === 'SNFG CARB SYMBOL') {
+                const snfgName = identifier.value(i)
+                const saccharideComp = SaccharidesSnfgMap.get(snfgName)
+                if (saccharideComp) {
+                    map.set(comp_id.value(i), saccharideComp)
+                } else {
+                    console.warn(`Unknown SNFG name '${snfgName}'`)
+                }
+            }
+        }
+        return map
+    } else {
+        return SaccharideCompIdMap
+    }
+}
+
 export interface FormatData {
     modifiedResidues: Model['properties']['modifiedResidues']
     asymIdSerialMap: Model['properties']['asymIdSerialMap']
     chemicalComponentMap: Model['properties']['chemicalComponentMap']
+    saccharideComponentMap: Model['properties']['saccharideComponentMap']
 }
 
 function getFormatData(format: mmCIF_Format): FormatData {
     return {
         modifiedResidues: getModifiedResidueNameMap(format),
         asymIdSerialMap: getAsymIdSerialMap(format),
-        chemicalComponentMap: getChemicalComponentMap(format)
+        chemicalComponentMap: getChemicalComponentMap(format),
+        saccharideComponentMap: getSaccharideComponentMap(format)
     }
 }
 
