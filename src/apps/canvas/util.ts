@@ -11,6 +11,7 @@ import CCP4 from 'mol-io/reader/ccp4/parser'
 import { FileHandle } from 'mol-io/common/file-handle';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 import { volumeFromCcp4 } from 'mol-model/volume/formats/ccp4';
+import { parseDensityServerData } from 'mol-model/volume';
 // import { parse as parseObj } from 'mol-io/reader/obj/parser'
 
 // export async function getObjFromUrl(url: string) {
@@ -25,7 +26,7 @@ export async function getCifFromData(data: string | Uint8Array) {
     const comp = CIF.parse(data)
     const parsed = await comp.run()
     if (parsed.isError) throw parsed
-    return parsed.result.blocks[0]
+    return parsed.result
 }
 
 export async function getCifFromUrl(url: string, binary = false) {
@@ -68,4 +69,10 @@ export async function getCcp4FromData(data: Uint8Array) {
 
 export async function getVolumeFromCcp4(ccp4: Ccp4File) {
     return await volumeFromCcp4(ccp4).run()
+}
+
+//
+
+export async function getVolumeFromVolcif(cif: CifBlock) {
+    return await parseDensityServerData(CIF.schema.densityServer(cif)).run()
 }

@@ -20,14 +20,16 @@ export interface AppProps {
 export interface AppState {
     structureView: StructureView | null,
     volumeView: VolumeView | null,
-    binary: boolean
+    mmcifBinary: boolean,
+    volcifBinary: boolean
 }
 
 export class AppComponent extends React.Component<AppProps, AppState> {
     state = {
         structureView: this.props.app.structureView,
         volumeView: this.props.app.volumeView,
-        binary: false
+        mmcifBinary: false,
+        volcifBinary: true
     }
 
     componentDidMount() {
@@ -50,7 +52,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
             <div style={{width: '330px', paddingLeft: '10px', paddingRight: '10px', right: '0px', height: '100%', position: 'absolute', overflow: 'auto'}}>
                 <div style={{marginTop: '10px'}}>
                     <span>Load PDB ID or URL</span>&nbsp;&nbsp;
-                    <input type='checkbox' checked={this.state.binary} onChange={e => this.setState({ binary: e.target.checked })} /> Binary<br />
+                    <input type='checkbox' checked={this.state.mmcifBinary} onChange={e => this.setState({ mmcifBinary: e.target.checked })} /> Binary<br />
                     <input
                         style={{ width: '100%' }}
                         type='text'
@@ -58,7 +60,7 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                             if (e.keyCode === 13) {
                                 const value = e.currentTarget.value.trim()
                                 if (value) {
-                                    this.props.app.loadPdbIdOrMmcifUrl(value, { binary: this.state.binary })
+                                    this.props.app.loadPdbIdOrMmcifUrl(value, { binary: this.state.mmcifBinary })
                                 }
                             }
                         }}
@@ -81,6 +83,22 @@ export class AppComponent extends React.Component<AppProps, AppState> {
                         type='file'
                         onChange={e => {
                             if (e.target.files) this.props.app.loadCcp4File(e.target.files[0])
+                        }}
+                    />
+                </div>
+                <div style={{marginTop: '10px'}}>
+                    <span>Load DensityServer URL</span>&nbsp;&nbsp;
+                    <input type='checkbox' checked={this.state.volcifBinary} onChange={e => this.setState({ volcifBinary: e.target.checked })} /> Binary<br />
+                    <input
+                        style={{ width: '100%' }}
+                        type='text'
+                        onKeyDown={e => {
+                            if (e.keyCode === 13) {
+                                const value = e.currentTarget.value.trim()
+                                if (value) {
+                                    this.props.app.loadVolcifUrl(value, this.state.volcifBinary)
+                                }
+                            }
                         }}
                     />
                 </div>
