@@ -202,4 +202,25 @@ export namespace Tensor {
         }
         return o;
     }
+
+    // Convers "slow to fast" axis order to "fast to slow" and vice versa.
+    export function invertAxisOrder(v: number[]) {
+        const ret: number[] = [];
+        for (let i = 0; i < v.length; i++) {
+            ret[i] = v[v.length - i - 1];
+        }
+        return ret;
+    }
+
+    export function getCanonicalAxisIndicesFastToSlow(order: number[]) {
+        const indices = new Int32Array(order.length) as any as number[];
+        for (let i = 0; i < order.length; i++) indices[order[i]] = i;
+        return indices;
+    }
+
+    export function getCanonicalAxisIndicesSlowToFast(order: number[]) {
+        const indices = new Int32Array(order.length) as any as number[];
+        for (let i = 0; i < order.length; i++) indices[order[order.length - i - 1]] = i;
+        return indices;
+    }
 }

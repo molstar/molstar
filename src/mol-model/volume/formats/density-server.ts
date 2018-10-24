@@ -10,6 +10,10 @@ import { Task } from 'mol-task';
 import { SpacegroupCell, Box3D } from 'mol-math/geometry';
 import { Tensor, Vec3 } from 'mol-math/linear-algebra';
 
+function normalizeOrder(v: number[], indices: number[]) {
+    return Vec3.create(v[indices[0]], v[indices[1]], v[indices[2]])
+}
+
 function parseDensityServerData(source: DensityServer_Data_Database): Task<VolumeData> {
     return Task.create<VolumeData>('Parse Volume Data', async ctx => {
         const { volume_data_3d_info: info, volume_data_3d: values } = source;
@@ -19,11 +23,19 @@ function parseDensityServerData(source: DensityServer_Data_Database): Task<Volum
             Vec3.scale(Vec3.zero(), Vec3.ofArray(info.spacegroup_cell_angles.value(0)), Math.PI / 180)
         );
 
-        const tensorSpace = Tensor.Space(info.sample_count.value(0), info.axis_order.value(0), Float32Array);
-        const data = Tensor.create(tensorSpace, Tensor.Data1(values.values.toArray()));
+        const axis_order_fast_to_slow = info.axis_order.value(0);
 
-        const origin = Vec3.ofArray(info.origin.value(0))
-        const dimensions = Vec3.ofArray(info.dimensions.value(0));
+        const indices = Tensor.getCanonicalAxisIndicesFastToSlow(axis_order_fast_to_slow);
+
+        // sample count is in "axis order" and needs to be reordered
+        const sample_count = normalizeOrder(info.sample_count.value(0), indices);
+        const tensorSpace = Tensor.Space(sample_count, Tensor.invertAxisOrder(axis_order_fast_to_slow), Float32Array);
+
+        const data = Tensor.create(tensorSpace, Tensor.Data1(values.values.toArray({ array: Float32Array })));
+
+        // origin and dimensions are in "axis order" and need to be reordered
+        const origin = normalizeOrder(info.origin.value(0), indices)
+        const dimensions = normalizeOrder(info.dimensions.value(0), indices);
 
         return {
             cell,
