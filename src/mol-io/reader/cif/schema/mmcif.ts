@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
- * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.299, IHM 0.134, entity_branch draft.
+ * Code-generated 'mmCIF' schema file. Dictionary versions: mmCIF 5.300, IHM 0.136, CARB draft.
  *
  * @author mol-star package (src/apps/schema-generator/generate)
  */
@@ -1471,6 +1471,54 @@ export const mmCIF_Schema = {
         'space_group_name_H-M': str,
     },
     /**
+     * The PDBX_NONPOLY_SCHEME category provides residue level nomenclature
+     * mapping for non-polymer entities.
+     */
+    pdbx_nonpoly_scheme: {
+        /**
+         * Pointer to _atom_site.label_asym_id.
+         */
+        asym_id: str,
+        /**
+         * Pointer to _atom_site.label_entity_id.
+         */
+        entity_id: str,
+        /**
+         * Pointer to _atom_site.label_comp_id.
+         */
+        mon_id: str,
+        /**
+         * PDB strand/chain id.
+         */
+        pdb_strand_id: str,
+        /**
+         * NDB/RCSB residue number.
+         */
+        ndb_seq_num: str,
+        /**
+         * PDB residue number.
+         */
+        pdb_seq_num: str,
+        /**
+         * Author provided residue numbering.   This value may differ from the PDB residue
+         * number and may not correspond to residue numbering within the coordinate records.
+         */
+        auth_seq_num: str,
+        /**
+         * PDB residue identifier.
+         */
+        pdb_mon_id: str,
+        /**
+         * Author provided residue identifier.   This value may differ from the PDB residue
+         * identifier and may not correspond to residue identification within the coordinate records.
+         */
+        auth_mon_id: str,
+        /**
+         * PDB insertion code.
+         */
+        pdb_ins_code: str,
+    },
+    /**
      * Data items in the CHEM_COMP_IDENTIFIER category provide
      * identifiers for chemical components.
      */
@@ -1934,7 +1982,7 @@ export const mmCIF_Schema = {
         /**
          * This data item contains the descriptor type.
          */
-        type: Aliased<'LINUCS' | 'IUPAC' | 'IUPAC Abbreviated'>(str),
+        type: Aliased<'LINUCS'>(str),
         /**
          * This data item contains the name of the program
          * or library used to compute the descriptor.
@@ -1950,18 +1998,6 @@ export const mmCIF_Schema = {
          */
         ordinal: int,
     },
-    pdbx_nonpoly_scheme: {
-        asym_id: str,
-        entity_id: str,
-        mon_id: str,
-        ndb_seq_num: int,
-        pdb_seq_num: int,
-        auth_seq_num: int,
-        pdb_mon_id: str,
-        auth_mon_id: str,
-        pdb_strand_id: str,
-        pdb_ins_code: str
-    },
     /**
      * Data items in the IHM_STARTING_MODEL_DETAILS category records the
      * details about structural models used as starting inputs in
@@ -1974,7 +2010,7 @@ export const mmCIF_Schema = {
         starting_model_id: str,
         /**
          * A unique identifier for the distinct molecular entities.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the ENTITY_POLY category.
+         * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
         /**
@@ -2165,8 +2201,8 @@ export const mmCIF_Schema = {
         segment_id: int,
         /**
          * A unique identifier distinct molecular entities.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the
-         * ENTITY_POLY_SEQ category.
+         * This data item is a pointer to _entity.id in the
+         * ENTITY category.
          */
         entity_id: str,
         /**
@@ -2181,10 +2217,12 @@ export const mmCIF_Schema = {
         entity_asym_id: str,
         /**
          * The leading residue index for the sequence segment modeled using this starting model.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_begin: int,
         /**
          * The trailing residue index for the sequence segment modeled using this starting model.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_end: int,
         /**
@@ -2244,8 +2282,8 @@ export const mmCIF_Schema = {
         entity_description: str,
         /**
          * A unique identifier for distinct molecular entities.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the
-         * ENTITY_POLY_SEQ category.
+         * This data item is a pointer to _entity.id in the
+         * ENTITY category.
          */
         entity_id: str,
         /**
@@ -2257,11 +2295,13 @@ export const mmCIF_Schema = {
         /**
          * The starting residue index for the sequence segment of the entity instance
          * that is part of the assembly.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_begin: int,
         /**
          * The ending residue index for the sequence segment of the entity instance
          * that is part of the assembly.
+         * This data item is a pointer to _entity_poly_seq.num in the ENTITY_POLY_SEQ category.
          */
         seq_id_end: int,
     },
@@ -2612,7 +2652,7 @@ export const mmCIF_Schema = {
         /**
          * The type of data held in the dataset.
          */
-        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Yeast two-hybrid screening data' | 'Other'>(str),
+        data_type: Aliased<'NMR data' | '3DEM volume' | '2DEM class average' | 'EM raw micrographs' | 'SAS data' | 'CX-MS data' | 'Mass Spectrometry data' | 'EPR data' | 'H/D exchange data' | 'Single molecule FRET data' | 'Experimental model' | 'Comparative model' | 'Integrative model' | 'De Novo model' | 'Predicted contacts' | 'Mutagenesis data' | 'DNA footprinting data' | 'Hydroxyl radical footprinting data' | 'Yeast two-hybrid screening data' | 'Other'>(str),
         /**
          * A flag that indicates whether the dataset is archived in
          * an IHM related database or elsewhere.
@@ -2821,7 +2861,7 @@ export const mmCIF_Schema = {
         ensemble_id: int,
         /**
          * The entity identifier corresponding to this localization density.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the ENTITY_POLY category.
+         * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
         /**
@@ -3009,7 +3049,7 @@ export const mmCIF_Schema = {
         /**
          * The type of crosslinker used.
          */
-        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'Other'>(str),
+        linker_type: Aliased<'EDC' | 'DSS' | 'EGS' | 'BS3' | 'BS2G' | 'DST' | 'sulfo-SDA' | 'sulfo-SMCC' | 'DSSO' | 'Other'>(str),
         /**
          * Identifier to the crosslinking dataset.
          * This data item is a pointer to the _ihm_dataset_list.id in the
@@ -3423,7 +3463,7 @@ export const mmCIF_Schema = {
         type_symbol: str,
         /**
          * The entity identifier corresponding to this coordinate position.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the ENTITY_POLY category.
+         * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
         /**
@@ -3434,7 +3474,7 @@ export const mmCIF_Schema = {
         atom_id: str,
         /**
          * The component identifier corresponding to this coordinate position.
-         * This data item is a pointer to _entity_poly_seq.mon_id in the ENTITY_POLY category.
+         * This data item is a pointer to _chem_comp.id in the CHEM_COMP category.
          */
         comp_id: str,
         /**
@@ -3477,7 +3517,7 @@ export const mmCIF_Schema = {
         ordinal_id: int,
         /**
          * The entity identifier corresponding to this sphere object.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the ENTITY_POLY category.
+         * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
         /**
@@ -3534,7 +3574,7 @@ export const mmCIF_Schema = {
         ordinal_id: int,
         /**
          * The entity identifier corresponding to this gaussian object.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the ENTITY_POLY category.
+         * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
         /**
@@ -3590,7 +3630,7 @@ export const mmCIF_Schema = {
         ordinal_id: int,
         /**
          * The entity identifier corresponding to this gaussian object.
-         * This data item is a pointer to _entity_poly_seq.entity_id in the ENTITY_POLY category.
+         * This data item is a pointer to _entity.id in the ENTITY category.
          */
         entity_id: str,
         /**
@@ -3789,7 +3829,7 @@ export const mmCIF_Schema = {
     },
     /**
      * Data items in the PDBX_ENTITY_BRANCH_LINK category give details about
-     * the linkages between components within branched entities.
+     * the linkages between components within a branched entity.
      */
     pdbx_entity_branch_link: {
         /**
@@ -3883,7 +3923,7 @@ export const mmCIF_Schema = {
     },
     /**
      * The PDBX_BRANCH_SCHEME category provides residue level nomenclature
-     * mapping for branch chain entitie.
+     * mapping for branch chain entities.
      */
     pdbx_branch_scheme: {
         /**
@@ -3919,6 +3959,44 @@ export const mmCIF_Schema = {
          * ATOM_SITE category.
          */
         auth_mon_id: str,
+    },
+    /**
+     * PDBX_CHEM_COMP_SYNONYMS holds chemical name and synonym correspondences.
+     */
+    pdbx_chem_comp_synonyms: {
+        /**
+         * The synonym of this particular chemical component.
+         */
+        name: str,
+        /**
+         * The chemical component for which this synonym applies.
+         */
+        comp_id: str,
+        /**
+         * The provenance of this synonym.
+         */
+        provenance: Aliased<'AUTHOR' | 'DRUGBANK' | 'CHEBI' | 'CHEMBL' | 'PDB' | 'PUBCHEM'>(str),
+    },
+    /**
+     * PDBX_CHEM_COMP_RELATED describes the relationship between two chemical components.
+     */
+    pdbx_chem_comp_related: {
+        /**
+         * The chemical component for which this relationship applies.
+         */
+        comp_id: str,
+        /**
+         * The related chemical component for which this chemical component is based.
+         */
+        related_comp_id: str,
+        /**
+         * Describes the type of relationship
+         */
+        relationship_type: Aliased<'Carbohydrate core' | 'Precursor'>(str),
+        /**
+         * Describes the type of relationship
+         */
+        details: str,
     },
 }
 

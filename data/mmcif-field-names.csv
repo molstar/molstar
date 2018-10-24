@@ -47,6 +47,15 @@ pdbx_chem_comp_identifier.program
 pdbx_chem_comp_identifier.program_version
 pdbx_chem_comp_identifier.identifier
 
+pdbx_chem_comp_related.comp_id
+pdbx_chem_comp_related.related_comp_id
+pdbx_chem_comp_related.relationship_type
+pdbx_chem_comp_related.details
+
+pdbx_chem_comp_synonyms.comp_id
+pdbx_chem_comp_synonyms.name
+pdbx_chem_comp_synonyms.provenance
+
 cell.entry_id
 cell.length_a
 cell.length_b

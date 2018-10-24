@@ -100,8 +100,6 @@ Run the image
 
     node build/node_modules/apps/schema-generator/schema-from-cif-dic.js -ts -o src/mol-io/reader/cif/schema/bird.ts --fieldNamesPath data/bird-field-names.csv --name BIRD
 
-    node --max-old-space-size=8192 build/node_modules/apps/chem-comp-bond/create-table.js build/data/ccb.bcif -b
-
 **GraphQL schemas**
 
     node data/rcsb-graphql/codegen.js
