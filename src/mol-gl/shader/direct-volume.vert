@@ -18,13 +18,16 @@ varying float instance;
 uniform vec3 uBboxSize;
 uniform vec3 uBboxMin;
 uniform vec3 uBboxMax;
+uniform vec3 uGridDim;
+uniform mat4 uTransform;
 
 uniform mat4 uModelView;
 uniform mat4 uProjection;
 
 void main() {
     unitCoord = aPosition + vec3(0.5);
-    vec4 mvPosition = uModelView * vec4(unitCoord * uBboxSize + uBboxMin, 1.0);
+    vec4 mvPosition = uModelView * uTransform * vec4(unitCoord * uGridDim + uBboxMin, 1.0);
+    // vec4 mvPosition = uModelView * uTransform * vec4(unitCoord, 1.0);
     origPos = unitCoord * uBboxSize + uBboxMin;
     instance = aInstance;
     gl_Position = uProjection * mvPosition;

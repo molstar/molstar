@@ -112,10 +112,37 @@ function createVolumeTexture3d(volume: VolumeData) {
     const array = new Uint8Array(width * height * depth * 4)
     const textureVolume = { array, width, height, depth }
 
+    console.log('stats', stats)
+
+    // let i = 0
+    // for (let z = 0; z < depth; ++z) {
+    //     for (let y = 0; y < height; ++y) {
+    //         for (let x = 0; x < width; ++x) {
+    //             array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
+    //             // array[i + 3] = ((get(data, x, z, y) - stats.min) / (stats.max - stats.min)) * 255
+    //             // array[i + 3] = ((get(data, y, x, z) - stats.min) / (stats.max - stats.min)) * 255
+    //             // array[i + 3] = ((get(data, y, z, x) - stats.min) / (stats.max - stats.min)) * 255
+    //             // array[i + 3] = ((get(data, z, y, x) - stats.min) / (stats.max - stats.min)) * 255
+    //             // array[i + 3] = ((get(data, z, x, y) - stats.min) / (stats.max - stats.min)) * 255
+    //             i += 4
+    //         }
+    //     }
+    // }
+
+    // let i = 0
+    // for (let z = 0; z < depth; ++z) {
+    //     for (let x = 0; x < width; ++x) {
+    //         for (let y = 0; y < height; ++y) {
+    //             array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
+    //             i += 4
+    //         }
+    //     }
+    // }
+
     let i = 0
-    for (let z = 0; z < depth; ++z) {
+    for (let x = 0; x < width; ++x) {
         for (let y = 0; y < height; ++y) {
-            for (let x = 0; x < width; ++x) {
+            for (let z = 0; z < depth; ++z) {
                 array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
                 i += 4
             }
@@ -129,6 +156,7 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: Context, volume
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureVolume = createVolumeTexture3d(volume)
     const transform = VolumeData.getGridToCartesianTransform(volume)
+    // Mat4.invert(transform, transform)
     const bbox = getBoundingBox(gridDimension, transform)
 
     const texture = directVolume ? directVolume.gridTexture.ref.value : createTexture(webgl, 'volume-uint8', 'rgba', 'ubyte', 'linear')
@@ -184,6 +212,8 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
         if (props.isoValueRelative) {
             // newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
         }
+
+        console.log('newProps.isoValueAbsolute', newProps.isoValueAbsolute)
 
         DirectVolume.updateValues(renderObject.values, newProps)
         updateRenderableState(renderObject.state, newProps)

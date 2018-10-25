@@ -7,7 +7,7 @@
 import { VolumeData } from '../data'
 import { Task } from 'mol-task';
 import { SpacegroupCell, Box3D } from 'mol-math/geometry';
-import { Tensor, Vec3 } from 'mol-math/linear-algebra';
+import { Tensor, Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 import { degToRad } from 'mol-math/misc';
 
@@ -28,7 +28,7 @@ import { degToRad } from 'mol-math/misc';
 function volumeFromCcp4(source: Ccp4File): Task<VolumeData> {
     return Task.create<VolumeData>('Parse Volume Data', async ctx => {
         const { header, values } = source;
-
+        console.log('header', header)
         const cell = SpacegroupCell.create(
             header.ISPG,
             Vec3.create(header.xLength, header.yLength, header.zLength),
@@ -41,9 +41,9 @@ function volumeFromCcp4(source: Ccp4File): Task<VolumeData> {
         const grid = [header.NX, header.NY, header.NZ];
         const extent = normalizeOrder([header.NC, header.NR, header.NS]);
 
-        const gridOrigin: number[] = normalizeOrder([header.NCSTART, header.NRSTART, header.NSSTART]);
+        const gridOrigin = normalizeOrder([header.NCSTART, header.NRSTART, header.NSSTART]);
 
-        // TODO: this is code from LiteMol, but not sure about the part based on originXYZ. The 
+        // TODO: this is code from LiteMol, but not sure about the part based on originXYZ. The
         // if (header.originX === 0.0 && header.originY === 0.0 && header.originZ === 0.0) {
         //     gridOrigin = normalizeOrder([header.NCSTART, header.NRSTART, header.NSSTART]);
         // } else {
@@ -58,6 +58,13 @@ function volumeFromCcp4(source: Ccp4File): Task<VolumeData> {
         const origin_frac = Vec3.create(gridOrigin[0] / grid[0], gridOrigin[1] / grid[1], gridOrigin[2] / grid[2]);
         const dimensions_frac = Vec3.create(extent[0] / grid[0], extent[1] / grid[1], extent[2] / grid[2]);
 
+        console.log('length', header.xLength, header.yLength, header.zLength)
+        console.log('grid', grid)
+        console.log('extent', extent)
+        console.log('gridOrigin', gridOrigin)
+        console.log('origin_frac', origin_frac)
+        console.log('dimensions_frac', dimensions_frac)
+
         const space = Tensor.Space(extent, Tensor.invertAxisOrder(axis_order_fast_to_slow), header.MODE === 0 ? Int8Array : Float32Array);
         const data = Tensor.create(space, Tensor.Data1(values));
 
@@ -65,7 +72,7 @@ function volumeFromCcp4(source: Ccp4File): Task<VolumeData> {
         // Min/max/mean are reliable (based on LiteMol/DensityServer usage)
         // These, however, calculate sigma, so no data on that.
 
-        return {
+        const vd = {
             cell,
             fractionalBox: Box3D.create(origin_frac, Vec3.add(Vec3.zero(), origin_frac, dimensions_frac)),
             data,
@@ -76,6 +83,12 @@ function volumeFromCcp4(source: Ccp4File): Task<VolumeData> {
                 sigma: header.ARMS
             }
         };
+
+        const transform = VolumeData.getGridToCartesianTransform(vd);
+        const scale = Mat4.getScaling(Vec3.zero(), transform)
+        console.log('transform', transform)
+        console.log('scale', scale)
+        return vd
     });
 }
 

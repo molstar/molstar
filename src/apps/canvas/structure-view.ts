@@ -64,15 +64,13 @@ interface StructureViewProps {
     symmetryFeatureId?: number
 }
 
-
-
 export async function StructureView(app: App, viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
         cartoon: true,
         point: false,
         surface: false,
         ballAndStick: false,
-        carbohydrate: false,
+        carbohydrate: true,
         spacefill: false,
         distanceRestraint: false,
         symmetryAxes: false,
