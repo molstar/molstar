@@ -13,12 +13,12 @@ export interface ColorThemeComponentProps {
 }
 
 export interface ColorThemeComponentState {
-    
+
 }
 
 export class ColorThemeComponent extends React.Component<ColorThemeComponentProps, ColorThemeComponentState> {
     state = {
-        
+
     }
 
     render() {
