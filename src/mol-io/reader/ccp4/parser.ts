@@ -104,6 +104,18 @@ async function parseInternal(file: FileHandle, ctx: RuntimeContext): Promise<Res
         return Result.error(`ccp4 mode '${header.MODE}' unsupported`);
     }
 
+    // if the file was converted by mapmode2to0 - scale the data
+    // based on uglymol (https://github.com/uglymol/uglymol) by Marcin Wojdyr (wojdyr)
+    if (intView[39] === -128 && intView[40] === 127) {
+        values = new Float32Array(values)
+        // scaling f(x)=b1*x+b0 such that f(-128)=min and f(127)=max
+        const b1 = (header.AMAX - header.AMIN) / 255.0
+        const b0 = 0.5 * (header.AMIN + header.AMAX + b1)
+        for (let j = 0, jl = values.length; j < jl; ++j) {
+            values[j] = b1 * values[j] + b0
+        }
+    }
+
     const result: Schema.Ccp4File = { header, values };
     return Result.success(result);
 }

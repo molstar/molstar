@@ -17,7 +17,7 @@ import { getAtomicMoleculeType, getPositionMatrix } from '../../util';
 import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
-import { SaccharideCompIdMap, UnknownSaccharideComponent, SaccharideComponent, SaccharidesSnfgMap } from './constants';
+import { UnknownSaccharideComponent, SaccharideComponent } from './constants';
 import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink, PartialCarbohydrateElement } from './data';
 import { UnitRings, UnitRing } from '../unit/rings';
 import { ElementIndex } from '../../model/indexing';

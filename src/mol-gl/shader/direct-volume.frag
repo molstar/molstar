@@ -164,9 +164,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                     src.rgb = finalColor;
                     src.a = uAlpha;
 
-                    float marker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a * 256.0;
+                    float marker = readFromTexture(tMarker, instance * float(uGroupCount) + group, uMarkerTexDim).a * 255.0;
                     if (marker > 0.1) {
-                        if (mod(marker, 2.0) < 0.1) {
+                        if (mod(marker, 2.0) > 0.1) {
                             src.rgb = mix(uHighlightColor, src.rgb, 0.3);
                         } else {
                             src.rgb = mix(uSelectColor, src.rgb, 0.3);

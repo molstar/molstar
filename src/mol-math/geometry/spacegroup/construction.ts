@@ -26,10 +26,10 @@ interface Spacegroup {
 }
 
 namespace SpacegroupCell {
-    // Create a 'P 1' with cellsize [1, 1, 1]
+    /** Create a 'P 1' with cellsize [1, 1, 1] */
     export const Zero: SpacegroupCell = create('P 1', Vec3.create(1, 1, 1), Vec3.create(Math.PI / 2, Math.PI / 2, Math.PI / 2));
 
-    // True if 'P 1' with cellsize [1, 1, 1]
+    /** True if 'P 1' with cellsize [1, 1, 1] */
     export function isZero(cell: SpacegroupCell) {
         return cell.index === 0 && cell.size[0] === 1 && cell.size[1] === 1 && cell.size[1] === 1;
     }
@@ -37,7 +37,10 @@ namespace SpacegroupCell {
     // returns Zero cell if the spacegroup does not exist
     export function create(nameOrNumber: number | string | SpacegroupName, size: Vec3, anglesInRadians: Vec3): SpacegroupCell {
         const index = getSpacegroupIndex(nameOrNumber);
-        if (index < 0) return Zero;
+        if (index < 0) {
+            console.warn(`Unknown spacegroup '${nameOrNumber}', returning a 'P 1' with cellsize [1, 1, 1]`)
+            return Zero;
+        }
 
         const alpha = anglesInRadians[0];
         const beta = anglesInRadians[1];

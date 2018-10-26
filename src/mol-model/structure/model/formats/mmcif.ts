@@ -27,7 +27,7 @@ import { ChemicalComponent, ChemicalComponentMap } from '../properties/chemical-
 import { ComponentType, getMoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
-import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, UnknownSaccharideComponent, SaccharideCompIdMap } from 'mol-model/structure/structure/carbohydrates/constants';
+import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap } from 'mol-model/structure/structure/carbohydrates/constants';
 
 type AtomSite = mmCIF_Database['atom_site']
 

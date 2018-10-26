@@ -26,8 +26,7 @@ uniform mat4 uProjection;
 
 void main() {
     unitCoord = aPosition + vec3(0.5);
-    vec4 mvPosition = uModelView * uTransform * vec4(unitCoord * uGridDim + uBboxMin, 1.0);
-    // vec4 mvPosition = uModelView * uTransform * vec4(unitCoord, 1.0);
+    vec4 mvPosition = uModelView * uTransform * vec4(unitCoord * uGridDim, 1.0);
     origPos = unitCoord * uBboxSize + uBboxMin;
     instance = aInstance;
     gl_Position = uProjection * mvPosition;

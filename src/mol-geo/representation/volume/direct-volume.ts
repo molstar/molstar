@@ -114,20 +114,23 @@ function createVolumeTexture3d(volume: VolumeData) {
 
     console.log('stats', stats)
 
-    // let i = 0
-    // for (let z = 0; z < depth; ++z) {
-    //     for (let y = 0; y < height; ++y) {
-    //         for (let x = 0; x < width; ++x) {
-    //             array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
-    //             // array[i + 3] = ((get(data, x, z, y) - stats.min) / (stats.max - stats.min)) * 255
-    //             // array[i + 3] = ((get(data, y, x, z) - stats.min) / (stats.max - stats.min)) * 255
-    //             // array[i + 3] = ((get(data, y, z, x) - stats.min) / (stats.max - stats.min)) * 255
-    //             // array[i + 3] = ((get(data, z, y, x) - stats.min) / (stats.max - stats.min)) * 255
-    //             // array[i + 3] = ((get(data, z, x, y) - stats.min) / (stats.max - stats.min)) * 255
-    //             i += 4
-    //         }
-    //     }
-    // }
+    let i = 0
+    for (let z = 0; z < depth; ++z) {
+        for (let y = 0; y < height; ++y) {
+            for (let x = 0; x < width; ++x) {
+                if (i < 100) {
+                    console.log(get(data, x, y, z), ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255)
+                }
+                array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
+                // array[i + 3] = ((get(data, x, z, y) - stats.min) / (stats.max - stats.min)) * 255
+                // array[i + 3] = ((get(data, y, x, z) - stats.min) / (stats.max - stats.min)) * 255
+                // array[i + 3] = ((get(data, y, z, x) - stats.min) / (stats.max - stats.min)) * 255
+                // array[i + 3] = ((get(data, z, y, x) - stats.min) / (stats.max - stats.min)) * 255
+                // array[i + 3] = ((get(data, z, x, y) - stats.min) / (stats.max - stats.min)) * 255
+                i += 4
+            }
+        }
+    }
 
     // let i = 0
     // for (let z = 0; z < depth; ++z) {
@@ -139,15 +142,15 @@ function createVolumeTexture3d(volume: VolumeData) {
     //     }
     // }
 
-    let i = 0
-    for (let x = 0; x < width; ++x) {
-        for (let y = 0; y < height; ++y) {
-            for (let z = 0; z < depth; ++z) {
-                array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
-                i += 4
-            }
-        }
-    }
+    // let i = 0
+    // for (let x = 0; x < width; ++x) {
+    //     for (let y = 0; y < height; ++y) {
+    //         for (let z = 0; z < depth; ++z) {
+    //             array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
+    //             i += 4
+    //         }
+    //     }
+    // }
 
     return textureVolume
 }
