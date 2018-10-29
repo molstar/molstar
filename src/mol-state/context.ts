@@ -6,7 +6,7 @@
 
 import { Subject } from 'rxjs'
 import { StateObject } from './object';
-import { Transform } from './tree/transform';
+import { Transform } from './transform';
 
 interface StateContext {
     events: {

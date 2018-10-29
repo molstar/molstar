@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Transform } from './tree/transform';
+import { Transform } from './transform';
 import { ImmutableTree } from './util/immutable-tree';
 import { Transformer } from './transformer';
 import { StateObject } from './object';
@@ -59,7 +59,7 @@ namespace StateTree {
         }
 
         export class To<A extends StateObject> implements Builder {
-            apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Props>): To<Transformer.To<T>> {
+            apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Options>): To<Transformer.To<T>> {
                 const t = tr.apply(params, props);
                 this.state.tree.add(this.ref, t);
                 return new To(this.state, t.ref);

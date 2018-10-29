@@ -5,7 +5,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Transform } from './tree/transform';
+import { Transform } from './transform';
 
 /** A mutable state object */
 export interface StateObject<P = unknown, D = unknown> {
@@ -47,6 +47,7 @@ export namespace StateObject {
     }
 
     export interface Node {
+        ref: Transform.Ref,
         state: StateType,
         props: unknown,
         errorText?: string,

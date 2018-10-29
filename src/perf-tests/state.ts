@@ -1,4 +1,4 @@
-import { State, StateObject, StateTree, Transformer } from 'mol-state';
+import { State, StateObject, StateTree, Transformer, StateSelection } from 'mol-state';
 import { Task } from 'mol-task';
 import * as util from 'util';
 
@@ -74,7 +74,7 @@ function hookEvents(state: State) {
 }
 
 export async function testState() {
-    const state = State.create();
+    const state = State.create(new Root({ label: 'Root' }, { }));
     hookEvents(state);
 
     const tree = state.tree;
@@ -105,6 +105,12 @@ export async function testState() {
     console.log('----------------');
     const state2 = await State.update(state1, treeFromJson).run();
     console.log(util.inspect(state2.objects, true, 3, true));
+
+    console.log('----------------');
+
+    const q = StateSelection.byRef('square').parent();
+    const sel = StateSelection.select(q, state2);
+    console.log(sel);
 }
 
 testState();

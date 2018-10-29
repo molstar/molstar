@@ -6,10 +6,10 @@
 
 import { Task } from 'mol-task';
 import { StateObject } from './object';
-import { Transform } from './tree/transform';
+import { Transform } from './transform';
 
 export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
-    apply(params?: P, props?: Partial<Transform.Props>): Transform<A, B, P>,
+    apply(params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
     readonly namespace: string,
     readonly id: Transformer.Id,
     readonly definition: Transformer.Definition<A, B, P>
