@@ -4,4 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// TODO
+namespace StateTreeSelection {
+
+}
+
+export { StateTreeSelection }

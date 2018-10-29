@@ -1,10 +1,6 @@
-import { Transformer } from 'mol-state/transformer';
-import { StateObject } from 'mol-state/object';
+import { State, StateObject, StateTree, Transformer } from 'mol-state';
 import { Task } from 'mol-task';
-import { TransformTree } from 'mol-state/tree/tree';
-import { StateTreeBuilder } from 'mol-state/tree/builder';
-import { State } from 'mol-state/state';
-import * as util from 'util'
+import * as util from 'util';
 
 export type TypeClass = 'root' | 'shape' | 'prop'
 export interface ObjProps { label: string }
@@ -72,7 +68,7 @@ export async function testState() {
     const state = State.create();
 
     const tree = state.definition.tree;
-    const builder = StateTreeBuilder.create(tree)
+    const builder = StateTree.build(tree);
     builder.toRoot<Root>()
         .apply(CreateSquare, { a: 10 }, { ref: 'square' })
         .apply(CaclArea);
@@ -80,7 +76,7 @@ export async function testState() {
 
     printTTree(tree1);
 
-    const tree2 = TransformTree.updateParams<typeof CreateSquare>(tree1, 'square', { a: 15 });
+    const tree2 = StateTree.updateParams<typeof CreateSquare>(tree1, 'square', { a: 15 });
     printTTree(tree1);
     printTTree(tree2);
 
@@ -89,11 +85,11 @@ export async function testState() {
     console.log(util.inspect(state1.objects, true, 3, true));
 
     console.log('----------------');
-    const jsonString = JSON.stringify(TransformTree.toJSON(tree2), null, 2);
+    const jsonString = JSON.stringify(StateTree.toJSON(tree2), null, 2);
     const jsonData = JSON.parse(jsonString);
     printTTree(tree2);
     console.log(jsonString);
-    const treeFromJson = TransformTree.fromJSON(jsonData);
+    const treeFromJson = StateTree.fromJSON(jsonData);
     printTTree(treeFromJson);
 
     console.log('----------------');
@@ -106,7 +102,7 @@ testState();
 
 //test();
 
-export function printTTree(tree: TransformTree) {
+export function printTTree(tree: StateTree) {
     let lines: string[] = [];
     function print(offset: string, ref: any) {
         const t = tree.nodes.get(ref)!;

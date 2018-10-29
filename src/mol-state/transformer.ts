@@ -6,7 +6,6 @@
 
 import { Task } from 'mol-task';
 import { StateObject } from './object';
-import { TransformContext } from './tree/context';
 import { Transform } from './tree/transform';
 
 export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
@@ -24,14 +23,16 @@ export namespace Transformer {
 
     export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
         a: A,
-        params: P
+        params: P,
+        globalCtx: unknown
     }
 
     export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
         a: A,
         b: B,
         oldParams: P,
-        newParams: P
+        newParams: P,
+        globalCtx: unknown
     }
 
     export enum UpdateResult { Unchanged, Updated, Recreate }
@@ -55,19 +56,19 @@ export namespace Transformer {
         update?(params: UpdateParams<A, B, P>): Task<UpdateResult> | UpdateResult,
 
         /** Check the parameters and return a list of errors if the are not valid. */
-        defaultParams?(a: A, context: TransformContext): P,
+        defaultParams?(a: A, globalCtx: unknown): P,
 
         /** Specify default control descriptors for the parameters */
-        defaultControls?(a: A, context: TransformContext): Transformer.ControlsFor<P>,
+        defaultControls?(a: A, globalCtx: unknown): Transformer.ControlsFor<P>,
 
         /** Check the parameters and return a list of errors if the are not valid. */
-        validateParams?(a: A, params: P, context: TransformContext): string[] | undefined,
+        validateParams?(a: A, params: P, globalCtx: unknown): string[] | undefined,
 
         /** Optional custom parameter equality. Use deep structural equal by default. */
         areParamsEqual?(oldParams: P, newParams: P): boolean,
 
         /** Test if the transform can be applied to a given node */
-        isApplicable?(a: A, context: TransformContext): boolean,
+        isApplicable?(a: A, globalCtx: unknown): boolean,
 
         /** By default, returns true */
         isSerializable?(params: P): { isSerializable: true } | { isSerializable: false; reason: string },
