@@ -19,7 +19,7 @@ import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { Interval } from 'mol-data/int';
 import { updateRenderableState, Geometry } from '../../geometry/geometry';
 import { createColors } from '../../geometry/color-data';
-import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
+import { MultiSelectParam, paramDefaultValues } from 'mol-util/parameter';
 import { RenderableValues } from 'mol-gl/renderable/schema';
 import { createSizes } from 'mol-geo/geometry/size-data';
 

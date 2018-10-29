@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { SelectParam } from 'mol-view/parameter';
+import { SelectParam } from 'mol-util/parameter';
 
 export interface SelectParamComponentProps<T extends string> {
     param: SelectParam<T>

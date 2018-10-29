@@ -11,7 +11,7 @@ import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../geometry/marker-data';
 import { Geometry } from '../../geometry/geometry';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 
 export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 

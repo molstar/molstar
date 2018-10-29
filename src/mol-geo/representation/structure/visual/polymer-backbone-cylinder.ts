@@ -13,11 +13,11 @@ import { PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-canvas3d/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { OrderedSet } from 'mol-data/int';
 import { addCylinder } from '../../../geometry/mesh/builder/cylinder';
-import { paramDefaultValues, NumberParam, SelectParam } from 'mol-view/parameter';
+import { paramDefaultValues, NumberParam, SelectParam } from 'mol-util/parameter';
 
 export const PolymerBackboneCylinderParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),

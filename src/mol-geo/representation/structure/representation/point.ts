@@ -11,7 +11,7 @@ import { Structure } from 'mol-model/structure';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
 import { PickingId } from '../../../geometry/picking';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 
 export const PointParams = {
     ...ElementPointParams,

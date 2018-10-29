@@ -13,7 +13,7 @@ import { MeshBuilder } from '../../../../geometry/mesh/mesh-builder';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { PickingId } from '../../../../geometry/picking';
-import { SizeTheme, SizeThemeName } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName } from 'mol-canvas3d/theme/size';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { addSphere } from '../../../../geometry/mesh/builder/sphere';
 

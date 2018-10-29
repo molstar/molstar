@@ -12,7 +12,7 @@ import { PickingId } from '../../../geometry/picking';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { Loci } from 'mol-model/loci';
 import { getQualityProps } from '../../util';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 
 export const SpacefillParams = {
     ...ElementSphereParams

@@ -5,11 +5,11 @@
  */
 
 import { Unit, StructureElement, ElementIndex } from 'mol-model/structure';
-import { SizeTheme } from 'mol-view/theme/size';
+import { SizeTheme } from 'mol-canvas3d/theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
-import { NumberParam, paramDefaultValues, BooleanParam, ValueParam } from 'mol-view/parameter';
+import { NumberParam, paramDefaultValues, BooleanParam, ValueParam } from 'mol-util/parameter';
 import { Context } from 'mol-gl/webgl/context';
 import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
 import { Texture } from 'mol-gl/webgl/texture';

@@ -12,7 +12,7 @@ import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { computeMarchingCubesMesh } from '../../../util/marching-cubes/algorithm';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 
 async function createGaussianSurfaceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props

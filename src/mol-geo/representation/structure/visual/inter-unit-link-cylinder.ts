@@ -14,9 +14,9 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
 import { Interval } from 'mol-data/int';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 import { BitFlags } from 'mol-util';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 
 async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links

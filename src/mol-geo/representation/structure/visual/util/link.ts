@@ -9,12 +9,12 @@ import { RuntimeContext } from 'mol-task';
 import { Mesh } from '../../../../geometry/mesh/mesh';
 import { MeshBuilder } from '../../../../geometry/mesh/mesh-builder';
 import { LinkType } from 'mol-model/structure/model/types';
-import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 import { CylinderProps } from '../../../../primitive/cylinder';
 import { LocationIterator } from '../../../../util/location-iterator';
 import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from '../../../../geometry/mesh/builder/cylinder';
-import { SelectParam, RangeParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { SelectParam, RangeParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 
 export const LinkCylinderParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),

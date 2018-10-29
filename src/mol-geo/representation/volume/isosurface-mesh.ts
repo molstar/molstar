@@ -18,7 +18,7 @@ import { LocationIterator } from '../../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { createIdentityTransform } from '../../geometry/transform-data';
 import { createRenderableState, updateRenderableState } from '../../geometry/geometry';
-import { paramDefaultValues, RangeParam } from 'mol-view/parameter';
+import { paramDefaultValues, RangeParam } from 'mol-util/parameter';
 import { ValueCell } from 'mol-util';
 
 export async function createVolumeSurface(ctx: RuntimeContext, volume: VolumeData, isoValueAbsolute: number, mesh?: Mesh) {

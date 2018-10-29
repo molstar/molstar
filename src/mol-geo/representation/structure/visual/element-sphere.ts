@@ -8,8 +8,8 @@
 import { UnitsVisual, VisualUpdateState } from '..';
 import { createElementSphereMesh, markElement, getElementLoci, StructureElementIterator } from './util/element';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { NumberParam, paramDefaultValues, SelectParam } from 'mol-view/parameter';
-import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { NumberParam, paramDefaultValues, SelectParam } from 'mol-util/parameter';
+import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 
 export const ElementSphereParams = {
     ...UnitsMeshParams,

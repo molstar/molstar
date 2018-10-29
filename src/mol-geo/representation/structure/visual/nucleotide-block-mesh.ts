@@ -17,7 +17,7 @@ import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { addCylinder } from '../../../geometry/mesh/builder/cylinder';
 import { Box } from '../../../primitive/box';
 import { NucleotideLocationIterator, markNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()

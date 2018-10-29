@@ -6,7 +6,7 @@
 
 import { createGl } from './gl.shim';
 
-import { PerspectiveCamera } from 'mol-view/camera/perspective';
+import { PerspectiveCamera } from 'mol-canvas3d/camera/perspective';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { ValueCell } from 'mol-util';
 

@@ -16,7 +16,7 @@ import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
-import { BooleanParam, paramDefaultValues } from 'mol-view/parameter';
+import { BooleanParam, paramDefaultValues } from 'mol-util/parameter';
 
 export interface Mesh {
     readonly kind: 'mesh',

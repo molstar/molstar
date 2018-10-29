@@ -14,11 +14,11 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 import { LinesValues } from 'mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';
-import { BooleanParam, SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { BooleanParam, SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 
 /** Wide line */
 export interface Lines {

@@ -13,9 +13,9 @@ import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment,
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 import { Wedge } from '../../../primitive/wedge';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()

@@ -12,8 +12,8 @@ import { StructureElementIterator, getElementLoci, markElement } from './util/el
 import { computeMarchingCubesLines } from '../../../util/marching-cubes/algorithm';
 import { Lines } from '../../../geometry/lines/lines';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-view/parameter';
-import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-util/parameter';
+import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 
 async function createGaussianWireframe(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props

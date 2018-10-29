@@ -15,8 +15,8 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
-import { BooleanParam, NumberParam, SelectParam, paramDefaultValues } from 'mol-view/parameter';
+import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { BooleanParam, NumberParam, SelectParam, paramDefaultValues } from 'mol-util/parameter';
 
 /** Point cloud */
 export interface Points {

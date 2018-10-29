@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { ColorTheme } from 'mol-view/theme/color';
+import { ColorTheme } from 'mol-canvas3d/theme/color';
 import { Color } from 'mol-util/color';
 
 export interface ColorThemeComponentProps {

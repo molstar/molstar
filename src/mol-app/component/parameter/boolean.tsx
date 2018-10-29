@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { BooleanParam } from 'mol-view/parameter';
+import { BooleanParam } from 'mol-util/parameter';
 
 export interface BooleanParamComponentProps {
     param: BooleanParam

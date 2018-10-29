@@ -12,7 +12,7 @@ import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { PolymerBackboneVisual, PolymerBackboneParams } from '../visual/polymer-backbone-cylinder';
 import { getQualityProps } from '../../util';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 
 export const BackboneParams = {
     ...PolymerBackboneParams

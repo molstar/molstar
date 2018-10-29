@@ -15,11 +15,11 @@ import { LocationIterator } from '../../../util/location-iterator';
 import { createLinkCylinderMesh, LinkCylinderProps, LinkCylinderParams } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 import { LinkType } from 'mol-model/structure/model/types';
 import { BitFlags } from 'mol-util';
 import { UnitsMeshParams } from '../units-visual';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {

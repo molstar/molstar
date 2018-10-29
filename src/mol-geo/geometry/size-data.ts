@@ -10,7 +10,7 @@ import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 import { RuntimeContext } from 'mol-task';
-import { SizeThemeProps, SizeTheme, SizeThemeName } from 'mol-view/theme/size';
+import { SizeThemeProps, SizeTheme, SizeThemeName } from 'mol-canvas3d/theme/size';
 import { getGranularity } from './geometry';
 import { Structure } from 'mol-model/structure';
 

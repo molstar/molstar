@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { RangeParam } from 'mol-view/parameter';
+import { RangeParam } from 'mol-util/parameter';
 
 export interface RangeParamComponentProps {
     param: RangeParam
