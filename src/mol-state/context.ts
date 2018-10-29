@@ -6,13 +6,13 @@
 
 import { Subject } from 'rxjs'
 import { StateObject } from './object';
-import { Task } from 'mol-task';
 import { Transform } from './tree/transform';
 
 interface StateContext {
     events: {
         object: {
             stateChanged: Subject<{ ref: Transform.Ref }>,
+            propsChanged: Subject<{ ref: Transform.Ref, newProps: unknown }>,
             updated: Subject<{ ref: Transform.Ref }>,
             replaced: Subject<{ ref: Transform.Ref, old?: StateObject }>,
             created: Subject<{ ref: Transform.Ref }>,
@@ -21,15 +21,16 @@ interface StateContext {
         warn: Subject<string>
     },
     globalContext: unknown,
-    runTask<T>(task: T | Task<T>): T | Promise<T>
+    defaultObjectProps: unknown
 }
 
 namespace StateContext {
-    export function create(globalContext?: unknown/* task?: { observer?: Progress.Observer, updateRateMs?: number } */): StateContext {
+    export function create(params: { globalContext: unknown, defaultObjectProps: unknown }): StateContext {
         return {
             events: {
                 object: {
                     stateChanged: new Subject(),
+                    propsChanged: new Subject(),
                     updated: new Subject(),
                     replaced: new Subject(),
                     created: new Subject(),
@@ -37,11 +38,8 @@ namespace StateContext {
                 },
                 warn: new Subject()
             },
-            globalContext,
-            runTask<T>(t: T | Task<T>) {
-                if (typeof (t as any).run === 'function') return (t as Task<T>).run();
-                return t as T;
-            }
+            globalContext: params.globalContext,
+            defaultObjectProps: params.defaultObjectProps
         }
     }
 }

@@ -46,8 +46,9 @@ export namespace StateObject {
         }
     }
 
-    export interface Wrapped {
+    export interface Node {
         state: StateType,
+        props: unknown,
         errorText?: string,
         obj?: StateObject,
         version: string

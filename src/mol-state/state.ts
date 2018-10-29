@@ -7,60 +7,59 @@
 import { StateObject } from './object';
 import { StateTree } from './tree';
 import { Transform } from './tree/transform';
-import { Map as ImmutableMap } from 'immutable';
-// import { StateContext } from './context/context';
 import { ImmutableTree } from './util/immutable-tree';
 import { Transformer } from './transformer';
 import { StateContext } from './context';
 import { UUID } from 'mol-util';
+import { RuntimeContext, Task } from 'mol-task';
 
-export interface State<ObjectProps = unknown> {
-    definition: State.Definition<ObjectProps>,
+export interface State {
+    tree: StateTree,
     objects: State.Objects,
     context: StateContext
 }
 
 export namespace State {
     export type Ref = Transform.Ref
-    export type ObjectProps<P = unknown> = ImmutableMap<Ref, P>
-    export type Objects = Map<Ref, StateObject.Wrapped>
+    export type Objects = Map<Ref, StateObject.Node>
 
-    export interface Definition<P = unknown> {
-        tree: StateTree,
-        // things like object visibility
-        props: ObjectProps<P>
-    }
-
-    export function create(params?: { globalContext?: unknown }): State {
+    export function create(params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
         const tree = StateTree.create();
         const objects: Objects = new Map();
         const root = tree.getValue(tree.rootRef)!;
+        const defaultObjectProps = (params && params.defaultObjectProps) || { }
 
-        objects.set(tree.rootRef, { obj: void 0 as any, state: StateObject.StateType.Ok, version: root.version });
+        objects.set(tree.rootRef, { obj: void 0 as any, state: StateObject.StateType.Ok, version: root.version, props: { ...defaultObjectProps } });
 
         return {
-            definition: {
-                tree,
-                props: ImmutableMap()
-            },
+            tree,
             objects,
-            context: StateContext.create(params && params.globalContext)
+            context: StateContext.create({
+                globalContext: params && params.globalContext,
+                defaultObjectProps
+            })
         };
     }
 
-    export async function update<P>(state: State<P>, tree: StateTree): Promise<State<P>> {
-        const ctx: UpdateContext = {
-            stateCtx: state.context,
-            old: state.definition,
-            tree: tree,
-            props: state.definition.props.asMutable(),
-            objects: state.objects
-        };
+    export function update(state: State, tree: StateTree): Task<State> {
+        return Task.create('Update Tree', taskCtx => {
+            const ctx: UpdateContext = {
+                stateCtx: state.context,
+                taskCtx,
+                oldTree: state.tree,
+                tree: tree,
+                objects: state.objects
+            };
+            return _update(ctx);
+        })
+    }
 
-        const roots = findUpdateRoots(state.objects, tree);
+    async function _update(ctx: UpdateContext): Promise<State> {
+        const roots = findUpdateRoots(ctx.objects, ctx.tree);
         const deletes = findDeletes(ctx);
         for (const d of deletes) {
-            state.objects.delete(d);
+            ctx.objects.delete(d);
+            ctx.stateCtx.events.object.removed.next({ ref: d });
         }
 
         initObjectState(ctx, roots);
@@ -70,17 +69,17 @@ export namespace State {
         }
 
         return {
-            definition: { tree, props: ctx.props.asImmutable() as ObjectProps<P> },
-            objects: state.objects,
-            context: state.context
+            tree: ctx.tree,
+            objects: ctx.objects,
+            context: ctx.stateCtx
         };
     }
 
     interface UpdateContext {
         stateCtx: StateContext,
-        old: Definition,
+        taskCtx: RuntimeContext,
+        oldTree: StateTree,
         tree: StateTree,
-        props: ObjectProps,
         objects: Objects
     }
 
@@ -120,15 +119,18 @@ export namespace State {
     }
 
     function setObjectState(ctx: UpdateContext, ref: Ref, state: StateObject.StateType, errorText?: string) {
+        let changed = false;
         if (ctx.objects.has(ref)) {
             const obj = ctx.objects.get(ref)!;
+            changed = obj.state !== state;
             obj.state = state;
             obj.errorText = errorText;
         } else {
-            const obj = { state, version: UUID.create(), errorText };
+            const obj = { state, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
             ctx.objects.set(ref, obj);
+            changed = true;
         }
-        ctx.stateCtx.events.object.stateChanged.next({ ref });
+        if (changed) ctx.stateCtx.events.object.stateChanged.next({ ref });
     }
 
     function _initVisitor(t: ImmutableTree.Node<Transform>, _: any, ctx: UpdateContext) {
@@ -170,15 +172,17 @@ export namespace State {
     }
 
     async function updateSubtree(ctx: UpdateContext, root: Ref) {
-        setObjectState(ctx, root, StateObject.StateType.Pending);
+        setObjectState(ctx, root, StateObject.StateType.Processing);
 
         try {
             const update = await updateNode(ctx, root);
             setObjectState(ctx, root, StateObject.StateType.Ok);
-            if (update === 'created') {
+            if (update.action === 'created') {
                 ctx.stateCtx.events.object.created.next({ ref: root });
-            } else if (update === 'updated') {
+            } else if (update.action === 'updated') {
                 ctx.stateCtx.events.object.updated.next({ ref: root });
+            } else if (update.action === 'replaced') {
+                ctx.stateCtx.events.object.replaced.next({ ref: root, old: update.old });
             }
         } catch (e) {
             doError(ctx, root, '' + e);
@@ -194,43 +198,61 @@ export namespace State {
     }
 
     async function updateNode(ctx: UpdateContext, currentRef: Ref) {
-        const { old: { tree: oldTree }, tree, objects } = ctx;
+        const { oldTree, tree, objects } = ctx;
         const transform = tree.getValue(currentRef)!;
         const parent = findParent(tree, objects, currentRef, transform.transformer.definition.from);
-        //console.log('parent', transform.transformer.id, transform.transformer.definition.from[0].type, parent ? parent.ref : 'undefined')
+        // console.log('parent', transform.transformer.id, transform.transformer.definition.from[0].type, parent ? parent.ref : 'undefined')
         if (!oldTree.nodes.has(currentRef) || !objects.has(currentRef)) {
-            console.log('creating...', transform.transformer.id, oldTree.nodes.has(currentRef), objects.has(currentRef));
+            // console.log('creating...', transform.transformer.id, oldTree.nodes.has(currentRef), objects.has(currentRef));
             const obj = await createObject(ctx, transform.transformer, parent, transform.params);
             obj.ref = currentRef;
-            objects.set(currentRef, { obj, state: StateObject.StateType.Ok, version: transform.version });
-            return 'created';
+            objects.set(currentRef, {
+                obj,
+                state: StateObject.StateType.Ok,
+                version: transform.version,
+                props: { ...ctx.stateCtx.defaultObjectProps, ...transform.defaultProps }
+            });
+            return { action: 'created' };
         } else {
-            console.log('updating...', transform.transformer.id);
+            // console.log('updating...', transform.transformer.id);
             const current = objects.get(currentRef)!;
             const oldParams = oldTree.getValue(currentRef)!.params;
             switch (await updateObject(ctx, transform.transformer, parent, current.obj!, oldParams, transform.params)) {
                 case Transformer.UpdateResult.Recreate: {
                     const obj = await createObject(ctx, transform.transformer, parent, transform.params);
                     obj.ref = currentRef;
-                    objects.set(currentRef, { obj, state: StateObject.StateType.Ok, version: transform.version });
-                    ctx.stateCtx.events.object.created.next({ ref: currentRef });
-                    return 'created';
+                    objects.set(currentRef, {
+                        obj,
+                        state: StateObject.StateType.Ok,
+                        version: transform.version,
+                        props: { ...ctx.stateCtx.defaultObjectProps, ...current.props, ...transform.defaultProps }
+                    });
+                    return { action: 'replaced', old: current.obj! };
                 }
                 case Transformer.UpdateResult.Updated:
                     current.version = transform.version;
-                    return 'updated';
+                    current.props = { ...ctx.stateCtx.defaultObjectProps, ...current.props, ...transform.defaultProps };
+                    return { action: 'updated' };
+                default:
+                    // TODO check if props need to be updated
+                    return { action: 'none' };
             }
         }
     }
 
+    function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
+        if (typeof (t as any).run === 'function') return (t as Task<T>).runInContext(ctx);
+        return t as T;
+    }
+
     function createObject(ctx: UpdateContext, transformer: Transformer, a: StateObject, params: any) {
-        return ctx.stateCtx.runTask(transformer.definition.apply({ a, params, globalCtx: ctx.stateCtx.globalContext }));
+        return runTask(transformer.definition.apply({ a, params }, ctx.stateCtx.globalContext), ctx.taskCtx);
     }
 
     async function updateObject(ctx: UpdateContext, transformer: Transformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
         if (!transformer.definition.update) {
             return Transformer.UpdateResult.Recreate;
         }
-        return ctx.stateCtx.runTask(transformer.definition.update({ a, oldParams, b, newParams, globalCtx: ctx.stateCtx.globalContext }));
+        return runTask(transformer.definition.update({ a, oldParams, b, newParams }, ctx.stateCtx.globalContext), ctx.taskCtx);
     }
 }

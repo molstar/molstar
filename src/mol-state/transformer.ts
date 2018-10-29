@@ -23,16 +23,14 @@ export namespace Transformer {
 
     export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
         a: A,
-        params: P,
-        globalCtx: unknown
+        params: P
     }
 
     export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
         a: A,
         b: B,
         oldParams: P,
-        newParams: P,
-        globalCtx: unknown
+        newParams: P
     }
 
     export enum UpdateResult { Unchanged, Updated, Recreate }
@@ -46,14 +44,14 @@ export namespace Transformer {
          * Apply the actual transformation. It must be pure (i.e. with no side effects).
          * Returns a task that produces the result of the result directly.
          */
-        apply(params: ApplyParams<A, P>): Task<B> | B,
+        apply(params: ApplyParams<A, P>, globalCtx: unknown): Task<B> | B,
 
         /**
          * Attempts to update the entity in a non-destructive way.
          * For example changing a color scheme of a visual does not require computing new geometry.
          * Return/resolve to undefined if the update is not possible.
          */
-        update?(params: UpdateParams<A, B, P>): Task<UpdateResult> | UpdateResult,
+        update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
         /** Check the parameters and return a list of errors if the are not valid. */
         defaultParams?(a: A, globalCtx: unknown): P,

@@ -64,10 +64,20 @@ export async function runTask<A>(t: A | Task<A>): Promise<A> {
     return t as A;
 }
 
+function hookEvents(state: State) {
+    state.context.events.object.created.subscribe(e => console.log('created:', e.ref));
+    state.context.events.object.removed.subscribe(e => console.log('removed:', e.ref));
+    state.context.events.object.replaced.subscribe(e => console.log('replaced:', e.ref));
+    state.context.events.object.stateChanged.subscribe(e => console.log('stateChanged:', e.ref,
+        StateObject.StateType[state.objects.get(e.ref)!.state]));
+    state.context.events.object.updated.subscribe(e => console.log('updated:', e.ref));
+}
+
 export async function testState() {
     const state = State.create();
+    hookEvents(state);
 
-    const tree = state.definition.tree;
+    const tree = state.tree;
     const builder = StateTree.build(tree);
     builder.toRoot<Root>()
         .apply(CreateSquare, { a: 10 }, { ref: 'square' })
@@ -80,7 +90,7 @@ export async function testState() {
     printTTree(tree1);
     printTTree(tree2);
 
-    const state1 = await State.update(state, tree1);
+    const state1 = await State.update(state, tree1).run();
     console.log('----------------');
     console.log(util.inspect(state1.objects, true, 3, true));
 
@@ -93,7 +103,7 @@ export async function testState() {
     printTTree(treeFromJson);
 
     console.log('----------------');
-    const state2 = await State.update(state1, treeFromJson);
+    const state2 = await State.update(state1, treeFromJson).run();
     console.log(util.inspect(state2.objects, true, 3, true));
 }
 
