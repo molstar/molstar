@@ -115,22 +115,32 @@ export namespace State {
         }
     }
 
-    async function updateNode(oldTree: TransformTree, tree: TransformTree, objects: Objects, root: Transform.Ref) {
-        const transform = tree.getValue(root)!;
-        const parent = findParent(tree, objects, root, transform.transformer.definition.from);
+    async function updateNode(oldTree: TransformTree, tree: TransformTree, objects: Objects, currentRef: Transform.Ref) {
+        const transform = tree.getValue(currentRef)!;
+        const parent = findParent(tree, objects, currentRef, transform.transformer.definition.from);
         console.log('parent', parent ? parent.ref : 'undefined')
         if (!oldTree.nodes.has(transform.ref) || !objects.has(transform.ref)) {
             console.log('creating...', transform.transformer.id, oldTree.nodes.has(transform.ref), objects.has(transform.ref));
             const obj = await createObject(transform.transformer, parent, transform.params);
             obj.ref = transform.ref;
-            objects.set(root, { obj, state: StateObject.StateType.Ok, version: transform.version });
+            objects.set(currentRef, { obj, state: StateObject.StateType.Ok, version: transform.version });
         } else {
             console.log('updating...', transform.transformer.id);
             const current = objects.get(transform.ref)!.obj;
             const oldParams = oldTree.getValue(transform.ref)!.params;
-            await updateObject(transform.transformer, parent, current, oldParams, transform.params);
-            const obj = objects.get(root)!;
-            obj.version = transform.version;
+            switch (await updateObject(transform.transformer, parent, current, oldParams, transform.params)) {
+                case Transformer.UpdateResult.Recreate: {
+                    const obj = await createObject(transform.transformer, parent, transform.params);
+                    obj.ref = transform.ref;
+                    objects.set(currentRef, { obj, state: StateObject.StateType.Ok, version: transform.version });
+                    break;
+                }
+                case Transformer.UpdateResult.Updated: {
+                    const obj = objects.get(currentRef)!;
+                    obj.version = transform.version;
+                    break;
+                }
+            }
         }
     }
 
@@ -139,15 +149,14 @@ export namespace State {
         return t as A;
     }
 
-    function createObject(transformer: Transformer, parent: StateObject, params: any) {
-        return runTask(transformer.definition.apply(parent, params, 0 as any));
+    function createObject(transformer: Transformer, a: StateObject, params: any) {
+        return runTask(transformer.definition.apply({ a, params }));
     }
 
-    async function updateObject(transformer: Transformer, parent: StateObject, obj: StateObject, oldParams: any, params: any) {
+    async function updateObject(transformer: Transformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
         if (!transformer.definition.update) {
-            // TODO
-            throw 'nyi';
+            return Transformer.UpdateResult.Recreate;
         }
-        return transformer.definition.update!(parent, oldParams, obj, params, 0 as any);
+        return runTask(transformer.definition.update({ a, oldParams, b, newParams }));
     }
 }

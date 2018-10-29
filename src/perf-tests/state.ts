@@ -18,19 +18,17 @@ export class Square extends _obj<{ a: number }>('square', { name: 'Square', clas
 export class Circle extends _obj<{ r: number }>('circle', { name: 'Circle', class: 'shape' }) { }
 export class Area extends _obj<{ volume: number }>('volume', { name: 'Volume', class: 'prop' }) { }
 
-const root = new Root({ label: 'Root' }, {});
-
 export const CreateSquare = _transform<Root, Square, { a: number }>({
     name: 'create-square',
     from: [Root],
     to: [Square],
-    apply(a, p) {
+    apply({ params: p }) {
         return new Square({ label: `Square a=${p.a}` }, p);
     },
-    update(a, _, b, p) {
+    update({ b, newParams: p }) {
         b.props.label = `Square a=${p.a}`
         b.data.a = p.a;
-        return b;
+        return Transformer.UpdateResult.Updated;
     }
 });
 
@@ -38,13 +36,13 @@ export const CreateCircle = _transform<Root, Circle, { r: number }>({
     name: 'create-circle',
     from: [Root],
     to: [Square],
-    apply(a, p) {
+    apply({ params: p }) {
         return new Circle({ label: `Circle r=${p.r}` }, p);
     },
-    update(a, _, b, p) {
+    update({ b, newParams: p }) {
         b.props.label = `Circle r=${p.r}`
         b.data.r = p.r;
-        return b;
+        return Transformer.UpdateResult.Updated;
     }
 });
 
@@ -52,28 +50,22 @@ export const CaclArea = _transform<Square | Circle, Area, {}>({
     name: 'calc-area',
     from: [Square, Circle],
     to: [Area],
-    apply(a) {
+    apply({ a }) {
         if (a instanceof Square) return new Area({ label: 'Area' }, { volume: a.data.a * a.data.a });
         else if (a instanceof Circle) return new Area({ label: 'Area' }, { volume: a.data.r * a.data.r * Math.PI });
         throw new Error('Unknown object type.');
     },
-    update(a, _, b) {
+    update({ a, b }) {
         if (a instanceof Square) b.data.volume = a.data.a * a.data.a;
         else if (a instanceof Circle) b.data.volume = a.data.r * a.data.r * Math.PI;
         else throw new Error('Unknown object type.');
-        return b;
+        return Transformer.UpdateResult.Updated;
     }
 });
 
-async function runTask<A>(t: A | Task<A>): Promise<A> {
+export async function runTask<A>(t: A | Task<A>): Promise<A> {
     if ((t as any).run) return await (t as Task<A>).run();
     return t as A;
-}
-
-export async function test() {
-    const sq = await runTask(CreateSquare.definition.apply(root, { a: 10 }, 0 as any));
-    const area = await runTask(CaclArea.definition.apply(sq, {}, 0 as any));
-    console.log(area);
 }
 
 export async function testState() {
@@ -117,8 +109,8 @@ testState();
 export function printTTree(tree: TransformTree) {
     let lines: string[] = [];
     function print(offset: string, ref: any) {
-        let t = tree.nodes.get(ref)!;
-        let tr = t.value;
+        const t = tree.nodes.get(ref)!;
+        const tr = t.value;
 
         const name = tr.transformer.id;
         lines.push(`${offset}|_ (${ref}) ${name} ${tr.params ? JSON.stringify(tr.params) : ''}, v${t.value.version}`);
