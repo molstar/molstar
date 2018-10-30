@@ -66,11 +66,11 @@ interface StructureViewProps {
 
 export async function StructureView(app: App, viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
-        cartoon: true,
+        cartoon: false,
         point: false,
-        surface: false,
+        surface: true,
         ballAndStick: false,
-        carbohydrate: true,
+        carbohydrate: false,
         spacefill: false,
         distanceRestraint: false,
         symmetryAxes: false,

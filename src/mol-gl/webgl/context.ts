@@ -52,28 +52,33 @@ function unbindFramebuffer(gl: GLRenderingContext) {
 }
 
 const tmpPixel = new Uint8Array(1 * 4);
+
+function fence(gl: WebGL2RenderingContext) {
+    return new Promise(resolve => {
+        const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
+        if (!sync) {
+            console.warn('could not create a WebGL2 sync object')
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+            resolve()
+        } else {
+            gl.flush(); // Ensure the fence is submitted.
+            const check = () => {
+                const status = gl.getSyncParameter(sync, gl.SYNC_STATUS)
+                if (status == gl.SIGNALED) {
+                    gl.deleteSync(sync);
+                    resolve();
+                } else {
+                    setTimeout(check, 0)
+                }
+            }
+            setTimeout(check, 0)
+        }
+    })
+}
+
 async function waitForGpuCommandsComplete(gl: GLRenderingContext) {
     if (isWebGL2(gl)) {
-        const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-        if (sync) {
-            // TODO too slow in Firefox
-            // await new Promise(resolve => {
-            //     const check = async () => {
-            //         if (gl.getSyncParameter(sync, gl.SYNC_STATUS) === gl.SIGNALED) {
-            //             gl.deleteSync(sync)
-            //             resolve();
-            //         } else {
-            //             setTimeout(check, 50)
-            //         }
-            //     };
-            //     setTimeout(check, 10)
-            // })
-            gl.deleteSync(sync)
-            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
-        } else {
-            console.warn('unable to get webgl sync object')
-            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
-        }
+        await fence(gl)
     } else {
         console.info('webgl sync object not supported in webgl 1')
         gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
@@ -133,6 +138,7 @@ export interface Context {
 
     unbindFramebuffer: () => void
     readPixels: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => void
+    readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     waitForGpuCommandsComplete: () => Promise<void>
     destroy: () => void
 }
@@ -184,6 +190,22 @@ export function createContext(gl: GLRenderingContext): Context {
         throw new Error('Need "MAX_VERTEX_TEXTURE_IMAGE_UNITS" >= 4')
     }
 
+    let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
+    if (isWebGL2(gl)) {
+        const pbo = gl.createBuffer()
+        readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
+            gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STATIC_COPY)
+            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0)
+            await fence(gl)
+            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, buffer);
+        }
+    } else {
+        readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
+            gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)
+        }
+    }
+
     return {
         gl,
         isWebGL2: isWebGL2(gl),
@@ -225,6 +247,7 @@ export function createContext(gl: GLRenderingContext): Context {
             //     console.error('Reading pixels failed. Framebuffer not complete.')
             // }
         },
+        readPixelsAsync,
         waitForGpuCommandsComplete: () => waitForGpuCommandsComplete(gl),
 
         destroy: () => {

@@ -18,7 +18,7 @@ import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/rend
 import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
-import { GLRenderingContext } from 'mol-gl/webgl/compat';
+import { GLRenderingContext, isWebGL2 } from 'mol-gl/webgl/compat';
 import { decodeIdRGB } from 'mol-geo/geometry/picking';
 
 export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
@@ -28,7 +28,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     console.time('GaussianDensityTexture2d')
     const { scale, bbox, texture, dim } = await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props)
     console.timeEnd('GaussianDensityTexture2d')
-    const { field, idField } = fieldFromTexture2d(webgl, texture, dim)
+    const { field, idField } = await fieldFromTexture2d(webgl, texture, dim)
 
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
@@ -310,7 +310,25 @@ function getTexture2dSize(maxTexSize: number, gridDim: Vec3) {
     return { texDimX, texDimY, texRows, texCols }
 }
 
-function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
+  
+//   function pick_nonblocking_getBufferSubData() {
+//     gl.readPixels(mouse.x, pickingTexture.height - mouse.y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
+  
+//     fence().then(function() {
+//       stats1.begin();
+//       gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, readbackBuffer);
+//       stats1.end();
+//       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
+  
+//       var id = (readbackBuffer[0] << 16) | (readbackBuffer[1] << 8) | (readbackBuffer[2]);
+//       render(id);
+//       gl.finish();
+//       stats2.end();
+//     });
+//   }
+
+async function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
+    console.log('isWebGL2', isWebGL2(ctx.gl))
     console.time('fieldFromTexture2d')
     const { gl } = ctx
     const [ dx, dy, dz ] = dim
@@ -327,9 +345,23 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
 
     const framebuffer = createFramebuffer(ctx)
     framebuffer.bind()
-
     texture.attachFramebuffer(framebuffer, 0)
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, image)
+    
+    if (isWebGL2(gl)) {
+        const pbo = gl.createBuffer()
+        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
+        gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STATIC_COPY)
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0)
+        await ctx.waitForGpuCommandsComplete()
+        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, image);
+        gl.deleteBuffer(pbo)
+    } else {
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, image)
+    }
+    // gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, image)
+
+    framebuffer.destroy()
+    gl.finish()
 
     let j = 0
     let tmpCol = 0
@@ -350,7 +382,6 @@ function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
         tmpCol++
     }
 
-    framebuffer.destroy()
     console.timeEnd('fieldFromTexture2d')
 
     return { field, idField }
