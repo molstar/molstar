@@ -9,10 +9,10 @@ export interface TypeInfo { name: string, class: TypeClass }
 const _obj = StateObject.factory<TypeInfo, ObjProps>()
 const _transform = Transformer.factory('test');
 
-export class Root extends _obj('root', { name: 'Root', class: 'root' }) { }
-export class Square extends _obj<{ a: number }>('square', { name: 'Square', class: 'shape' }) { }
-export class Circle extends _obj<{ r: number }>('circle', { name: 'Circle', class: 'shape' }) { }
-export class Area extends _obj<{ volume: number }>('volume', { name: 'Volume', class: 'prop' }) { }
+export class Root extends _obj({ name: 'Root', class: 'root' }) { }
+export class Square extends _obj<{ a: number }>({ name: 'Square', class: 'shape' }) { }
+export class Circle extends _obj<{ r: number }>({ name: 'Circle', class: 'shape' }) { }
+export class Area extends _obj<{ volume: number }>({ name: 'Area', class: 'prop' }) { }
 
 export const CreateSquare = _transform<Root, Square, { a: number }>({
     name: 'create-square',

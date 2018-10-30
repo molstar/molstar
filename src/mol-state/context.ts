@@ -13,10 +13,11 @@ interface StateContext {
         object: {
             stateChanged: Subject<{ ref: Transform.Ref }>,
             propsChanged: Subject<{ ref: Transform.Ref, newProps: unknown }>,
-            updated: Subject<{ ref: Transform.Ref }>,
-            replaced: Subject<{ ref: Transform.Ref, old?: StateObject }>,
-            created: Subject<{ ref: Transform.Ref }>,
-            removed: Subject<{ ref: Transform.Ref }>,
+
+            updated: Subject<{ ref: Transform.Ref, obj?: StateObject }>,
+            replaced: Subject<{ ref: Transform.Ref, oldObj?: StateObject, newObj?: StateObject }>,
+            created: Subject<{ ref: Transform.Ref, obj: StateObject }>,
+            removed: Subject<{ ref: Transform.Ref, obj?: StateObject }>,
         },
         warn: Subject<string>
     },

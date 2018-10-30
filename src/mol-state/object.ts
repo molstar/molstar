@@ -6,10 +6,11 @@
  */
 
 import { Transform } from './transform';
+import { UUID } from 'mol-util';
 
 /** A mutable state object */
 export interface StateObject<P = unknown, D = unknown> {
-    ref: Transform.Ref,
+    readonly id: UUID,
     readonly type: StateObject.Type,
     readonly props: P,
     readonly data: D
@@ -28,18 +29,18 @@ export namespace StateObject {
     }
 
     export interface Type<Info = any> {
-        kind: string,
         info: Info
     }
 
     export function factory<TypeInfo, CommonProps>() {
-        return <D = { }, P = {}>(kind: string, info: TypeInfo) => create<P & CommonProps, D, TypeInfo>(kind, info);
+        return <D = { }, P = {}>(typeInfo: TypeInfo) => create<P & CommonProps, D, TypeInfo>(typeInfo);
     }
 
-    export function create<Props, Data, TypeInfo>(kind: string, typeInfo: TypeInfo) {
-        const dataType: Type<TypeInfo> = { kind, info: typeInfo };
+    export function create<Props, Data, TypeInfo>(typeInfo: TypeInfo) {
+        const dataType: Type<TypeInfo> = { info: typeInfo };
         return class implements StateObject<Props, Data> {
             static type = dataType;
+            id = UUID.create();
             type = dataType;
             ref = 'not set' as Transform.Ref;
             constructor(public props: Props, public data: Data) { }
