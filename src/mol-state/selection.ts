@@ -40,13 +40,13 @@ namespace StateSelection {
     }
 
     export interface Builder {
-        flatMap(f: (n: Node) => Node[]): Builder;
-        mapEntity(f: (n: Node) => Node): Builder;
+        flatMap(f: (n: StateObject.Node) => StateObject.Node[]): Builder;
+        mapEntity(f: (n: StateObject.Node) => StateObject.Node): Builder;
         unique(): Builder;
 
         parent(): Builder;
         first(): Builder;
-        filter(p: (n: Node) => boolean): Builder;
+        filter(p: (n: StateObject.Node) => boolean): Builder;
         subtree(): Builder;
         children(): Builder;
         ofType(t: StateObject.Type): Builder;

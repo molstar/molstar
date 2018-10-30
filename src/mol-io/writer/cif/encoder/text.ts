@@ -235,7 +235,7 @@ function writeChecked(builder: StringBuilder, val: string) {
     }
 
     const fst = val.charCodeAt(0);
-    if (!escape && (fst === 35 /* # */ || fst === 59 /* ; */ || hasWhitespace)) {
+    if (!escape && (fst === 35 /* # */|| fst === 36 /* $ */ || fst === 59 /* ; */ || fst === 91 /* [ */ || fst === 93 /* ] */ || hasWhitespace)) {
         escapeCharStart = '\'';
         escapeCharEnd = '\' ';
         escape = true;
