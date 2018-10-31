@@ -7,6 +7,7 @@
 import { PluginStateObject } from './base';
 import { CifFile } from 'mol-io/reader/cif';
 import { Model as _Model, Structure as _Structure } from 'mol-model/structure'
+import { StructureRepresentation } from 'mol-geo/representation/structure';
 
 const _create = PluginStateObject.Create
 
@@ -26,12 +27,14 @@ namespace PluginStateObjects {
         // }>({ name: 'Data', typeClass: 'Data', shortName: 'MD', description: 'Multiple Keyed Data.' }) { }
     }
 
-    export class Model extends _create<_Model>({ name: 'Molecule Model', typeClass: 'Object', shortName: 'M_M', description: 'A model of a molecule.' }) { }
+    export class Models extends _create<ReadonlyArray<_Model>>({ name: 'Molecule Model', typeClass: 'Object', shortName: 'M_M', description: 'A model of a molecule.' }) { }
     export class Structure extends _create<_Structure>({ name: 'Molecule Structure', typeClass: 'Object', shortName: 'M_S', description: 'A structure of a molecule.' }) { }
 
 
-    export class StructureRepresentation extends _create<{
+    export class StructureRepresentation3D extends _create<{
+        repr: StructureRepresentation<any>,
         // TODO
+        // props
     }>({ name: 'Molecule Structure Representation', typeClass: 'Representation', shortName: 'S_R', description: 'A representation of a molecular structure.' }) { }
 }
 

@@ -36,10 +36,13 @@ export namespace StateObject {
         return <D = { }, P = {}>(typeInfo: TypeInfo) => create<P & CommonProps, D, TypeInfo>(typeInfo);
     }
 
+    export type Ctor = { new(...args: any[]): StateObject, type: Type }
+
     export function create<Props, Data, TypeInfo>(typeInfo: TypeInfo) {
         const dataType: Type<TypeInfo> = { info: typeInfo };
         return class implements StateObject<Props, Data> {
             static type = dataType;
+            static is(obj?: StateObject): obj is StateObject<Props, Data> { return !!obj && dataType === obj.type; }
             id = UUID.create();
             type = dataType;
             ref = 'not set' as Transform.Ref;
