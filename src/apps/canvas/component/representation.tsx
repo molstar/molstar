@@ -10,14 +10,13 @@ import { App } from '../app';
 import { Params } from 'mol-util/parameter';
 import { Representation } from 'mol-geo/representation';
 import { ParametersComponent } from 'mol-app/component/parameters';
-import { Progress } from 'mol-task';
 import { ColorTheme } from 'mol-theme/color';
 import { getColorThemeProps } from 'mol-geo/geometry/color-data';
 import { ColorThemeComponent } from 'mol-app/component/color-theme';
 
 export interface RepresentationComponentProps {
     app: App
-    viewer: Canvas3D
+    canvas3d: Canvas3D
     repr: Representation<Params>
 }
 
@@ -43,10 +42,10 @@ export class RepresentationComponent extends React.Component<RepresentationCompo
 
     async onChange(k: string, v: any) {
         await this.props.app.runTask(this.props.repr.createOrUpdate({ [k]: v }).run(
-            progress => console.log(Progress.format(progress))
+            progress => this.props.app.log(progress)
         ), 'Representation Update')
-        this.props.viewer.add(this.props.repr)
-        this.props.viewer.requestDraw(true)
+        this.props.canvas3d.add(this.props.repr)
+        this.props.canvas3d.requestDraw(true)
         this.setState(this.stateFromRepr(this.props.repr))
     }
 

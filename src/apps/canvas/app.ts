@@ -11,6 +11,7 @@ import { BehaviorSubject } from 'rxjs';
 import { CifBlock } from 'mol-io/reader/cif';
 import { VolumeView } from './volume-view';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
+import { Progress } from 'mol-task';
 
 export class App {
     canvas3d: Canvas3D
@@ -57,6 +58,10 @@ export class App {
             this.changeTaskCount(-1)
         }
         return result
+    }
+
+    log(progress: Progress) {
+        console.log(Progress.format(progress))
     }
 
     //

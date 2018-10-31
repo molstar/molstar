@@ -174,7 +174,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                             return <div key={i}>
                                 <RepresentationComponent
                                     repr={structureRepresentations[k] as Representation<any>}
-                                    viewer={structureView.viewer}
+                                    canvas3d={structureView.viewer}
                                     app={structureView.app}
                                 />
                             </div>

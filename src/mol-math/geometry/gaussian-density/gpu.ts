@@ -17,7 +17,7 @@ import { RenderableState, Renderable } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
 import { WebGLContext, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
-import { GLRenderingContext, isWebGL2 } from 'mol-gl/webgl/compat';
+import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { decodeIdRGB } from 'mol-geo/geometry/picking';
 
 /** name for shared framebuffer used for gpu gaussian surface operations */
@@ -27,9 +27,9 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     const webgl = defaults(props.webgl, getWebGLContext())
     // always use texture2d when the gaussian density needs to be downloaded from the GPU,
     // it's faster than texture3d
-    console.time('GaussianDensityTexture2d')
+    // console.time('GaussianDensityTexture2d')
     const { scale, bbox, texture, dim } = await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props)
-    console.timeEnd('GaussianDensityTexture2d')
+    // console.timeEnd('GaussianDensityTexture2d')
     const { field, idField } = await fieldFromTexture2d(webgl, texture, dim)
 
     const transform = Mat4.identity()
@@ -40,11 +40,11 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
 }
 
 export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
-    console.time(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
+    // console.time(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
     const { texture, scale, bbox, dim } = webgl.isWebGL2 ?
         await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, oldTexture) :
         await GaussianDensityTexture2d(ctx, webgl, position, box, radius, props, oldTexture)
-    console.timeEnd(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
+    // console.timeEnd(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
 
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, scale)
@@ -215,7 +215,7 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
     const delta = getDelta(expandedBox, resolution)
     const dim = Vec3.zero()
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
-    console.log('grid dim gpu', dim)
+    // console.log('grid dim gpu', dim)
 
     return { drawCount: n, positions, radii, groups, delta, expandedBox, dim }
 }
@@ -309,8 +309,7 @@ function getTexture2dSize(maxTexSize: number, gridDim: Vec3) {
 }
 
 async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3) {
-    console.log('isWebGL2', isWebGL2(ctx.gl))
-    console.time('fieldFromTexture2d')
+    // console.time('fieldFromTexture2d')
     const { framebufferCache } = ctx
     const [ dx, dy, dz ] = dim
     const { width, height } = texture
@@ -348,7 +347,7 @@ async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3
         tmpCol++
     }
 
-    console.timeEnd('fieldFromTexture2d')
+    // console.timeEnd('fieldFromTexture2d')
 
     return { field, idField }
 }

@@ -26,7 +26,6 @@ import { SpacefillRepresentation } from 'mol-geo/representation/structure/repres
 import { DistanceRestraintRepresentation } from 'mol-geo/representation/structure/representation/distance-restraint';
 import { MolecularSurfaceRepresentation } from 'mol-geo/representation/structure/representation/molecular-surface';
 import { App } from './app';
-import { Progress } from 'mol-task';
 
 export interface StructureView {
     readonly app: App
@@ -211,7 +210,7 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
                 if (active[k]) {
                     const p = { webgl: viewer.webgl }
                     await app.runTask(structureRepresentations[k].createOrUpdate(p, structure).run(
-                        progress => console.log(Progress.format(progress))
+                        progress => app.log(progress)
                     ), 'Create/update representation')
                     viewer.add(structureRepresentations[k])
                 } else {

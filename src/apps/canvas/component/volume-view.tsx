@@ -89,7 +89,7 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
                             return <div key={i}>
                                 <RepresentationComponent
                                     repr={volumeRepresentations[k] as Representation<any>}
-                                    viewer={volumeView.viewer}
+                                    canvas3d={volumeView.viewer}
                                     app={volumeView.app}
                                 />
                             </div>
