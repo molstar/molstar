@@ -4,29 +4,28 @@ function gql (strs: TemplateStringsArray) { return strs.raw.join('') }
 export default
 gql`query AssemblySymmetry($pdbId: String!) {
     assemblies(pdbId: $pdbId) {
-        assembly_id
-        rcsb_assembly_symmetry {
-            source
-            symmetry_features {
-                symmetry {
-                    description
-                    value
-                }
-                clusters {
-                    members
-                    avg_rmsd
-                }
-                stoichiometry {
-                    description
-                    value
-                }
-                symmetry_axes {
-                    start
-                    end
-                    order
-                }
-                type
-            }
+        pdbx_struct_assembly {
+            id
         }
+        rcsb_struct_symmetry {
+            clusters {
+                avg_rmsd
+                members {
+                    asym_id
+                    pdbx_struct_oper_list_ids
+                }
+            }
+            kind
+            oligomeric_state
+            rotation_axes {
+                start
+                end
+                order
+            }
+            stoichiometry
+            symbol
+            type
+        }
+        rcsb_struct_symmetry_provenance
     }
 }`

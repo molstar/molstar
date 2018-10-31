@@ -10,7 +10,7 @@ import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
-import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName } from 'mol-theme/color';
+import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName, ScaleLegend, TableLegend } from 'mol-theme/color';
 import { RuntimeContext } from 'mol-task';
 import { getGranularity } from './geometry';
 import { Structure } from 'mol-model/structure';
@@ -27,20 +27,25 @@ export type ColorData = {
 
 export interface ColorProps {
     colorTheme: ColorThemeName
+    colorDomain?: [number, number]
     colorValue?: Color
+    colorFunction?: LocationColor,
+    colorGranularity?: ColorType,
+    colorDescription?: string,
+    colorLegend?: ScaleLegend | TableLegend
     structure?: Structure
 }
 
 export function getColorThemeProps(props: ColorProps): ColorThemeProps {
     return {
         name: props.colorTheme,
-        // domain: [number, number],
+        domain: props.colorDomain,
         value: props.colorValue,
         structure: props.structure,
-        // color?: LocationColor,
-        // granularity?: ColorType,
-        // description?: string,
-        // legend?: ScaleLegend | TableLegend
+        color: props.colorFunction,
+        granularity: props.colorGranularity,
+        description: props.colorDescription,
+        legend: props.colorLegend
     }
 }
 

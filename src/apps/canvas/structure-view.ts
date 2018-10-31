@@ -65,14 +65,14 @@ interface StructureViewProps {
 
 export async function StructureView(app: App, viewer: Canvas3D, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
-        cartoon: false,
+        cartoon: true,
         point: false,
-        surface: true,
+        surface: false,
         ballAndStick: false,
         carbohydrate: false,
         spacefill: false,
         distanceRestraint: false,
-        symmetryAxes: false,
+        symmetryAxes: true,
         // polymerSphere: false,
     }
 
@@ -142,7 +142,7 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
         } else if (model && model.symmetry.assemblies.length) {
             assemblyId = model.symmetry.assemblies[0].id
         } else if (model) {
-            assemblyId = '0'
+            assemblyId = 'deposited'
         } else {
             assemblyId = '-1'
         }
@@ -152,7 +152,7 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
 
     function getAssemblyIds() {
         const assemblyIds: { id: string, label: string }[] = [
-            { id: '0', label: '0: model' }
+            { id: 'deposited', label: 'deposited' }
         ]
         if (model) model.symmetry.assemblies.forEach(a => {
             assemblyIds.push({ id: a.id, label: `${a.id}: ${a.details}` })
@@ -165,9 +165,9 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
         if (newSymmetryFeatureId !== undefined) {
             symmetryFeatureId = newSymmetryFeatureId
         } else if (assemblySymmetry) {
-            const f = assemblySymmetry.getFeatures(assemblyId)
-            if (f._rowCount) {
-                symmetryFeatureId = f.id.value(0)
+            const s = assemblySymmetry.getSymmetries(assemblyId)
+            if (s._rowCount) {
+                symmetryFeatureId = s.id.value(0)
             } else {
                 symmetryFeatureId = -1
             }
@@ -180,13 +180,13 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
     function getSymmetryFeatureIds() {
         const symmetryFeatureIds: { id: number, label: string }[] = []
         if (assemblySymmetry) {
-            const symmetryFeatures = assemblySymmetry.getFeatures(assemblyId)
-            for (let i = 0, il = symmetryFeatures._rowCount; i < il; ++i) {
-                const id = symmetryFeatures.id.value(i)
-                const symmetry = symmetryFeatures.symmetry_value.value(i)
-                const type = symmetryFeatures.type.value(i)
-                const stoichiometry = symmetryFeatures.stoichiometry_value.value(i)
-                const label = `${id}: ${symmetry} ${type} ${stoichiometry}`
+            const symmetries = assemblySymmetry.getSymmetries(assemblyId)
+            for (let i = 0, il = symmetries._rowCount; i < il; ++i) {
+                const id = symmetries.id.value(i)
+                const kind = symmetries.kind.value(i)
+                const type = symmetries.type.value(i)
+                const stoichiometry = symmetries.stoichiometry.value(i)
+                const label = `${id}: ${kind} ${type} ${stoichiometry}`
                 symmetryFeatureIds.push({ id, label })
             }
         }
@@ -255,20 +255,15 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
 
     async function createSymmetryRepr() {
         if (assemblySymmetry) {
-            const features = assemblySymmetry.getFeatures(assemblyId)
-            if (features._rowCount) {
+            const symmetries = assemblySymmetry.getSymmetries(assemblyId)
+            if (symmetries._rowCount) {
                 const axesShape = getAxesShape(symmetryFeatureId, assemblySymmetry)
                 if (axesShape) {
                     // const colorTheme = getClusterColorTheme(symmetryFeatureId, assemblySymmetry)
-                    // await cartoon.createOrUpdate({
-                    //     colorTheme: { name: 'custom', color: colorTheme.color, granularity: colorTheme.granularity },
-                    //     sizeTheme: { name: 'uniform', value: 0.2 },
-                    //     useFog: false // TODO fog not working properly
-                    // }).run()
-                    // await ballAndStick.createOrUpdate({
-                    //     colorTheme:  { name: 'custom', color: colorTheme.color, granularity: colorTheme.granularity },
-                    //     sizeTheme: { name: 'uniform', value: 0.1 },
-                    //     useFog: false // TODO fog not working properly
+                    // await structureRepresentations['cartoon'].createOrUpdate({
+                    //     colorTheme: 'custom',
+                    //     colorFunction: colorTheme.color,
+                    //     colorGranularity: colorTheme.granularity,
                     // }).run()
                     await symmetryAxes.createOrUpdate({}, axesShape).run()
                     viewer.add(symmetryAxes)

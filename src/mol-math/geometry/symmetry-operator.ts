@@ -52,7 +52,7 @@ namespace SymmetryOperator {
         return create(name, t);
     }
 
-    // Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix)
+    /** Apply the 1st and then 2nd operator. ( = second.matrix * first.matrix). */
     export function compose(first: SymmetryOperator, second: SymmetryOperator) {
         const matrix = Mat4.mul(Mat4.zero(), second.matrix, first.matrix);
         return create(second.name, matrix, second.hkl);

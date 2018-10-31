@@ -1,5 +1,5 @@
 {
-    "flattenTypes": false,
+    "flattenTypes": true,
     "generatorConfig": {
         "printTime": true,
         "immutableTypes": true,

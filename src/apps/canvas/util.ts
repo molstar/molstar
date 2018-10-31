@@ -43,7 +43,7 @@ export async function getModelsFromMmcif(cif: CifBlock) {
 
 export async function getStructureFromModel(model: Model, assembly: string) {
     const assemblies = model.symmetry.assemblies
-    if (assembly === '0') {
+    if (assembly === 'deposited') {
         return Structure.ofModel(model)
     } else if (assemblies.find(a => a.id === assembly)) {
         return await StructureSymmetry.buildAssembly(Structure.ofModel(model), assembly).run()

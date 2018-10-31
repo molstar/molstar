@@ -8,7 +8,7 @@ generate({
         path.join(basePath, 'symmetry.gql.ts')
     ],
     schema: 'http://rest-experimental.rcsb.org/graphql',
-    template: 'typescript',
+    template: 'graphql-codegen-typescript-template',
     out: path.join(basePath),
     skipSchema: true,
     overwrite: true,
