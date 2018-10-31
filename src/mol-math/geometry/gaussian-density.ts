@@ -9,7 +9,7 @@ import { Vec3 } from '../linear-algebra';
 import { RuntimeContext, Task } from 'mol-task';
 import { PositionData, DensityData } from './common';
 import { GaussianDensityCPU } from './gaussian-density/cpu';
-import { Context } from 'mol-gl/webgl/context';
+import { WebGLContext } from 'mol-gl/webgl/context';
 
 // import { GaussianDensityGPU } from './gaussian-density/gpu';
 const GaussianDensityGPU = typeof document !== 'undefined'
@@ -21,7 +21,7 @@ export const DefaultGaussianDensityProps = {
     radiusOffset: 0,
     smoothness: 1.5,
     useGpu: true,
-    webgl: undefined as Context | undefined
+    webgl: undefined as WebGLContext | undefined
 }
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 

@@ -9,7 +9,7 @@ import { UnitsVisual, VisualUpdateState } from '..';
 import { createElementSphereMesh, markElement, getElementLoci, StructureElementIterator } from './util/element';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { NumberParam, paramDefaultValues, SelectParam } from 'mol-util/parameter';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 
 export const ElementSphereParams = {
     ...UnitsMeshParams,

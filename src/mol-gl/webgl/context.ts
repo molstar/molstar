@@ -8,6 +8,7 @@ import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
 import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth } from './compat';
 import { createFramebufferCache, FramebufferCache } from './framebuffer';
+import { Scheduler } from 'mol-task';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -65,14 +66,14 @@ function fence(gl: WebGL2RenderingContext) {
             gl.flush(); // Ensure the fence is submitted.
             const check = () => {
                 const status = gl.getSyncParameter(sync, gl.SYNC_STATUS)
-                if (status == gl.SIGNALED) {
-                    gl.deleteSync(sync);
-                    resolve();
+                if (status === gl.SIGNALED) {
+                    gl.deleteSync(sync)
+                    resolve()
                 } else {
-                    setTimeout(check, 0)
+                    Scheduler.setImmediate(check, 0)
                 }
             }
-            setTimeout(check, 0)
+            Scheduler.setImmediate(check, 0)
         }
     })
 }
@@ -115,7 +116,7 @@ type Extensions = {
 }
 
 /** A WebGL context object, including the rendering context, resource caches and counts */
-export interface Context {
+export interface WebGLContext {
     readonly gl: GLRenderingContext
     readonly isWebGL2: boolean
     readonly extensions: Extensions
@@ -145,7 +146,7 @@ export interface Context {
     destroy: () => void
 }
 
-export function createContext(gl: GLRenderingContext): Context {
+export function createContext(gl: GLRenderingContext): WebGLContext {
     const instancedArrays = getInstancedArrays(gl)
     if (instancedArrays === null) {
         throw new Error('Could not find support for "instanced_arrays"')

@@ -5,7 +5,7 @@
  */
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
-import { Context } from '../webgl/context';
+import { WebGLContext } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
 import { AttributeSpec, Values, UniformSpec, GlobalUniformSchema, InternalSchema, TextureSpec, ValueSpec, ElementsSpec, DefineSpec, InternalValues } from './schema';
 import { DirectVolumeShaderCode } from '../shader-code';
@@ -53,7 +53,7 @@ export const DirectVolumeSchema = {
 export type DirectVolumeSchema = typeof DirectVolumeSchema
 export type DirectVolumeValues = Values<DirectVolumeSchema>
 
-export function DirectVolumeRenderable(ctx: Context, id: number, values: DirectVolumeValues, state: RenderableState): Renderable<DirectVolumeValues> {
+export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: DirectVolumeValues, state: RenderableState): Renderable<DirectVolumeValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...DirectVolumeSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id)

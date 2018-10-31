@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context'
+import { WebGLContext } from './context'
 import { idFactory } from 'mol-util/id-factory';
 
 const getNextRenderbufferId = idFactory()
@@ -12,7 +12,7 @@ const getNextRenderbufferId = idFactory()
 export type RenderbufferFormat = 'depth16' | 'stencil8' | 'rgba4' | 'depth-stencil'
 export type RenderbufferAttachment = 'depth' | 'stencil' | 'depth-stencil' | 'color0'
 
-export function getFormat(ctx: Context, format: RenderbufferFormat) {
+export function getFormat(ctx: WebGLContext, format: RenderbufferFormat) {
     const { gl } = ctx
     switch (format) {
         case 'depth16': return gl.DEPTH_COMPONENT16
@@ -22,7 +22,7 @@ export function getFormat(ctx: Context, format: RenderbufferFormat) {
     }
 }
 
-export function getAttachment(ctx: Context, attachment: RenderbufferAttachment) {
+export function getAttachment(ctx: WebGLContext, attachment: RenderbufferAttachment) {
     const { gl } = ctx
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT
@@ -41,7 +41,7 @@ export interface Renderbuffer {
     destroy: () => void
 }
 
-export function createRenderbuffer (ctx: Context, format: RenderbufferFormat, attachment: RenderbufferAttachment, _width: number, _height: number): Renderbuffer {
+export function createRenderbuffer (ctx: WebGLContext, format: RenderbufferFormat, attachment: RenderbufferAttachment, _width: number, _height: number): Renderbuffer {
     const { gl } = ctx
     const _renderbuffer = gl.createRenderbuffer()
     if (_renderbuffer === null) {

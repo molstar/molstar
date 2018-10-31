@@ -11,7 +11,7 @@ import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { ValueCell } from 'mol-util';
-import { ColorThemeName, ColorThemeOptions } from 'mol-canvas3d/theme/color';
+import { ColorThemeName, ColorThemeOptions } from 'mol-theme/color';
 import { Shape } from 'mol-model/shape';
 import { LocationIterator } from '../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';

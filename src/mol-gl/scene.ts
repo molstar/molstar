@@ -5,7 +5,7 @@
  */
 
 import { Renderable } from './renderable'
-import { Context } from './webgl/context';
+import { WebGLContext } from './webgl/context';
 import { RenderableValues, BaseValues } from './renderable/schema';
 import { RenderObject, createRenderable } from './render-object';
 import { Object3D, createObject3D } from './object3d';
@@ -48,7 +48,7 @@ interface Scene extends Object3D {
 }
 
 namespace Scene {
-    export function create(ctx: Context): Scene {
+    export function create(ctx: WebGLContext): Scene {
         const renderableMap = new Map<RenderObject, Renderable<RenderableValues & BaseValues>>()
         let boundingSphere: Sphere3D | undefined
 

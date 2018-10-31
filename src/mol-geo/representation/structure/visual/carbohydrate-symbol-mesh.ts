@@ -16,7 +16,7 @@ import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/struct
 import { LocationIterator } from '../../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { addSphere } from '../../../geometry/mesh/builder/sphere';
 import { Box, PerforatedBox } from '../../../primitive/box';
 import { OctagonalPyramid, PerforatedOctagonalPyramid } from '../../../primitive/pyramid';

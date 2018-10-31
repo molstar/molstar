@@ -16,7 +16,7 @@ import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
 import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
-import { createContext, getGLContext, Context } from 'mol-gl/webgl/context';
+import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
@@ -26,8 +26,8 @@ import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 
-interface Viewer {
-    webgl: Context,
+interface Canvas3D {
+    webgl: WebGLContext,
 
     center: (p: Vec3) => void
 
@@ -61,8 +61,8 @@ interface Viewer {
     dispose: () => void
 }
 
-namespace Viewer {
-    export function create(canvas: HTMLCanvasElement, container: Element): Viewer {
+namespace Canvas3D {
+    export function create(canvas: HTMLCanvasElement, container: Element): Canvas3D {
         const reprMap = new Map<Representation<any>, Set<RenderObject>>()
         const reprCount = new BehaviorSubject(0)
         const identified = new BehaviorSubject('')
@@ -350,4 +350,4 @@ namespace Viewer {
     }
 }
 
-export default Viewer
+export default Canvas3D

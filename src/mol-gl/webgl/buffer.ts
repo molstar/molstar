@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context'
+import { WebGLContext } from './context'
 import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
@@ -29,7 +29,7 @@ export type ArrayKind = keyof DataTypeArrayType
 
 export type BufferItemSize = 1 | 2 | 3 | 4 | 16
 
-export function getUsageHint(ctx: Context, usageHint: UsageHint) {
+export function getUsageHint(ctx: WebGLContext, usageHint: UsageHint) {
     const { gl } = ctx
     switch (usageHint) {
         case 'static': return gl.STATIC_DRAW
@@ -38,7 +38,7 @@ export function getUsageHint(ctx: Context, usageHint: UsageHint) {
     }
 }
 
-export function getDataType(ctx: Context, dataType: DataType) {
+export function getDataType(ctx: WebGLContext, dataType: DataType) {
     const { gl } = ctx
     switch (dataType) {
         case 'uint8': return gl.UNSIGNED_BYTE
@@ -51,7 +51,7 @@ export function getDataType(ctx: Context, dataType: DataType) {
     }
 }
 
-function dataTypeFromArray(ctx: Context, array: ArrayType) {
+function dataTypeFromArray(ctx: WebGLContext, array: ArrayType) {
     const { gl } = ctx
     if (array instanceof Uint8Array) {
         return gl.UNSIGNED_BYTE
@@ -72,7 +72,7 @@ function dataTypeFromArray(ctx: Context, array: ArrayType) {
     }
 }
 
-export function getBufferType(ctx: Context, bufferType: BufferType) {
+export function getBufferType(ctx: WebGLContext, bufferType: BufferType) {
     const { gl } = ctx
     switch (bufferType) {
         case 'attribute': return gl.ARRAY_BUFFER
@@ -98,7 +98,7 @@ export interface Buffer {
     destroy: () => void
 }
 
-export function createBuffer(ctx: Context, array: ArrayType, itemSize: BufferItemSize, usageHint: UsageHint, bufferType: BufferType): Buffer {
+export function createBuffer(ctx: WebGLContext, array: ArrayType, itemSize: BufferItemSize, usageHint: UsageHint, bufferType: BufferType): Buffer {
     const { gl } = ctx
     const _buffer = gl.createBuffer()
     if (_buffer === null) {
@@ -162,7 +162,7 @@ export interface AttributeBuffer extends Buffer {
     bind: (location: number) => void
 }
 
-export function createAttributeBuffer<T extends ArrayType, S extends BufferItemSize>(ctx: Context, array: ArrayType, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
+export function createAttributeBuffer<T extends ArrayType, S extends BufferItemSize>(ctx: WebGLContext, array: ArrayType, itemSize: S, divisor: number, usageHint: UsageHint = 'dynamic'): AttributeBuffer {
     const { gl } = ctx
     const { instancedArrays } = ctx.extensions
 
@@ -188,7 +188,7 @@ export function createAttributeBuffer<T extends ArrayType, S extends BufferItemS
     }
 }
 
-export function createAttributeBuffers(ctx: Context, schema: RenderableSchema, values: AttributeValues) {
+export function createAttributeBuffers(ctx: WebGLContext, schema: RenderableSchema, values: AttributeValues) {
     const buffers: AttributeBuffers = {}
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
@@ -206,7 +206,7 @@ export interface ElementsBuffer extends Buffer {
     bind: () => void
 }
 
-export function createElementsBuffer(ctx: Context, array: ElementsType, usageHint: UsageHint = 'static'): ElementsBuffer {
+export function createElementsBuffer(ctx: WebGLContext, array: ElementsType, usageHint: UsageHint = 'static'): ElementsBuffer {
     const { gl } = ctx
     const buffer = createBuffer(ctx, array, 1, usageHint, 'elements')
     const { _buffer } = buffer

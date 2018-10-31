@@ -6,7 +6,7 @@
 
 import { Color } from './color'
 import { ColorBrewer } from './tables'
-import { ScaleLegend } from 'mol-canvas3d/theme/color';
+import { ScaleLegend } from 'mol-theme/color';
 import { defaults } from 'mol-util';
 
 export interface ColorScale {

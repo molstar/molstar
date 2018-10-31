@@ -7,7 +7,7 @@
 import { PointsRenderable, MeshRenderable, RenderableState, MeshValues, PointsValues, LinesValues, LinesRenderable, Renderable } from './renderable'
 import { RenderableValues } from './renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
-import { Context } from './webgl/context';
+import { WebGLContext } from './webgl/context';
 import { GaussianDensityValues, GaussianDensityRenderable } from './renderable/gaussian-density';
 import { DirectVolumeValues, DirectVolumeRenderable } from './renderable/direct-volume';
 
@@ -40,7 +40,7 @@ export function createDirectVolumeRenderObject(values: DirectVolumeValues, state
     return { id: getNextId(), type: 'direct-volume', values, state }
 }
 
-export function createRenderable(ctx: Context, o: RenderObject): Renderable<any> {
+export function createRenderable(ctx: WebGLContext, o: RenderObject): Renderable<any> {
     switch (o.type) {
         case 'mesh': return MeshRenderable(ctx, o.id, o.values, o.state)
         case 'points': return PointsRenderable(ctx, o.id, o.values, o.state)

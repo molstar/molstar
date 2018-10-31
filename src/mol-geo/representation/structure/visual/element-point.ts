@@ -9,7 +9,7 @@ import { RuntimeContext } from 'mol-task'
 import { UnitsVisual, VisualUpdateState } from '..';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { SizeThemeOptions, SizeThemeName } from 'mol-canvas3d/theme/size';
+import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { Points } from '../../../geometry/points/points';
 import { PointsBuilder } from '../../../geometry/points/points-builder';

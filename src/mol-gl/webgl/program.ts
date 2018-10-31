@@ -5,7 +5,7 @@
  */
 
 import { ShaderCode, DefineValues, addShaderDefines } from '../shader-code'
-import { Context } from './context';
+import { WebGLContext } from './context';
 import { getUniformUpdaters, getTextureUniformUpdaters, UniformValues } from './uniform';
 import { AttributeBuffers } from './buffer';
 import { TextureId, Textures } from './texture';
@@ -29,7 +29,7 @@ export interface Program {
 
 type AttributeLocations = { [k: string]: number }
 
-function getAttributeLocations(ctx: Context, program: WebGLProgram, schema: RenderableSchema) {
+function getAttributeLocations(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
     const { gl } = ctx
     const locations: AttributeLocations = {}
     gl.useProgram(program)
@@ -52,7 +52,7 @@ export interface ProgramProps {
     schema: RenderableSchema
 }
 
-export function createProgram(ctx: Context, props: ProgramProps): Program {
+export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     const { gl, shaderCache } = ctx
     const { defineValues, shaderCode: _shaderCode, schema } = props
 
@@ -112,7 +112,7 @@ export function createProgram(ctx: Context, props: ProgramProps): Program {
     }
 }
 
-export type ProgramCache = ReferenceCache<Program, ProgramProps, Context>
+export type ProgramCache = ReferenceCache<Program, ProgramProps, WebGLContext>
 
 function defineValueHash(v: boolean | number | string): number {
     return typeof v === 'boolean' ? (v ? 1 : 0) :
@@ -129,7 +129,7 @@ export function createProgramCache(): ProgramCache {
             })
             return hashFnv32a(array).toString()
         },
-        (ctx: Context, props: ProgramProps) => createProgram(ctx, props),
+        (ctx: WebGLContext, props: ProgramProps) => createProgram(ctx, props),
         (program: Program) => { program.destroy() }
     )
 }

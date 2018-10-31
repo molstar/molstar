@@ -4,11 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context';
+import { WebGLContext } from './context';
 import { Program } from './program';
 import { AttributeBuffers, ElementsBuffer } from './buffer';
 
-export function createVertexArray(ctx: Context, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
+export function createVertexArray(ctx: WebGLContext, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
     const { vertexArrayObject } = ctx.extensions
     let vertexArray: WebGLVertexArrayObject | null = null
     if (vertexArrayObject) {
@@ -22,7 +22,7 @@ export function createVertexArray(ctx: Context, program: Program, attributeBuffe
     return vertexArray
 }
 
-export function deleteVertexArray(ctx: Context, vertexArray: WebGLVertexArrayObject | null) {
+export function deleteVertexArray(ctx: WebGLContext, vertexArray: WebGLVertexArrayObject | null) {
     const { vertexArrayObject } = ctx.extensions
     if (vertexArrayObject && vertexArray) {
         vertexArrayObject.deleteVertexArray(vertexArray)

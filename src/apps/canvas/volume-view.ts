@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Viewer from 'mol-canvas3d/viewer';
+import Canvas3D from 'mol-canvas3d/canvas3d';
 import { BehaviorSubject } from 'rxjs';
 import { App } from './app';
 import { Progress } from 'mol-task';
@@ -15,7 +15,7 @@ import { DirectVolumeRepresentation } from 'mol-geo/representation/volume/direct
 
 export interface VolumeView {
     readonly app: App
-    readonly viewer: Viewer
+    readonly viewer: Canvas3D
 
     readonly label: string
     readonly volume: VolumeData
@@ -32,7 +32,7 @@ interface VolumeViewProps {
 
 }
 
-export async function VolumeView(app: App, viewer: Viewer, volume: VolumeData, props: VolumeViewProps = {}): Promise<VolumeView> {
+export async function VolumeView(app: App, viewer: Canvas3D, volume: VolumeData, props: VolumeViewProps = {}): Promise<VolumeView> {
     const active: { [k: string]: boolean } = {
         isosurface: true,
         directVolume: false,

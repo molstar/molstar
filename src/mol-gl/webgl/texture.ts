@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context'
+import { WebGLContext } from './context'
 import { TextureImage, TextureVolume } from '../renderable/util';
 import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
@@ -29,7 +29,7 @@ export type TextureFormat = 'alpha' | 'rgb' | 'rgba'
 export type TextureAttachment = 'depth' | 'stencil' | 'color0' | 'color1' | 'color2' | 'color3' | 'color4' | 'color5' | 'color6' | 'color7' | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type TextureFilter = 'nearest' | 'linear'
 
-export function getTarget(ctx: Context, kind: TextureKind): number {
+export function getTarget(ctx: WebGLContext, kind: TextureKind): number {
     const { gl } = ctx
     switch (kind) {
         case 'image-uint8': return gl.TEXTURE_2D
@@ -44,7 +44,7 @@ export function getTarget(ctx: Context, kind: TextureKind): number {
     throw new Error('unknown texture kind')
 }
 
-export function getFormat(ctx: Context, format: TextureFormat): number {
+export function getFormat(ctx: WebGLContext, format: TextureFormat): number {
     const { gl } = ctx
     switch (format) {
         case 'alpha': return gl.ALPHA
@@ -53,7 +53,7 @@ export function getFormat(ctx: Context, format: TextureFormat): number {
     }
 }
 
-export function getInternalFormat(ctx: Context, format: TextureFormat, type: TextureType): number {
+export function getInternalFormat(ctx: WebGLContext, format: TextureFormat, type: TextureType): number {
     const { gl, isWebGL2 } = ctx
     if (isWebGL2) {
         switch (format) {
@@ -77,7 +77,7 @@ export function getInternalFormat(ctx: Context, format: TextureFormat, type: Tex
     return getFormat(ctx, format)
 }
 
-export function getType(ctx: Context, type: TextureType): number {
+export function getType(ctx: WebGLContext, type: TextureType): number {
     const { gl } = ctx
     switch (type) {
         case 'ubyte': return gl.UNSIGNED_BYTE
@@ -85,7 +85,7 @@ export function getType(ctx: Context, type: TextureType): number {
     }
 }
 
-export function getFilter(ctx: Context, type: TextureFilter): number {
+export function getFilter(ctx: WebGLContext, type: TextureFilter): number {
     const { gl } = ctx
     switch (type) {
         case 'nearest': return gl.NEAREST
@@ -93,7 +93,7 @@ export function getFilter(ctx: Context, type: TextureFilter): number {
     }
 }
 
-export function getAttachment(ctx: Context, attachment: TextureAttachment): number {
+export function getAttachment(ctx: WebGLContext, attachment: TextureAttachment): number {
     const { gl } = ctx
     switch (attachment) {
         case 'depth': return gl.DEPTH_ATTACHMENT
@@ -140,7 +140,7 @@ export type TextureId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 1
 export type TextureValues = { [k: string]: ValueCell<TextureValueType> }
 export type Textures = { [k: string]: Texture }
 
-export function createTexture(ctx: Context, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
+export function createTexture(ctx: WebGLContext, kind: TextureKind, _format: TextureFormat, _type: TextureType, _filter: TextureFilter): Texture {
     const id = getNextTextureId()
     const { gl } = ctx
     const texture = gl.createTexture()
@@ -244,7 +244,7 @@ export function createTexture(ctx: Context, kind: TextureKind, _format: TextureF
     }
 }
 
-export function createTextures(ctx: Context, schema: RenderableSchema, values: TextureValues) {
+export function createTextures(ctx: WebGLContext, schema: RenderableSchema, values: TextureValues) {
     const textures: Textures = {}
     Object.keys(schema).forEach((k, i) => {
         const spec = schema[k]

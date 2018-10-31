@@ -5,7 +5,7 @@
  */
 
 import { createReferenceCache, ReferenceCache } from 'mol-util/reference-cache';
-import { Context } from './context';
+import { WebGLContext } from './context';
 import { idFactory } from 'mol-util/id-factory';
 
 const getNextShaderId = idFactory()
@@ -26,7 +26,7 @@ export interface Shader {
     destroy: () => void
 }
 
-function createShader(ctx: Context, props: ShaderProps): Shader {
+function createShader(ctx: WebGLContext, props: ShaderProps): Shader {
     const { gl } = ctx
     const { type, source } = props
 
@@ -54,12 +54,12 @@ function createShader(ctx: Context, props: ShaderProps): Shader {
     }
 }
 
-export type ShaderCache = ReferenceCache<Shader, ShaderProps, Context>
+export type ShaderCache = ReferenceCache<Shader, ShaderProps, WebGLContext>
 
 export function createShaderCache(): ShaderCache {
     return createReferenceCache(
         (props: ShaderProps) => JSON.stringify(props),
-        (ctx: Context, props: ShaderProps) => createShader(ctx, props),
+        (ctx: WebGLContext, props: ShaderProps) => createShader(ctx, props),
         (shader: Shader) => { shader.destroy() }
     )
 }

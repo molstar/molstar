@@ -5,7 +5,7 @@
  */
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
-import { Context } from '../webgl/context';
+import { WebGLContext } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, ElementsSpec, DefineSpec, Values, InternalSchema, InternalValues } from './schema';
 import { MeshShaderCode } from '../shader-code';
@@ -23,7 +23,7 @@ export const MeshSchema = {
 export type MeshSchema = typeof MeshSchema
 export type MeshValues = Values<MeshSchema>
 
-export function MeshRenderable(ctx: Context, id: number, values: MeshValues, state: RenderableState): Renderable<MeshValues> {
+export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState): Renderable<MeshValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id)

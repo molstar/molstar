@@ -14,7 +14,7 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { LinesValues } from 'mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';

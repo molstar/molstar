@@ -16,7 +16,7 @@ import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaus
 import { getQualityProps } from '../../util';
 import { paramDefaultValues, MultiSelectParam, SelectParam } from 'mol-util/parameter';
 import { GaussianDensityVolumeParams, GaussianDensityVolumeVisual } from '../visual/gaussian-density-volume';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 
 const VisualOptions = [['surface', 'Surface'], ['wireframe', 'Wireframe'], ['volume', 'Volume']] as [string, string][]
 

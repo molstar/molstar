@@ -11,7 +11,7 @@ import { getStructureFromModel } from './util';
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
 import { ShapeRepresentation, ShapeProps } from 'mol-geo/representation/shape';
 import { getAxesShape } from './assembly-symmetry';
-import Viewer from 'mol-canvas3d/viewer';
+import Canvas3D from 'mol-canvas3d/canvas3d';
 import { CarbohydrateRepresentation } from 'mol-geo/representation/structure/representation/carbohydrate';
 // import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
 // import { addSphere } from 'mol-geo/mesh/builder/sphere';
@@ -30,7 +30,7 @@ import { Progress } from 'mol-task';
 
 export interface StructureView {
     readonly app: App
-    readonly viewer: Viewer
+    readonly viewer: Canvas3D
 
     readonly label: string
     readonly models: ReadonlyArray<Model>
@@ -64,7 +64,7 @@ interface StructureViewProps {
     symmetryFeatureId?: number
 }
 
-export async function StructureView(app: App, viewer: Viewer, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
+export async function StructureView(app: App, viewer: Canvas3D, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
         cartoon: false,
         point: false,

@@ -15,7 +15,7 @@ import { LocationIterator } from '../../../util/location-iterator';
 import { createLinkCylinderMesh, LinkCylinderProps, LinkCylinderParams } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual } from '../complex-visual';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { LinkType } from 'mol-model/structure/model/types';
 import { BitFlags } from 'mol-util';
 import { UnitsMeshParams } from '../units-visual';

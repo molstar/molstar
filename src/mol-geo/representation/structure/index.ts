@@ -6,8 +6,8 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { ColorThemeName, ColorThemeOptions } from 'mol-canvas3d/theme/color';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { ColorThemeName, ColorThemeOptions } from 'mol-theme/color';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { Representation, RepresentationProps } from '..';
 import { Geometry } from '../../geometry/geometry';
 import { Mesh } from '../../geometry/mesh/mesh';

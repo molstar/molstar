@@ -15,7 +15,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { Interval } from 'mol-data/int';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
 import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 

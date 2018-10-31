@@ -5,19 +5,19 @@
  */
 
 import * as React from 'react'
-import Viewer from 'mol-canvas3d/viewer';
+import Canvas3D from 'mol-canvas3d/canvas3d';
 import { App } from '../app';
 import { Params } from 'mol-util/parameter';
 import { Representation } from 'mol-geo/representation';
 import { ParametersComponent } from 'mol-app/component/parameters';
 import { Progress } from 'mol-task';
-import { ColorTheme } from 'mol-canvas3d/theme/color';
+import { ColorTheme } from 'mol-theme/color';
 import { getColorThemeProps } from 'mol-geo/geometry/color-data';
 import { ColorThemeComponent } from 'mol-app/component/color-theme';
 
 export interface RepresentationComponentProps {
     app: App
-    viewer: Viewer
+    viewer: Canvas3D
     repr: Representation<Params>
 }
 

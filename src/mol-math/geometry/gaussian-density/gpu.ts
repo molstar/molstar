@@ -15,7 +15,7 @@ import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
 import { ValueCell, defaults } from 'mol-util'
 import { RenderableState, Renderable } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
-import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
+import { WebGLContext, createContext, getGLContext } from 'mol-gl/webgl/context';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext, isWebGL2 } from 'mol-gl/webgl/compat';
 import { decodeIdRGB } from 'mol-geo/geometry/picking';
@@ -39,7 +39,7 @@ export async function GaussianDensityGPU(ctx: RuntimeContext, position: Position
     return { field, idField, transform }
 }
 
-export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
+export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, oldTexture?: Texture): Promise<DensityTextureData> {
     console.time(`GaussianDensityTexture, ${webgl.isWebGL2 ? '3d' : '2d'}`)
     const { texture, scale, bbox, dim } = webgl.isWebGL2 ?
         await GaussianDensityTexture3d(ctx, webgl, position, box, radius, props, oldTexture) :
@@ -55,7 +55,7 @@ export async function GaussianDensityTexture(ctx: RuntimeContext, webgl: Context
 
 //
 
-async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -116,7 +116,7 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, pos
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
 }
 
-async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
+async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, texture?: Texture) {
     const { smoothness } = props
 
     const { drawCount, positions, radii, groups, delta, expandedBox, dim } = await prepareGaussianDensityData(ctx, position, box, radius, props)
@@ -165,7 +165,7 @@ async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, pos
 
 //
 
-let webglContext: Context
+let webglContext: WebGLContext
 function getWebGLContext() {
     if (webglContext) return webglContext
     const canvas = document.createElement('canvas')
@@ -220,7 +220,7 @@ async function prepareGaussianDensityData(ctx: RuntimeContext, position: Positio
     return { drawCount: n, positions, radii, groups, delta, expandedBox, dim }
 }
 
-function getGaussianDensityRenderObject(webgl: Context, drawCount: number, positions: Float32Array, radii: Float32Array, groups: Float32Array, minDistanceTexture: Texture, box: Box3D, dimensions: Vec3, smoothness: number) {
+function getGaussianDensityRenderObject(webgl: WebGLContext, drawCount: number, positions: Float32Array, radii: Float32Array, groups: Float32Array, minDistanceTexture: Texture, box: Box3D, dimensions: Vec3, smoothness: number) {
     const extent = Vec3.sub(Vec3.zero(), box.max, box.min)
     const { texDimX, texDimY } = getTexture2dSize(webgl.maxTextureSize, dimensions)
 
@@ -263,7 +263,7 @@ function setRenderingDefaults(gl: GLRenderingContext) {
     gl.enable(gl.BLEND)
 }
 
-function setupMinDistanceRendering(webgl: Context, renderable: Renderable<any>) {
+function setupMinDistanceRendering(webgl: WebGLContext, renderable: Renderable<any>) {
     const { gl } = webgl
     ValueCell.update(renderable.values.dCalcType, 'minDistance')
     renderable.update()
@@ -273,7 +273,7 @@ function setupMinDistanceRendering(webgl: Context, renderable: Renderable<any>) 
     gl.blendEquation(webgl.extensions.blendMinMax.MAX)
 }
 
-function setupDensityRendering(webgl: Context, renderable: Renderable<any>) {
+function setupDensityRendering(webgl: WebGLContext, renderable: Renderable<any>) {
     const { gl } = webgl
     ValueCell.update(renderable.values.dCalcType, 'density')
     renderable.update()
@@ -282,7 +282,7 @@ function setupDensityRendering(webgl: Context, renderable: Renderable<any>) {
     gl.blendEquation(gl.FUNC_ADD)
 }
 
-function setupGroupIdRendering(webgl: Context, renderable: Renderable<any>) {
+function setupGroupIdRendering(webgl: WebGLContext, renderable: Renderable<any>) {
     const { gl } = webgl
     ValueCell.update(renderable.values.dCalcType, 'groupId')
     renderable.update()
@@ -308,7 +308,7 @@ function getTexture2dSize(maxTexSize: number, gridDim: Vec3) {
     return { texDimX, texDimY, texRows, texCols }
 }
 
-async function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
+async function fieldFromTexture2d(ctx: WebGLContext, texture: Texture, dim: Vec3) {
     console.log('isWebGL2', isWebGL2(ctx.gl))
     console.time('fieldFromTexture2d')
     const { framebufferCache } = ctx
@@ -326,7 +326,7 @@ async function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
 
     const framebuffer = framebufferCache.get(ctx, FramebufferName).value
     framebuffer.bind()
-    texture.attachFramebuffer(framebuffer, 0)   
+    texture.attachFramebuffer(framebuffer, 0)
     await ctx.readPixelsAsync(0, 0, width, height, image)
 
     let j = 0

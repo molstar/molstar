@@ -27,7 +27,7 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
     };
 
     handleResize() {
-        this.props.plugin.viewer.handleResize();
+        this.props.plugin.canvas3d.handleResize();
     }
 
     componentDidMount() {
@@ -36,13 +36,13 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         }
         this.handleResize();
 
-        const viewer = this.props.plugin.viewer;
+        const viewer = this.props.plugin.canvas3d;
         viewer.input.resize.subscribe(() => this.handleResize());
 
         let prevLoci: Loci = EmptyLoci;
-        viewer.input.move.subscribe(({x, y, inside, buttons}) => {
+        viewer.input.move.subscribe(async ({x, y, inside, buttons}) => {
             if (!inside || buttons) return;
-            const p = viewer.identify(x, y);
+            const p = await viewer.identify(x, y);
             if (p) {
                 const loci = viewer.getLoci(p);
 

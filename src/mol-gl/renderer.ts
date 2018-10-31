@@ -9,7 +9,7 @@ import { Viewport } from 'mol-canvas3d/camera/util';
 import { Camera } from 'mol-canvas3d/camera/base';
 
 import Scene from './scene';
-import { Context, createImageData } from './webgl/context';
+import { WebGLContext, createImageData } from './webgl/context';
 import { Mat4, Vec3, Vec4 } from 'mol-math/linear-algebra';
 import { Renderable } from './renderable';
 import { Color } from 'mol-util/color';
@@ -49,7 +49,7 @@ export const DefaultRendererProps = {
 export type RendererProps = Partial<typeof DefaultRendererProps>
 
 namespace Renderer {
-    export function create(ctx: Context, camera: Camera, props: RendererProps = {}): Renderer {
+    export function create(ctx: WebGLContext, camera: Camera, props: RendererProps = {}): Renderer {
         const { gl } = ctx
         let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
 

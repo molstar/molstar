@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context, createImageData } from './context'
+import { WebGLContext, createImageData } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { createTexture, Texture } from './texture';
 import { createFramebuffer } from './framebuffer';
@@ -28,7 +28,7 @@ export interface RenderTarget {
     destroy: () => void
 }
 
-export function createRenderTarget (ctx: Context, _width: number, _height: number): RenderTarget {
+export function createRenderTarget (ctx: WebGLContext, _width: number, _height: number): RenderTarget {
     const { gl } = ctx
 
     const image: Helpers.Mutable<TextureImage<Uint8Array>> = {

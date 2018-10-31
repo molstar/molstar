@@ -8,7 +8,7 @@ import * as React from 'react'
 import { App } from '../app';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
-import { labelFirst } from 'mol-canvas3d/label';
+import { labelFirst } from 'mol-theme/label';
 
 interface ViewportProps {
     app: App
@@ -31,7 +31,7 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
     };
 
     handleResize() {
-        this.props.app.viewer.handleResize()
+        this.props.app.canvas3d.handleResize()
     }
 
     componentDidMount() {
@@ -40,7 +40,7 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         }
         this.handleResize()
 
-        const viewer = this.props.app.viewer
+        const viewer = this.props.app.canvas3d
 
         viewer.input.resize.subscribe(() => this.handleResize())
 

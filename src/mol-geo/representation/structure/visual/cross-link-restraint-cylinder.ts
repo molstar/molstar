@@ -15,7 +15,7 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
 import { LocationIterator } from '../../../util/location-iterator';
 import { Interval } from 'mol-data/int';
-import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-canvas3d/theme/size';
+import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
 import { LinkType } from 'mol-model/structure/model/types';
 import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';

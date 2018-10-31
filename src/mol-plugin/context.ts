@@ -5,7 +5,7 @@
  */
 
 import { State, StateTree, StateSelection, Transformer } from 'mol-state';
-import Viewer from 'mol-canvas3d/viewer';
+import Canvas3D from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
 import { Subject } from 'rxjs';
 import { PluginStateObjects as SO } from './state/objects';
@@ -22,13 +22,13 @@ export class PluginContext {
         stateUpdated: new Subject<undefined>()
     };
 
-    viewer: Viewer;
+    canvas3d: Canvas3D;
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
-            this.viewer = Viewer.create(canvas, container);
-            this.viewer.animate();
-            console.log('viewer created');
+            this.canvas3d = Canvas3D.create(canvas, container);
+            this.canvas3d.animate();
+            console.log('canvas3d created');
             return true;
         } catch (e) {
             console.error(e);
@@ -60,24 +60,24 @@ export class PluginContext {
         this.state.data.context.events.object.created.subscribe(o => {
             if (!SO.StructureRepresentation3D.is(o.obj)) return;
             console.log('adding repr', o.obj.data.repr);
-            this.viewer.add(o.obj.data.repr);
-            this.viewer.requestDraw(true);
+            this.canvas3d.add(o.obj.data.repr);
+            this.canvas3d.requestDraw(true);
         });
         this.state.data.context.events.object.updated.subscribe(o => {
             const oo = o.obj;
             if (!SO.StructureRepresentation3D.is(oo)) return;
             console.log('adding repr', oo.data.repr);
-            this.viewer.add(oo.data.repr);
-            this.viewer.requestDraw(true);
+            this.canvas3d.add(oo.data.repr);
+            this.canvas3d.requestDraw(true);
         });
     }
 
     _test_centerView() {
         const sel = StateSelection.select('structure', this.state.data);
         const center = (sel[0].obj! as SO.Structure).data.boundary.sphere.center;
-        console.log({ sel, center, rc: this.viewer.reprCount });
-        this.viewer.center(center);
-        this.viewer.requestDraw(true);
+        console.log({ sel, center, rc: this.canvas3d.reprCount });
+        this.canvas3d.center(center);
+        this.canvas3d.requestDraw(true);
     }
 
     _test_nextModel() {

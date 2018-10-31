@@ -12,7 +12,7 @@ import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { CarbohydrateSymbolVisual, CarbohydrateSymbolParams } from '../visual/carbohydrate-symbol-mesh';
 import { CarbohydrateLinkVisual, CarbohydrateLinkParams } from '../visual/carbohydrate-link-cylinder';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { getQualityProps } from '../../util';
 import { paramDefaultValues, SelectParam, NumberParam } from 'mol-util/parameter';
 

@@ -5,7 +5,7 @@
  */
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
-import { Context } from '../webgl/context';
+import { WebGLContext } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
 import { AttributeSpec, Values, UniformSpec, ValueSpec, DefineSpec, TextureSpec } from './schema';
 import { GaussianDensityShaderCode } from '../shader-code';
@@ -35,7 +35,7 @@ export const GaussianDensitySchema = {
 export type GaussianDensitySchema = typeof GaussianDensitySchema
 export type GaussianDensityValues = Values<GaussianDensitySchema>
 
-export function GaussianDensityRenderable(ctx: Context, id: number, values: GaussianDensityValues, state: RenderableState): Renderable<GaussianDensityValues> {
+export function GaussianDensityRenderable(ctx: WebGLContext, id: number, values: GaussianDensityValues, state: RenderableState): Renderable<GaussianDensityValues> {
     const schema = { ...GaussianDensitySchema }
     const shaderCode = GaussianDensityShaderCode
     const renderItem = createRenderItem(ctx, 'points', shaderCode, schema, values)

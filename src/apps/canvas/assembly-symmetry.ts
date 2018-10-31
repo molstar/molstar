@@ -12,7 +12,7 @@ import { Tensor } from 'mol-math/linear-algebra';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { Shape } from 'mol-model/shape';
-import { ColorTheme } from 'mol-canvas3d/theme/color';
+import { ColorTheme } from 'mol-theme/color';
 import { Location } from 'mol-model/location';
 import { StructureElement, Unit, StructureProperties } from 'mol-model/structure';
 

@@ -5,12 +5,12 @@
  */
 
 import { Unit, StructureElement, ElementIndex } from 'mol-model/structure';
-import { SizeTheme } from 'mol-canvas3d/theme/size';
+import { SizeTheme } from 'mol-theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
 import { NumberParam, paramDefaultValues, BooleanParam, ValueParam } from 'mol-util/parameter';
-import { Context } from 'mol-gl/webgl/context';
+import { WebGLContext } from 'mol-gl/webgl/context';
 import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
 import { Texture } from 'mol-gl/webgl/texture';
 
@@ -20,7 +20,7 @@ export const GaussianDensityParams = {
     smoothness: NumberParam('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
     useGpu: BooleanParam('Use GPU', '', true),
     ignoreCache: BooleanParam('Ignore Cache', '', false),
-    webgl: ValueParam('WebGL Context', '', undefined as Context | undefined),
+    webgl: ValueParam('WebGL Context', '', undefined as WebGLContext | undefined),
 }
 export const DefaultGaussianDensityProps = paramDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps

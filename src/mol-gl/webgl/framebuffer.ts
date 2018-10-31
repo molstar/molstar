@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Context } from './context'
+import { WebGLContext } from './context'
 import { idFactory } from 'mol-util/id-factory';
 import { ReferenceCache, createReferenceCache } from 'mol-util/reference-cache';
 
@@ -17,7 +17,7 @@ export interface Framebuffer {
     destroy: () => void
 }
 
-export function createFramebuffer (ctx: Context): Framebuffer {
+export function createFramebuffer (ctx: WebGLContext): Framebuffer {
     const { gl } = ctx
     const _framebuffer = gl.createFramebuffer()
     if (_framebuffer === null) {
@@ -40,12 +40,12 @@ export function createFramebuffer (ctx: Context): Framebuffer {
     }
 }
 
-export type FramebufferCache = ReferenceCache<Framebuffer, string, Context>
+export type FramebufferCache = ReferenceCache<Framebuffer, string, WebGLContext>
 
 export function createFramebufferCache(): FramebufferCache {
     return createReferenceCache(
         (name: string) => name,
-        (ctx: Context) => createFramebuffer(ctx),
+        (ctx: WebGLContext) => createFramebuffer(ctx),
         (framebuffer: Framebuffer) => { framebuffer.destroy() }
     )
 }

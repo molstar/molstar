@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Viewer from 'mol-canvas3d/viewer';
+import Canvas3D from 'mol-canvas3d/canvas3d';
 import { getCifFromUrl, getModelsFromMmcif, getCifFromFile, getCcp4FromUrl, getVolumeFromCcp4, getCcp4FromFile, getVolumeFromVolcif } from './util';
 import { StructureView } from './structure-view';
 import { BehaviorSubject } from 'rxjs';
@@ -13,7 +13,7 @@ import { VolumeView } from './volume-view';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 
 export class App {
-    viewer: Viewer
+    canvas3d: Canvas3D
     container: HTMLDivElement | null = null;
     canvas: HTMLCanvasElement | null = null;
     structureView: StructureView | null = null;
@@ -27,8 +27,8 @@ export class App {
         this.container = _container
 
         try {
-            this.viewer = Viewer.create(this.canvas, this.container)
-            this.viewer.animate()
+            this.canvas3d = Canvas3D.create(this.canvas, this.container)
+            this.canvas3d.animate()
             return true
         } catch (e) {
             console.error(e)
@@ -63,7 +63,7 @@ export class App {
 
     async loadMmcif(cif: CifBlock, assemblyId?: string) {
         const models = await this.runTask(getModelsFromMmcif(cif), 'Build models')
-        this.structureView = await this.runTask(StructureView(this, this.viewer, models, { assemblyId }), 'Init structure view')
+        this.structureView = await this.runTask(StructureView(this, this.canvas3d, models, { assemblyId }), 'Init structure view')
         this.structureLoaded.next(this.structureView)
     }
 
@@ -85,7 +85,7 @@ export class App {
 
     async loadCcp4(ccp4: Ccp4File) {
         const volume = await this.runTask(getVolumeFromCcp4(ccp4), 'Get Volume')
-        this.volumeView = await this.runTask(VolumeView(this, this.viewer, volume), 'Init volume view')
+        this.volumeView = await this.runTask(VolumeView(this, this.canvas3d, volume), 'Init volume view')
         this.volumeLoaded.next(this.volumeView)
     }
 
@@ -105,7 +105,7 @@ export class App {
 
     async loadVolcif(cif: CifBlock) {
         const volume = await this.runTask(getVolumeFromVolcif(cif), 'Get Volume')
-        this.volumeView = await this.runTask(VolumeView(this, this.viewer, volume), 'Init volume view')
+        this.volumeView = await this.runTask(VolumeView(this, this.canvas3d, volume), 'Init volume view')
         this.volumeLoaded.next(this.volumeView)
     }
 

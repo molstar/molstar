@@ -13,7 +13,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { Points } from '../../../geometry/points/points';
 import { PointsBuilder } from '../../../geometry/points/points-builder';
-import { SizeThemeOptions, SizeThemeName } from 'mol-canvas3d/theme/size';
+import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
 import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-util/parameter';
 

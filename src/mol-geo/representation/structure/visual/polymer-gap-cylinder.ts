@@ -12,7 +12,7 @@ import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-canvas3d/theme/size';
+import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { addSphere } from '../../../geometry/mesh/builder/sphere';
 import { addFixedCountDashedCylinder } from '../../../geometry/mesh/builder/cylinder';

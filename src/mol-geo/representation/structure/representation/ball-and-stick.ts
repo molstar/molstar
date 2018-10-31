@@ -13,7 +13,7 @@ import { Task } from 'mol-task';
 import { Loci, isEmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { InterUnitLinkVisual } from '../visual/inter-unit-link-cylinder';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { getQualityProps } from '../../util';
 import { paramDefaultValues, SelectParam, NumberParam, MultiSelectParam } from 'mol-util/parameter';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';

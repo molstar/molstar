@@ -5,7 +5,7 @@
  */
 
 import { Mat3, Mat4, Vec2, Vec3, Vec4 } from 'mol-math/linear-algebra'
-import { Context } from './context';
+import { WebGLContext } from './context';
 import { ValueCell } from 'mol-util';
 import { RenderableSchema } from '../renderable/schema';
 
@@ -29,7 +29,7 @@ export interface UniformUpdater {
 export type UniformValues = { [k: string]: ValueCell<UniformType> }
 export type UniformUpdaters = { [k: string]: UniformUpdater }
 
-function createUniformSetter(ctx: Context, program: WebGLProgram, name: string, kind: UniformKind): (value: any) => void {
+function createUniformSetter(ctx: WebGLContext, program: WebGLProgram, name: string, kind: UniformKind): (value: any) => void {
     const { gl } = ctx
     const location = gl.getUniformLocation(program, name)
     if (location === null) {
@@ -46,7 +46,7 @@ function createUniformSetter(ctx: Context, program: WebGLProgram, name: string, 
     }
 }
 
-function createUniformUpdater(ctx: Context, program: WebGLProgram, name: string, kind: UniformKind): UniformUpdater {
+function createUniformUpdater(ctx: WebGLContext, program: WebGLProgram, name: string, kind: UniformKind): UniformUpdater {
     const setter = createUniformSetter(ctx, program, name, kind)
     let _value: UniformType | undefined = undefined
     return {
@@ -62,7 +62,7 @@ function createUniformUpdater(ctx: Context, program: WebGLProgram, name: string,
     }
 }
 
-export function getUniformUpdaters(ctx: Context, program: WebGLProgram, schema: RenderableSchema) {
+export function getUniformUpdaters(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
     const updaters: UniformUpdaters = {}
     Object.keys(schema).forEach(k => {
         const spec = schema[k]
@@ -73,7 +73,7 @@ export function getUniformUpdaters(ctx: Context, program: WebGLProgram, schema: 
     return updaters
 }
 
-export function getTextureUniformUpdaters(ctx: Context, program: WebGLProgram, schema: RenderableSchema) {
+export function getTextureUniformUpdaters(ctx: WebGLContext, program: WebGLProgram, schema: RenderableSchema) {
     const updaters: UniformUpdaters = {}
     Object.keys(schema).forEach(k => {
         const spec = schema[k]

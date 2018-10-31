@@ -5,7 +5,7 @@
  */
 
 import { Renderable, RenderableState, createRenderable } from '../renderable'
-import { Context } from '../webgl/context';
+import { WebGLContext } from '../webgl/context';
 import { createRenderItem } from '../webgl/render-item';
 import { GlobalUniformSchema, BaseSchema, AttributeSpec, UniformSpec, DefineSpec, Values, InternalSchema, SizeSchema, InternalValues } from './schema';
 import { PointsShaderCode } from '../shader-code';
@@ -22,7 +22,7 @@ export const PointsSchema = {
 export type PointsSchema = typeof PointsSchema
 export type PointsValues = Values<PointsSchema>
 
-export function PointsRenderable(ctx: Context, id: number, values: PointsValues, state: RenderableState): Renderable<PointsValues> {
+export function PointsRenderable(ctx: WebGLContext, id: number, values: PointsValues, state: RenderableState): Renderable<PointsValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...PointsSchema }
     const internalValues: InternalValues = {
         uObjectId: ValueCell.create(id)

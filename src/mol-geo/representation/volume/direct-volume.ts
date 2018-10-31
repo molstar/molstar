@@ -16,7 +16,7 @@ import { paramDefaultValues } from 'mol-util/parameter';
 import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
-import { Context } from 'mol-gl/webgl/context';
+import { WebGLContext } from 'mol-gl/webgl/context';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
@@ -85,7 +85,7 @@ function createVolumeTexture2d(volume: VolumeData, maxTextureSize: number) {
     return textureImage
 }
 
-export function createDirectVolume2d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume) {
+export function createDirectVolume2d(ctx: RuntimeContext, webgl: WebGLContext, volume: VolumeData, directVolume?: DirectVolume) {
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureImage = createVolumeTexture2d(volume, webgl.maxTextureSize)
     // debugTexture(createImageData(textureImage.array, textureImage.width, textureImage.height), 1/3)
@@ -155,7 +155,7 @@ function createVolumeTexture3d(volume: VolumeData) {
     return textureVolume
 }
 
-export function createDirectVolume3d(ctx: RuntimeContext, webgl: Context, volume: VolumeData, directVolume?: DirectVolume) {
+export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, volume: VolumeData, directVolume?: DirectVolume) {
     const gridDimension = volume.data.space.dimensions as Vec3
     const textureVolume = createVolumeTexture3d(volume)
     const transform = VolumeData.getGridToCartesianTransform(volume)

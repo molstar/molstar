@@ -13,7 +13,7 @@ import { computeMarchingCubesLines } from '../../../util/marching-cubes/algorith
 import { Lines } from '../../../geometry/lines/lines';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
 import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-util/parameter';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 
 async function createGaussianWireframe(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props

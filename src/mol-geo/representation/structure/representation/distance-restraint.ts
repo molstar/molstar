@@ -11,7 +11,7 @@ import { Task } from 'mol-task';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../../../geometry/marker-data';
 import { CrossLinkRestraintVisual, CrossLinkRestraintParams } from '../visual/cross-link-restraint-cylinder';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { getQualityProps } from '../../util';
 import { paramDefaultValues, SelectParam, NumberParam } from 'mol-util/parameter';
 

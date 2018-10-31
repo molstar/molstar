@@ -6,7 +6,7 @@
 
 import { createAttributeBuffers, createElementsBuffer, ElementsBuffer, createAttributeBuffer, ArrayKind } from './buffer';
 import { createTextures } from './texture';
-import { Context } from './context';
+import { WebGLContext } from './context';
 import { ShaderCode } from '../shader-code';
 import { Program } from './program';
 import { RenderableSchema, RenderableValues, AttributeSpec, getValueVersions, splitValues, Values } from '../renderable/schema';
@@ -20,7 +20,7 @@ const getNextRenderItemId = idFactory()
 
 export type DrawMode = 'points' | 'lines' | 'line-strip' | 'line-loop' | 'triangles' | 'triangle-strip' | 'triangle-fan'
 
-export function getDrawMode(ctx: Context, drawMode: DrawMode) {
+export function getDrawMode(ctx: WebGLContext, drawMode: DrawMode) {
     const { gl } = ctx
     switch (drawMode) {
         case 'points': return gl.POINTS
@@ -68,7 +68,7 @@ interface ValueChanges {
  *
  * - assumes that `values.drawCount` and `values.instanceCount` exist
  */
-export function createRenderItem(ctx: Context, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues): RenderItem {
+export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCode: ShaderCode, schema: RenderableSchema, values: RenderableValues): RenderItem {
     const id = getNextRenderItemId()
     const { programCache } = ctx
     const { instancedArrays, vertexArrayObject } = ctx.extensions

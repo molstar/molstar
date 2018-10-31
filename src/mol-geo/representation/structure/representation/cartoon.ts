@@ -13,7 +13,7 @@ import { MarkerAction } from '../../../geometry/marker-data';
 import { PolymerTraceVisual,  PolymerTraceParams } from '../visual/polymer-trace-mesh';
 import { PolymerGapVisual, PolymerGapParams } from '../visual/polymer-gap-cylinder';
 import { NucleotideBlockVisual, NucleotideBlockParams } from '../visual/nucleotide-block-mesh';
-import { SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { getQualityProps } from '../../util';
 import { paramDefaultValues, SelectParam, NumberParam } from 'mol-util/parameter';
 // import { PolymerDirectionVisual, DefaultPolymerDirectionProps } from '../visual/polymer-direction-wedge';
