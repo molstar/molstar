@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-namespace StateTreeSelection {
+interface PluginSpec {
 
 }
 
-export { StateTreeSelection }
+export { PluginSpec }

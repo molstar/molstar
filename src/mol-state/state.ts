@@ -6,7 +6,7 @@
 
 import { StateObject } from './object';
 import { StateTree } from './tree';
-import { Transform } from './tree/transform';
+import { Transform } from './transform';
 import { ImmutableTree } from './util/immutable-tree';
 import { Transformer } from './transformer';
 import { StateContext } from './context';
@@ -23,13 +23,19 @@ export namespace State {
     export type Ref = Transform.Ref
     export type Objects = Map<Ref, StateObject.Node>
 
-    export function create(params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
+    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
         const tree = StateTree.create();
         const objects: Objects = new Map();
         const root = tree.getValue(tree.rootRef)!;
         const defaultObjectProps = (params && params.defaultObjectProps) || { }
 
-        objects.set(tree.rootRef, { obj: void 0 as any, state: StateObject.StateType.Ok, version: root.version, props: { ...defaultObjectProps } });
+        objects.set(tree.rootRef, {
+            ref: tree.rootRef,
+            obj: rootObject,
+            state: StateObject.StateType.Ok,
+            version: root.version,
+            props: { ...defaultObjectProps }
+        });
 
         return {
             tree,
@@ -126,7 +132,7 @@ export namespace State {
             obj.state = state;
             obj.errorText = errorText;
         } else {
-            const obj = { state, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
+            const obj: StateObject.Node = { ref, state, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
             ctx.objects.set(ref, obj);
             changed = true;
         }
@@ -159,7 +165,7 @@ export namespace State {
         }
     }
 
-    function findParent(tree: StateTree, objects: Objects, root: Ref, types: { type: StateObject.Type }[]): StateObject {
+    function findAncestor(tree: StateTree, objects: Objects, root: Ref, types: { type: StateObject.Type }[]): StateObject {
         let current = tree.nodes.get(root)!;
         while (true) {
             current = tree.nodes.get(current.parent)!;
@@ -178,11 +184,11 @@ export namespace State {
             const update = await updateNode(ctx, root);
             setObjectState(ctx, root, StateObject.StateType.Ok);
             if (update.action === 'created') {
-                ctx.stateCtx.events.object.created.next({ ref: root });
+                ctx.stateCtx.events.object.created.next({ ref: root, obj: update.obj! });
             } else if (update.action === 'updated') {
-                ctx.stateCtx.events.object.updated.next({ ref: root });
+                ctx.stateCtx.events.object.updated.next({ ref: root, obj: update.obj });
             } else if (update.action === 'replaced') {
-                ctx.stateCtx.events.object.replaced.next({ ref: root, old: update.old });
+                ctx.stateCtx.events.object.replaced.next({ ref: root, oldObj: update.oldObj, newObj: update.newObj });
             }
         } catch (e) {
             doError(ctx, root, '' + e);
@@ -200,19 +206,19 @@ export namespace State {
     async function updateNode(ctx: UpdateContext, currentRef: Ref) {
         const { oldTree, tree, objects } = ctx;
         const transform = tree.getValue(currentRef)!;
-        const parent = findParent(tree, objects, currentRef, transform.transformer.definition.from);
+        const parent = findAncestor(tree, objects, currentRef, transform.transformer.definition.from);
         // console.log('parent', transform.transformer.id, transform.transformer.definition.from[0].type, parent ? parent.ref : 'undefined')
         if (!oldTree.nodes.has(currentRef) || !objects.has(currentRef)) {
             // console.log('creating...', transform.transformer.id, oldTree.nodes.has(currentRef), objects.has(currentRef));
             const obj = await createObject(ctx, transform.transformer, parent, transform.params);
-            obj.ref = currentRef;
             objects.set(currentRef, {
+                ref: currentRef,
                 obj,
                 state: StateObject.StateType.Ok,
                 version: transform.version,
                 props: { ...ctx.stateCtx.defaultObjectProps, ...transform.defaultProps }
             });
-            return { action: 'created' };
+            return { action: 'created', obj };
         } else {
             // console.log('updating...', transform.transformer.id);
             const current = objects.get(currentRef)!;
@@ -220,19 +226,19 @@ export namespace State {
             switch (await updateObject(ctx, transform.transformer, parent, current.obj!, oldParams, transform.params)) {
                 case Transformer.UpdateResult.Recreate: {
                     const obj = await createObject(ctx, transform.transformer, parent, transform.params);
-                    obj.ref = currentRef;
                     objects.set(currentRef, {
+                        ref: currentRef,
                         obj,
                         state: StateObject.StateType.Ok,
                         version: transform.version,
                         props: { ...ctx.stateCtx.defaultObjectProps, ...current.props, ...transform.defaultProps }
                     });
-                    return { action: 'replaced', old: current.obj! };
+                    return { action: 'replaced', oldObj: current.obj!, newObj: obj };
                 }
                 case Transformer.UpdateResult.Updated:
                     current.version = transform.version;
                     current.props = { ...ctx.stateCtx.defaultObjectProps, ...current.props, ...transform.defaultProps };
-                    return { action: 'updated' };
+                    return { action: 'updated', obj: current.obj };
                 default:
                     // TODO check if props need to be updated
                     return { action: 'none' };

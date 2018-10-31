@@ -33,8 +33,8 @@ export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
 async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerTraceMeshProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
-    if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
+    if (!polymerElementCount) return Mesh.createEmpty(mesh)
     const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
     const { linearSegments, radialSegments, aspectRatio, arrowFactor } = props
 

@@ -1,4 +1,4 @@
-import { State, StateObject, StateTree, Transformer } from 'mol-state';
+import { State, StateObject, StateTree, Transformer, StateSelection } from 'mol-state';
 import { Task } from 'mol-task';
 import * as util from 'util';
 
@@ -9,10 +9,10 @@ export interface TypeInfo { name: string, class: TypeClass }
 const _obj = StateObject.factory<TypeInfo, ObjProps>()
 const _transform = Transformer.factory('test');
 
-export class Root extends _obj('root', { name: 'Root', class: 'root' }) { }
-export class Square extends _obj<{ a: number }>('square', { name: 'Square', class: 'shape' }) { }
-export class Circle extends _obj<{ r: number }>('circle', { name: 'Circle', class: 'shape' }) { }
-export class Area extends _obj<{ volume: number }>('volume', { name: 'Volume', class: 'prop' }) { }
+export class Root extends _obj({ name: 'Root', class: 'root' }) { }
+export class Square extends _obj<{ a: number }>({ name: 'Square', class: 'shape' }) { }
+export class Circle extends _obj<{ r: number }>({ name: 'Circle', class: 'shape' }) { }
+export class Area extends _obj<{ volume: number }>({ name: 'Area', class: 'prop' }) { }
 
 export const CreateSquare = _transform<Root, Square, { a: number }>({
     name: 'create-square',
@@ -74,7 +74,7 @@ function hookEvents(state: State) {
 }
 
 export async function testState() {
-    const state = State.create();
+    const state = State.create(new Root({ label: 'Root' }, { }));
     hookEvents(state);
 
     const tree = state.tree;
@@ -105,6 +105,12 @@ export async function testState() {
     console.log('----------------');
     const state2 = await State.update(state1, treeFromJson).run();
     console.log(util.inspect(state2.objects, true, 3, true));
+
+    console.log('----------------');
+
+    const q = StateSelection.byRef('square').parent();
+    const sel = StateSelection.select(q, state2);
+    console.log(sel);
 }
 
 testState();
