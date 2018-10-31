@@ -16,10 +16,12 @@ import { ValueCell, defaults } from 'mol-util'
 import { RenderableState, Renderable } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
 import { Context, createContext, getGLContext } from 'mol-gl/webgl/context';
-import { createFramebuffer } from 'mol-gl/webgl/framebuffer';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext, isWebGL2 } from 'mol-gl/webgl/compat';
 import { decodeIdRGB } from 'mol-geo/geometry/picking';
+
+/** name for shared framebuffer used for gpu gaussian surface operations */
+const FramebufferName = 'gaussian-density-gpu'
 
 export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
     const webgl = defaults(props.webgl, getWebGLContext())
@@ -68,10 +70,10 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, pos
 
     //
 
-    const { gl } = webgl
+    const { gl, framebufferCache } = webgl
     const { uCurrentSlice, uCurrentX, uCurrentY } = renderObject.values
 
-    const framebuffer = createFramebuffer(webgl)
+    const framebuffer = framebufferCache.get(webgl, FramebufferName).value
     framebuffer.bind()
     setRenderingDefaults(gl)
 
@@ -108,8 +110,6 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: Context, pos
     setupGroupIdRendering(webgl, renderable)
     render(texture)
 
-    framebuffer.destroy() // clean up
-
     await ctx.update({ message: 'gpu gaussian density calculation' });
     await webgl.waitForGpuCommandsComplete()
 
@@ -129,10 +129,10 @@ async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, pos
 
     //
 
-    const { gl } = webgl
+    const { gl, framebufferCache } = webgl
     const { uCurrentSlice } = renderObject.values
 
-    const framebuffer = createFramebuffer(webgl)
+    const framebuffer = framebufferCache.get(webgl, FramebufferName).value
     framebuffer.bind()
     setRenderingDefaults(gl)
     gl.viewport(0, 0, dx, dy)
@@ -156,8 +156,6 @@ async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: Context, pos
 
     setupGroupIdRendering(webgl, renderable)
     render(texture)
-
-    framebuffer.destroy() // clean up
 
     await ctx.update({ message: 'gpu gaussian density calculation' });
     await webgl.waitForGpuCommandsComplete()
@@ -310,27 +308,10 @@ function getTexture2dSize(maxTexSize: number, gridDim: Vec3) {
     return { texDimX, texDimY, texRows, texCols }
 }
 
-  
-//   function pick_nonblocking_getBufferSubData() {
-//     gl.readPixels(mouse.x, pickingTexture.height - mouse.y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, 0);
-  
-//     fence().then(function() {
-//       stats1.begin();
-//       gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, readbackBuffer);
-//       stats1.end();
-//       gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null);
-  
-//       var id = (readbackBuffer[0] << 16) | (readbackBuffer[1] << 8) | (readbackBuffer[2]);
-//       render(id);
-//       gl.finish();
-//       stats2.end();
-//     });
-//   }
-
 async function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
     console.log('isWebGL2', isWebGL2(ctx.gl))
     console.time('fieldFromTexture2d')
-    const { gl } = ctx
+    const { framebufferCache } = ctx
     const [ dx, dy, dz ] = dim
     const { width, height } = texture
     const fboTexCols = Math.floor(width / dx)
@@ -343,25 +324,10 @@ async function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
 
     const image = new Uint8Array(width * height * 4)
 
-    const framebuffer = createFramebuffer(ctx)
+    const framebuffer = framebufferCache.get(ctx, FramebufferName).value
     framebuffer.bind()
-    texture.attachFramebuffer(framebuffer, 0)
-    
-    if (isWebGL2(gl)) {
-        const pbo = gl.createBuffer()
-        gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
-        gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STATIC_COPY)
-        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0)
-        await ctx.waitForGpuCommandsComplete()
-        gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, image);
-        gl.deleteBuffer(pbo)
-    } else {
-        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, image)
-    }
-    // gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, image)
-
-    framebuffer.destroy()
-    gl.finish()
+    texture.attachFramebuffer(framebuffer, 0)   
+    await ctx.readPixelsAsync(0, 0, width, height, image)
 
     let j = 0
     let tmpCol = 0
@@ -386,39 +352,3 @@ async function fieldFromTexture2d(ctx: Context, texture: Texture, dim: Vec3) {
 
     return { field, idField }
 }
-
-// function fieldFromTexture3d(ctx: Context, texture: Texture, dim: Vec3) {
-//     console.time('fieldFromTexture3d')
-//     const { gl } = ctx
-//     const { width, height, depth } = texture
-
-//     const space = Tensor.Space(dim, [2, 1, 0], Float32Array)
-//     const data = space.create()
-//     const field = Tensor.create(space, data)
-//     const idData = space.create()
-//     const idField = Tensor.create(space, idData)
-
-//     const slice = new Uint8Array(width * height * 4)
-
-//     const framebuffer = createFramebuffer(ctx)
-//     framebuffer.bind()
-
-//     let j = 0
-//     for (let i = 0; i < depth; ++i) {
-//         texture.attachFramebuffer(framebuffer, 0, i)
-//         gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, slice)
-//         for (let iy = 0; iy < height; ++iy) {
-//             for (let ix = 0; ix < width; ++ix) {
-//                 const idx = 4 * (iy * width + ix)
-//                 data[j] = slice[idx + 3] / 255
-//                 idData[j] = decodeIdRGB(slice[idx], slice[idx + 1], slice[idx + 2])
-//                 ++j
-//             }
-//         }
-//     }
-
-//     framebuffer.destroy()
-//     console.timeEnd('fieldFromTexture3d')
-
-//     return { field, idField }
-// }

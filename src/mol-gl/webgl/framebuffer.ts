@@ -6,6 +6,7 @@
 
 import { Context } from './context'
 import { idFactory } from 'mol-util/id-factory';
+import { ReferenceCache, createReferenceCache } from 'mol-util/reference-cache';
 
 const getNextFramebufferId = idFactory()
 
@@ -37,4 +38,14 @@ export function createFramebuffer (ctx: Context): Framebuffer {
             ctx.framebufferCount -= 1
         }
     }
+}
+
+export type FramebufferCache = ReferenceCache<Framebuffer, string, Context>
+
+export function createFramebufferCache(): FramebufferCache {
+    return createReferenceCache(
+        (name: string) => name,
+        (ctx: Context) => createFramebuffer(ctx),
+        (framebuffer: Framebuffer) => { framebuffer.destroy() }
+    )
 }

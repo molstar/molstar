@@ -7,6 +7,7 @@
 import { createProgramCache, ProgramCache } from './program'
 import { createShaderCache, ShaderCache } from './shader'
 import { GLRenderingContext, COMPAT_instanced_arrays, COMPAT_standard_derivatives, COMPAT_vertex_array_object, getInstancedArrays, getStandardDerivatives, getVertexArrayObject, isWebGL2, COMPAT_element_index_uint, getElementIndexUint, COMPAT_texture_float, getTextureFloat, COMPAT_texture_float_linear, getTextureFloatLinear, COMPAT_blend_minmax, getBlendMinMax, getFragDepth, COMPAT_frag_depth } from './compat';
+import { createFramebufferCache, FramebufferCache } from './framebuffer';
 
 export function getGLContext(canvas: HTMLCanvasElement, contextAttributes?: WebGLContextAttributes): GLRenderingContext | null {
     function getContext(contextId: 'webgl' | 'experimental-webgl' | 'webgl2') {
@@ -122,6 +123,7 @@ export interface Context {
 
     readonly shaderCache: ShaderCache
     readonly programCache: ProgramCache
+    readonly framebufferCache: FramebufferCache
 
     bufferCount: number
     framebufferCount: number
@@ -179,6 +181,7 @@ export function createContext(gl: GLRenderingContext): Context {
 
     const shaderCache = createShaderCache()
     const programCache = createProgramCache()
+    const framebufferCache = createFramebufferCache()
 
     const parameters = {
         maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
@@ -197,8 +200,12 @@ export function createContext(gl: GLRenderingContext): Context {
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
             gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STATIC_COPY)
             gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0)
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
+            // need to unbind/bind PBO before/after async awaiting the fence
             await fence(gl)
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, buffer);
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
+            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, buffer)
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
         }
     } else {
         readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
@@ -223,6 +230,7 @@ export function createContext(gl: GLRenderingContext): Context {
 
         shaderCache,
         programCache,
+        framebufferCache,
 
         bufferCount: 0,
         framebufferCount: 0,
@@ -254,6 +262,7 @@ export function createContext(gl: GLRenderingContext): Context {
             unbindResources(gl)
             programCache.dispose()
             shaderCache.dispose()
+            framebufferCache.dispose()
             // TODO destroy buffers and textures
         }
     }

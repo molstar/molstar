@@ -43,7 +43,7 @@ interface Viewer {
     requestDraw: (force?: boolean) => void
     animate: () => void
     pick: () => void
-    identify: (x: number, y: number) => PickingId | undefined
+    identify: (x: number, y: number) => Promise<PickingId | undefined>
     mark: (loci: Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => Loci
 
@@ -216,7 +216,7 @@ namespace Viewer {
             pickDirty = false
         }
 
-        function identify(x: number, y: number): PickingId | undefined {
+        async function identify(x: number, y: number): Promise<PickingId | undefined> {
             if (pickDirty) return undefined
 
             isPicking = true
@@ -230,15 +230,15 @@ namespace Viewer {
             const yp = Math.round(y * pickScale)
 
             objectPickTarget.bind()
-            ctx.readPixels(xp, yp, 1, 1, buffer)
+            await ctx.readPixelsAsync(xp, yp, 1, 1, buffer)
             const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             instancePickTarget.bind()
-            ctx.readPixels(xp, yp, 1, 1, buffer)
+            await ctx.readPixels(xp, yp, 1, 1, buffer)
             const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             groupPickTarget.bind()
-            ctx.readPixels(xp, yp, 1, 1, buffer)
+            await ctx.readPixels(xp, yp, 1, 1, buffer)
             const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             isPicking = false
