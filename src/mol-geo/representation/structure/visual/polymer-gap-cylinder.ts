@@ -12,11 +12,11 @@ import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-canvas3d/theme/size';
 import { CylinderProps } from '../../../primitive/cylinder';
 import { addSphere } from '../../../geometry/mesh/builder/sphere';
 import { addFixedCountDashedCylinder } from '../../../geometry/mesh/builder/cylinder';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 import { LinkCylinderParams } from './util/link';
 
 const segmentCount = 10

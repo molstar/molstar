@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { TextParam } from 'mol-view/parameter';
+import { TextParam } from 'mol-util/parameter';
 
 export interface TextParamComponentProps {
     param: TextParam

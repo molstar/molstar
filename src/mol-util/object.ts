@@ -1,0 +1,57 @@
+/**
+ * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+const hasOwnProperty = Object.prototype.hasOwnProperty;
+
+/** Create new object if any property in "update" changes in "source". */
+export function shallowMerge2<T>(source: T, update: Partial<T>): T {
+    // Adapted from LiteMol (https://github.com/dsehnal/LiteMol)
+    let changed = false;
+    for (let k of Object.keys(update)) {
+        if (!hasOwnProperty.call(update, k)) continue;
+
+        if ((update as any)[k] !== (source as any)[k]) {
+            changed = true;
+            break;
+        }
+    }
+
+    if (!changed) return source;
+    return Object.assign({}, source, update);
+}
+
+export function shallowEqual<T>(a: T, b: T) {
+    if (!a) {
+        if (!b) return true;
+        return false;
+    }
+    if (!b) return false;
+
+    let keys = Object.keys(a);
+    if (Object.keys(b).length !== keys.length) return false;
+    for (let k of keys) {
+        if (!hasOwnProperty.call(a, k) || (a as any)[k] !== (b as any)[k]) return false;
+    }
+
+    return true;
+}
+
+export function shallowMerge<T>(source: T, ...rest: (Partial<T> | undefined)[]): T {
+    // Adapted from LiteMol (https://github.com/dsehnal/LiteMol)
+    let ret: any = source;
+
+    for (let s = 0; s < rest.length; s++) {
+        if (!rest[s]) continue;
+        ret = shallowMerge2(source, rest[s] as T);
+        if (ret !== source) {
+            for (let i = s + 1; i < rest.length; i++) {
+                ret = Object.assign(ret, rest[i]);
+            }
+            break;
+        }
+    }
+    return ret;
+}

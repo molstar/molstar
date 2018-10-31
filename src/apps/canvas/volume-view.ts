@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Viewer from 'mol-view/viewer';
+import Viewer from 'mol-canvas3d/viewer';
 import { BehaviorSubject } from 'rxjs';
 import { App } from './app';
 import { Progress } from 'mol-task';

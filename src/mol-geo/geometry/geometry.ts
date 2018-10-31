@@ -10,13 +10,12 @@ import { RenderableState } from 'mol-gl/renderable';
 import { ValueCell } from 'mol-util';
 import { BaseValues } from 'mol-gl/renderable/schema';
 import { Color } from 'mol-util/color';
-import { ColorThemeOptions, ColorThemeName } from 'mol-view/theme/color';
+import { ColorThemeOptions, ColorThemeName } from 'mol-canvas3d/theme/color';
 import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
-import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, StructureParam, ValueParam } from 'mol-view/parameter'
-import { Structure } from 'mol-model/structure';
+import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, ValueParam } from 'mol-util/parameter'
 import { DirectVolume } from './direct-volume/direct-volume';
 import { Context } from 'mol-gl/webgl/context';
 
@@ -68,7 +67,6 @@ export namespace Geometry {
         quality: SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
         colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
         colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
-        structure: StructureParam('Structure', '', Structure.Empty),
         webgl: ValueParam('WebGL Context', '', undefined as Context | undefined),
     }
     export const DefaultProps = paramDefaultValues(Params)

@@ -11,14 +11,14 @@ import { PickingId } from '../../geometry/picking';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { MarkerAction, applyMarkerAction } from '../../geometry/marker-data';
 import { ValueCell } from 'mol-util';
-import { ColorThemeName, ColorThemeOptions } from 'mol-view/theme/color';
+import { ColorThemeName, ColorThemeOptions } from 'mol-canvas3d/theme/color';
 import { Shape } from 'mol-model/shape';
 import { LocationIterator } from '../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { createIdentityTransform } from '../../geometry/transform-data';
 import { createRenderableState } from '../../geometry/geometry';
 import { Mesh } from '../../geometry/mesh/mesh';
-import { paramDefaultValues, SelectParam } from 'mol-view/parameter';
+import { paramDefaultValues, SelectParam } from 'mol-util/parameter';
 
 export interface ShapeRepresentation<P extends RepresentationProps = {}> extends Representation<Shape, P> { }
 

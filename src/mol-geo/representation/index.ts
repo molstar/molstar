@@ -9,7 +9,7 @@ import { RenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../geometry/picking';
 import { Loci } from 'mol-model/loci';
 import { MarkerAction } from '../geometry/marker-data';
-import { Params } from 'mol-view/parameter';
+import { Params } from 'mol-util/parameter';
 
 export interface RepresentationProps {}
 

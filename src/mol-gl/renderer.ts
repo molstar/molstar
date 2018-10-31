@@ -5,8 +5,8 @@
  */
 
 // import { Vec3, Mat4 } from 'mol-math/linear-algebra'
-import { Viewport } from 'mol-view/camera/util';
-import { Camera } from 'mol-view/camera/base';
+import { Viewport } from 'mol-canvas3d/camera/util';
+import { Camera } from 'mol-canvas3d/camera/base';
 
 import Scene from './scene';
 import { Context, createImageData } from './webgl/context';

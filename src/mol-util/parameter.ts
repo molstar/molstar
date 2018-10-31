@@ -4,8 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from 'mol-util/color';
-import { Structure } from 'mol-model/structure';
+import { Color } from './color';
 
 export interface BaseParam<T> {
     label: string
@@ -81,15 +80,7 @@ export function NumberParam(label: string, description: string, defaultValue: nu
     return { type: 'number', label, description, defaultValue, min, max, step }
 }
 
-export interface StructureParam extends BaseParam<Structure> {
-    type: 'structure'
-}
-export function StructureParam(label: string, description: string, defaultValue: Structure): StructureParam {
-    return { type: 'structure', label, description, defaultValue }
-}
-
-export type Param = ValueParam<any> | SelectParam<any> | MultiSelectParam<any> | BooleanParam | RangeParam | TextParam | ColorParam | NumberParam | StructureParam
-
+export type Param = ValueParam<any> | SelectParam<any> | MultiSelectParam<any> | BooleanParam | RangeParam | TextParam | ColorParam | NumberParam
 export type Params = { [k: string]: Param }
 
 export function paramDefaultValues<T extends Params>(params: T) {

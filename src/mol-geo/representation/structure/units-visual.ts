@@ -22,7 +22,7 @@ import { updateRenderableState, Geometry } from '../../geometry/geometry';
 import { createColors } from '../../geometry/color-data';
 import { createSizes } from '../../geometry/size-data';
 import { Lines } from '../../geometry/lines/lines';
-import { MultiSelectParam, paramDefaultValues } from 'mol-view/parameter';
+import { MultiSelectParam, paramDefaultValues } from 'mol-util/parameter';
 import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
 import { RenderableValues } from 'mol-gl/renderable/schema';
 

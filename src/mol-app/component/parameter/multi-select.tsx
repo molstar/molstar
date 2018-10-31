@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { MultiSelectParam } from 'mol-view/parameter';
+import { MultiSelectParam } from 'mol-util/parameter';
 
 export interface MultiSelectParamComponentProps<T extends string> {
     param: MultiSelectParam<T>

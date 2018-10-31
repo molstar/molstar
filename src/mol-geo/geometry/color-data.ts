@@ -10,7 +10,7 @@ import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
-import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName } from 'mol-view/theme/color';
+import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName } from 'mol-canvas3d/theme/color';
 import { RuntimeContext } from 'mol-task';
 import { getGranularity } from './geometry';
 import { Structure } from 'mol-model/structure';

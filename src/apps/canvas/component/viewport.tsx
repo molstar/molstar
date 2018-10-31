@@ -8,7 +8,7 @@ import * as React from 'react'
 import { App } from '../app';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
-import { labelFirst } from 'mol-view/label';
+import { labelFirst } from 'mol-canvas3d/label';
 
 interface ViewportProps {
     app: App

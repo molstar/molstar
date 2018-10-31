@@ -7,7 +7,7 @@
 import { RuntimeContext } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Sphere3D, Box3D } from 'mol-math/geometry'
-import { paramDefaultValues, RangeParam, SelectParam, TextParam } from 'mol-view/parameter';
+import { paramDefaultValues, RangeParam, SelectParam, TextParam } from 'mol-util/parameter';
 import { DirectVolumeValues } from 'mol-gl/renderable/direct-volume';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box } from '../../primitive/box';

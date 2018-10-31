@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Viewer from 'mol-view/viewer';
+import Viewer from 'mol-canvas3d/viewer';
 import { getCifFromUrl, getModelsFromMmcif, getCifFromFile, getCcp4FromUrl, getVolumeFromCcp4, getCcp4FromFile, getVolumeFromVolcif } from './util';
 import { StructureView } from './structure-view';
 import { BehaviorSubject } from 'rxjs';

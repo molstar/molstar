@@ -16,12 +16,6 @@ export interface StateObject<P = unknown, D = unknown> {
 }
 
 export namespace StateObject {
-    // export type TypeOf<T>
-    //     = T extends StateObject<infer X> ? [X]
-    //     : T extends [StateObject<infer X>] ? [X]
-    //     : T extends [StateObject<infer X>, StateObject<infer Y>] ? [X, Y]
-    //     : unknown[];
-
     export enum StateType {
         // The object has been successfully created
         Ok,
@@ -52,9 +46,11 @@ export namespace StateObject {
         }
     }
 
-    export interface Wrapped {
-        obj: StateObject,
+    export interface Node {
         state: StateType,
+        props: unknown,
+        errorText?: string,
+        obj?: StateObject,
         version: string
     }
 }

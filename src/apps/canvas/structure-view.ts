@@ -11,7 +11,7 @@ import { getStructureFromModel } from './util';
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
 import { ShapeRepresentation, ShapeProps } from 'mol-geo/representation/shape';
 import { getAxesShape } from './assembly-symmetry';
-import Viewer from 'mol-view/viewer';
+import Viewer from 'mol-canvas3d/viewer';
 import { CarbohydrateRepresentation } from 'mol-geo/representation/structure/representation/carbohydrate';
 // import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
 // import { addSphere } from 'mol-geo/mesh/builder/sphere';

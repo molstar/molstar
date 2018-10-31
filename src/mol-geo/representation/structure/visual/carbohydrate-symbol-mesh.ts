@@ -16,14 +16,14 @@ import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/struct
 import { LocationIterator } from '../../../util/location-iterator';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 import { addSphere } from '../../../geometry/mesh/builder/sphere';
 import { Box, PerforatedBox } from '../../../primitive/box';
 import { OctagonalPyramid, PerforatedOctagonalPyramid } from '../../../primitive/pyramid';
 import { Star } from '../../../primitive/star';
 import { Octahedron, PerforatedOctahedron } from '../../../primitive/octahedron';
 import { DiamondPrism, PentagonalPrism, HexagonalPrism } from '../../../primitive/prism';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()

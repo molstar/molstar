@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { NumberParam } from 'mol-view/parameter';
+import { NumberParam } from 'mol-util/parameter';
 
 export interface NumberParamComponentProps {
     param: NumberParam

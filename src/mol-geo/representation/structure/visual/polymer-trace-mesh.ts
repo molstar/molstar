@@ -12,10 +12,10 @@ import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-view/theme/size';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-canvas3d/theme/size';
 import { addSheet } from '../../../geometry/mesh/builder/sheet';
 import { addTube } from '../../../geometry/mesh/builder/tube';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-view/parameter';
+import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 
 export const PolymerTraceMeshParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),

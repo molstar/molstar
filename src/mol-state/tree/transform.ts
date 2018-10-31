@@ -12,7 +12,8 @@ export interface Transform<A extends StateObject = StateObject, B extends StateO
     readonly transformer: Transformer<A, B, P>,
     readonly params: P,
     readonly ref: Transform.Ref,
-    readonly version: string
+    readonly version: string,
+    readonly defaultProps?: unknown
 }
 
 export namespace Transform {
@@ -49,7 +50,8 @@ export namespace Transform {
         transformer: string,
         params: any,
         ref: string,
-        version: string
+        version: string,
+        defaultProps?: unknown
     }
 
     function _id(x: any) { return x; }
@@ -61,7 +63,8 @@ export namespace Transform {
             transformer: t.transformer.id,
             params: pToJson(t.params),
             ref: t.ref,
-            version: t.version
+            version: t.version,
+            defaultProps: t.defaultProps
         };
     }
 
@@ -74,7 +77,8 @@ export namespace Transform {
             transformer,
             params: pFromJson(t.params),
             ref: t.ref,
-            version: t.version
+            version: t.version,
+            defaultProps: t.defaultProps
         };
     }
 }

@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { Param, Params } from 'mol-view/parameter';
+import { Param, Params } from 'mol-util/parameter';
 import { BooleanParamComponent } from './parameter/boolean';
 import { NumberParamComponent } from './parameter/number';
 import { RangeParamComponent } from './parameter/range';

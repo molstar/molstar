@@ -12,7 +12,7 @@ import { PickingId } from '../../geometry/picking';
 import { MarkerAction } from '../../geometry/marker-data';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { createRenderableState, updateRenderableState, Geometry } from '../../geometry/geometry';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 import { DirectVolume } from '../../geometry/direct-volume/direct-volume';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';

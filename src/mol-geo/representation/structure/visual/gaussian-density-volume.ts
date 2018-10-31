@@ -10,7 +10,7 @@ import { RuntimeContext } from 'mol-task'
 import { UnitsDirectVolumeVisual, UnitsDirectVolumeParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams, computeUnitGaussianDensityTexture } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues } from 'mol-view/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 import { DirectVolume } from '../../../geometry/direct-volume/direct-volume';
 
 async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
