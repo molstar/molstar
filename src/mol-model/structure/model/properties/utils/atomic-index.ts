@@ -152,6 +152,14 @@ class Index implements AtomicIndex {
         return findAtomByNameAndAltLoc(offsets[rI], offsets[rI + 1], this.map.auth_atom_id, this.map.label_alt_id, key.auth_atom_id, key.label_alt_id);
     }
 
+    findAtomOnResidue(rI: ResidueIndex, label_atom_id: string, label_alt_id?: string) {
+        const offsets = this.map.segments.residueAtomSegments.offsets;
+        if (typeof label_alt_id === 'undefined') {
+            return findAtomByName(offsets[rI], offsets[rI + 1], this.map.label_atom_id, label_atom_id);
+        }
+        return findAtomByNameAndAltLoc(offsets[rI], offsets[rI + 1], this.map.label_atom_id, this.map.label_alt_id, label_atom_id, label_alt_id);
+    }
+
     constructor(private map: Mapping) {
         this.entityIndex = map.entities.getEntityIndex;
     }

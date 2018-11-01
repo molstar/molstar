@@ -169,7 +169,14 @@ export interface AtomicIndex {
      * @param key
      * @returns index or -1 if the atom is not present.
      */
-    findAtomAuth(key: AtomicIndex.AtomAuthKey): ElementIndex
+    findAtomAuth(key: AtomicIndex.AtomAuthKey): ElementIndex,
+
+    /**
+     * Find element index of an atom on a given residue.
+     * @param key
+     * @returns index or -1 if the atom is not present.
+     */
+    findAtomOnResidue(residueIndex: ResidueIndex, label_atom_id: string, label_alt_id?: string): ElementIndex
 
     // TODO: add indices that support comp_id?
 }
