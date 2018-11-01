@@ -72,6 +72,7 @@ function createMapping(entities: Entities, data: AtomicData, segments: AtomicSeg
 const _tempResidueKey = AtomicIndex.EmptyResidueKey();
 class Index implements AtomicIndex {
     private entityIndex: Entities['getEntityIndex'];
+    private residueOffsets: ArrayLike<ElementIndex>;
 
     getEntityFromChain(cI: ChainIndex): EntityIndex {
         return this.map.chain_index_entity_index[cI];
@@ -135,33 +136,31 @@ class Index implements AtomicIndex {
     findAtom(key: AtomicIndex.AtomKey): ElementIndex {
         const rI = this.findResidue(key);
         if (rI < 0) return -1 as ElementIndex;
-        const offsets = this.map.segments.residueAtomSegments.offsets;
         if (typeof key.label_alt_id === 'undefined') {
-            return findAtomByName(offsets[rI], offsets[rI + 1], this.map.label_atom_id, key.label_atom_id);
+            return findAtomByName(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.label_atom_id, key.label_atom_id);
         }
-        return findAtomByNameAndAltLoc(offsets[rI], offsets[rI + 1], this.map.label_atom_id, this.map.label_alt_id, key.label_atom_id, key.label_alt_id);
+        return findAtomByNameAndAltLoc(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.label_atom_id, this.map.label_alt_id, key.label_atom_id, key.label_alt_id);
     }
 
     findAtomAuth(key: AtomicIndex.AtomAuthKey): ElementIndex {
         const rI = this.findResidueAuth(key);
         if (rI < 0) return -1 as ElementIndex;
-        const offsets = this.map.segments.residueAtomSegments.offsets;
         if (typeof key.label_alt_id === 'undefined') {
-            return findAtomByName(offsets[rI], offsets[rI + 1], this.map.auth_atom_id, key.auth_atom_id);
+            return findAtomByName(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.auth_atom_id, key.auth_atom_id);
         }
-        return findAtomByNameAndAltLoc(offsets[rI], offsets[rI + 1], this.map.auth_atom_id, this.map.label_alt_id, key.auth_atom_id, key.label_alt_id);
+        return findAtomByNameAndAltLoc(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.auth_atom_id, this.map.label_alt_id, key.auth_atom_id, key.label_alt_id);
     }
 
     findAtomOnResidue(rI: ResidueIndex, label_atom_id: string, label_alt_id?: string) {
-        const offsets = this.map.segments.residueAtomSegments.offsets;
         if (typeof label_alt_id === 'undefined') {
-            return findAtomByName(offsets[rI], offsets[rI + 1], this.map.label_atom_id, label_atom_id);
+            return findAtomByName(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.label_atom_id, label_atom_id);
         }
-        return findAtomByNameAndAltLoc(offsets[rI], offsets[rI + 1], this.map.label_atom_id, this.map.label_alt_id, label_atom_id, label_alt_id);
+        return findAtomByNameAndAltLoc(this.residueOffsets[rI], this.residueOffsets[rI + 1], this.map.label_atom_id, this.map.label_alt_id, label_atom_id, label_alt_id);
     }
 
     constructor(private map: Mapping) {
         this.entityIndex = map.entities.getEntityIndex;
+        this.residueOffsets = this.map.segments.residueAtomSegments.offsets;
     }
 }
 
