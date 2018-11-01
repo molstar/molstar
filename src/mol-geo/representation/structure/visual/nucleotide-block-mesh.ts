@@ -12,7 +12,7 @@ import { MeshBuilder } from '../../../geometry/mesh/mesh-builder';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
-import { getElementIndexForAtomId, getElementIndexForAtomRole } from 'mol-model/structure/util';
+import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { addCylinder } from '../../../geometry/mesh/builder/cylinder';
 import { Box } from '../../../primitive/box';
@@ -42,7 +42,7 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, struct
 
     const { elements, model } = unit
     const { chemicalComponentMap, modifiedResidues } = model.properties
-    const { chainAtomSegments, residueAtomSegments, residues } = model.atomicHierarchy
+    const { chainAtomSegments, residueAtomSegments, residues, index: atomicIndex } = model.atomicHierarchy
     const { label_comp_id } = residues
     const pos = unit.conformation.invariantPosition
 
@@ -67,19 +67,19 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, struct
 
                 if (isPurinBase(compId)) {
                     height = 4.5
-                    idx1 = getElementIndexForAtomId(model, residueIndex, 'N1')
-                    idx2 = getElementIndexForAtomId(model, residueIndex, 'C4')
-                    idx3 = getElementIndexForAtomId(model, residueIndex, 'C6')
-                    idx4 = getElementIndexForAtomId(model, residueIndex, 'C2')
-                    idx5 = getElementIndexForAtomId(model, residueIndex, 'N9')
+                    idx1 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
+                    idx2 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
+                    idx3 = atomicIndex.findAtomOnResidue(residueIndex, 'C6')
+                    idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
+                    idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N9')
                     idx6 = getElementIndexForAtomRole(model, residueIndex, 'trace')
                 } else if (isPyrimidineBase(compId)) {
                     height = 3.0
-                    idx1 = getElementIndexForAtomId(model, residueIndex, 'N3')
-                    idx2 = getElementIndexForAtomId(model, residueIndex, 'C6')
-                    idx3 = getElementIndexForAtomId(model, residueIndex, 'C4')
-                    idx4 = getElementIndexForAtomId(model, residueIndex, 'C2')
-                    idx5 = getElementIndexForAtomId(model, residueIndex, 'N1')
+                    idx1 = atomicIndex.findAtomOnResidue(residueIndex, 'N3')
+                    idx2 = atomicIndex.findAtomOnResidue(residueIndex, 'C6')
+                    idx3 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
+                    idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
+                    idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
                     idx6 = getElementIndexForAtomRole(model, residueIndex, 'trace')
                 }
 
