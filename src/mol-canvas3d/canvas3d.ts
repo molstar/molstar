@@ -132,13 +132,13 @@ namespace Canvas3D {
             }
         }
 
-        let nearPlaneDelta = 0
-        function computeNearDistance() {
-            const focusRadius = scene.boundingSphere.radius
-            let dist = Vec3.distance(controls.target, camera.position)
-            if (dist > focusRadius) return dist - focusRadius
-            return 0
-        }
+        // let nearPlaneDelta = 0
+        // function computeNearDistance() {
+        //     const focusRadius = scene.boundingSphere.radius
+        //     let dist = Vec3.distance(controls.target, camera.position)
+        //     if (dist > focusRadius) return dist - focusRadius
+        //     return 0
+        // }
 
         function render(variant: RenderVariant, force?: boolean) {
             if (isPicking) return false
@@ -146,18 +146,19 @@ namespace Canvas3D {
             // console.log(p[0], p[1], p[2])
             // Vec3.set(controls.target, p[0], p[1], p[2])
 
-            const focusRadius = scene.boundingSphere.radius
-            const targetDistance = Vec3.distance(controls.target, camera.position)
+            // TODO update near/far
+            // const focusRadius = scene.boundingSphere.radius
+            // const targetDistance = Vec3.distance(controls.target, camera.position)
             // console.log(targetDistance, controls.target, camera.position)
-            let near = computeNearDistance() + nearPlaneDelta
-            camera.near = Math.max(0.01, Math.min(near, targetDistance - 0.5))
+            // let near = computeNearDistance() + nearPlaneDelta
+            // camera.near = Math.max(0.01, Math.min(near, targetDistance - 0.5))
 
-            let fogNear = targetDistance - camera.near + 1 * focusRadius - nearPlaneDelta;
-            let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta;
+            // let fogNear = targetDistance - camera.near + 1 * focusRadius - nearPlaneDelta;
+            // let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta;
 
-            // console.log(fogNear, fogFar);
-            camera.fogNear = Math.max(fogNear, 0.1);
-            camera.fogFar = Math.max(fogFar, 0.2);
+            // // console.log(fogNear, fogFar);
+            // camera.fogNear = Math.max(fogNear, 0.1);
+            // camera.fogFar = Math.max(fogFar, 0.2);
 
             // console.log(camera.fogNear, camera.fogFar, targetDistance)
 
@@ -172,7 +173,7 @@ namespace Canvas3D {
             }
             let didRender = false
             controls.update()
-            camera.update()
+            PerspectiveCamera.update(camera)
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value) || !Mat4.areEqual(scene.view, prevSceneView, EPSILON.Value)) {
                 // console.log('foo', force, prevSceneView, scene.view)
                 Mat4.copy(prevProjectionView, camera.projectionView)

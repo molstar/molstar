@@ -9,8 +9,6 @@ import { DefaultCameraProps, Camera } from './base'
 
 export interface PerspectiveCamera extends Camera {
     fov: number,
-    near: number,
-    far: number
 }
 
 export const DefaultPerspectiveCameraProps = {
@@ -21,33 +19,30 @@ export type PerspectiveCameraProps = Partial<typeof DefaultPerspectiveCameraProp
 
 export namespace PerspectiveCamera {
     export function create(props: PerspectiveCameraProps = {}): PerspectiveCamera {
-        let { fov, near, far } = { ...DefaultPerspectiveCameraProps, ...props };
+        let { fov } = { ...DefaultPerspectiveCameraProps, ...props };
 
-        const camera = Camera.create(props)
-        const center = Vec3.zero()
-
-        function update () {
-            const aspect = camera.viewport.width / camera.viewport.height
-
-            // build projection matrix
-            Mat4.perspective(camera.projection, fov, aspect, Math.abs(near), Math.abs(far))
-
-            // build view matrix
-            Vec3.add(center, camera.position, camera.direction)
-            Mat4.lookAt(camera.view, camera.position, center, camera.up)
-
-            // update projection * view and invert
-            camera.update()
+        const camera = {
+            ...Camera.create(props),
+            fov
         }
 
-        update()
+        update(camera)
 
-        return {
-            ...camera,
-            update,
+        return camera
+    }
 
-            get fov() { return fov },
-            set fov(value: number) { fov = value },
-        }
+    const center = Vec3.zero()
+    export function update(camera: PerspectiveCamera) {
+        const aspect = camera.viewport.width / camera.viewport.height
+
+        // build projection matrix
+        Mat4.perspective(camera.projection, camera.fov, aspect, Math.abs(camera.near), Math.abs(camera.far))
+
+        // build view matrix
+        Vec3.add(center, camera.position, camera.direction)
+        Mat4.lookAt(camera.view, camera.position, center, camera.up)
+
+        // update projection * view and invert
+        Camera.update(camera)
     }
 }

@@ -7,36 +7,25 @@
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 
 export interface Object3D {
-    readonly view: Mat4,
-    readonly position: Vec3,
-    readonly direction: Vec3,
-    readonly up: Vec3,
-
-    update: () => void
+    readonly view: Mat4
+    readonly position: Vec3
+    readonly direction: Vec3
+    readonly up: Vec3
 }
 
-export function createObject3D(): Object3D {
-    const view = Mat4.identity()
-    const position = Vec3.create(0, 0, 0)
-    const direction = Vec3.create(0, 0, -1)
-    const up = Vec3.create(0, 1, 0)
+export namespace Object3D {
+    export function create(): Object3D {
+        return {
+            view: Mat4.identity(),
+            position: Vec3.create(0, 0, 0),
+            direction: Vec3.create(0, 0, -1),
+            up: Vec3.create(0, 1, 0),
+        }
+    }
 
     const center = Vec3.zero()
-
-    return {
-        view,
-        position,
-        direction,
-        up,
-
-        update() {
-            // console.log('position', position)
-            // console.log('direction', direction)
-            // console.log('up', up)
-            Vec3.add(center, position, direction)
-            Mat4.lookAt(view, position, center, up)
-            // Mat4.lookAt(view, center, position, up)
-            // console.log('view', view)
-        }
+    export function update(object3d: Object3D) {
+        Vec3.add(center, object3d.position, object3d.direction)
+        Mat4.lookAt(object3d.view, object3d.position, center, object3d.up)
     }
 }

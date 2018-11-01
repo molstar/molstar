@@ -6,7 +6,7 @@
 
 import { Mat4, Vec3, Vec4 } from 'mol-math/linear-algebra'
 import { cameraProject, cameraUnproject, cameraLookAt, Viewport } from './util';
-import { Object3D, createObject3D } from 'mol-gl/object3d';
+import { Object3D } from 'mol-gl/object3d';
 
 export interface Camera extends Object3D {
     readonly projection: Mat4,
@@ -18,12 +18,6 @@ export interface Camera extends Object3D {
     far: number,
     fogNear: number,
     fogFar: number,
-
-    translate: (v: Vec3) => void,
-    reset: () => void,
-    lookAt: (target: Vec3) => void,
-    project: (out: Vec4, point: Vec3) => Vec4,
-    unproject: (out: Vec3, point: Vec3) => Vec3
 }
 
 export const DefaultCameraProps = {
@@ -31,18 +25,19 @@ export const DefaultCameraProps = {
     direction: Vec3.create(0, 0, -1),
     up: Vec3.create(0, 1, 0),
     viewport: Viewport.create(-1, -1, 1, 1),
+
     near: 0.1,
     far: 10000,
     fogNear: 0.1,
     fogFar: 10000,
 }
-export type CameraProps = Partial<typeof DefaultCameraProps>
+export type CameraProps = typeof DefaultCameraProps
 
 export namespace Camera {
-    export function create(props?: CameraProps): Camera {
+    export function create(props?: Partial<CameraProps>): Camera {
         const p = { ...DefaultCameraProps, ...props };
 
-        const { view, position, direction, up } = createObject3D()
+        const { view, position, direction, up } = Object3D.create()
         Vec3.copy(position, p.position)
         Vec3.copy(direction, p.direction)
         Vec3.copy(up, p.up)
@@ -52,63 +47,53 @@ export namespace Camera {
         const projectionView = Mat4.identity()
         const inverseProjectionView = Mat4.identity()
 
-        function update () {
-            Mat4.mul(projectionView, projection, view)
-            Mat4.invert(inverseProjectionView, projectionView)
-        }
-
-        function lookAt (target: Vec3) {
-            cameraLookAt(direction, up, position, target)
-        }
-
-        function reset () {
-            Vec3.copy(position, p.position)
-            Vec3.copy(direction, p.direction)
-            Vec3.copy(up, p.up)
-            Mat4.setIdentity(view)
-            Mat4.setIdentity(projection)
-            Mat4.setIdentity(projectionView)
-            Mat4.setIdentity(inverseProjectionView)
-        }
-
-        function translate (v: Vec3) {
-            Vec3.add(position, position, v)
-        }
-
-        function project (out: Vec4, point: Vec3) {
-            return cameraProject(out, point, viewport, projectionView)
-        }
-
-        function unproject (out: Vec3, point: Vec3) {
-            return cameraUnproject(out, point, viewport, inverseProjectionView)
-        }
-
         return {
-            view,
             projection,
             projectionView,
             inverseProjectionView,
-
             viewport,
+
+            view,
             position,
             direction,
             up,
 
-            get near() { return p.near },
-            set near(value: number) { p.near = value },
-            get far() { return p.far },
-            set far(value: number) { p.far = value },
-            get fogNear() { return p.fogNear },
-            set fogNear(value: number) { p.fogNear = value },
-            get fogFar() { return p.fogFar },
-            set fogFar(value: number) { p.fogFar = value },
-
-            translate,
-            reset,
-            lookAt,
-            update,
-            project,
-            unproject
+            near: p.near,
+            far: p.far,
+            fogNear: p.fogNear,
+            fogFar: p.fogFar,
         }
+    }
+
+    export function update (camera: Camera) {
+        Mat4.mul(camera.projectionView, camera.projection, camera.view)
+        Mat4.invert(camera.inverseProjectionView, camera.projectionView)
+        return camera
+    }
+
+    export function lookAt (camera: Camera, target: Vec3) {
+        cameraLookAt(camera.direction, camera.up, camera.position, target)
+    }
+
+    export function reset (camera: Camera, props: CameraProps) {
+        Vec3.copy(camera.position, props.position)
+        Vec3.copy(camera.direction, props.direction)
+        Vec3.copy(camera.up, props.up)
+        Mat4.setIdentity(camera.view)
+        Mat4.setIdentity(camera.projection)
+        Mat4.setIdentity(camera.projectionView)
+        Mat4.setIdentity(camera.inverseProjectionView)
+    }
+
+    export function translate (camera: Camera, v: Vec3) {
+        Vec3.add(camera.position, camera.position, v)
+    }
+
+    export function project (camera: Camera, out: Vec4, point: Vec3) {
+        return cameraProject(out, point, camera.viewport, camera.projectionView)
+    }
+
+    export function unproject (camera: Camera, out: Vec3, point: Vec3) {
+        return cameraUnproject(out, point, camera.viewport, camera.inverseProjectionView)
     }
 }

@@ -8,7 +8,7 @@ import { Renderable } from './renderable'
 import { WebGLContext } from './webgl/context';
 import { RenderableValues, BaseValues } from './renderable/schema';
 import { RenderObject, createRenderable } from './render-object';
-import { Object3D, createObject3D } from './object3d';
+import { Object3D } from './object3d';
 import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 
@@ -39,6 +39,7 @@ interface Scene extends Object3D {
     readonly count: number
     readonly boundingSphere: Sphere3D
 
+    update: () => void
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
     clear: () => void
@@ -52,14 +53,13 @@ namespace Scene {
         const renderableMap = new Map<RenderObject, Renderable<RenderableValues & BaseValues>>()
         let boundingSphere: Sphere3D | undefined
 
-        const { view, position, up, direction, update } = createObject3D()
+        const object3d = Object3D.create()
 
         return {
-            // ...createObject3D(), // TODO does not work in conjunction with getter
-            view, position, up, direction,
+            ...object3d,
 
             update: () => {
-                update()
+                Object3D.update(object3d)
                 renderableMap.forEach(r => r.update())
                 boundingSphere = undefined
             },
