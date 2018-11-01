@@ -9,6 +9,7 @@ import { Subject } from 'rxjs';
 import { Vec2 } from 'mol-math/linear-algebra';
 
 import toPixels from '../to-pixels'
+import { BitFlags } from 'mol-util';
 
 function getButtons(event: MouseEvent | Touch) {
     if (typeof event === 'object') {
@@ -21,7 +22,7 @@ function getButtons(event: MouseEvent | Touch) {
             } else if (b === 3) {
                 return 2
             } else if (b > 0) {
-                return 1<<(b-1)
+                return 1 << (b - 1)
             }
         } else if ('button' in event) {
             const b = (event as any).button  // 'any' to support older browsers
@@ -30,7 +31,7 @@ function getButtons(event: MouseEvent | Touch) {
             } else if (b === 2) {
                 return 2
             } else if (b >= 0) {
-                return 1<<b
+                return 1 << b
             }
         }
     }
@@ -50,19 +51,26 @@ export type ModifiersKeys = {
     meta: boolean
 }
 
-export const enum ButtonsFlag {
-    /** No button or un-initialized */
-    None = 0x0,
-    /** Primary button (usually left) */
-    Primary = 0x1,
-    /** Secondary button (usually right) */
-    Secondary = 0x2,
-    /** Auxilary button (usually middle or mouse wheel button)  */
-    Auxilary = 0x4,
-    /** 4th button (typically the "Browser Back" button) */
-    Forth = 0x8,
-    /** 5th button (typically the "Browser Forward" button) */
-    Five = 0x10,
+export interface ButtonsType extends BitFlags<ButtonsType.Flag> { }
+
+export namespace ButtonsType {
+    export const has: (ss: ButtonsType, f: Flag) => boolean = BitFlags.has
+    export const create: (fs: Flag) => ButtonsType = BitFlags.create
+
+    export const enum Flag {
+        /** No button or un-initialized */
+        None = 0x0,
+        /** Primary button (usually left) */
+        Primary = 0x1,
+        /** Secondary button (usually right) */
+        Secondary = 0x2,
+        /** Auxilary button (usually middle or mouse wheel button)  */
+        Auxilary = 0x4,
+        /** 4th button (typically the "Browser Back" button) */
+        Forth = 0x8,
+        /** 5th button (typically the "Browser Forward" button) */
+        Five = 0x10,
+    }
 }
 
 type BaseInput = {
@@ -190,11 +198,11 @@ namespace InputObserver {
             element.addEventListener( 'contextmenu', onContextMenu, false )
 
             element.addEventListener('wheel', onMouseWheel as any, false)
-            element.addEventListener('mousedown', onPointerDown as any, false)
+            element.addEventListener('mousedown', onMouseDown as any, false)
             // for dragging to work outside canvas bounds,
             // mouse move/up events have to be added to a parent, i.e. window
             window.addEventListener('mousemove', onMouseMove as any, false)
-            window.addEventListener('mouseup', onPointerUp as any, false)
+            window.addEventListener('mouseup', onMouseUp as any, false)
 
             element.addEventListener('touchstart', onTouchStart as any, false)
             element.addEventListener('touchmove', onTouchMove as any, false)
@@ -270,10 +278,10 @@ namespace InputObserver {
 
         function onTouchStart (ev: TouchEvent) {
             if (ev.touches.length === 1) {
-                buttons = ButtonsFlag.Primary
+                buttons = ButtonsType.Flag.Primary
                 onPointerDown(ev.touches[0])
             } else if (ev.touches.length >= 2) {
-                buttons = ButtonsFlag.Secondary
+                buttons = ButtonsType.Flag.Secondary
                 onPointerDown(getCenterTouch(ev))
 
                 pinch.next({ distance: lastTouchDistance, delta: 0, isStart: true })
@@ -284,12 +292,12 @@ namespace InputObserver {
 
         function onTouchMove (ev: TouchEvent) {
             if (ev.touches.length === 1) {
-                buttons = ButtonsFlag.Primary
+                buttons = ButtonsType.Flag.Primary
                 onPointerMove(ev.touches[0])
             } else if (ev.touches.length >= 2) {
                 const touchDistance = getTouchDistance(ev)
                 if (lastTouchDistance - touchDistance < 4) {
-                    buttons = ButtonsFlag.Secondary
+                    buttons = ButtonsType.Flag.Secondary
                     onPointerMove(getCenterTouch(ev))
                 } else {
                     pinch.next({
@@ -313,7 +321,6 @@ namespace InputObserver {
         }
 
         function onMouseUp (ev: MouseEvent) {
-            buttons = getButtons(ev)
             onPointerUp(ev)
         }
 

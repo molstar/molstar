@@ -68,6 +68,9 @@ export function getPolymerElementLoci(pickingId: PickingId, group: Unit.Symmetry
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const unit = group.units[instanceId]
+        if (unit === undefined) {
+            console.log(id, { objectId, instanceId, groupId }, group.units)
+        }
         const unitIndex = OrderedSet.indexOf(unit.elements, unit.polymerElements[groupId]) as StructureElement.UnitIndex
         if (unitIndex !== -1) {
             const indices = OrderedSet.ofSingleton(unitIndex)

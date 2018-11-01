@@ -9,6 +9,8 @@ import { App } from '../app';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
 import { labelFirst } from 'mol-theme/label';
+import { ButtonsType } from 'mol-util/input/input-observer';
+import { throttleTime } from 'rxjs/operators'
 
 interface ViewportProps {
     app: App
@@ -40,26 +42,39 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         }
         this.handleResize()
 
-        const viewer = this.props.app.canvas3d
+        const canvas3d = this.props.app.canvas3d
 
-        viewer.input.resize.subscribe(() => this.handleResize())
+        canvas3d.input.resize.subscribe(() => this.handleResize())
 
-        let prevLoci: Loci = EmptyLoci
-        viewer.input.move.subscribe(async ({x, y, inside, buttons}) => {
-            if (!inside || buttons) return
-            const p = await viewer.identify(x, y)
+        let prevHighlightLoci: Loci = EmptyLoci
+        // TODO can the 'only ever have one extra element in the queue' functionality be done with rxjs?
+        let highlightQueueLength = 0
+        canvas3d.input.move.pipe(throttleTime(50)).subscribe(async ({x, y, inside, buttons}) => {
+            if (!inside || buttons || highlightQueueLength > 2) return
+            ++highlightQueueLength
+            const p = await canvas3d.identify(x, y)
+            --highlightQueueLength
             if (p) {
-                const loci = viewer.getLoci(p)
+                const loci = canvas3d.getLoci(p)
 
-                if (!areLociEqual(loci, prevLoci)) {
-                    viewer.mark(prevLoci, MarkerAction.RemoveHighlight)
-                    viewer.mark(loci, MarkerAction.Highlight)
-                    prevLoci = loci
+                if (!areLociEqual(loci, prevHighlightLoci)) {
+                    canvas3d.mark(prevHighlightLoci, MarkerAction.RemoveHighlight)
+                    canvas3d.mark(loci, MarkerAction.Highlight)
+                    prevHighlightLoci = loci
 
                     const label = labelFirst(loci)
                     const pickingInfo = `${label}`
                     this.setState({ pickingInfo })
                 }
+            }
+        })
+
+        canvas3d.input.click.subscribe(async ({x, y, buttons}) => {
+            if (buttons !== ButtonsType.Flag.Primary) return
+            const p = await canvas3d.identify(x, y)
+            if (p) {
+                const loci = canvas3d.getLoci(p)
+                canvas3d.mark(loci, MarkerAction.Toggle)
             }
         })
 

@@ -11,7 +11,7 @@
 
 import { Quat, Vec2, Vec3, EPSILON } from 'mol-math/linear-algebra';
 import { cameraLookAt, Viewport } from '../camera/util';
-import InputObserver, { DragInput, WheelInput, ButtonsFlag, PinchInput } from 'mol-util/input/input-observer';
+import InputObserver, { DragInput, WheelInput, ButtonsType, PinchInput } from 'mol-util/input/input-observer';
 import { Object3D } from 'mol-gl/object3d';
 
 export const DefaultTrackballControlsProps = {
@@ -243,24 +243,24 @@ namespace TrackballControls {
 
         function onDrag({ pageX, pageY, buttons, modifiers, isStart }: DragInput) {
             if (isStart) {
-                if (buttons === ButtonsFlag.Primary) {
+                if (buttons === ButtonsType.Flag.Primary) {
                     Vec2.copy(_moveCurr, getMouseOnCircle(pageX, pageY))
                     Vec2.copy(_movePrev, _moveCurr)
-                } else if (buttons === ButtonsFlag.Auxilary) {
+                } else if (buttons === ButtonsType.Flag.Auxilary) {
                     Vec2.copy(_zoomStart, getMouseOnScreen(pageX, pageY))
                     Vec2.copy(_zoomEnd, _zoomStart)
-                } else if (buttons === ButtonsFlag.Secondary) {
+                } else if (buttons === ButtonsType.Flag.Secondary) {
                     Vec2.copy(_panStart, getMouseOnScreen(pageX, pageY))
                     Vec2.copy(_panEnd, _panStart)
                 }
             }
 
-            if (buttons === ButtonsFlag.Primary) {
+            if (buttons === ButtonsType.Flag.Primary) {
                 Vec2.copy(_movePrev, _moveCurr)
                 Vec2.copy(_moveCurr, getMouseOnCircle(pageX, pageY))
-            } else if (buttons === ButtonsFlag.Auxilary) {
+            } else if (buttons === ButtonsType.Flag.Auxilary) {
                 Vec2.copy(_zoomEnd, getMouseOnScreen(pageX, pageY))
-            } else if (buttons === ButtonsFlag.Secondary) {
+            } else if (buttons === ButtonsType.Flag.Secondary) {
                 Vec2.copy(_panEnd, getMouseOnScreen(pageX, pageY))
             }
         }

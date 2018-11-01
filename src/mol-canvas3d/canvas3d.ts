@@ -213,6 +213,7 @@ namespace Canvas3D {
             render('pickObject', pickDirty)
             render('pickInstance', pickDirty)
             render('pickGroup', pickDirty)
+            ctx.gl.finish()
 
             pickDirty = false
         }
@@ -244,7 +245,12 @@ namespace Canvas3D {
 
             isPicking = false
 
-            return { objectId, instanceId, groupId }
+            // TODO
+            if (objectId === -1 || instanceId === -1 || groupId === -1) {
+                return { objectId: -1, instanceId: -1, groupId: -1 }
+            } else {
+                return { objectId, instanceId, groupId }
+            }
         }
 
         handleResize()
