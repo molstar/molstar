@@ -20,7 +20,7 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 
 export const StructureParams = {
     ...Geometry.Params,
-    colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'unit-index', ColorThemeOptions),
+    colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'polymer-index', ColorThemeOptions),
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
 }
 export const DefaultStructureProps = paramDefaultValues(StructureParams)

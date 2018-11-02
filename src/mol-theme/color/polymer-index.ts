@@ -10,27 +10,35 @@ import { StructureElement, Link } from 'mol-model/structure';
 import { ColorTheme, ColorThemeProps, LocationColor } from '../color';
 
 const DefaultColor = Color(0xCCCCCC)
-const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
+const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
-export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
+export function PolymerIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let color: LocationColor
     let scale: ColorScale | undefined = undefined
 
     if (props.structure) {
         const { units } = props.structure
-        scale = ColorScale.create({ domain: [ 0, units.length - 1 ] })
-        const unitIdColor = new Map<number, Color>()
+        let polymerCount = 0
         for (let i = 0, il = units.length; i <il; ++i) {
-            unitIdColor.set(units[i].id, scale.color(i))
+            if (units[i].polymerElements.length > 0) ++polymerCount
+        }
+        scale = ColorScale.create({ domain: [ 0, polymerCount - 1 ] })
+        const unitIdColor = new Map<number, Color>()
+        for (let i = 0, j = 0, il = units.length; i <il; ++i) {
+            if (units[i].polymerElements.length > 0) {
+                unitIdColor.set(units[i].id, scale.color(j))
+                ++j
+            }
         }
 
         color = (location: Location): Color => {
+            let color: Color | undefined
             if (StructureElement.isLocation(location)) {
-                return unitIdColor.get(location.unit.id)!
+                color = unitIdColor.get(location.unit.id)
             } else if (Link.isLocation(location)) {
-                return unitIdColor.get(location.aUnit.id)!
+                color = unitIdColor.get(location.aUnit.id)
             }
-            return DefaultColor
+            return color !== undefined ? color : DefaultColor
         }
     } else {
         color = () => DefaultColor

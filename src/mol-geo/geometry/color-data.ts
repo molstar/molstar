@@ -37,16 +37,17 @@ export interface ColorProps {
 }
 
 export function getColorThemeProps(props: ColorProps): ColorThemeProps {
-    return {
-        name: props.colorTheme,
-        domain: props.colorDomain,
-        value: props.colorValue,
-        structure: props.structure,
-        color: props.colorFunction,
-        granularity: props.colorGranularity,
-        description: props.colorDescription,
-        legend: props.colorLegend
+    const p: ColorThemeProps = {
+        name: props.colorTheme
     }
+    if (props.colorDomain !== undefined) p.domain = props.colorDomain
+    if (props.colorValue !== undefined) p.value = props.colorValue
+    if (props.structure !== undefined) p.structure = props.structure
+    if (props.colorFunction !== undefined) p.color = props.colorFunction
+    if (props.colorGranularity !== undefined) p.granularity = props.colorGranularity
+    if (props.colorDescription !== undefined) p.description = props.colorDescription
+    if (props.colorLegend !== undefined) p.legend = props.colorLegend
+    return p
 }
 
 export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorProps, colorData?: ColorData): Promise<ColorData> {
