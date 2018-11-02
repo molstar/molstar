@@ -17,6 +17,7 @@
             "mol-app": ["./mol-app"],
             "mol-data": ["./mol-data", "./mol-data/index.ts"],
             "mol-geo": ["./mol-geo"],
+            "mol-theme": ["./mol-theme"],
             "mol-gl": ["./mol-gl"],
             "mol-io": ["./mol-io"],
             "mol-math": ["./mol-math"],
