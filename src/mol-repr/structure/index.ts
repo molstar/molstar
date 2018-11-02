@@ -17,9 +17,7 @@ import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
-
 // export interface  StructureVisual<P extends RepresentationProps = {}> extends Visual<Structure, P> { }
-
 
 export const StructureParams = {
     ...Geometry.Params,

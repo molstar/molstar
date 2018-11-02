@@ -4,17 +4,12 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Structure } from 'mol-model/structure';
-import { Task } from 'mol-task';
-import { Loci } from 'mol-model/loci';
 import { CrossLinkRestraintVisual, CrossLinkRestraintParams } from '../visual/cross-link-restraint-cylinder';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { getQualityProps } from '../../util';
 import { paramDefaultValues, SelectParam, NumberParam } from 'mol-util/parameter';
 import { ComplexRepresentation } from '../complex-representation';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { StructureRepresentation } from '../index';
+import { Representation } from 'mol-repr';
 
 export const DistanceRestraintParams = {
     ...CrossLinkRestraintParams,
@@ -27,33 +22,7 @@ export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
 
 export function DistanceRestraintRepresentation(): DistanceRestraintRepresentation {
-    const crossLinkRepr = ComplexRepresentation('Cross-link restraint', CrossLinkRestraintVisual)
-
-    let currentProps: DistanceRestraintProps
-    return {
-        label: 'Distance restraint',
-        params: DistanceRestraintParams,
-        get renderObjects() {
-            return [ ...crossLinkRepr.renderObjects ]
-        },
-        get props() {
-            return { ...crossLinkRepr.props }
-        },
-        createOrUpdate: (props: Partial<DistanceRestraintProps> = {}, structure?: Structure) => {
-            const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
-            currentProps = Object.assign({}, DefaultDistanceRestraintProps, currentProps, props, qualityProps)
-            return Task.create('DistanceRestraintRepresentation', async ctx => {
-                await crossLinkRepr.createOrUpdate(currentProps, structure).runInContext(ctx)
-            })
-        },
-        getLoci: (pickingId: PickingId) => {
-            return crossLinkRepr.getLoci(pickingId)
-        },
-        mark: (loci: Loci, action: MarkerAction) => {
-            return crossLinkRepr.mark(loci, action)
-        },
-        destroy() {
-            crossLinkRepr.destroy()
-        }
-    }
+    return Representation.createMulti('Distance restraint', DistanceRestraintParams, DefaultDistanceRestraintProps, [
+        ComplexRepresentation('Cross-link restraint', CrossLinkRestraintVisual)
+    ] as StructureRepresentation<DistanceRestraintProps>[])
 }
