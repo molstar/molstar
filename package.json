@@ -52,6 +52,7 @@
       "mol-app($|/.*)": "<rootDir>/src/mol-app$1",
       "mol-data($|/.*)": "<rootDir>/src/mol-data$1",
       "mol-geo($|/.*)": "<rootDir>/src/mol-geo$1",
+      "mol-theme($|/.*)": "<rootDir>/src/mol-theme$1",
       "mol-gl($|/.*)": "<rootDir>/src/mol-gl$1",
       "mol-io($|/.*)": "<rootDir>/src/mol-io$1",
       "mol-math($|/.*)": "<rootDir>/src/mol-math$1",

@@ -20,11 +20,12 @@ The core of Mol* currently consists of these modules:
 - `mol-model-props` Common "custom properties".
 - `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
 - `mol-geo` Creating molecular geometries.
+- `mol-theme` Molecular representation themeing.
 - `mol-gl` A lightweight wrapper around WebGL.
 - `mol-canvas3d` A low level 3d view component. Uses `mol-geo` to generate geometries.
 - `mol-state` State representation tree with state saving and automatic updates.
 - `mol-app` Components for builduing UIs.
-- `mol-plugin` Allow to define modular Mol* plugin instances utilizing `mol-state` and `mol-view3d`.
+- `mol-plugin` Allow to define modular Mol* plugin instances utilizing `mol-state` and `mol-canvas3d`.
 - `mol-util` Useful things that do not fit elsewhere.
 
 Moreover, the project contains the imlementation of `servers`, including
