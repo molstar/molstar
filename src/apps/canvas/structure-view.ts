@@ -29,7 +29,7 @@ import { App } from './app';
 
 export interface StructureView {
     readonly app: App
-    readonly viewer: Canvas3D
+    readonly canvas3d: Canvas3D
 
     readonly label: string
     readonly models: ReadonlyArray<Model>
@@ -63,7 +63,7 @@ interface StructureViewProps {
     symmetryFeatureId?: number
 }
 
-export async function StructureView(app: App, viewer: Canvas3D, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
+export async function StructureView(app: App, canvas3d: Canvas3D, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
         cartoon: true,
         point: false,
@@ -208,17 +208,17 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
             console.log('createStructureRepr')
             for (const k in structureRepresentations) {
                 if (active[k]) {
-                    const p = { webgl: viewer.webgl }
+                    const p = { webgl: canvas3d.webgl }
                     await app.runTask(structureRepresentations[k].createOrUpdate(p, structure).run(
                         progress => app.log(progress)
                     ), 'Create/update representation')
-                    viewer.add(structureRepresentations[k])
+                    canvas3d.add(structureRepresentations[k])
                 } else {
-                    viewer.remove(structureRepresentations[k])
+                    canvas3d.remove(structureRepresentations[k])
                 }
             }
 
-            viewer.center(structure.boundary.sphere.center)
+            canvas3d.center(structure.boundary.sphere.center)
 
             // const mb = MeshBuilder.create()
             // mb.setGroup(0)
@@ -246,11 +246,11 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
             polymerSphere.destroy()
         }
 
-        viewer.add(polymerSphere)
+        canvas3d.add(polymerSphere)
 
         updated.next(null)
-        viewer.requestDraw(true)
-        console.log('stats', viewer.stats)
+        canvas3d.requestDraw(true)
+        console.log('stats', canvas3d.stats)
     }
 
     async function createSymmetryRepr() {
@@ -266,25 +266,25 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
                     //     colorGranularity: colorTheme.granularity,
                     // }).run()
                     await symmetryAxes.createOrUpdate({}, axesShape).run()
-                    viewer.add(symmetryAxes)
+                    canvas3d.add(symmetryAxes)
                 } else {
-                    viewer.remove(symmetryAxes)
+                    canvas3d.remove(symmetryAxes)
                 }
             } else {
-                viewer.remove(symmetryAxes)
+                canvas3d.remove(symmetryAxes)
             }
         } else {
-            viewer.remove(symmetryAxes)
+            canvas3d.remove(symmetryAxes)
         }
         updated.next(null)
-        viewer.requestDraw(true)
+        canvas3d.requestDraw(true)
     }
 
     await setModel(0, props.assemblyId, props.symmetryFeatureId)
 
     return {
         app,
-        viewer,
+        canvas3d,
 
         get label() { return label },
         models,
@@ -312,12 +312,12 @@ export async function StructureView(app: App, viewer: Canvas3D, models: Readonly
 
         destroy: () => {
             for (const k in structureRepresentations) {
-                viewer.remove(structureRepresentations[k])
+                canvas3d.remove(structureRepresentations[k])
                 structureRepresentations[k].destroy()
             }
-            viewer.remove(polymerSphere)
-            viewer.remove(symmetryAxes)
-            viewer.requestDraw(true)
+            canvas3d.remove(polymerSphere)
+            canvas3d.remove(symmetryAxes)
+            canvas3d.requestDraw(true)
 
             polymerSphere.destroy()
             symmetryAxes.destroy()

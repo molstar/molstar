@@ -8,24 +8,19 @@ import { Mat4, Vec3 } from 'mol-math/linear-algebra'
 import { DefaultCameraProps, Camera } from './base'
 
 export interface PerspectiveCamera extends Camera {
-    fov: number,
+    fov: number
 }
 
 export const DefaultPerspectiveCameraProps = {
+    ...DefaultCameraProps,
     fov: Math.PI / 4,
-    ...DefaultCameraProps
 }
 export type PerspectiveCameraProps = Partial<typeof DefaultPerspectiveCameraProps>
 
 export namespace PerspectiveCamera {
     export function create(props: PerspectiveCameraProps = {}): PerspectiveCamera {
-        let { fov } = { ...DefaultPerspectiveCameraProps, ...props };
-
-        const camera = {
-            ...Camera.create(props),
-            fov
-        }
-
+        const { fov } = { ...DefaultPerspectiveCameraProps, ...props }
+        const camera = { ...Camera.create(props), fov }
         update(camera)
 
         return camera

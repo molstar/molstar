@@ -25,6 +25,7 @@ export const DefaultCameraProps = {
     direction: Vec3.create(0, 0, -1),
     up: Vec3.create(0, 1, 0),
     viewport: Viewport.create(-1, -1, 1, 1),
+    target: Vec3.create(0, 0, 0),
 
     near: 0.1,
     far: 10000,

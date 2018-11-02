@@ -718,9 +718,9 @@ namespace Mat4 {
      * Generates a frustum matrix with the given bounds
      */
     export function frustum(out: Mat4, left: number, right: number, bottom: number, top: number, near: number, far: number) {
-        let rl = 1 / (right - left);
-        let tb = 1 / (top - bottom);
-        let nf = 1 / (near - far);
+        const rl = 1 / (right - left);
+        const tb = 1 / (top - bottom);
+        const nf = 1 / (near - far);
         out[0] = (near * 2) * rl;
         out[1] = 0;
         out[2] = 0;
@@ -744,8 +744,8 @@ namespace Mat4 {
      * Generates a perspective projection matrix with the given bounds
      */
     export function perspective(out: Mat4, fovy: number, aspect: number, near: number, far: number) {
-        let f = 1.0 / Math.tan(fovy / 2);
-        let nf = 1 / (near - far);
+        const f = 1.0 / Math.tan(fovy / 2);
+        const nf = 1 / (near - far);
         out[0] = f / aspect;
         out[1] = 0;
         out[2] = 0;
@@ -769,9 +769,9 @@ namespace Mat4 {
      * Generates a orthogonal projection matrix with the given bounds
      */
     export function ortho(out: Mat4, left: number, right: number, bottom: number, top: number, near: number, far: number) {
-        let lr = 1 / (left - right);
-        let bt = 1 / (bottom - top);
-        let nf = 1 / (near - far);
+        const lr = 1 / (left - right);
+        const bt = 1 / (bottom - top);
+        const nf = 1 / (near - far);
         out[0] = -2 * lr;
         out[1] = 0;
         out[2] = 0;
@@ -796,15 +796,15 @@ namespace Mat4 {
      */
     export function lookAt(out: Mat4, eye: Vec3, center: Vec3, up: Vec3) {
         let x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
-        let eyex = eye[0];
-        let eyey = eye[1];
-        let eyez = eye[2];
-        let upx = up[0];
-        let upy = up[1];
-        let upz = up[2];
-        let centerx = center[0];
-        let centery = center[1];
-        let centerz = center[2];
+        const eyex = eye[0];
+        const eyey = eye[1];
+        const eyez = eye[2];
+        const upx = up[0];
+        const upy = up[1];
+        const upz = up[2];
+        const centerx = center[0];
+        const centery = center[1];
+        const centerz = center[2];
 
         if (Math.abs(eyex - centerx) < EPSILON.Value &&
             Math.abs(eyey - centery) < EPSILON.Value &&

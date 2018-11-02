@@ -14,7 +14,6 @@ import { RenderObject } from 'mol-gl/render-object'
 
 import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
-import { PerspectiveCamera } from './camera/perspective'
 import { resizeCanvas } from './util';
 import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context';
 import { Representation } from 'mol-geo/representation';
@@ -25,6 +24,7 @@ import { PickingId, decodeIdRGB } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
+import { CombinedCamera } from './camera/combined';
 
 interface Canvas3D {
     webgl: WebGLContext,
@@ -53,6 +53,7 @@ interface Canvas3D {
 
     handleResize: () => void
     resetCamera: () => void
+    camera: CombinedCamera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
 
@@ -71,11 +72,16 @@ namespace Canvas3D {
         const didDraw = new BehaviorSubject(0)
         const input = InputObserver.create(canvas)
 
-        const camera = PerspectiveCamera.create({
+        const camera = CombinedCamera.create({
             near: 0.1,
             far: 10000,
-            position: Vec3.create(0, 0, 50)
+            position: Vec3.create(0, 0, 50),
+            mode: 'orthographic'
         })
+        // const camera = OrthographicCamera.create({
+        //     zoom: 8,
+        //     position: Vec3.create(0, 0, 50)
+        // })
         // camera.lookAt(Vec3.create(0, 0, 0))
 
         const gl = getGLContext(canvas, {
@@ -173,7 +179,7 @@ namespace Canvas3D {
             }
             let didRender = false
             controls.update()
-            PerspectiveCamera.update(camera)
+            CombinedCamera.update(camera)
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value) || !Mat4.areEqual(scene.view, prevSceneView, EPSILON.Value)) {
                 // console.log('foo', force, prevSceneView, scene.view)
                 Mat4.copy(prevProjectionView, camera.projectionView)
@@ -260,6 +266,7 @@ namespace Canvas3D {
 
             center: (p: Vec3) => {
                 Vec3.set(controls.target, p[0], p[1], p[2])
+                Vec3.set(camera.target, p[0], p[1], p[2])
             },
 
             hide: (repr: Representation<any>) => {
@@ -313,6 +320,7 @@ namespace Canvas3D {
             resetCamera: () => {
                 // TODO
             },
+            camera,
             downloadScreenshot: () => {
                 // TODO
             },

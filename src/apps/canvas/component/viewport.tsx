@@ -11,6 +11,7 @@ import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
 import { labelFirst } from 'mol-theme/label';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { throttleTime } from 'rxjs/operators'
+import { CombinedCameraMode } from 'mol-canvas3d/camera/combined';
 
 interface ViewportProps {
     app: App
@@ -20,6 +21,7 @@ interface ViewportState {
     noWebGl: boolean
     pickingInfo: string
     taskInfo: string
+    cameraMode: CombinedCameraMode
 }
 
 export class Viewport extends React.Component<ViewportProps, ViewportState> {
@@ -29,7 +31,8 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
     state: ViewportState = {
         noWebGl: false,
         pickingInfo: '',
-        taskInfo: ''
+        taskInfo: '',
+        cameraMode: 'perspective'
     };
 
     handleResize() {
@@ -41,6 +44,8 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
             this.setState({ noWebGl: true });
         }
         this.handleResize()
+
+        this.setState({ cameraMode: this.props.app.canvas3d.camera.mode })
 
         const canvas3d = this.props.app.canvas3d
 
@@ -116,6 +121,30 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
                 }}
             >
                 {this.state.pickingInfo}
+            </div>
+            <div
+                style={{
+                    position: 'absolute',
+                    bottom: 10,
+                    right: 10,
+                    padding: 10,
+                    color: 'lightgrey',
+                    background: 'rgba(0, 0, 0, 0.2)'
+                }}
+            >
+                <span>Camera mode </span>
+                <select
+                    value={this.state.cameraMode}
+                    style={{width: '150'}}
+                    onChange={e => {
+                        const cameraMode = e.target.value as CombinedCameraMode
+                        this.props.app.canvas3d.camera.mode = cameraMode
+                        this.setState({ cameraMode })
+                    }}
+                >
+                    <option value='perspective'>Perspective</option>
+                    <option value='orthographic'>Orthographic</option>
+                </select>
             </div>
             { this.state.taskInfo ?
                 <div
