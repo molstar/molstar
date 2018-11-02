@@ -7,10 +7,13 @@
 import { State, StateTree, StateSelection, Transformer } from 'mol-state';
 import Canvas3D from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
-import { Subject } from 'rxjs';
 import { PluginStateObjects as SO } from './state/objects';
+import { RxEventHelper } from 'mol-util/rx-event-helper';
 
 export class PluginContext {
+    private disposed = false;
+    private _events = new RxEventHelper();
+
     state = {
         data: State.create(new SO.Root({ label: 'Root' }, { })),
         // behaviour: State,
@@ -19,7 +22,7 @@ export class PluginContext {
 
     // TODO: better events
     events = {
-        stateUpdated: new Subject<undefined>()
+        stateUpdated: this._events.create<undefined>()
     };
 
     canvas3d: Canvas3D;
@@ -34,6 +37,13 @@ export class PluginContext {
             console.error(e);
             return false;
         }
+    }
+
+    dispose() {
+        if (this.disposed) return;
+        this.canvas3d.dispose();
+        this._events.dispose();
+        this.disposed = true;
     }
 
     _test_createState(url: string) {
