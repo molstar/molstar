@@ -5,27 +5,27 @@
  */
 
 import { Model, Structure } from 'mol-model/structure';
-import { CartoonRepresentation } from 'mol-geo/representation/structure/representation/cartoon';
-import { BallAndStickRepresentation } from 'mol-geo/representation/structure/representation/ball-and-stick';
 import { getStructureFromModel } from './util';
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
-import { ShapeRepresentation, ShapeProps } from 'mol-geo/representation/shape';
 import { getAxesShape } from './assembly-symmetry';
 import Canvas3D from 'mol-canvas3d/canvas3d';
-import { CarbohydrateRepresentation } from 'mol-geo/representation/structure/representation/carbohydrate';
 // import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
 // import { addSphere } from 'mol-geo/mesh/builder/sphere';
 // import { Shape } from 'mol-model/shape';
 // import { Color } from 'mol-util/color';
 // import { computeUnitBoundary } from 'mol-model/structure/structure/util/boundary';
 // import { addBoundingBox } from 'mol-geo/mesh/builder/bounding-box';
-import { PointRepresentation } from 'mol-geo/representation/structure/representation/point';
-import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { BehaviorSubject } from 'rxjs';
-import { SpacefillRepresentation } from 'mol-geo/representation/structure/representation/spacefill';
-import { DistanceRestraintRepresentation } from 'mol-geo/representation/structure/representation/distance-restraint';
-import { MolecularSurfaceRepresentation } from 'mol-geo/representation/structure/representation/molecular-surface';
 import { App } from './app';
+import { StructureRepresentation } from 'mol-repr/structure/index';
+import { ShapeRepresentation, ShapeProps } from 'mol-repr/shape/index';
+import { CartoonRepresentation } from 'mol-repr/structure/representation/cartoon';
+import { MolecularSurfaceRepresentation } from 'mol-repr/structure/representation/molecular-surface';
+import { PointRepresentation } from 'mol-repr/structure/representation/point';
+import { BallAndStickRepresentation } from 'mol-repr/structure/representation/ball-and-stick';
+import { CarbohydrateRepresentation } from 'mol-repr/structure/representation/carbohydrate';
+import { SpacefillRepresentation } from 'mol-repr/structure/representation/spacefill';
+import { DistanceRestraintRepresentation } from 'mol-repr/structure/representation/distance-restraint';
 
 export interface StructureView {
     readonly app: App

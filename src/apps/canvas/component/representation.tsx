@@ -8,7 +8,7 @@ import * as React from 'react'
 import Canvas3D from 'mol-canvas3d/canvas3d';
 import { App } from '../app';
 import { Params } from 'mol-util/parameter';
-import { Representation } from 'mol-geo/representation';
+import { Representation } from 'mol-repr';
 import { ParametersComponent } from 'mol-app/component/parameters';
 import { ColorTheme } from 'mol-theme/color';
 import { getColorThemeProps } from 'mol-geo/geometry/color-data';

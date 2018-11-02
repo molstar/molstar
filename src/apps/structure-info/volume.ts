@@ -13,9 +13,9 @@ import { downloadCif } from './helpers'
 import CIF from 'mol-io/reader/cif'
 import { DensityServer_Data_Database } from 'mol-io/reader/cif/schema/density-server';
 import { Table } from 'mol-data/db';
-import { createVolumeSurface } from 'mol-geo/representation/volume/isosurface-mesh';
 import { StringBuilder } from 'mol-util';
 import { Task } from 'mol-task';
+import { createVolumeSurface } from 'mol-repr/volume/isosurface-mesh';
 
 require('util.promisify').shim();
 const writeFileAsync = util.promisify(fs.writeFile);

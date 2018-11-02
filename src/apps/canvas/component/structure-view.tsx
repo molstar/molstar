@@ -6,9 +6,9 @@
 
 import * as React from 'react'
 import { StructureView } from '../structure-view';
-import { StructureRepresentation } from 'mol-geo/representation/structure';
 import { RepresentationComponent } from './representation';
-import { Representation } from 'mol-geo/representation';
+import { Representation } from 'mol-repr';
+import { StructureRepresentation } from 'mol-repr/structure/index';
 
 export interface StructureViewComponentProps {
     structureView: StructureView
