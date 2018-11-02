@@ -9,14 +9,6 @@ import { OrthographicCamera } from './orthographic';
 import { Camera, DefaultCameraProps } from './base';
 import { Vec3 } from 'mol-math/linear-algebra';
 
-// TODO
-
-// updateZoom () {
-//     const fov = degToRad(this.perspectiveCamera.fov)
-//     const height = 2 * Math.tan(fov / 2) * -this.camera.position.z
-//     this.orthographicCamera.zoom = this.height / height
-// }
-
 export type CombinedCameraMode = 'perspective' | 'orthographic'
 
 export interface CombinedCamera extends Camera {
@@ -45,11 +37,7 @@ export namespace CombinedCamera {
         return camera
     }
 
-    // const center = Vec3.zero()
     export function update(camera: CombinedCamera) {
-        // console.log(camera.position, camera.direction)
-        // Vec3.add(center, camera.position, camera.direction)
-
         const height = 2 * Math.tan(camera.fov / 2) * Vec3.distance(camera.position, camera.target)
         camera.zoom = camera.viewport.height / height
 
