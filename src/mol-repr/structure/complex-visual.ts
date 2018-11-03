@@ -8,8 +8,8 @@ import { Structure } from 'mol-model/structure';
 import { Visual } from '..';
 import { MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
 import { RuntimeContext } from 'mol-task';
-import { createComplexMeshRenderObject, sizeChanged, colorChanged, UnitKind, UnitKindOptions } from './visual/util/common';
-import { StructureProps, VisualUpdateState, StructureMeshParams, StructureParams } from './index';
+import { createComplexMeshRenderObject, UnitKind, UnitKindOptions } from './visual/util/common';
+import { StructureProps, StructureMeshParams, StructureParams } from './index';
 import { deepEqual, ValueCell } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { Interval } from 'mol-data/int';
@@ -22,6 +22,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { createColors } from 'mol-geo/geometry/color-data';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
+import { VisualUpdateState, colorChanged, sizeChanged } from 'mol-repr/util';
 
 export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
 

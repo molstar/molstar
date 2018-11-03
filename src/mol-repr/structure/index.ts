@@ -55,29 +55,6 @@ export const StructureDirectVolumeParams = {
 export const DefaultStructureDirectVolumeProps = paramDefaultValues(StructureDirectVolumeParams)
 export type StructureDirectVolumeProps = typeof DefaultStructureDirectVolumeProps
 
-export interface VisualUpdateState {
-    updateTransform: boolean
-    updateColor: boolean
-    updateSize: boolean
-    createGeometry: boolean
-}
-export namespace VisualUpdateState {
-    export function create(): VisualUpdateState {
-        return {
-            updateTransform: false,
-            updateColor: false,
-            updateSize: false,
-            createGeometry: false
-        }
-    }
-    export function reset(state: VisualUpdateState) {
-        state.updateTransform = false
-        state.updateColor = false
-        state.updateSize = false
-        state.createGeometry = false
-    }
-}
-
 export { ComplexRepresentation } from './complex-representation'
 export { UnitsRepresentation } from './units-representation'
 export { ComplexVisual } from './complex-visual'

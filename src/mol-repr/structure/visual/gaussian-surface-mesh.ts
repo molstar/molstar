@@ -5,7 +5,8 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual, VisualUpdateState } from '../index';
+import { UnitsVisual } from '../index';
+import { VisualUpdateState } from '../../util';
 import { RuntimeContext } from 'mol-task'
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';

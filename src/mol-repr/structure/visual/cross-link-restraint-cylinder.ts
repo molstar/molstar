@@ -5,7 +5,8 @@
  */
 
 import { Link, Structure, StructureElement } from 'mol-model/structure';
-import { ComplexVisual, VisualUpdateState } from '../index';
+import { ComplexVisual } from '../index';
+import { VisualUpdateState } from '../../util';
 import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, createLinkCylinderMesh, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';

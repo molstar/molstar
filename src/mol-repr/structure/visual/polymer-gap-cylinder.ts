@@ -5,7 +5,8 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual, VisualUpdateState } from '../index';
+import { UnitsVisual } from '../index';
+import { VisualUpdateState } from '../../util';
 import { RuntimeContext } from 'mol-task'
 import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';

@@ -17,9 +17,9 @@ import { BitFlags } from 'mol-util';
 import { UnitsMeshParams } from '../units-visual';
 import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { VisualUpdateState } from '../index';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
+import { VisualUpdateState } from '../../util';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {

@@ -5,7 +5,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { UnitsVisual, VisualUpdateState } from '../index';
+import { UnitsVisual } from '../index';
+import { VisualUpdateState } from '../../util';
 import { createElementSphereMesh, markElement, getElementLoci, StructureElementIterator } from './util/element';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { NumberParam, paramDefaultValues, SelectParam } from 'mol-util/parameter';

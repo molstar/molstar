@@ -5,7 +5,8 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual, VisualUpdateState } from '../index';
+import { UnitsVisual } from '../index';
+import { VisualUpdateState } from '../../util';
 import { RuntimeContext } from 'mol-task'
 import { PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement, StructureElementIterator } from './util/element';

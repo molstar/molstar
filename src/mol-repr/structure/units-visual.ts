@@ -6,11 +6,11 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { RepresentationProps, Visual } from '../';
-import { VisualUpdateState, StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureParams } from './index';
+import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureParams } from './index';
 import { RuntimeContext } from 'mol-task';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
-import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, UnitKind, UnitKindOptions, includesUnitKind, colorChanged, sizeChanged } from './visual/util/common';
+import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, UnitKind, UnitKindOptions, includesUnitKind } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { MultiSelectParam, paramDefaultValues } from 'mol-util/parameter';
@@ -25,6 +25,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
+import { VisualUpdateState, colorChanged, sizeChanged } from 'mol-repr/util';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 

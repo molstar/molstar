@@ -19,7 +19,8 @@ import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/struct
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { ComplexMeshParams, ComplexMeshVisual } from '../complex-visual';
 import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
-import { ComplexVisual, VisualUpdateState } from '../index';
+import { ComplexVisual } from '../index';
+import { VisualUpdateState } from '../../util';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { OrderedSet, Interval } from 'mol-data/int';

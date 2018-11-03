@@ -6,7 +6,8 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { RuntimeContext } from 'mol-task'
-import { UnitsVisual, VisualUpdateState } from '../index';
+import { UnitsVisual } from '../index';
+import { VisualUpdateState } from '../../util';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';

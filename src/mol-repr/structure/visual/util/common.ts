@@ -9,8 +9,6 @@ import { StructureProps } from '../../index';
 import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { RuntimeContext } from 'mol-task';
 import { Mat4 } from 'mol-math/linear-algebra';
-import { SizeProps } from 'mol-geo/geometry/size-data';
-import { ColorProps } from 'mol-geo/geometry/color-data';
 import { TransformData, createTransform, createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -45,21 +43,6 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
         if (Unit.isGaussians(unit) && unitKinds[i] === 'gaussians') return true
     }
     return false
-}
-
-export function sizeChanged(oldProps: SizeProps, newProps: SizeProps) {
-    return (
-        oldProps.sizeTheme !== newProps.sizeTheme ||
-        oldProps.sizeValue !== newProps.sizeValue ||
-        oldProps.sizeFactor !== newProps.sizeFactor
-    )
-}
-
-export function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
-    return (
-        oldProps.colorTheme !== newProps.colorTheme ||
-        oldProps.colorValue !== newProps.colorValue
-    )
 }
 
 // mesh

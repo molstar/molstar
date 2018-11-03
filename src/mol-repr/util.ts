@@ -6,7 +6,49 @@
 
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
-import { VisualQuality } from '../mol-geo/geometry/geometry';
+import { VisualQuality } from 'mol-geo/geometry/geometry';
+import { SizeProps } from 'mol-geo/geometry/size-data';
+import { ColorProps } from 'mol-geo/geometry/color-data';
+
+export interface VisualUpdateState {
+    updateTransform: boolean
+    updateColor: boolean
+    updateSize: boolean
+    createGeometry: boolean
+}
+export namespace VisualUpdateState {
+    export function create(): VisualUpdateState {
+        return {
+            updateTransform: false,
+            updateColor: false,
+            updateSize: false,
+            createGeometry: false
+        }
+    }
+    export function reset(state: VisualUpdateState) {
+        state.updateTransform = false
+        state.updateColor = false
+        state.updateSize = false
+        state.createGeometry = false
+    }
+}
+
+export function sizeChanged(oldProps: SizeProps, newProps: SizeProps) {
+    return (
+        oldProps.sizeTheme !== newProps.sizeTheme ||
+        oldProps.sizeValue !== newProps.sizeValue ||
+        oldProps.sizeFactor !== newProps.sizeFactor
+    )
+}
+
+export function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
+    return (
+        oldProps.colorTheme !== newProps.colorTheme ||
+        oldProps.colorValue !== newProps.colorValue
+    )
+}
+
+//
 
 export interface QualityProps {
     quality: VisualQuality
