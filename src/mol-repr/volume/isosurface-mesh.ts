@@ -48,7 +48,7 @@ export const IsosurfaceParams = {
 export const DefaultIsosurfaceProps = paramDefaultValues(IsosurfaceParams)
 export type IsosurfaceProps = typeof DefaultIsosurfaceProps
 
-export function IsosurfaceVisual():  VolumeVisual<IsosurfaceProps> {
+export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
     return VolumeVisual<IsosurfaceProps>({
         defaultProps: DefaultIsosurfaceProps,
         createGeometry: createVolumeIsosurface,
