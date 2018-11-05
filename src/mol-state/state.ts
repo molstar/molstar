@@ -13,23 +13,50 @@ import { StateContext } from './context';
 import { UUID } from 'mol-util';
 import { RuntimeContext, Task } from 'mol-task';
 
-export interface State {
-    tree: StateTree,
-    objects: State.Objects,
-    context: StateContext
-}
+export { State }
 
-export namespace State {
-    export type Ref = Transform.Ref
-    export type Objects = Map<Ref, StateObject.Node>
+class State {
+    private _tree: StateTree = StateTree.create();
+    get tree() { return this._tree; }
 
-    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
-        const tree = StateTree.create();
-        const objects: Objects = new Map();
+    readonly objects: State.Objects = new Map();
+    readonly context: StateContext;
+
+    getSnapshot(): State.Snapshot {
+        throw 'nyi';
+    }
+
+    setSnapshot(snapshot: State.Snapshot): void {
+        throw 'nyi';
+    }
+
+    dispose() {
+        this.context.dispose();
+    }
+
+    update(tree: StateTree): Task<void> {
+        return Task.create('Update Tree', taskCtx => {
+            const oldTree = this._tree;
+            this._tree = tree;
+
+            const ctx: UpdateContext = {
+                stateCtx: this.context,
+                taskCtx,
+                oldTree,
+                tree: tree,
+                objects: this.objects
+            };
+            // TODO: have "cancelled" error? Or would this be handled automatically?
+            return update(ctx);
+        });
+    }
+
+    constructor(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
+        const tree = this._tree;
         const root = tree.getValue(tree.rootRef)!;
         const defaultObjectProps = (params && params.defaultObjectProps) || { }
 
-        objects.set(tree.rootRef, {
+        this.objects.set(tree.rootRef, {
             ref: tree.rootRef,
             obj: rootObject,
             state: StateObject.StateType.Ok,
@@ -37,30 +64,37 @@ export namespace State {
             props: { ...defaultObjectProps }
         });
 
-        return {
-            tree,
-            objects,
-            context: StateContext.create({
-                globalContext: params && params.globalContext,
-                defaultObjectProps
-            })
-        };
+        this.context = new StateContext({
+            globalContext: params && params.globalContext,
+            defaultObjectProps
+        });
+    }
+}
+
+namespace State {    
+    export type Objects = Map<Transform.Ref, StateObject.Node>
+
+    export interface Snapshot {
+        readonly tree: StateTree,
+        readonly props: { [key: string]: unknown }
     }
 
-    export function update(state: State, tree: StateTree): Task<State> {
-        return Task.create('Update Tree', taskCtx => {
-            const ctx: UpdateContext = {
-                stateCtx: state.context,
-                taskCtx,
-                oldTree: state.tree,
-                tree: tree,
-                objects: state.objects
-            };
-            return _update(ctx);
-        })
+    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
+        return new State(rootObject, params);
+    }
+}
+
+    type Ref = Transform.Ref
+
+    interface UpdateContext {
+        stateCtx: StateContext,
+        taskCtx: RuntimeContext,
+        oldTree: StateTree,
+        tree: StateTree,
+        objects: State.Objects
     }
 
-    async function _update(ctx: UpdateContext): Promise<State> {
+    async function update(ctx: UpdateContext) {
         const roots = findUpdateRoots(ctx.objects, ctx.tree);
         const deletes = findDeletes(ctx);
         for (const d of deletes) {
@@ -73,23 +107,9 @@ export namespace State {
         for (const root of roots) {
             await updateSubtree(ctx, root);
         }
-
-        return {
-            tree: ctx.tree,
-            objects: ctx.objects,
-            context: ctx.stateCtx
-        };
     }
 
-    interface UpdateContext {
-        stateCtx: StateContext,
-        taskCtx: RuntimeContext,
-        oldTree: StateTree,
-        tree: StateTree,
-        objects: Objects
-    }
-
-    function findUpdateRoots(objects: Objects, tree: StateTree) {
+    function findUpdateRoots(objects: State.Objects, tree: StateTree) {
         const findState = {
             roots: [] as Ref[],
             objects
@@ -165,7 +185,7 @@ export namespace State {
         }
     }
 
-    function findAncestor(tree: StateTree, objects: Objects, root: Ref, types: { type: StateObject.Type }[]): StateObject {
+    function findAncestor(tree: StateTree, objects: State.Objects, root: Ref, types: { type: StateObject.Type }[]): StateObject {
         let current = tree.nodes.get(root)!;
         while (true) {
             current = tree.nodes.get(current.parent)!;
@@ -261,4 +281,3 @@ export namespace State {
         }
         return runTask(transformer.definition.update({ a, oldParams, b, newParams }, ctx.stateCtx.globalContext), ctx.taskCtx);
     }
-}

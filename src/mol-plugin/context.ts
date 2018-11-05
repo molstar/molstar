@@ -4,32 +4,28 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, StateTree, StateSelection, Transformer } from 'mol-state';
+import { StateTree, StateSelection, Transformer } from 'mol-state';
 import Canvas3D from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
 import { PluginStateObjects as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { PluginState } from './state';
 
 export class PluginContext {
     private disposed = false;
-    private _events = new RxEventHelper();
+    private ev = RxEventHelper.create();
 
-    state = {
-        data: State.create(new SO.Root({ label: 'Root' }, { })),
-        // behaviour: State,
-        // plugin: State
+    readonly state = new PluginState();
+
+    readonly events = {
+        stateUpdated: this.ev<undefined>()
     };
 
-    // TODO: better events
-    events = {
-        stateUpdated: this._events.create<undefined>()
-    };
-
-    canvas3d: Canvas3D;
+    readonly canvas3d: Canvas3D;
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
-            this.canvas3d = Canvas3D.create(canvas, container);
+            (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             this.canvas3d.animate();
             console.log('canvas3d created');
             return true;
@@ -42,7 +38,8 @@ export class PluginContext {
     dispose() {
         if (this.disposed) return;
         this.canvas3d.dispose();
-        this._events.dispose();
+        this.ev.dispose();
+        this.state.dispose();
         this.disposed = true;
     }
 
@@ -60,9 +57,8 @@ export class PluginContext {
     }
 
     async _test_updateStateData(tree: StateTree) {
-        const newState = await State.update(this.state.data, tree).run(p => console.log(p), 250);
-        this.state.data = newState;
-        console.log(newState);
+        await this.state.data.update(tree).run(p => console.log(p), 250);
+        console.log(this.state.data);
         this.events.stateUpdated.next();
     }
 
