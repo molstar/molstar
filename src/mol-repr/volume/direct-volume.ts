@@ -21,6 +21,7 @@ import { Geometry, createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
+import { VisualContext, RepresentationContext } from 'mol-repr';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()
@@ -170,13 +171,13 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
 
 //
 
-export async function createDirectVolume(ctx: RuntimeContext, volume: VolumeData, props: DirectVolumeProps, directVolume?: DirectVolume) {
-    const { webgl } = props
+export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, props: DirectVolumeProps, directVolume?: DirectVolume) {
+    const { runtime, webgl } = ctx
     if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
 
     return webgl.isWebGL2 ?
-        await createDirectVolume3d(ctx, webgl, volume, directVolume) :
-        await createDirectVolume2d(ctx, webgl, volume, directVolume)
+        await createDirectVolume3d(runtime, webgl, volume, directVolume) :
+        await createDirectVolume2d(runtime, webgl, volume, directVolume)
 }
 
 
@@ -197,9 +198,9 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
         mark: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: DirectVolumeProps, currentProps: DirectVolumeProps) => {
         },
-        createRenderObject: async (ctx: RuntimeContext, geometry: DirectVolume, locationIt: LocationIterator, props: DirectVolumeProps) => {
+        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, props: DirectVolumeProps) => {
             const transform = createIdentityTransform()
-            const values = await DirectVolume.createValues(ctx, geometry, transform, locationIt, props)
+            const values = await DirectVolume.createValues(ctx.runtime, geometry, transform, locationIt, props)
             const state = createRenderableState(props)
             return createDirectVolumeRenderObject(values, state)
         },
@@ -219,9 +220,9 @@ export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeP
         get props() {
             return { ...volumeRepr.props }
         },
-        createOrUpdate: (props: Partial<DirectVolumeProps> = {}, volume?: VolumeData) => {
+        createOrUpdate: (ctx: RepresentationContext, props: Partial<DirectVolumeProps> = {}, volume?: VolumeData) => {
             currentProps = Object.assign({}, DefaultDirectVolumeProps, currentProps, props)
-            return volumeRepr.createOrUpdate(currentProps, volume)
+            return volumeRepr.createOrUpdate(ctx, currentProps, volume)
         },
         getLoci: (pickingId: PickingId) => {
             return volumeRepr.getLoci(pickingId)

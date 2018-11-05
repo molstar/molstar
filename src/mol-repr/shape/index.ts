@@ -6,7 +6,7 @@
 
 import { Task } from 'mol-task'
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
-import { RepresentationProps, Representation } from '..';
+import { RepresentationProps, Representation, RepresentationContext } from '..';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { ValueCell } from 'mol-util';
 import { ColorThemeName, ColorThemeOptions } from 'mol-theme/color';
@@ -38,11 +38,11 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
     let _shape: Shape
     let currentProps: P
 
-    function createOrUpdate(props: Partial<P> = {}, shape?: Shape) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, shape?: Shape) {
         currentProps = Object.assign({}, DefaultShapeProps, currentProps, props)
         if (shape) _shape = shape
 
-        return Task.create('ShapeRepresentation.create', async ctx => {
+        return Task.create('ShapeRepresentation.create', async runtime => {
             renderObjects.length = 0
 
             if (!_shape) return
@@ -51,7 +51,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
             const locationIt = ShapeGroupIterator.fromShape(_shape)
             const transform = createIdentityTransform()
 
-            const values = await Mesh.createValues(ctx, mesh, transform, locationIt, currentProps)
+            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, currentProps)
             const state = createRenderableState(currentProps)
 
             _renderObject = createMeshRenderObject(values, state)

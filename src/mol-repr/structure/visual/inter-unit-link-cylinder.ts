@@ -7,7 +7,6 @@
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual } from '../index';
 import { VisualUpdateState } from '../../util';
-import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
@@ -18,8 +17,9 @@ import { BitFlags } from 'mol-util';
 import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { PickingId } from 'mol-geo/geometry/picking';
+import { VisualContext } from 'mol-repr';
 
-async function createInterUnitLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
+async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links
     const { bondCount, bonds } = links
 

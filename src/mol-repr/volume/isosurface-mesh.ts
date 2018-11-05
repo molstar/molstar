@@ -6,7 +6,6 @@
  */
 
 import { VolumeData } from 'mol-model/volume'
-import { RuntimeContext } from 'mol-task'
 import { VolumeVisual, VolumeRepresentation } from './index';
 import { createMeshRenderObject } from 'mol-gl/render-object';
 import { Loci, EmptyLoci } from 'mol-model/loci';
@@ -19,21 +18,22 @@ import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
+import { RepresentationContext, VisualContext } from 'mol-repr';
 
 interface VolumeIsosurfaceProps {
     isoValueAbsolute: number
 }
 
-export async function createVolumeIsosurface(ctx: RuntimeContext, volume: VolumeData, props: VolumeIsosurfaceProps, mesh?: Mesh) {
-    ctx.update({ message: 'Marching cubes...' });
+export async function createVolumeIsosurface(ctx: VisualContext, volume: VolumeData, props: VolumeIsosurfaceProps, mesh?: Mesh) {
+    ctx.runtime.update({ message: 'Marching cubes...' });
 
     const surface = await computeMarchingCubesMesh({
         isoLevel: props.isoValueAbsolute,
         scalarField: volume.data
-    }, mesh).runAsChild(ctx);
+    }, mesh).runAsChild(ctx.runtime);
 
     const transform = VolumeData.getGridToCartesianTransform(volume);
-    ctx.update({ message: 'Transforming mesh...' });
+    ctx.runtime.update({ message: 'Transforming mesh...' });
     Mesh.transformImmediate(surface, transform);
     Mesh.computeNormalsImmediate(surface)
 
@@ -57,9 +57,9 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
         setUpdateState: (state: VisualUpdateState, newProps: IsosurfaceProps, currentProps: IsosurfaceProps) => {
             if (newProps.isoValueAbsolute !== currentProps.isoValueAbsolute) state.createGeometry = true
         },
-        createRenderObject: async (ctx: RuntimeContext, geometry: Mesh, locationIt: LocationIterator, props: IsosurfaceProps) => {
+        createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, props: IsosurfaceProps) => {
             const transform = createIdentityTransform()
-            const values = await Mesh.createValues(ctx, geometry, transform, locationIt, props)
+            const values = await Mesh.createValues(ctx.runtime, geometry, transform, locationIt, props)
             const state = createRenderableState(props)
             return createMeshRenderObject(values, state)
         },
@@ -79,9 +79,9 @@ export function IsosurfaceRepresentation(): VolumeRepresentation<IsosurfaceProps
         get props() {
             return { ...volumeRepr.props }
         },
-        createOrUpdate: (props: Partial<IsosurfaceProps> = {}, volume?: VolumeData) => {
+        createOrUpdate: (ctx: RepresentationContext, props: Partial<IsosurfaceProps> = {}, volume?: VolumeData) => {
             currentProps = Object.assign({}, DefaultIsosurfaceProps, currentProps, props)
-            return volumeRepr.createOrUpdate(currentProps, volume)
+            return volumeRepr.createOrUpdate(ctx, currentProps, volume)
         },
         getLoci: (pickingId: PickingId) => {
             return volumeRepr.getLoci(pickingId)

@@ -5,7 +5,6 @@
  */
 
 import { Structure, Link, StructureElement } from 'mol-model/structure';
-import { RuntimeContext } from 'mol-task'
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { createLinkCylinderMesh, LinkCylinderProps, LinkCylinderParams } from './util/link';
@@ -20,6 +19,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualUpdateState } from '../../util';
+import { VisualContext } from 'mol-repr';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
@@ -35,7 +35,7 @@ import { VisualUpdateState } from '../../util';
 
 const radiusFactor = 0.3
 
-async function createCarbohydrateLinkCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
+async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     const { links, elements } = structure.carbohydrates
     const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const location = StructureElement.create()

@@ -15,9 +15,8 @@ import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
-import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, ValueParam } from 'mol-util/parameter'
+import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam } from 'mol-util/parameter'
 import { DirectVolume } from './direct-volume/direct-volume';
-import { WebGLContext } from 'mol-gl/webgl/context';
 
 //
 
@@ -67,7 +66,6 @@ export namespace Geometry {
         quality: SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
         colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
         colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
-        webgl: ValueParam('WebGL Context', '', undefined as WebGLContext | undefined),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps

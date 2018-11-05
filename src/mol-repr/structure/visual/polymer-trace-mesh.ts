@@ -7,7 +7,6 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../index';
 import { VisualUpdateState } from '../../util';
-import { RuntimeContext } from 'mol-task'
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
@@ -17,6 +16,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSheet } from 'mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from 'mol-geo/geometry/mesh/builder/tube';
+import { VisualContext } from 'mol-repr';
 
 export const PolymerTraceMeshParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
@@ -32,7 +32,7 @@ export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
 // TODO handle polymer ends properly
 
-async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerTraceMeshProps, mesh?: Mesh) {
+async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerTraceMeshProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
@@ -80,8 +80,8 @@ async function createPolymerTraceMesh(ctx: RuntimeContext, unit: Unit, structure
             addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
         }
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Polymer trace mesh', current: i, max: polymerElementCount });
+        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Polymer trace mesh', current: i, max: polymerElementCount });
         }
         ++i
     }

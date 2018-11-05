@@ -5,7 +5,6 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { RuntimeContext } from 'mol-task'
 import { UnitsVisual } from '../index';
 import { VisualUpdateState } from '../../util';
 import { StructureElementIterator } from './util/element';
@@ -17,6 +16,7 @@ import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure
 import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-util/parameter';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
+import { VisualContext } from 'mol-repr';
 
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
@@ -28,8 +28,8 @@ export const GaussianDensityPointParams = {
 export const DefaultGaussianDensityPointProps = paramDefaultValues(GaussianDensityPointParams)
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
-export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, points?: Points) {
-    const { transform, field: { space, data } } = await unit.computeGaussianDensity(props, ctx)
+export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, points?: Points) {
+    const { transform, field: { space, data } } = await unit.computeGaussianDensity(props, ctx.runtime, ctx.webgl)
 
     const { dimensions, get } = space
     const [ xn, yn, zn ] = dimensions
@@ -48,8 +48,8 @@ export async function createGaussianDensityPoint(ctx: RuntimeContext, unit: Unit
                     Vec3.transformMat4(p, p, transform)
                     builder.add(p[0], p[1], p[2], i)
                 }
-                if (i % 100000 === 0 && ctx.shouldUpdate) {
-                    await ctx.update({ message: 'Creating density points', current: i, max: n });
+                if (i % 100000 === 0 && ctx.runtime.shouldUpdate) {
+                    await ctx.runtime.update({ message: 'Creating density points', current: i, max: n });
                 }
                 ++i
             }

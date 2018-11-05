@@ -5,9 +5,8 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { RepresentationProps, Visual } from '../';
+import { RepresentationProps, Visual, VisualContext } from '../';
 import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureParams } from './index';
-import { RuntimeContext } from 'mol-task';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
 import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, UnitKind, UnitKindOptions, includesUnitKind } from './visual/util/common';
@@ -49,7 +48,7 @@ type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObje
 
 interface UnitsVisualBuilder<P extends UnitsProps, G extends Geometry> {
     defaultProps: P
-    createGeometry(ctx: RuntimeContext, unit: Unit, structure: Structure, props: P, geometry?: G): Promise<G>
+    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, props: P, geometry?: G): Promise<G>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
     mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
@@ -58,7 +57,7 @@ interface UnitsVisualBuilder<P extends UnitsProps, G extends Geometry> {
 
 interface UnitsVisualGeometryBuilder<P extends UnitsProps, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: RuntimeContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, currentProps: P): Promise<UnitsRenderObject>
+    createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, currentProps: P): Promise<UnitsRenderObject>
     updateValues(values: RenderableValues, newProps: P): void
 }
 
@@ -75,7 +74,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
     let locationIt: LocationIterator
     let currentConformationId: UUID
 
-    async function create(ctx: RuntimeContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
+    async function create(ctx: VisualContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
         currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentGroup = group
 
@@ -90,7 +89,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
         renderObject = await createRenderObject(ctx, group, geometry, locationIt, currentProps)
     }
 
-    async function update(ctx: RuntimeContext, props: Partial<P> = {}) {
+    async function update(ctx: VisualContext, props: Partial<P> = {}) {
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
@@ -132,12 +131,12 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
         if (updateState.updateSize) {
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
-                await createSizes(ctx, locationIt, newProps, renderObject.values)
+                await createSizes(ctx.runtime, locationIt, newProps, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx, locationIt, newProps, renderObject.values)
+            await createColors(ctx.runtime, locationIt, newProps, renderObject.values)
         }
 
         updateValues(renderObject.values, newProps)
@@ -148,7 +147,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: Partial<P> = {}, structureGroup?: StructureGroup) {
+        async createOrUpdate(ctx: VisualContext, props: Partial<P> = {}, structureGroup?: StructureGroup) {
             if (structureGroup) currentStructure = structureGroup.structure
             const group = structureGroup ? structureGroup.group : undefined
             if (!group && !currentGroup) {

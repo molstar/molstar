@@ -5,9 +5,8 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { Visual } from '..';
+import { Visual, VisualContext } from '..';
 import { MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
-import { RuntimeContext } from 'mol-task';
 import { createComplexMeshRenderObject, UnitKind, UnitKindOptions } from './visual/util/common';
 import { StructureProps, StructureMeshParams, StructureParams } from './index';
 import { deepEqual, ValueCell } from 'mol-util';
@@ -37,7 +36,7 @@ type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderOb
 
 interface ComplexVisualBuilder<P extends ComplexProps, G extends Geometry> {
     defaultProps: P
-    createGeometry(ctx: RuntimeContext, structure: Structure, props: P, geometry?: G): Promise<G>
+    createGeometry(ctx: VisualContext, structure: Structure, props: P, geometry?: G): Promise<G>
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
@@ -46,7 +45,7 @@ interface ComplexVisualBuilder<P extends ComplexProps, G extends Geometry> {
 
 interface ComplexVisualGeometryBuilder<P extends ComplexProps, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: RuntimeContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, currentProps: P): Promise<ComplexRenderObject>
+    createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, currentProps: P): Promise<ComplexRenderObject>
     updateValues(values: RenderableValues, newProps: P): void
 }
 
@@ -62,7 +61,7 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
     let locationIt: LocationIterator
     let conformationHash: number
 
-    async function create(ctx: RuntimeContext, structure: Structure, props: Partial<P> = {}) {
+    async function create(ctx: VisualContext, structure: Structure, props: Partial<P> = {}) {
         currentProps = Object.assign({}, defaultProps, props, { structure })
         currentStructure = structure
 
@@ -73,7 +72,7 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
         renderObject = await createRenderObject(ctx, structure, geometry, locationIt, currentProps)
     }
 
-    async function update(ctx: RuntimeContext, props: Partial<P>) {
+    async function update(ctx: VisualContext, props: Partial<P>) {
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
 
         if (!renderObject) return false
@@ -102,12 +101,12 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
         if (updateState.updateSize) {
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
-                await createSizes(ctx, locationIt, newProps, renderObject.values)
+                await createSizes(ctx.runtime, locationIt, newProps, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx, locationIt, newProps, renderObject.values)
+            await createColors(ctx.runtime, locationIt, newProps, renderObject.values)
         }
 
         updateValues(renderObject.values, newProps)
@@ -119,7 +118,7 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: Partial<P> = {}, structure?: Structure) {
+        async createOrUpdate(ctx: VisualContext, props: Partial<P> = {}, structure?: Structure) {
             if (!structure && !currentStructure) {
                 throw new Error('missing structure')
             } else if (structure && (!currentStructure || !renderObject)) {

@@ -9,10 +9,10 @@ import { SizeTheme } from 'mol-theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
-import { NumberParam, paramDefaultValues, BooleanParam, ValueParam } from 'mol-util/parameter';
-import { WebGLContext } from 'mol-gl/webgl/context';
+import { NumberParam, paramDefaultValues, BooleanParam } from 'mol-util/parameter';
 import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
 import { Texture } from 'mol-gl/webgl/texture';
+import { WebGLContext } from 'mol-gl/webgl/context';
 
 export const GaussianDensityParams = {
     resolution: NumberParam('Resolution', '', 1, 0.1, 10, 0.1),
@@ -20,7 +20,6 @@ export const GaussianDensityParams = {
     smoothness: NumberParam('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
     useGpu: BooleanParam('Use GPU', '', true),
     ignoreCache: BooleanParam('Ignore Cache', '', false),
-    webgl: ValueParam('WebGL Context', '', undefined as WebGLContext | undefined),
 }
 export const DefaultGaussianDensityProps = paramDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
@@ -53,27 +52,25 @@ function getConformationAndRadius(unit: Unit) {
     return { position, radius }
 }
 
-export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityProps) {
+export function computeUnitGaussianDensity(unit: Unit, props: GaussianDensityProps, webgl?: WebGLContext) {
     const { position, radius } = getConformationAndRadius(unit)
     return Task.create('Gaussian Density', async ctx => {
-        return await GaussianDensity(ctx, position, unit.lookup3d.boundary.box, radius, props);
+        return await GaussianDensity(ctx, position, unit.lookup3d.boundary.box, radius, props, webgl);
     });
 }
 
-export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDensityProps, texture?: Texture) {
-    const webgl = props.webgl
-    if (!webgl) throw new Error('nned webgl context for computeUnitGaussianDensityTexture')
+export function computeUnitGaussianDensityTexture(unit: Unit, props: GaussianDensityProps, webgl: WebGLContext, texture?: Texture) {
     const { position, radius } = getConformationAndRadius(unit)
     return Task.create('Gaussian Density', async ctx => {
         return await GaussianDensityTexture(ctx, webgl, position, unit.lookup3d.boundary.box, radius, props, texture);
     });
 }
 
-export async function computeUnitGaussianDensityCached(unit: Unit, props: GaussianDensityProps, cache: Map<string, DensityData>, ctx?: RuntimeContext) {
+export async function computeUnitGaussianDensityCached(unit: Unit, props: GaussianDensityProps, cache: Map<string, DensityData>, ctx: RuntimeContext, webgl?: WebGLContext) {
     const key = `${props.radiusOffset}|${props.resolution}|${props.smoothness}`
     let density = cache.get(key)
     if (density && !props.ignoreCache) return density
-    density = ctx ? await computeUnitGaussianDensity(unit, props).runInContext(ctx) : await computeUnitGaussianDensity(unit, props).run()
+    density = await computeUnitGaussianDensity(unit, props, webgl).runInContext(ctx)
     if (!props.ignoreCache) cache.set(key, density)
     return density
 }

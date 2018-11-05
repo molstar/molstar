@@ -7,20 +7,20 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../index';
 import { VisualUpdateState } from '../../util';
-import { RuntimeContext } from 'mol-task'
 import { UnitsDirectVolumeVisual, UnitsDirectVolumeParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams, computeUnitGaussianDensityTexture } from 'mol-model/structure/structure/unit/gaussian-density';
 import { paramDefaultValues } from 'mol-util/parameter';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
+import { VisualContext } from 'mol-repr';
 
-async function createGaussianDensityVolume(ctx: RuntimeContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
-    const { webgl } = props
-    if (webgl === undefined) throw new Error('createGaussianDensityVolume requires `webgl` in props')
+async function createGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
+    const { runtime, webgl } = ctx
+    if (webgl === undefined) throw new Error('createGaussianDensityVolume requires `webgl` object in VisualContext')
 
     const p = { ...props, useGpu: true }
     const oldTexture = directVolume ? directVolume.gridTexture.ref.value : undefined
-    const densityTextureData = await computeUnitGaussianDensityTexture(unit, p, oldTexture).runInContext(ctx)
+    const densityTextureData = await computeUnitGaussianDensityTexture(unit, p, webgl, oldTexture).runInContext(runtime)
     const { transform, texture, bbox, gridDimension } = densityTextureData
 
     return DirectVolume.create(bbox, gridDimension, transform, texture, directVolume)

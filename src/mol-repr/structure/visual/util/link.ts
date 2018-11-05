@@ -5,7 +5,6 @@
  */
 
 import { Vec3 } from 'mol-math/linear-algebra';
-import { RuntimeContext } from 'mol-task';
 import { LinkType } from 'mol-model/structure/model/types';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
@@ -15,6 +14,7 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
+import { VisualContext } from 'mol-repr';
 
 export const LinkCylinderParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
@@ -71,7 +71,7 @@ export interface LinkCylinderMeshBuilderProps {
  * Each edge is included twice to allow for coloring/picking
  * the half closer to the first vertex, i.e. vertex a.
  */
-export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: LinkCylinderMeshBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
+export async function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCylinderMeshBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
     const { linkCount, referencePosition, position, order, flags, radius } = linkBuilder
 
     if (!linkCount) return Mesh.createEmpty(mesh)
@@ -115,8 +115,8 @@ export async function createLinkCylinderMesh(ctx: RuntimeContext, linkBuilder: L
             addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
         }
 
-        if (edgeIndex % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Cylinder mesh', current: edgeIndex, max: linkCount });
+        if (edgeIndex % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Cylinder mesh', current: edgeIndex, max: linkCount });
         }
     }
 

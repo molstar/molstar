@@ -6,7 +6,6 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../index';
-import { RuntimeContext } from 'mol-task'
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
@@ -16,6 +15,7 @@ import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter
 import { Wedge } from 'mol-geo/primitive/wedge';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
+import { VisualContext } from 'mol-repr';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -36,7 +36,7 @@ export const PolymerDirectionWedgeParams = {
 export const DefaultPolymerDirectionWedgeProps = paramDefaultValues(PolymerDirectionWedgeParams)
 export type PolymerDirectionWedgeProps = typeof DefaultPolymerDirectionWedgeProps
 
-async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
+async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
@@ -80,8 +80,8 @@ async function createPolymerDirectionWedgeMesh(ctx: RuntimeContext, unit: Unit, 
             builder.add(t, wedge)
         }
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Polymer direction mesh', current: i, max: polymerElementCount });
+        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Polymer direction mesh', current: i, max: polymerElementCount });
         }
         ++i
     }

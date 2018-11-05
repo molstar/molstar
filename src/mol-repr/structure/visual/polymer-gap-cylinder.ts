@@ -7,7 +7,6 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../index';
 import { VisualUpdateState } from '../../util';
-import { RuntimeContext } from 'mol-task'
 import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
@@ -19,6 +18,7 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { addFixedCountDashedCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
+import { VisualContext } from 'mol-repr';
 
 const segmentCount = 10
 
@@ -31,7 +31,7 @@ export const PolymerGapCylinderParams = {
 export const DefaultPolymerGapCylinderProps = paramDefaultValues(PolymerGapCylinderParams)
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps
 
-async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerGapCylinderProps, mesh?: Mesh) {
+async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerGapCylinderProps, mesh?: Mesh) {
     const polymerGapCount = unit.gapElements.length
     if (!polymerGapCount) return Mesh.createEmpty(mesh)
 
@@ -69,8 +69,8 @@ async function createPolymerGapCylinderMesh(ctx: RuntimeContext, unit: Unit, str
             addFixedCountDashedCylinder(builder, pB, pA, 0.5, segmentCount, cylinderProps)
         }
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Gap mesh', current: i, max: polymerGapCount });
+        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Gap mesh', current: i, max: polymerGapCount });
         }
         i += 2
     }

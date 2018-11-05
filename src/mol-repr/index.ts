@@ -10,18 +10,23 @@ import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
 import { Params, MultiSelectParam } from 'mol-util/parameter';
+import { WebGLContext } from 'mol-gl/webgl/context';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
 // }
 export type RepresentationProps = { [k: string]: any }
 
+export interface RepresentationContext {
+    webgl?: WebGLContext
+}
+
 export interface Representation<D, P extends RepresentationProps = {}> {
     readonly label: string
     readonly params: Params
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
-    createOrUpdate: (props?: Partial<P>, data?: D) => Task<void>
+    createOrUpdate: (ctx: RepresentationContext, props?: Partial<P>, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void
@@ -60,17 +65,17 @@ export namespace Representation {
                 reprList.forEach(r => Object.assign(props, r.props))
                 return props as P
             },
-            createOrUpdate: (props: Partial<P> = {}, data?: D) => {
+            createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, data?: D) => {
                 if (data) currentData = data
                 // const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
                 // currentProps = Object.assign({}, DefaultCartoonProps, currentProps, props, qualityProps)
                 currentProps = Object.assign({}, defaultProps, currentProps, props)
 
                 const { visuals } = currentProps
-                return Task.create(`Creating '${label}' representation`, async ctx => {
+                return Task.create(`Creating '${label}' representation`, async runtime => {
                     for (let i = 0, il = reprList.length; i < il; ++i) {
                         if (!visuals || visuals.includes(i.toString())) {
-                            await reprList[i].createOrUpdate(currentProps, currentData).runInContext(ctx)
+                            await reprList[i].createOrUpdate(ctx, currentProps, currentData).runInContext(runtime)
                         }
                     }
                 })
@@ -98,9 +103,15 @@ export namespace Representation {
     }
 }
 
+//
+
+export interface VisualContext extends RepresentationContext {
+    runtime: RuntimeContext
+}
+
 export interface Visual<D, P extends RepresentationProps> {
     readonly renderObject: RenderObject | undefined
-    createOrUpdate: (ctx: RuntimeContext, props?: Partial<P>, data?: D) => Promise<void>
+    createOrUpdate: (ctx: VisualContext, props?: Partial<P>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void

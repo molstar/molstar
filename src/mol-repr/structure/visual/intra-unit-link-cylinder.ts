@@ -8,7 +8,6 @@
 import { Unit, Link, StructureElement, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../index';
 import { VisualUpdateState } from '../../util';
-import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
@@ -19,8 +18,9 @@ import { BitFlags } from 'mol-util';
 import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { PickingId } from 'mol-geo/geometry/picking';
+import { VisualContext } from 'mol-repr';
 
-async function createIntraUnitLinkCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
+async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
