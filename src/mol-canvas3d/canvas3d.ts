@@ -16,7 +16,7 @@ import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
 import { resizeCanvas } from './util';
 import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context';
-import { Representation } from 'mol-geo/representation';
+import { Representation } from 'mol-repr';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';

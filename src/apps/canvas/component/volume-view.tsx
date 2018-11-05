@@ -6,9 +6,9 @@
 
 import * as React from 'react'
 import { RepresentationComponent } from './representation';
-import { Representation } from 'mol-geo/representation';
+import { Representation } from 'mol-repr';
 import { VolumeView } from '../volume-view';
-import { VolumeRepresentation } from 'mol-geo/representation/volume';
+import { VolumeRepresentation } from 'mol-repr/volume/index';
 
 export interface VolumeViewComponentProps {
     volumeView: VolumeView

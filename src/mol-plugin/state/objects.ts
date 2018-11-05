@@ -7,7 +7,7 @@
 import { PluginStateObject } from './base';
 import { CifFile } from 'mol-io/reader/cif';
 import { Model as _Model, Structure as _Structure } from 'mol-model/structure'
-import { StructureRepresentation } from 'mol-geo/representation/structure';
+import { StructureRepresentation } from 'mol-repr/structure/index';
 
 const _create = PluginStateObject.Create
 

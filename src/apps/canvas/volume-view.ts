@@ -8,9 +8,9 @@ import Canvas3D from 'mol-canvas3d/canvas3d';
 import { BehaviorSubject } from 'rxjs';
 import { App } from './app';
 import { VolumeData } from 'mol-model/volume';
-import { VolumeRepresentation } from 'mol-geo/representation/volume';
-import { IsosurfaceRepresentation } from 'mol-geo/representation/volume/isosurface-mesh';
-import { DirectVolumeRepresentation } from 'mol-geo/representation/volume/direct-volume';
+import { VolumeRepresentation } from 'mol-repr/volume/index';
+import { IsosurfaceRepresentation } from 'mol-repr/volume/isosurface-mesh';
+import { DirectVolumeRepresentation } from 'mol-repr/volume/direct-volume';
 
 export interface VolumeView {
     readonly app: App

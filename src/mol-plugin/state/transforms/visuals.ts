@@ -4,11 +4,11 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { CartoonRepresentation, DefaultCartoonProps } from 'mol-geo/representation/structure/representation/cartoon';
 import { Transformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginStateTransform } from '../base';
 import { PluginStateObjects as SO } from '../objects';
+import { CartoonRepresentation, DefaultCartoonProps } from 'mol-repr/structure/representation/cartoon';
 
 export const CreateStructureRepresentation = PluginStateTransform.Create<SO.Structure, SO.StructureRepresentation3D, { }>({
     name: 'create-structure-representation',

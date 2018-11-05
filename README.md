@@ -19,9 +19,10 @@ The core of Mol* currently consists of these modules:
 - `mol-model` Data structures and algorithms (such as querying) for representing molecular data (including coordinate, experimental/map, and annotation data).
 - `mol-model-props` Common "custom properties".
 - `mol-script` A scriting language for creating representations/scenes and querying (includes the [MolQL query language](https://molql.github.io)).
-- `mol-geo` Creating molecular geometries.
+- `mol-geo` Creating (molecular) geometries.
 - `mol-theme` Molecular representation themeing.
-- `mol-gl` A lightweight wrapper around WebGL.
+- `mol-repr` Molecular representations.
+- `mol-gl` A wrapper around WebGL.
 - `mol-canvas3d` A low level 3d view component. Uses `mol-geo` to generate geometries.
 - `mol-state` State representation tree with state saving and automatic updates.
 - `mol-app` Components for builduing UIs.
