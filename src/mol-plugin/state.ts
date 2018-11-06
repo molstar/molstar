@@ -10,7 +10,7 @@ import { PluginStateObjects as SO } from './state/objects';
 export { PluginState }
 
 class PluginState {
-    readonly data = State.create(new SO.Root({ label: 'Root' }, { }));
+    readonly data: State;
 
     getSnapshot(): PluginState.Snapshot {
         throw 'nyi';
@@ -26,6 +26,10 @@ class PluginState {
 
     dispose() {
         this.data.dispose();
+    }
+
+    constructor(globalContext: unknown) {
+        this.data = State.create(new SO.Root({ label: 'Root' }, { }), { globalContext });
     }
 }
 

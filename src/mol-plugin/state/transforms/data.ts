@@ -9,6 +9,7 @@ import { PluginStateObjects as SO } from '../objects';
 import { Task } from 'mol-task';
 import CIF from 'mol-io/reader/cif'
 import { PluginContext } from 'mol-plugin/context';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export { Download }
 namespace Download { export interface Params { url: string, isBinary?: boolean, label?: string } }
@@ -20,6 +21,12 @@ const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
     },
     from: [SO.Root],
     to: [SO.Data.String, SO.Data.Binary],
+    params: {
+        controls: () => ({
+            url: PD.Text('URL', 'Resource URL. Must be the same domain or support CORS.', ''),
+            isBinary: PD.Boolean('Binary', 'If true, download data as binary (string otherwise)', false)
+        })
+    },
     apply({ params: p }, globalCtx: PluginContext) {
         return Task.create('Download', async ctx => {
             // TODO: track progress

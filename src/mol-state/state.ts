@@ -54,7 +54,7 @@ class State {
         });
     }
 
-    constructor(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
+    constructor(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps?: unknown }) {
         const tree = this._tree;
         const root = tree.getValue(tree.rootRef)!;
         const defaultObjectProps = (params && params.defaultObjectProps) || { }
@@ -82,7 +82,7 @@ namespace State {
         readonly props: { [key: string]: unknown }
     }
 
-    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
+    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps?: unknown }) {
         return new State(rootObject, params);
     }
 }

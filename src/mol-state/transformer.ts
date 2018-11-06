@@ -20,7 +20,7 @@ export namespace Transformer {
     export type Id = string & { '@type': 'transformer-id' }
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
-    export type ControlsFor<A extends StateObject, Props> = { [P in keyof Props]?: ((a: A, globalCtx: unknown) => PD.Any) }
+    export type ControlsFor<A extends StateObject, Props> = { [P in keyof Props]?: PD.Any }
 
     export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
         a: A,
