@@ -37,6 +37,7 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
+        features: {},
         granularity: 'instance',
         color,
         description: Description,

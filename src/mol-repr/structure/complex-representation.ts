@@ -12,17 +12,18 @@ import { StructureProps, StructureRepresentation, StructureParams } from './inde
 import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { RepresentationContext } from 'mol-repr';
 
 export function ComplexRepresentation<P extends StructureProps>(label: string, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let visual: ComplexVisual<P> | undefined
     let _props: P
 
-    function createOrUpdate(props: Partial<P> = {}, structure?: Structure) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, structure?: Structure) {
         _props = Object.assign({}, _props, props)
 
-        return Task.create('Creating or updating ComplexRepresentation', async ctx => {
+        return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
-            await visual.createOrUpdate(ctx, _props, structure)
+            await visual.createOrUpdate({ ...ctx, runtime }, _props, structure)
         });
     }
 

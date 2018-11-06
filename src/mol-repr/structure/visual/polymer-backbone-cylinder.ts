@@ -7,7 +7,6 @@
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../index';
 import { VisualUpdateState } from '../../util';
-import { RuntimeContext } from 'mol-task'
 import { PolymerBackboneIterator } from './util/polymer';
 import { getElementLoci, markElement, StructureElementIterator } from './util/element';
 import { Vec3 } from 'mol-math/linear-algebra';
@@ -19,6 +18,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
+import { VisualContext } from 'mol-repr';
 
 export const PolymerBackboneCylinderParams = {
     sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
@@ -28,7 +28,7 @@ export const PolymerBackboneCylinderParams = {
 export const DefaultPolymerBackboneCylinderProps = paramDefaultValues(PolymerBackboneCylinderParams)
 export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps
 
-async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
+async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
@@ -59,8 +59,8 @@ async function createPolymerBackboneCylinderMesh(ctx: RuntimeContext, unit: Unit
         builder.setGroup(OrderedSet.indexOf(elements, centerB.element))
         addCylinder(builder, pB, pA, 0.5, cylinderProps)
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
+        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
         }
         ++i
     }

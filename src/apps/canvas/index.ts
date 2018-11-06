@@ -25,8 +25,8 @@ if (pdbId) app.loadPdbIdOrMmcifUrl(pdbId, { assemblyId })
 
 // app.loadPdbIdOrMmcifUrl('http://localhost:8091/ngl/data/1crn.cif')
 
-app.loadPdbIdOrMmcifUrl('3pqr')
-app.loadCcp4Url('http://localhost:8091/ngl/data/3pqr-mode0.ccp4')
+// app.loadPdbIdOrMmcifUrl('3pqr')
+// app.loadCcp4Url('http://localhost:8091/ngl/data/3pqr-mode0.ccp4')
 
 // app.loadPdbIdOrMmcifUrl('1lee')
 // app.loadCcp4Url('http://localhost:8091/ngl/data/1lee.ccp4')

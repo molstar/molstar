@@ -105,9 +105,7 @@ class MarchingCubesComputation {
     }
 
     async run() {
-        await this.ctx.update({ message: 'Computing surface...', current: 0, max: this.size });
         await this.doSlices();
-        await this.ctx.update('Finalizing...');
     }
 
     constructor(private ctx: RuntimeContext, builder: MarchinCubesBuilder<any>, params: MarchingCubesInputParams) {

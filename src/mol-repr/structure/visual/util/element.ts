@@ -6,7 +6,6 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Unit, StructureElement, Structure } from 'mol-model/structure';
-import { RuntimeContext } from 'mol-task';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Interval, OrderedSet } from 'mol-data/int';
 import { SizeTheme, SizeThemeName } from 'mol-theme/size';
@@ -16,6 +15,7 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
+import { VisualContext } from 'mol-repr';
 
 export interface ElementSphereMeshProps {
     sizeTheme: SizeThemeName,
@@ -23,7 +23,7 @@ export interface ElementSphereMeshProps {
     detail: number,
 }
 
-export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: ElementSphereMeshProps, mesh?: Mesh) {
+export async function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: ElementSphereMeshProps, mesh?: Mesh) {
     const { detail } = props
 
     const { elements } = unit;
@@ -44,8 +44,8 @@ export async function createElementSphereMesh(ctx: RuntimeContext, unit: Unit, s
         meshBuilder.setGroup(i)
         addSphere(meshBuilder, v, sizeTheme.size(l), detail)
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Sphere mesh', current: i, max: elementCount });
+        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Sphere mesh', current: i, max: elementCount });
         }
     }
 

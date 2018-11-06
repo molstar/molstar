@@ -29,7 +29,7 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
             elementCount += units[i].elements.length
             unitIdIndex.set(units[i].id, i)
         }
-        scale = ColorScale.create({ domain: [ 0, elementCount - 1 ] })
+        scale = ColorScale.create({ domain: [ 0, elementCount - 1 ], list: props.list })
         const scaleColor = scale.color
 
         color = (location: Location): Color => {
@@ -48,6 +48,7 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
+        features: { list: true },
         granularity: 'groupInstance',
         color,
         description: Description,

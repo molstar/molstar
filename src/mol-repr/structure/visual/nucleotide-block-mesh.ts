@@ -6,7 +6,6 @@
 
 import { Unit, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../index';
-import { RuntimeContext } from 'mol-task'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
@@ -18,6 +17,7 @@ import { Box } from 'mol-geo/primitive/box';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
+import { VisualContext } from 'mol-repr';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -34,7 +34,7 @@ const sVec = Vec3.zero()
 const box = Box()
 
 // TODO define props, should be scalable
-async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, structure: Structure, props: {}, mesh?: Mesh) {
+async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: {}, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     // TODO better vertex count estimate
@@ -100,8 +100,8 @@ async function createNucleotideBlockMesh(ctx: RuntimeContext, unit: Unit, struct
                     }
                 }
 
-                if (i % 10000 === 0 && ctx.shouldUpdate) {
-                    await ctx.update({ message: 'Nucleotide block mesh', current: i });
+                if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+                    await ctx.runtime.update({ message: 'Nucleotide block mesh', current: i });
                 }
                 ++i
             }

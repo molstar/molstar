@@ -5,7 +5,6 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { RuntimeContext } from 'mol-task'
 import { UnitsVisual } from '../index';
 import { VisualUpdateState } from '../../util';
 import { getElementLoci, StructureElementIterator, markElement } from './util/element';
@@ -15,6 +14,7 @@ import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { SelectParam, NumberParam, BooleanParam, paramDefaultValues } from 'mol-util/parameter';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
+import { VisualContext } from 'mol-repr';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
@@ -27,7 +27,7 @@ export type ElementPointProps = typeof DefaultElementPointProps
 
 // TODO size
 
-export async function createElementPoint(ctx: RuntimeContext, unit: Unit, structure: Structure, props: ElementPointProps, points: Points) {
+export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, props: ElementPointProps, points: Points) {
     const elements = unit.elements
     const n = elements.length
     const builder = PointsBuilder.create(n, n / 10, points)
@@ -39,8 +39,8 @@ export async function createElementPoint(ctx: RuntimeContext, unit: Unit, struct
         pos(elements[i], p)
         builder.add(p[0], p[1], p[2], i)
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Creating points', current: i, max: n });
+        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Creating points', current: i, max: n });
         }
     }
     return builder.getPoints()

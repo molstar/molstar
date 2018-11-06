@@ -10,7 +10,6 @@ import { OctagonalPyramid, PerforatedOctagonalPyramid } from 'mol-geo/primitive/
 import { Star } from 'mol-geo/primitive/star';
 import { Octahedron, PerforatedOctahedron } from 'mol-geo/primitive/octahedron';
 import { DiamondPrism, PentagonalPrism, HexagonalPrism } from 'mol-geo/primitive/prism';
-import { RuntimeContext } from 'mol-task';
 import { Structure, StructureElement } from 'mol-model/structure';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
@@ -25,6 +24,7 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
+import { VisualContext } from 'mol-repr';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -44,7 +44,7 @@ const diamondPrism = DiamondPrism()
 const pentagonalPrism = PentagonalPrism()
 const hexagonalPrism = HexagonalPrism()
 
-async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Structure, props: CarbohydrateSymbolProps, mesh?: Mesh) {
+async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, props: CarbohydrateSymbolProps, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
@@ -138,8 +138,8 @@ async function createCarbohydrateSymbolMesh(ctx: RuntimeContext, structure: Stru
                 break
         }
 
-        if (i % 10000 === 0 && ctx.shouldUpdate) {
-            await ctx.update({ message: 'Carbohydrate symbols', current: i, max: n });
+        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
+            await ctx.runtime.update({ message: 'Carbohydrate symbols', current: i, max: n });
         }
     }
 

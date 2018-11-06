@@ -4,6 +4,5 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-export { Color, ColorMap, ColorTable } from './color'
+export { Color, ColorMap, ColorTable } from './color';
 export { ColorScale } from './scale';
-export { ColorBrewer, ColorNames } from './tables'

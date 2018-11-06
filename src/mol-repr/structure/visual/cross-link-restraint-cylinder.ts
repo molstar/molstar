@@ -7,7 +7,6 @@
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual } from '../index';
 import { VisualUpdateState } from '../../util';
-import { RuntimeContext } from 'mol-task'
 import { LinkCylinderProps, createLinkCylinderMesh, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
@@ -20,8 +19,9 @@ import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
+import { VisualContext } from 'mol-repr';
 
-async function createCrossLinkRestraintCylinderMesh(ctx: RuntimeContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
+async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
 
     const crossLinks = structure.crossLinkRestraints
     if (!crossLinks.count) return Mesh.createEmpty(mesh)

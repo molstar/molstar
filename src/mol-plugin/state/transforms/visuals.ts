@@ -18,13 +18,13 @@ export const CreateStructureRepresentation = PluginStateTransform.Create<SO.Stru
     apply({ a, params }) {
         return Task.create('Structure Representation', async ctx => {
             const repr = CartoonRepresentation();
-            await repr.createOrUpdate({ ...DefaultCartoonProps }, a.data).runInContext(ctx);
+            await repr.createOrUpdate({ /* TODO add `webgl: WebGLContext` */ }, { ...DefaultCartoonProps }, a.data).runInContext(ctx);
             return new SO.StructureRepresentation3D({ label: 'Cartoon' }, { repr });
         });
     },
     update({ a, b }) {
         return Task.create('Structure Representation', async ctx => {
-            await b.data.repr.createOrUpdate(b.data.repr.props, a.data).runInContext(ctx);
+            await b.data.repr.createOrUpdate({ /* TODO add `webgl: WebGLContext` */ }, b.data.repr.props, a.data).runInContext(ctx);
             return Transformer.UpdateResult.Updated;
         });
     }

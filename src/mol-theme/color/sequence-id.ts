@@ -10,6 +10,7 @@ import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorThemeProps, ColorTheme } from '../color';
 import { ColorOther } from 'mol-util/color/tables';
+import { defaults } from 'mol-util';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer residue a color based on its `seq_id` value.'
@@ -57,7 +58,7 @@ function getSequenceLength(unit: Unit, element: ElementIndex) {
 export function SequenceIdColorTheme(props: ColorThemeProps): ColorTheme {
     const p = {
         ...props,
-        colors: ColorOther.rainbow,
+        list: defaults(props.list, ColorOther.rainbow),
         minLabel: 'Start',
         maxLabel: 'End',
     }
@@ -83,6 +84,7 @@ export function SequenceIdColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
+        features: { list: true },
         granularity: 'group',
         color,
         description: Description,

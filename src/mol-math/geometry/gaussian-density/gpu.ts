@@ -12,10 +12,10 @@ import { GaussianDensityProps, getDelta } from '../gaussian-density'
 import { OrderedSet } from 'mol-data/int'
 import { Vec3, Tensor, Mat4 } from '../../linear-algebra'
 import { GaussianDensityValues } from 'mol-gl/renderable/gaussian-density'
-import { ValueCell, defaults } from 'mol-util'
+import { ValueCell } from 'mol-util'
 import { RenderableState, Renderable } from 'mol-gl/renderable'
 import { createRenderable, createGaussianDensityRenderObject } from 'mol-gl/render-object'
-import { WebGLContext, createContext, getGLContext } from 'mol-gl/webgl/context';
+import { WebGLContext } from 'mol-gl/webgl/context';
 import { createTexture, Texture } from 'mol-gl/webgl/texture';
 import { GLRenderingContext } from 'mol-gl/webgl/compat';
 import { decodeIdRGB } from 'mol-geo/geometry/picking';
@@ -23,8 +23,7 @@ import { decodeIdRGB } from 'mol-geo/geometry/picking';
 /** name for shared framebuffer used for gpu gaussian surface operations */
 const FramebufferName = 'gaussian-density-gpu'
 
-export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps): Promise<DensityData> {
-    const webgl = defaults(props.webgl, getWebGLContext())
+export async function GaussianDensityGPU(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps, webgl: WebGLContext): Promise<DensityData> {
     // always use texture2d when the gaussian density needs to be downloaded from the GPU,
     // it's faster than texture3d
     // console.time('GaussianDensityTexture2d')
@@ -110,7 +109,7 @@ async function GaussianDensityTexture2d(ctx: RuntimeContext, webgl: WebGLContext
     setupGroupIdRendering(webgl, renderable)
     render(texture)
 
-    await ctx.update({ message: 'gpu gaussian density calculation' });
+    if (ctx.shouldUpdate) await ctx.update({ message: 'gpu gaussian density calculation' })
     await webgl.waitForGpuCommandsComplete()
 
     return { texture, scale: Vec3.inverse(Vec3.zero(), delta), bbox: expandedBox, dim }
@@ -164,21 +163,6 @@ async function GaussianDensityTexture3d(ctx: RuntimeContext, webgl: WebGLContext
 }
 
 //
-
-let webglContext: WebGLContext
-function getWebGLContext() {
-    if (webglContext) return webglContext
-    const canvas = document.createElement('canvas')
-    const gl = getGLContext(canvas, {
-        alpha: true,
-        antialias: false,
-        depth: false,
-        preserveDrawingBuffer: true
-    })
-    if (!gl) throw new Error('Could not create a WebGL rendering context')
-    webglContext = createContext(gl)
-    return webglContext
-}
 
 async function prepareGaussianDensityData(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number, props: GaussianDensityProps) {
     const { resolution, radiusOffset } = props

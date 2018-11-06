@@ -7,7 +7,7 @@
 import { VolumeData } from 'mol-model/volume'
 import { RuntimeContext } from 'mol-task'
 import { VolumeVisual, VolumeRepresentation } from './index';
-import { DirectVolumeRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
+import { createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { paramDefaultValues } from 'mol-util/parameter';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
@@ -15,12 +15,13 @@ import { Box3D } from 'mol-math/geometry';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { NullLocation } from 'mol-model/location';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Geometry, createRenderableState, updateRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry, createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { VisualUpdateState } from 'mol-repr/util';
+import { VisualContext, RepresentationContext } from 'mol-repr';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()
@@ -170,6 +171,18 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
 
 //
 
+export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, props: DirectVolumeProps, directVolume?: DirectVolume) {
+    const { runtime, webgl } = ctx
+    if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
+
+    return webgl.isWebGL2 ?
+        await createDirectVolume3d(runtime, webgl, volume, directVolume) :
+        await createDirectVolume2d(runtime, webgl, volume, directVolume)
+}
+
+
+//
+
 export const DirectVolumeParams = {
     ...Geometry.Params,
     ...DirectVolume.Params
@@ -178,81 +191,21 @@ export const DefaultDirectVolumeProps = paramDefaultValues(DirectVolumeParams)
 export type DirectVolumeProps = typeof DefaultDirectVolumeProps
 
 export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
-    let currentProps = DefaultDirectVolumeProps
-    let renderObject: DirectVolumeRenderObject
-    let currentVolume: VolumeData
-    let directVolume: DirectVolume
-
-    async function create(ctx: RuntimeContext, volume: VolumeData, props: Partial<DirectVolumeProps> = {}) {
-        const { webgl } = props
-        if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
-
-        currentProps = { ...DefaultDirectVolumeProps, ...props }
-        if (props.isoValueRelative) {
-            // currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
-        }
-
-        const state = createRenderableState(currentProps)
-        const locationIt = LocationIterator(1, 1, () => NullLocation)
-        const transform = createIdentityTransform()
-
-        if (webgl.isWebGL2) {
-            directVolume = await createDirectVolume3d(ctx, webgl, volume, directVolume)
-            const values = await DirectVolume.createValues(ctx, directVolume, transform, locationIt, currentProps)
-            renderObject = createDirectVolumeRenderObject(values, state)
-        } else {
-            directVolume = await createDirectVolume2d(ctx, webgl, volume, directVolume)
-            const values = await DirectVolume.createValues(ctx, directVolume, transform, locationIt, currentProps)
-            renderObject = createDirectVolumeRenderObject(values, state)
-        }
-    }
-
-    async function update(ctx: RuntimeContext, props: Partial<DirectVolumeProps> = {}) {
-        const { webgl } = props
-        if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
-
-        const newProps = { ...currentProps, ...props }
-        if (props.isoValueRelative) {
-            // newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
-        }
-
-        console.log('newProps.isoValueAbsolute', newProps.isoValueAbsolute)
-
-        DirectVolume.updateValues(renderObject.values, newProps)
-        updateRenderableState(renderObject.state, newProps)
-
-        currentProps = newProps
-    }
-
-    return {
-        get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: Partial<DirectVolumeProps> = {}, volume?: VolumeData) {
-            if (!volume && !currentVolume) {
-                throw new Error('missing volume')
-            } else if (volume && (!currentVolume || !renderObject)) {
-                currentVolume = volume
-                await create(ctx, volume, props)
-            } else if (volume && volume !== currentVolume) {
-                currentVolume = volume
-                await create(ctx, volume, props)
-            } else {
-                await update(ctx, props)
-            }
-
-            currentProps = { ...DefaultDirectVolumeProps, ...props }
+    return VolumeVisual<DirectVolumeProps>({
+        defaultProps: DefaultDirectVolumeProps,
+        createGeometry: createDirectVolume,
+        getLoci: () => EmptyLoci,
+        mark: () => false,
+        setUpdateState: (state: VisualUpdateState, newProps: DirectVolumeProps, currentProps: DirectVolumeProps) => {
         },
-        getLoci(pickingId: PickingId) {
-            // TODO
-            return EmptyLoci
+        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, props: DirectVolumeProps) => {
+            const transform = createIdentityTransform()
+            const values = await DirectVolume.createValues(ctx.runtime, geometry, transform, locationIt, props)
+            const state = createRenderableState(props)
+            return createDirectVolumeRenderObject(values, state)
         },
-        mark(loci: Loci, action: MarkerAction) {
-            // TODO
-            return false
-        },
-        destroy() {
-            // TODO
-        }
-    }
+        updateValues: DirectVolume.updateValues
+    })
 }
 
 export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeProps> {
@@ -267,9 +220,9 @@ export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeP
         get props() {
             return { ...volumeRepr.props }
         },
-        createOrUpdate: (props: Partial<DirectVolumeProps> = {}, volume?: VolumeData) => {
+        createOrUpdate: (ctx: RepresentationContext, props: Partial<DirectVolumeProps> = {}, volume?: VolumeData) => {
             currentProps = Object.assign({}, DefaultDirectVolumeProps, currentProps, props)
-            return volumeRepr.createOrUpdate(currentProps, volume)
+            return volumeRepr.createOrUpdate(ctx, currentProps, volume)
         },
         getLoci: (pickingId: PickingId) => {
             return volumeRepr.getLoci(pickingId)

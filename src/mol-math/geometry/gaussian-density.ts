@@ -21,7 +21,6 @@ export const DefaultGaussianDensityProps = {
     radiusOffset: 0,
     smoothness: 1.5,
     useGpu: true,
-    webgl: undefined as WebGLContext | undefined
 }
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
@@ -39,10 +38,11 @@ export function computeGaussianDensity(position: PositionData, box: Box3D, radiu
     });
 }
 
-export async function GaussianDensity(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps): Promise<DensityData> {
+export async function GaussianDensity(ctx: RuntimeContext, position: PositionData, box: Box3D, radius: (index: number) => number,  props: GaussianDensityProps, webgl?: WebGLContext): Promise<DensityData> {
     if (props.useGpu) {
         if (!GaussianDensityGPU) throw 'GPU computation not supported on this platform';
-        return await GaussianDensityGPU(ctx, position, box, radius, props)
+        if (!webgl) throw 'No WebGL context provided';
+        return await GaussianDensityGPU(ctx, position, box, radius, props, webgl)
     } else {
         return await GaussianDensityCPU(ctx, position, box, radius, props)
     }

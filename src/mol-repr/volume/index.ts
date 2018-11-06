@@ -4,8 +4,8 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Task, RuntimeContext } from 'mol-task'
-import { RepresentationProps, Representation, Visual } from '..';
+import { Task } from 'mol-task'
+import { RepresentationProps, Representation, Visual, RepresentationContext, VisualContext } from '..';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { paramDefaultValues, RangeParam } from 'mol-util/parameter';
@@ -26,14 +26,14 @@ type VolumeRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObj
 
 interface VolumeVisualBuilder<P extends VolumeProps, G extends Geometry> {
     defaultProps: P
-    createGeometry(ctx: RuntimeContext, volumeData: VolumeData, props: P, geometry?: G): Promise<G>
+    createGeometry(ctx: VisualContext, volumeData: VolumeData, props: P, geometry?: G): Promise<G>
     getLoci(pickingId: PickingId, id: number): Loci
     mark(loci: Loci, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeProps, G extends Geometry> extends VolumeVisualBuilder<P, G> {
-    createRenderObject(ctx: RuntimeContext, geometry: G, locationIt: LocationIterator, currentProps: P): Promise<VolumeRenderObject>
+    createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, currentProps: P): Promise<VolumeRenderObject>
     updateValues(values: RenderableValues, newProps: P): void
 }
 
@@ -48,7 +48,7 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
     let geometry: Geometry
     let locationIt: LocationIterator
 
-    async function create(ctx: RuntimeContext, volume: VolumeData, props: Partial<VolumeProps> = {}) {
+    async function create(ctx: VisualContext, volume: VolumeData, props: Partial<VolumeProps> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
         if (props.isoValueRelative) {
             currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
@@ -60,7 +60,7 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
         renderObject = await createRenderObject(ctx, geometry, locationIt, currentProps)
     }
 
-    async function update(ctx: RuntimeContext, props: Partial<VolumeProps> = {}) {
+    async function update(ctx: VisualContext, props: Partial<VolumeProps> = {}) {
         if (!renderObject) return
         const newProps = Object.assign({}, currentProps, props)
 
@@ -85,7 +85,7 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: RuntimeContext, props: Partial<VolumeProps> = {}, volume?: VolumeData) {
+        async createOrUpdate(ctx: VisualContext, props: Partial<VolumeProps> = {}, volume?: VolumeData) {
             if (!volume && !currentVolume) {
                 throw new Error('missing volume')
             } else if (volume && (!currentVolume || !renderObject)) {
@@ -147,9 +147,9 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
     let _props: P
     let busy = false
 
-    function createOrUpdate(props: Partial<P> = {}, volumeData?: VolumeData) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, volumeData?: VolumeData) {
         _props = Object.assign({}, DefaultVolumeProps, _props, props)
-        return Task.create('VolumeRepresentation.create', async ctx => {
+        return Task.create('VolumeRepresentation.create', async runtime => {
             // TODO queue it somehow
             if (busy) return
 
@@ -158,11 +158,11 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
             } else if (volumeData && !visual) {
                 busy = true
                 visual = visualCtor(volumeData)
-                await visual.createOrUpdate(ctx, props, volumeData)
+                await visual.createOrUpdate({ ...ctx, runtime } , props, volumeData)
                 busy = false
             } else {
                 busy = true
-                await visual.createOrUpdate(ctx, props, volumeData)
+                await visual.createOrUpdate({ ...ctx, runtime }, props, volumeData)
                 busy = false
             }
         });

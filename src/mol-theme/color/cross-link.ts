@@ -6,10 +6,12 @@
 
 import { Link } from 'mol-model/structure';
 
-import { Color, ColorScale, ColorBrewer } from 'mol-util/color';
+import { Color, ColorScale } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { ColorBrewer } from 'mol-util/color/tables';
+import { defaults } from 'mol-util';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Colors cross-links by the deviation of the observed distance versus the modeled distance (e.g. `ihm_cross_link_restraint.distance_threshold`).'
@@ -27,7 +29,10 @@ export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
 
     if (props.structure) {
         const crosslinks = props.structure.crossLinkRestraints
-        scale = ColorScale.create({ domain: [ -10, 10 ], colors: ColorBrewer.RdYlBu })
+        scale = ColorScale.create({
+            domain: defaults(props.domain, [ -10, 10 ]),
+            list: defaults(props.list, ColorBrewer.RdYlBu)
+        })
         const scaleColor = scale.color
 
         color = (location: Location): Color => {
@@ -44,6 +49,7 @@ export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
+        features: { list: true, domain: true },
         granularity: 'group',
         color,
         description: Description,

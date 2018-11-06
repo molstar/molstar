@@ -49,6 +49,7 @@ export function MoleculeTypeColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
+        features: {},
         granularity: 'group',
         color,
         description: Description,

@@ -44,7 +44,10 @@ export function sizeChanged(oldProps: SizeProps, newProps: SizeProps) {
 export function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
     return (
         oldProps.colorTheme !== newProps.colorTheme ||
-        oldProps.colorValue !== newProps.colorValue
+        oldProps.colorValue !== newProps.colorValue ||
+        oldProps.colorDomain !== newProps.colorDomain ||
+        oldProps.colorList !== newProps.colorList ||
+        oldProps.colorMap !== newProps.colorMap
     )
 }
 

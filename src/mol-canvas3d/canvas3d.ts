@@ -24,10 +24,17 @@ import { PickingId, decodeIdRGB } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
-import { CombinedCamera } from './camera/combined';
+import { CombinedCamera, CombinedCameraMode } from './camera/combined';
+
+export const DefaultCanvas3DProps = {
+    cameraPosition: Vec3.create(0, 0, 50),
+    cameraMode: 'perspective' as CombinedCameraMode,
+    backgroundColor: Color(0x000000),
+}
+export type Canvas3DProps = typeof DefaultCanvas3DProps
 
 interface Canvas3D {
-    webgl: WebGLContext,
+    readonly webgl: WebGLContext,
 
     center: (p: Vec3) => void
 
@@ -47,23 +54,27 @@ interface Canvas3D {
     mark: (loci: Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => Loci
 
-    reprCount: BehaviorSubject<number>
-    identified: BehaviorSubject<string>
-    didDraw: BehaviorSubject<number>
+    readonly reprCount: BehaviorSubject<number>
+    readonly identified: BehaviorSubject<string>
+    readonly didDraw: BehaviorSubject<number>
 
     handleResize: () => void
     resetCamera: () => void
-    camera: CombinedCamera
+    readonly camera: CombinedCamera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
 
-    input: InputObserver
-    stats: RendererStats
+    /** Returns a copy of the current Canvas3D instance props */
+    readonly props: Canvas3DProps
+    readonly input: InputObserver
+    readonly stats: RendererStats
     dispose: () => void
 }
 
 namespace Canvas3D {
-    export function create(canvas: HTMLCanvasElement, container: Element): Canvas3D {
+    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
+        const p = { ...props, ...DefaultCanvas3DProps }
+
         const reprMap = new Map<Representation<any>, Set<RenderObject>>()
         const reprCount = new BehaviorSubject(0)
         const identified = new BehaviorSubject('')
@@ -75,14 +86,9 @@ namespace Canvas3D {
         const camera = CombinedCamera.create({
             near: 0.1,
             far: 10000,
-            position: Vec3.create(0, 0, 50),
-            mode: 'orthographic'
+            position: Vec3.clone(p.cameraPosition),
+            mode: p.cameraMode
         })
-        // const camera = OrthographicCamera.create({
-        //     zoom: 8,
-        //     position: Vec3.create(0, 0, 50)
-        // })
-        // camera.lookAt(Vec3.create(0, 0, 0))
 
         const gl = getGLContext(canvas, {
             alpha: false,
@@ -93,18 +99,18 @@ namespace Canvas3D {
         if (gl === null) {
             throw new Error('Could not create a WebGL rendering context')
         }
-        const ctx = createContext(gl)
+        const webgl = createContext(gl)
 
-        const scene = Scene.create(ctx)
+        const scene = Scene.create(webgl)
         const controls = TrackballControls.create(input, camera, {})
-        const renderer = Renderer.create(ctx, camera, { clearColor: Color(0x000000) })
+        const renderer = Renderer.create(webgl, camera, { clearColor: p.backgroundColor })
 
         const pickScale = 1
         const pickWidth = Math.round(canvas.width * pickScale)
         const pickHeight = Math.round(canvas.height * pickScale)
-        const objectPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
-        const instancePickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
-        const groupPickTarget = createRenderTarget(ctx, pickWidth, pickHeight)
+        const objectPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
+        const instancePickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
+        const groupPickTarget = createRenderTarget(webgl, pickWidth, pickHeight)
 
         let pickDirty = true
         let isPicking = false
@@ -173,7 +179,7 @@ namespace Canvas3D {
                 case 'pickInstance': instancePickTarget.bind(); break;
                 case 'pickGroup': groupPickTarget.bind(); break;
                 case 'draw':
-                    ctx.unbindFramebuffer();
+                    webgl.unbindFramebuffer();
                     renderer.setViewport(0, 0, canvas.width, canvas.height);
                     break;
             }
@@ -219,7 +225,7 @@ namespace Canvas3D {
             render('pickObject', pickDirty)
             render('pickInstance', pickDirty)
             render('pickGroup', pickDirty)
-            ctx.gl.finish()
+            webgl.gl.finish()
 
             pickDirty = false
         }
@@ -229,8 +235,8 @@ namespace Canvas3D {
 
             isPicking = true
 
-            x *= ctx.pixelRatio
-            y *= ctx.pixelRatio
+            x *= webgl.pixelRatio
+            y *= webgl.pixelRatio
             y = canvas.height - y // flip y
 
             const buffer = new Uint8Array(4)
@@ -238,15 +244,15 @@ namespace Canvas3D {
             const yp = Math.round(y * pickScale)
 
             objectPickTarget.bind()
-            await ctx.readPixelsAsync(xp, yp, 1, 1, buffer)
+            await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
             const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             instancePickTarget.bind()
-            await ctx.readPixels(xp, yp, 1, 1, buffer)
+            await webgl.readPixels(xp, yp, 1, 1, buffer)
             const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             groupPickTarget.bind()
-            await ctx.readPixels(xp, yp, 1, 1, buffer)
+            await webgl.readPixels(xp, yp, 1, 1, buffer)
             const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
 
             isPicking = false
@@ -262,7 +268,7 @@ namespace Canvas3D {
         handleResize()
 
         return {
-            webgl: ctx,
+            webgl,
 
             center: (p: Vec3) => {
                 Vec3.set(controls.target, p[0], p[1], p[2])
@@ -336,6 +342,13 @@ namespace Canvas3D {
             identified,
             didDraw,
 
+            get props() {
+                return {
+                    cameraPosition: Vec3.clone(camera.position),
+                    cameraMode: camera.mode,
+                    backgroundColor: renderer.props.clearColor
+                }
+            },
             get input() {
                 return input
             },

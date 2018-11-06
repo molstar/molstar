@@ -6,11 +6,11 @@
 
 import { ValueCell } from 'mol-util';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
-import { Color } from 'mol-util/color';
+import { Color, ColorMap } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
-import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName, ScaleLegend, TableLegend } from 'mol-theme/color';
+import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName, ScaleLegend, TableLegend, ColorScaleName, getColorScaleFromName } from 'mol-theme/color';
 import { RuntimeContext } from 'mol-task';
 import { getGranularity } from './geometry';
 import { Structure } from 'mol-model/structure';
@@ -27,6 +27,8 @@ export type ColorData = {
 
 export interface ColorProps {
     colorTheme: ColorThemeName
+    colorList?: Color[] | ColorScaleName
+    colorMap?: ColorMap<any>
     colorDomain?: [number, number]
     colorValue?: Color
     colorFunction?: LocationColor,
@@ -41,6 +43,10 @@ export function getColorThemeProps(props: ColorProps): ColorThemeProps {
         name: props.colorTheme
     }
     if (props.colorDomain !== undefined) p.domain = props.colorDomain
+    if (props.colorList !== undefined) {
+        p.list = typeof props.colorList === 'string' ? getColorScaleFromName(props.colorList) : props.colorList
+    }
+    if (props.colorMap !== undefined) p.map = props.colorMap
     if (props.colorValue !== undefined) p.value = props.colorValue
     if (props.structure !== undefined) p.structure = props.structure
     if (props.colorFunction !== undefined) p.color = props.colorFunction

@@ -208,8 +208,7 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
             console.log('createStructureRepr')
             for (const k in structureRepresentations) {
                 if (active[k]) {
-                    const p = { webgl: canvas3d.webgl }
-                    await app.runTask(structureRepresentations[k].createOrUpdate(p, structure).run(
+                    await app.runTask(structureRepresentations[k].createOrUpdate({ webgl: canvas3d.webgl }, {}, structure).run(
                         progress => app.log(progress)
                     ), 'Create/update representation')
                     canvas3d.add(structureRepresentations[k])
@@ -265,7 +264,7 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
                     //     colorFunction: colorTheme.color,
                     //     colorGranularity: colorTheme.granularity,
                     // }).run()
-                    await symmetryAxes.createOrUpdate({}, axesShape).run()
+                    await symmetryAxes.createOrUpdate({ webgl: canvas3d.webgl }, {}, axesShape).run()
                     canvas3d.add(symmetryAxes)
                 } else {
                     canvas3d.remove(symmetryAxes)

@@ -41,7 +41,8 @@ export class RepresentationComponent extends React.Component<RepresentationCompo
     }
 
     async onChange(k: string, v: any) {
-        await this.props.app.runTask(this.props.repr.createOrUpdate({ [k]: v }).run(
+        const ctx = { webgl: this.props.canvas3d.webgl }
+        await this.props.app.runTask(this.props.repr.createOrUpdate(ctx, { [k]: v }).run(
             progress => this.props.app.log(progress)
         ), 'Representation Update')
         this.props.canvas3d.add(this.props.repr)

@@ -20,6 +20,7 @@ import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElement
 import { getNucleotideElements } from './util/nucleotide';
 import { GaussianDensityProps, computeUnitGaussianDensityCached } from './unit/gaussian-density';
 import { RuntimeContext } from 'mol-task';
+import { WebGLContext } from 'mol-gl/webgl/context';
 
 // A building block of a structure that corresponds to an atomic or a coarse grained representation
 // 'conveniently grouped together'.
@@ -182,8 +183,8 @@ namespace Unit {
             return this.model.atomicHierarchy.residueAtomSegments.index[this.elements[elementIndex]];
         }
 
-        async computeGaussianDensity(props: GaussianDensityProps, ctx?: RuntimeContext) {
-            return computeUnitGaussianDensityCached(this, props, this.props.gaussianDensities, ctx);
+        async computeGaussianDensity(props: GaussianDensityProps, ctx: RuntimeContext, webgl?: WebGLContext) {
+            return computeUnitGaussianDensityCached(this, props, this.props.gaussianDensities, ctx, webgl);
         }
 
         constructor(id: number, invariantId: number, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
@@ -271,8 +272,8 @@ namespace Unit {
             return this.kind === Kind.Spheres ? this.model.coarseConformation.spheres : this.model.coarseConformation.gaussians;
         }
 
-        async computeGaussianDensity(props: GaussianDensityProps, ctx?: RuntimeContext): Promise<DensityData> {
-            return computeUnitGaussianDensityCached(this as Unit.Spheres | Unit.Gaussians, props, this.props.gaussianDensities, ctx); // TODO get rid of casting
+        async computeGaussianDensity(props: GaussianDensityProps, ctx: RuntimeContext, webgl?: WebGLContext): Promise<DensityData> {
+            return computeUnitGaussianDensityCached(this as Unit.Spheres | Unit.Gaussians, props, this.props.gaussianDensities, ctx, webgl); // TODO get rid of casting
         }
 
         constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: CoarseProperties) {

@@ -34,6 +34,7 @@ export interface RendererStats {
 
 interface Renderer {
     readonly stats: RendererStats
+    readonly props: RendererProps
 
     render: (scene: Scene, variant: RenderVariant) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
@@ -46,10 +47,10 @@ export const DefaultRendererProps = {
     clearColor: 0x000000 as Color,
     viewport: Viewport.create(0, 0, 0, 0)
 }
-export type RendererProps = Partial<typeof DefaultRendererProps>
+export type RendererProps = typeof DefaultRendererProps
 
 namespace Renderer {
-    export function create(ctx: WebGLContext, camera: Camera, props: RendererProps = {}): Renderer {
+    export function create(ctx: WebGLContext, camera: Camera, props: Partial<RendererProps> = {}): Renderer {
         const { gl } = ctx
         let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
 
@@ -64,6 +65,7 @@ namespace Renderer {
         const fogColor = Vec3.create(0.0, 0.0, 0.0)
 
         function setClearColor(color: Color) {
+            clearColor = color
             const [ r, g, b ] = Color.toRgbNormalized(color)
             gl.clearColor(r, g, b, 1.0)
         }
@@ -192,6 +194,12 @@ namespace Renderer {
                 return createImageData(buffer, width, height)
             },
 
+            get props() {
+                return {
+                    clearColor,
+                    viewport
+                }
+            },
             get stats(): RendererStats {
                 return {
                     programCount: ctx.programCache.count,
