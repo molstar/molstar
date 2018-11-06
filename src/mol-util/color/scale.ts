@@ -25,7 +25,7 @@ export interface ColorScale {
 export const DefaultColorScale = {
     domain: [0, 1],
     reverse: false,
-    colors: ColorBrewer.RdYlBu,
+    list: ColorBrewer.RdYlBu,
     minLabel: '' as string | undefined,
     maxLabel: '' as string | undefined,
 }
@@ -33,8 +33,10 @@ export type ColorScaleProps = Partial<typeof DefaultColorScale>
 
 export namespace ColorScale {
     export function create(props: ColorScaleProps): ColorScale {
-        const { domain, reverse, colors: _colors } = { ...DefaultColorScale, ...props }
-        const colors = reverse ? _colors.slice().reverse() : _colors
+        // ensure that no undefined .list property exists so that the default assignment works
+        if (props.list === undefined) delete props.list
+        const { domain, reverse, list } = { ...DefaultColorScale, ...props }
+        const colors = reverse ? list.slice().reverse() : list
         const count1 = colors.length - 1
 
         let diff = 0, min = 0, max = 0

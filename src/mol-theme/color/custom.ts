@@ -13,6 +13,7 @@ const DefaultColor = Color(0xCCCCCC)
 export function CustomColorTheme(props: ColorThemeProps): ColorTheme {
     const value = defaults(props.value, DefaultColor)
     return {
+        features: {},
         granularity: defaults(props.granularity, 'uniform'),
         color: defaults(props.color, () => value),
         description: props.description,

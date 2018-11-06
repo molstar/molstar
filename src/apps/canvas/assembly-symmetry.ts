@@ -66,10 +66,10 @@ export function getClusterColorTheme(symmetryId: number, assemblySymmetry: Assem
     const DefaultColor = Color(0xCCCCCC)
     const s = assemblySymmetry.db.rcsb_assembly_symmetry
     const symmetry = Table.pickRow(s, i => s.id.value(i) === symmetryId)
-    if (!symmetry) return { granularity: 'uniform', color: () => DefaultColor }
+    if (!symmetry) return { features: {}, granularity: 'uniform', color: () => DefaultColor }
 
     const clusters = assemblySymmetry.getClusters(symmetryId)
-    if (!clusters._rowCount) return { granularity: 'uniform', color: () => DefaultColor }
+    if (!clusters._rowCount) return { features: {}, granularity: 'uniform', color: () => DefaultColor }
 
     const clusterByMember = new Map<string, number>()
     for (let i = 0, il = clusters._rowCount; i < il; ++i) {
@@ -83,6 +83,7 @@ export function getClusterColorTheme(symmetryId: number, assemblySymmetry: Assem
     const scale = ColorScale.create({ domain: [ 0, clusters._rowCount - 1 ] })
 
     return {
+        features: {},
         granularity: 'instance',
         color: (location: Location): Color => {
             if (StructureElement.isLocation(location)) {

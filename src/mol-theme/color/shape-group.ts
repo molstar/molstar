@@ -13,6 +13,7 @@ const DefaultColor = Color(0xCCCCCC)
 
 export function ShapeGroupColorTheme(props: ColorThemeProps): ColorTheme {
     return {
+        features: {},
         granularity: 'group',
         color: (location: Location): Color => {
             if (Shape.isLocation(location)) {

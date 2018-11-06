@@ -14,6 +14,7 @@ export function UniformColorTheme(props: ColorThemeProps): ColorTheme {
     const color = props.value || DefaultColor
 
     return {
+        features: {},
         granularity: 'uniform',
         color: () => color,
         description: Description,

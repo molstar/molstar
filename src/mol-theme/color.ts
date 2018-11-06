@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color } from 'mol-util/color';
+import { Color, ColorMap } from 'mol-util/color';
 import { Structure } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
 import { ColorType } from 'mol-geo/geometry/color-data';
@@ -23,6 +23,7 @@ import { SequenceIdColorTheme } from './color/sequence-id';
 import { SecondaryStructureColorTheme } from './color/secondary-structure';
 import { MoleculeTypeColorTheme } from './color/molecule-type';
 import { PolymerIndexColorTheme } from './color/polymer-index';
+import { ColorMatplotlib, ColorBrewer, ColorOther } from 'mol-util/color/tables';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -36,6 +37,29 @@ export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[])
     return { kind: 'scale-legend', minLabel, maxLabel, colors }
 }
 
+export type ColorScaleName = (
+    'default' |
+    keyof typeof ColorBrewer | keyof typeof ColorMatplotlib | keyof typeof ColorOther
+)
+export const ColorScaleNames = [
+    'default',
+    ...Object.keys(ColorBrewer), ...Object.keys(ColorMatplotlib), ...Object.keys(ColorOther)
+]
+export const ColorScaleOptions = ColorScaleNames.map(n => [n, n] as [ColorScaleName, string])
+
+export function getColorScaleFromName(name: string) {
+    if (name === 'default') {
+        return
+    } else if (name in ColorBrewer) {
+        return ColorBrewer[name as keyof typeof ColorBrewer]
+    } else if (name in ColorMatplotlib) {
+        return ColorMatplotlib[name as keyof typeof ColorMatplotlib]
+    } else if (name in ColorOther) {
+        return ColorOther[name as keyof typeof ColorOther]
+    }
+    console.warn(`unknwon color list named '${name}'`)
+}
+
 export interface TableLegend {
     kind: 'table-legend'
     table: [ string, Color ][]
@@ -44,7 +68,23 @@ export function TableLegend(table: [ string, Color ][]): TableLegend {
     return { kind: 'table-legend', table }
 }
 
+export interface ColorThemeFeatures {
+    /** Does allow providing a structure object */
+    structure?: boolean
+    /** Does allow providing a volume object */
+    volume?: boolean
+    /** Does allow providing a list of colors (for creating a scale) */
+    list?: boolean
+    /** Does allow providing a map of colors */
+    map?: boolean
+    /** Does allow providing the boundaries for the scale */
+    domain?: boolean
+    /** Does allow providing a single/special color value */
+    value?: boolean
+}
+
 export interface ColorTheme {
+    features: ColorThemeFeatures
     granularity: ColorType
     color: LocationColor
     description?: string
@@ -74,6 +114,8 @@ export interface ColorThemeProps {
     name: ColorThemeName
     domain?: [number, number]
     value?: Color
+    list?: Color[]
+    map?: ColorMap<any>
     structure?: Structure
     color?: LocationColor
     granularity?: ColorType,

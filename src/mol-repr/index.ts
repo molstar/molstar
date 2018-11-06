@@ -11,6 +11,7 @@ import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
 import { Params, MultiSelectParam } from 'mol-util/parameter';
 import { WebGLContext } from 'mol-gl/webgl/context';
+// import { ColorTheme } from 'mol-theme/color';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -106,7 +107,9 @@ export namespace Representation {
 //
 
 export interface VisualContext extends RepresentationContext {
-    runtime: RuntimeContext
+    runtime: RuntimeContext,
+    // TODO
+    // colorTheme: ColorTheme,
 }
 
 export interface Visual<D, P extends RepresentationProps> {

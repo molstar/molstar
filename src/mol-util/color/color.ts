@@ -65,8 +65,8 @@ export namespace Color {
     }
 }
 
-type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }
+export type ColorTable<T extends { [k: string]: number[] }> = { [k in keyof T]: Color[] }
 export function ColorTable<T extends { [k: string]: number[] }>(o: T) { return o as ColorTable<T> }
 
-type ColorMap<T extends { [k: string]: number }> = { [k in keyof T]: Color }
+export type ColorMap<T extends { [k: string]: number }> = { [k in keyof T]: Color }
 export function ColorMap<T extends { [k: string]: number }>(o: T) { return o as ColorMap<T> }

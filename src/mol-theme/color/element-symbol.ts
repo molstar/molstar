@@ -40,6 +40,7 @@ export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
+        features: {},
         granularity: 'group',
         color,
         description: Description,

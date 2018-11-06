@@ -10,7 +10,7 @@ import { RenderableState } from 'mol-gl/renderable';
 import { ValueCell } from 'mol-util';
 import { BaseValues } from 'mol-gl/renderable/schema';
 import { Color } from 'mol-util/color';
-import { ColorThemeOptions, ColorThemeName } from 'mol-theme/color';
+import { ColorThemeOptions, ColorThemeName, ColorScaleOptions, ColorScaleName } from 'mol-theme/color';
 import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
@@ -65,6 +65,7 @@ export namespace Geometry {
         useFog: BooleanParam('Use Fog', '', false),
         quality: SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
         colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
+        colorList: SelectParam<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
         colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
     }
     export const DefaultProps = paramDefaultValues(Params)

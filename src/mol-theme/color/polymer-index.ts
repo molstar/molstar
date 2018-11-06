@@ -22,7 +22,7 @@ export function PolymerIndexColorTheme(props: ColorThemeProps): ColorTheme {
         for (let i = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) ++polymerCount
         }
-        scale = ColorScale.create({ domain: [ 0, polymerCount - 1 ] })
+        scale = ColorScale.create({ list: props.list, domain: [ 0, polymerCount - 1 ] })
         const unitIdColor = new Map<number, Color>()
         for (let i = 0, j = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) {
@@ -45,6 +45,7 @@ export function PolymerIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
+        features: { structure: true, list: true },
         granularity: 'instance',
         color,
         description: Description,
