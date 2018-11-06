@@ -19,6 +19,7 @@ namespace RxEventHelper {
         const helper = new _RxEventHelper();
         const ret: RxEventHelper = (<T>() => helper.create<T>()) as RxEventHelper;
         ret.dispose = () => helper.dispose();
+        ret.behavior = (v) => helper.behavior(v);
         return ret;
     }
 }

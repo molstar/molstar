@@ -81,6 +81,17 @@ export namespace Transformer {
     }
 
     const registry = new Map<Id, Transformer<any, any>>();
+    const fromTypeIndex: Map<StateObject.Type, Transformer[]> = new Map();
+
+    function _index(tr: Transformer) {
+        for (const t of tr.definition.from) {
+            if (fromTypeIndex.has(t.type)) {
+                fromTypeIndex.get(t.type)!.push(tr);
+            } else {
+                fromTypeIndex.set(t.type, [tr]);
+            }
+        }
+    }
 
     export function get(id: string): Transformer {
         const t = registry.get(id as Id);
@@ -88,6 +99,10 @@ export namespace Transformer {
             throw new Error(`A transformer with signature '${id}' is not registered.`);
         }
         return t;
+    }
+
+    export function fromType(type: StateObject.Type): ReadonlyArray<Transformer> {
+        return fromTypeIndex.get(type) || [];
     }
 
     export function create<A extends StateObject, B extends StateObject, P>(namespace: string, definition: Definition<A, B, P>) {
@@ -105,6 +120,7 @@ export namespace Transformer {
             definition
         };
         registry.set(id, t);
+        _index(t);
 
         return t;
     }
