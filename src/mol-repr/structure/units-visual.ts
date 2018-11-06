@@ -14,7 +14,7 @@ import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { MultiSelectParam, paramDefaultValues } from 'mol-util/parameter';
 import { RenderableValues } from 'mol-gl/renderable/schema';
-import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry, updateRenderableState, Theme } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createMarkers, MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -48,7 +48,7 @@ type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObje
 
 interface UnitsVisualBuilder<P extends UnitsProps, G extends Geometry> {
     defaultProps: P
-    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, props: P, geometry?: G): Promise<G>
+    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: P, geometry?: G): Promise<G>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
     mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
@@ -57,7 +57,7 @@ interface UnitsVisualBuilder<P extends UnitsProps, G extends Geometry> {
 
 interface UnitsVisualGeometryBuilder<P extends UnitsProps, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, currentProps: P): Promise<UnitsRenderObject>
+    createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: P): Promise<UnitsRenderObject>
     updateValues(values: RenderableValues, newProps: P): void
 }
 
@@ -74,22 +74,22 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
     let locationIt: LocationIterator
     let currentConformationId: UUID
 
-    async function create(ctx: VisualContext, group: Unit.SymmetryGroup, props: Partial<P> = {}) {
+    async function create(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<P> = {}) {
         currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentGroup = group
 
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
         geometry = includesUnitKind(currentProps.unitKinds, unit)
-            ? await createGeometry(ctx, unit, currentStructure, currentProps, geometry)
+            ? await createGeometry(ctx, unit, currentStructure, theme, currentProps, geometry)
             : createEmptyGeometry(geometry)
 
         // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
-        renderObject = await createRenderObject(ctx, group, geometry, locationIt, currentProps)
+        renderObject = await createRenderObject(ctx, group, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, props: Partial<P> = {}) {
+    async function update(ctx: VisualContext, theme: Theme, props: Partial<P> = {}) {
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
@@ -122,7 +122,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
 
         if (updateState.createGeometry) {
             geometry = includesUnitKind(newProps.unitKinds, unit)
-                ? await createGeometry(ctx, unit, currentStructure, newProps, geometry)
+                ? await createGeometry(ctx, unit, currentStructure, theme, newProps, geometry)
                 : createEmptyGeometry(geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
             updateState.updateColor = true
@@ -131,12 +131,12 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
         if (updateState.updateSize) {
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
-                await createSizes(ctx.runtime, locationIt, newProps, renderObject.values)
+                await createSizes(ctx.runtime, locationIt, theme.size, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx.runtime, locationIt, newProps, renderObject.values)
+            await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 
         updateValues(renderObject.values, newProps)
@@ -147,24 +147,24 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, props: Partial<P> = {}, structureGroup?: StructureGroup) {
+        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<P> = {}, structureGroup?: StructureGroup) {
             if (structureGroup) currentStructure = structureGroup.structure
             const group = structureGroup ? structureGroup.group : undefined
             if (!group && !currentGroup) {
                 throw new Error('missing group')
             } else if (group && (!currentGroup || !renderObject)) {
                 // console.log('unit-visual first create')
-                await create(ctx, group, props)
+                await create(ctx, group, theme, props)
             } else if (group && group.hashCode !== currentGroup.hashCode) {
                 // console.log('unit-visual group.hashCode !== currentGroup.hashCode')
-                await create(ctx, group, props)
+                await create(ctx, group, theme, props)
             } else {
                 // console.log('unit-visual update')
                 if (group && !sameGroupConformation(group, currentGroup)) {
                     // console.log('unit-visual new conformation')
                     currentGroup = group
                 }
-                await update(ctx, props)
+                await update(ctx, theme, props)
             }
         },
         getLoci(pickingId: PickingId) {

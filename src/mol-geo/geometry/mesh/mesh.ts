@@ -10,7 +10,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
 import { MeshValues } from 'mol-gl/renderable';
-import { Geometry } from '../geometry';
+import { Geometry, Theme } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
@@ -346,9 +346,9 @@ export namespace Mesh {
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<MeshValues> {
+    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<MeshValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, props)
+        const color = await createColors(ctx, locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }

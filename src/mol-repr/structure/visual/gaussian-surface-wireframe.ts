@@ -15,8 +15,9 @@ import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { computeMarchingCubesLines } from 'mol-geo/util/marching-cubes/algorithm';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
-async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
+async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props
     const { transform, field, idField } = await unit.computeGaussianDensity(props, ctx.runtime)
 

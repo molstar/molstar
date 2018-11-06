@@ -9,7 +9,7 @@ import { RepresentationProps, Representation, Visual, RepresentationContext, Vis
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { paramDefaultValues, RangeParam } from 'mol-util/parameter';
-import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry, updateRenderableState, Theme, createTheme } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { DirectVolumeRenderObject, PointsRenderObject, LinesRenderObject, MeshRenderObject } from 'mol-gl/render-object';
@@ -33,7 +33,7 @@ interface VolumeVisualBuilder<P extends VolumeProps, G extends Geometry> {
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeProps, G extends Geometry> extends VolumeVisualBuilder<P, G> {
-    createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, currentProps: P): Promise<VolumeRenderObject>
+    createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: P): Promise<VolumeRenderObject>
     updateValues(values: RenderableValues, newProps: P): void
 }
 
@@ -48,25 +48,25 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
     let geometry: Geometry
     let locationIt: LocationIterator
 
-    async function create(ctx: VisualContext, volume: VolumeData, props: Partial<VolumeProps> = {}) {
+    async function create(ctx: VisualContext, volume: VolumeData, theme: Theme, props: Partial<VolumeProps> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
         if (props.isoValueRelative) {
             currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
-            console.log('create props.isoValueRelative', props.isoValueRelative, currentProps.isoValueAbsolute, currentVolume.dataStats)
+            // console.log('create props.isoValueRelative', props.isoValueRelative, currentProps.isoValueAbsolute, currentVolume.dataStats)
         }
 
         geometry = await createGeometry(ctx, volume, currentProps, geometry)
         locationIt = LocationIterator(1, 1, () => NullLocation)
-        renderObject = await createRenderObject(ctx, geometry, locationIt, currentProps)
+        renderObject = await createRenderObject(ctx, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, props: Partial<VolumeProps> = {}) {
+    async function update(ctx: VisualContext, theme: Theme, props: Partial<VolumeProps> = {}) {
         if (!renderObject) return
         const newProps = Object.assign({}, currentProps, props)
 
         if (props.isoValueRelative) {
             newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
-            console.log('update props.isoValueRelative', props.isoValueRelative, newProps.isoValueAbsolute, currentVolume.dataStats)
+            // console.log('update props.isoValueRelative', props.isoValueRelative, newProps.isoValueAbsolute, currentVolume.dataStats)
         }
 
         VisualUpdateState.reset(updateState)
@@ -85,17 +85,17 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, props: Partial<VolumeProps> = {}, volume?: VolumeData) {
+        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<VolumeProps> = {}, volume?: VolumeData) {
             if (!volume && !currentVolume) {
                 throw new Error('missing volume')
             } else if (volume && (!currentVolume || !renderObject)) {
                 currentVolume = volume
-                await create(ctx, volume, props)
+                await create(ctx, volume, theme, props)
             } else if (volume && volume !== currentVolume) {
                 currentVolume = volume
-                await create(ctx, volume, props)
+                await create(ctx, volume, theme, props)
             } else {
-                await update(ctx, props)
+                await update(ctx, theme, props)
             }
 
             currentProps = Object.assign({}, defaultProps, props)
@@ -145,10 +145,13 @@ export type VolumeProps = typeof DefaultVolumeProps
 export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     let visual: VolumeVisual<any>
     let _props: P
+    let _theme: Theme
     let busy = false
 
     function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, volumeData?: VolumeData) {
         _props = Object.assign({}, DefaultVolumeProps, _props, props)
+        _theme = createTheme(_props)
+
         return Task.create('VolumeRepresentation.create', async runtime => {
             // TODO queue it somehow
             if (busy) return
@@ -158,11 +161,11 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
             } else if (volumeData && !visual) {
                 busy = true
                 visual = visualCtor(volumeData)
-                await visual.createOrUpdate({ ...ctx, runtime } , props, volumeData)
+                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volumeData)
                 busy = false
             } else {
                 busy = true
-                await visual.createOrUpdate({ ...ctx, runtime }, props, volumeData)
+                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volumeData)
                 busy = false
             }
         });

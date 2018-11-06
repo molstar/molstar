@@ -14,7 +14,7 @@ const Description = 'Gives every polymer a unique color based on the position (i
 
 export function PolymerIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let color: LocationColor
-    let scale: ColorScale | undefined = undefined
+    const scale = ColorScale.create({ list: props.list, minLabel: 'Start', maxLabel: 'End' })
 
     if (props.structure) {
         const { units } = props.structure
@@ -22,7 +22,7 @@ export function PolymerIndexColorTheme(props: ColorThemeProps): ColorTheme {
         for (let i = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) ++polymerCount
         }
-        scale = ColorScale.create({ list: props.list, domain: [ 0, polymerCount - 1 ] })
+        scale.setDomain(0, polymerCount - 1)
         const unitIdColor = new Map<number, Color>()
         for (let i = 0, j = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) {

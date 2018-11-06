@@ -14,8 +14,9 @@ import { paramDefaultValues } from 'mol-util/parameter';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
-async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
+async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props
     const { transform, field, idField } = await unit.computeGaussianDensity(props, ctx.runtime, ctx.webgl)
 

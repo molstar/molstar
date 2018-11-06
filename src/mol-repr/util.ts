@@ -61,16 +61,16 @@ export interface QualityProps {
     resolution: number
 }
 
-export function getQualityProps(props: Partial<QualityProps>, structure?: Structure) {
+export function getQualityProps(props: Partial<QualityProps>, data?: any) {
     let quality = defaults(props.quality, 'auto' as VisualQuality)
     let detail = defaults(props.detail, 1)
     let radialSegments = defaults(props.radialSegments, 12)
     let linearSegments = defaults(props.linearSegments, 8)
     let resolution = defaults(props.resolution, 2)
 
-    if (quality === 'auto' && structure) {
-        let score = structure.elementCount
-        if (structure.isCoarse) score *= 10
+    if (quality === 'auto' && data instanceof Structure) {
+        let score = data.elementCount
+        if (data.isCoarse) score *= 10
         if (score > 500_000) {
             quality = 'lowest'
         } else if (score > 300_000) {

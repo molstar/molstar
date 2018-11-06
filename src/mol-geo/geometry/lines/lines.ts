@@ -7,18 +7,17 @@
 import { ValueCell } from 'mol-util'
 import { Mat4 } from 'mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
-import { Geometry } from '../geometry';
+import { Geometry, Theme } from '../geometry';
 import { RuntimeContext } from 'mol-task';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { LinesValues } from 'mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';
-import { BooleanParam, SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { BooleanParam, paramDefaultValues } from 'mol-util/parameter';
 
 /** Wide line */
 export interface Lines {
@@ -94,17 +93,14 @@ export namespace Lines {
     export const Params = {
         ...Geometry.Params,
         lineSizeAttenuation: BooleanParam('Line Size Attenuation', '', false),
-        sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
-        sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<LinesValues> {
+    export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<LinesValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, props)
-        const size = await createSizes(ctx, locationIt, props)
+        const color = await createColors(ctx, locationIt, theme.color)
+        const size = await createSizes(ctx, locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount }

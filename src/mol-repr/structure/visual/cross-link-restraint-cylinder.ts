@@ -12,7 +12,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
 import { Interval } from 'mol-data/int';
-import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
+import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
 import { LinkType } from 'mol-model/structure/model/types';
 import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
@@ -20,13 +20,13 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
-async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
+async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
 
     const crossLinks = structure.crossLinkRestraints
     if (!crossLinks.count) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const location = StructureElement.create()
 
     const builderProps = {
@@ -44,7 +44,7 @@ async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structur
             const b = crossLinks.pairs[edgeIndex]
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
-            return sizeTheme.size(location)
+            return theme.size.size(location)
         }
     }
 

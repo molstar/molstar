@@ -10,18 +10,15 @@ import { VisualUpdateState } from '../../util';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import {  NumberParam, paramDefaultValues } from 'mol-util/parameter';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSheet } from 'mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from 'mol-geo/geometry/mesh/builder/tube';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
 export const PolymerTraceMeshParams = {
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
     linearSegments: NumberParam('Linear Segments', '', 8, 1, 48, 1),
     radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
     aspectRatio: NumberParam('Aspect Ratio', '', 5, 0.1, 5, 0.1),
@@ -32,11 +29,10 @@ export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
 // TODO handle polymer ends properly
 
-async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerTraceMeshProps, mesh?: Mesh) {
+async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerTraceMeshProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
-    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
     const { linearSegments, radialSegments, aspectRatio, arrowFactor } = props
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
@@ -60,7 +56,7 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
 
         interpolateCurveSegment(state, v, tension, shift)
 
-        let width = sizeTheme.size(v.center)
+        let width = theme.size.size(v.center)
         if (isCoarse) width *= aspectRatio / 2
 
         if (isSheet) {

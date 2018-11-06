@@ -12,20 +12,19 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
 import { Interval } from 'mol-data/int';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { paramDefaultValues } from 'mol-util/parameter';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
-async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
+async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
     const links = structure.links
     const { bondCount, bonds } = links
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
     const location = StructureElement.create()
 
     const builderProps = {
@@ -43,7 +42,7 @@ async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: St
             const b = bonds[edgeIndex]
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
-            return sizeTheme.size(location)
+            return theme.size.size(location)
         }
     }
 
@@ -53,9 +52,6 @@ async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: St
 export const InterUnitLinkParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
 }
 export const DefaultInterUnitLinkProps = paramDefaultValues(InterUnitLinkParams)
 export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps

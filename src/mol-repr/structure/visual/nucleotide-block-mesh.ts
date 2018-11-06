@@ -18,6 +18,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -34,7 +35,7 @@ const sVec = Vec3.zero()
 const box = Box()
 
 // TODO define props, should be scalable
-async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: {}, mesh?: Mesh) {
+async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: {}, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     // TODO better vertex count estimate

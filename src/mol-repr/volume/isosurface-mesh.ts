@@ -14,7 +14,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { createRenderableState } from 'mol-geo/geometry/geometry';
+import { createRenderableState, Theme } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
@@ -57,9 +57,9 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
         setUpdateState: (state: VisualUpdateState, newProps: IsosurfaceProps, currentProps: IsosurfaceProps) => {
             if (newProps.isoValueAbsolute !== currentProps.isoValueAbsolute) state.createGeometry = true
         },
-        createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, props: IsosurfaceProps) => {
+        createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: IsosurfaceProps) => {
             const transform = createIdentityTransform()
-            const values = await Mesh.createValues(ctx.runtime, geometry, transform, locationIt, props)
+            const values = await Mesh.createValues(ctx.runtime, geometry, transform, locationIt, theme, props)
             const state = createRenderableState(props)
             return createMeshRenderObject(values, state)
         },

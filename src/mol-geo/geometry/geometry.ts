@@ -10,13 +10,14 @@ import { RenderableState } from 'mol-gl/renderable';
 import { ValueCell } from 'mol-util';
 import { BaseValues } from 'mol-gl/renderable/schema';
 import { Color } from 'mol-util/color';
-import { ColorThemeOptions, ColorThemeName, ColorScaleOptions, ColorScaleName } from 'mol-theme/color';
+import { ColorThemeOptions, ColorThemeName, ColorScaleOptions, ColorScaleName, ColorTheme } from 'mol-theme/color';
 import { LocationIterator } from '../util/location-iterator';
-import { ColorType } from './color-data';
-import { SizeType } from './size-data';
+import { ColorType, getColorThemeProps } from './color-data';
+import { SizeType, getSizeThemeProps } from './size-data';
 import { Lines } from './lines/lines';
-import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam } from 'mol-util/parameter'
+import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, NumberParam } from 'mol-util/parameter'
 import { DirectVolume } from './direct-volume/direct-volume';
+import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 
 //
 
@@ -34,6 +35,18 @@ export const VisualQualityInfo = {
 export type VisualQuality = keyof typeof VisualQualityInfo
 export const VisualQualityNames = Object.keys(VisualQualityInfo)
 export const VisualQualityOptions = VisualQualityNames.map(n => [n, n] as [VisualQuality, string])
+
+export interface Theme {
+    color: ColorTheme
+    size: SizeTheme
+}
+
+export function createTheme(props: Geometry.Props) {
+    return {
+        color: ColorTheme(getColorThemeProps(props)),
+        size: SizeTheme(getSizeThemeProps(props))
+    }
+}
 
 //
 
@@ -64,9 +77,14 @@ export namespace Geometry {
         depthMask: BooleanParam('Depth Mask', '', true),
         useFog: BooleanParam('Use Fog', '', false),
         quality: SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
+
         colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
         colorList: SelectParam<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
         colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
+
+        sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+        sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+        sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     }
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps

@@ -15,7 +15,7 @@ const Description = 'Gives every element (atom or coarse sphere/gaussian) a uniq
 
 export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let color: LocationColor
-    let scale: ColorScale | undefined = undefined
+    let scale = ColorScale.create({ list: props.list, minLabel: 'Start', maxLabel: 'End' })
 
     if (props.structure) {
         const { units } = props.structure
@@ -29,7 +29,7 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
             elementCount += units[i].elements.length
             unitIdIndex.set(units[i].id, i)
         }
-        scale = ColorScale.create({ domain: [ 0, elementCount - 1 ], list: props.list })
+        scale.setDomain(0, elementCount - 1)
         const scaleColor = scale.color
 
         color = (location: Location): Color => {
@@ -48,7 +48,7 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { list: true },
+        features: { structure: true, list: true },
         granularity: 'groupInstance',
         color,
         description: Description,

@@ -17,7 +17,7 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
-import { Geometry } from '../geometry';
+import { Geometry, Theme } from '../geometry';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -75,11 +75,11 @@ export namespace DirectVolume {
     export const DefaultProps = paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<DirectVolumeValues> {
+    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<DirectVolumeValues> {
         const { gridTexture, gridTextureDim } = directVolume
 
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, props)
+        const color = await createColors(ctx, locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
