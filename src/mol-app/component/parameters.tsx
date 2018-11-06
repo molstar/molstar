@@ -12,6 +12,7 @@ import { RangeParamComponent } from './parameter/range';
 import { SelectParamComponent } from './parameter/select';
 import { MultiSelectParamComponent } from './parameter/multi-select';
 import { TextParamComponent } from './parameter/text';
+import { ColorParamComponent } from './parameter/color';
 
 interface ParametersProps<P extends PD.Params> {
     params: P
@@ -35,6 +36,8 @@ function getParamComponent<P extends PD.Any>(p: PD.Any, value: P['defaultValue']
             return <MultiSelectParamComponent param={p} value={value} onChange={onChange} />
         case 'text':
             return <TextParamComponent param={p} value={value} onChange={onChange} />
+        case 'color':
+            return <ColorParamComponent param={p} value={value} onChange={onChange} />
     }
     return ''
 }

@@ -12,6 +12,9 @@ import { labelFirst } from 'mol-theme/label';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { throttleTime } from 'rxjs/operators'
 import { CombinedCameraMode } from 'mol-canvas3d/camera/combined';
+import { ColorParamComponent } from 'mol-app/component/parameter/color';
+import { Color } from 'mol-util/color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
 
 interface ViewportProps {
     app: App
@@ -22,7 +25,10 @@ interface ViewportState {
     pickingInfo: string
     taskInfo: string
     cameraMode: CombinedCameraMode
+    backgroundColor: Color
 }
+
+const BackgroundColorParam = PD.Color('Background Color', '', Color(0x000000))
 
 export class Viewport extends React.Component<ViewportProps, ViewportState> {
     private container: HTMLDivElement | null = null;
@@ -32,7 +38,8 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         noWebGl: false,
         pickingInfo: '',
         taskInfo: '',
-        cameraMode: 'perspective'
+        cameraMode: 'perspective',
+        backgroundColor: Color(0x000000)
     };
 
     handleResize() {
@@ -45,7 +52,10 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         }
         this.handleResize()
 
-        this.setState({ cameraMode: this.props.app.canvas3d.camera.mode })
+        this.setState({
+            cameraMode: this.props.app.canvas3d.props.cameraMode,
+            backgroundColor: this.props.app.canvas3d.props.backgroundColor
+        })
 
         const canvas3d = this.props.app.canvas3d
 
@@ -132,19 +142,30 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
                     background: 'rgba(0, 0, 0, 0.2)'
                 }}
             >
-                <span>Camera mode </span>
-                <select
-                    value={this.state.cameraMode}
-                    style={{width: '150'}}
-                    onChange={e => {
-                        const cameraMode = e.target.value as CombinedCameraMode
-                        this.props.app.canvas3d.camera.mode = cameraMode
-                        this.setState({ cameraMode })
+                <div>
+                    <span>Camera Mode </span>
+                    <select
+                        value={this.state.cameraMode}
+                        style={{width: '150'}}
+                        onChange={e => {
+                            const p = { cameraMode: e.target.value as CombinedCameraMode }
+                            this.props.app.canvas3d.setProps(p)
+                            this.setState(p)
+                        }}
+                    >
+                        <option value='perspective'>Perspective</option>
+                        <option value='orthographic'>Orthographic</option>
+                    </select>
+                </div>
+                <ColorParamComponent
+                    param={BackgroundColorParam}
+                    value={this.state.backgroundColor}
+                    onChange={value => {
+                        const p = { backgroundColor: value }
+                        this.props.app.canvas3d.setProps(p)
+                        this.setState(p)
                     }}
-                >
-                    <option value='perspective'>Perspective</option>
-                    <option value='orthographic'>Orthographic</option>
-                </select>
+                />
             </div>
             { this.state.taskInfo ?
                 <div

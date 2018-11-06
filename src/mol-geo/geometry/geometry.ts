@@ -78,11 +78,11 @@ export namespace Geometry {
         useFog: PD.Boolean('Use Fog', '', false),
         quality: PD.Select<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
 
-        colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
+        colorTheme: PD.Select<ColorThemeName>('Color Name', '', 'uniform', ColorThemeOptions),
         colorList: PD.Select<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
         colorValue: PD.Color('Color Value', '', Color(0xCCCCCC)),
 
-        sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+        sizeTheme: PD.Select<SizeThemeName>('Size Name', '', 'uniform', SizeThemeOptions),
         sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
         sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
     }
