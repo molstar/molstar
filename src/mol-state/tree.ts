@@ -13,6 +13,7 @@ interface StateTree extends ImmutableTree<Transform> { }
 
 namespace StateTree {
     export interface Transient extends ImmutableTree.Transient<Transform> { }
+    export interface Serialized extends ImmutableTree.Serialized { }
 
     function _getRef(t: Transform) { return t.ref; }
 
@@ -29,10 +30,10 @@ namespace StateTree {
     }
 
     export function toJSON(tree: StateTree) {
-        return ImmutableTree.toJSON(tree, Transform.toJSON);
+        return ImmutableTree.toJSON(tree, Transform.toJSON) as Serialized;
     }
 
-    export function fromJSON(data: any): StateTree {
+    export function fromJSON(data: Serialized): StateTree {
         return ImmutableTree.fromJSON(data, _getRef, Transform.fromJSON);
     }
 

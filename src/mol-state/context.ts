@@ -22,8 +22,11 @@ class StateContext {
             replaced: this.ev<{ ref: Transform.Ref, oldObj?: StateObject, newObj?: StateObject }>(),
             created: this.ev<{ ref: Transform.Ref, obj: StateObject }>(),
             removed: this.ev<{ ref: Transform.Ref, obj?: StateObject }>(),
+
+            currentChanged: this.ev<{ ref: Transform.Ref }>()
         },
-        warn: this.ev<string>()
+        warn: this.ev<string>(),
+        updated: this.ev<void>()
     };
 
     readonly globalContext: unknown;

@@ -12,7 +12,7 @@ import { StateObject } from 'mol-state'
 export class Tree extends React.Component<{ plugin: PluginContext }, { }> {
 
     componentWillMount() {
-        this.props.plugin.events.stateUpdated.subscribe(() => this.forceUpdate());
+        this.props.plugin.events.data.updated.subscribe(() => this.forceUpdate());
     }
     render() {
         const n = this.props.plugin.state.data.tree.nodes.get(this.props.plugin.state.data.tree.rootRef)!;

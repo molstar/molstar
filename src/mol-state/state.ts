@@ -17,19 +17,34 @@ export { State }
 
 class State {
     private _tree: StateTree = StateTree.create();
+    private _current: Transform.Ref = this._tree.rootRef;
     private transformCache = new Map<Transform.Ref, unknown>();
 
     get tree() { return this._tree; }
+    get current() { return this._current; }
 
     readonly objects: State.Objects = new Map();
     readonly context: StateContext;
 
     getSnapshot(): State.Snapshot {
-        throw 'nyi';
+        const props = Object.create(null);
+        const keys = this.objects.keys();
+        while (true) {
+            const key = keys.next();
+            if (key.done) break;
+            const o = this.objects.get(key.value)!;
+            props[key.value] = { ...o.props };
+        }
+        return {
+            tree: StateTree.toJSON(this._tree),
+            props
+        };
     }
 
     setSnapshot(snapshot: State.Snapshot): void {
-        throw 'nyi';
+        const tree = StateTree.fromJSON(snapshot.tree);
+        // TODO: support props
+        this.update(tree);
     }
 
     dispose() {
@@ -37,20 +52,25 @@ class State {
     }
 
     update(tree: StateTree): Task<void> {
-        return Task.create('Update Tree', taskCtx => {
-            const oldTree = this._tree;
-            this._tree = tree;
+        // TODO: support props
+        return Task.create('Update Tree', async taskCtx => {
+            try {
+                const oldTree = this._tree;
+                this._tree = tree;
 
-            const ctx: UpdateContext = {
-                stateCtx: this.context,
-                taskCtx,
-                oldTree,
-                tree: tree,
-                objects: this.objects,
-                transformCache: this.transformCache
-            };
-            // TODO: have "cancelled" error? Or would this be handled automatically?
-            return update(ctx);
+                const ctx: UpdateContext = {
+                    stateCtx: this.context,
+                    taskCtx,
+                    oldTree,
+                    tree: tree,
+                    objects: this.objects,
+                    transformCache: this.transformCache
+                };
+                // TODO: have "cancelled" error? Or would this be handled automatically?
+                await update(ctx);
+            } finally {
+                this.context.events.updated.next();
+            }
         });
     }
 
@@ -78,7 +98,7 @@ namespace State {
     export type Objects = Map<Transform.Ref, StateObject.Node>
 
     export interface Snapshot {
-        readonly tree: StateTree,
+        readonly tree: StateTree.Serialized,
         readonly props: { [key: string]: unknown }
     }
 

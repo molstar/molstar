@@ -11,6 +11,7 @@ import { PluginStateObjects as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from './state';
 import { MolScriptBuilder } from 'mol-script/language/builder';
+import { PluginCommand } from './command';
 
 export class PluginContext {
     private disposed = false;
@@ -19,10 +20,12 @@ export class PluginContext {
     readonly state = new PluginState(this);
 
     readonly events = {
-        stateUpdated: this.ev<undefined>()
+        data: this.state.data.context.events
     };
 
     readonly canvas3d: Canvas3D;
+
+    readonly commands = new PluginCommand.Manager();
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
@@ -47,6 +50,7 @@ export class PluginContext {
 
     dispose() {
         if (this.disposed) return;
+        this.commands.dispose();
         this.canvas3d.dispose();
         this.ev.dispose();
         this.state.dispose();
@@ -77,13 +81,7 @@ export class PluginContext {
             .apply(StateTransforms.Visuals.CreateStructureRepresentation)
             .getTree();
 
-        this._test_updateStateData(newTree);
-    }
-
-    async _test_updateStateData(tree: StateTree) {
-        await this.state.data.update(tree).run(p => console.log(p), 250);
-        console.log(this.state.data);
-        this.events.stateUpdated.next();
+        this.state.updateData(newTree);
     }
 
     private initEvents() {
@@ -113,9 +111,8 @@ export class PluginContext {
     _test_nextModel() {
         const models = StateSelection.select('models', this.state.data)[0].obj as SO.Models;
         const idx = (this.state.data.tree.getValue('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
-        console.log({ idx });
         const newTree = StateTree.updateParams(this.state.data.tree, 'structure', { modelIndex: (idx + 1) % models.data.length });
-        return this._test_updateStateData(newTree);
+        return this.state.updateData(newTree);
         // this.viewer.requestDraw(true);
     }
 
