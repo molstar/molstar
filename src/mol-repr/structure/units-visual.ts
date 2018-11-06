@@ -12,7 +12,7 @@ import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRe
 import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, UnitKind, UnitKindOptions, includesUnitKind } from './visual/util/common';
 import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
-import { MultiSelectParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { RenderableValues } from 'mol-gl/renderable/schema';
 import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -39,9 +39,9 @@ function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.Symmetry
 
 const UnitsParams = {
     ...StructureParams,
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
+    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
 }
-const DefaultUnitsProps = paramDefaultValues(UnitsParams)
+const DefaultUnitsProps = PD.paramDefaultValues(UnitsParams)
 type UnitsProps = typeof DefaultUnitsProps
 
 type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
@@ -205,7 +205,7 @@ export const UnitsMeshParams = {
     ...StructureMeshParams,
     ...UnitsParams,
 }
-export const DefaultUnitsMeshProps = paramDefaultValues(UnitsMeshParams)
+export const DefaultUnitsMeshProps = PD.paramDefaultValues(UnitsMeshParams)
 export type UnitsMeshProps = typeof DefaultUnitsMeshProps
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> extends UnitsVisualBuilder<P, Mesh> { }
 
@@ -228,7 +228,7 @@ export const UnitsPointsParams = {
     ...StructurePointsParams,
     ...UnitsParams,
 }
-export const DefaultUnitsPointsProps = paramDefaultValues(UnitsPointsParams)
+export const DefaultUnitsPointsProps = PD.paramDefaultValues(UnitsPointsParams)
 export type UnitsPointsProps = typeof DefaultUnitsPointsProps
 export interface UnitsPointVisualBuilder<P extends UnitsPointsProps> extends UnitsVisualBuilder<P, Points> { }
 
@@ -251,7 +251,7 @@ export const UnitsLinesParams = {
     ...StructureLinesParams,
     ...UnitsParams,
 }
-export const DefaultUnitsLinesProps = paramDefaultValues(UnitsLinesParams)
+export const DefaultUnitsLinesProps = PD.paramDefaultValues(UnitsLinesParams)
 export type UnitsLinesProps = typeof DefaultUnitsLinesProps
 export interface UnitsLinesVisualBuilder<P extends UnitsLinesProps> extends UnitsVisualBuilder<P, Lines> { }
 
@@ -274,7 +274,7 @@ export const UnitsDirectVolumeParams = {
     ...StructureDirectVolumeParams,
     ...UnitsParams,
 }
-export const DefaultUnitsDirectVolumeProps = paramDefaultValues(UnitsDirectVolumeParams)
+export const DefaultUnitsDirectVolumeProps = PD.paramDefaultValues(UnitsDirectVolumeParams)
 export type UnitsDirectVolumeProps = typeof DefaultUnitsDirectVolumeProps
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> extends UnitsVisualBuilder<P, DirectVolume> { }
 

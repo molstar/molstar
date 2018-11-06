@@ -15,7 +15,7 @@ import { LocationIterator } from '../util/location-iterator';
 import { ColorType } from './color-data';
 import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
-import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam } from 'mol-util/parameter'
+import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { DirectVolume } from './direct-volume/direct-volume';
 
 //
@@ -59,16 +59,16 @@ export namespace Geometry {
     //
 
     export const Params = {
-        alpha: RangeParam('Opacity', '', 1, 0, 1, 0.01),
-        visible: BooleanParam('Visible', '', true),
-        depthMask: BooleanParam('Depth Mask', '', true),
-        useFog: BooleanParam('Use Fog', '', false),
-        quality: SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
-        colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
-        colorList: SelectParam<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
-        colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
+        alpha: PD.RangeParam('Opacity', '', 1, 0, 1, 0.01),
+        visible: PD.BooleanParam('Visible', '', true),
+        depthMask: PD.BooleanParam('Depth Mask', '', true),
+        useFog: PD.BooleanParam('Use Fog', '', false),
+        quality: PD.SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
+        colorTheme: PD.SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
+        colorList: PD.SelectParam<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
+        colorValue: PD.ColorParam('Color Value', '', Color(0xCCCCCC)),
     }
-    export const DefaultProps = paramDefaultValues(Params)
+    export const DefaultProps = PD.paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export type Counts = { drawCount: number, groupCount: number, instanceCount: number }

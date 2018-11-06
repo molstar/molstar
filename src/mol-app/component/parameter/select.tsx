@@ -5,10 +5,10 @@
  */
 
 import * as React from 'react'
-import { SelectParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface SelectParamComponentProps<T extends string> {
-    param: SelectParam<T>
+    param: PD.SelectParam<T>
     value: T
     onChange(v: T): void
 }

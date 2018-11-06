@@ -7,7 +7,7 @@
 import { RuntimeContext } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Sphere3D, Box3D } from 'mol-math/geometry'
-import { paramDefaultValues, RangeParam, SelectParam, TextParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { DirectVolumeValues } from 'mol-gl/renderable/direct-volume';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box } from '../../primitive/box';
@@ -67,12 +67,12 @@ export namespace DirectVolume {
 
     export const Params = {
         ...Geometry.Params,
-        isoValueAbsolute: RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-        isoValueRelative: RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
-        renderMode: SelectParam('Render Mode', '', 'isosurface', RenderModeOptions),
-        controlPoints: TextParam('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
+        isoValueAbsolute: PD.RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
+        isoValueRelative: PD.RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
+        renderMode: PD.SelectParam('Render Mode', '', 'isosurface', RenderModeOptions),
+        controlPoints: PD.TextParam('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
     }
-    export const DefaultProps = paramDefaultValues(Params)
+    export const DefaultProps = PD.paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<DirectVolumeValues> {

@@ -16,7 +16,7 @@ import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { BooleanParam, NumberParam, SelectParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 /** Point cloud */
 export interface Points {
@@ -55,14 +55,14 @@ export namespace Points {
 
     export const Params = {
         ...Geometry.Params,
-        pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', false),
-        pointFilledCircle: BooleanParam('Point Filled Circle', '', false),
-        pointEdgeBleach: NumberParam('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
-        sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-        sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+        pointSizeAttenuation: PD.BooleanParam('Point Size Attenuation', '', false),
+        pointFilledCircle: PD.BooleanParam('Point Filled Circle', '', false),
+        pointEdgeBleach: PD.NumberParam('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
+        sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+        sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
+        sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
     }
-    export const DefaultProps = paramDefaultValues(Params)
+    export const DefaultProps = PD.paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<PointsValues> {

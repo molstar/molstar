@@ -5,10 +5,10 @@
  */
 
 import * as React from 'react'
-import { RangeParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface RangeParamComponentProps {
-    param: RangeParam
+    param: PD.RangeParam
     value: number
     onChange(v: number): void
 }

@@ -8,7 +8,7 @@ import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphe
 import { IntraUnitLinkVisual, IntraUnitLinkParams } from '../visual/intra-unit-link-cylinder';
 import { InterUnitLinkVisual, InterUnitLinkParams } from '../visual/inter-unit-link-cylinder';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { paramDefaultValues, SelectParam, NumberParam, MultiSelectParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
@@ -19,12 +19,12 @@ export const BallAndStickParams = {
     ...ElementSphereParams,
     ...IntraUnitLinkParams,
     ...InterUnitLinkParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic'], UnitKindOptions),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic'], UnitKindOptions),
 }
-export const DefaultBallAndStickProps = paramDefaultValues(BallAndStickParams)
+export const DefaultBallAndStickProps = PD.paramDefaultValues(BallAndStickParams)
 export type BallAndStickProps = typeof DefaultBallAndStickProps
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>

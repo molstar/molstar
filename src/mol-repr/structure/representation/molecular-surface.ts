@@ -7,7 +7,7 @@
 import { GaussianSurfaceVisual, GaussianSurfaceParams } from '../visual/gaussian-surface-mesh';
 import { UnitsRepresentation } from '../units-representation';
 import { GaussianWireframeVisual, GaussianWireframeParams } from '../visual/gaussian-surface-wireframe';
-import { paramDefaultValues, SelectParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { GaussianDensityVolumeParams, GaussianDensityVolumeVisual } from '../visual/gaussian-density-volume';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { StructureRepresentation } from '../index';
@@ -17,9 +17,9 @@ export const MolecularSurfaceParams = {
     ...GaussianSurfaceParams,
     ...GaussianWireframeParams,
     ...GaussianDensityVolumeParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
 }
-export const DefaultMolecularSurfaceProps = { ...paramDefaultValues(MolecularSurfaceParams), visuals: [ '0' ] }
+export const DefaultMolecularSurfaceProps = { ...PD.paramDefaultValues(MolecularSurfaceParams), visuals: [ '0' ] }
 export type MolecularSurfaceProps = typeof DefaultMolecularSurfaceProps
 
 export type MolecularSurfaceRepresentation = StructureRepresentation<MolecularSurfaceProps>

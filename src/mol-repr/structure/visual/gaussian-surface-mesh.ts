@@ -10,7 +10,7 @@ import { VisualUpdateState } from '../../util';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { VisualContext } from 'mol-repr';
@@ -37,7 +37,7 @@ export const GaussianSurfaceParams = {
     ...UnitsMeshParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianSurfaceProps = paramDefaultValues(GaussianSurfaceParams)
+export const DefaultGaussianSurfaceProps = PD.paramDefaultValues(GaussianSurfaceParams)
 export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 
 export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {

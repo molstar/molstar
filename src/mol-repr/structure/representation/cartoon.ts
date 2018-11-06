@@ -8,7 +8,7 @@ import { PolymerTraceVisual,  PolymerTraceParams } from '../visual/polymer-trace
 import { PolymerGapVisual, PolymerGapParams } from '../visual/polymer-gap-cylinder';
 import { NucleotideBlockVisual, NucleotideBlockParams } from '../visual/nucleotide-block-mesh';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { paramDefaultValues, SelectParam, NumberParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { StructureRepresentation } from '../index';
 import { Representation } from 'mol-repr';
@@ -19,10 +19,10 @@ export const CartoonParams = {
     ...PolymerGapParams,
     ...NucleotideBlockParams,
     // ...PolymerDirectionParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 0.6, 0, 10, 0.1),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 0.6, 0, 10, 0.1),
 }
-export const DefaultCartoonProps = paramDefaultValues(CartoonParams)
+export const DefaultCartoonProps = PD.paramDefaultValues(CartoonParams)
 export type CartoonProps = typeof DefaultCartoonProps
 
 export type CartoonRepresentation = StructureRepresentation<CartoonProps>

@@ -11,7 +11,7 @@ import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { LinkCylinderParams } from './util/link';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
@@ -23,12 +23,12 @@ import { VisualContext } from 'mol-repr';
 const segmentCount = 10
 
 export const PolymerGapCylinderParams = {
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
-    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 10, 0.1),
+    sizeFactor: PD.NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
+    radialSegments: PD.NumberParam('Radial Segments', '', 16, 3, 56, 1),
 }
-export const DefaultPolymerGapCylinderProps = paramDefaultValues(PolymerGapCylinderParams)
+export const DefaultPolymerGapCylinderProps = PD.paramDefaultValues(PolymerGapCylinderParams)
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps
 
 async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerGapCylinderProps, mesh?: Mesh) {
@@ -81,18 +81,18 @@ async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, stru
 export const InterUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: PD.NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
 }
-export const DefaultIntraUnitLinkProps = paramDefaultValues(InterUnitLinkParams)
+export const DefaultIntraUnitLinkProps = PD.paramDefaultValues(InterUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
 
 export const PolymerGapParams = {
     ...UnitsMeshParams,
     ...PolymerGapCylinderParams
 }
-export const DefaultPolymerGapProps = paramDefaultValues(PolymerGapParams)
+export const DefaultPolymerGapProps = PD.paramDefaultValues(PolymerGapParams)
 export type PolymerGapProps = typeof DefaultPolymerGapProps
 
 export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {

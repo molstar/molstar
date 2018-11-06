@@ -11,7 +11,7 @@ import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment,
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSheet } from 'mol-geo/geometry/mesh/builder/sheet';
@@ -19,15 +19,15 @@ import { addTube } from 'mol-geo/geometry/mesh/builder/tube';
 import { VisualContext } from 'mol-repr';
 
 export const PolymerTraceMeshParams = {
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
-    linearSegments: NumberParam('Linear Segments', '', 8, 1, 48, 1),
-    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
-    aspectRatio: NumberParam('Aspect Ratio', '', 5, 0.1, 5, 0.1),
-    arrowFactor: NumberParam('Arrow Factor', '', 1.5, 0.1, 5, 0.1),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: PD.NumberParam('Size Factor', '', 0.3, 0, 10, 0.1),
+    linearSegments: PD.NumberParam('Linear Segments', '', 8, 1, 48, 1),
+    radialSegments: PD.NumberParam('Radial Segments', '', 16, 3, 56, 1),
+    aspectRatio: PD.NumberParam('Aspect Ratio', '', 5, 0.1, 5, 0.1),
+    arrowFactor: PD.NumberParam('Arrow Factor', '', 1.5, 0.1, 5, 0.1),
 }
-export const DefaultPolymerTraceMeshProps = paramDefaultValues(PolymerTraceMeshParams)
+export const DefaultPolymerTraceMeshProps = PD.paramDefaultValues(PolymerTraceMeshParams)
 export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
 // TODO handle polymer ends properly
@@ -93,7 +93,7 @@ export const PolymerTraceParams = {
     ...UnitsMeshParams,
     ...PolymerTraceMeshParams
 }
-export const DefaultPolymerTraceProps = paramDefaultValues(PolymerTraceParams)
+export const DefaultPolymerTraceProps = PD.paramDefaultValues(PolymerTraceParams)
 export type PolymerTraceProps = typeof DefaultPolymerTraceProps
 
 export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {

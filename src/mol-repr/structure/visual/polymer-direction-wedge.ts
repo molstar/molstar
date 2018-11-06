@@ -11,7 +11,7 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Wedge } from 'mol-geo/primitive/wedge';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
@@ -30,10 +30,10 @@ const heightFactor = 6
 const wedge = Wedge()
 
 export const PolymerDirectionWedgeParams = {
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
 }
-export const DefaultPolymerDirectionWedgeProps = paramDefaultValues(PolymerDirectionWedgeParams)
+export const DefaultPolymerDirectionWedgeProps = PD.paramDefaultValues(PolymerDirectionWedgeParams)
 export type PolymerDirectionWedgeProps = typeof DefaultPolymerDirectionWedgeProps
 
 async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
@@ -93,7 +93,7 @@ export const PolymerDirectionParams = {
     ...UnitsMeshParams,
     ...PolymerDirectionWedgeParams
 }
-export const DefaultPolymerDirectionProps = paramDefaultValues(PolymerDirectionParams)
+export const DefaultPolymerDirectionProps = PD.paramDefaultValues(PolymerDirectionParams)
 export type PolymerDirectionProps = typeof DefaultPolymerDirectionProps
 
 export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {

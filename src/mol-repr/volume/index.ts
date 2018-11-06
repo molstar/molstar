@@ -8,7 +8,7 @@ import { Task } from 'mol-task'
 import { RepresentationProps, Representation, Visual, RepresentationContext, VisualContext } from '..';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
-import { paramDefaultValues, RangeParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -136,10 +136,10 @@ export interface VolumeRepresentation<P extends RepresentationProps = {}> extend
 
 export const VolumeParams = {
     ...Geometry.Params,
-    isoValueAbsolute: RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-    isoValueRelative: RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
+    isoValueAbsolute: PD.RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
+    isoValueRelative: PD.RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
-export const DefaultVolumeProps = paramDefaultValues(VolumeParams)
+export const DefaultVolumeProps = PD.paramDefaultValues(VolumeParams)
 export type VolumeProps = typeof DefaultVolumeProps
 
 export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {

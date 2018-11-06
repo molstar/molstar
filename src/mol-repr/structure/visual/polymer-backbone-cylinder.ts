@@ -13,7 +13,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { SizeTheme, SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { OrderedSet } from 'mol-data/int';
-import { paramDefaultValues, NumberParam, SelectParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
@@ -21,11 +21,11 @@ import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { VisualContext } from 'mol-repr';
 
 export const PolymerBackboneCylinderParams = {
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
-    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 10, 0.1),
+    radialSegments: PD.NumberParam('Radial Segments', '', 16, 3, 56, 1),
 }
-export const DefaultPolymerBackboneCylinderProps = paramDefaultValues(PolymerBackboneCylinderParams)
+export const DefaultPolymerBackboneCylinderProps = PD.paramDefaultValues(PolymerBackboneCylinderParams)
 export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps
 
 async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
@@ -72,7 +72,7 @@ export const PolymerBackboneParams = {
     ...UnitsMeshParams,
     ...PolymerBackboneCylinderParams,
 }
-export const DefaultPolymerBackboneProps = paramDefaultValues(PolymerBackboneParams)
+export const DefaultPolymerBackboneProps = PD.paramDefaultValues(PolymerBackboneParams)
 export type PolymerBackboneProps = typeof DefaultPolymerBackboneProps
 
 export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {

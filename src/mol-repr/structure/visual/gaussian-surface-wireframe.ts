@@ -10,7 +10,7 @@ import { VisualUpdateState } from '../../util';
 import { UnitsLinesVisual, UnitsLinesParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { computeMarchingCubesLines } from 'mol-geo/util/marching-cubes/algorithm';
@@ -35,11 +35,11 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 2, 0, 10, 0.1),
-    lineSizeAttenuation: BooleanParam('Line Size Attenuation', '', false),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 2, 0, 10, 0.1),
+    lineSizeAttenuation: PD.BooleanParam('Line Size Attenuation', '', false),
 }
-export const DefaultGaussianWireframeProps = paramDefaultValues(GaussianWireframeParams)
+export const DefaultGaussianWireframeProps = PD.paramDefaultValues(GaussianWireframeParams)
 export type GaussianWireframeProps = typeof DefaultGaussianWireframeProps
 
 export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {

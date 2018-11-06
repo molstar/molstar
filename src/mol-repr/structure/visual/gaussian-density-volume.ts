@@ -10,7 +10,7 @@ import { VisualUpdateState } from '../../util';
 import { UnitsDirectVolumeVisual, UnitsDirectVolumeParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams, computeUnitGaussianDensityTexture } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { VisualContext } from 'mol-repr';
 
@@ -30,7 +30,7 @@ export const GaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianDensityVolumeProps = paramDefaultValues(GaussianDensityVolumeParams)
+export const DefaultGaussianDensityVolumeProps = PD.paramDefaultValues(GaussianDensityVolumeParams)
 export type GaussianDensityVolumeProps = typeof DefaultGaussianDensityVolumeProps
 
 export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolumeProps> {

@@ -13,7 +13,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
 import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
-import { paramDefaultValues, SelectParam, NumberParam, BooleanParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
 import { VisualContext } from 'mol-repr';
@@ -21,11 +21,11 @@ import { VisualContext } from 'mol-repr';
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
     ...GaussianDensityParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', false),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    pointSizeAttenuation: PD.BooleanParam('Point Size Attenuation', '', false),
 }
-export const DefaultGaussianDensityPointProps = paramDefaultValues(GaussianDensityPointParams)
+export const DefaultGaussianDensityPointProps = PD.paramDefaultValues(GaussianDensityPointParams)
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
 export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, points?: Points) {

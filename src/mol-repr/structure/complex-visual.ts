@@ -12,7 +12,7 @@ import { StructureProps, StructureMeshParams, StructureParams } from './index';
 import { deepEqual, ValueCell } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { Interval } from 'mol-data/int';
-import { MultiSelectParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { RenderableValues } from 'mol-gl/renderable/schema';
 import { createSizes } from 'mol-geo/geometry/size-data';
 import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
@@ -27,9 +27,9 @@ export interface  ComplexVisual<P extends StructureProps> extends Visual<Structu
 
 const ComplexParams = {
     ...StructureParams,
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
+    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
 }
-const DefaultComplexProps = paramDefaultValues(ComplexParams)
+const DefaultComplexProps = PD.paramDefaultValues(ComplexParams)
 type ComplexProps = typeof DefaultComplexProps
 
 type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
@@ -168,9 +168,9 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
 
 export const ComplexMeshParams = {
     ...StructureMeshParams,
-    unitKinds: MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
-export const DefaultComplexMeshProps = paramDefaultValues(ComplexMeshParams)
+export const DefaultComplexMeshProps = PD.paramDefaultValues(ComplexMeshParams)
 export type ComplexMeshProps = typeof DefaultComplexMeshProps
 
 export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> extends ComplexVisualBuilder<P, Mesh> { }

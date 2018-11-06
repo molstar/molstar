@@ -7,7 +7,7 @@
 import { CarbohydrateSymbolVisual, CarbohydrateSymbolParams } from '../visual/carbohydrate-symbol-mesh';
 import { CarbohydrateLinkVisual, CarbohydrateLinkParams } from '../visual/carbohydrate-link-cylinder';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { paramDefaultValues, SelectParam, NumberParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ComplexRepresentation } from '../complex-representation';
 import { StructureRepresentation } from '../index';
 import { Representation } from 'mol-repr';
@@ -15,11 +15,11 @@ import { Representation } from 'mol-repr';
 export const CarbohydrateParams = {
     ...CarbohydrateSymbolParams,
     ...CarbohydrateLinkParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 0.1, 20),
-    sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 0.1, 20),
+    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
 }
-export const DefaultCarbohydrateProps = paramDefaultValues(CarbohydrateParams)
+export const DefaultCarbohydrateProps = PD.paramDefaultValues(CarbohydrateParams)
 export type CarbohydrateProps = typeof DefaultCarbohydrateProps
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateProps>

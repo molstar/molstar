@@ -16,7 +16,7 @@ import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
-import { BooleanParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -339,11 +339,11 @@ export namespace Mesh {
 
     export const Params = {
         ...Geometry.Params,
-        doubleSided: BooleanParam('Double Sided', '', false),
-        flipSided: BooleanParam('Flip Sided', '', false),
-        flatShaded: BooleanParam('Flat Shaded', '', false),
+        doubleSided: PD.BooleanParam('Double Sided', '', false),
+        flipSided: PD.BooleanParam('Flip Sided', '', false),
+        flatShaded: PD.BooleanParam('Flat Shaded', '', false),
     }
-    export const DefaultProps = paramDefaultValues(Params)
+    export const DefaultProps = PD.paramDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<MeshValues> {
