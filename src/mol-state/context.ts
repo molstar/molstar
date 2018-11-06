@@ -13,7 +13,7 @@ export { StateContext }
 class StateContext {
     private ev = RxEventHelper.create();
 
-    events = {
+    readonly events = {
         object: {
             stateChanged: this.ev<{ ref: Transform.Ref }>(),
             propsChanged: this.ev<{ ref: Transform.Ref, newProps: unknown }>(),
@@ -29,6 +29,10 @@ class StateContext {
         updated: this.ev<void>()
     };
 
+    readonly behaviours = {
+        currentObject: this.ev.behavior<{ ref: Transform.Ref }>(void 0 as any)
+    };
+
     readonly globalContext: unknown;
     readonly defaultObjectProps: unknown;
 
@@ -36,8 +40,9 @@ class StateContext {
         this.ev.dispose();
     }
 
-    constructor(params: { globalContext: unknown, defaultObjectProps: unknown }) {
+    constructor(params: { globalContext: unknown, defaultObjectProps: unknown, rootRef: Transform.Ref }) {
         this.globalContext = params.globalContext;
         this.defaultObjectProps = params.defaultObjectProps;
+        this.behaviours.currentObject.next({ ref: params.rootRef });
     }
 }

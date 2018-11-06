@@ -6,6 +6,7 @@
 
 import { PluginContext } from './context';
 import { LinkedList } from 'mol-data/generic';
+import { RxEventHelper } from 'mol-util/rx-event-helper';
 
 export { PluginCommand }
 
@@ -41,6 +42,16 @@ namespace PluginCommand {
         private subs = new Map<string, Action<any>[]>();
         private queue = LinkedList<Instance>();
         private disposing = false;
+
+        private ev = RxEventHelper.create();
+
+        readonly behaviour = {
+            locked: this.ev.behavior<boolean>(false)
+        };
+
+        lock(locked: boolean = true) {
+            this.behaviour.locked.next(locked);
+        }
 
         subscribe<T>(cmd: Descriptor<T>, action: Action<T>) {
             let actions = this.subs.get(cmd.id);

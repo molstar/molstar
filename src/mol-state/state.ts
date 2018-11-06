@@ -89,7 +89,8 @@ class State {
 
         this.context = new StateContext({
             globalContext: params && params.globalContext,
-            defaultObjectProps
+            defaultObjectProps,
+            rootRef: tree.rootRef
         });
     }
 }
@@ -125,6 +126,7 @@ namespace State {
             ctx.objects.delete(d);
             ctx.transformCache.delete(d);
             ctx.stateCtx.events.object.removed.next({ ref: d });
+            // TODO: handle current object change
         }
 
         initObjectState(ctx, roots);

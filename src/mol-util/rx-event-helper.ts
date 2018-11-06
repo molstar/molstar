@@ -4,12 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Subject } from 'rxjs';
+import { Subject, BehaviorSubject } from 'rxjs';
 
 export { RxEventHelper }
 
 interface RxEventHelper {
     <T>(): Subject<T>,
+    behavior<T>(v: T): BehaviorSubject<T>,
     dispose(): void
 }
 
@@ -31,6 +32,13 @@ class _RxEventHelper {
         this._eventList.push(s);
         return s;
     }
+
+    behavior<T>(v: T) {
+        const s = new BehaviorSubject<T>(v);
+        this._eventList.push(s);
+        return s;
+    }
+
     dispose() {
         if (this._disposed) return;
         for (const e of this._eventList) e.complete();

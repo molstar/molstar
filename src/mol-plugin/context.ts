@@ -18,14 +18,18 @@ export class PluginContext {
     private ev = RxEventHelper.create();
 
     readonly state = new PluginState(this);
+    readonly commands = new PluginCommand.Manager();
 
     readonly events = {
         data: this.state.data.context.events
     };
 
+    readonly behaviors = {
+        command: this.commands.behaviour
+    };
+
     readonly canvas3d: Canvas3D;
 
-    readonly commands = new PluginCommand.Manager();
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
