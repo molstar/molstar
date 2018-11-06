@@ -19,12 +19,12 @@ export const BallAndStickParams = {
     ...ElementSphereParams,
     ...IntraUnitLinkParams,
     ...InterUnitLinkParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
-    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic'], UnitKindOptions),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
+    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', ['atomic'], UnitKindOptions),
 }
-export const DefaultBallAndStickProps = PD.paramDefaultValues(BallAndStickParams)
+export const DefaultBallAndStickProps = PD.getDefaultValues(BallAndStickParams)
 export type BallAndStickProps = typeof DefaultBallAndStickProps
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>

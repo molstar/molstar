@@ -30,7 +30,7 @@ export const GaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianDensityVolumeProps = PD.paramDefaultValues(GaussianDensityVolumeParams)
+export const DefaultGaussianDensityVolumeProps = PD.getDefaultValues(GaussianDensityVolumeParams)
 export type GaussianDensityVolumeProps = typeof DefaultGaussianDensityVolumeProps
 
 export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolumeProps> {

@@ -15,11 +15,11 @@ import { Representation } from 'mol-repr';
 export const CarbohydrateParams = {
     ...CarbohydrateSymbolParams,
     ...CarbohydrateLinkParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 0.1, 20),
-    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 0.1, 20),
+    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
 }
-export const DefaultCarbohydrateProps = PD.paramDefaultValues(CarbohydrateParams)
+export const DefaultCarbohydrateProps = PD.getDefaultValues(CarbohydrateParams)
 export type CarbohydrateProps = typeof DefaultCarbohydrateProps
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateProps>

@@ -8,7 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface BooleanParamComponentProps {
-    param: PD.BooleanParam
+    param: PD.Boolean
     value: boolean
     onChange(v: boolean): void
 }

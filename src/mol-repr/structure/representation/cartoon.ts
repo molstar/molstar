@@ -19,10 +19,10 @@ export const CartoonParams = {
     ...PolymerGapParams,
     ...NucleotideBlockParams,
     // ...PolymerDirectionParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 0.6, 0, 10, 0.1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 0.6, 0, 10, 0.1),
 }
-export const DefaultCartoonProps = PD.paramDefaultValues(CartoonParams)
+export const DefaultCartoonProps = PD.getDefaultValues(CartoonParams)
 export type CartoonProps = typeof DefaultCartoonProps
 
 export type CartoonRepresentation = StructureRepresentation<CartoonProps>

@@ -53,11 +53,11 @@ async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: St
 export const InterUnitLinkParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
 }
-export const DefaultInterUnitLinkProps = PD.paramDefaultValues(InterUnitLinkParams)
+export const DefaultInterUnitLinkProps = PD.getDefaultValues(InterUnitLinkParams)
 export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps
 
 export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {

@@ -14,12 +14,12 @@ import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 
 export const ElementSphereParams = {
     ...UnitsMeshParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
-    detail: PD.NumberParam('Sphere Detail', '', 0, 0, 3, 1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
+    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultElementSphereProps = PD.paramDefaultValues(ElementSphereParams)
+export const DefaultElementSphereProps = PD.getDefaultValues(ElementSphereParams)
 export type ElementSphereProps = typeof DefaultElementSphereProps
 
 export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {

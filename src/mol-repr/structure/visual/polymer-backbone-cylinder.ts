@@ -21,11 +21,11 @@ import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { VisualContext } from 'mol-repr';
 
 export const PolymerBackboneCylinderParams = {
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 10, 0.1),
-    radialSegments: PD.NumberParam('Radial Segments', '', 16, 3, 56, 1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 10, 0.1),
+    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
 }
-export const DefaultPolymerBackboneCylinderProps = PD.paramDefaultValues(PolymerBackboneCylinderParams)
+export const DefaultPolymerBackboneCylinderProps = PD.getDefaultValues(PolymerBackboneCylinderParams)
 export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps
 
 async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
@@ -72,7 +72,7 @@ export const PolymerBackboneParams = {
     ...UnitsMeshParams,
     ...PolymerBackboneCylinderParams,
 }
-export const DefaultPolymerBackboneProps = PD.paramDefaultValues(PolymerBackboneParams)
+export const DefaultPolymerBackboneProps = PD.getDefaultValues(PolymerBackboneParams)
 export type PolymerBackboneProps = typeof DefaultPolymerBackboneProps
 
 export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {

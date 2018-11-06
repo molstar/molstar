@@ -13,7 +13,7 @@ import { Representation } from 'mol-repr';
 export const PointParams = {
     ...ElementPointParams,
 }
-export const DefaultPointProps = PD.paramDefaultValues(PointParams)
+export const DefaultPointProps = PD.getDefaultValues(PointParams)
 export type PointProps = typeof DefaultPointProps
 
 export type PointRepresentation = StructureRepresentation<PointProps>

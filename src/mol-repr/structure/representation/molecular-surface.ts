@@ -17,9 +17,9 @@ export const MolecularSurfaceParams = {
     ...GaussianSurfaceParams,
     ...GaussianWireframeParams,
     ...GaussianDensityVolumeParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
 }
-export const DefaultMolecularSurfaceProps = { ...PD.paramDefaultValues(MolecularSurfaceParams), visuals: [ '0' ] }
+export const DefaultMolecularSurfaceProps = { ...PD.getDefaultValues(MolecularSurfaceParams), visuals: [ '0' ] }
 export type MolecularSurfaceProps = typeof DefaultMolecularSurfaceProps
 
 export type MolecularSurfaceRepresentation = StructureRepresentation<MolecularSurfaceProps>

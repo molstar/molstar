@@ -187,7 +187,7 @@ export const DirectVolumeParams = {
     ...Geometry.Params,
     ...DirectVolume.Params
 }
-export const DefaultDirectVolumeProps = PD.paramDefaultValues(DirectVolumeParams)
+export const DefaultDirectVolumeProps = PD.getDefaultValues(DirectVolumeParams)
 export type DirectVolumeProps = typeof DefaultDirectVolumeProps
 
 export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {

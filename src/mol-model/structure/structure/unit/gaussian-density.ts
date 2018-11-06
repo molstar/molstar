@@ -15,13 +15,13 @@ import { Texture } from 'mol-gl/webgl/texture';
 import { WebGLContext } from 'mol-gl/webgl/context';
 
 export const GaussianDensityParams = {
-    resolution: PD.NumberParam('Resolution', '', 1, 0.1, 10, 0.1),
-    radiusOffset: PD.NumberParam('Radius Offset', '', 0, 0, 10, 0.1),
-    smoothness: PD.NumberParam('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
-    useGpu: PD.BooleanParam('Use GPU', '', true),
-    ignoreCache: PD.BooleanParam('Ignore Cache', '', false),
+    resolution: PD.Numeric('Resolution', '', 1, 0.1, 10, 0.1),
+    radiusOffset: PD.Numeric('Radius Offset', '', 0, 0, 10, 0.1),
+    smoothness: PD.Numeric('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
+    useGpu: PD.Boolean('Use GPU', '', true),
+    ignoreCache: PD.Boolean('Ignore Cache', '', false),
 }
-export const DefaultGaussianDensityProps = PD.paramDefaultValues(GaussianDensityParams)
+export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
 function getConformation(unit: Unit) {

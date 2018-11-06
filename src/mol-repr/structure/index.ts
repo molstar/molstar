@@ -21,38 +21,38 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 
 export const StructureParams = {
     ...Geometry.Params,
-    colorTheme: PD.SelectParam<ColorThemeName>('Color Theme', '', 'polymer-index', ColorThemeOptions),
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'polymer-index', ColorThemeOptions),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
 }
-export const DefaultStructureProps = PD.paramDefaultValues(StructureParams)
+export const DefaultStructureProps = PD.getDefaultValues(StructureParams)
 export type StructureProps = typeof DefaultStructureProps
 
 export const StructureMeshParams = {
     ...Mesh.Params,
     ...StructureParams,
 }
-export const DefaultStructureMeshProps = PD.paramDefaultValues(StructureMeshParams)
+export const DefaultStructureMeshProps = PD.getDefaultValues(StructureMeshParams)
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
 export const StructurePointsParams = {
     ...Points.Params,
     ...StructureParams,
 }
-export const DefaultStructurePointsProps = PD.paramDefaultValues(StructurePointsParams)
+export const DefaultStructurePointsProps = PD.getDefaultValues(StructurePointsParams)
 export type StructurePointsProps = typeof DefaultStructurePointsProps
 
 export const StructureLinesParams = {
     ...Lines.Params,
     ...StructureParams,
 }
-export const DefaultStructureLinesProps = PD.paramDefaultValues(StructureLinesParams)
+export const DefaultStructureLinesProps = PD.getDefaultValues(StructureLinesParams)
 export type StructureLinesProps = typeof DefaultStructureLinesProps
 
 export const StructureDirectVolumeParams = {
     ...DirectVolume.Params,
     ...StructureParams,
 }
-export const DefaultStructureDirectVolumeProps = PD.paramDefaultValues(StructureDirectVolumeParams)
+export const DefaultStructureDirectVolumeProps = PD.getDefaultValues(StructureDirectVolumeParams)
 export type StructureDirectVolumeProps = typeof DefaultStructureDirectVolumeProps
 
 export { ComplexRepresentation } from './complex-representation'

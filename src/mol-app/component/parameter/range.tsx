@@ -8,7 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface RangeParamComponentProps {
-    param: PD.RangeParam
+    param: PD.Range
     value: number
     onChange(v: number): void
 }

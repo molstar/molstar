@@ -67,12 +67,12 @@ export namespace DirectVolume {
 
     export const Params = {
         ...Geometry.Params,
-        isoValueAbsolute: PD.RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-        isoValueRelative: PD.RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
-        renderMode: PD.SelectParam('Render Mode', '', 'isosurface', RenderModeOptions),
-        controlPoints: PD.TextParam('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
+        isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
+        isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
+        renderMode: PD.Select('Render Mode', '', 'isosurface', RenderModeOptions),
+        controlPoints: PD.Text('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
     }
-    export const DefaultProps = PD.paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<DirectVolumeValues> {

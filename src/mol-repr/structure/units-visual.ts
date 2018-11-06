@@ -39,9 +39,9 @@ function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.Symmetry
 
 const UnitsParams = {
     ...StructureParams,
-    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
+    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
 }
-const DefaultUnitsProps = PD.paramDefaultValues(UnitsParams)
+const DefaultUnitsProps = PD.getDefaultValues(UnitsParams)
 type UnitsProps = typeof DefaultUnitsProps
 
 type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
@@ -205,7 +205,7 @@ export const UnitsMeshParams = {
     ...StructureMeshParams,
     ...UnitsParams,
 }
-export const DefaultUnitsMeshProps = PD.paramDefaultValues(UnitsMeshParams)
+export const DefaultUnitsMeshProps = PD.getDefaultValues(UnitsMeshParams)
 export type UnitsMeshProps = typeof DefaultUnitsMeshProps
 export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> extends UnitsVisualBuilder<P, Mesh> { }
 
@@ -228,7 +228,7 @@ export const UnitsPointsParams = {
     ...StructurePointsParams,
     ...UnitsParams,
 }
-export const DefaultUnitsPointsProps = PD.paramDefaultValues(UnitsPointsParams)
+export const DefaultUnitsPointsProps = PD.getDefaultValues(UnitsPointsParams)
 export type UnitsPointsProps = typeof DefaultUnitsPointsProps
 export interface UnitsPointVisualBuilder<P extends UnitsPointsProps> extends UnitsVisualBuilder<P, Points> { }
 
@@ -251,7 +251,7 @@ export const UnitsLinesParams = {
     ...StructureLinesParams,
     ...UnitsParams,
 }
-export const DefaultUnitsLinesProps = PD.paramDefaultValues(UnitsLinesParams)
+export const DefaultUnitsLinesProps = PD.getDefaultValues(UnitsLinesParams)
 export type UnitsLinesProps = typeof DefaultUnitsLinesProps
 export interface UnitsLinesVisualBuilder<P extends UnitsLinesProps> extends UnitsVisualBuilder<P, Lines> { }
 
@@ -274,7 +274,7 @@ export const UnitsDirectVolumeParams = {
     ...StructureDirectVolumeParams,
     ...UnitsParams,
 }
-export const DefaultUnitsDirectVolumeProps = PD.paramDefaultValues(UnitsDirectVolumeParams)
+export const DefaultUnitsDirectVolumeProps = PD.getDefaultValues(UnitsDirectVolumeParams)
 export type UnitsDirectVolumeProps = typeof DefaultUnitsDirectVolumeProps
 export interface UnitsDirectVolumeVisualBuilder<P extends UnitsDirectVolumeProps> extends UnitsVisualBuilder<P, DirectVolume> { }
 

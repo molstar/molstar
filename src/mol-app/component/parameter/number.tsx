@@ -8,7 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface NumberParamComponentProps {
-    param: PD.NumberParam
+    param: PD.Numeric
     value: number
     onChange(v: number): void
 }

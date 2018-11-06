@@ -93,12 +93,12 @@ export namespace Lines {
 
     export const Params = {
         ...Geometry.Params,
-        lineSizeAttenuation: PD.BooleanParam('Line Size Attenuation', '', false),
-        sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: PD.NumberParam('Size Value', '', 1, 0, 10, 0.1),
-        sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+        lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
+        sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+        sizeValue: PD.Numeric('Size Value', '', 1, 0, 10, 0.1),
+        sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
     }
-    export const DefaultProps = PD.paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<LinesValues> {

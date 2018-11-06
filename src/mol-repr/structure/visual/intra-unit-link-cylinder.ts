@@ -67,11 +67,11 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
 export const IntraUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
 }
-export const DefaultIntraUnitLinkProps = PD.paramDefaultValues(IntraUnitLinkParams)
+export const DefaultIntraUnitLinkProps = PD.getDefaultValues(IntraUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
 
 export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {

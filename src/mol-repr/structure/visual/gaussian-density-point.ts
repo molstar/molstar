@@ -21,11 +21,11 @@ import { VisualContext } from 'mol-repr';
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
     ...GaussianDensityParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    pointSizeAttenuation: PD.BooleanParam('Point Size Attenuation', '', false),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
 }
-export const DefaultGaussianDensityPointProps = PD.paramDefaultValues(GaussianDensityPointParams)
+export const DefaultGaussianDensityPointProps = PD.getDefaultValues(GaussianDensityPointParams)
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
 export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, points?: Points) {

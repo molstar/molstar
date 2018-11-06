@@ -17,15 +17,15 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { VisualContext } from 'mol-repr';
 
 export const LinkCylinderParams = {
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
-    linkScale: PD.RangeParam('Link Scale', '', 0.4, 0, 1, 0.1),
-    linkSpacing: PD.RangeParam('Link Spacing', '', 1, 0, 2, 0.01),
-    linkRadius: PD.RangeParam('Link Radius', '', 0.25, 0, 10, 0.05),
-    radialSegments: PD.NumberParam('Radial Segments', '', 16, 3, 56, 1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
+    linkScale: PD.Range('Link Scale', '', 0.4, 0, 1, 0.1),
+    linkSpacing: PD.Range('Link Spacing', '', 1, 0, 2, 0.01),
+    linkRadius: PD.Range('Link Radius', '', 0.25, 0, 10, 0.05),
+    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
 }
-export const DefaultLinkCylinderProps = PD.paramDefaultValues(LinkCylinderParams)
+export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams)
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps
 
 const tmpShiftV12 = Vec3.zero()

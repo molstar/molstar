@@ -27,9 +27,9 @@ export interface  ComplexVisual<P extends StructureProps> extends Visual<Structu
 
 const ComplexParams = {
     ...StructureParams,
-    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
+    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
 }
-const DefaultComplexProps = PD.paramDefaultValues(ComplexParams)
+const DefaultComplexProps = PD.getDefaultValues(ComplexParams)
 type ComplexProps = typeof DefaultComplexProps
 
 type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
@@ -168,9 +168,9 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
 
 export const ComplexMeshParams = {
     ...StructureMeshParams,
-    unitKinds: PD.MultiSelectParam<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
-export const DefaultComplexMeshProps = PD.paramDefaultValues(ComplexMeshParams)
+export const DefaultComplexMeshProps = PD.getDefaultValues(ComplexMeshParams)
 export type ComplexMeshProps = typeof DefaultComplexMeshProps
 
 export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> extends ComplexVisualBuilder<P, Mesh> { }

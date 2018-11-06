@@ -18,11 +18,11 @@ import { VisualContext } from 'mol-repr';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 3, 0, 20, 0.1),
-    pointSizeAttenuation: PD.BooleanParam('Point Size Attenuation', '', false),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 3, 0, 20, 0.1),
+    pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
 }
-export const DefaultElementPointProps = PD.paramDefaultValues(ElementPointParams)
+export const DefaultElementPointProps = PD.getDefaultValues(ElementPointParams)
 export type ElementPointProps = typeof DefaultElementPointProps
 
 // TODO size

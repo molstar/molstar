@@ -37,7 +37,7 @@ export const GaussianSurfaceParams = {
     ...UnitsMeshParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianSurfaceProps = PD.paramDefaultValues(GaussianSurfaceParams)
+export const DefaultGaussianSurfaceProps = PD.getDefaultValues(GaussianSurfaceParams)
 export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
 
 export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {

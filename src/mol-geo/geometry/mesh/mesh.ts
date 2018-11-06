@@ -339,11 +339,11 @@ export namespace Mesh {
 
     export const Params = {
         ...Geometry.Params,
-        doubleSided: PD.BooleanParam('Double Sided', '', false),
-        flipSided: PD.BooleanParam('Flip Sided', '', false),
-        flatShaded: PD.BooleanParam('Flat Shaded', '', false),
+        doubleSided: PD.Boolean('Double Sided', '', false),
+        flipSided: PD.Boolean('Flip Sided', '', false),
+        flatShaded: PD.Boolean('Flat Shaded', '', false),
     }
-    export const DefaultProps = PD.paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<MeshValues> {

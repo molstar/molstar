@@ -13,7 +13,7 @@ import { Representation } from 'mol-repr';
 export const SpacefillParams = {
     ...ElementSphereParams
 }
-export const DefaultSpacefillProps = PD.paramDefaultValues(SpacefillParams)
+export const DefaultSpacefillProps = PD.getDefaultValues(SpacefillParams)
 export type SpacefillProps = typeof DefaultSpacefillProps
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>

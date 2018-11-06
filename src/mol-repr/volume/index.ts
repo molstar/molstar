@@ -136,10 +136,10 @@ export interface VolumeRepresentation<P extends RepresentationProps = {}> extend
 
 export const VolumeParams = {
     ...Geometry.Params,
-    isoValueAbsolute: PD.RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-    isoValueRelative: PD.RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
+    isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
+    isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
-export const DefaultVolumeProps = PD.paramDefaultValues(VolumeParams)
+export const DefaultVolumeProps = PD.getDefaultValues(VolumeParams)
 export type VolumeProps = typeof DefaultVolumeProps
 
 export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {

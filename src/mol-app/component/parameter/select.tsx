@@ -8,7 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface SelectParamComponentProps<T extends string> {
-    param: PD.SelectParam<T>
+    param: PD.Select<T>
     value: T
     onChange(v: T): void
 }

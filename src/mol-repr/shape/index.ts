@@ -24,9 +24,9 @@ export interface ShapeRepresentation<P extends RepresentationProps = {}> extends
 
 export const ShapeParams = {
     ...Mesh.Params,
-    colorTheme: PD.SelectParam<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
+    colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
 }
-export const DefaultShapeProps = PD.paramDefaultValues(ShapeParams)
+export const DefaultShapeProps = PD.getDefaultValues(ShapeParams)
 export type ShapeProps = typeof DefaultShapeProps
 
 // TODO

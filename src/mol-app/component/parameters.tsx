@@ -21,7 +21,7 @@ interface ParametersProps<P extends PD.Params> {
 
 type ParametersState = {}
 
-function getParamComponent<P extends PD.Param>(p: PD.Param, value: P['defaultValue'], onChange: (v: P['defaultValue']) => void) {
+function getParamComponent<P extends PD.Any>(p: PD.Any, value: P['defaultValue'], onChange: (v: P['defaultValue']) => void) {
     switch (p.type) {
         case 'boolean':
             return <BooleanParamComponent param={p} value={value} onChange={onChange} />

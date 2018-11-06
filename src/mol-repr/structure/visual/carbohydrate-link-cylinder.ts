@@ -64,11 +64,11 @@ async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure:
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    detail: PD.NumberParam('Sphere Detail', '', 0, 0, 3, 1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultCarbohydrateLinkProps = PD.paramDefaultValues(CarbohydrateLinkParams)
+export const DefaultCarbohydrateLinkProps = PD.getDefaultValues(CarbohydrateLinkParams)
 export type CarbohydrateLinkProps = typeof DefaultCarbohydrateLinkProps
 
 export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {

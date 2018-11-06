@@ -35,11 +35,11 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 2, 0, 10, 0.1),
-    lineSizeAttenuation: PD.BooleanParam('Line Size Attenuation', '', false),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 2, 0, 10, 0.1),
+    lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
 }
-export const DefaultGaussianWireframeProps = PD.paramDefaultValues(GaussianWireframeParams)
+export const DefaultGaussianWireframeProps = PD.getDefaultValues(GaussianWireframeParams)
 export type GaussianWireframeProps = typeof DefaultGaussianWireframeProps
 
 export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {

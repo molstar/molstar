@@ -30,10 +30,10 @@ const heightFactor = 6
 const wedge = Wedge()
 
 export const PolymerDirectionWedgeParams = {
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
 }
-export const DefaultPolymerDirectionWedgeProps = PD.paramDefaultValues(PolymerDirectionWedgeParams)
+export const DefaultPolymerDirectionWedgeProps = PD.getDefaultValues(PolymerDirectionWedgeParams)
 export type PolymerDirectionWedgeProps = typeof DefaultPolymerDirectionWedgeProps
 
 async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
@@ -93,7 +93,7 @@ export const PolymerDirectionParams = {
     ...UnitsMeshParams,
     ...PolymerDirectionWedgeParams
 }
-export const DefaultPolymerDirectionProps = PD.paramDefaultValues(PolymerDirectionParams)
+export const DefaultPolymerDirectionProps = PD.getDefaultValues(PolymerDirectionParams)
 export type PolymerDirectionProps = typeof DefaultPolymerDirectionProps
 
 export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {

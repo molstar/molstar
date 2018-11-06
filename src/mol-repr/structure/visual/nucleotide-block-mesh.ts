@@ -114,7 +114,7 @@ async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structu
 export const NucleotideBlockParams = {
     ...UnitsMeshParams
 }
-export const DefaultNucleotideBlockProps = PD.paramDefaultValues(NucleotideBlockParams)
+export const DefaultNucleotideBlockProps = PD.getDefaultValues(NucleotideBlockParams)
 export type NucleotideBlockProps = typeof DefaultNucleotideBlockProps
 
 export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {

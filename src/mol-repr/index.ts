@@ -42,7 +42,7 @@ export namespace Representation {
         for (let i = 0, il = reprList.length; i < il; ++i) {
             visualsOptions.push([ i.toString(), reprList[i].label ])
         }
-        params['visuals'] = PD.MultiSelectParam<string>('Visuals', '', ['surface'], visualsOptions)
+        params['visuals'] = PD.MultiSelect<string>('Visuals', '', ['surface'], visualsOptions)
 
         if (!defaultProps.visuals) {
             defaultProps.visuals = reprList.map((r, i) => i.toString())

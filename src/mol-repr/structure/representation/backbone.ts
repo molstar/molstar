@@ -13,7 +13,7 @@ import { Representation } from 'mol-repr';
 export const BackboneParams = {
     ...PolymerBackboneParams
 }
-export const DefaultBackboneProps = PD.paramDefaultValues(BackboneParams)
+export const DefaultBackboneProps = PD.getDefaultValues(BackboneParams)
 export type BackboneProps = typeof DefaultBackboneProps
 
 export type BackboneRepresentation = StructureRepresentation<BackboneProps>

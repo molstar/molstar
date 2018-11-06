@@ -148,11 +148,11 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
 
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 10, 0.1),
-    detail: PD.NumberParam('Sphere Detail', '', 0, 0, 3, 1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 10, 0.1),
+    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultCarbohydrateSymbolProps = PD.paramDefaultValues(CarbohydrateSymbolParams)
+export const DefaultCarbohydrateSymbolProps = PD.getDefaultValues(CarbohydrateSymbolParams)
 export type CarbohydrateSymbolProps = typeof DefaultCarbohydrateSymbolProps
 
 export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProps> {

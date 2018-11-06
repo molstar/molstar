@@ -55,14 +55,14 @@ export namespace Points {
 
     export const Params = {
         ...Geometry.Params,
-        pointSizeAttenuation: PD.BooleanParam('Point Size Attenuation', '', false),
-        pointFilledCircle: PD.BooleanParam('Point Filled Circle', '', false),
-        pointEdgeBleach: PD.NumberParam('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
-        sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
-        sizeFactor: PD.NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+        pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
+        pointFilledCircle: PD.Boolean('Point Filled Circle', '', false),
+        pointEdgeBleach: PD.Numeric('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
+        sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+        sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+        sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
     }
-    export const DefaultProps = PD.paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<PointsValues> {

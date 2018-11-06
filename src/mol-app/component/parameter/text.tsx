@@ -8,7 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface TextParamComponentProps {
-    param: PD.TextParam
+    param: PD.Text
     value: string
     onChange(v: string): void
 }

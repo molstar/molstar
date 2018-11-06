@@ -42,10 +42,10 @@ export async function createVolumeIsosurface(ctx: VisualContext, volume: VolumeD
 
 export const IsosurfaceParams = {
     ...Mesh.Params,
-    isoValueAbsolute: PD.RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-    isoValueRelative: PD.RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
+    isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
+    isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
-export const DefaultIsosurfaceProps = PD.paramDefaultValues(IsosurfaceParams)
+export const DefaultIsosurfaceProps = PD.getDefaultValues(IsosurfaceParams)
 export type IsosurfaceProps = typeof DefaultIsosurfaceProps
 
 export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {

@@ -59,16 +59,16 @@ export namespace Geometry {
     //
 
     export const Params = {
-        alpha: PD.RangeParam('Opacity', '', 1, 0, 1, 0.01),
-        visible: PD.BooleanParam('Visible', '', true),
-        depthMask: PD.BooleanParam('Depth Mask', '', true),
-        useFog: PD.BooleanParam('Use Fog', '', false),
-        quality: PD.SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
-        colorTheme: PD.SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
-        colorList: PD.SelectParam<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
-        colorValue: PD.ColorParam('Color Value', '', Color(0xCCCCCC)),
+        alpha: PD.Range('Opacity', '', 1, 0, 1, 0.01),
+        visible: PD.Boolean('Visible', '', true),
+        depthMask: PD.Boolean('Depth Mask', '', true),
+        useFog: PD.Boolean('Use Fog', '', false),
+        quality: PD.Select<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
+        colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
+        colorList: PD.Select<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
+        colorValue: PD.Color('Color Value', '', Color(0xCCCCCC)),
     }
-    export const DefaultProps = PD.paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export type Counts = { drawCount: number, groupCount: number, instanceCount: number }

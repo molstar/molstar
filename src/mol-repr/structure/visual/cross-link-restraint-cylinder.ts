@@ -54,10 +54,10 @@ async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structur
 export const CrossLinkRestraintParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
 }
-export const DefaultCrossLinkRestraintProps = PD.paramDefaultValues(CrossLinkRestraintParams)
+export const DefaultCrossLinkRestraintProps = PD.getDefaultValues(CrossLinkRestraintParams)
 export type CrossLinkRestraintProps = typeof DefaultCrossLinkRestraintProps
 
 export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {

@@ -13,10 +13,10 @@ import { Representation } from 'mol-repr';
 
 export const DistanceRestraintParams = {
     ...CrossLinkRestraintParams,
-    sizeTheme: PD.SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.NumberParam('Size Value', '', 0.25, 0, 0.05, 20),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 0.25, 0, 0.05, 20),
 }
-export const DefaultDistanceRestraintProps = PD.paramDefaultValues(DistanceRestraintParams)
+export const DefaultDistanceRestraintProps = PD.getDefaultValues(DistanceRestraintParams)
 export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
 
 export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
