@@ -11,6 +11,7 @@ import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContex
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
+import { Mat4 } from 'mol-math/linear-algebra';
 
 export { ParseModelsFromMmCif }
 namespace ParseModelsFromMmCif { export interface Params { blockHeader?: string } }
@@ -46,7 +47,7 @@ const ParseModelsFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Models,
 });
 
 export { CreateStructureFromModel }
-namespace CreateStructureFromModel { export interface Params { modelIndex: number } }
+namespace CreateStructureFromModel { export interface Params { modelIndex: number, transform3d?: Mat4 } }
 const CreateStructureFromModel = PluginStateTransform.Create<SO.Models, SO.Structure, CreateStructureFromModel.Params>({
     name: 'create-structure-from-model',
     display: {
@@ -59,9 +60,11 @@ const CreateStructureFromModel = PluginStateTransform.Create<SO.Models, SO.Struc
         default: () => ({ modelIndex: 0 }),
         controls: a => ({ modelIndex: PD.Range('Model Index', 'Model Index', 0, 0, Math.max(0, a.data.length - 1), 1) })
     },
+    isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
-        const s = Structure.ofModel(a.data[params.modelIndex]);
+        let s = Structure.ofModel(a.data[params.modelIndex]);
+        if (params.transform3d) s = Structure.transform(s, params.transform3d);
         return new SO.Structure({ label: `Model ${s.models[0].modelNum}`, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` }, s);
     }
 });

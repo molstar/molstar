@@ -21,7 +21,7 @@ import StructureProperties from './properties';
 import { ResidueIndex, ChainIndex, EntityIndex } from '../model/indexing';
 import { Carbohydrates } from './carbohydrates/data';
 import { computeCarbohydrates } from './carbohydrates/compute';
-import { Vec3 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { idFactory } from 'mol-util/id-factory';
 import { GridLookup3D } from 'mol-math/geometry';
 import { UUID } from 'mol-util';
@@ -342,6 +342,20 @@ namespace Structure {
             const elements = SortedArray.ofBounds<ElementIndex>(chainElementSegments.offsets[cI], chainElementSegments.offsets[cI + 1]);
             builder.addUnit(kind, model, SymmetryOperator.Default, elements);
         }
+    }
+
+    export function transform(s: Structure, transform: Mat4) {
+        if (Mat4.isIdentity(transform)) return s;
+        if (!Mat4.isRotationAndTranslation(transform)) throw new Error('Only rotation/translation combination can be applied.');
+
+        const units: Unit[] = [];
+        for (const u of s.units) {
+            const old = u.conformation.operator;
+            const op = SymmetryOperator.create(old.name, transform, old.hkl);
+            units.push(u.applyOperator(u.id, op));
+        }
+
+        return new Structure(units);
     }
 
     export class StructureBuilder {
