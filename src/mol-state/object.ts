@@ -9,7 +9,7 @@ import { Transform } from './transform';
 import { UUID } from 'mol-util';
 
 /** A mutable state object */
-export interface StateObject<P = unknown, D = unknown> {
+export interface StateObject<P = any, D = any> {
     readonly id: UUID,
     readonly type: StateObject.Type,
     readonly props: P,
@@ -45,7 +45,6 @@ export namespace StateObject {
             static is(obj?: StateObject): obj is StateObject<Props, Data> { return !!obj && dataType === obj.type; }
             id = UUID.create();
             type = dataType;
-            ref = 'not set' as Transform.Ref;
             constructor(public props: Props, public data: Data) { }
         }
     }

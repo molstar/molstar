@@ -35,6 +35,15 @@ export class PluginContext {
         }
     }
 
+    /**
+     * This should be used in all transform related request so that it could be "spoofed" to allow
+     * "static" access to resources.
+     */
+    async fetch(url: string, type: 'string' | 'binary' = 'string'): Promise<string | Uint8Array> {
+        const req = await fetch(url);
+        return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
+    }
+
     dispose() {
         if (this.disposed) return;
         this.canvas3d.dispose();

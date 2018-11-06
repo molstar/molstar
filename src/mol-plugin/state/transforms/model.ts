@@ -9,11 +9,17 @@ import { PluginStateObjects as SO } from '../objects';
 import { Task } from 'mol-task';
 import { Model, Format, Structure } from 'mol-model/structure';
 
-export const CreateModelsFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Models, { blockHeader?: string }>({
+export { CreateModelsFromMmCif }
+namespace CreateModelsFromMmCif { export interface Params { blockHeader?: string } }
+const CreateModelsFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Models, CreateModelsFromMmCif.Params>({
     name: 'create-models-from-mmcif',
+    display: {
+        name: 'Models from mmCIF',
+        description: 'Identify and create all separate models in the specified CIF data block'
+    },
     from: [SO.Data.Cif],
     to: [SO.Models],
-    defaultParams: a => ({ blockHeader: a.data.blocks[0].header }),
+    params: { default: a => ({ blockHeader: a.data.blocks[0].header }) },
     apply({ a, params }) {
         return Task.create('Parse mmCIF', async ctx => {
             const header = params.blockHeader || a.data.blocks[0].header;
@@ -27,11 +33,17 @@ export const CreateModelsFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO
     }
 });
 
-export const CreateStructureFromModel = PluginStateTransform.Create<SO.Models, SO.Structure, { modelIndex: number }>({
+export { CreateStructureFromModel }
+namespace CreateStructureFromModel { export interface Params { modelIndex: number } }
+const CreateStructureFromModel = PluginStateTransform.Create<SO.Models, SO.Structure, CreateStructureFromModel.Params>({
     name: 'structure-from-model',
+    display: {
+        name: 'Structure from Model',
+        description: 'Create a molecular structure from the specified model.'
+    },
     from: [SO.Models],
     to: [SO.Structure],
-    defaultParams: () => ({ modelIndex: 0 }),
+    params: { default: () => ({ modelIndex: 0 }) },
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
         // TODO: make Structure.ofModel async?
