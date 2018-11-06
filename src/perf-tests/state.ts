@@ -90,9 +90,9 @@ export async function testState() {
     printTTree(tree1);
     printTTree(tree2);
 
-    const state1 = await State.update(state, tree1).run();
+    await state.update(tree1).run();
     console.log('----------------');
-    console.log(util.inspect(state1.objects, true, 3, true));
+    console.log(util.inspect(state.objects, true, 3, true));
 
     console.log('----------------');
     const jsonString = JSON.stringify(StateTree.toJSON(tree2), null, 2);
@@ -103,13 +103,13 @@ export async function testState() {
     printTTree(treeFromJson);
 
     console.log('----------------');
-    const state2 = await State.update(state1, treeFromJson).run();
-    console.log(util.inspect(state2.objects, true, 3, true));
+    await state.update(treeFromJson).run();
+    console.log(util.inspect(state.objects, true, 3, true));
 
     console.log('----------------');
 
     const q = StateSelection.byRef('square').parent();
-    const sel = StateSelection.select(q, state2);
+    const sel = StateSelection.select(q, state);
     console.log(sel);
 }
 

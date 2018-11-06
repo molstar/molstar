@@ -5,10 +5,10 @@
  */
 
 import * as React from 'react'
-import { BooleanParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface BooleanParamComponentProps {
-    param: BooleanParam
+    param: PD.Boolean
     value: boolean
     onChange(v: boolean): void
 }

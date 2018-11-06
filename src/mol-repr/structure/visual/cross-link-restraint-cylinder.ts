@@ -15,7 +15,7 @@ import { Interval } from 'mol-data/int';
 import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
 import { LinkType } from 'mol-model/structure/model/types';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
@@ -54,10 +54,10 @@ async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structur
 export const CrossLinkRestraintParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
 }
-export const DefaultCrossLinkRestraintProps = paramDefaultValues(CrossLinkRestraintParams)
+export const DefaultCrossLinkRestraintProps = PD.getDefaultValues(CrossLinkRestraintParams)
 export type CrossLinkRestraintProps = typeof DefaultCrossLinkRestraintProps
 
 export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {

@@ -15,7 +15,7 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { BooleanParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 /** Point cloud */
 export interface Points {
@@ -54,11 +54,11 @@ export namespace Points {
 
     export const Params = {
         ...Geometry.Params,
-        pointSizeAttenuation: BooleanParam('Point Size Attenuation', '', false),
-        pointFilledCircle: BooleanParam('Point Filled Circle', '', false),
-        pointEdgeBleach: NumberParam('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
+        pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
+        pointFilledCircle: PD.Boolean('Point Filled Circle', '', false),
+        pointEdgeBleach: PD.Numeric('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
     }
-    export const DefaultProps = paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<PointsValues> {

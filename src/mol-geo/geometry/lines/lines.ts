@@ -17,7 +17,7 @@ import { LocationIterator } from '../../util/location-iterator';
 import { LinesValues } from 'mol-gl/renderable/lines';
 import { Mesh } from '../mesh/mesh';
 import { LinesBuilder } from './lines-builder';
-import { BooleanParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 /** Wide line */
 export interface Lines {
@@ -92,9 +92,9 @@ export namespace Lines {
 
     export const Params = {
         ...Geometry.Params,
-        lineSizeAttenuation: BooleanParam('Line Size Attenuation', '', false),
+        lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
     }
-    export const DefaultProps = paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<LinesValues> {

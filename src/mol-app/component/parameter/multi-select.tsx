@@ -5,10 +5,10 @@
  */
 
 import * as React from 'react'
-import { MultiSelectParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface MultiSelectParamComponentProps<T extends string> {
-    param: MultiSelectParam<T>
+    param: PD.MultiSelect<T>
     value: T[]
     onChange(v: T[]): void
 }

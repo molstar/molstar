@@ -9,7 +9,7 @@ import { VolumeData } from 'mol-model/volume'
 import { VolumeVisual, VolumeRepresentation } from './index';
 import { createMeshRenderObject } from 'mol-gl/render-object';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { paramDefaultValues, RangeParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -42,10 +42,10 @@ export async function createVolumeIsosurface(ctx: VisualContext, volume: VolumeD
 
 export const IsosurfaceParams = {
     ...Mesh.Params,
-    isoValueAbsolute: RangeParam('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-    isoValueRelative: RangeParam('Iso Value Relative', '', 2, -10, 10, 0.1),
+    isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
+    isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
-export const DefaultIsosurfaceProps = paramDefaultValues(IsosurfaceParams)
+export const DefaultIsosurfaceProps = PD.getDefaultValues(IsosurfaceParams)
 export type IsosurfaceProps = typeof DefaultIsosurfaceProps
 
 export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {

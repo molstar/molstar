@@ -7,7 +7,7 @@
 import * as React from 'react'
 import Canvas3D from 'mol-canvas3d/canvas3d';
 import { App } from '../app';
-import { Params } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Representation } from 'mol-repr';
 import { ParametersComponent } from 'mol-app/component/parameters';
 import { ColorTheme } from 'mol-theme/color';
@@ -17,18 +17,18 @@ import { ColorThemeComponent } from 'mol-app/component/color-theme';
 export interface RepresentationComponentProps {
     app: App
     canvas3d: Canvas3D
-    repr: Representation<Params>
+    repr: Representation<PD.Params>
 }
 
 export interface RepresentationComponentState {
     label: string
-    reprParams: Params
+    reprParams: PD.Params
     reprProps: Readonly<{}>
 }
 
 export class RepresentationComponent extends React.Component<RepresentationComponentProps, RepresentationComponentState> {
 
-    private stateFromRepr(repr: Representation<Params>) {
+    private stateFromRepr(repr: Representation<PD.Params>) {
         return {
             label: this.props.repr.label,
             reprParams: this.props.repr.params,

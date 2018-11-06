@@ -9,7 +9,7 @@ import { RuntimeContext } from 'mol-task'
 import { VolumeVisual, VolumeRepresentation } from './index';
 import { createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
 import { WebGLContext } from 'mol-gl/webgl/context';
@@ -187,7 +187,7 @@ export const DirectVolumeParams = {
     ...Geometry.Params,
     ...DirectVolume.Params
 }
-export const DefaultDirectVolumeProps = paramDefaultValues(DirectVolumeParams)
+export const DefaultDirectVolumeProps = PD.getDefaultValues(DirectVolumeParams)
 export type DirectVolumeProps = typeof DefaultDirectVolumeProps
 
 export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {

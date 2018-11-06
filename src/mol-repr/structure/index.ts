@@ -9,7 +9,7 @@ import { Structure } from 'mol-model/structure';
 import { ColorThemeName, ColorThemeOptions } from 'mol-theme/color';
 import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { Representation, RepresentationProps } from '..';
-import { SelectParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Geometry } from 'mol-geo/geometry/geometry';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Points } from 'mol-geo/geometry/points/points';
@@ -21,38 +21,38 @@ export interface StructureRepresentation<P extends RepresentationProps = {}> ext
 
 export const StructureParams = {
     ...Geometry.Params,
-    colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'polymer-index', ColorThemeOptions),
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'polymer-index', ColorThemeOptions),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
 }
-export const DefaultStructureProps = paramDefaultValues(StructureParams)
+export const DefaultStructureProps = PD.getDefaultValues(StructureParams)
 export type StructureProps = typeof DefaultStructureProps
 
 export const StructureMeshParams = {
     ...Mesh.Params,
     ...StructureParams,
 }
-export const DefaultStructureMeshProps = paramDefaultValues(StructureMeshParams)
+export const DefaultStructureMeshProps = PD.getDefaultValues(StructureMeshParams)
 export type StructureMeshProps = typeof DefaultStructureMeshProps
 
 export const StructurePointsParams = {
     ...Points.Params,
     ...StructureParams,
 }
-export const DefaultStructurePointsProps = paramDefaultValues(StructurePointsParams)
+export const DefaultStructurePointsProps = PD.getDefaultValues(StructurePointsParams)
 export type StructurePointsProps = typeof DefaultStructurePointsProps
 
 export const StructureLinesParams = {
     ...Lines.Params,
     ...StructureParams,
 }
-export const DefaultStructureLinesProps = paramDefaultValues(StructureLinesParams)
+export const DefaultStructureLinesProps = PD.getDefaultValues(StructureLinesParams)
 export type StructureLinesProps = typeof DefaultStructureLinesProps
 
 export const StructureDirectVolumeParams = {
     ...DirectVolume.Params,
     ...StructureParams,
 }
-export const DefaultStructureDirectVolumeProps = paramDefaultValues(StructureDirectVolumeParams)
+export const DefaultStructureDirectVolumeProps = PD.getDefaultValues(StructureDirectVolumeParams)
 export type StructureDirectVolumeProps = typeof DefaultStructureDirectVolumeProps
 
 export { ComplexRepresentation } from './complex-representation'

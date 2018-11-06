@@ -6,14 +6,14 @@
 
 import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
 import { UnitsRepresentation } from '../units-representation';
-import { paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StructureRepresentation } from '../index';
 import { Representation } from 'mol-repr';
 
 export const SpacefillParams = {
     ...ElementSphereParams
 }
-export const DefaultSpacefillProps = paramDefaultValues(SpacefillParams)
+export const DefaultSpacefillProps = PD.getDefaultValues(SpacefillParams)
 export type SpacefillProps = typeof DefaultSpacefillProps
 
 export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>

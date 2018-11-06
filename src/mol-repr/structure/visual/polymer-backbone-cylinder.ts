@@ -12,7 +12,7 @@ import { getElementLoci, markElement, StructureElementIterator } from './util/el
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { OrderedSet } from 'mol-data/int';
-import { paramDefaultValues, NumberParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
@@ -21,9 +21,9 @@ import { VisualContext } from 'mol-repr';
 import { Theme } from 'mol-geo/geometry/geometry';
 
 export const PolymerBackboneCylinderParams = {
-    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
+    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
 }
-export const DefaultPolymerBackboneCylinderProps = paramDefaultValues(PolymerBackboneCylinderParams)
+export const DefaultPolymerBackboneCylinderProps = PD.getDefaultValues(PolymerBackboneCylinderParams)
 export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps
 
 async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
@@ -69,7 +69,7 @@ export const PolymerBackboneParams = {
     ...UnitsMeshParams,
     ...PolymerBackboneCylinderParams,
 }
-export const DefaultPolymerBackboneProps = paramDefaultValues(PolymerBackboneParams)
+export const DefaultPolymerBackboneProps = PD.getDefaultValues(PolymerBackboneParams)
 export type PolymerBackboneProps = typeof DefaultPolymerBackboneProps
 
 export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {

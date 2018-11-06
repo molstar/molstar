@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import { Param, Params } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BooleanParamComponent } from './parameter/boolean';
 import { NumberParamComponent } from './parameter/number';
 import { RangeParamComponent } from './parameter/range';
@@ -13,7 +13,7 @@ import { SelectParamComponent } from './parameter/select';
 import { MultiSelectParamComponent } from './parameter/multi-select';
 import { TextParamComponent } from './parameter/text';
 
-interface ParametersProps<P extends Params> {
+interface ParametersProps<P extends PD.Params> {
     params: P
     values: { [k in keyof P]: P[k]['defaultValue'] }
     onChange<K extends keyof P>(k: K, v: P[K]['defaultValue']): void
@@ -21,7 +21,7 @@ interface ParametersProps<P extends Params> {
 
 type ParametersState = {}
 
-function getParamComponent<P extends Param>(p: Param, value: P['defaultValue'], onChange: (v: P['defaultValue']) => void) {
+function getParamComponent<P extends PD.Any>(p: PD.Any, value: P['defaultValue'], onChange: (v: P['defaultValue']) => void) {
     switch (p.type) {
         case 'boolean':
             return <BooleanParamComponent param={p} value={value} onChange={onChange} />
@@ -39,7 +39,7 @@ function getParamComponent<P extends Param>(p: Param, value: P['defaultValue'], 
     return ''
 }
 
-export class ParametersComponent<P extends Params> extends React.Component<ParametersProps<P>, ParametersState> {
+export class ParametersComponent<P extends PD.Params> extends React.Component<ParametersProps<P>, ParametersState> {
     onChange(k: string, value: any) {
         this.props.onChange(k, value)
     }

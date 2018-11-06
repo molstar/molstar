@@ -9,19 +9,19 @@ import { SizeTheme } from 'mol-theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
-import { NumberParam, paramDefaultValues, BooleanParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
 import { Texture } from 'mol-gl/webgl/texture';
 import { WebGLContext } from 'mol-gl/webgl/context';
 
 export const GaussianDensityParams = {
-    resolution: NumberParam('Resolution', '', 1, 0.1, 10, 0.1),
-    radiusOffset: NumberParam('Radius Offset', '', 0, 0, 10, 0.1),
-    smoothness: NumberParam('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
-    useGpu: BooleanParam('Use GPU', '', true),
-    ignoreCache: BooleanParam('Ignore Cache', '', false),
+    resolution: PD.Numeric('Resolution', '', 1, 0.1, 10, 0.1),
+    radiusOffset: PD.Numeric('Radius Offset', '', 0, 0, 10, 0.1),
+    smoothness: PD.Numeric('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
+    useGpu: PD.Boolean('Use GPU', '', true),
+    ignoreCache: PD.Boolean('Ignore Cache', '', false),
 }
-export const DefaultGaussianDensityProps = paramDefaultValues(GaussianDensityParams)
+export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps
 
 function getConformation(unit: Unit) {

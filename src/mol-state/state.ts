@@ -13,23 +13,53 @@ import { StateContext } from './context';
 import { UUID } from 'mol-util';
 import { RuntimeContext, Task } from 'mol-task';
 
-export interface State {
-    tree: StateTree,
-    objects: State.Objects,
-    context: StateContext
-}
+export { State }
 
-export namespace State {
-    export type Ref = Transform.Ref
-    export type Objects = Map<Ref, StateObject.Node>
+class State {
+    private _tree: StateTree = StateTree.create();
+    private transformCache = new Map<Transform.Ref, unknown>();
 
-    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps: unknown }) {
-        const tree = StateTree.create();
-        const objects: Objects = new Map();
+    get tree() { return this._tree; }
+
+    readonly objects: State.Objects = new Map();
+    readonly context: StateContext;
+
+    getSnapshot(): State.Snapshot {
+        throw 'nyi';
+    }
+
+    setSnapshot(snapshot: State.Snapshot): void {
+        throw 'nyi';
+    }
+
+    dispose() {
+        this.context.dispose();
+    }
+
+    update(tree: StateTree): Task<void> {
+        return Task.create('Update Tree', taskCtx => {
+            const oldTree = this._tree;
+            this._tree = tree;
+
+            const ctx: UpdateContext = {
+                stateCtx: this.context,
+                taskCtx,
+                oldTree,
+                tree: tree,
+                objects: this.objects,
+                transformCache: this.transformCache
+            };
+            // TODO: have "cancelled" error? Or would this be handled automatically?
+            return update(ctx);
+        });
+    }
+
+    constructor(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps?: unknown }) {
+        const tree = this._tree;
         const root = tree.getValue(tree.rootRef)!;
         const defaultObjectProps = (params && params.defaultObjectProps) || { }
 
-        objects.set(tree.rootRef, {
+        this.objects.set(tree.rootRef, {
             ref: tree.rootRef,
             obj: rootObject,
             state: StateObject.StateType.Ok,
@@ -37,34 +67,43 @@ export namespace State {
             props: { ...defaultObjectProps }
         });
 
-        return {
-            tree,
-            objects,
-            context: StateContext.create({
-                globalContext: params && params.globalContext,
-                defaultObjectProps
-            })
-        };
+        this.context = new StateContext({
+            globalContext: params && params.globalContext,
+            defaultObjectProps
+        });
+    }
+}
+
+namespace State {
+    export type Objects = Map<Transform.Ref, StateObject.Node>
+
+    export interface Snapshot {
+        readonly tree: StateTree,
+        readonly props: { [key: string]: unknown }
     }
 
-    export function update(state: State, tree: StateTree): Task<State> {
-        return Task.create('Update Tree', taskCtx => {
-            const ctx: UpdateContext = {
-                stateCtx: state.context,
-                taskCtx,
-                oldTree: state.tree,
-                tree: tree,
-                objects: state.objects
-            };
-            return _update(ctx);
-        })
+    export function create(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps?: unknown }) {
+        return new State(rootObject, params);
+    }
+}
+
+    type Ref = Transform.Ref
+
+    interface UpdateContext {
+        stateCtx: StateContext,
+        taskCtx: RuntimeContext,
+        oldTree: StateTree,
+        tree: StateTree,
+        objects: State.Objects,
+        transformCache: Map<Ref, unknown>
     }
 
-    async function _update(ctx: UpdateContext): Promise<State> {
+    async function update(ctx: UpdateContext) {
         const roots = findUpdateRoots(ctx.objects, ctx.tree);
         const deletes = findDeletes(ctx);
         for (const d of deletes) {
             ctx.objects.delete(d);
+            ctx.transformCache.delete(d);
             ctx.stateCtx.events.object.removed.next({ ref: d });
         }
 
@@ -73,23 +112,9 @@ export namespace State {
         for (const root of roots) {
             await updateSubtree(ctx, root);
         }
-
-        return {
-            tree: ctx.tree,
-            objects: ctx.objects,
-            context: ctx.stateCtx
-        };
     }
 
-    interface UpdateContext {
-        stateCtx: StateContext,
-        taskCtx: RuntimeContext,
-        oldTree: StateTree,
-        tree: StateTree,
-        objects: Objects
-    }
-
-    function findUpdateRoots(objects: Objects, tree: StateTree) {
+    function findUpdateRoots(objects: State.Objects, tree: StateTree) {
         const findState = {
             roots: [] as Ref[],
             objects
@@ -154,6 +179,7 @@ export namespace State {
         const wrap = ctx.objects.get(ref)!;
         if (wrap.obj) {
             ctx.stateCtx.events.object.removed.next({ ref });
+            ctx.transformCache.delete(ref);
             wrap.obj = void 0;
         }
 
@@ -165,7 +191,7 @@ export namespace State {
         }
     }
 
-    function findAncestor(tree: StateTree, objects: Objects, root: Ref, types: { type: StateObject.Type }[]): StateObject {
+    function findAncestor(tree: StateTree, objects: State.Objects, root: Ref, types: { type: StateObject.Type }[]): StateObject {
         let current = tree.nodes.get(root)!;
         while (true) {
             current = tree.nodes.get(current.parent)!;
@@ -210,7 +236,7 @@ export namespace State {
         // console.log('parent', transform.transformer.id, transform.transformer.definition.from[0].type, parent ? parent.ref : 'undefined')
         if (!oldTree.nodes.has(currentRef) || !objects.has(currentRef)) {
             // console.log('creating...', transform.transformer.id, oldTree.nodes.has(currentRef), objects.has(currentRef));
-            const obj = await createObject(ctx, transform.transformer, parent, transform.params);
+            const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
             objects.set(currentRef, {
                 ref: currentRef,
                 obj,
@@ -223,9 +249,9 @@ export namespace State {
             // console.log('updating...', transform.transformer.id);
             const current = objects.get(currentRef)!;
             const oldParams = oldTree.getValue(currentRef)!.params;
-            switch (await updateObject(ctx, transform.transformer, parent, current.obj!, oldParams, transform.params)) {
+            switch (await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)) {
                 case Transformer.UpdateResult.Recreate: {
-                    const obj = await createObject(ctx, transform.transformer, parent, transform.params);
+                    const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
                     objects.set(currentRef, {
                         ref: currentRef,
                         obj,
@@ -251,14 +277,20 @@ export namespace State {
         return t as T;
     }
 
-    function createObject(ctx: UpdateContext, transformer: Transformer, a: StateObject, params: any) {
-        return runTask(transformer.definition.apply({ a, params }, ctx.stateCtx.globalContext), ctx.taskCtx);
+    function createObject(ctx: UpdateContext, ref: Ref, transformer: Transformer, a: StateObject, params: any) {
+        const cache = { };
+        ctx.transformCache.set(ref, cache);
+        return runTask(transformer.definition.apply({ a, params, cache }, ctx.stateCtx.globalContext), ctx.taskCtx);
     }
 
-    async function updateObject(ctx: UpdateContext, transformer: Transformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
+    async function updateObject(ctx: UpdateContext, ref: Ref, transformer: Transformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
         if (!transformer.definition.update) {
             return Transformer.UpdateResult.Recreate;
         }
-        return runTask(transformer.definition.update({ a, oldParams, b, newParams }, ctx.stateCtx.globalContext), ctx.taskCtx);
+        let cache = ctx.transformCache.get(ref);
+        if (!cache) {
+            cache = { };
+            ctx.transformCache.set(ref, cache);
+        }
+        return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache }, ctx.stateCtx.globalContext), ctx.taskCtx);
     }
-}

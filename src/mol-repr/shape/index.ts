@@ -12,7 +12,7 @@ import { ValueCell } from 'mol-util';
 import { ColorThemeName, ColorThemeOptions } from 'mol-theme/color';
 import { Shape } from 'mol-model/shape';
 import { OrderedSet, Interval } from 'mol-data/int';
-import { paramDefaultValues, SelectParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { createRenderableState, createTheme } from 'mol-geo/geometry/geometry';
@@ -24,9 +24,9 @@ export interface ShapeRepresentation<P extends RepresentationProps = {}> extends
 
 export const ShapeParams = {
     ...Mesh.Params,
-    colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
+    colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
 }
-export const DefaultShapeProps = paramDefaultValues(ShapeParams)
+export const DefaultShapeProps = PD.getDefaultValues(ShapeParams)
 export type ShapeProps = typeof DefaultShapeProps
 
 // TODO

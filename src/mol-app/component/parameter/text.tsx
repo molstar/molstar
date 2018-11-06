@@ -5,10 +5,10 @@
  */
 
 import * as React from 'react'
-import { TextParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface TextParamComponentProps {
-    param: TextParam
+    param: PD.Text
     value: string
     onChange(v: string): void
 }

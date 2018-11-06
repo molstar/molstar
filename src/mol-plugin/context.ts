@@ -4,29 +4,29 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, StateTree, StateSelection, Transformer } from 'mol-state';
+import { StateTree, StateSelection, Transformer } from 'mol-state';
 import Canvas3D from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
-import { Subject } from 'rxjs';
 import { PluginStateObjects as SO } from './state/objects';
+import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { PluginState } from './state';
+import { MolScriptBuilder } from 'mol-script/language/builder';
 
 export class PluginContext {
-    state = {
-        data: State.create(new SO.Root({ label: 'Root' }, { })),
-        // behaviour: State,
-        // plugin: State
+    private disposed = false;
+    private ev = RxEventHelper.create();
+
+    readonly state = new PluginState(this);
+
+    readonly events = {
+        stateUpdated: this.ev<undefined>()
     };
 
-    // TODO: better events
-    events = {
-        stateUpdated: new Subject<undefined>()
-    };
-
-    canvas3d: Canvas3D;
+    readonly canvas3d: Canvas3D;
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
-            this.canvas3d = Canvas3D.create(canvas, container);
+            (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             this.canvas3d.animate();
             console.log('canvas3d created');
             return true;
@@ -36,13 +36,44 @@ export class PluginContext {
         }
     }
 
+    /**
+     * This should be used in all transform related request so that it could be "spoofed" to allow
+     * "static" access to resources.
+     */
+    async fetch(url: string, type: 'string' | 'binary' = 'string'): Promise<string | Uint8Array> {
+        const req = await fetch(url);
+        return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
+    }
+
+    dispose() {
+        if (this.disposed) return;
+        this.canvas3d.dispose();
+        this.ev.dispose();
+        this.state.dispose();
+        this.disposed = true;
+    }
+
     _test_createState(url: string) {
         const b = StateTree.build(this.state.data.tree);
+
+        const query = MolScriptBuilder.struct.generator.atomGroups({
+            // 'atom-test': MolScriptBuilder.core.rel.eq([
+            //     MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
+            //     MolScriptBuilder.es('C')
+            // ]),
+            'residue-test': MolScriptBuilder.core.rel.eq([
+                MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
+                'ALA'
+            ])
+        });
+
         const newTree = b.toRoot()
             .apply(StateTransforms.Data.Download, { url })
             .apply(StateTransforms.Data.ParseCif)
-            .apply(StateTransforms.Model.CreateModelsFromMmCif, {}, { ref: 'models' })
+            .apply(StateTransforms.Model.ParseModelsFromMmCif, {}, { ref: 'models' })
             .apply(StateTransforms.Model.CreateStructureFromModel, { modelIndex: 0 }, { ref: 'structure' })
+            .apply(StateTransforms.Model.CreateStructureAssembly)
+            .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
             .apply(StateTransforms.Visuals.CreateStructureRepresentation)
             .getTree();
 
@@ -50,9 +81,8 @@ export class PluginContext {
     }
 
     async _test_updateStateData(tree: StateTree) {
-        const newState = await State.update(this.state.data, tree).run(p => console.log(p), 250);
-        this.state.data = newState;
-        console.log(newState);
+        await this.state.data.update(tree).run(p => console.log(p), 250);
+        console.log(this.state.data);
         this.events.stateUpdated.next();
     }
 
@@ -66,7 +96,7 @@ export class PluginContext {
         this.state.data.context.events.object.updated.subscribe(o => {
             const oo = o.obj;
             if (!SO.StructureRepresentation3D.is(oo)) return;
-            console.log('adding repr', oo.data.repr);
+            console.log('updating repr', oo.data.repr);
             this.canvas3d.add(oo.data.repr);
             this.canvas3d.requestDraw(true);
         });

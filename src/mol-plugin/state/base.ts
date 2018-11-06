@@ -11,7 +11,7 @@ export type TypeClass = 'root' | 'data' | 'prop'
 export namespace PluginStateObject {
     export type TypeClass = 'Root' | 'Group' | 'Data' | 'Object' | 'Representation' | 'Behaviour'
     export interface TypeInfo { name: string, shortName: string, description: string, typeClass: TypeClass }
-    export interface Props { label: string, desctiption?: string }
+    export interface Props { label: string, description?: string }
 
     export const Create = StateObject.factory<TypeInfo, Props>();
 }

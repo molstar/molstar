@@ -17,7 +17,7 @@ import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { ComplexMeshParams, ComplexMeshVisual } from '../complex-visual';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ComplexVisual } from '../index';
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -148,11 +148,11 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
 
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 10, 0.1),
-    detail: NumberParam('Sphere Detail', '', 0, 0, 3, 1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 10, 0.1),
+    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultCarbohydrateSymbolProps = paramDefaultValues(CarbohydrateSymbolParams)
+export const DefaultCarbohydrateSymbolProps = PD.getDefaultValues(CarbohydrateSymbolParams)
 export type CarbohydrateSymbolProps = typeof DefaultCarbohydrateSymbolProps
 
 export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProps> {

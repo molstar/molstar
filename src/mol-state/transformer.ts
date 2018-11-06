@@ -7,6 +7,7 @@
 import { Task } from 'mol-task';
 import { StateObject } from './object';
 import { Transform } from './transform';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
     apply(params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
@@ -19,18 +20,22 @@ export namespace Transformer {
     export type Id = string & { '@type': 'transformer-id' }
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
-    export type ControlsFor<Props> = { [P in keyof Props]?: any }
+    export type ControlsFor<A extends StateObject, Props> = { [P in keyof Props]?: PD.Any }
 
     export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
         a: A,
-        params: P
+        params: P,
+        /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
+        cache: unknown
     }
 
     export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
         a: A,
         b: B,
         oldParams: P,
-        newParams: P
+        newParams: P,
+        /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
+        cache: unknown
     }
 
     export enum UpdateResult { Unchanged, Updated, Recreate }
@@ -39,6 +44,7 @@ export namespace Transformer {
         readonly name: string,
         readonly from: { type: StateObject.Type }[],
         readonly to: { type: StateObject.Type }[],
+        readonly display?: { readonly name: string, readonly description?: string },
 
         /**
          * Apply the actual transformation. It must be pure (i.e. with no side effects).
@@ -53,17 +59,16 @@ export namespace Transformer {
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
-        /** Check the parameters and return a list of errors if the are not valid. */
-        defaultParams?(a: A, globalCtx: unknown): P,
-
-        /** Specify default control descriptors for the parameters */
-        defaultControls?(a: A, globalCtx: unknown): Transformer.ControlsFor<P>,
-
-        /** Check the parameters and return a list of errors if the are not valid. */
-        validateParams?(a: A, params: P, globalCtx: unknown): string[] | undefined,
-
-        /** Optional custom parameter equality. Use deep structural equal by default. */
-        areParamsEqual?(oldParams: P, newParams: P): boolean,
+        params?: {
+            /** Check the parameters and return a list of errors if the are not valid. */
+            default?(a: A, globalCtx: unknown): P,
+            /** Specify default control descriptors for the parameters */
+            controls?(a: A, globalCtx: unknown): ControlsFor<A, P>,
+            /** Check the parameters and return a list of errors if the are not valid. */
+            validate?(a: A, params: P, globalCtx: unknown): string[] | undefined,
+            /** Optional custom parameter equality. Use deep structural equal by default. */
+            areEqual?(oldParams: P, newParams: P): boolean
+        }
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,
@@ -75,7 +80,7 @@ export namespace Transformer {
         customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }
     }
 
-    const registry = new Map<Id, Transformer>();
+    const registry = new Map<Id, Transformer<any, any>>();
 
     export function get(id: string): Transformer {
         const t = registry.get(id as Id);

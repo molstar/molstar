@@ -13,7 +13,7 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
 import { Interval } from 'mol-data/int';
 import { BitFlags } from 'mol-util';
-import { paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr';
@@ -53,7 +53,7 @@ export const InterUnitLinkParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
 }
-export const DefaultInterUnitLinkProps = paramDefaultValues(InterUnitLinkParams)
+export const DefaultInterUnitLinkProps = PD.getDefaultValues(InterUnitLinkParams)
 export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps
 
 export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {

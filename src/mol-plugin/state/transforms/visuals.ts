@@ -8,17 +8,19 @@ import { Transformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginStateTransform } from '../base';
 import { PluginStateObjects as SO } from '../objects';
-import { CartoonRepresentation, DefaultCartoonProps } from 'mol-repr/structure/representation/cartoon';
+//import { CartoonRepresentation, DefaultCartoonProps } from 'mol-repr/structure/representation/cartoon';
+import { BallAndStickRepresentation, DefaultBallAndStickProps } from 'mol-repr/structure/representation/ball-and-stick';
 
-export const CreateStructureRepresentation = PluginStateTransform.Create<SO.Structure, SO.StructureRepresentation3D, { }>({
+export { CreateStructureRepresentation }
+namespace CreateStructureRepresentation { export interface Params { } }
+const CreateStructureRepresentation = PluginStateTransform.Create<SO.Structure, SO.StructureRepresentation3D, CreateStructureRepresentation.Params>({
     name: 'create-structure-representation',
     from: [SO.Structure],
     to: [SO.StructureRepresentation3D],
-    defaultParams: () => ({ modelIndex: 0 }),
     apply({ a, params }) {
         return Task.create('Structure Representation', async ctx => {
-            const repr = CartoonRepresentation();
-            await repr.createOrUpdate({ /* TODO add `webgl: WebGLContext` */ }, { ...DefaultCartoonProps }, a.data).runInContext(ctx);
+            const repr = BallAndStickRepresentation(); // CartoonRepresentation();
+            await repr.createOrUpdate({ /* TODO add `webgl: WebGLContext` */ }, DefaultBallAndStickProps, a.data).runInContext(ctx);
             return new SO.StructureRepresentation3D({ label: 'Cartoon' }, { repr });
         });
     },

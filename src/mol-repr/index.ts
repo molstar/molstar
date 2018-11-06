@@ -9,7 +9,7 @@ import { RenderObject } from 'mol-gl/render-object'
 import { PickingId } from '../mol-geo/geometry/picking';
 import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
-import { Params, MultiSelectParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { getQualityProps } from './util';
 import { Theme } from 'mol-geo/geometry/geometry';
@@ -26,7 +26,7 @@ export interface RepresentationContext {
 
 export interface Representation<D, P extends RepresentationProps = {}> {
     readonly label: string
-    readonly params: Params
+    readonly params: PD.Params
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
     createOrUpdate: (ctx: RepresentationContext, props?: Partial<P>, data?: D) => Task<void>
@@ -36,7 +36,7 @@ export interface Representation<D, P extends RepresentationProps = {}> {
 }
 
 export namespace Representation {
-    export function createMulti<D, P extends RepresentationProps = {}>(label: string, params: Params, defaultProps: P, reprList: Representation<D, P>[]): Representation<D, P> {
+    export function createMulti<D, P extends RepresentationProps = {}>(label: string, params: PD.Params, defaultProps: P, reprList: Representation<D, P>[]): Representation<D, P> {
         let currentProps: P
         let currentData: D
 
@@ -44,7 +44,7 @@ export namespace Representation {
         for (let i = 0, il = reprList.length; i < il; ++i) {
             visualsOptions.push([ i.toString(), reprList[i].label ])
         }
-        params['visuals'] = MultiSelectParam<string>('Visuals', '', ['surface'], visualsOptions)
+        params['visuals'] = PD.MultiSelect<string>('Visuals', '', ['surface'], visualsOptions)
 
         if (!defaultProps.visuals) {
             defaultProps.visuals = reprList.map((r, i) => i.toString())

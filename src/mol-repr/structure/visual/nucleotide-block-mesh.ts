@@ -12,7 +12,7 @@ import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-mode
 import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { NucleotideLocationIterator, markNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
-import { paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Box } from 'mol-geo/primitive/box';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
@@ -115,7 +115,7 @@ async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structu
 export const NucleotideBlockParams = {
     ...UnitsMeshParams
 }
-export const DefaultNucleotideBlockProps = paramDefaultValues(NucleotideBlockParams)
+export const DefaultNucleotideBlockProps = PD.getDefaultValues(NucleotideBlockParams)
 export type NucleotideBlockProps = typeof DefaultNucleotideBlockProps
 
 export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {

@@ -5,7 +5,7 @@
  */
 
 import { PolymerBackboneVisual, PolymerBackboneParams } from '../visual/polymer-backbone-cylinder';
-import { paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { StructureRepresentation } from '../index';
 import { Representation } from 'mol-repr';
@@ -13,7 +13,7 @@ import { Representation } from 'mol-repr';
 export const BackboneParams = {
     ...PolymerBackboneParams
 }
-export const DefaultBackboneProps = paramDefaultValues(BackboneParams)
+export const DefaultBackboneProps = PD.getDefaultValues(BackboneParams)
 export type BackboneProps = typeof DefaultBackboneProps
 
 export type BackboneRepresentation = StructureRepresentation<BackboneProps>

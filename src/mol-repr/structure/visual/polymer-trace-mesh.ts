@@ -10,7 +10,7 @@ import { VisualUpdateState } from '../../util';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import {  NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSheet } from 'mol-geo/geometry/mesh/builder/sheet';
@@ -19,12 +19,12 @@ import { VisualContext } from 'mol-repr';
 import { Theme } from 'mol-geo/geometry/geometry';
 
 export const PolymerTraceMeshParams = {
-    linearSegments: NumberParam('Linear Segments', '', 8, 1, 48, 1),
-    radialSegments: NumberParam('Radial Segments', '', 16, 3, 56, 1),
-    aspectRatio: NumberParam('Aspect Ratio', '', 5, 0.1, 5, 0.1),
-    arrowFactor: NumberParam('Arrow Factor', '', 1.5, 0.1, 5, 0.1),
+    linearSegments: PD.Numeric('Linear Segments', '', 8, 1, 48, 1),
+    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
+    aspectRatio: PD.Numeric('Aspect Ratio', '', 5, 0.1, 5, 0.1),
+    arrowFactor: PD.Numeric('Arrow Factor', '', 1.5, 0.1, 5, 0.1),
 }
-export const DefaultPolymerTraceMeshProps = paramDefaultValues(PolymerTraceMeshParams)
+export const DefaultPolymerTraceMeshProps = PD.getDefaultValues(PolymerTraceMeshParams)
 export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
 // TODO handle polymer ends properly
@@ -89,7 +89,7 @@ export const PolymerTraceParams = {
     ...UnitsMeshParams,
     ...PolymerTraceMeshParams
 }
-export const DefaultPolymerTraceProps = paramDefaultValues(PolymerTraceParams)
+export const DefaultPolymerTraceProps = PD.getDefaultValues(PolymerTraceParams)
 export type PolymerTraceProps = typeof DefaultPolymerTraceProps
 
 export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {

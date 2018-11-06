@@ -15,7 +15,7 @@ import { LocationIterator } from '../util/location-iterator';
 import { ColorType, getColorThemeProps } from './color-data';
 import { SizeType, getSizeThemeProps } from './size-data';
 import { Lines } from './lines/lines';
-import { paramDefaultValues, RangeParam, BooleanParam, SelectParam, ColorParam, NumberParam } from 'mol-util/parameter'
+import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { DirectVolume } from './direct-volume/direct-volume';
 import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 
@@ -72,21 +72,21 @@ export namespace Geometry {
     //
 
     export const Params = {
-        alpha: RangeParam('Opacity', '', 1, 0, 1, 0.01),
-        visible: BooleanParam('Visible', '', true),
-        depthMask: BooleanParam('Depth Mask', '', true),
-        useFog: BooleanParam('Use Fog', '', false),
-        quality: SelectParam<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
+        alpha: PD.Range('Opacity', '', 1, 0, 1, 0.01),
+        visible: PD.Boolean('Visible', '', true),
+        depthMask: PD.Boolean('Depth Mask', '', true),
+        useFog: PD.Boolean('Use Fog', '', false),
+        quality: PD.Select<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
 
-        colorTheme: SelectParam<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
-        colorList: SelectParam<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
-        colorValue: ColorParam('Color Value', '', Color(0xCCCCCC)),
+        colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'uniform', ColorThemeOptions),
+        colorList: PD.Select<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
+        colorValue: PD.Color('Color Value', '', Color(0xCCCCCC)),
 
-        sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-        sizeFactor: NumberParam('Size Factor', '', 1, 0, 10, 0.1),
+        sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+        sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+        sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
     }
-    export const DefaultProps = paramDefaultValues(Params)
+    export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
     export type Counts = { drawCount: number, groupCount: number, instanceCount: number }

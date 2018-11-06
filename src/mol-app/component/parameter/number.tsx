@@ -5,10 +5,10 @@
  */
 
 import * as React from 'react'
-import { NumberParam } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface NumberParamComponentProps {
-    param: NumberParam
+    param: PD.Numeric
     value: number
     onChange(v: number): void
 }

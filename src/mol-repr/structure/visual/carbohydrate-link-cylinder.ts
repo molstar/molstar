@@ -14,7 +14,7 @@ import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { LinkType } from 'mol-model/structure/model/types';
 import { BitFlags } from 'mol-util';
 import { UnitsMeshParams } from '../units-visual';
-import { SelectParam, NumberParam, paramDefaultValues } from 'mol-util/parameter';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
@@ -64,11 +64,11 @@ async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure:
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: SelectParam<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: NumberParam('Size Value', '', 1, 0, 20, 0.1),
-    detail: NumberParam('Sphere Detail', '', 0, 0, 3, 1),
+    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultCarbohydrateLinkProps = paramDefaultValues(CarbohydrateLinkParams)
+export const DefaultCarbohydrateLinkProps = PD.getDefaultValues(CarbohydrateLinkParams)
 export type CarbohydrateLinkProps = typeof DefaultCarbohydrateLinkProps
 
 export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkProps> {
