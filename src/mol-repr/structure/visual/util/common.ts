@@ -11,7 +11,7 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { TransformData, createTransform, createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { createRenderableState } from 'mol-geo/geometry/geometry';
+import { createRenderableState, Theme } from 'mol-geo/geometry/geometry';
 import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
@@ -49,16 +49,16 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
 
 type StructureMeshProps = Mesh.Props & StructureProps
 
-export async function createComplexMeshRenderObject(ctx: VisualContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+export async function createComplexMeshRenderObject(ctx: VisualContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: StructureMeshProps) {
     const transform = createIdentityTransform()
-    const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, props)
+    const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
-export async function createUnitsMeshRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, props: StructureMeshProps) {
+export async function createUnitsMeshRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: StructureMeshProps) {
     const transform = createUnitsTransform(group)
-    const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, props)
+    const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
@@ -67,9 +67,9 @@ export async function createUnitsMeshRenderObject(ctx: VisualContext, group: Uni
 
 type StructurePointsProps = Points.Props & StructureProps
 
-export async function createUnitsPointsRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, props: StructurePointsProps) {
+export async function createUnitsPointsRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, theme: Theme, props: StructurePointsProps) {
     const transform = createUnitsTransform(group)
-    const values = await Points.createValues(ctx.runtime, points, transform, locationIt, props)
+    const values = await Points.createValues(ctx.runtime, points, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createPointsRenderObject(values, state)
 }
@@ -78,9 +78,9 @@ export async function createUnitsPointsRenderObject(ctx: VisualContext, group: U
 
 type StructureLinesProps = Lines.Props & StructureProps
 
-export async function createUnitsLinesRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, props: StructureLinesProps) {
+export async function createUnitsLinesRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, theme: Theme, props: StructureLinesProps) {
     const transform = createUnitsTransform(group)
-    const values = await Lines.createValues(ctx.runtime, lines, transform, locationIt, props)
+    const values = await Lines.createValues(ctx.runtime, lines, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createLinesRenderObject(values, state)
 }
@@ -89,9 +89,9 @@ export async function createUnitsLinesRenderObject(ctx: VisualContext, group: Un
 
 type StructureDirectVolumeProps = DirectVolume.Props & StructureProps
 
-export async function createUnitsDirectVolumeRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, props: StructureDirectVolumeProps) {
+export async function createUnitsDirectVolumeRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: StructureDirectVolumeProps) {
     const transform = createUnitsTransform(group)
-    const values = await DirectVolume.createValues(ctx.runtime, directVolume, transform, locationIt, props)
+    const values = await DirectVolume.createValues(ctx.runtime, directVolume, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createDirectVolumeRenderObject(values, state)
 }

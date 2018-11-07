@@ -13,17 +13,17 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { Interval } from 'mol-data/int';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
-async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, props: LinkCylinderProps, mesh?: Mesh) {
+async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
-    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue, factor: props.sizeFactor })
     const location = StructureElement.create(unit)
 
     const elements = unit.elements;
@@ -57,7 +57,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
         flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]]
-            return sizeTheme.size(location)
+            return theme.size.size(location)
         }
     }
 

@@ -5,7 +5,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Vec3, Mat4 } from '../../linear-algebra'
+import { Vec3, Mat4, EPSILON } from '../../linear-algebra'
 import { PositionData } from '../common'
 import { OrderedSet } from 'mol-data/int';
 
@@ -14,6 +14,12 @@ interface Sphere3D { center: Vec3, radius: number }
 namespace Sphere3D {
     export function create(center: Vec3, radius: number): Sphere3D { return { center, radius }; }
     export function zero(): Sphere3D { return { center: Vec3.zero(), radius: 0 }; }
+
+    export function copy(out: Sphere3D, a: Sphere3D) {
+        Vec3.copy(out.center, a.center)
+        out.radius = a.radius
+        return out;
+    }
 
     export function computeBounding(data: PositionData): Sphere3D {
         const { x, y, z, indices } = data;
@@ -49,6 +55,39 @@ namespace Sphere3D {
         Vec3.transformMat4(out.center, sphere.center, m)
         out.radius = sphere.radius * Mat4.getMaxScaleOnAxis(m)
         return out
+    }
+
+    export function toArray(s: Sphere3D, out: Helpers.NumberArray, offset: number) {
+        Vec3.toArray(s.center, out, offset)
+        out[offset + 3] = s.radius
+    }
+
+    export function fromArray(out: Sphere3D, array: Helpers.NumberArray, offset: number) {
+        Vec3.fromArray(out.center, array, offset)
+        out.radius = array[offset + 3]
+        return out
+    }
+
+    export function addSphere(out: Sphere3D, sphere: Sphere3D) {
+        out.radius = Math.max(out.radius, Vec3.distance(out.center, sphere.center) + sphere.radius)
+        return out
+    }
+
+    /**
+     * Returns whether or not the spheres have exactly the same center and radius (when compared with ===)
+     */
+    export function exactEquals(a: Sphere3D, b: Sphere3D) {
+        return a.radius === b.radius && Vec3.exactEquals(a.center, b.center);
+    }
+
+    /**
+     * Returns whether or not the spheres have approximately the same center and radius.
+     */
+    export function equals(a: Sphere3D, b: Sphere3D) {
+        const ar = a.radius;
+        const br = b.radius;
+        return (Math.abs(ar - br) <= EPSILON.Value * Math.max(1.0, Math.abs(ar), Math.abs(br)) &&
+                Vec3.equals(a.center, b.center));
     }
 }
 

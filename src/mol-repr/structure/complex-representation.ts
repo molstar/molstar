@@ -13,17 +13,22 @@ import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { RepresentationContext } from 'mol-repr';
+import { createTheme, Theme } from 'mol-geo/geometry/geometry';
 
 export function ComplexRepresentation<P extends StructureProps>(label: string, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let visual: ComplexVisual<P> | undefined
+    let _structure: Structure
     let _props: P
+    let _theme: Theme
 
     function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, structure?: Structure) {
-        _props = Object.assign({}, _props, props)
+        if (structure) _structure = structure
+        _props = Object.assign({}, _props, props, { structure: _structure })
+        _theme = createTheme(_props)
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
-            await visual.createOrUpdate({ ...ctx, runtime }, _props, structure)
+            await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, structure)
         });
     }
 

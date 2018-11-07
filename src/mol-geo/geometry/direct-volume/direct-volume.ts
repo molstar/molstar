@@ -17,7 +17,9 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
-import { Geometry } from '../geometry';
+import { Geometry, Theme } from '../geometry';
+import { transformPositionArray } from 'mol-geo/util';
+import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -75,16 +77,22 @@ export namespace DirectVolume {
     export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<DirectVolumeValues> {
+    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<DirectVolumeValues> {
         const { gridTexture, gridTextureDim } = directVolume
+        const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume
 
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, props)
+        const color = await createColors(ctx, locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
 
-        const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume
+        const vertices = new Float32Array(VolumeBox.vertices)
+        transformPositionArray(gridTransform.ref.value, vertices, 0, vertices.length / 3)
+        const boundingSphere = calculateBoundingSphere(
+            vertices, vertices.length / 3,
+            transform.aTransform.ref.value, transform.instanceCount.ref.value
+        )
 
         const controlPoints = getControlPointsFromString(props.controlPoints)
         const transferTex = createTransferFunctionTexture(controlPoints)
@@ -99,6 +107,7 @@ export namespace DirectVolume {
 
             aPosition: ValueCell.create(VolumeBox.vertices as Float32Array),
             elements: ValueCell.create(VolumeBox.indices as Uint32Array),
+            boundingSphere: ValueCell.create(boundingSphere),
 
             uIsoValue: ValueCell.create(props.isoValueAbsolute),
             uBboxMin: bboxMin,
@@ -117,6 +126,16 @@ export namespace DirectVolume {
     }
 
     export function updateValues(values: DirectVolumeValues, props: Props) {
+        const vertices = new Float32Array(values.aPosition.ref.value)
+        transformPositionArray(values.uTransform.ref.value, vertices, 0, vertices.length / 3)
+        const boundingSphere = calculateBoundingSphere(
+            vertices, Math.floor(vertices.length / 3),
+            values.aTransform.ref.value, values.instanceCount.ref.value
+        )
+        if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
+            ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+
         ValueCell.updateIfChanged(values.uIsoValue, props.isoValueAbsolute)
         ValueCell.updateIfChanged(values.uAlpha, props.alpha)
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)

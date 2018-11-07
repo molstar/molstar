@@ -14,6 +14,7 @@ import { StructureGroup } from './units-visual';
 import { StructureProps, StructureParams, StructureRepresentation } from './index';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { Theme, createTheme } from 'mol-geo/geometry/geometry';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
@@ -21,11 +22,13 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _props: P
+    let _theme: Theme
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
 
     function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, structure?: Structure) {
-        _props = Object.assign({}, _props, props)
+        _props = Object.assign({}, _props, props, { structure: structure || _structure })
+        _theme = createTheme(_props)
 
         return Task.create('Creating or updating UnitsRepresentation', async runtime => {
             if (!_structure && !structure) {
@@ -37,7 +40,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = visualCtor()
-                    await visual.createOrUpdate({ ...ctx, runtime }, _props, { group, structure })
+                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
                     visuals.set(group.hashCode, { visual, group })
                 }
             } else if (structure && _structure.hashCode !== structure.hashCode) {
@@ -53,13 +56,13 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                     const visualGroup = oldVisuals.get(group.hashCode)
                     if (visualGroup) {
                         const { visual } = visualGroup
-                        await visual.createOrUpdate({ ...ctx, runtime }, _props, { group, structure })
+                        await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
                     } else {
                         // newGroups.push(group)
                         const visual = visualCtor()
-                        await visual.createOrUpdate({ ...ctx, runtime }, _props, { group, structure })
+                        await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                     }
                 }
@@ -85,7 +88,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                     const group = _groups[i];
                     const visualGroup = visuals.get(group.hashCode)
                     if (visualGroup) {
-                        await visualGroup.visual.createOrUpdate({ ...ctx, runtime }, _props, { group, structure })
+                        await visualGroup.visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
                         visualGroup.group = group
                     } else {
                         throw new Error(`expected to find visual for hashCode ${group.hashCode}`)
@@ -98,7 +101,7 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
                 visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]))
                 for (let i = 0, il = visualsList.length; i < il; ++i) {
                     const [ visual, group ] = visualsList[i]
-                    await visual.createOrUpdate({ ...ctx, runtime }, _props, { group, structure: _structure })
+                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure: _structure })
                 }
             }
             if (structure) _structure = structure

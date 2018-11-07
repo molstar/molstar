@@ -40,8 +40,7 @@ export function getSizeThemeProps(props: SizeProps): SizeThemeProps {
     }
 }
 
-export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, props: SizeProps, sizeData?: SizeData): Promise<SizeData> {
-    const sizeTheme = SizeTheme(getSizeThemeProps(props))
+export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, sizeTheme: SizeTheme, sizeData?: SizeData): Promise<SizeData> {
     switch (getGranularity(locationIt, sizeTheme.granularity)) {
         case 'uniform': return createUniformSize(ctx, locationIt, sizeTheme.size, sizeData)
         case 'group': return createGroupSize(ctx, locationIt, sizeTheme.size, sizeData)

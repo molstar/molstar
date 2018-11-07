@@ -6,7 +6,6 @@
 
 import { Vec3 } from 'mol-math/linear-algebra';
 import { LinkType } from 'mol-model/structure/model/types';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { Unit, StructureElement, Structure, Link } from 'mol-model/structure';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -17,9 +16,6 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { VisualContext } from 'mol-repr';
 
 export const LinkCylinderParams = {
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
     linkScale: PD.Range('Link Scale', '', 0.4, 0, 1, 0.1),
     linkSpacing: PD.Range('Link Spacing', '', 1, 0, 2, 0.01),
     linkRadius: PD.Range('Link Radius', '', 0.25, 0, 10, 0.05),

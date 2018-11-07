@@ -24,7 +24,7 @@ export class ColorThemeComponent extends React.Component<ColorThemeComponentProp
     render() {
         const ct = this.props.colorTheme
         return <div>
-            <span>Color Theme </span>
+            <span>Color Theme Info </span>
 
             {ct.description ? <div><i>{ct.description}</i></div> : ''}
             {

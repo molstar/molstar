@@ -10,13 +10,14 @@ import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
 import { MeshValues } from 'mol-gl/renderable';
-import { Geometry } from '../geometry';
+import { Geometry, Theme } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -346,18 +347,24 @@ export namespace Mesh {
     export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<MeshValues> {
+    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<MeshValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, props)
+        const color = await createColors(ctx, locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
+
+        const boundingSphere = calculateBoundingSphere(
+            mesh.vertexBuffer.ref.value, mesh.vertexCount,
+            transform.aTransform.ref.value, transform.instanceCount.ref.value
+        )
 
         return {
             aPosition: mesh.vertexBuffer,
             aNormal: mesh.normalBuffer,
             aGroup: mesh.groupBuffer,
             elements: mesh.indexBuffer,
+            boundingSphere: ValueCell.create(boundingSphere),
             ...color,
             ...marker,
             ...transform,
@@ -370,6 +377,14 @@ export namespace Mesh {
     }
 
     export function updateValues(values: MeshValues, props: Props) {
+        const boundingSphere = calculateBoundingSphere(
+            values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
+            values.aTransform.ref.value, values.instanceCount.ref.value
+        )
+        if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
+            ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+
         Geometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)

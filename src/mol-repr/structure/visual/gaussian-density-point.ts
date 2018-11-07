@@ -17,6 +17,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
@@ -28,7 +29,7 @@ export const GaussianDensityPointParams = {
 export const DefaultGaussianDensityPointProps = PD.getDefaultValues(GaussianDensityPointParams)
 export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
 
-export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, points?: Points) {
+export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, points?: Points) {
     const { transform, field: { space, data } } = await unit.computeGaussianDensity(props, ctx.runtime, ctx.webgl)
 
     const { dimensions, get } = space

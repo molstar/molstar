@@ -11,6 +11,8 @@ import { Loci, isEmptyLoci, EmptyLoci } from 'mol-model/loci';
 import { MarkerAction } from '../mol-geo/geometry/marker-data';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { WebGLContext } from 'mol-gl/webgl/context';
+import { getQualityProps } from './util';
+import { Theme } from 'mol-geo/geometry/geometry';
 // import { ColorTheme } from 'mol-theme/color';
 
 // export interface RepresentationProps {
@@ -68,9 +70,8 @@ export namespace Representation {
             },
             createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, data?: D) => {
                 if (data) currentData = data
-                // const qualityProps = getQualityProps(Object.assign({}, currentProps, props), structure)
-                // currentProps = Object.assign({}, DefaultCartoonProps, currentProps, props, qualityProps)
-                currentProps = Object.assign({}, defaultProps, currentProps, props)
+                const qualityProps = getQualityProps(Object.assign({}, currentProps, props), data)
+                currentProps = Object.assign({}, defaultProps, currentProps, props, qualityProps)
 
                 const { visuals } = currentProps
                 return Task.create(`Creating '${label}' representation`, async runtime => {
@@ -108,13 +109,11 @@ export namespace Representation {
 
 export interface VisualContext extends RepresentationContext {
     runtime: RuntimeContext,
-    // TODO
-    // colorTheme: ColorTheme,
 }
 
 export interface Visual<D, P extends RepresentationProps> {
     readonly renderObject: RenderObject | undefined
-    createOrUpdate: (ctx: VisualContext, props?: Partial<P>, data?: D) => Promise<void>
+    createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<P>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void

@@ -15,7 +15,7 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { createRenderableState } from 'mol-geo/geometry/geometry';
+import { createRenderableState, createTheme } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
@@ -49,9 +49,10 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
 
             const mesh = _shape.mesh
             const locationIt = ShapeGroupIterator.fromShape(_shape)
+            const theme = createTheme(currentProps)
             const transform = createIdentityTransform()
 
-            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, currentProps)
+            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, theme, currentProps)
             const state = createRenderableState(currentProps)
 
             _renderObject = createMeshRenderObject(values, state)

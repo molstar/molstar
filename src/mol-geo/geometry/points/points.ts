@@ -7,7 +7,7 @@
 import { ValueCell } from 'mol-util'
 import { Mat4 } from 'mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
-import { Geometry } from '../geometry';
+import { Geometry, Theme } from '../geometry';
 import { PointsValues } from 'mol-gl/renderable';
 import { RuntimeContext } from 'mol-task';
 import { createColors } from '../color-data';
@@ -15,8 +15,9 @@ import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { calculateBoundingSphere } from 'mol-gl/renderable/util';
+import { Sphere3D } from 'mol-math/geometry';
 
 /** Point cloud */
 export interface Points {
@@ -58,24 +59,27 @@ export namespace Points {
         pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
         pointFilledCircle: PD.Boolean('Point Filled Circle', '', false),
         pointEdgeBleach: PD.Numeric('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
-        sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-        sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
-        sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
     }
     export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps
 
-    export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, props: Props): Promise<PointsValues> {
+    export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<PointsValues> {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, props)
-        const size = await createSizes(ctx, locationIt, props)
+        const color = await createColors(ctx, locationIt, theme.color)
+        const size = await createSizes(ctx, locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: points.pointCount, groupCount, instanceCount }
 
+        const boundingSphere = calculateBoundingSphere(
+            points.centerBuffer.ref.value, points.pointCount,
+            transform.aTransform.ref.value, transform.instanceCount.ref.value
+        )
+
         return {
             aPosition: points.centerBuffer,
             aGroup: points.groupBuffer,
+            boundingSphere: ValueCell.create(boundingSphere),
             ...color,
             ...size,
             ...marker,
@@ -89,6 +93,14 @@ export namespace Points {
     }
 
     export function updateValues(values: PointsValues, props: Props) {
+        const boundingSphere = calculateBoundingSphere(
+            values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
+            values.aTransform.ref.value, values.instanceCount.ref.value
+        )
+        if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
+            ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+
         Geometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
         ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle)

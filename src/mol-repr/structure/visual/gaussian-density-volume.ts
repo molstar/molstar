@@ -13,8 +13,9 @@ import { GaussianDensityProps, GaussianDensityParams, computeUnitGaussianDensity
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
-async function createGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
+async function createGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx
     if (webgl === undefined) throw new Error('createGaussianDensityVolume requires `webgl` object in VisualContext')
 

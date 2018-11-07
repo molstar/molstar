@@ -13,7 +13,7 @@ import { DiamondPrism, PentagonalPrism, HexagonalPrism } from 'mol-geo/primitive
 import { Structure, StructureElement } from 'mol-model/structure';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
+import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { ComplexMeshParams, ComplexMeshVisual } from '../complex-visual';
@@ -25,6 +25,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -44,10 +45,9 @@ const diamondPrism = DiamondPrism()
 const pentagonalPrism = PentagonalPrism()
 const hexagonalPrism = HexagonalPrism()
 
-async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, props: CarbohydrateSymbolProps, mesh?: Mesh) {
+async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: CarbohydrateSymbolProps, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
-    const sizeTheme = SizeTheme({ name: props.sizeTheme, value: props.sizeValue })
     const { detail } = props
 
     const carbohydrates = structure.carbohydrates
@@ -60,7 +60,7 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
 
         l.unit = c.unit
         l.element = c.unit.elements[c.anomericCarbon]
-        const size = sizeTheme.size(l)
+        const size = theme.size.size(l)
         const radius = size * radiusFactor
         const side = size * sideFactor
 

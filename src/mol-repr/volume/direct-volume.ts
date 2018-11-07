@@ -17,7 +17,7 @@ import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Geometry, createRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry, createRenderableState, Theme } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
@@ -198,9 +198,9 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
         mark: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: DirectVolumeProps, currentProps: DirectVolumeProps) => {
         },
-        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, props: DirectVolumeProps) => {
+        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: DirectVolumeProps) => {
             const transform = createIdentityTransform()
-            const values = await DirectVolume.createValues(ctx.runtime, geometry, transform, locationIt, props)
+            const values = await DirectVolume.createValues(ctx.runtime, geometry, transform, locationIt, theme, props)
             const state = createRenderableState(props)
             return createDirectVolumeRenderObject(values, state)
         },

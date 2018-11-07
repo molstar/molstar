@@ -63,6 +63,7 @@ interface Canvas3D {
     readonly camera: CombinedCamera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
+    setProps: (props: Partial<Canvas3DProps>) => void
 
     /** Returns a copy of the current Canvas3D instance props */
     readonly props: Canvas3DProps
@@ -341,6 +342,15 @@ namespace Canvas3D {
             reprCount,
             identified,
             didDraw,
+            setProps: (props: Partial<Canvas3DProps>) => {
+                if (props.cameraMode !== undefined && props.cameraMode !== camera.mode) {
+                    camera.mode = props.cameraMode
+                }
+                if (props.backgroundColor !== undefined && props.backgroundColor !== renderer.props.clearColor) {
+                    renderer.setClearColor(props.backgroundColor)
+                }
+                requestDraw(true)
+            },
 
             get props() {
                 return {

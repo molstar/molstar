@@ -49,7 +49,7 @@ export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { list: true, domain: true },
+        features: { list: true, domain: true, structure: true },
         granularity: 'group',
         color,
         description: Description,

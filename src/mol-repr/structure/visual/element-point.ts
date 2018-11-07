@@ -15,6 +15,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
 import { VisualContext } from 'mol-repr';
+import { Theme } from 'mol-geo/geometry/geometry';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
@@ -27,7 +28,7 @@ export type ElementPointProps = typeof DefaultElementPointProps
 
 // TODO size
 
-export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, props: ElementPointProps, points: Points) {
+export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementPointProps, points: Points) {
     const elements = unit.elements
     const n = elements.length
     const builder = PointsBuilder.create(n, n / 10, points)

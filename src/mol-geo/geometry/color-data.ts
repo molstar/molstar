@@ -56,8 +56,7 @@ export function getColorThemeProps(props: ColorProps): ColorThemeProps {
     return p
 }
 
-export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, props: ColorProps, colorData?: ColorData): Promise<ColorData> {
-    const colorTheme = ColorTheme(getColorThemeProps(props))
+export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, colorTheme: ColorTheme, colorData?: ColorData): Promise<ColorData> {
     switch (getGranularity(locationIt, colorTheme.granularity)) {
         case 'uniform': return createUniformColor(ctx, locationIt, colorTheme.color, colorData)
         case 'group': return createGroupColor(ctx, locationIt, colorTheme.color, colorData)

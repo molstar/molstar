@@ -14,11 +14,11 @@ const Description = 'Gives every unit (single chain or collection of single elem
 
 export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
     let color: LocationColor
-    let scale: ColorScale | undefined = undefined
+    const scale = ColorScale.create({ list: props.list, minLabel: 'Start', maxLabel: 'End' })
 
     if (props.structure) {
         const { units } = props.structure
-        scale = ColorScale.create({ domain: [ 0, units.length - 1 ] })
+        scale.setDomain(0, units.length - 1)
         const unitIdColor = new Map<number, Color>()
         for (let i = 0, il = units.length; i <il; ++i) {
             unitIdColor.set(units[i].id, scale.color(i))
@@ -37,7 +37,7 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: {},
+        features: { structure: true, list: true },
         granularity: 'instance',
         color,
         description: Description,
