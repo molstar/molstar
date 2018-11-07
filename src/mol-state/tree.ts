@@ -54,7 +54,10 @@ namespace StateTree {
             private state: State;
             to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref, this); }
             toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.rootRef as any, this); }
-            delete(ref: Transform.Ref) { this.state.tree.remove(ref); return this; }
+            delete(ref: Transform.Ref) {
+                this.state.tree.remove(ref);
+                return this;
+            }
             getTree(): StateTree { return this.state.tree.asImmutable(); }
             constructor(tree: StateTree) { this.state = { tree: ImmutableTree.asTransient(tree) } }
         }

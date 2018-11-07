@@ -18,7 +18,7 @@ export class Controls extends React.Component<{ plugin: PluginContext }, { id: s
         this.props.plugin._test_createState(url);
     }
 
-    private _snap:any = void 0;
+    private _snap: any = void 0;
     private getSnapshot = () => {
         this._snap = this.props.plugin.state.getSnapshot();
         console.log(btoa(JSON.stringify(this._snap)));
@@ -82,7 +82,9 @@ export class _test_CreateTransform extends React.Component<{ plugin: PluginConte
 
         return <div key={`${this.props.nodeRef} ${this.props.transformer.id}`}>
             <div style={{ borderBottom: '1px solid #999'}}>{(t.definition.display && t.definition.display.name) || t.definition.name}</div>
-            <ParametersComponent params={this.getParamDef()} values={this.state.params as any} onChange={params => this.setState({ params })} />
+            <ParametersComponent params={this.getParamDef()} values={this.state.params as any} onChange={(k, v) => {
+                this.setState({ params: { ...this.state.params, [k]: v } });
+            }} />
             <button onClick={() => this.create()} style={{ width: '100%' }}>Create</button>
         </div>
     }

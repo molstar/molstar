@@ -41,10 +41,10 @@ class State {
         };
     }
 
-    setSnapshot(snapshot: State.Snapshot): void {
+    setSnapshot(snapshot: State.Snapshot) {
         const tree = StateTree.fromJSON(snapshot.tree);
         // TODO: support props and async
-        this.update(tree).run();
+        return this.update(tree).run();
     }
 
     setCurrent(ref: Transform.Ref) {

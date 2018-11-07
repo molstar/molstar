@@ -79,6 +79,7 @@ export class PluginContext {
         const tree = StateTree.build(this.state.behavior.tree)
             .toRoot().apply(PluginBehaviors.Data.SetCurrentObject)
             .and().toRoot().apply(PluginBehaviors.Data.Update)
+            .and().toRoot().apply(PluginBehaviors.Data.RemoveObject)
             .and().toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas)
             .getTree();
 

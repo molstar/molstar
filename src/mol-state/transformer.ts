@@ -133,6 +133,7 @@ export namespace Transformer {
         name: 'root',
         from: [],
         to: [],
-        apply() { throw new Error('should never be applied'); }
+        apply() { throw new Error('should never be applied'); },
+        update() { return UpdateResult.Unchanged; }
     })
 }

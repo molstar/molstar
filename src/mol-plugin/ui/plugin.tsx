@@ -15,7 +15,7 @@ import { Transformer } from 'mol-state';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, { }> {
     render() {
-        return <div style={{ position: 'absolute', width: '100%', height: '100%' }}>
+        return <div style={{ position: 'absolute', width: '100%', height: '100%', fontFamily: 'monospace' }}>
             <div style={{ position: 'absolute', width: '350px', height: '100%', overflowY: 'scroll' }}>
                 <StateTree plugin={this.props.plugin} />
                 <hr />

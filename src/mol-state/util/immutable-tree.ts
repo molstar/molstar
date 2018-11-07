@@ -219,11 +219,11 @@ export namespace ImmutableTree {
         }
 
         remove<T>(ref: ImmutableTree.Ref): Node<T>[] {
-            const { nodes, mutations, mutate } = this;
+            const { nodes, mutations } = this;
             const node = nodes.get(ref);
             if (!node) return [];
             const parent = nodes.get(node.parent)!;
-            const children = mutate(parent.ref).children;
+            const children = this.mutate(parent.ref).children;
             const st = subtreePostOrder(this, node);
             if (ref !== this.rootRef) children.delete(ref);
             for (const n of st) {
@@ -234,10 +234,10 @@ export namespace ImmutableTree {
         }
 
         removeChildren(ref: ImmutableTree.Ref): Node<T>[] {
-            const { nodes, mutations, mutate } = this;
+            const { nodes, mutations } = this;
             let node = nodes.get(ref);
             if (!node || !node.children.size) return [];
-            node = mutate(ref);
+            node = this.mutate(ref);
             const st = subtreePostOrder(this, node);
             node.children.clear();
             for (const n of st) {

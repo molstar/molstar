@@ -24,9 +24,9 @@ class PluginState {
         };
     }
 
-    setSnapshot(snapshot: PluginState.Snapshot) {
-        this.behavior.setSnapshot(snapshot.behaviour);
-        this.data.setSnapshot(snapshot.data);
+    async setSnapshot(snapshot: PluginState.Snapshot) {
+        await this.behavior.setSnapshot(snapshot.behaviour);
+        await this.data.setSnapshot(snapshot.data);
 
         // TODO: handle camera
         // console.log({ old: { ...this.plugin.canvas3d.camera  }, new: snapshot.canvas3d.camera });
@@ -34,7 +34,7 @@ class PluginState {
         // CombinedCamera.update(this.plugin.canvas3d.camera);
         // this.plugin.canvas3d.center
         // console.log({ copied: { ...this.plugin.canvas3d.camera  } });
-        // this.plugin.canvas3d.requestDraw(true);
+        this.plugin.canvas3d.requestDraw(true);
         // console.log('updated camera');
     }
 

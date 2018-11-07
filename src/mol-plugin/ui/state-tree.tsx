@@ -34,15 +34,18 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             </div>;
         }
         const props = obj.obj!.props as PluginStateObject.Props;
-        return <div style={{ borderLeft: '1px solid black', paddingLeft: '5px' }}>
-            <a href='#' onClick={e => {
+        const type = obj.obj!.type.info as PluginStateObject.TypeInfo;
+        return <div style={{ borderLeft: '1px solid #999', paddingLeft: '7px' }}>
+            [<a href='#' onClick={e => {
+                e.preventDefault();
+                PluginCommands.Data.RemoveObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
+            }}>X</a>][<span title={type.description}>{ type.shortName }</span>] <a href='#' onClick={e => {
                 e.preventDefault();
                 PluginCommands.Data.SetCurrentObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
-            }}>{props.label}</a>
-            {props.description ? <small>{props.description}</small> : void 0}
+            }}>{props.label}</a> {props.description ? <small>{props.description}</small> : void 0}
             {n.children.size === 0
                 ? void 0
-                : <div style={{ marginLeft: '10px' }}>{n.children.map(c => <StateTreeNode plugin={this.props.plugin} nodeRef={c!} key={c} />)}</div>
+                : <div style={{ marginLeft: '3px' }}>{n.children.map(c => <StateTreeNode plugin={this.props.plugin} nodeRef={c!} key={c} />)}</div>
             }
         </div>;
     }
