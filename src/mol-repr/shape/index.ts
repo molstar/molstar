@@ -69,7 +69,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
         getLoci(pickingId: PickingId) {
             const { objectId, groupId } = pickingId
             if (_renderObject && _renderObject.id === objectId) {
-                return Shape.Loci([ { shape: _shape, ids: OrderedSet.ofSingleton(groupId) } ])
+                return Shape.Loci(_shape, [{ ids: OrderedSet.ofSingleton(groupId) }])
             }
             return EmptyLoci
         },

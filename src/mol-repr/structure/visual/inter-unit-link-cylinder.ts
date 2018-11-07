@@ -73,7 +73,7 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
         const bond = structure.links.bonds[groupId]
-        return Link.Loci([
+        return Link.Loci(structure, [
             Link.Location(
                 bond.unitA, bond.indexA as StructureElement.UnitIndex,
                 bond.unitB, bond.indexB as StructureElement.UnitIndex
@@ -85,12 +85,11 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
 
 function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (Link.isLoci(loci)) {
-        for (const b of loci.links) {
-            const idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
-            if (idx !== -1) {
-                if (apply(Interval.ofSingleton(idx))) changed = true
-            }
+    if (!Link.isLoci(loci)) return false
+    for (const b of loci.links) {
+        const idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
+        if (idx !== -1) {
+            if (apply(Interval.ofSingleton(idx))) changed = true
         }
     }
     return changed

@@ -55,14 +55,14 @@ export namespace Shape {
 
     export interface Loci {
         readonly kind: 'group-loci',
+        readonly shape: Shape,
         readonly groups: ReadonlyArray<{
-            shape: Shape,
             ids: OrderedSet<number>
         }>
     }
 
-    export function Loci(groups: ArrayLike<{ shape: Shape, ids: OrderedSet<number> }>): Loci {
-        return { kind: 'group-loci', groups: groups as Loci['groups'] };
+    export function Loci(shape: Shape, groups: ArrayLike<{ ids: OrderedSet<number> }>): Loci {
+        return { kind: 'group-loci', shape, groups: groups as Loci['groups'] };
     }
 
     export function isLoci(x: any): x is Loci {
@@ -70,11 +70,11 @@ export namespace Shape {
     }
 
     export function areLociEqual(a: Loci, b: Loci) {
+        if (a.shape !== b.shape) return false
         if (a.groups.length !== b.groups.length) return false
         for (let i = 0, il = a.groups.length; i < il; ++i) {
             const groupA = a.groups[i]
             const groupB = b.groups[i]
-            if (groupA.shape.id !== groupB.shape.id) return false
             if (!OrderedSet.areEqual(groupA.ids, groupB.ids)) return false
         }
         return true

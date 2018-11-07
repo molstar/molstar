@@ -10,6 +10,7 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
+import { StructureGroup } from 'mol-repr/structure/units-visual';
 
 export namespace NucleotideLocationIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
@@ -28,41 +29,44 @@ export namespace NucleotideLocationIterator {
     }
 }
 
-export function getNucleotideElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
+export function getNucleotideElementLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
+        const { structure, group } = structureGroup
         const unit = group.units[instanceId]
         if (Unit.isAtomic(unit)) {
             const unitIndex = OrderedSet.indexOf(unit.elements, unit.nucleotideElements[groupId]) as StructureElement.UnitIndex
             if (unitIndex !== -1) {
                 const indices = OrderedSet.ofSingleton(unitIndex)
-                return StructureElement.Loci([{ unit, indices }])
+                return StructureElement.Loci(structure, [{ unit, indices }])
             }
         }
     }
     return EmptyLoci
 }
 
-export function markNucleotideElement(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
+export function markNucleotideElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    const u = group.units[0]
-    if (StructureElement.isLoci(loci) && Unit.isAtomic(u)) {
-        const groupCount = u.nucleotideElements.length
-        for (const e of loci.elements) {
-            const unitIdx = group.unitIndexMap.get(e.unit.id)
-            if (unitIdx !== undefined && Unit.isAtomic(e.unit)) {
-                if (Interval.is(e.indices)) {
-                    const min = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.min(e.indices)])
-                    const max = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.max(e.indices)])
-                    if (min !== -1 && max !== -1) {
-                        if (apply(Interval.ofRange(unitIdx * groupCount + min, unitIdx * groupCount + max))) changed = true
-                    }
-                } else {
-                    for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                        const idx = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[e.indices[i]])
-                        if (idx !== -1) {
-                            if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
-                        }
+    if (!StructureElement.isLoci(loci)) return false
+    const { structure, group } = structureGroup
+    if (loci.structure !== structure) return false
+    const unit = group.units[0]
+    if (!Unit.isAtomic(unit)) return false
+    const groupCount = unit.nucleotideElements.length
+    for (const e of loci.elements) {
+        const unitIdx = group.unitIndexMap.get(e.unit.id)
+        if (unitIdx !== undefined && Unit.isAtomic(e.unit)) {
+            if (Interval.is(e.indices)) {
+                const min = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.min(e.indices)])
+                const max = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.max(e.indices)])
+                if (min !== -1 && max !== -1) {
+                    if (apply(Interval.ofRange(unitIdx * groupCount + min, unitIdx * groupCount + max))) changed = true
+                }
+            } else {
+                for (let i = 0, _i = e.indices.length; i < _i; i++) {
+                    const idx = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[e.indices[i]])
+                    if (idx !== -1) {
+                        if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                     }
                 }
             }

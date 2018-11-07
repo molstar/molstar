@@ -114,7 +114,7 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
         const indexA = OrderedSet.indexOf(carbA.unit.elements, carbA.anomericCarbon)
         const indexB = OrderedSet.indexOf(carbB.unit.elements, carbB.anomericCarbon)
         if (indexA !== -1 && indexB !== -1) {
-            return Link.Loci([
+            return Link.Loci(structure, [
                 Link.Location(
                     carbA.unit, indexA as StructureElement.UnitIndex,
                     carbB.unit, indexB as StructureElement.UnitIndex

@@ -50,8 +50,8 @@ interface UnitsVisualBuilder<P extends UnitsProps, G extends Geometry> {
     defaultProps: P
     createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: P, geometry?: G): Promise<G>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
-    getLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number): Loci
-    mark(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean): boolean
+    getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
+    mark(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
     setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
 }
 
@@ -168,7 +168,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
             }
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, currentGroup, renderObject.id) : EmptyLoci
+            return renderObject ? getLoci(pickingId, { structure: currentStructure, group: currentGroup }, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             if (!renderObject) return false
@@ -185,7 +185,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
             if (isEveryLoci(loci)) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
-                changed = mark(loci, currentGroup, apply)
+                changed = mark(loci, { structure: currentStructure, group: currentGroup }, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)

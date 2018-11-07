@@ -41,11 +41,12 @@ namespace Link {
 
     export interface Loci {
         readonly kind: 'link-loci',
+        readonly structure: Structure
         readonly links: ReadonlyArray<Location>
     }
 
-    export function Loci(links: ArrayLike<Location>): Loci {
-        return { kind: 'link-loci', links: links as Loci['links'] };
+    export function Loci(structure: Structure, links: ArrayLike<Location>): Loci {
+        return { kind: 'link-loci', structure, links: links as Loci['links'] };
     }
 
     export function isLoci(x: any): x is Loci {

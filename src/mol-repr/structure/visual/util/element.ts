@@ -16,6 +16,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { VisualContext } from 'mol-repr';
 import { Theme } from 'mol-geo/geometry/geometry';
+import { StructureGroup } from 'mol-repr/structure/units-visual';
 
 export interface ElementSphereMeshProps {
     detail: number,
@@ -49,23 +50,23 @@ export async function createElementSphereMesh(ctx: VisualContext, unit: Unit, st
     return meshBuilder.getMesh()
 }
 
-export function markElement(loci: Loci, group: Unit.SymmetryGroup, apply: (interval: Interval) => boolean) {
-    const elementCount = group.elements.length
-
+export function markElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (StructureElement.isLoci(loci)) {
-        for (const e of loci.elements) {
-            const unitIdx = group.unitIndexMap.get(e.unit.id)
-            if (unitIdx !== undefined) {
-                if (Interval.is(e.indices)) {
-                    const start = unitIdx * elementCount + Interval.start(e.indices);
-                    const end = unitIdx * elementCount + Interval.end(e.indices);
-                    if (apply(Interval.ofBounds(start, end))) changed = true
-                } else {
-                    for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                        const idx = unitIdx * elementCount + e.indices[i];
-                        if (apply(Interval.ofSingleton(idx))) changed = true
-                    }
+    if (!StructureElement.isLoci(loci)) return false
+    const { structure, group } = structureGroup
+    if (loci.structure !== structure) return false
+    const elementCount = group.elements.length
+    for (const e of loci.elements) {
+        const unitIdx = group.unitIndexMap.get(e.unit.id)
+        if (unitIdx !== undefined) {
+            if (Interval.is(e.indices)) {
+                const start = unitIdx * elementCount + Interval.start(e.indices);
+                const end = unitIdx * elementCount + Interval.end(e.indices);
+                if (apply(Interval.ofBounds(start, end))) changed = true
+            } else {
+                for (let i = 0, _i = e.indices.length; i < _i; i++) {
+                    const idx = unitIdx * elementCount + e.indices[i];
+                    if (apply(Interval.ofSingleton(idx))) changed = true
                 }
             }
         }
@@ -73,12 +74,13 @@ export function markElement(loci: Loci, group: Unit.SymmetryGroup, apply: (inter
     return changed
 }
 
-export function getElementLoci(pickingId: PickingId, group: Unit.SymmetryGroup, id: number) {
+export function getElementLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
+        const { structure, group } = structureGroup
         const unit = group.units[instanceId]
         const indices = OrderedSet.ofSingleton(groupId as StructureElement.UnitIndex);
-        return StructureElement.Loci([{ unit, indices }])
+        return StructureElement.Loci(structure, [{ unit, indices }])
     }
     return EmptyLoci
 }

@@ -193,7 +193,7 @@ function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: num
         const index = OrderedSet.indexOf(unit.elements, carb.anomericCarbon)
         if (index !== -1) {
             const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
-            return StructureElement.Loci([{ unit, indices }])
+            return StructureElement.Loci(structure, [{ unit, indices }])
         }
     }
     return EmptyLoci

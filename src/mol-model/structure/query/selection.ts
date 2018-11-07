@@ -50,7 +50,7 @@ namespace StructureSelection {
             }
         }
 
-        return StructureElement.Loci(loci);
+        return StructureElement.Loci(sel.source, loci);
     }
 
     export interface Builder {

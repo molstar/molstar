@@ -8,6 +8,7 @@ import { OrderedSet, SortedArray } from 'mol-data/int'
 import Unit from './unit'
 import { ElementIndex } from '../model';
 import { ResidueIndex, ChainIndex } from '../model/indexing';
+import Structure from './structure';
 
 interface StructureElement<U = Unit> {
     readonly kind: 'element-location',
@@ -44,6 +45,7 @@ namespace StructureElement {
     /** Represents multiple element index locations */
     export interface Loci {
         readonly kind: 'element-loci',
+        readonly structure: Structure,
         /** Access i-th element as unit.elements[indices[i]] */
         readonly elements: ReadonlyArray<{
             unit: Unit,
@@ -55,8 +57,8 @@ namespace StructureElement {
         }>
     }
 
-    export function Loci(elements: ArrayLike<{ unit: Unit, indices: OrderedSet<UnitIndex> }>): Loci {
-        return { kind: 'element-loci', elements: elements as Loci['elements'] };
+    export function Loci(structure: Structure, elements: ArrayLike<{ unit: Unit, indices: OrderedSet<UnitIndex> }>): Loci {
+        return { kind: 'element-loci', structure, elements: elements as Loci['elements'] };
     }
 
     export function isLoci(x: any): x is Loci {
