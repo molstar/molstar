@@ -58,7 +58,7 @@ export class PluginContext {
      * "static" access to resources.
      */
     async fetch(url: string, type: 'string' | 'binary' = 'string'): Promise<string | Uint8Array> {
-        const req = await fetch(url);
+        const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
         return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
     }
 
