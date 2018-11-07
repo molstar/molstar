@@ -35,11 +35,7 @@ namespace PluginStateObjects {
     export class Structure extends _create<_Structure>({ name: 'Molecule Structure', typeClass: 'Object', shortName: 'M_S', description: 'A structure of a molecule.' }) { }
 
 
-    export class StructureRepresentation3D extends _create<{
-        repr: StructureRepresentation<any>,
-        // TODO
-        // props
-    }>({ name: 'Molecule Structure Representation', typeClass: 'Representation', shortName: 'S_R', description: 'A representation of a molecular structure.' }) { }
+    export class StructureRepresentation3D extends _create<StructureRepresentation<any>>({ name: 'Molecule Structure Representation', typeClass: 'Representation', shortName: 'S_R', description: 'A representation of a molecular structure.' }) { }
 }
 
 export { PluginStateObjects }

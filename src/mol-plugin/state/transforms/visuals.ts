@@ -23,12 +23,12 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Structure, 
         return Task.create('Structure Representation', async ctx => {
             const repr = BallAndStickRepresentation(); // CartoonRepresentation();
             await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl }, DefaultBallAndStickProps, a.data).runInContext(ctx);
-            return new SO.StructureRepresentation3D({ label: 'Visual Repr.' }, { repr });
+            return new SO.StructureRepresentation3D({ label: 'Visual Repr.' }, repr);
         });
     },
     update({ a, b }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            await b.data.repr.createOrUpdate({ webgl: plugin.canvas3d.webgl }, b.data.repr.props, a.data).runInContext(ctx);
+            await b.data.createOrUpdate({ webgl: plugin.canvas3d.webgl }, b.data.props, a.data).runInContext(ctx);
             return Transformer.UpdateResult.Updated;
         });
     }
