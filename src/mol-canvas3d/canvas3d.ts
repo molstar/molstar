@@ -52,7 +52,7 @@ interface Canvas3D {
     pick: () => void
     identify: (x: number, y: number) => Promise<PickingId | undefined>
     mark: (loci: Loci, action: MarkerAction) => void
-    getLoci: (pickingId: PickingId) => Loci
+    getLoci: (pickingId: PickingId) => { loci: Loci, repr?: Representation<any> }
 
     readonly reprCount: BehaviorSubject<number>
     readonly identified: BehaviorSubject<string>
@@ -122,14 +122,16 @@ namespace Canvas3D {
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
-            reprMap.forEach((_, repr) => {
-                const _loci = repr.getLoci(pickingId)
+            let repr: Representation.Any = Representation.Empty
+            reprMap.forEach((_, _repr) => {
+                const _loci = _repr.getLoci(pickingId)
                 if (!isEmptyLoci(_loci)) {
                     if (!isEmptyLoci(loci)) console.warn('found another loci')
                     loci = _loci
+                    repr = _repr
                 }
             })
-            return loci
+            return { loci, repr }
         }
 
         function mark(loci: Loci, action: MarkerAction) {

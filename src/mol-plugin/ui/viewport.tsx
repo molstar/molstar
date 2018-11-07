@@ -9,6 +9,7 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { Loci, EmptyLoci, areLociEqual } from 'mol-model/loci';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { ButtonsType } from 'mol-util/input/input-observer';
 
 interface ViewportProps {
     plugin: PluginContext
@@ -36,21 +37,30 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         }
         this.handleResize();
 
-        const viewer = this.props.plugin.canvas3d;
-        viewer.input.resize.subscribe(() => this.handleResize());
+        const canvas3d = this.props.plugin.canvas3d;
+        canvas3d.input.resize.subscribe(() => this.handleResize());
 
         let prevLoci: Loci = EmptyLoci;
-        viewer.input.move.subscribe(async ({x, y, inside, buttons}) => {
+        canvas3d.input.move.subscribe(async ({x, y, inside, buttons}) => {
             if (!inside || buttons) return;
-            const p = await viewer.identify(x, y);
+            const p = await canvas3d.identify(x, y);
             if (p) {
-                const loci = viewer.getLoci(p);
+                const { loci } = canvas3d.getLoci(p);
 
                 if (!areLociEqual(loci, prevLoci)) {
-                    viewer.mark(prevLoci, MarkerAction.RemoveHighlight);
-                    viewer.mark(loci, MarkerAction.Highlight);
+                    canvas3d.mark(prevLoci, MarkerAction.RemoveHighlight);
+                    canvas3d.mark(loci, MarkerAction.Highlight);
                     prevLoci = loci;
                 }
+            }
+        })
+
+        canvas3d.input.click.subscribe(async ({x, y, buttons}) => {
+            if (buttons !== ButtonsType.Flag.Primary) return
+            const p = await canvas3d.identify(x, y)
+            if (p) {
+                const { loci } = canvas3d.getLoci(p)
+                canvas3d.mark(loci, MarkerAction.Toggle)
             }
         })
     }

@@ -36,6 +36,15 @@ export interface Representation<D, P extends RepresentationProps = {}> {
 }
 
 export namespace Representation {
+    export type Any = Representation<any>
+    export const Empty: Representation<undefined> = {
+        label: '', params: {}, renderObjects: [], props: {},
+        createOrUpdate: () => Task.constant('', undefined),
+        getLoci: () => EmptyLoci,
+        mark: () => false,
+        destroy: () => {}
+    }
+
     export function createMulti<D, P extends RepresentationProps = {}>(label: string, params: PD.Params, defaultProps: P, reprList: Representation<D, P>[]): Representation<D, P> {
         let currentProps: P
         let currentData: D

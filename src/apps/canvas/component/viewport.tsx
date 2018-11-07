@@ -70,7 +70,7 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
             const p = await canvas3d.identify(x, y)
             --highlightQueueLength
             if (p) {
-                const loci = canvas3d.getLoci(p)
+                const { loci } = canvas3d.getLoci(p)
 
                 if (!areLociEqual(loci, prevHighlightLoci)) {
                     canvas3d.mark(prevHighlightLoci, MarkerAction.RemoveHighlight)
@@ -88,7 +88,7 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
             if (buttons !== ButtonsType.Flag.Primary) return
             const p = await canvas3d.identify(x, y)
             if (p) {
-                const loci = canvas3d.getLoci(p)
+                const { loci } = canvas3d.getLoci(p)
                 canvas3d.mark(loci, MarkerAction.Toggle)
             }
         })
