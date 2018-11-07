@@ -15,6 +15,7 @@ export { CreateStructureRepresentation }
 namespace CreateStructureRepresentation { export interface Params { } }
 const CreateStructureRepresentation = PluginStateTransform.Create<SO.Structure, SO.StructureRepresentation3D, CreateStructureRepresentation.Params>({
     name: 'create-structure-representation',
+    display: { name: 'Create 3D Representation' },
     from: [SO.Structure],
     to: [SO.StructureRepresentation3D],
     apply({ a, params }) {

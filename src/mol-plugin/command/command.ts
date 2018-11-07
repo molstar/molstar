@@ -87,7 +87,7 @@ namespace PluginCommand {
         /** Resolves after all actions have completed */
         dispatch<T>(cmd: PluginCommand<T> | Id, params: T) {
             return new Promise<void>((resolve, reject) => {
-                if (!this.disposing) {
+                if (this.disposing) {
                     reject('disposed');
                     return;
                 }

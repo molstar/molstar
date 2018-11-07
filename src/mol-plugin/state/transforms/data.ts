@@ -13,15 +13,18 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export { Download }
 namespace Download { export interface Params { url: string, isBinary?: boolean, label?: string } }
-const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.Binary, Download.Params>({
+const Download = PluginStateTransform.Create<SO.DataRoot, SO.Data.String | SO.Data.Binary, Download.Params>({
     name: 'download',
     display: {
         name: 'Download',
         description: 'Download string or binary data from the specified URL'
     },
-    from: [SO.Root],
+    from: [SO.DataRoot],
     to: [SO.Data.String, SO.Data.Binary],
     params: {
+        default: () => ({
+            url: 'https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif'
+        }),
         controls: () => ({
             url: PD.Text('URL', 'Resource URL. Must be the same domain or support CORS.', ''),
             isBinary: PD.Boolean('Binary', 'If true, download data as binary (string otherwise)', false)

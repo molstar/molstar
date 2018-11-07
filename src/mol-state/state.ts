@@ -43,8 +43,8 @@ class State {
 
     setSnapshot(snapshot: State.Snapshot): void {
         const tree = StateTree.fromJSON(snapshot.tree);
-        // TODO: support props
-        this.update(tree);
+        // TODO: support props and async
+        this.update(tree).run();
     }
 
     setCurrent(ref: Transform.Ref) {
@@ -128,9 +128,10 @@ namespace State {
         const roots = findUpdateRoots(ctx.objects, ctx.tree);
         const deletes = findDeletes(ctx);
         for (const d of deletes) {
+            const obj = ctx.objects.has(d) ? ctx.objects.get(d)!.obj : void 0;
             ctx.objects.delete(d);
             ctx.transformCache.delete(d);
-            ctx.stateCtx.events.object.removed.next({ ref: d });
+            ctx.stateCtx.events.object.removed.next({ ref: d, obj });
             // TODO: handle current object change
         }
 

@@ -4,15 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTree, StateSelection, Transformer } from 'mol-state';
+import { StateTree, StateSelection, Transformer, Transform } from 'mol-state';
 import Canvas3D from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
 import { PluginStateObjects as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from './state';
 import { MolScriptBuilder } from 'mol-script/language/builder';
-import { PluginCommand } from './command';
+import { PluginCommand, PluginCommands } from './command';
 import { Task } from 'mol-task';
+import { merge } from 'rxjs';
+import { PluginBehaviors } from './behavior';
 
 export class PluginContext {
     private disposed = false;
@@ -22,10 +24,17 @@ export class PluginContext {
     readonly commands = new PluginCommand.Manager();
 
     readonly events = {
-        data: this.state.data.context.events
+        state: {
+            data: this.state.data.context.events,
+            behavior: this.state.behavior.context.events
+        }
     };
 
     readonly behaviors = {
+        state: {
+            data: this.state.data.context.behaviors,
+            behavior: this.state.behavior.context.behaviors
+        },
         command: this.commands.behaviour
     };
 
@@ -66,6 +75,21 @@ export class PluginContext {
         this.disposed = true;
     }
 
+    async _test_initBehaviours() {
+        const tree = StateTree.build(this.state.behavior.tree)
+            .toRoot().apply(PluginBehaviors.Data.SetCurrentObject)
+            .and().toRoot().apply(PluginBehaviors.Data.Update)
+            .and().toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas)
+            .getTree();
+
+        await this.state.updateBehaviour(tree);
+    }
+
+    _test_applyTransform(a: Transform.Ref, transformer: Transformer, params: any) {
+        const tree = StateTree.build(this.state.data.tree).to(a).apply(transformer, params).getTree();
+        PluginCommands.Data.Update.dispatch(this, { tree });
+    }
+
     _test_createState(url: string) {
         const b = StateTree.build(this.state.data.tree);
 
@@ -94,23 +118,27 @@ export class PluginContext {
     }
 
     private initEvents() {
-        this.state.data.context.events.object.created.subscribe(o => {
-            if (!SO.StructureRepresentation3D.is(o.obj)) return;
-            console.log('adding repr', o.obj.data.repr);
-            this.canvas3d.add(o.obj.data.repr);
-            this.canvas3d.requestDraw(true);
+        merge(this.events.state.data.object.created, this.events.state.behavior.object.created).subscribe(o => {
+            console.log('creating', o.obj.type);
+            if (!SO.Behavior.is(o.obj)) return;
+            o.obj.data.register();
         });
-        this.state.data.context.events.object.updated.subscribe(o => {
-            const oo = o.obj;
-            if (!SO.StructureRepresentation3D.is(oo)) return;
-            console.log('updating repr', oo.data.repr);
-            this.canvas3d.add(oo.data.repr);
-            this.canvas3d.requestDraw(true);
+
+        merge(this.events.state.data.object.removed, this.events.state.behavior.object.removed).subscribe(o => {
+            if (!SO.Behavior.is(o.obj)) return;
+            o.obj.data.unregister();
+        });
+
+        merge(this.events.state.data.object.replaced, this.events.state.behavior.object.replaced).subscribe(o => {
+            if (o.oldObj && SO.Behavior.is(o.oldObj)) o.oldObj.data.unregister();
+            if (o.newObj && SO.Behavior.is(o.newObj)) o.newObj.data.register();
         });
     }
 
     _test_centerView() {
-        const sel = StateSelection.select('structure', this.state.data);
+        const sel = StateSelection.select(StateSelection.root().subtree().ofType(SO.Structure.type), this.state.data);
+        if (!sel.length) return;
+
         const center = (sel[0].obj! as SO.Structure).data.boundary.sphere.center;
         console.log({ sel, center, rc: this.canvas3d.reprCount });
         this.canvas3d.center(center);
@@ -135,6 +163,8 @@ export class PluginContext {
 
     constructor() {
         this.initEvents();
+
+        this._test_initBehaviours();
     }
 
     // logger = ;

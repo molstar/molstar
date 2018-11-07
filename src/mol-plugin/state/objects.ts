@@ -12,7 +12,9 @@ import { StructureRepresentation } from 'mol-repr/structure/index';
 const _create = PluginStateObject.Create
 
 namespace PluginStateObjects {
-    export class Root extends _create({ name: 'Root', shortName: 'R', typeClass: 'Root', description: 'Where everything begins.' }) { }
+    export class DataRoot extends _create({ name: 'Root', shortName: 'R', typeClass: 'Root', description: 'Where everything begins.' }) { }
+    export class BehaviorRoot extends _create({ name: 'Root', shortName: 'R', typeClass: 'Root', description: 'Where everything begins.' }) { }
+
     export class Group extends _create({ name: 'Group', shortName: 'G', typeClass: 'Group', description: 'A group on entities.' }) { }
 
     export class Behavior extends _create<import('../behavior').PluginBehavior>({ name: 'Behavior', shortName: 'B', typeClass: 'Behavior', description: 'Modifies plugin functionality.' }) { }

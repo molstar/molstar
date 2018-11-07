@@ -12,41 +12,47 @@ export { PluginState }
 
 class PluginState {
     readonly data: State;
-    readonly behaviour: State;
-
-    readonly canvas = {
-        camera: CombinedCamera.create()
-    };
+    readonly behavior: State;
 
     getSnapshot(): PluginState.Snapshot {
         return {
             data: this.data.getSnapshot(),
-            behaviour: this.behaviour.getSnapshot(),
-            canvas: {
-                camera: { ...this.canvas.camera }
+            behaviour: this.behavior.getSnapshot(),
+            canvas3d: {
+                camera: { ...this.plugin.canvas3d.camera }
             }
         };
     }
 
     setSnapshot(snapshot: PluginState.Snapshot) {
-        // TODO events
-        this.behaviour.setSnapshot(snapshot.behaviour);
+        this.behavior.setSnapshot(snapshot.behaviour);
         this.data.setSnapshot(snapshot.data);
-        this.canvas.camera = { ...snapshot.canvas.camera };
+
+        // TODO: handle camera
+        // console.log({ old: { ...this.plugin.canvas3d.camera  }, new: snapshot.canvas3d.camera });
+        // CombinedCamera.copy(snapshot.canvas3d.camera, this.plugin.canvas3d.camera);
+        // CombinedCamera.update(this.plugin.canvas3d.camera);
+        // this.plugin.canvas3d.center
+        // console.log({ copied: { ...this.plugin.canvas3d.camera  } });
+        // this.plugin.canvas3d.requestDraw(true);
+        // console.log('updated camera');
     }
 
-    async updateData(tree: StateTree) {
-        // TODO: "task observer"
-        await this.data.update(tree).run(p => console.log(p), 250);
+    updateData(tree: StateTree) {
+        return this.plugin.runTask(this.data.update(tree));
+    }
+
+    updateBehaviour(tree: StateTree) {
+        return this.plugin.runTask(this.behavior.update(tree));
     }
 
     dispose() {
         this.data.dispose();
     }
 
-    constructor(globalContext: unknown) {
-        this.data = State.create(new SO.Root({ label: 'Root' }, { }), { globalContext });
-        this.behaviour = State.create(new SO.Root({ label: 'Root' }, { }), { globalContext });
+    constructor(private plugin: import('./context').PluginContext) {
+        this.data = State.create(new SO.DataRoot({ label: 'Root' }, { }), { globalContext: plugin });
+        this.behavior = State.create(new SO.BehaviorRoot({ label: 'Root' }, { }), { globalContext: plugin });
     }
 }
 
@@ -54,6 +60,8 @@ namespace PluginState {
     export interface Snapshot {
         data: State.Snapshot,
         behaviour: State.Snapshot,
-        canvas: PluginState['canvas']
+        canvas3d: {
+            camera: CombinedCamera
+        }
     }
 }

@@ -6,7 +6,9 @@
 
 export * from './behavior/behavior'
 import * as Data from './behavior/data'
+import * as Representation from './behavior/representation'
 
 export const PluginBehaviors = {
-    Data
+    Data,
+    Representation
 }

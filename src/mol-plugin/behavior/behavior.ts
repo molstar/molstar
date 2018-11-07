@@ -10,6 +10,7 @@ import { Transformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginCommand } from '../command';
+import { Observable } from 'rxjs';
 
 export { PluginBehavior }
 
@@ -29,14 +30,14 @@ namespace PluginBehavior {
         ctor: Ctor<P>,
         label?: (params: P) => { label: string, description?: string },
         display: { name: string, description?: string },
-        params?: Transformer.Definition<SO.Root, SO.Behavior, P>['params']
+        params?: Transformer.Definition<SO.BehaviorRoot, SO.Behavior, P>['params']
     }
 
     export function create<P>(params: CreateParams<P>) {
-        return PluginStateTransform.Create<SO.Root, SO.Behavior, P>({
+        return PluginStateTransform.Create<SO.BehaviorRoot, SO.Behavior, P>({
             name: params.name,
             display: params.display,
-            from: [SO.Root],
+            from: [SO.BehaviorRoot],
             to: [SO.Behavior],
             params: params.params,
             apply({ params: p }, ctx: PluginContext) {
@@ -53,7 +54,7 @@ namespace PluginBehavior {
         });
     }
 
-    export function commandHandler<T>(cmd: PluginCommand<T>, action: (data: T, ctx: PluginContext) => void | Promise<void>) {
+    export function simpleCommandHandler<T>(cmd: PluginCommand<T>, action: (data: T, ctx: PluginContext) => void | Promise<void>) {
         return class implements PluginBehavior<undefined> {
             private sub: PluginCommand.Subscription | undefined = void 0;
             register(): void {
@@ -64,6 +65,27 @@ namespace PluginBehavior {
                 this.sub = void 0;
             }
             constructor(private ctx: PluginContext) { }
+        }
+    }
+
+    export abstract class Handler implements PluginBehavior<undefined> {
+        private subs: PluginCommand.Subscription[] = [];
+        protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
+            this.subs.push(cmd.subscribe(this.ctx, action));
+        }
+        protected subscribeObservable<T>(o: Observable<T>, action: (v: T) => void) {
+            this.subs.push(o.subscribe(action));
+        }
+        protected track<T>(sub: PluginCommand.Subscription) {
+            this.subs.push(sub);
+        }
+        abstract register(): void;
+        unregister() {
+            for (const s of this.subs) s.unsubscribe();
+            this.subs = [];
+        }
+        constructor(protected ctx: PluginContext) {
+
         }
     }
 }

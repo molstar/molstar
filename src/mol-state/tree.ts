@@ -52,8 +52,8 @@ namespace StateTree {
 
         export class Root implements Builder {
             private state: State;
-            to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref); }
-            toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.rootRef as any); }
+            to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref, this); }
+            toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.rootRef as any, this); }
             delete(ref: Transform.Ref) { this.state.tree.remove(ref); return this; }
             getTree(): StateTree { return this.state.tree.asImmutable(); }
             constructor(tree: StateTree) { this.state = { tree: ImmutableTree.asTransient(tree) } }
@@ -63,12 +63,14 @@ namespace StateTree {
             apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Options>): To<Transformer.To<T>> {
                 const t = tr.apply(params, props);
                 this.state.tree.add(this.ref, t);
-                return new To(this.state, t.ref);
+                return new To(this.state, t.ref, this.root);
             }
+
+            and() { return this.root; }
 
             getTree(): StateTree { return this.state.tree.asImmutable(); }
 
-            constructor(private state: State, private ref: Transform.Ref) {
+            constructor(private state: State, private ref: Transform.Ref, private root: Root) {
                 if (!this.state.tree.nodes.has(ref)) {
                     throw new Error(`Could not find node '${ref}'.`);
                 }
