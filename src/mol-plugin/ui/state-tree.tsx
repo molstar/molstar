@@ -11,7 +11,8 @@ import { StateObject } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 
 export class StateTree extends React.Component<{ plugin: PluginContext }, { }> {
-    componentWillMount() {
+    componentDidMount() {
+        // TODO: move to constructor?
         this.props.plugin.events.state.data.updated.subscribe(() => this.forceUpdate());
     }
     render() {

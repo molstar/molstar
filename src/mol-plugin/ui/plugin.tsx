@@ -32,7 +32,8 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, { }> {
 }
 
 export class _test_CurrentObject extends React.Component<{ plugin: PluginContext }, { }> {
-    componentWillMount() {
+    componentDidMount() {
+        // TODO: move to constructor?
         this.props.plugin.behaviors.state.data.currentObject.subscribe(() => this.forceUpdate());
     }
     render() {
