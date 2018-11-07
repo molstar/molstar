@@ -18,6 +18,7 @@
  */
 
 import Mat4 from './mat4';
+import { EPSILON } from '../3d';
 
 interface Vec4 extends Array<number> { [d: number]: number, '@type': 'vec4', length: 4 }
 
@@ -195,6 +196,25 @@ namespace Vec4 {
         out[2] = 1.0 / a[2];
         out[3] = 1.0 / a[3];
         return out;
+    }
+
+    /**
+     * Returns whether or not the vectors have exactly the same elements in the same position (when compared with ===)
+     */
+    export function exactEquals(a: Vec4, b: Vec4) {
+        return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+    }
+
+    /**
+     * Returns whether or not the vectors have approximately the same elements in the same position.
+     */
+    export function equals(a: Vec4, b: Vec4) {
+        const a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+        const b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+        return (Math.abs(a0 - b0) <= EPSILON.Value * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= EPSILON.Value * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+                Math.abs(a2 - b2) <= EPSILON.Value * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+                Math.abs(a3 - b3) <= EPSILON.Value * Math.max(1.0, Math.abs(a3), Math.abs(b3)));
     }
 }
 

@@ -56,7 +56,10 @@ namespace Scene {
         const object3d = Object3D.create()
 
         return {
-            ...object3d,
+            get view () { return object3d.view },
+            get position () { return object3d.position },
+            get direction () { return object3d.direction },
+            get up () { return object3d.up },
 
             update: () => {
                 Object3D.update(object3d)
@@ -103,7 +106,7 @@ namespace Scene {
             },
             get boundingSphere() {
                 if (boundingSphere) return boundingSphere
-                // TODO avoid array creation
+                // TODO avoid object creation
                 boundingSphere = calculateBoundingSphere(renderableMap)
                 return boundingSphere
             }

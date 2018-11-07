@@ -17,6 +17,7 @@ import { LocationIterator } from '../../util/location-iterator';
 import { createColors } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -353,11 +354,17 @@ export namespace Mesh {
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }
 
+        const boundingSphere = calculateBoundingSphere(
+            mesh.vertexBuffer.ref.value, mesh.vertexCount,
+            transform.aTransform.ref.value, transform.instanceCount.ref.value
+        )
+
         return {
             aPosition: mesh.vertexBuffer,
             aNormal: mesh.normalBuffer,
             aGroup: mesh.groupBuffer,
             elements: mesh.indexBuffer,
+            boundingSphere: ValueCell.create(boundingSphere),
             ...color,
             ...marker,
             ...transform,
@@ -370,6 +377,14 @@ export namespace Mesh {
     }
 
     export function updateValues(values: MeshValues, props: Props) {
+        const boundingSphere = calculateBoundingSphere(
+            values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
+            values.aTransform.ref.value, values.instanceCount.ref.value
+        )
+        if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
+            ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+
         Geometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
         ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)

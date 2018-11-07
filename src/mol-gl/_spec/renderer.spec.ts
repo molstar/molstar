@@ -21,6 +21,7 @@ import Scene from '../scene';
 import { createEmptyMarkers } from 'mol-geo/geometry/marker-data';
 import { fillSerial } from 'mol-util/array';
 import { Color } from 'mol-util/color';
+import { Sphere3D } from 'mol-math/geometry';
 
 // function writeImage(gl: WebGLRenderingContext, width: number, height: number) {
 //     const pixels = new Uint8Array(width * height * 4)
@@ -56,6 +57,8 @@ function createPoints() {
     const m4 = Mat4.identity()
     Mat4.toArray(m4, aTransform.ref.value, 0)
 
+    const boundingSphere = ValueCell.create(Sphere3D.create(Vec3.zero(), 2))
+
     const values: PointsValues = {
         aPosition,
         aGroup,
@@ -71,6 +74,7 @@ function createPoints() {
 
         drawCount: ValueCell.create(3),
         instanceCount: ValueCell.create(1),
+        boundingSphere,
 
         dPointSizeAttenuation: ValueCell.create(true),
         dPointFilledCircle: ValueCell.create(false),

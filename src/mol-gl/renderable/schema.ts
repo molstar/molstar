@@ -11,11 +11,15 @@ import { DefineKind, DefineValues } from '../shader-code';
 import { Vec2, Vec3, Vec4, Mat3, Mat4 } from 'mol-math/linear-algebra';
 import { TextureImage, TextureVolume } from './util';
 import { TextureValues, TextureType, TextureFormat, TextureFilter, TextureKind, Texture } from '../webgl/texture';
+import { Sphere3D } from 'mol-math/geometry';
 
 export type ValueKindType = {
     'number': number
     'string': string
+    'boolean': string
     'any': any
+
+    'sphere': Sphere3D
 }
 export type ValueKind = keyof ValueKindType
 
@@ -51,6 +55,8 @@ export type KindValue = {
     'string': string
     'boolean': boolean
     'any': any
+
+    'sphere': Sphere3D
 }
 
 export type Values<S extends RenderableSchema> = { [k in keyof S]: ValueCell<KindValue[S[k]['kind']]> }
@@ -192,6 +198,7 @@ export const BaseSchema = {
 
     drawCount: ValueSpec('number'),
     instanceCount: ValueSpec('number'),
+    boundingSphere: ValueSpec('sphere'),
 
     dUseFog: DefineSpec('boolean'),
 }

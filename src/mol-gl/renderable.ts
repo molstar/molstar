@@ -8,8 +8,6 @@ import { Program } from './webgl/program';
 import { RenderableValues, Values, RenderableSchema } from './renderable/schema';
 import { RenderVariant, RenderItem } from './webgl/render-item';
 import { Sphere3D } from 'mol-math/geometry';
-// import { calculateBoundingSphereFromValues } from './renderable/util';
-// import { Sphere } from 'mol-geo/primitive/sphere';
 import { Vec3 } from 'mol-math/linear-algebra';
 
 export type RenderableState = {
@@ -30,29 +28,22 @@ export interface Renderable<T extends RenderableValues> {
 }
 
 export function createRenderable<T extends Values<RenderableSchema>>(renderItem: RenderItem, values: T, state: RenderableState): Renderable<T> {
-    // TODO
     let boundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 50)
 
     return {
         get values () { return values },
         get state () { return state },
         get boundingSphere () {
+            if (values.boundingSphere) {
+                Sphere3D.copy(boundingSphere, values.boundingSphere.ref.value)
+            }
             return boundingSphere
-            // TODO
-            // if (boundingSphere) return boundingSphere
-            // boundingSphere = calculateBoundingSphereFromValues(values)
-            // return boundingSphere
         },
         get opaque () { return values.uAlpha && values.uAlpha.ref.value === 1 },
 
         render: (variant: RenderVariant) => renderItem.render(variant),
         getProgram: (variant: RenderVariant) => renderItem.getProgram(variant),
-        update: () => {
-            renderItem.update()
-            // TODO
-            // const valueChanges = renderItem.update()
-            // if (valueChanges.attributes) boundingSphere = undefined
-        },
+        update: () => renderItem.update(),
         dispose: () => renderItem.destroy()
     }
 }

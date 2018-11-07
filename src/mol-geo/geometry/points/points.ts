@@ -16,6 +16,8 @@ import { createSizes } from '../size-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { calculateBoundingSphere } from 'mol-gl/renderable/util';
+import { Sphere3D } from 'mol-math/geometry';
 
 /** Point cloud */
 export interface Points {
@@ -69,9 +71,15 @@ export namespace Points {
 
         const counts = { drawCount: points.pointCount, groupCount, instanceCount }
 
+        const boundingSphere = calculateBoundingSphere(
+            points.centerBuffer.ref.value, points.pointCount,
+            transform.aTransform.ref.value, transform.instanceCount.ref.value
+        )
+
         return {
             aPosition: points.centerBuffer,
             aGroup: points.groupBuffer,
+            boundingSphere: ValueCell.create(boundingSphere),
             ...color,
             ...size,
             ...marker,
@@ -85,6 +93,14 @@ export namespace Points {
     }
 
     export function updateValues(values: PointsValues, props: Props) {
+        const boundingSphere = calculateBoundingSphere(
+            values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
+            values.aTransform.ref.value, values.instanceCount.ref.value
+        )
+        if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
+            ValueCell.update(values.boundingSphere, boundingSphere)
+        }
+
         Geometry.updateValues(values, props)
         ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
         ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle)
