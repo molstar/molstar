@@ -1,0 +1,69 @@
+/**
+ * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author David Sehnal <david.sehnal@gmail.com>
+ */
+
+import { PluginStateTransform } from '../state/base';
+import { PluginStateObjects as SO } from '../state/objects';
+import { Transformer } from 'mol-state';
+import { Task } from 'mol-task';
+import { PluginContext } from 'mol-plugin/context';
+import { PluginCommand } from '../command';
+
+export { PluginBehavior }
+
+interface PluginBehavior<P = unknown> {
+    register(): void,
+    unregister(): void,
+
+    /** Update params in place. Optionally return a promise if it depends on an async action. */
+    update?(params: P): boolean | Promise<boolean>
+}
+
+namespace PluginBehavior {
+    export interface Ctor<P = undefined> { new(ctx: PluginContext, params?: P): PluginBehavior<P> }
+
+    export interface CreateParams<P> {
+        name: string,
+        ctor: Ctor<P>,
+        label?: (params: P) => { label: string, description?: string },
+        display: { name: string, description?: string },
+        params?: Transformer.Definition<SO.Root, SO.Behavior, P>['params']
+    }
+
+    export function create<P>(params: CreateParams<P>) {
+        return PluginStateTransform.Create<SO.Root, SO.Behavior, P>({
+            name: params.name,
+            display: params.display,
+            from: [SO.Root],
+            to: [SO.Behavior],
+            params: params.params,
+            apply({ params: p }, ctx: PluginContext) {
+                const label = params.label ? params.label(p) : { label: params.display.name, description: params.display.description };
+                return new SO.Behavior(label, new params.ctor(ctx, p));
+            },
+            update({ b, newParams }) {
+                return Task.create('Update Behavior', async () => {
+                    if (!b.data.update) return Transformer.UpdateResult.Unchanged;
+                    const updated = await b.data.update(newParams);
+                    return updated ? Transformer.UpdateResult.Updated : Transformer.UpdateResult.Unchanged;
+                })
+            }
+        });
+    }
+
+    export function commandHandler<T>(cmd: PluginCommand<T>, action: (data: T, ctx: PluginContext) => void | Promise<void>) {
+        return class implements PluginBehavior<undefined> {
+            private sub: PluginCommand.Subscription | undefined = void 0;
+            register(): void {
+                this.sub = cmd.subscribe(this.ctx, data => action(data, this.ctx));
+            }
+            unregister(): void {
+                if (this.sub) this.sub.unsubscribe();
+                this.sub = void 0;
+            }
+            constructor(private ctx: PluginContext) { }
+        }
+    }
+}

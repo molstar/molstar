@@ -12,6 +12,7 @@ import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from './state';
 import { MolScriptBuilder } from 'mol-script/language/builder';
 import { PluginCommand } from './command';
+import { Task } from 'mol-task';
 
 export class PluginContext {
     private disposed = false;
@@ -50,6 +51,10 @@ export class PluginContext {
     async fetch(url: string, type: 'string' | 'binary' = 'string'): Promise<string | Uint8Array> {
         const req = await fetch(url);
         return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
+    }
+
+    async runTask<T>(task: Task<T>) {
+        return await task.run(p => console.log(p), 250);
     }
 
     dispose() {

@@ -20,7 +20,7 @@ export namespace Transformer {
     export type Id = string & { '@type': 'transformer-id' }
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
-    export type ControlsFor<A extends StateObject, Props> = { [P in keyof Props]?: PD.Any }
+    export type ControlsFor<Props> = { [P in keyof Props]?: PD.Any }
 
     export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
         a: A,
@@ -63,7 +63,7 @@ export namespace Transformer {
             /** Check the parameters and return a list of errors if the are not valid. */
             default?(a: A, globalCtx: unknown): P,
             /** Specify default control descriptors for the parameters */
-            controls?(a: A, globalCtx: unknown): ControlsFor<A, P>,
+            controls?(a: A, globalCtx: unknown): ControlsFor<P>,
             /** Check the parameters and return a list of errors if the are not valid. */
             validate?(a: A, params: P, globalCtx: unknown): string[] | undefined,
             /** Optional custom parameter equality. Use deep structural equal by default. */

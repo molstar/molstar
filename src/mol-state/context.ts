@@ -29,7 +29,7 @@ class StateContext {
         updated: this.ev<void>()
     };
 
-    readonly behaviours = {
+    readonly behaviors = {
         currentObject: this.ev.behavior<{ ref: Transform.Ref }>(void 0 as any)
     };
 
@@ -43,6 +43,6 @@ class StateContext {
     constructor(params: { globalContext: unknown, defaultObjectProps: unknown, rootRef: Transform.Ref }) {
         this.globalContext = params.globalContext;
         this.defaultObjectProps = params.defaultObjectProps;
-        this.behaviours.currentObject.next({ ref: params.rootRef });
+        this.behaviors.currentObject.next({ ref: params.rootRef });
     }
 }

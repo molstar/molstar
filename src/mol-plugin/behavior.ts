@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './command/data';
+export * from './behavior/behavior'
+import * as Data from './behavior/data'
 
-export * from './command/command';
-export const PluginCommands = {
+export const PluginBehaviors = {
     Data
 }

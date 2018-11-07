@@ -15,6 +15,8 @@ namespace PluginStateObjects {
     export class Root extends _create({ name: 'Root', shortName: 'R', typeClass: 'Root', description: 'Where everything begins.' }) { }
     export class Group extends _create({ name: 'Group', shortName: 'G', typeClass: 'Group', description: 'A group on entities.' }) { }
 
+    export class Behavior extends _create<import('../behavior').PluginBehavior>({ name: 'Behavior', shortName: 'B', typeClass: 'Behavior', description: 'Modifies plugin functionality.' }) { }
+
     export namespace Data {
         export class String extends _create<string>({ name: 'String Data', typeClass: 'Data', shortName: 'S_D', description: 'A string.' }) { }
         export class Binary extends _create<Uint8Array>({ name: 'Binary Data', typeClass: 'Data', shortName: 'B_D', description: 'A binary blob.' }) { }

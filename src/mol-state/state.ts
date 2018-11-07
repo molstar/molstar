@@ -47,6 +47,11 @@ class State {
         this.update(tree);
     }
 
+    setCurrent(ref: Transform.Ref) {
+        this._current = ref;
+        this.context.behaviors.currentObject.next({ ref });
+    }
+
     dispose() {
         this.context.dispose();
     }
