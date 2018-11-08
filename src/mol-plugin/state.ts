@@ -6,7 +6,7 @@
 
 import { State, StateTree } from 'mol-state';
 import { PluginStateObjects as SO } from './state/objects';
-import { CombinedCamera } from 'mol-canvas3d/camera/combined';
+import { Camera } from 'mol-canvas3d/camera';
 
 export { PluginState }
 
@@ -19,7 +19,7 @@ class PluginState {
             data: this.data.getSnapshot(),
             behaviour: this.behavior.getSnapshot(),
             canvas3d: {
-                camera: { ...this.plugin.canvas3d.camera }
+                camera: this.plugin.canvas3d.camera.getSnapshot()
             }
         };
     }
@@ -27,6 +27,7 @@ class PluginState {
     async setSnapshot(snapshot: PluginState.Snapshot) {
         await this.behavior.setSnapshot(snapshot.behaviour);
         await this.data.setSnapshot(snapshot.data);
+        this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
 
         // TODO: handle camera
         // console.log({ old: { ...this.plugin.canvas3d.camera  }, new: snapshot.canvas3d.camera });
@@ -61,7 +62,7 @@ namespace PluginState {
         data: State.Snapshot,
         behaviour: State.Snapshot,
         canvas3d: {
-            camera: CombinedCamera
+            camera: Camera.Snapshot
         }
     }
 }

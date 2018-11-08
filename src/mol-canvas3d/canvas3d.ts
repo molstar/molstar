@@ -24,11 +24,11 @@ import { PickingId, decodeIdRGB } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
-import { CombinedCamera, CombinedCameraMode } from './camera/combined';
+import { Camera } from './camera';
 
 export const DefaultCanvas3DProps = {
     cameraPosition: Vec3.create(0, 0, 50),
-    cameraMode: 'perspective' as CombinedCameraMode,
+    cameraMode: 'perspective' as Camera.Mode,
     backgroundColor: Color(0x000000),
 }
 export type Canvas3DProps = typeof DefaultCanvas3DProps
@@ -60,7 +60,7 @@ interface Canvas3D {
 
     handleResize: () => void
     resetCamera: () => void
-    readonly camera: CombinedCamera
+    readonly camera: Camera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
     setProps: (props: Partial<Canvas3DProps>) => void
@@ -84,7 +84,7 @@ namespace Canvas3D {
         const didDraw = new BehaviorSubject(0)
         const input = InputObserver.create(canvas)
 
-        const camera = CombinedCamera.create({
+        const camera = new Camera({
             near: 0.1,
             far: 10000,
             position: Vec3.clone(p.cameraPosition),
@@ -188,7 +188,7 @@ namespace Canvas3D {
             }
             let didRender = false
             controls.update()
-            CombinedCamera.update(camera)
+            camera.updateMatrices();
             if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value) || !Mat4.areEqual(scene.view, prevSceneView, EPSILON.Value)) {
                 // console.log('foo', force, prevSceneView, scene.view)
                 Mat4.copy(prevProjectionView, camera.projectionView)
@@ -273,9 +273,9 @@ namespace Canvas3D {
         return {
             webgl,
 
-            center: (p: Vec3) => {
-                Vec3.set(controls.target, p[0], p[1], p[2])
-                Vec3.set(camera.target, p[0], p[1], p[2])
+            center: (target: Vec3) => {
+                // Vec3.set(controls.target, p[0], p[1], p[2])
+                camera.setState({ target })
             },
 
             hide: (repr: Representation<any>) => {
@@ -345,8 +345,8 @@ namespace Canvas3D {
             identified,
             didDraw,
             setProps: (props: Partial<Canvas3DProps>) => {
-                if (props.cameraMode !== undefined && props.cameraMode !== camera.mode) {
-                    camera.mode = props.cameraMode
+                if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
+                    camera.setState({ mode: props.cameraMode })
                 }
                 if (props.backgroundColor !== undefined && props.backgroundColor !== renderer.props.clearColor) {
                     renderer.setClearColor(props.backgroundColor)
@@ -357,7 +357,7 @@ namespace Canvas3D {
             get props() {
                 return {
                     cameraPosition: Vec3.clone(camera.position),
-                    cameraMode: camera.mode,
+                    cameraMode: camera.state.mode,
                     backgroundColor: renderer.props.clearColor
                 }
             },

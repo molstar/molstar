@@ -6,7 +6,7 @@
 
 import { createGl } from './gl.shim';
 
-import { PerspectiveCamera } from 'mol-canvas3d/camera/perspective';
+import { Camera } from 'mol-canvas3d/camera';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { ValueCell } from 'mol-util';
 
@@ -36,7 +36,7 @@ import { Sphere3D } from 'mol-math/geometry';
 
 function createRenderer(gl: WebGLRenderingContext) {
     const ctx = createContext(gl)
-    const camera = PerspectiveCamera.create({
+    const camera = new Camera({
         near: 0.01,
         far: 10000,
         position: Vec3.create(0, 0, 50)
