@@ -100,6 +100,11 @@ export class PluginContext {
         PluginCommands.Data.Update.dispatch(this, { tree });
     }
 
+    _test_updateTransform(a: Transform.Ref, params: any) {
+        const tree = StateTree.updateParams(this.state.data.tree, a, params);
+        PluginCommands.Data.Update.dispatch(this, { tree });
+    }
+
     _test_createState(url: string) {
         const b = StateTree.build(this.state.data.tree);
 

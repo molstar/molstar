@@ -72,7 +72,7 @@ export namespace ImmutableTree {
     /**
      * Visit all nodes in a subtree in "post order", meaning leafs get visited first.
      */
-    export function doPostOrder<T, S>(tree: ImmutableTree<T>, root: Node<T>, state: S, f: (node: Node<T>, nodes: Nodes<T>, state: S) => boolean | undefined | void) {
+    export function doPostOrder<T, S>(tree: ImmutableTree<T>, root: Node<T>, state: S, f: (node: Node<T>, nodes: Nodes<T>, state: S) => boolean | undefined | void): S {
         const ctx: VisitorCtx = { nodes: tree.nodes, state, f };
         _doPostOrder(ctx, root);
         return ctx.state;
@@ -91,7 +91,7 @@ export namespace ImmutableTree {
      * Visit all nodes in a subtree in "pre order", meaning leafs get visited last.
      * If the visitor function returns false, the visiting for that branch is interrupted.
      */
-    export function doPreOrder<T, S>(tree: ImmutableTree<T>, root: Node<T>, state: S, f: (node: Node<T>, nodes: Nodes<T>, state: S) => boolean | undefined | void) {
+    export function doPreOrder<T, S>(tree: ImmutableTree<T>, root: Node<T>, state: S, f: (node: Node<T>, nodes: Nodes<T>, state: S) => boolean | undefined | void): S {
         const ctx: VisitorCtx = { nodes: tree.nodes, state, f };
         _doPreOrder(ctx, root);
         return ctx.state;
@@ -218,18 +218,23 @@ export namespace ImmutableTree {
             return node;
         }
 
-        remove<T>(ref: ImmutableTree.Ref): Node<T>[] {
+        remove(ref: ImmutableTree.Ref): Node<T>[] {
+            if (ref === this.rootRef) {
+                return this.removeChildren(ref);
+            }
+
             const { nodes, mutations } = this;
             const node = nodes.get(ref);
             if (!node) return [];
             const parent = nodes.get(node.parent)!;
-            const children = this.mutate(parent.ref).children;
+            this.mutate(parent.ref).children.delete(ref);
+
             const st = subtreePostOrder(this, node);
-            if (ref !== this.rootRef) children.delete(ref);
             for (const n of st) {
-                nodes.delete(n.value.ref);
-                mutations.delete(n.value.ref);
+                nodes.delete(n.ref);
+                mutations.delete(n.ref);
             }
+
             return st;
         }
 
@@ -239,11 +244,12 @@ export namespace ImmutableTree {
             if (!node || !node.children.size) return [];
             node = this.mutate(ref);
             const st = subtreePostOrder(this, node);
+            // remove the last node which is the parent
+            st.pop();
             node.children.clear();
             for (const n of st) {
-                if (n === node) continue;
-                nodes.delete(n.value.ref);
-                mutations.delete(n.value.ref);
+                nodes.delete(n.ref);
+                mutations.delete(n.ref);
             }
             return st;
         }

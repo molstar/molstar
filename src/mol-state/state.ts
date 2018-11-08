@@ -68,7 +68,7 @@ class State {
                     taskCtx,
                     oldTree,
                     tree: tree,
-                    objects: this.cells,
+                    cells: this.cells,
                     transformCache: this.transformCache
                 };
                 // TODO: have "cancelled" error? Or would this be handled automatically?
@@ -120,16 +120,16 @@ namespace State {
         taskCtx: RuntimeContext,
         oldTree: StateTree,
         tree: StateTree,
-        objects: State.Cells,
+        cells: State.Cells,
         transformCache: Map<Ref, unknown>
     }
 
     async function update(ctx: UpdateContext) {
-        const roots = findUpdateRoots(ctx.objects, ctx.tree);
+        const roots = findUpdateRoots(ctx.cells, ctx.tree);
         const deletes = findDeletes(ctx);
         for (const d of deletes) {
-            const obj = ctx.objects.has(d) ? ctx.objects.get(d)!.obj : void 0;
-            ctx.objects.delete(d);
+            const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
+            ctx.cells.delete(d);
             ctx.transformCache.delete(d);
             ctx.stateCtx.events.object.removed.next({ ref: d, obj });
             // TODO: handle current object change
@@ -168,7 +168,7 @@ namespace State {
     function findDeletes(ctx: UpdateContext): Ref[] {
         // TODO: do this in some sort of "tree order"?
         const deletes: Ref[] = [];
-        const keys = ctx.objects.keys();
+        const keys = ctx.cells.keys();
         while (true) {
             const key = keys.next();
             if (key.done) break;
@@ -179,14 +179,14 @@ namespace State {
 
     function setObjectState(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Status, errorText?: string) {
         let changed = false;
-        if (ctx.objects.has(ref)) {
-            const obj = ctx.objects.get(ref)!;
+        if (ctx.cells.has(ref)) {
+            const obj = ctx.cells.get(ref)!;
             changed = obj.status !== status;
             obj.status = status;
             obj.errorText = errorText;
         } else {
             const obj: StateObjectCell = { ref, status, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
-            ctx.objects.set(ref, obj);
+            ctx.cells.set(ref, obj);
             changed = true;
         }
         if (changed) ctx.stateCtx.events.object.stateChanged.next({ ref });
@@ -204,7 +204,7 @@ namespace State {
 
     function doError(ctx: UpdateContext, ref: Ref, errorText: string) {
         setObjectState(ctx, ref, 'error', errorText);
-        const wrap = ctx.objects.get(ref)!;
+        const wrap = ctx.cells.get(ref)!;
         if (wrap.obj) {
             ctx.stateCtx.events.object.removed.next({ ref });
             ctx.transformCache.delete(ref);
@@ -258,14 +258,14 @@ namespace State {
     }
 
     async function updateNode(ctx: UpdateContext, currentRef: Ref) {
-        const { oldTree, tree, objects } = ctx;
+        const { oldTree, tree, cells } = ctx;
         const transform = tree.getValue(currentRef)!;
-        const parent = findAncestor(tree, objects, currentRef, transform.transformer.definition.from);
+        const parent = findAncestor(tree, cells, currentRef, transform.transformer.definition.from);
         // console.log('parent', transform.transformer.id, transform.transformer.definition.from[0].type, parent ? parent.ref : 'undefined')
-        if (!oldTree.nodes.has(currentRef) || !objects.has(currentRef)) {
+        if (!oldTree.nodes.has(currentRef) || !cells.has(currentRef)) {
             // console.log('creating...', transform.transformer.id, oldTree.nodes.has(currentRef), objects.has(currentRef));
             const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
-            objects.set(currentRef, {
+            cells.set(currentRef, {
                 ref: currentRef,
                 obj,
                 status: 'ok',
@@ -275,12 +275,17 @@ namespace State {
             return { action: 'created', obj };
         } else {
             // console.log('updating...', transform.transformer.id);
-            const current = objects.get(currentRef)!;
+            const current = cells.get(currentRef)!;
             const oldParams = oldTree.getValue(currentRef)!.params;
-            switch (await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)) {
+
+            const updateKind = current.status === 'ok'
+                ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)
+                : Transformer.UpdateResult.Recreate;
+
+            switch (updateKind) {
                 case Transformer.UpdateResult.Recreate: {
                     const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
-                    objects.set(currentRef, {
+                    cells.set(currentRef, {
                         ref: currentRef,
                         obj,
                         status: 'ok',

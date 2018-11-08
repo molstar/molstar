@@ -8,7 +8,7 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport } from './viewport';
-import { Controls, _test_CreateTransform } from './controls';
+import { Controls, _test_CreateTransform, _test_UpdateTransform } from './controls';
 import { Transformer } from 'mol-state';
 
 // TODO: base object with subscribe helpers, separate behavior list etc
@@ -52,6 +52,10 @@ export class _test_CurrentObject extends React.Component<{ plugin: PluginContext
         return <div>
             Current Ref: {this.props.plugin.behaviors.state.data.currentObject.value.ref}
             <hr />
+            <h3>Update</h3>
+            <_test_UpdateTransform key={`${ref} update`} plugin={this.props.plugin} nodeRef={ref} />
+            <hr />
+            <h3>Create</h3>
             {
                 transforms.map((t, i) => <_test_CreateTransform key={`${t.id} ${ref} ${i}`} plugin={this.props.plugin} transformer={t} nodeRef={ref} />)
             }

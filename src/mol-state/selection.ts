@@ -47,13 +47,20 @@ namespace StateSelection {
         parent(): Builder;
         first(): Builder;
         filter(p: (n: StateObjectCell) => boolean): Builder;
+        withStatus(s: StateObjectCell.Status): Builder;
         subtree(): Builder;
         children(): Builder;
         ofType(t: StateObject.Type): Builder;
         ancestorOfType(t: StateObject.Type): Builder;
+
+        select(state: State): CellSeq
     }
 
-    const BuilderPrototype: any = {};
+    const BuilderPrototype: any = {
+        select(state: State) {
+            return select(this, state);
+        }
+    };
 
     function registerModifier(name: string, f: Function) {
         BuilderPrototype[name] = function (this: any, ...args: any[]) { return f.call(void 0, this, ...args) };
@@ -135,6 +142,9 @@ namespace StateSelection {
     registerModifier('filter', filter);
     export function filter(b: Selector, p: (n: StateObjectCell) => boolean) { return flatMap(b, n => p(n) ? [n] : []); }
 
+    registerModifier('withStatus', withStatus);
+    export function withStatus(b: Selector, s: StateObjectCell.Status) { return filter(b, n => n.status === s); }
+
     registerModifier('subtree', subtree);
     export function subtree(b: Selector) {
         return flatMap(b, (n, s) => {
@@ -157,20 +167,22 @@ namespace StateSelection {
     export function ofType(b: Selector, t: StateObject.Type) { return filter(b, n => n.obj ? n.obj.type === t : false); }
 
     registerModifier('ancestorOfType', ancestorOfType);
-    export function ancestorOfType(b: Selector, t: StateObject.Type) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s, n.ref, t))); }
+    export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s, n.ref, types))); }
 
     registerModifier('parent', parent);
     export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.nodes.get(n.ref)!.parent))); }
 
-    function findAncestorOfType({ tree, cells }: State, root: string, type: StateObject.Type): StateObjectCell | undefined {
-        let current = tree.nodes.get(root)!;
+    function findAncestorOfType({ tree, cells }: State, root: string, types: StateObject.Ctor[]): StateObjectCell | undefined {
+        let current = tree.nodes.get(root)!, len = types.length;
         while (true) {
             current = tree.nodes.get(current.parent)!;
             if (current.ref === tree.rootRef) {
                 return cells.get(tree.rootRef);
             }
             const obj = cells.get(current.ref)!.obj!;
-            if (obj.type === type) return cells.get(current.ref);
+            for (let i = 0; i < len; i++) {
+                if (obj.type === types[i].type) return cells.get(current.ref);
+            }
         }
     }
 }

@@ -35,19 +35,25 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             PluginCommands.Data.RemoveObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
         }}>X</a>]</>
 
+        let label: any;
         if (cell.status !== 'ok' || !cell.obj) {
-            return <div style={{ borderLeft: '1px solid black', paddingLeft: '7px' }}>
-                {remove} {cell.status} {cell.errorText}
-            </div>;
-        }
-        const obj = cell.obj as PluginStateObject.Any;
-        const props = obj.props;
-        const type = obj.type;
-        return <div style={{ borderLeft: '0px solid #999', paddingLeft: '0px' }}>
-            {remove}[<span title={type.description}>{ type.shortName }</span>] <a href='#' onClick={e => {
+            const name = (n.value.transformer.definition.display && n.value.transformer.definition.display.name) || n.value.transformer.definition.name;
+            label = <><b>{cell.status}</b> <a href='#' onClick={e => {
                 e.preventDefault();
                 PluginCommands.Data.SetCurrentObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
-            }}>{props.label}</a> {props.description ? <small>{props.description}</small> : void 0}
+            }}>{name}</a>: <i>{cell.errorText}</i></>;
+        } else {
+            const obj = cell.obj as PluginStateObject.Any;
+            const props = obj.props;
+            const type = obj.type;
+            label = <>[<span title={type.description}>{ type.shortName }</span>] <a href='#' onClick={e => {
+                e.preventDefault();
+                PluginCommands.Data.SetCurrentObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
+            }}>{props.label}</a> {props.description ? <small>{props.description}</small> : void 0}</>;
+        }
+
+        return <div>
+            {remove}{label}
             {n.children.size === 0
                 ? void 0
                 : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{n.children.map(c => <StateTreeNode plugin={this.props.plugin} state={this.props.state} nodeRef={c!} key={c} />)}</div>

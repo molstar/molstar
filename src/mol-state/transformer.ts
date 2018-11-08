@@ -42,8 +42,8 @@ export namespace Transformer {
 
     export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
         readonly name: string,
-        readonly from: { type: StateObject.Type }[],
-        readonly to: { type: StateObject.Type }[],
+        readonly from: StateObject.Ctor[],
+        readonly to: StateObject.Ctor[],
         readonly display?: { readonly name: string, readonly description?: string },
 
         /**
