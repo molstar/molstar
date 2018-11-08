@@ -11,15 +11,18 @@ import { Viewport } from './viewport';
 import { Controls, _test_CreateTransform } from './controls';
 import { Transformer } from 'mol-state';
 
-// TODO: base object with subscribe helpers
+// TODO: base object with subscribe helpers, separate behavior list etc
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, { }> {
     render() {
         return <div style={{ position: 'absolute', width: '100%', height: '100%', fontFamily: 'monospace' }}>
             <div style={{ position: 'absolute', width: '350px', height: '100%', overflowY: 'scroll' }}>
-                <StateTree plugin={this.props.plugin} />
+                <h3>Data</h3>
+                <StateTree plugin={this.props.plugin} state={this.props.plugin.state.data} />
                 <hr />
                 <_test_CurrentObject plugin={this.props.plugin} />
+                <h3>Behavior</h3>
+                <StateTree plugin={this.props.plugin} state={this.props.plugin.state.behavior} />
             </div>
             <div style={{ position: 'absolute', left: '350px', right: '250px', height: '100%' }}>
                 <Viewport plugin={this.props.plugin} />

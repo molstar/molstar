@@ -7,6 +7,7 @@
 import { StateTree, StateSelection, Transformer, Transform } from 'mol-state';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
+import { PluginStateObject as PSO } from './state/base';
 import { PluginStateObjects as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from './state';
@@ -77,10 +78,10 @@ export class PluginContext {
 
     async _test_initBehaviours() {
         const tree = StateTree.build(this.state.behavior.tree)
-            .toRoot().apply(PluginBehaviors.Data.SetCurrentObject)
-            .and().toRoot().apply(PluginBehaviors.Data.Update)
-            .and().toRoot().apply(PluginBehaviors.Data.RemoveObject)
-            .and().toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas)
+            .toRoot().apply(PluginBehaviors.Data.SetCurrentObject, { ref: PluginBehaviors.Data.SetCurrentObject.id })
+            .and().toRoot().apply(PluginBehaviors.Data.Update, { ref: PluginBehaviors.Data.Update.id })
+            .and().toRoot().apply(PluginBehaviors.Data.RemoveObject, { ref: PluginBehaviors.Data.RemoveObject.id })
+            .and().toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas, { ref: PluginBehaviors.Representation.AddRepresentationToCanvas.id })
             .getTree();
 
         await this.state.updateBehaviour(tree);
@@ -121,32 +122,32 @@ export class PluginContext {
     private initEvents() {
         merge(this.events.state.data.object.created, this.events.state.behavior.object.created).subscribe(o => {
             console.log('creating', o.obj.type);
-            if (!SO.Behavior.is(o.obj)) return;
+            if (!PSO.isBehavior(o.obj)) return;
             o.obj.data.register();
         });
 
         merge(this.events.state.data.object.removed, this.events.state.behavior.object.removed).subscribe(o => {
-            if (!SO.Behavior.is(o.obj)) return;
+            if (!PSO.isBehavior(o.obj)) return;
             o.obj.data.unregister();
         });
 
         merge(this.events.state.data.object.replaced, this.events.state.behavior.object.replaced).subscribe(o => {
-            if (o.oldObj && SO.Behavior.is(o.oldObj)) o.oldObj.data.unregister();
-            if (o.newObj && SO.Behavior.is(o.newObj)) o.newObj.data.register();
+            if (o.oldObj && PSO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
+            if (o.newObj && PSO.isBehavior(o.newObj)) o.newObj.data.register();
         });
     }
 
     _test_centerView() {
-        const sel = StateSelection.select(StateSelection.root().subtree().ofType(SO.Structure.type), this.state.data);
+        const sel = StateSelection.select(StateSelection.root().subtree().ofType(SO.Molecule.Structure.type), this.state.data);
         if (!sel.length) return;
 
-        const center = (sel[0].obj! as SO.Structure).data.boundary.sphere.center;
+        const center = (sel[0].obj! as SO.Molecule.Structure).data.boundary.sphere.center;
         this.canvas3d.camera.setState({ target: center });
         this.canvas3d.requestDraw(true);
     }
 
     _test_nextModel() {
-        const models = StateSelection.select('models', this.state.data)[0].obj as SO.Models;
+        const models = StateSelection.select('models', this.state.data)[0].obj as SO.Molecule.Models;
         const idx = (this.state.data.tree.getValue('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
         const newTree = StateTree.updateParams(this.state.data.tree, 'structure', { modelIndex: (idx + 1) % models.data.length });
         return this.state.updateData(newTree);

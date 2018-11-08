@@ -14,16 +14,16 @@ import { PluginContext } from 'mol-plugin/context';
 
 export { CreateStructureRepresentation }
 namespace CreateStructureRepresentation { export interface Params { } }
-const CreateStructureRepresentation = PluginStateTransform.Create<SO.Structure, SO.StructureRepresentation3D, CreateStructureRepresentation.Params>({
+const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Representation3D, CreateStructureRepresentation.Params>({
     name: 'create-structure-representation',
     display: { name: 'Create 3D Representation' },
-    from: [SO.Structure],
-    to: [SO.StructureRepresentation3D],
+    from: [SO.Molecule.Structure],
+    to: [SO.Molecule.Representation3D],
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             const repr = BallAndStickRepresentation(); // CartoonRepresentation();
             await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl }, DefaultBallAndStickProps, a.data).runInContext(ctx);
-            return new SO.StructureRepresentation3D({ label: 'Visual Repr.' }, repr);
+            return new SO.Molecule.Representation3D({ label: 'Visual Repr.' }, repr);
         });
     },
     update({ a, b }, plugin: PluginContext) {

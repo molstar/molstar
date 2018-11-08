@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginBehavior } from './behavior';
+import { PluginBehavior } from '../behavior';
 import { PluginCommands } from 'mol-plugin/command';
 import { StateTree } from 'mol-state';
 

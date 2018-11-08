@@ -13,13 +13,13 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export { Download }
 namespace Download { export interface Params { url: string, isBinary?: boolean, label?: string } }
-const Download = PluginStateTransform.Create<SO.DataRoot, SO.Data.String | SO.Data.Binary, Download.Params>({
+const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.Binary, Download.Params>({
     name: 'download',
     display: {
         name: 'Download',
         description: 'Download string or binary data from the specified URL'
     },
-    from: [SO.DataRoot],
+    from: [SO.Root],
     to: [SO.Data.String, SO.Data.Binary],
     params: {
         default: () => ({

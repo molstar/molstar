@@ -7,6 +7,7 @@
 import { State, StateTree } from 'mol-state';
 import { PluginStateObjects as SO } from './state/objects';
 import { Camera } from 'mol-canvas3d/camera';
+import { PluginBehavior } from './behavior';
 
 export { PluginState }
 
@@ -28,15 +29,7 @@ class PluginState {
         await this.behavior.setSnapshot(snapshot.behaviour);
         await this.data.setSnapshot(snapshot.data);
         this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
-
-        // TODO: handle camera
-        // console.log({ old: { ...this.plugin.canvas3d.camera  }, new: snapshot.canvas3d.camera });
-        // CombinedCamera.copy(snapshot.canvas3d.camera, this.plugin.canvas3d.camera);
-        // CombinedCamera.update(this.plugin.canvas3d.camera);
-        // this.plugin.canvas3d.center
-        // console.log({ copied: { ...this.plugin.canvas3d.camera  } });
         this.plugin.canvas3d.requestDraw(true);
-        // console.log('updated camera');
     }
 
     updateData(tree: StateTree) {
@@ -52,8 +45,8 @@ class PluginState {
     }
 
     constructor(private plugin: import('./context').PluginContext) {
-        this.data = State.create(new SO.DataRoot({ label: 'Root' }, { }), { globalContext: plugin });
-        this.behavior = State.create(new SO.BehaviorRoot({ label: 'Root' }, { }), { globalContext: plugin });
+        this.data = State.create(new SO.Root({ label: 'Root' }, { }), { globalContext: plugin });
+        this.behavior = State.create(new PluginBehavior.Root({ label: 'Root' }, { }), { globalContext: plugin });
     }
 }
 
