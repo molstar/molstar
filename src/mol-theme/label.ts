@@ -34,7 +34,7 @@ export function labelFirst(loci: Loci): string {
         case 'group-loci':
             const g = loci.groups[0]
             if (g) {
-                return g.shape.labels.ref.value[OrderedSet.getAt(g.ids, 0)]
+                return loci.shape.labels.ref.value[OrderedSet.getAt(g.ids, 0)]
             } else {
                 return 'Unknown'
             }
