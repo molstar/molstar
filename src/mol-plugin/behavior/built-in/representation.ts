@@ -44,7 +44,7 @@ export const AddRepresentationToCanvas = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Add Representation To Canvas' }
+    display: { name: 'Add Representation To Canvas', group: 'Data' }
 });
 
 export const HighlightLoci = PluginBehavior.create({
@@ -64,7 +64,7 @@ export const HighlightLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Highlight Loci on Canvas' }
+    display: { name: 'Highlight Loci on Canvas', group: 'Data' }
 });
 
 export const SelectLoci = PluginBehavior.create({
@@ -77,5 +77,5 @@ export const SelectLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Select Loci on Canvas' }
+    display: { name: 'Select Loci on Canvas', group: 'Data' }
 });

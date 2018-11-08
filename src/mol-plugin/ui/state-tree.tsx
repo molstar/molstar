@@ -7,7 +7,7 @@
 import * as React from 'react';
 import { PluginContext } from '../context';
 import { PluginStateObject } from 'mol-plugin/state/base';
-import { StateObject, State } from 'mol-state'
+import { State } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 
 export class StateTree extends React.Component<{ plugin: PluginContext, state: State }, { }> {
@@ -35,9 +35,9 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             PluginCommands.Data.RemoveObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
         }}>X</a>]</>
 
-        if (!obj.obj) {
+        if (obj.status !== 'ok' || !obj.obj) {
             return <div style={{ borderLeft: '1px solid black', paddingLeft: '7px' }}>
-                {remove} {StateObject.StateType[obj.state]} {obj.errorText}
+                {remove} {obj.status} {obj.errorText}
             </div>;
         }
         const props = obj.obj!.props as PluginStateObject.Props;

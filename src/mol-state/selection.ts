@@ -4,13 +4,13 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject } from './object';
+import { StateObject, StateObjectBox } from './object';
 import { State } from './state';
-import { ImmutableTree } from './util/immutable-tree';
+import { ImmutableTree } from './immutable-tree';
 
 namespace StateSelection {
-    export type Selector = Query | Builder | string | StateObject.Node;
-    export type NodeSeq = StateObject.Node[]
+    export type Selector = Query | Builder | string | StateObjectBox;
+    export type NodeSeq = StateObjectBox[]
     export type Query = (state: State) => NodeSeq;
 
     export function select(s: Selector, state: State) {
@@ -27,8 +27,8 @@ namespace StateSelection {
         return query;
     }
 
-    function isObj(arg: any): arg is StateObject.Node {
-        return (arg as StateObject.Node).version !== void 0;
+    function isObj(arg: any): arg is StateObjectBox {
+        return (arg as StateObjectBox).version !== void 0;
     }
 
     function isBuilder(arg: any): arg is Builder {
@@ -40,13 +40,13 @@ namespace StateSelection {
     }
 
     export interface Builder {
-        flatMap(f: (n: StateObject.Node) => StateObject.Node[]): Builder;
-        mapEntity(f: (n: StateObject.Node) => StateObject.Node): Builder;
+        flatMap(f: (n: StateObjectBox) => StateObjectBox[]): Builder;
+        mapEntity(f: (n: StateObjectBox) => StateObjectBox): Builder;
         unique(): Builder;
 
         parent(): Builder;
         first(): Builder;
-        filter(p: (n: StateObject.Node) => boolean): Builder;
+        filter(p: (n: StateObjectBox) => boolean): Builder;
         subtree(): Builder;
         children(): Builder;
         ofType(t: StateObject.Type): Builder;
@@ -68,7 +68,7 @@ namespace StateSelection {
 
     export function byRef(...refs: string[]) {
         return build(() => (state: State) => {
-            const ret: StateObject.Node[] = [];
+            const ret: StateObjectBox[] = [];
             for (const ref of refs) {
                 const n = state.objects.get(ref);
                 if (!n) continue;
@@ -78,13 +78,13 @@ namespace StateSelection {
         });
     }
 
-    export function byValue(...objects: StateObject.Node[]) { return build(() => (state: State) => objects); }
+    export function byValue(...objects: StateObjectBox[]) { return build(() => (state: State) => objects); }
 
     registerModifier('flatMap', flatMap);
-    export function flatMap(b: Selector, f: (obj: StateObject.Node, state: State) => NodeSeq) {
+    export function flatMap(b: Selector, f: (obj: StateObjectBox, state: State) => NodeSeq) {
         const q = compile(b);
         return build(() => (state: State) => {
-            const ret: StateObject.Node[] = [];
+            const ret: StateObjectBox[] = [];
             for (const n of q(state)) {
                 for (const m of f(n, state)) {
                     ret.push(m);
@@ -95,10 +95,10 @@ namespace StateSelection {
     }
 
     registerModifier('mapEntity', mapEntity);
-    export function mapEntity(b: Selector, f: (n: StateObject.Node, state: State) => StateObject.Node | undefined) {
+    export function mapEntity(b: Selector, f: (n: StateObjectBox, state: State) => StateObjectBox | undefined) {
         const q = compile(b);
         return build(() => (state: State) => {
-            const ret: StateObject.Node[] = [];
+            const ret: StateObjectBox[] = [];
             for (const n of q(state)) {
                 const x = f(n, state);
                 if (x) ret.push(x);
@@ -112,7 +112,7 @@ namespace StateSelection {
         const q = compile(b);
         return build(() => (state: State) => {
             const set = new Set<string>();
-            const ret: StateObject.Node[] = [];
+            const ret: StateObjectBox[] = [];
             for (const n of q(state)) {
                 if (!set.has(n.ref)) {
                     set.add(n.ref);
@@ -133,7 +133,7 @@ namespace StateSelection {
     }
 
     registerModifier('filter', filter);
-    export function filter(b: Selector, p: (n: StateObject.Node) => boolean) { return flatMap(b, n => p(n) ? [n] : []); }
+    export function filter(b: Selector, p: (n: StateObjectBox) => boolean) { return flatMap(b, n => p(n) ? [n] : []); }
 
     registerModifier('subtree', subtree);
     export function subtree(b: Selector) {
@@ -147,7 +147,7 @@ namespace StateSelection {
     registerModifier('children', children);
     export function children(b: Selector) {
         return flatMap(b, (n, s) => {
-            const nodes: StateObject.Node[] = [];
+            const nodes: StateObjectBox[] = [];
             s.tree.nodes.get(n.ref)!.children.forEach(c => nodes.push(s.objects.get(c!)!));
             return nodes;
         });
@@ -162,7 +162,7 @@ namespace StateSelection {
     registerModifier('parent', parent);
     export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.objects.get(s.tree.nodes.get(n.ref)!.parent))); }
 
-    function findAncestorOfType({ tree, objects }: State, root: string, type: StateObject.Type): StateObject.Node | undefined {
+    function findAncestorOfType({ tree, objects }: State, root: string, type: StateObject.Type): StateObjectBox | undefined {
         let current = tree.nodes.get(root)!;
         while (true) {
             current = tree.nodes.get(current.parent)!;

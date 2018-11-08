@@ -11,13 +11,13 @@ import { StateTree } from 'mol-state';
 export const SetCurrentObject = PluginBehavior.create({
     name: 'set-current-data-object-behavior',
     ctor: PluginBehavior.simpleCommandHandler(PluginCommands.Data.SetCurrentObject, ({ ref }, ctx) => ctx.state.data.setCurrent(ref)),
-    display: { name: 'Set Current Handler' }
+    display: { name: 'Set Current Handler', group: 'Data' }
 });
 
 export const Update = PluginBehavior.create({
     name: 'update-data-behavior',
     ctor: PluginBehavior.simpleCommandHandler(PluginCommands.Data.Update, ({ tree }, ctx) => ctx.state.updateData(tree)),
-    display: { name: 'Update Data Handler' }
+    display: { name: 'Update Data Handler', group: 'Data' }
 });
 
 export const RemoveObject = PluginBehavior.create({
@@ -26,5 +26,5 @@ export const RemoveObject = PluginBehavior.create({
         const tree = StateTree.build(ctx.state.data.tree).delete(ref).getTree();
         ctx.state.updateData(tree);
     }),
-    display: { name: 'Remove Object Handler' }
+    display: { name: 'Remove Object Handler', group: 'Data' }
 });

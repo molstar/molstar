@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { Transform, Transformer, StateObject } from 'mol-state';
+import { Transform, Transformer } from 'mol-state';
 import { ParametersComponent } from 'mol-app/component/parameters';
 
 export class Controls extends React.Component<{ plugin: PluginContext }, { id: string }> {
@@ -73,7 +73,7 @@ export class _test_CreateTransform extends React.Component<{ plugin: PluginConte
 
     render() {
         const obj = this.getObj();
-        if (obj.state !== StateObject.StateType.Ok) {
+        if (obj.status !== 'ok') {
             // TODO filter this elsewhere
             return <div />;
         }

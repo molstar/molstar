@@ -31,11 +31,16 @@ namespace PluginBehavior {
         name: string,
         ctor: Ctor<P>,
         label?: (params: P) => { label: string, description?: string },
-        display: { name: string, description?: string },
-        params?: Transformer.Definition<Root, Behavior, P>['params']
+        display: {
+            name: string,
+            group: string,
+            description?: string
+        },
+        params?: Transformer.Definition<Root, Behavior, P>['params'],
     }
 
     export function create<P>(params: CreateParams<P>) {
+        // TODO: cache groups etc
         return PluginStateTransform.Create<Root, Behavior, P>({
             name: params.name,
             display: params.display,

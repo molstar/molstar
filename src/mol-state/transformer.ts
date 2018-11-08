@@ -59,7 +59,7 @@ export namespace Transformer {
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
-        params?: {
+        readonly params?: {
             /** Check the parameters and return a list of errors if the are not valid. */
             default?(a: A, globalCtx: unknown): P,
             /** Specify default control descriptors for the parameters */
@@ -68,7 +68,7 @@ export namespace Transformer {
             validate?(a: A, params: P, globalCtx: unknown): string[] | undefined,
             /** Optional custom parameter equality. Use deep structural equal by default. */
             areEqual?(oldParams: P, newParams: P): boolean
-        }
+        },
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,
@@ -77,7 +77,7 @@ export namespace Transformer {
         isSerializable?(params: P): { isSerializable: true } | { isSerializable: false; reason: string },
 
         /** Custom conversion to and from JSON */
-        customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }
+        readonly customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }
     }
 
     const registry = new Map<Id, Transformer<any, any>>();

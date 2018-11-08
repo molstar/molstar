@@ -5,7 +5,7 @@
  */
 
 import { Transform } from './transform';
-import { ImmutableTree } from './util/immutable-tree';
+import { ImmutableTree } from './immutable-tree';
 import { Transformer } from './transformer';
 import { StateObject } from './object';
 

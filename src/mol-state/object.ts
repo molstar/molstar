@@ -1,33 +1,22 @@
-
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Transform } from './transform';
 import { UUID } from 'mol-util';
+import { Transform } from './transform';
 
-/** A mutable state object */
-export interface StateObject<P = any, D = any> {
+export { StateObject, StateObjectBox }
+
+interface StateObject<P = any, D = any, Type = { }> {
     readonly id: UUID,
     readonly type: StateObject.Type,
     readonly props: P,
     readonly data: D
 }
 
-export namespace StateObject {
-    export enum StateType {
-        // The object has been successfully created
-        Ok,
-        // An error occured during the creation of the object
-        Error,
-        // The object is queued to be created
-        Pending,
-        // The object is currently being created
-        Processing
-    }
-
+namespace StateObject {
     export interface Type<Info = any> {
         info: Info
     }
@@ -40,7 +29,7 @@ export namespace StateObject {
 
     export function create<Props, Data, TypeInfo>(typeInfo: TypeInfo) {
         const dataType: Type<TypeInfo> = { info: typeInfo };
-        return class implements StateObject<Props, Data> {
+        return class implements StateObject<Props, Data, Type<TypeInfo>> {
             static type = dataType;
             static is(obj?: StateObject): obj is StateObject<Props, Data> { return !!obj && dataType === obj.type; }
             id = UUID.create();
@@ -48,13 +37,25 @@ export namespace StateObject {
             constructor(public props: Props, public data: Data) { }
         }
     }
+}
 
-    export interface Node {
-        ref: Transform.Ref,
-        state: StateType,
-        props: unknown,
-        errorText?: string,
-        obj?: StateObject,
-        version: string
+interface StateObjectBox {
+    ref: Transform.Ref,
+    props: unknown,
+
+    status: StateObjectBox.Status,
+    errorText?: string,
+    obj?: StateObject,
+    version: string
+}
+
+namespace StateObjectBox {
+    export type Status = 'ok' | 'error' | 'pending' | 'processing'
+
+    export interface Props {
+        isVisible: boolean,
+        isHidden: boolean,
+        isBound: boolean,
+        isExpanded: boolean
     }
 }

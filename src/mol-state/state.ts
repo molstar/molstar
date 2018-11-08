@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject } from './object';
+import { StateObject, StateObjectBox } from './object';
 import { StateTree } from './tree';
 import { Transform } from './transform';
-import { ImmutableTree } from './util/immutable-tree';
+import { ImmutableTree } from './immutable-tree';
 import { Transformer } from './transformer';
 import { StateContext } from './context';
 import { UUID } from 'mol-util';
@@ -87,7 +87,7 @@ class State {
         this.objects.set(tree.rootRef, {
             ref: tree.rootRef,
             obj: rootObject,
-            state: StateObject.StateType.Ok,
+            status: 'ok',
             version: root.version,
             props: { ...defaultObjectProps }
         });
@@ -101,7 +101,7 @@ class State {
 }
 
 namespace State {
-    export type Objects = Map<Transform.Ref, StateObject.Node>
+    export type Objects = Map<Transform.Ref, StateObjectBox>
 
     export interface Snapshot {
         readonly tree: StateTree.Serialized,
@@ -177,15 +177,15 @@ namespace State {
         return deletes;
     }
 
-    function setObjectState(ctx: UpdateContext, ref: Ref, state: StateObject.StateType, errorText?: string) {
+    function setObjectState(ctx: UpdateContext, ref: Ref, status: StateObjectBox.Status, errorText?: string) {
         let changed = false;
         if (ctx.objects.has(ref)) {
             const obj = ctx.objects.get(ref)!;
-            changed = obj.state !== state;
-            obj.state = state;
+            changed = obj.status !== status;
+            obj.status = status;
             obj.errorText = errorText;
         } else {
-            const obj: StateObject.Node = { ref, state, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
+            const obj: StateObjectBox = { ref, status, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
             ctx.objects.set(ref, obj);
             changed = true;
         }
@@ -193,7 +193,7 @@ namespace State {
     }
 
     function _initVisitor(t: ImmutableTree.Node<Transform>, _: any, ctx: UpdateContext) {
-        setObjectState(ctx, t.ref, StateObject.StateType.Pending);
+        setObjectState(ctx, t.ref, 'pending');
     }
     /** Return "resolve set" */
     function initObjectState(ctx: UpdateContext, roots: Ref[]) {
@@ -203,7 +203,7 @@ namespace State {
     }
 
     function doError(ctx: UpdateContext, ref: Ref, errorText: string) {
-        setObjectState(ctx, ref, StateObject.StateType.Error, errorText);
+        setObjectState(ctx, ref, 'error', errorText);
         const wrap = ctx.objects.get(ref)!;
         if (wrap.obj) {
             ctx.stateCtx.events.object.removed.next({ ref });
@@ -232,11 +232,11 @@ namespace State {
     }
 
     async function updateSubtree(ctx: UpdateContext, root: Ref) {
-        setObjectState(ctx, root, StateObject.StateType.Processing);
+        setObjectState(ctx, root, 'processing');
 
         try {
             const update = await updateNode(ctx, root);
-            setObjectState(ctx, root, StateObject.StateType.Ok);
+            setObjectState(ctx, root, 'ok');
             if (update.action === 'created') {
                 ctx.stateCtx.events.object.created.next({ ref: root, obj: update.obj! });
             } else if (update.action === 'updated') {
@@ -268,7 +268,7 @@ namespace State {
             objects.set(currentRef, {
                 ref: currentRef,
                 obj,
-                state: StateObject.StateType.Ok,
+                status: 'ok',
                 version: transform.version,
                 props: { ...ctx.stateCtx.defaultObjectProps, ...transform.defaultProps }
             });
@@ -283,7 +283,7 @@ namespace State {
                     objects.set(currentRef, {
                         ref: currentRef,
                         obj,
-                        state: StateObject.StateType.Ok,
+                        status: 'ok',
                         version: transform.version,
                         props: { ...ctx.stateCtx.defaultObjectProps, ...current.props, ...transform.defaultProps }
                     });
