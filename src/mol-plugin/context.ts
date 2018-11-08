@@ -16,6 +16,8 @@ import { PluginCommand, PluginCommands } from './command';
 import { Task } from 'mol-task';
 import { merge } from 'rxjs';
 import { PluginBehaviors } from './behavior';
+import { Loci, EmptyLoci } from 'mol-model/loci';
+import { Representation } from 'mol-repr';
 
 export class PluginContext {
     private disposed = false;
@@ -35,6 +37,10 @@ export class PluginContext {
         state: {
             data: this.state.data.context.behaviors,
             behavior: this.state.behavior.context.behaviors
+        },
+        canvas: {
+            highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
+            selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
         },
         command: this.commands.behaviour
     };
@@ -82,6 +88,8 @@ export class PluginContext {
             .and().toRoot().apply(PluginBehaviors.Data.Update, { ref: PluginBehaviors.Data.Update.id })
             .and().toRoot().apply(PluginBehaviors.Data.RemoveObject, { ref: PluginBehaviors.Data.RemoveObject.id })
             .and().toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas, { ref: PluginBehaviors.Representation.AddRepresentationToCanvas.id })
+            .and().toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
+            .and().toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
             .getTree();
 
         await this.state.updateBehaviour(tree);

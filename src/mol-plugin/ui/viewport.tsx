@@ -7,9 +7,10 @@
 
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { Loci, EmptyLoci, areLociEqual } from 'mol-model/loci';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
+// import { Loci, EmptyLoci, areLociEqual } from 'mol-model/loci';
+// import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { ButtonsType } from 'mol-util/input/input-observer';
+import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
 
 interface ViewportProps {
     plugin: PluginContext
@@ -40,29 +41,21 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         const canvas3d = this.props.plugin.canvas3d;
         canvas3d.input.resize.subscribe(() => this.handleResize());
 
-        let prevLoci: Loci = EmptyLoci;
-        canvas3d.input.move.subscribe(async ({x, y, inside, buttons}) => {
-            if (!inside || buttons) return;
-            const p = await canvas3d.identify(x, y);
-            if (p) {
-                const { loci } = canvas3d.getLoci(p);
+        const idHelper = new Canvas3dIdentifyHelper(this.props.plugin, 15);
 
-                if (!areLociEqual(loci, prevLoci)) {
-                    canvas3d.mark(prevLoci, MarkerAction.RemoveHighlight);
-                    canvas3d.mark(loci, MarkerAction.Highlight);
-                    prevLoci = loci;
-                }
-            }
-        })
+        canvas3d.input.move.subscribe(({x, y, inside, buttons}) => {
+            if (!inside || buttons) { return; }
+            idHelper.move(x, y);
+        });
 
-        canvas3d.input.click.subscribe(async ({x, y, buttons}) => {
-            if (buttons !== ButtonsType.Flag.Primary) return
-            const p = await canvas3d.identify(x, y)
-            if (p) {
-                const { loci } = canvas3d.getLoci(p)
-                canvas3d.mark(loci, MarkerAction.Toggle)
-            }
-        })
+        canvas3d.input.leave.subscribe(() => {
+            idHelper.leave();
+        });
+
+        canvas3d.input.click.subscribe(({x, y, buttons}) => {
+            if (buttons !== ButtonsType.Flag.Primary) return;
+            idHelper.select(x, y);
+        });
     }
 
     componentWillUnmount() {
