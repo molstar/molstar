@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, StateObjectBox } from './object';
+import { StateObject, StateObjectCell } from './object';
 import { StateTree } from './tree';
 import { Transform } from './transform';
 import { ImmutableTree } from './immutable-tree';
@@ -23,16 +23,16 @@ class State {
     get tree() { return this._tree; }
     get current() { return this._current; }
 
-    readonly objects: State.Objects = new Map();
+    readonly cells: State.Cells = new Map();
     readonly context: StateContext;
 
     getSnapshot(): State.Snapshot {
         const props = Object.create(null);
-        const keys = this.objects.keys();
+        const keys = this.cells.keys();
         while (true) {
             const key = keys.next();
             if (key.done) break;
-            const o = this.objects.get(key.value)!;
+            const o = this.cells.get(key.value)!;
             props[key.value] = { ...o.props };
         }
         return {
@@ -68,7 +68,7 @@ class State {
                     taskCtx,
                     oldTree,
                     tree: tree,
-                    objects: this.objects,
+                    objects: this.cells,
                     transformCache: this.transformCache
                 };
                 // TODO: have "cancelled" error? Or would this be handled automatically?
@@ -84,7 +84,7 @@ class State {
         const root = tree.getValue(tree.rootRef)!;
         const defaultObjectProps = (params && params.defaultObjectProps) || { }
 
-        this.objects.set(tree.rootRef, {
+        this.cells.set(tree.rootRef, {
             ref: tree.rootRef,
             obj: rootObject,
             status: 'ok',
@@ -101,7 +101,7 @@ class State {
 }
 
 namespace State {
-    export type Objects = Map<Transform.Ref, StateObjectBox>
+    export type Cells = Map<Transform.Ref, StateObjectCell>
 
     export interface Snapshot {
         readonly tree: StateTree.Serialized,
@@ -120,7 +120,7 @@ namespace State {
         taskCtx: RuntimeContext,
         oldTree: StateTree,
         tree: StateTree,
-        objects: State.Objects,
+        objects: State.Cells,
         transformCache: Map<Ref, unknown>
     }
 
@@ -142,7 +142,7 @@ namespace State {
         }
     }
 
-    function findUpdateRoots(objects: State.Objects, tree: StateTree) {
+    function findUpdateRoots(objects: State.Cells, tree: StateTree) {
         const findState = {
             roots: [] as Ref[],
             objects
@@ -177,7 +177,7 @@ namespace State {
         return deletes;
     }
 
-    function setObjectState(ctx: UpdateContext, ref: Ref, status: StateObjectBox.Status, errorText?: string) {
+    function setObjectState(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Status, errorText?: string) {
         let changed = false;
         if (ctx.objects.has(ref)) {
             const obj = ctx.objects.get(ref)!;
@@ -185,7 +185,7 @@ namespace State {
             obj.status = status;
             obj.errorText = errorText;
         } else {
-            const obj: StateObjectBox = { ref, status, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
+            const obj: StateObjectCell = { ref, status, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
             ctx.objects.set(ref, obj);
             changed = true;
         }
@@ -219,7 +219,7 @@ namespace State {
         }
     }
 
-    function findAncestor(tree: StateTree, objects: State.Objects, root: Ref, types: { type: StateObject.Type }[]): StateObject {
+    function findAncestor(tree: StateTree, objects: State.Cells, root: Ref, types: { type: StateObject.Type }[]): StateObject {
         let current = tree.nodes.get(root)!;
         while (true) {
             current = tree.nodes.get(current.parent)!;

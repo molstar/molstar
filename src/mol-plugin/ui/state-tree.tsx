@@ -28,20 +28,21 @@ export class StateTree extends React.Component<{ plugin: PluginContext, state: S
 export class StateTreeNode extends React.Component<{ plugin: PluginContext, nodeRef: string, state: State }, { }> {
     render() {
         const n = this.props.state.tree.nodes.get(this.props.nodeRef)!;
-        const obj = this.props.state.objects.get(this.props.nodeRef)!;
+        const cell = this.props.state.cells.get(this.props.nodeRef)!;
 
         const remove = <>[<a href='#' onClick={e => {
             e.preventDefault();
             PluginCommands.Data.RemoveObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
         }}>X</a>]</>
 
-        if (obj.status !== 'ok' || !obj.obj) {
+        if (cell.status !== 'ok' || !cell.obj) {
             return <div style={{ borderLeft: '1px solid black', paddingLeft: '7px' }}>
-                {remove} {obj.status} {obj.errorText}
+                {remove} {cell.status} {cell.errorText}
             </div>;
         }
-        const props = obj.obj!.props as PluginStateObject.Props;
-        const type = obj.obj!.type.info as PluginStateObject.TypeInfo;
+        const obj = cell.obj as PluginStateObject.Any;
+        const props = obj.props;
+        const type = obj.type;
         return <div style={{ borderLeft: '0px solid #999', paddingLeft: '0px' }}>
             {remove}[<span title={type.description}>{ type.shortName }</span>] <a href='#' onClick={e => {
                 e.preventDefault();

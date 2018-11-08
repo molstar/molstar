@@ -4,14 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, StateObjectBox } from './object';
+import { StateObject, StateObjectCell } from './object';
 import { State } from './state';
 import { ImmutableTree } from './immutable-tree';
 
 namespace StateSelection {
-    export type Selector = Query | Builder | string | StateObjectBox;
-    export type NodeSeq = StateObjectBox[]
-    export type Query = (state: State) => NodeSeq;
+    export type Selector = Query | Builder | string | StateObjectCell;
+    export type CellSeq = StateObjectCell[]
+    export type Query = (state: State) => CellSeq;
 
     export function select(s: Selector, state: State) {
         return compile(s)(state);
@@ -27,8 +27,8 @@ namespace StateSelection {
         return query;
     }
 
-    function isObj(arg: any): arg is StateObjectBox {
-        return (arg as StateObjectBox).version !== void 0;
+    function isObj(arg: any): arg is StateObjectCell {
+        return (arg as StateObjectCell).version !== void 0;
     }
 
     function isBuilder(arg: any): arg is Builder {
@@ -40,13 +40,13 @@ namespace StateSelection {
     }
 
     export interface Builder {
-        flatMap(f: (n: StateObjectBox) => StateObjectBox[]): Builder;
-        mapEntity(f: (n: StateObjectBox) => StateObjectBox): Builder;
+        flatMap(f: (n: StateObjectCell) => StateObjectCell[]): Builder;
+        mapEntity(f: (n: StateObjectCell) => StateObjectCell): Builder;
         unique(): Builder;
 
         parent(): Builder;
         first(): Builder;
-        filter(p: (n: StateObjectBox) => boolean): Builder;
+        filter(p: (n: StateObjectCell) => boolean): Builder;
         subtree(): Builder;
         children(): Builder;
         ofType(t: StateObject.Type): Builder;
@@ -63,14 +63,14 @@ namespace StateSelection {
         return Object.create(BuilderPrototype, { compile: { writable: false, configurable: false, value: compile } });
     }
 
-    export function root() { return build(() => (state: State) => [state.objects.get(state.tree.rootRef)!]) }
+    export function root() { return build(() => (state: State) => [state.cells.get(state.tree.rootRef)!]) }
 
 
     export function byRef(...refs: string[]) {
         return build(() => (state: State) => {
-            const ret: StateObjectBox[] = [];
+            const ret: StateObjectCell[] = [];
             for (const ref of refs) {
-                const n = state.objects.get(ref);
+                const n = state.cells.get(ref);
                 if (!n) continue;
                 ret.push(n);
             }
@@ -78,13 +78,13 @@ namespace StateSelection {
         });
     }
 
-    export function byValue(...objects: StateObjectBox[]) { return build(() => (state: State) => objects); }
+    export function byValue(...objects: StateObjectCell[]) { return build(() => (state: State) => objects); }
 
     registerModifier('flatMap', flatMap);
-    export function flatMap(b: Selector, f: (obj: StateObjectBox, state: State) => NodeSeq) {
+    export function flatMap(b: Selector, f: (obj: StateObjectCell, state: State) => CellSeq) {
         const q = compile(b);
         return build(() => (state: State) => {
-            const ret: StateObjectBox[] = [];
+            const ret: StateObjectCell[] = [];
             for (const n of q(state)) {
                 for (const m of f(n, state)) {
                     ret.push(m);
@@ -95,10 +95,10 @@ namespace StateSelection {
     }
 
     registerModifier('mapEntity', mapEntity);
-    export function mapEntity(b: Selector, f: (n: StateObjectBox, state: State) => StateObjectBox | undefined) {
+    export function mapEntity(b: Selector, f: (n: StateObjectCell, state: State) => StateObjectCell | undefined) {
         const q = compile(b);
         return build(() => (state: State) => {
-            const ret: StateObjectBox[] = [];
+            const ret: StateObjectCell[] = [];
             for (const n of q(state)) {
                 const x = f(n, state);
                 if (x) ret.push(x);
@@ -112,7 +112,7 @@ namespace StateSelection {
         const q = compile(b);
         return build(() => (state: State) => {
             const set = new Set<string>();
-            const ret: StateObjectBox[] = [];
+            const ret: StateObjectCell[] = [];
             for (const n of q(state)) {
                 if (!set.has(n.ref)) {
                     set.add(n.ref);
@@ -133,22 +133,22 @@ namespace StateSelection {
     }
 
     registerModifier('filter', filter);
-    export function filter(b: Selector, p: (n: StateObjectBox) => boolean) { return flatMap(b, n => p(n) ? [n] : []); }
+    export function filter(b: Selector, p: (n: StateObjectCell) => boolean) { return flatMap(b, n => p(n) ? [n] : []); }
 
     registerModifier('subtree', subtree);
     export function subtree(b: Selector) {
         return flatMap(b, (n, s) => {
             const nodes = [] as string[];
             ImmutableTree.doPreOrder(s.tree, s.tree.nodes.get(n.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
-            return nodes.map(x => s.objects.get(x)!);
+            return nodes.map(x => s.cells.get(x)!);
         });
     }
 
     registerModifier('children', children);
     export function children(b: Selector) {
         return flatMap(b, (n, s) => {
-            const nodes: StateObjectBox[] = [];
-            s.tree.nodes.get(n.ref)!.children.forEach(c => nodes.push(s.objects.get(c!)!));
+            const nodes: StateObjectCell[] = [];
+            s.tree.nodes.get(n.ref)!.children.forEach(c => nodes.push(s.cells.get(c!)!));
             return nodes;
         });
     }
@@ -160,17 +160,17 @@ namespace StateSelection {
     export function ancestorOfType(b: Selector, t: StateObject.Type) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s, n.ref, t))); }
 
     registerModifier('parent', parent);
-    export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.objects.get(s.tree.nodes.get(n.ref)!.parent))); }
+    export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.nodes.get(n.ref)!.parent))); }
 
-    function findAncestorOfType({ tree, objects }: State, root: string, type: StateObject.Type): StateObjectBox | undefined {
+    function findAncestorOfType({ tree, cells }: State, root: string, type: StateObject.Type): StateObjectCell | undefined {
         let current = tree.nodes.get(root)!;
         while (true) {
             current = tree.nodes.get(current.parent)!;
             if (current.ref === tree.rootRef) {
-                return objects.get(tree.rootRef);
+                return cells.get(tree.rootRef);
             }
-            const obj = objects.get(current.ref)!.obj!;
-            if (obj.type === type) return objects.get(current.ref);
+            const obj = cells.get(current.ref)!.obj!;
+            if (obj.type === type) return cells.get(current.ref);
         }
     }
 }

@@ -44,7 +44,7 @@ export class Controls extends React.Component<{ plugin: PluginContext }, { id: s
 
 export class _test_CreateTransform extends React.Component<{ plugin: PluginContext, nodeRef: Transform.Ref, transformer: Transformer }, { params: any }> {
     private getObj() {
-        const obj = this.props.plugin.state.data.objects.get(this.props.nodeRef)!;
+        const obj = this.props.plugin.state.data.cells.get(this.props.nodeRef)!;
         return obj;
     }
 

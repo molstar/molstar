@@ -68,7 +68,7 @@ function hookEvents(state: State) {
     state.context.events.object.created.subscribe(e => console.log('created:', e.ref));
     state.context.events.object.removed.subscribe(e => console.log('removed:', e.ref));
     state.context.events.object.replaced.subscribe(e => console.log('replaced:', e.ref));
-    state.context.events.object.stateChanged.subscribe(e => console.log('stateChanged:', e.ref, state.objects.get(e.ref)!.status));
+    state.context.events.object.stateChanged.subscribe(e => console.log('stateChanged:', e.ref, state.cells.get(e.ref)!.status));
     state.context.events.object.updated.subscribe(e => console.log('updated:', e.ref));
 }
 
@@ -91,7 +91,7 @@ export async function testState() {
 
     await state.update(tree1).run();
     console.log('----------------');
-    console.log(util.inspect(state.objects, true, 3, true));
+    console.log(util.inspect(state.cells, true, 3, true));
 
     console.log('----------------');
     const jsonString = JSON.stringify(StateTree.toJSON(tree2), null, 2);
@@ -103,7 +103,7 @@ export async function testState() {
 
     console.log('----------------');
     await state.update(treeFromJson).run();
-    console.log(util.inspect(state.objects, true, 3, true));
+    console.log(util.inspect(state.cells, true, 3, true));
 
     console.log('----------------');
 

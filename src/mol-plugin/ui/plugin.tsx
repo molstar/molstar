@@ -42,7 +42,7 @@ export class _test_CurrentObject extends React.Component<{ plugin: PluginContext
     render() {
         const ref = this.props.plugin.behaviors.state.data.currentObject.value.ref;
         // const n = this.props.plugin.state.data.tree.nodes.get(ref)!;
-        const obj = this.props.plugin.state.data.objects.get(ref)!;
+        const obj = this.props.plugin.state.data.cells.get(ref)!;
 
         const type = obj && obj.obj ? obj.obj.type : void 0;
 

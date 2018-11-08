@@ -7,49 +7,45 @@
 import { UUID } from 'mol-util';
 import { Transform } from './transform';
 
-export { StateObject, StateObjectBox }
+export { StateObject, StateObjectCell }
 
-interface StateObject<P = any, D = any, Type = { }> {
+interface StateObject<P = any, D = any, T = any> {
     readonly id: UUID,
-    readonly type: StateObject.Type,
+    readonly type: StateObject.Type<T>,
     readonly props: P,
     readonly data: D
 }
 
 namespace StateObject {
-    export interface Type<Info = any> {
-        info: Info
+    export function factory<Type, CommonProps>() {
+        return <D = { }, P = {}>(type: Type) => create<P & CommonProps, D, Type>(type);
     }
 
-    export function factory<TypeInfo, CommonProps>() {
-        return <D = { }, P = {}>(typeInfo: TypeInfo) => create<P & CommonProps, D, TypeInfo>(typeInfo);
-    }
+    export type Type<I = unknown> = I
+    export type Ctor = { new(...args: any[]): StateObject, type: any }
 
-    export type Ctor = { new(...args: any[]): StateObject, type: Type }
-
-    export function create<Props, Data, TypeInfo>(typeInfo: TypeInfo) {
-        const dataType: Type<TypeInfo> = { info: typeInfo };
-        return class implements StateObject<Props, Data, Type<TypeInfo>> {
-            static type = dataType;
-            static is(obj?: StateObject): obj is StateObject<Props, Data> { return !!obj && dataType === obj.type; }
+    export function create<Props, Data, Type>(type: Type) {
+        return class implements StateObject<Props, Data, Type> {
+            static type = type;
+            static is(obj?: StateObject): obj is StateObject<Props, Data, Type> { return !!obj && type === obj.type; }
             id = UUID.create();
-            type = dataType;
+            type = type;
             constructor(public props: Props, public data: Data) { }
         }
     }
 }
 
-interface StateObjectBox {
+interface StateObjectCell {
     ref: Transform.Ref,
     props: unknown,
 
-    status: StateObjectBox.Status,
+    status: StateObjectCell.Status,
     errorText?: string,
     obj?: StateObject,
     version: string
 }
 
-namespace StateObjectBox {
+namespace StateObjectCell {
     export type Status = 'ok' | 'error' | 'pending' | 'processing'
 
     export interface Props {
