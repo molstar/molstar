@@ -7,7 +7,7 @@
 import { Task } from '../task'
 import { RuntimeContext } from './runtime-context'
 import { Progress } from './progress'
-import { now } from '../util/now'
+import { now } from 'mol-util/now';
 import { Scheduler } from '../util/scheduler'
 import { UserTiming } from '../util/user-timing'
 

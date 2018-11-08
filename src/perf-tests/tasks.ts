@@ -1,5 +1,5 @@
 import * as B from 'benchmark'
-import { now } from 'mol-task/util/now'
+import { now } from 'mol-util/now';
 import { Scheduler } from 'mol-task/util/scheduler'
 
 export namespace Tasks {

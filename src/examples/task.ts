@@ -4,7 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, Progress, Scheduler, now, MultistepTask, chunkedSubtask } from 'mol-task'
+import { Task, Progress, Scheduler, MultistepTask, chunkedSubtask } from 'mol-task'
+import { now } from 'mol-util/now';
 
 export async function test1() {
     const t = Task.create('test', async () => 1);

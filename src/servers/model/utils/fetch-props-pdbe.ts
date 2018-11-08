@@ -9,7 +9,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as argparse from 'argparse'
 import { makeDir } from 'mol-util/make-dir';
-import { now } from 'mol-task';
+import { now } from 'mol-util/now';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 
 const cmdParser = new argparse.ArgumentParser({

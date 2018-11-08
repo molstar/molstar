@@ -7,7 +7,7 @@
 declare var process: any;
 declare var window: any;
 
-const now: () => number = (function () {
+const now: () => now.Timestamp = (function () {
     if (typeof window !== 'undefined' && window.performance) {
         const perf = window.performance;
         return () => perf.now();
@@ -22,5 +22,9 @@ const now: () => number = (function () {
         return () => +new Date();
     }
 }());
+
+namespace now {
+    export type Timestamp = number & { '@type': 'now-timestamp' }
+}
 
 export { now }

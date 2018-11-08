@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Canvas3D from 'mol-canvas3d/canvas3d';
+import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { BehaviorSubject } from 'rxjs';
 import { App } from './app';
 import { VolumeData } from 'mol-model/volume';

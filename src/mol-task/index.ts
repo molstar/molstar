@@ -7,9 +7,8 @@
 import { Task } from './task'
 import { RuntimeContext } from './execution/runtime-context'
 import { Progress } from './execution/progress'
-import { now } from './util/now'
 import { Scheduler } from './util/scheduler'
 import { MultistepTask } from './util/multistep'
 import { chunkedSubtask } from './util/chunked'
 
-export { Task, RuntimeContext, Progress, now, Scheduler, MultistepTask, chunkedSubtask }
+export { Task, RuntimeContext, Progress, Scheduler, MultistepTask, chunkedSubtask }

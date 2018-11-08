@@ -10,7 +10,7 @@ import { JobManager, Job } from './jobs';
 import { ConsoleLogger } from 'mol-util/console-logger';
 import { resolveJob } from './query';
 import { StructureCache } from './structure-wrapper';
-import { now } from 'mol-task';
+import { now } from 'mol-util/now';
 import { PerformanceMonitor } from 'mol-util/performance-monitor';
 import { QueryName } from './api';
 

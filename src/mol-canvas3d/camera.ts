@@ -5,13 +5,18 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Mat4, Vec3, Vec4 } from 'mol-math/linear-algebra'
+import { Mat4, Vec3, Vec4, EPSILON } from 'mol-math/linear-algebra'
 import { Viewport, cameraLookAt, cameraProject, cameraUnproject } from './camera/util';
 import { Object3D } from 'mol-gl/object3d';
+import { BehaviorSubject } from 'rxjs';
 
 export { Camera }
 
+// TODO: slab controls that modify near/far planes?
+
 class Camera implements Object3D {
+    readonly updatedViewProjection = new BehaviorSubject<Camera>(this);
+
     readonly view: Mat4 = Mat4.identity();
     readonly projection: Mat4 = Mat4.identity();
     readonly projectionView: Mat4 = Mat4.identity();
@@ -32,6 +37,9 @@ class Camera implements Object3D {
     get target() { return this.state.target; }
     set target(v: Vec3) { Vec3.copy(this.state.target, v); }
 
+    private prevProjection = Mat4.identity();
+    private prevView = Mat4.identity();
+
     updateMatrices() {
         const snapshot = this.state as Camera.Snapshot;
         const height = 2 * Math.tan(snapshot.fov / 2) * Vec3.distance(snapshot.position, snapshot.target);
@@ -43,8 +51,22 @@ class Camera implements Object3D {
             default: throw new Error('unknown camera mode');
         }
 
+        const changed = !Mat4.areEqual(this.projection, this.prevProjection, EPSILON.Value) || !Mat4.areEqual(this.view, this.prevView, EPSILON.Value);
+
         Mat4.mul(this.projectionView, this.projection, this.view)
         Mat4.invert(this.inverseProjectionView, this.projectionView)
+
+
+        if (changed) {
+            Mat4.mul(this.projectionView, this.projection, this.view)
+            Mat4.invert(this.inverseProjectionView, this.projectionView)
+
+            Mat4.copy(this.prevView, this.view);
+            Mat4.copy(this.prevProjection, this.projection);
+            this.updatedViewProjection.next(this);
+        }
+
+        return changed;
     }
 
     setState(snapshot?: Partial<Camera.Snapshot>) {
@@ -71,6 +93,10 @@ class Camera implements Object3D {
 
     unproject(out: Vec3, point: Vec3) {
         return cameraUnproject(out, point, this.viewport, this.inverseProjectionView)
+    }
+
+    dispose() {
+        this.updatedViewProjection.complete();
     }
 
     constructor(state?: Partial<Camera.Snapshot>, viewport = Viewport.create(-1, -1, 1, 1)) {

@@ -25,7 +25,7 @@ export const DefaultTrackballControlsProps = {
     staticMoving: true,
     dynamicDampingFactor: 0.2,
 
-    minDistance: 0,
+    minDistance: 0.01,
     maxDistance: Infinity
 }
 export type TrackballControlsProps = Partial<typeof DefaultTrackballControlsProps>
@@ -293,7 +293,6 @@ namespace TrackballControls {
 
         return {
             viewport,
-            // target,
 
             get dynamicDampingFactor() { return dynamicDampingFactor },
             set dynamicDampingFactor(value: number ) { dynamicDampingFactor = value },

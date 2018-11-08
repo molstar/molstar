@@ -5,7 +5,7 @@
  */
 
 import * as React from 'react'
-import Canvas3D from 'mol-canvas3d/canvas3d';
+import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { App } from '../app';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Representation } from 'mol-repr';

@@ -5,7 +5,7 @@
  */
 
 import { StateTree, StateSelection, Transformer, Transform } from 'mol-state';
-import Canvas3D from 'mol-canvas3d/canvas3d';
+import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
 import { PluginStateObjects as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
@@ -141,8 +141,7 @@ export class PluginContext {
         if (!sel.length) return;
 
         const center = (sel[0].obj! as SO.Structure).data.boundary.sphere.center;
-        console.log({ sel, center, rc: this.canvas3d.reprCount });
-        this.canvas3d.center(center);
+        this.canvas3d.camera.setState({ target: center });
         this.canvas3d.requestDraw(true);
     }
 
