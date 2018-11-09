@@ -5,7 +5,7 @@
  */
 
 export * from './behavior/behavior'
-import * as Data from './behavior/built-in/data'
+import * as Data from './behavior/built-in/state'
 import * as Representation from './behavior/built-in/representation'
 
 export const PluginBehaviors = {

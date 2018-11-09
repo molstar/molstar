@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTree, Transformer, Transform } from 'mol-state';
+import { StateTree, Transformer, Transform, State } from 'mol-state';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
 import { PluginStateObject as PSO } from './state/base';
@@ -92,17 +92,17 @@ export class PluginContext {
             .and().toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
             .getTree();
 
-        await this.state.updateBehaviour(tree);
+        await this.runTask(this.state.behavior.update(tree));
     }
 
-    _test_applyTransform(a: Transform.Ref, transformer: Transformer, params: any) {
-        const tree = this.state.data.tree.build().to(a).apply(transformer, params).getTree();
-        PluginCommands.Data.Update.dispatch(this, { tree });
+    applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
+        const tree = state.tree.build().to(a).apply(transformer, params).getTree();
+        return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
-    _test_updateTransform(a: Transform.Ref, params: any) {
-        const tree = StateTree.updateParams(this.state.data.tree, a, params);
-        PluginCommands.Data.Update.dispatch(this, { tree });
+    updateTransform(state: State, a: Transform.Ref, params: any) {
+        const tree = StateTree.updateParams(state.tree, a, params);
+        return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
     _test_createState(url: string) {
@@ -129,7 +129,7 @@ export class PluginContext {
             .apply(StateTransforms.Visuals.CreateStructureRepresentation)
             .getTree();
 
-        this.state.updateData(newTree);
+        this.runTask(this.state.data.update(newTree));
     }
 
     private initEvents() {
@@ -163,7 +163,7 @@ export class PluginContext {
         const models = this.state.data.select('models')[0].obj as SO.Molecule.Models;
         const idx = (this.state.data.tree.nodes.get('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
         const newTree = StateTree.updateParams(this.state.data.tree, 'structure', { modelIndex: (idx + 1) % models.data.length });
-        return this.state.updateData(newTree);
+        return this.runTask(this.state.data.update(newTree));
         // this.viewer.requestDraw(true);
     }
 

@@ -32,7 +32,7 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
 
         const remove = <>[<a href='#' onClick={e => {
             e.preventDefault();
-            PluginCommands.Data.RemoveObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
+            PluginCommands.State.RemoveObject.dispatch(this.props.plugin, { state: this.props.state, ref: this.props.nodeRef });
         }}>X</a>]</>
 
         let label: any;
@@ -40,7 +40,7 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
             label = <><b>{cell.status}</b> <a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.Data.SetCurrentObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
+                PluginCommands.State.SetCurrentObject.dispatch(this.props.plugin, { state: this.props.state, ref: this.props.nodeRef });
             }}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
@@ -48,7 +48,7 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             const type = obj.type;
             label = <>[<span title={type.description}>{ type.shortName }</span>] <a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.Data.SetCurrentObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
+                PluginCommands.State.SetCurrentObject.dispatch(this.props.plugin, { state: this.props.state, ref: this.props.nodeRef });
             }}>{props.label}</a> {props.description ? <small>{props.description}</small> : void 0}</>;
         }
 

@@ -68,7 +68,7 @@ function hookEvents(state: State) {
     state.events.object.created.subscribe(e => console.log('created:', e.ref));
     state.events.object.removed.subscribe(e => console.log('removed:', e.ref));
     state.events.object.replaced.subscribe(e => console.log('replaced:', e.ref));
-    state.events.object.stateChanged.subscribe(e => console.log('stateChanged:', e.ref, state.cells.get(e.ref)!.status));
+    state.events.object.cellState.subscribe(e => console.log('stateChanged:', e.ref, e.cell.status));
     state.events.object.updated.subscribe(e => console.log('updated:', e.ref));
 }
 

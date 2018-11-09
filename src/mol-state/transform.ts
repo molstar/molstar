@@ -18,7 +18,7 @@ export interface Transform<A extends StateObject = StateObject, B extends StateO
 }
 
 export namespace Transform {
-    export type Ref = string /* & { '@type': 'transform-ref' } */
+    export type Ref = string
 
     export const RootRef = '-=root=-' as Ref;
 

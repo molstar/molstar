@@ -4,9 +4,9 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './command/data';
+import * as State from './command/state';
 
 export * from './command/command';
 export const PluginCommands = {
-    Data
+    State
 }

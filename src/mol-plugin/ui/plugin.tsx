@@ -21,7 +21,7 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, { }> {
                 <StateTree plugin={this.props.plugin} state={this.props.plugin.state.data} />
                 <hr />
                 <_test_CurrentObject plugin={this.props.plugin} />
-                <h3>Behavior</h3>
+                <h3>Behaviors</h3>
                 <StateTree plugin={this.props.plugin} state={this.props.plugin.state.behavior} />
             </div>
             <div style={{ position: 'absolute', left: '350px', right: '250px', height: '100%' }}>
@@ -40,7 +40,8 @@ export class _test_CurrentObject extends React.Component<{ plugin: PluginContext
         this.props.plugin.behaviors.state.data.currentObject.subscribe(() => this.forceUpdate());
     }
     render() {
-        const ref = this.props.plugin.behaviors.state.data.currentObject.value.ref;
+        const current = this.props.plugin.behaviors.state.data.currentObject.value;
+        const ref = current.ref;
         // const n = this.props.plugin.state.data.tree.nodes.get(ref)!;
         const obj = this.props.plugin.state.data.cells.get(ref)!;
 
@@ -50,14 +51,14 @@ export class _test_CurrentObject extends React.Component<{ plugin: PluginContext
             ? Transformer.fromType(type)
             : []
         return <div>
-            Current Ref: {this.props.plugin.behaviors.state.data.currentObject.value.ref}
+            Current Ref: {ref}
             <hr />
             <h3>Update</h3>
-            <_test_UpdateTransform key={`${ref} update`} plugin={this.props.plugin} nodeRef={ref} />
+            <_test_UpdateTransform key={`${ref} update`} plugin={this.props.plugin} state={current.state} nodeRef={ref} />
             <hr />
             <h3>Create</h3>
             {
-                transforms.map((t, i) => <_test_CreateTransform key={`${t.id} ${ref} ${i}`} plugin={this.props.plugin} transformer={t} nodeRef={ref} />)
+                transforms.map((t, i) => <_test_CreateTransform key={`${t.id} ${ref} ${i}`} plugin={this.props.plugin} state={current.state} transformer={t} nodeRef={ref} />)
             }
         </div>;
     }

@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, StateTree } from 'mol-state';
+import { State } from 'mol-state';
 import { PluginStateObjects as SO } from './state/objects';
 import { Camera } from 'mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
@@ -30,14 +30,6 @@ class PluginState {
         await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
         this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
         this.plugin.canvas3d.requestDraw(true);
-    }
-
-    updateData(tree: StateTree) {
-        return this.plugin.runTask(this.data.update(tree));
-    }
-
-    updateBehaviour(tree: StateTree) {
-        return this.plugin.runTask(this.behavior.update(tree));
     }
 
     dispose() {

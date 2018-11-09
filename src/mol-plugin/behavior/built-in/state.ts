@@ -5,25 +5,25 @@
  */
 
 import { PluginBehavior } from '../behavior';
-import { PluginCommands } from 'mol-plugin/command';
+import { PluginCommands } from '../../command';
 
 export const SetCurrentObject = PluginBehavior.create({
     name: 'set-current-data-object-behavior',
-    ctor: PluginBehavior.simpleCommandHandler(PluginCommands.Data.SetCurrentObject, ({ ref }, ctx) => ctx.state.data.setCurrent(ref)),
+    ctor: PluginBehavior.simpleCommandHandler(PluginCommands.State.SetCurrentObject, ({ state, ref }, ctx) => state.setCurrent(ref)),
     display: { name: 'Set Current Handler', group: 'Data' }
 });
 
 export const Update = PluginBehavior.create({
     name: 'update-data-behavior',
-    ctor: PluginBehavior.simpleCommandHandler(PluginCommands.Data.Update, ({ tree }, ctx) => ctx.state.updateData(tree)),
+    ctor: PluginBehavior.simpleCommandHandler(PluginCommands.State.Update, ({ state, tree }, ctx) => ctx.runTask(state.update(tree))),
     display: { name: 'Update Data Handler', group: 'Data' }
 });
 
 export const RemoveObject = PluginBehavior.create({
     name: 'remove-object-data-behavior',
-    ctor: PluginBehavior.simpleCommandHandler(PluginCommands.Data.RemoveObject, ({ ref }, ctx) => {
-        const tree = ctx.state.data.tree.build().delete(ref).getTree();
-        ctx.state.updateData(tree);
+    ctor: PluginBehavior.simpleCommandHandler(PluginCommands.State.RemoveObject, ({ state, ref }, ctx) => {
+        const tree = state.tree.build().delete(ref).getTree();
+        return ctx.runTask(state.update(tree));
     }),
     display: { name: 'Remove Object Handler', group: 'Data' }
 });
