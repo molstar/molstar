@@ -5,9 +5,8 @@
  */
 
 import { StateObject, StateObjectCell } from './object';
-import { StateTree } from './tree';
+import { StateTree, ImmutableTree } from './tree';
 import { Transform } from './transform';
-import { ImmutableTree } from './immutable-tree';
 import { Transformer } from './transformer';
 import { StateContext } from './context';
 import { UUID } from 'mol-util';
@@ -17,7 +16,7 @@ export { State }
 
 class State {
     private _tree: StateTree = StateTree.create();
-    private _current: Transform.Ref = this._tree.rootRef;
+    private _current: Transform.Ref = this._tree.root.ref;
     private transformCache = new Map<Transform.Ref, unknown>();
 
     get tree() { return this._tree; }
@@ -67,7 +66,7 @@ class State {
                     stateCtx: this.context,
                     taskCtx,
                     oldTree,
-                    tree: tree,
+                    tree,
                     cells: this.cells,
                     transformCache: this.transformCache
                 };
@@ -81,11 +80,11 @@ class State {
 
     constructor(rootObject: StateObject, params?: { globalContext?: unknown, defaultCellState?: unknown }) {
         const tree = this._tree;
-        const root = tree.getValue(tree.rootRef)!;
+        const root = tree.root;
         const defaultCellState = (params && params.defaultCellState) || { }
 
-        this.cells.set(tree.rootRef, {
-            ref: tree.rootRef,
+        this.cells.set(root.ref, {
+            ref: root.ref,
             obj: rootObject,
             status: 'ok',
             version: root.version,
@@ -94,8 +93,7 @@ class State {
 
         this.context = new StateContext({
             globalContext: params && params.globalContext,
-            defaultCellState,
-            rootRef: tree.rootRef
+            defaultCellState
         });
     }
 }
@@ -142,36 +140,33 @@ namespace State {
         }
     }
 
-    function findUpdateRoots(objects: State.Cells, tree: StateTree) {
-        const findState = {
-            roots: [] as Ref[],
-            objects
-        };
-
-        ImmutableTree.doPreOrder(tree, tree.nodes.get(tree.rootRef)!, findState, (n, _, s) => {
-            if (!s.objects.has(n.ref)) {
-                s.roots.push(n.ref);
-                return false;
-            }
-            const o = s.objects.get(n.ref)!;
-            if (o.version !== n.value.version) {
-                s.roots.push(n.ref);
-                return false;
-            }
-
-            return true;
-        });
-
+    function findUpdateRoots(cells: State.Cells, tree: StateTree) {
+        const findState = { roots: [] as Ref[], cells };
+        ImmutableTree.doPreOrder(tree, tree.root, findState, _findUpdateRoots);
         return findState.roots;
     }
 
+    function _findUpdateRoots(n: Transform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
+        if (!s.cells.has(n.ref)) {
+            s.roots.push(n.ref);
+            return false;
+        }
+        const o = s.cells.get(n.ref)!;
+        if (o.version !== n.version) {
+            s.roots.push(n.ref);
+            return false;
+        }
+
+        return true;
+    }
+
     type FindDeletesCtx = { newTree: StateTree, cells: State.Cells, deletes: Ref[] }
-    function _visitCheckDelete(n: ImmutableTree.Node<any>, _: any, ctx: FindDeletesCtx) {
+    function _visitCheckDelete(n: Transform, _: any, ctx: FindDeletesCtx) {
         if (!ctx.newTree.nodes.has(n.ref) && ctx.cells.has(n.ref)) ctx.deletes.push(n.ref);
     }
     function findDeletes(ctx: UpdateContext): Ref[] {
         const deleteCtx: FindDeletesCtx = { newTree: ctx.tree, cells: ctx.cells, deletes: [] };
-        ImmutableTree.doPostOrder(ctx.oldTree, ctx.oldTree.nodes.get(ctx.oldTree.rootRef), deleteCtx, _visitCheckDelete);
+        ImmutableTree.doPostOrder(ctx.oldTree, ctx.oldTree.root, deleteCtx, _visitCheckDelete);
         return deleteCtx.deletes;
     }
 
@@ -190,7 +185,7 @@ namespace State {
         if (changed) ctx.stateCtx.events.object.stateChanged.next({ ref });
     }
 
-    function _initVisitor(t: ImmutableTree.Node<Transform>, _: any, ctx: UpdateContext) {
+    function _initVisitor(t: Transform, _: any, ctx: UpdateContext) {
         setObjectState(ctx, t.ref, 'pending');
     }
     /** Return "resolve set" */
@@ -209,7 +204,7 @@ namespace State {
             wrap.obj = void 0;
         }
 
-        const children = ctx.tree.nodes.get(ref)!.children.values();
+        const children = ctx.tree.children.get(ref).values();
         while (true) {
             const next = children.next();
             if (next.done) return;
@@ -217,15 +212,15 @@ namespace State {
         }
     }
 
-    function findAncestor(tree: StateTree, objects: State.Cells, root: Ref, types: { type: StateObject.Type }[]): StateObject {
+    function findAncestor(tree: StateTree, cells: State.Cells, root: Ref, types: { type: StateObject.Type }[]): StateObject {
         let current = tree.nodes.get(root)!;
         while (true) {
             current = tree.nodes.get(current.parent)!;
-            if (current.ref === tree.rootRef) {
-                return objects.get(tree.rootRef)!.obj!;
+            if (current.ref === Transform.RootRef) {
+                return cells.get(Transform.RootRef)!.obj!;
             }
-            const obj = objects.get(current.ref)!.obj!;
-            for (const t of types) if (obj.type === t.type) return objects.get(current.ref)!.obj!;
+            const obj = cells.get(current.ref)!.obj!;
+            for (const t of types) if (obj.type === t.type) return cells.get(current.ref)!.obj!;
         }
     }
 
@@ -247,7 +242,7 @@ namespace State {
             return;
         }
 
-        const children = ctx.tree.nodes.get(root)!.children.values();
+        const children = ctx.tree.children.get(root).values();
         while (true) {
             const next = children.next();
             if (next.done) return;
@@ -257,7 +252,7 @@ namespace State {
 
     async function updateNode(ctx: UpdateContext, currentRef: Ref) {
         const { oldTree, tree, cells } = ctx;
-        const transform = tree.getValue(currentRef)!;
+        const transform = tree.nodes.get(currentRef);
         const parent = findAncestor(tree, cells, currentRef, transform.transformer.definition.from);
         // console.log('parent', transform.transformer.id, transform.transformer.definition.from[0].type, parent ? parent.ref : 'undefined')
         if (!oldTree.nodes.has(currentRef) || !cells.has(currentRef)) {
@@ -274,9 +269,9 @@ namespace State {
         } else {
             // console.log('updating...', transform.transformer.id);
             const current = cells.get(currentRef)!;
-            const oldParams = oldTree.getValue(currentRef)!.params;
+            const oldParams = oldTree.nodes.get(currentRef)!.params;
 
-            const updateKind = current.status === 'ok' || current.ref === ctx.tree.rootRef
+            const updateKind = current.status === 'ok' || current.ref === Transform.RootRef
                 ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)
                 : Transformer.UpdateResult.Recreate;
 

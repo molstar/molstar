@@ -5,36 +5,34 @@
  */
 
 import { Transform } from './transform';
-import { ImmutableTree } from './immutable-tree';
+import { ImmutableTree, TransientTree } from './tree/base';
 import { Transformer } from './transformer';
 import { StateObject } from './object';
 
-interface StateTree extends ImmutableTree<Transform> { }
+export { StateTree, ImmutableTree, TransientTree }
+
+interface StateTree extends ImmutableTree { }
 
 namespace StateTree {
-    export interface Transient extends ImmutableTree.Transient<Transform> { }
+    export interface Transient extends TransientTree { }
     export interface Serialized extends ImmutableTree.Serialized { }
 
-    function _getRef(t: Transform) { return t.ref; }
-
     export function create() {
-        return ImmutableTree.create<Transform>(Transform.createRoot('<:root:>'), _getRef);
+        return ImmutableTree.create(Transform.createRoot(Transform.RootRef));
     }
 
     export function updateParams<T extends Transformer = Transformer>(tree: StateTree, ref: Transform.Ref, params: Transformer.Params<T>): StateTree {
-        const t = tree.nodes.get(ref)!.value;
+        const t = tree.nodes.get(ref)!;
         const newTransform = Transform.updateParams(t, params);
-        const newTree = ImmutableTree.asTransient(tree);
-        newTree.setValue(ref, newTransform);
-        return newTree.asImmutable();
+        return tree.asTransient().set(newTransform).asImmutable();
     }
 
     export function toJSON(tree: StateTree) {
-        return ImmutableTree.toJSON(tree, Transform.toJSON) as Serialized;
+        return ImmutableTree.toJSON(tree) as Serialized;
     }
 
     export function fromJSON(data: Serialized): StateTree {
-        return ImmutableTree.fromJSON(data, _getRef, Transform.fromJSON);
+        return ImmutableTree.fromJSON(data);
     }
 
     export interface Builder {
@@ -53,19 +51,19 @@ namespace StateTree {
         export class Root implements Builder {
             private state: State;
             to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref, this); }
-            toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.rootRef as any, this); }
+            toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.root.ref, this); }
             delete(ref: Transform.Ref) {
                 this.state.tree.remove(ref);
                 return this;
             }
             getTree(): StateTree { return this.state.tree.asImmutable(); }
-            constructor(tree: StateTree) { this.state = { tree: ImmutableTree.asTransient(tree) } }
+            constructor(tree: StateTree) { this.state = { tree: tree.asTransient() } }
         }
 
         export class To<A extends StateObject> implements Builder {
             apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Options>): To<Transformer.To<T>> {
                 const t = tr.apply(this.ref, params, props);
-                this.state.tree.add(this.ref, t);
+                this.state.tree.add(t);
                 return new To(this.state, t.ref, this.root);
             }
 
@@ -81,5 +79,3 @@ namespace StateTree {
         }
     }
 }
-
-export { StateTree }

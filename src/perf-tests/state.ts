@@ -121,14 +121,14 @@ export function printTTree(tree: StateTree) {
     let lines: string[] = [];
     function print(offset: string, ref: any) {
         const t = tree.nodes.get(ref)!;
-        const tr = t.value;
+        const tr = t;
 
         const name = tr.transformer.id;
-        lines.push(`${offset}|_ (${ref}) ${name} ${tr.params ? JSON.stringify(tr.params) : ''}, v${t.value.version}`);
+        lines.push(`${offset}|_ (${ref}) ${name} ${tr.params ? JSON.stringify(tr.params) : ''}, v${t.version}`);
         offset += '   ';
 
-        t.children.forEach(c => print(offset, c!));
+        tree.children.get(ref).forEach(c => print(offset, c!));
     }
-    print('', tree.rootRef);
+    print('', tree.root.ref);
     console.log(lines.join('\n'));
 }

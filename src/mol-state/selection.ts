@@ -6,7 +6,7 @@
 
 import { StateObject, StateObjectCell } from './object';
 import { State } from './state';
-import { ImmutableTree } from './immutable-tree';
+import { ImmutableTree } from './tree';
 import { Transform } from './transform';
 
 namespace StateSelection {
@@ -71,7 +71,7 @@ namespace StateSelection {
         return Object.create(BuilderPrototype, { compile: { writable: false, configurable: false, value: compile } });
     }
 
-    export function root() { return build(() => (state: State) => [state.cells.get(state.tree.rootRef)!]) }
+    export function root() { return build(() => (state: State) => [state.cells.get(state.tree.root.ref)!]) }
 
 
     export function byRef(...refs: Transform.Ref[]) {
@@ -159,7 +159,7 @@ namespace StateSelection {
     export function children(b: Selector) {
         return flatMap(b, (n, s) => {
             const nodes: StateObjectCell[] = [];
-            s.tree.nodes.get(n.ref)!.children.forEach(c => nodes.push(s.cells.get(c!)!));
+            s.tree.children.get(n.ref).forEach(c => nodes.push(s.cells.get(c!)!));
             return nodes;
         });
     }
@@ -177,8 +177,8 @@ namespace StateSelection {
         let current = tree.nodes.get(root)!, len = types.length;
         while (true) {
             current = tree.nodes.get(current.parent)!;
-            if (current.ref === tree.rootRef) {
-                return cells.get(tree.rootRef);
+            if (current.ref === Transform.RootRef) {
+                return cells.get(Transform.RootRef);
             }
             const obj = cells.get(current.ref)!.obj!;
             for (let i = 0; i < len; i++) {

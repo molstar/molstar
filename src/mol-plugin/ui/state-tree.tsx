@@ -17,7 +17,7 @@ export class StateTree extends React.Component<{ plugin: PluginContext, state: S
     }
     render() {
         // const n = this.props.plugin.state.data.tree.nodes.get(this.props.plugin.state.data.tree.rootRef)!;
-        const n = this.props.state.tree.rootRef;
+        const n = this.props.state.tree.root.ref;
         return <div>
             <StateTreeNode plugin={this.props.plugin} state={this.props.state} nodeRef={n} key={n} />
             { /* n.children.map(c => <StateTreeNode plugin={this.props.plugin} nodeRef={c!} key={c} />) */}
@@ -37,7 +37,7 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
 
         let label: any;
         if (cell.status !== 'ok' || !cell.obj) {
-            const name = (n.value.transformer.definition.display && n.value.transformer.definition.display.name) || n.value.transformer.definition.name;
+            const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
             label = <><b>{cell.status}</b> <a href='#' onClick={e => {
                 e.preventDefault();
                 PluginCommands.Data.SetCurrentObject.dispatch(this.props.plugin, { ref: this.props.nodeRef });
@@ -52,11 +52,13 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             }}>{props.label}</a> {props.description ? <small>{props.description}</small> : void 0}</>;
         }
 
+        const children = this.props.state.tree.children.get(this.props.nodeRef);
+
         return <div>
             {remove}{label}
-            {n.children.size === 0
+            {children.size === 0
                 ? void 0
-                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{n.children.map(c => <StateTreeNode plugin={this.props.plugin} state={this.props.state} nodeRef={c!} key={c} />)}</div>
+                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode plugin={this.props.plugin} state={this.props.state} nodeRef={c!} key={c} />)}</div>
             }
         </div>;
     }

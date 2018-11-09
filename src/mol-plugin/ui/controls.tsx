@@ -92,8 +92,7 @@ export class _test_CreateTransform extends React.Component<{ plugin: PluginConte
 
 export class _test_UpdateTransform extends React.Component<{ plugin: PluginContext, nodeRef: Transform.Ref }, { params: any }> {
     private getTransform() {
-        const t = this.props.plugin.state.data.tree.nodes.get(this.props.nodeRef)!;
-        return t ? t.value : t;
+        return this.props.plugin.state.data.tree.nodes.get(this.props.nodeRef)!;
     }
 
     private getParamDef() {
@@ -122,7 +121,7 @@ export class _test_UpdateTransform extends React.Component<{ plugin: PluginConte
 
     render() {
         const transform = this.getTransform();
-        if (!transform || transform.ref === this.props.plugin.state.data.tree.rootRef) {
+        if (!transform || transform.ref === Transform.RootRef) {
             return <div />;
         }
 

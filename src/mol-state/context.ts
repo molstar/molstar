@@ -40,9 +40,9 @@ class StateContext {
         this.ev.dispose();
     }
 
-    constructor(params: { globalContext: unknown, defaultCellState: unknown, rootRef: Transform.Ref }) {
+    constructor(params: { globalContext: unknown, defaultCellState: unknown }) {
         this.globalContext = params.globalContext;
         this.defaultCellState = params.defaultCellState;
-        this.behaviors.currentObject.next({ ref: params.rootRef });
+        this.behaviors.currentObject.next({ ref: Transform.RootRef });
     }
 }

@@ -5,7 +5,7 @@
  */
 
 import { Map as ImmutableMap, OrderedSet } from 'immutable';
-import { Transform } from './transform';
+import { Transform } from '../transform';
 
 export { ImmutableTree, TransientTree }
 
@@ -28,7 +28,8 @@ namespace ImmutableTree {
         readonly size: number,
         readonly values: OrderedSet<Ref>['values'],
         has(ref: Ref): boolean,
-        readonly forEach: OrderedSet<Ref>['forEach']
+        readonly forEach: OrderedSet<Ref>['forEach'],
+        readonly map: OrderedSet<Ref>['map']
     }
 
     export type Node = Transform
@@ -49,11 +50,11 @@ namespace ImmutableTree {
     /**
      * Create an instance of an immutable tree.
      */
-    export function create<T>(root: Transform): ImmutableTree {
+    export function create(root: Transform): ImmutableTree {
         return new Impl(ImmutableMap([[root.ref, root]]), ImmutableMap([[root.ref, OrderedSet()]]), 0);
     }
 
-    export function construct<T>(nodes: Nodes, children: Children, version: number): ImmutableTree {
+    export function construct(nodes: Nodes, children: Children, version: number): ImmutableTree {
         return new Impl(nodes, children, version);
     }
 
@@ -160,6 +161,7 @@ class TransientTree implements ImmutableTree {
 
     version: number = this.tree.version + 1;
 
+    private changedValue = false;
     private mutations: Map<Transform.Ref, OrderedSet<Transform.Ref>> = new Map();
 
     get root() { return this.nodes.get(Transform.RootRef)! }
@@ -213,12 +215,14 @@ class TransientTree implements ImmutableTree {
         }
 
         this.nodes.set(ref, transform);
-        return transform;
+        return this;
     }
 
     set(transform: Transform) {
         ensurePresent(this.nodes, transform.ref);
+        this.changedValue = true;
         this.nodes.set(transform.ref, transform);
+        return this;
     }
 
     remove(ref: Transform.Ref): Transform[] {
@@ -243,24 +247,8 @@ class TransientTree implements ImmutableTree {
         return st;
     }
 
-    // removeChildren(ref: ImmutableTree.Ref): TransientTree.Node[] {
-    //     const { nodes, mutations } = this;
-    //     let node = nodes.get(ref);
-    //     if (!node || !node.children.size) return [];
-    //     node = this.mutate(ref);
-    //     const st = ImmutableTree.subtreePostOrder(this, node);
-    //     // remove the last node which is the parent
-    //     st.pop();
-    //     node.children.clear();
-    //     for (const n of st) {
-    //         nodes.delete(n.value.ref);
-    //         mutations.delete(n.value.ref);
-    //     }
-    //     return st;
-    // }
-
     asImmutable() {
-        if (this.mutations.size === 0) return this.tree;
+        if (!this.changedValue && this.mutations.size === 0) return this.tree;
 
         this.mutations.forEach(fixChildMutations, this.children);
         return ImmutableTree.construct(this.nodes.asImmutable(), this.children.asImmutable(), this.version);

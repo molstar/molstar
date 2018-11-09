@@ -161,7 +161,7 @@ export class PluginContext {
 
     _test_nextModel() {
         const models = StateSelection.select('models', this.state.data)[0].obj as SO.Molecule.Models;
-        const idx = (this.state.data.tree.getValue('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
+        const idx = (this.state.data.tree.nodes.get('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
         const newTree = StateTree.updateParams(this.state.data.tree, 'structure', { modelIndex: (idx + 1) % models.data.length });
         return this.state.updateData(newTree);
         // this.viewer.requestDraw(true);
