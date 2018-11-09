@@ -276,7 +276,7 @@ namespace State {
             const current = cells.get(currentRef)!;
             const oldParams = oldTree.getValue(currentRef)!.params;
 
-            const updateKind = current.status === 'ok'
+            const updateKind = current.status === 'ok' || current.ref === ctx.tree.rootRef
                 ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)
                 : Transformer.UpdateResult.Recreate;
 
