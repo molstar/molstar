@@ -268,7 +268,7 @@ namespace State {
                 obj,
                 status: 'ok',
                 version: transform.version,
-                state: { ...ctx.stateCtx.defaultCellState, ...transform.defaultProps }
+                state: { ...ctx.stateCtx.defaultCellState, ...transform.cellState }
             });
             return { action: 'created', obj };
         } else {
@@ -288,13 +288,13 @@ namespace State {
                         obj,
                         status: 'ok',
                         version: transform.version,
-                        state: { ...ctx.stateCtx.defaultCellState, ...current.state, ...transform.defaultProps }
+                        state: { ...ctx.stateCtx.defaultCellState, ...current.state, ...transform.cellState }
                     });
                     return { action: 'replaced', oldObj: current.obj!, newObj: obj };
                 }
                 case Transformer.UpdateResult.Updated:
                     current.version = transform.version;
-                    current.state = { ...ctx.stateCtx.defaultCellState, ...current.state, ...transform.defaultProps };
+                    current.state = { ...ctx.stateCtx.defaultCellState, ...current.state, ...transform.cellState };
                     return { action: 'updated', obj: current.obj };
                 default:
                     // TODO check if props need to be updated

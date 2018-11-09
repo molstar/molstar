@@ -10,7 +10,7 @@ import { Transform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
-    apply(params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
+    apply(parent: Transform.Ref, params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
     readonly namespace: string,
     readonly id: Transformer.Id,
     readonly definition: Transformer.Definition<A, B, P>
@@ -114,7 +114,7 @@ export namespace Transformer {
         }
 
         const t: Transformer<A, B, P> = {
-            apply(params, props) { return Transform.create<A, B, P>(t as any, params, props); },
+            apply(parent, params, props) { return Transform.create<A, B, P>(parent, t as any, params, props); },
             namespace,
             id,
             definition

@@ -64,7 +64,7 @@ namespace StateTree {
 
         export class To<A extends StateObject> implements Builder {
             apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Options>): To<Transformer.To<T>> {
-                const t = tr.apply(params, props);
+                const t = tr.apply(this.ref, params, props);
                 this.state.tree.add(this.ref, t);
                 return new To(this.state, t.ref, this.root);
             }
