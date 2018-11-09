@@ -37,18 +37,19 @@ namespace StateObject {
 
 interface StateObjectCell {
     ref: Transform.Ref,
-    props: unknown,
-
-    status: StateObjectCell.Status,
-    errorText?: string,
-    obj?: StateObject,
     version: string
+    status: StateObjectCell.Status,
+
+    state: unknown,
+
+    errorText?: string,
+    obj?: StateObject
 }
 
 namespace StateObjectCell {
     export type Status = 'ok' | 'error' | 'pending' | 'processing'
 
-    export interface Props {
+    export interface State {
         isVisible: boolean,
         isHidden: boolean,
         isBound: boolean,

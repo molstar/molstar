@@ -33,7 +33,7 @@ class State {
             const key = keys.next();
             if (key.done) break;
             const o = this.cells.get(key.value)!;
-            props[key.value] = { ...o.props };
+            props[key.value] = { ...o.state };
         }
         return {
             tree: StateTree.toJSON(this._tree),
@@ -79,22 +79,22 @@ class State {
         });
     }
 
-    constructor(rootObject: StateObject, params?: { globalContext?: unknown, defaultObjectProps?: unknown }) {
+    constructor(rootObject: StateObject, params?: { globalContext?: unknown, defaultCellState?: unknown }) {
         const tree = this._tree;
         const root = tree.getValue(tree.rootRef)!;
-        const defaultObjectProps = (params && params.defaultObjectProps) || { }
+        const defaultCellState = (params && params.defaultCellState) || { }
 
         this.cells.set(tree.rootRef, {
             ref: tree.rootRef,
             obj: rootObject,
             status: 'ok',
             version: root.version,
-            props: { ...defaultObjectProps }
+            state: { ...defaultCellState }
         });
 
         this.context = new StateContext({
             globalContext: params && params.globalContext,
-            defaultObjectProps,
+            defaultCellState,
             rootRef: tree.rootRef
         });
     }
@@ -183,7 +183,7 @@ namespace State {
             obj.status = status;
             obj.errorText = errorText;
         } else {
-            const obj: StateObjectCell = { ref, status, version: UUID.create(), errorText, props: { ...ctx.stateCtx.defaultObjectProps } };
+            const obj: StateObjectCell = { ref, status, version: UUID.create(), errorText, state: { ...ctx.stateCtx.defaultCellState } };
             ctx.cells.set(ref, obj);
             changed = true;
         }
@@ -268,7 +268,7 @@ namespace State {
                 obj,
                 status: 'ok',
                 version: transform.version,
-                props: { ...ctx.stateCtx.defaultObjectProps, ...transform.defaultProps }
+                state: { ...ctx.stateCtx.defaultCellState, ...transform.defaultProps }
             });
             return { action: 'created', obj };
         } else {
@@ -288,13 +288,13 @@ namespace State {
                         obj,
                         status: 'ok',
                         version: transform.version,
-                        props: { ...ctx.stateCtx.defaultObjectProps, ...current.props, ...transform.defaultProps }
+                        state: { ...ctx.stateCtx.defaultCellState, ...current.state, ...transform.defaultProps }
                     });
                     return { action: 'replaced', oldObj: current.obj!, newObj: obj };
                 }
                 case Transformer.UpdateResult.Updated:
                     current.version = transform.version;
-                    current.props = { ...ctx.stateCtx.defaultObjectProps, ...current.props, ...transform.defaultProps };
+                    current.state = { ...ctx.stateCtx.defaultCellState, ...current.state, ...transform.defaultProps };
                     return { action: 'updated', obj: current.obj };
                 default:
                     // TODO check if props need to be updated
