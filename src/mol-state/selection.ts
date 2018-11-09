@@ -7,6 +7,7 @@
 import { StateObject, StateObjectCell } from './object';
 import { State } from './state';
 import { ImmutableTree } from './immutable-tree';
+import { Transform } from './transform';
 
 namespace StateSelection {
     export type Selector = Query | Builder | string | StateObjectCell;
@@ -73,7 +74,7 @@ namespace StateSelection {
     export function root() { return build(() => (state: State) => [state.cells.get(state.tree.rootRef)!]) }
 
 
-    export function byRef(...refs: string[]) {
+    export function byRef(...refs: Transform.Ref[]) {
         return build(() => (state: State) => {
             const ret: StateObjectCell[] = [];
             for (const ref of refs) {

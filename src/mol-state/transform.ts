@@ -17,7 +17,9 @@ export interface Transform<A extends StateObject = StateObject, B extends StateO
 }
 
 export namespace Transform {
-    export type Ref = string
+    export type Ref = string /* & { '@type': 'transform-ref' } */
+
+    export const RootRef = '-=root=-' as Ref;
 
     export interface Options { ref?: Ref, defaultProps?: unknown }
 
@@ -70,7 +72,7 @@ export namespace Transform {
         return {
             transformer,
             params: pFromJson(t.params),
-            ref: t.ref,
+            ref: t.ref as Ref,
             version: t.version,
             defaultProps: t.defaultProps
         };
