@@ -8,10 +8,10 @@ import { StateObject, StateObjectCell } from './object';
 import { StateTree } from './tree';
 import { Transform } from './transform';
 import { Transformer } from './transformer';
-import { StateContext } from './context';
 import { UUID } from 'mol-util';
 import { RuntimeContext, Task } from 'mol-task';
-import { StateSelection } from './selection';
+import { StateSelection } from './state/selection';
+import { RxEventHelper } from 'mol-util/rx-event-helper';
 
 export { State }
 
@@ -20,11 +20,35 @@ class State {
     private _current: Transform.Ref = this._tree.root.ref;
     private transformCache = new Map<Transform.Ref, unknown>();
 
+    private ev = RxEventHelper.create();
+
+    readonly globalContext: unknown = void 0;
+    readonly events = {
+        object: {
+            stateChanged: this.ev<{ ref: Transform.Ref }>(),
+            propsChanged: this.ev<{ ref: Transform.Ref, newProps: unknown }>(),
+
+            updated: this.ev<{ ref: Transform.Ref, obj?: StateObject }>(),
+            replaced: this.ev<{ ref: Transform.Ref, oldObj?: StateObject, newObj?: StateObject }>(),
+            created: this.ev<{ ref: Transform.Ref, obj: StateObject }>(),
+            removed: this.ev<{ ref: Transform.Ref, obj?: StateObject }>(),
+
+            currentChanged: this.ev<{ ref: Transform.Ref }>()
+        },
+        warn: this.ev<string>(),
+        updated: this.ev<void>()
+    };
+
+    readonly behaviors = {
+        currentObject: this.ev.behavior<{ ref: Transform.Ref }>({ ref: Transform.RootRef })
+    };
+
     get tree() { return this._tree; }
     get current() { return this._current; }
 
     readonly cells: State.Cells = new Map();
-    readonly context: StateContext;
+
+    // readonly context: StateContext;
 
     getSnapshot(): State.Snapshot {
         return { tree: StateTree.toJSON(this._tree) };
@@ -37,7 +61,7 @@ class State {
 
     setCurrent(ref: Transform.Ref) {
         this._current = ref;
-        this.context.behaviors.currentObject.next({ ref });
+        this.behaviors.currentObject.next({ ref });
     }
 
     updateCellState(ref: Transform.Ref, state?: Partial<StateObjectCell.State>) {
@@ -45,15 +69,21 @@ class State {
     }
 
     dispose() {
-        this.context.dispose();
+        this.ev.dispose();
     }
 
-    select(selector: StateSelection.Selector) {
-        return StateSelection.select(selector, this);
+    /**
+     * Select Cells by ref or a query generated on the fly.
+     * @example state.select('test')
+     * @example state.select(q => q.byRef('test').subtree())
+     */
+    select(selector: Transform.Ref | ((q: typeof StateSelection.Generators) => StateSelection.Selector)) {
+        if (typeof selector === 'string') return StateSelection.select(selector, this);
+        return StateSelection.select(selector(StateSelection.Generators), this)
     }
 
-    get selector() {
-        return StateSelection;
+    query(q: StateSelection.Query) {
+        return q(this);
     }
 
     update(tree: StateTree): Task<void> {
@@ -64,7 +94,7 @@ class State {
                 this._tree = tree;
 
                 const ctx: UpdateContext = {
-                    stateCtx: this.context,
+                    parent: this,
                     taskCtx,
                     oldTree,
                     tree,
@@ -74,7 +104,7 @@ class State {
                 // TODO: have "cancelled" error? Or would this be handled automatically?
                 await update(ctx);
             } finally {
-                this.context.events.updated.next();
+                this.events.updated.next();
             }
         });
     }
@@ -91,9 +121,7 @@ class State {
             state: { ...StateObjectCell.DefaultState }
         });
 
-        this.context = new StateContext({
-            globalContext: params && params.globalContext
-        });
+        this.globalContext = params && params.globalContext;
     }
 }
 
@@ -112,7 +140,8 @@ namespace State {
 type Ref = Transform.Ref
 
 interface UpdateContext {
-    stateCtx: StateContext,
+    parent: State,
+
     taskCtx: RuntimeContext,
     oldTree: StateTree,
     tree: StateTree,
@@ -127,7 +156,7 @@ async function update(ctx: UpdateContext) {
         const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
         ctx.cells.delete(d);
         ctx.transformCache.delete(d);
-        ctx.stateCtx.events.object.removed.next({ ref: d, obj });
+        ctx.parent.events.object.removed.next({ ref: d, obj });
         // TODO: handle current object change
     }
 
@@ -169,7 +198,7 @@ function setObjectStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.S
     const changed = obj.status !== status;
     obj.status = status;
     obj.errorText = errorText;
-    if (changed) ctx.stateCtx.events.object.stateChanged.next({ ref });
+    if (changed) ctx.parent.events.object.stateChanged.next({ ref });
 }
 
 function _initObjectStatusVisitor(t: Transform, _: any, ctx: UpdateContext) {
@@ -208,7 +237,7 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string) {
     setObjectStatus(ctx, ref, 'error', errorText);
     const wrap = ctx.cells.get(ref)!;
     if (wrap.obj) {
-        ctx.stateCtx.events.object.removed.next({ ref });
+        ctx.parent.events.object.removed.next({ ref });
         ctx.transformCache.delete(ref);
         wrap.obj = void 0;
     }
@@ -240,11 +269,11 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         const update = await updateNode(ctx, root);
         setObjectStatus(ctx, root, 'ok');
         if (update.action === 'created') {
-            ctx.stateCtx.events.object.created.next({ ref: root, obj: update.obj! });
+            ctx.parent.events.object.created.next({ ref: root, obj: update.obj! });
         } else if (update.action === 'updated') {
-            ctx.stateCtx.events.object.updated.next({ ref: root, obj: update.obj });
+            ctx.parent.events.object.updated.next({ ref: root, obj: update.obj });
         } else if (update.action === 'replaced') {
-            ctx.stateCtx.events.object.replaced.next({ ref: root, oldObj: update.oldObj, newObj: update.newObj });
+            ctx.parent.events.object.replaced.next({ ref: root, oldObj: update.oldObj, newObj: update.newObj });
         }
     } catch (e) {
         doError(ctx, root, '' + e);
@@ -305,7 +334,7 @@ function runTask<T>(t: T | Task<T>, ctx: RuntimeContext) {
 function createObject(ctx: UpdateContext, ref: Ref, transformer: Transformer, a: StateObject, params: any) {
     const cache = {};
     ctx.transformCache.set(ref, cache);
-    return runTask(transformer.definition.apply({ a, params, cache }, ctx.stateCtx.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.apply({ a, params, cache }, ctx.parent.globalContext), ctx.taskCtx);
 }
 
 async function updateObject(ctx: UpdateContext, ref: Ref, transformer: Transformer, a: StateObject, b: StateObject, oldParams: any, newParams: any) {
@@ -317,5 +346,5 @@ async function updateObject(ctx: UpdateContext, ref: Ref, transformer: Transform
         cache = {};
         ctx.transformCache.set(ref, cache);
     }
-    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache }, ctx.stateCtx.globalContext), ctx.taskCtx);
+    return runTask(transformer.definition.update({ a, oldParams, b, newParams, cache }, ctx.parent.globalContext), ctx.taskCtx);
 }

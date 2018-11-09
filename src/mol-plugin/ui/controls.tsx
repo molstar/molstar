@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { Transform, Transformer, StateSelection } from 'mol-state';
+import { Transform, Transformer } from 'mol-state';
 import { ParametersComponent } from 'mol-app/component/parameters';
 
 export class Controls extends React.Component<{ plugin: PluginContext }, { id: string }> {
@@ -99,7 +99,9 @@ export class _test_UpdateTransform extends React.Component<{ plugin: PluginConte
         const def = this.getTransform().transformer.definition;
         if (!def.params || !def.params.controls) return void 0;
 
-        const src = StateSelection.ancestorOfType(this.props.nodeRef, def.from).select(this.props.plugin.state.data)[0];
+        const src = this.props.plugin.state.data.select(q => q.byRef(this.props.nodeRef).ancestorOfType(def.from))[0];
+
+        // StateSelection.ancestorOfType(this.props.nodeRef, def.from).select(this.props.plugin.state.data)[0];
 
         console.log(src, def.from);
 

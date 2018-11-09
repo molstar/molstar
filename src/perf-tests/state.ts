@@ -1,4 +1,4 @@
-import { State, StateObject, StateTree, Transformer, StateSelection } from 'mol-state';
+import { State, StateObject, StateTree, Transformer } from 'mol-state';
 import { Task } from 'mol-task';
 import * as util from 'util';
 
@@ -65,11 +65,11 @@ export async function runTask<A>(t: A | Task<A>): Promise<A> {
 }
 
 function hookEvents(state: State) {
-    state.context.events.object.created.subscribe(e => console.log('created:', e.ref));
-    state.context.events.object.removed.subscribe(e => console.log('removed:', e.ref));
-    state.context.events.object.replaced.subscribe(e => console.log('replaced:', e.ref));
-    state.context.events.object.stateChanged.subscribe(e => console.log('stateChanged:', e.ref, state.cells.get(e.ref)!.status));
-    state.context.events.object.updated.subscribe(e => console.log('updated:', e.ref));
+    state.events.object.created.subscribe(e => console.log('created:', e.ref));
+    state.events.object.removed.subscribe(e => console.log('removed:', e.ref));
+    state.events.object.replaced.subscribe(e => console.log('replaced:', e.ref));
+    state.events.object.stateChanged.subscribe(e => console.log('stateChanged:', e.ref, state.cells.get(e.ref)!.status));
+    state.events.object.updated.subscribe(e => console.log('updated:', e.ref));
 }
 
 export async function testState() {
@@ -107,8 +107,7 @@ export async function testState() {
 
     console.log('----------------');
 
-    const q = StateSelection.byRef('square').parent();
-    const sel = StateSelection.select(q, state);
+    const sel = state.select('square');
     console.log(sel);
 }
 

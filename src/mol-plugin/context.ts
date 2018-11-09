@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTree, StateSelection, Transformer, Transform } from 'mol-state';
+import { StateTree, Transformer, Transform } from 'mol-state';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
 import { PluginStateObject as PSO } from './state/base';
@@ -28,15 +28,15 @@ export class PluginContext {
 
     readonly events = {
         state: {
-            data: this.state.data.context.events,
-            behavior: this.state.behavior.context.events
+            data: this.state.data.events,
+            behavior: this.state.behavior.events
         }
     };
 
     readonly behaviors = {
         state: {
-            data: this.state.data.context.behaviors,
-            behavior: this.state.behavior.context.behaviors
+            data: this.state.data.behaviors,
+            behavior: this.state.behavior.behaviors
         },
         canvas: {
             highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
@@ -151,7 +151,7 @@ export class PluginContext {
     }
 
     _test_centerView() {
-        const sel = StateSelection.select(StateSelection.root().subtree().ofType(SO.Molecule.Structure.type), this.state.data);
+        const sel = this.state.data.select(q => q.root.subtree().ofType(SO.Molecule.Structure.type));
         if (!sel.length) return;
 
         const center = (sel[0].obj! as SO.Molecule.Structure).data.boundary.sphere.center;
@@ -160,7 +160,7 @@ export class PluginContext {
     }
 
     _test_nextModel() {
-        const models = StateSelection.select('models', this.state.data)[0].obj as SO.Molecule.Models;
+        const models = this.state.data.select('models')[0].obj as SO.Molecule.Models;
         const idx = (this.state.data.tree.nodes.get('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
         const newTree = StateTree.updateParams(this.state.data.tree, 'structure', { modelIndex: (idx + 1) % models.data.length });
         return this.state.updateData(newTree);

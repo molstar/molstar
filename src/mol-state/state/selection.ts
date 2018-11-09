@@ -4,10 +4,10 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, StateObjectCell } from './object';
-import { State } from './state';
-import { StateTree } from './tree';
-import { Transform } from './transform';
+import { StateObject, StateObjectCell } from '../object';
+import { State } from '../state';
+import { StateTree } from '../tree';
+import { Transform } from '../transform';
 
 namespace StateSelection {
     export type Selector = Query | Builder | string | StateObjectCell;
@@ -19,12 +19,12 @@ namespace StateSelection {
     }
 
     export function compile(s: Selector): Query {
-        const selector = s ? s : root();
+        const selector = s ? s : Generators.root;
         let query: Query;
         if (isBuilder(selector)) query = (selector as any).compile();
-        else if (isObj(selector)) query = (byValue(selector) as any).compile();
+        else if (isObj(selector)) query = (Generators.byValue(selector) as any).compile();
         else if (isQuery(selector)) query = selector;
-        else query = (byRef(selector as string) as any).compile();
+        else query = (Generators.byRef(selector as string) as any).compile();
         return query;
     }
 
@@ -58,8 +58,8 @@ namespace StateSelection {
     }
 
     const BuilderPrototype: any = {
-        select(state: State) {
-            return select(this, state);
+        select(state?: State) {
+            return select(this, state || this.state);
         }
     };
 
@@ -71,22 +71,23 @@ namespace StateSelection {
         return Object.create(BuilderPrototype, { compile: { writable: false, configurable: false, value: compile } });
     }
 
-    export function root() { return build(() => (state: State) => [state.cells.get(state.tree.root.ref)!]) }
+    export namespace Generators {
+        export const root = build(() => (state: State) => [state.cells.get(state.tree.root.ref)!]);
 
+        export function byRef(...refs: Transform.Ref[]) {
+            return build(() => (state: State) => {
+                const ret: StateObjectCell[] = [];
+                for (const ref of refs) {
+                    const n = state.cells.get(ref);
+                    if (!n) continue;
+                    ret.push(n);
+                }
+                return ret;
+            });
+        }
 
-    export function byRef(...refs: Transform.Ref[]) {
-        return build(() => (state: State) => {
-            const ret: StateObjectCell[] = [];
-            for (const ref of refs) {
-                const n = state.cells.get(ref);
-                if (!n) continue;
-                ret.push(n);
-            }
-            return ret;
-        });
+        export function byValue(...objects: StateObjectCell[]) { return build(() => (state: State) => objects); }
     }
-
-    export function byValue(...objects: StateObjectCell[]) { return build(() => (state: State) => objects); }
 
     registerModifier('flatMap', flatMap);
     export function flatMap(b: Selector, f: (obj: StateObjectCell, state: State) => CellSeq) {

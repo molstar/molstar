@@ -13,7 +13,7 @@ import { PluginCommands } from 'mol-plugin/command';
 export class StateTree extends React.Component<{ plugin: PluginContext, state: State }, { }> {
     componentDidMount() {
         // TODO: move to constructor?
-        this.props.state.context.events.updated.subscribe(() => this.forceUpdate());
+        this.props.state.events.updated.subscribe(() => this.forceUpdate());
     }
     render() {
         // const n = this.props.plugin.state.data.tree.nodes.get(this.props.plugin.state.data.tree.rootRef)!;
