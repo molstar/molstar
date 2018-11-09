@@ -34,15 +34,13 @@ class StateContext {
     };
 
     readonly globalContext: unknown;
-    readonly defaultCellState: unknown;
 
     dispose() {
         this.ev.dispose();
     }
 
-    constructor(params: { globalContext: unknown, defaultCellState: unknown }) {
+    constructor(params: { globalContext: unknown }) {
         this.globalContext = params.globalContext;
-        this.defaultCellState = params.defaultCellState;
         this.behaviors.currentObject.next({ ref: Transform.RootRef });
     }
 }

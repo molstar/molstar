@@ -77,7 +77,7 @@ export async function testState() {
     hookEvents(state);
 
     const tree = state.tree;
-    const builder = StateTree.build(tree);
+    const builder = tree.build();
     builder.toRoot<Root>()
         .apply(CreateSquare, { a: 10 }, { ref: 'square' })
         .apply(CaclArea);

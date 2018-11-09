@@ -6,7 +6,6 @@
 
 import { PluginBehavior } from '../behavior';
 import { PluginCommands } from 'mol-plugin/command';
-import { StateTree } from 'mol-state';
 
 export const SetCurrentObject = PluginBehavior.create({
     name: 'set-current-data-object-behavior',
@@ -23,7 +22,7 @@ export const Update = PluginBehavior.create({
 export const RemoveObject = PluginBehavior.create({
     name: 'remove-object-data-behavior',
     ctor: PluginBehavior.simpleCommandHandler(PluginCommands.Data.RemoveObject, ({ ref }, ctx) => {
-        const tree = StateTree.build(ctx.state.data.tree).delete(ref).getTree();
+        const tree = ctx.state.data.tree.build().delete(ref).getTree();
         ctx.state.updateData(tree);
     }),
     display: { name: 'Remove Object Handler', group: 'Data' }

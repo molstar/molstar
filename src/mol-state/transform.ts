@@ -40,8 +40,8 @@ export namespace Transform {
         return { ...t, params, version: UUID.create() };
     }
 
-    export function createRoot(ref: Ref): Transform {
-        return create(RootRef, Transformer.ROOT, {}, { ref });
+    export function createRoot(): Transform {
+        return create(RootRef, Transformer.ROOT, {}, { ref: RootRef });
     }
 
     export interface Serialized {

@@ -50,9 +50,16 @@ namespace StateObjectCell {
     export type Status = 'ok' | 'error' | 'pending' | 'processing'
 
     export interface State {
-        isVisible: boolean,
+        isObjectHidden: boolean,
         isHidden: boolean,
-        isBound: boolean,
-        isExpanded: boolean
+        isBinding: boolean,
+        isCollapsed: boolean
     }
+
+    export const DefaultState: State = {
+        isObjectHidden: false,
+        isHidden: false,
+        isBinding: false,
+        isCollapsed: false
+    };
 }

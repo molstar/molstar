@@ -6,7 +6,7 @@
 
 import { StateObject, StateObjectCell } from './object';
 import { State } from './state';
-import { ImmutableTree } from './tree';
+import { StateTree } from './tree';
 import { Transform } from './transform';
 
 namespace StateSelection {
@@ -150,7 +150,7 @@ namespace StateSelection {
     export function subtree(b: Selector) {
         return flatMap(b, (n, s) => {
             const nodes = [] as string[];
-            ImmutableTree.doPreOrder(s.tree, s.tree.nodes.get(n.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
+            StateTree.doPreOrder(s.tree, s.tree.nodes.get(n.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
             return nodes.map(x => s.cells.get(x)!);
         });
     }

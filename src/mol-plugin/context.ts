@@ -83,7 +83,7 @@ export class PluginContext {
     }
 
     async _test_initBehaviours() {
-        const tree = StateTree.build(this.state.behavior.tree)
+        const tree = this.state.behavior.tree.build()
             .toRoot().apply(PluginBehaviors.Data.SetCurrentObject, { ref: PluginBehaviors.Data.SetCurrentObject.id })
             .and().toRoot().apply(PluginBehaviors.Data.Update, { ref: PluginBehaviors.Data.Update.id })
             .and().toRoot().apply(PluginBehaviors.Data.RemoveObject, { ref: PluginBehaviors.Data.RemoveObject.id })
@@ -96,7 +96,7 @@ export class PluginContext {
     }
 
     _test_applyTransform(a: Transform.Ref, transformer: Transformer, params: any) {
-        const tree = StateTree.build(this.state.data.tree).to(a).apply(transformer, params).getTree();
+        const tree = this.state.data.tree.build().to(a).apply(transformer, params).getTree();
         PluginCommands.Data.Update.dispatch(this, { tree });
     }
 
@@ -106,7 +106,7 @@ export class PluginContext {
     }
 
     _test_createState(url: string) {
-        const b = StateTree.build(this.state.data.tree);
+        const b = this.state.data.tree.build();
 
         const query = MolScriptBuilder.struct.generator.atomGroups({
             // 'atom-test': MolScriptBuilder.core.rel.eq([

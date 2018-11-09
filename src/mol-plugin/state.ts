@@ -26,8 +26,8 @@ class PluginState {
     }
 
     async setSnapshot(snapshot: PluginState.Snapshot) {
-        await this.behavior.setSnapshot(snapshot.behaviour);
-        await this.data.setSnapshot(snapshot.data);
+        await this.plugin.runTask(this.behavior.setSnapshot(snapshot.behaviour));
+        await this.plugin.runTask(this.data.setSnapshot(snapshot.data));
         this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
         this.plugin.canvas3d.requestDraw(true);
     }
