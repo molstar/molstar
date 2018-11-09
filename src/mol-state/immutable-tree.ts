@@ -107,48 +107,58 @@ export namespace ImmutableTree {
 
 
     function _visitChildToJson(this: Ref[], ref: Ref) { this.push(ref); }
-    interface ToJsonCtx { nodes: Ref[], parent: any, children: any, values: any, valueToJSON: (v: any) => any }
+    interface ToJsonCtx { nodes: [any, any, any[]][], refs: string[], valueToJSON: (v: any) => any }
     function _visitNodeToJson(this: ToJsonCtx, node: Node<any>) {
-        this.nodes.push(node.ref);
         const children: Ref[] = [];
         node.children.forEach(_visitChildToJson as any, children);
-        this.parent[node.ref] = node.parent;
-        this.children[node.ref] = children;
-        this.values[node.ref] = this.valueToJSON(node.value);
+        this.nodes.push([this.valueToJSON(node.value), node.parent, children]);
+        this.refs.push(node.ref);
     }
 
     export interface Serialized {
-        root: Ref,
-        nodes: Ref[],
-        parent: { [key: string]: string },
-        children: { [key: string]: any },
-        values: { [key: string]: any }
+        root: number, // root index
+        nodes: [any /** value */, number /** parent index */, number[] /** children indices */][]
     }
 
     export function toJSON<T>(tree: ImmutableTree<T>, valueToJSON: (v: T) => any): Serialized {
-        const ctx: ToJsonCtx = { nodes: [], parent: { }, children: {}, values: {}, valueToJSON };
+        const ctx: ToJsonCtx = { nodes: [], refs: [], valueToJSON };
+
         tree.nodes.forEach(_visitNodeToJson as any, ctx);
+
+        const map = new Map<string, number>();
+        let i = 0;
+        for (const n of ctx.refs) map.set(n, i++);
+
+        for (const n of ctx.nodes) {
+            n[1] = map.get(n[1]);
+            const children = n[2];
+            for (i = 0; i < children.length; i++) {
+                children[i] = map.get(children[i]);
+            }
+        }
         return {
-            root: tree.rootRef,
-            nodes: ctx.nodes,
-            parent: ctx.parent,
-            children: ctx.children,
-            values: ctx.values
+            root: map.get(tree.rootRef)!,
+            nodes: ctx.nodes
         };
     }
 
     export function fromJSON<T>(data: Serialized, getRef: (v: T) => Ref, valueFromJSON: (v: any) => T): ImmutableTree<T> {
         const nodes = ImmutableMap<ImmutableTree.Ref, Node<T>>().asMutable();
-        for (const ref of data.nodes) {
+
+        const values = data.nodes.map(n => valueFromJSON(n[0]));
+        let i = 0;
+        for (const value of values) {
+            const node = data.nodes[i++];
+            const ref = getRef(value);
             nodes.set(ref, {
                 ref,
-                value: valueFromJSON(data.values[ref]),
+                value,
                 version: 0,
-                parent: data.parent[ref],
-                children: OrderedSet(data.children[ref])
+                parent: getRef(values[node[1]]),
+                children: OrderedSet(node[2].map(c => getRef(values[c])))
             });
         }
-        return new Impl(data.root, nodes.asImmutable(), getRef, 0);
+        return new Impl(getRef(values[data.root]), nodes.asImmutable(), getRef, 0);
     }
 
     function checkSetRef(oldRef: ImmutableTree.Ref, newRef: ImmutableTree.Ref) {
