@@ -16,7 +16,7 @@ namespace UUID {
             chars[i] = String.fromCharCode((d + Math.random()*0xff)%0xff | 0);
             d = Math.floor(d/0xff);
         }
-        return btoa(chars.join('')).substr(0, 22) as UUID;
+        return btoa(chars.join('')).replace(/\+/g, '-').replace(/\//g, '_').substr(0, 22) as UUID;
         // const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
         //     const r = (d + Math.random()*16)%16 | 0;
         //     d = Math.floor(d/16);
