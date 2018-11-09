@@ -165,16 +165,14 @@ namespace State {
         return findState.roots;
     }
 
+    type FindDeletesCtx = { newTree: StateTree, cells: State.Cells, deletes: Ref[] }
+    function _visitCheckDelete(n: ImmutableTree.Node<any>, _: any, ctx: FindDeletesCtx) {
+        if (!ctx.newTree.nodes.has(n.ref) && ctx.cells.has(n.ref)) ctx.deletes.push(n.ref);
+    }
     function findDeletes(ctx: UpdateContext): Ref[] {
-        // TODO: do this in some sort of "tree order"?
-        const deletes: Ref[] = [];
-        const keys = ctx.cells.keys();
-        while (true) {
-            const key = keys.next();
-            if (key.done) break;
-            if (!ctx.tree.nodes.has(key.value)) deletes.push(key.value);
-        }
-        return deletes;
+        const deleteCtx: FindDeletesCtx = { newTree: ctx.tree, cells: ctx.cells, deletes: [] };
+        ImmutableTree.doPostOrder(ctx.oldTree, ctx.oldTree.nodes.get(ctx.oldTree.rootRef), deleteCtx, _visitCheckDelete);
+        return deleteCtx.deletes;
     }
 
     function setObjectState(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Status, errorText?: string) {
