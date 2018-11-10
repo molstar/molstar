@@ -6,6 +6,7 @@
 
 import { StateAction } from 'mol-state/action';
 import { StateObject } from '../object';
+import { Transformer } from 'mol-state/transformer';
 
 export { StateActionManager }
 
@@ -13,7 +14,9 @@ class StateActionManager {
     private actions: Map<StateAction['id'], StateAction> = new Map();
     private fromTypeIndex = new Map<StateObject.Type, StateAction[]>();
 
-    add(action: StateAction) {
+    add(actionOrTransformer: StateAction | Transformer) {
+        const action = Transformer.is(actionOrTransformer) ? actionOrTransformer.toAction() : actionOrTransformer;
+
         if (this.actions.has(action.id)) return this;
 
         this.actions.set(action.id, action);

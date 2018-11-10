@@ -42,7 +42,6 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
             .apply(StateTransforms.Data.ParseCif)
             .apply(StateTransforms.Model.ParseTrajectoryFromMmCif, {})
             .apply(StateTransforms.Model.CreateModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.CreateStructureFromModel, { })
             .apply(StateTransforms.Model.CreateStructureAssembly)
             // .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
             .apply(StateTransforms.Visuals.CreateStructureRepresentation)
@@ -55,8 +54,7 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
 export const UpdateTrajectory = StateAction.create<PluginStateObject.Root, void, { action: 'advance' | 'reset', by?: number }>({
     from: [],
     display: {
-        name: 'Entry from PDBe',
-        description: 'Download a structure from PDBe and create its default Assembly and visual'
+        name: 'Update Trajectory'
     },
     params: {
         default: () => ({ action: 'reset', by: 1 })

@@ -22,6 +22,7 @@ export function ApplyAction(ctx: PluginContext) {
 export function RemoveObject(ctx: PluginContext) {
     PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref }) => {
         const tree = state.tree.build().delete(ref).getTree();
+        console.log('tree', tree);
         return ctx.runTask(state.update(tree));
     });
 }

@@ -100,11 +100,13 @@ export class _test_ApplyAction extends React.Component<{ plugin: PluginContext, 
         const action = this.props.action;
 
         return <div key={`${this.props.nodeRef} ${this.props.action.id}`}>
-            <div style={{ borderBottom: '1px solid #999' }}><h3>{(action.definition.display && action.definition.display.name) || action.id}</h3></div>
+            <div style={{ borderBottom: '1px solid #999', marginBottom: '5px' }}><h3>{(action.definition.display && action.definition.display.name) || action.id}</h3></div>
             <ParametersComponent params={this.getParamDef()} values={this.state.params as any} onChange={(k, v) => {
                 this.setState({ params: { ...this.state.params, [k]: v } });
             }} />
-            <button onClick={() => this.create()} style={{ width: '100%' }}>Create</button>
+            <div style={{ textAlign: 'right' }}>
+                <button onClick={() => this.create()}>Create</button>
+            </div>
         </div>
     }
 }

@@ -71,6 +71,10 @@ class TransientTree implements StateTree {
         const parent = Transform.RootRef;
         if (this.children.get(parent).size === 0) return;
         const set = OrderedSet<Transform.Ref>();
+        if (!this.changedChildren) {
+            this.changedChildren = true;
+            this.children = this.children.asMutable();
+        }
         this.children.set(parent, set);
         this.mutations.set(parent, set);
     }

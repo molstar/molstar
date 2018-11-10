@@ -25,6 +25,10 @@ export namespace Transformer {
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
     export type ControlsFor<Props> = { [P in keyof Props]?: PD.Any }
 
+    export function is(obj: any): obj is Transformer {
+        return !!obj && typeof (obj as Transformer).toAction === 'function' && typeof (obj as Transformer).apply === 'function';
+    }
+
     export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
         a: A,
         params: P,

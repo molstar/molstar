@@ -101,7 +101,10 @@ export class PluginContext {
     _test_initDataActions() {
         this.state.data.actions
             .add(CreateStructureFromPDBe)
-            .add(StateTransforms.Data.Download.toAction());
+            .add(StateTransforms.Data.Download)
+            .add(StateTransforms.Model.CreateStructureAssembly)
+            .add(StateTransforms.Model.CreateStructure)
+            .add(StateTransforms.Visuals.CreateStructureRepresentation);
     }
 
     applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {

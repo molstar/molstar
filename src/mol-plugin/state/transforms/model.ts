@@ -69,9 +69,9 @@ const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajec
     }
 });
 
-export { CreateStructureFromModel }
-namespace CreateStructureFromModel { export interface Params { transform3d?: Mat4 } }
-const CreateStructureFromModel = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, CreateStructureFromModel.Params>({
+export { CreateStructure }
+namespace CreateStructure { export interface Params { transform3d?: Mat4 } }
+const CreateStructure = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, CreateStructure.Params>({
     name: 'create-structure-from-model',
     display: {
         name: 'Structure from Model',
@@ -93,32 +93,32 @@ function structureDesc(s: Structure) {
 
 export { CreateStructureAssembly }
 namespace CreateStructureAssembly { export interface Params { /** if not specified, use the 1st */ id?: string } }
-const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Structure, CreateStructureAssembly.Params>({
+const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, CreateStructureAssembly.Params>({
     name: 'create-structure-assembly',
     display: {
         name: 'Structure Assembly',
         description: 'Create a molecular structure assembly.'
     },
-    from: [SO.Molecule.Structure],
+    from: [SO.Molecule.Model],
     to: [SO.Molecule.Structure],
     params: {
         default: () => ({ id: void 0 }),
         controls(a) {
-            const { model } = a.data;
+            const model = a.data;
             const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
             return { id: PD.Select('Asm Id', 'Assembly Id', ids.length ? ids[0][0] : '', ids) };
         }
     },
-    isApplicable: a => a.data.models.length === 1 && a.data.model.symmetry.assemblies.length > 0,
     apply({ a, params }) {
         return Task.create('Build Assembly', async ctx => {
             let id = params.id;
-            const model = a.data.model;
+            const model = a.data;
             if (!id && model.symmetry.assemblies.length) id = model.symmetry.assemblies[0].id;
-            const asm = ModelSymmetry.findAssembly(a.data.model, id || '');
+            const asm = ModelSymmetry.findAssembly(model, id || '');
             if (!asm) throw new Error(`Assembly '${id}' not found`);
 
-            const s = await StructureSymmetry.buildAssembly(a.data, id!).runInContext(ctx);
+            const base = Structure.ofModel(model);
+            const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
             const label = { label: `Assembly ${id}`, description: structureDesc(s) };
             return new SO.Molecule.Structure(s, label);
         })
