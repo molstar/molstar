@@ -8,9 +8,11 @@ import { Task } from 'mol-task';
 import { StateObject } from './object';
 import { Transform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { StateAction } from './action';
 
 export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
     apply(parent: Transform.Ref, params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
+    toAction(): StateAction<A, void, P>,
     readonly namespace: string,
     readonly id: Transformer.Id,
     readonly definition: Transformer.Definition<A, B, P>
@@ -19,6 +21,7 @@ export interface Transformer<A extends StateObject = StateObject, B extends Stat
 export namespace Transformer {
     export type Id = string & { '@type': 'transformer-id' }
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
+    export type From<T extends Transformer<any, any, any>> = T extends Transformer<infer A, any, any> ? A : unknown;
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
     export type ControlsFor<Props> = { [P in keyof Props]?: PD.Any }
 
@@ -114,7 +117,8 @@ export namespace Transformer {
         }
 
         const t: Transformer<A, B, P> = {
-            apply(parent, params, props) { return Transform.create<A, B, P>(parent, t as any, params, props); },
+            apply(parent, params, props) { return Transform.create<A, B, P>(parent, t, params, props); },
+            toAction() { return StateAction.fromTransformer(t); },
             namespace,
             id,
             definition

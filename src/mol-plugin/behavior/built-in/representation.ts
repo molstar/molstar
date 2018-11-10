@@ -5,7 +5,7 @@
  */
 
 import { PluginBehavior } from '../behavior';
-import { PluginStateObject as SO } from '../../state/base';
+import { PluginStateObject as SO } from '../../state/objects';
 import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 

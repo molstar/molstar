@@ -123,6 +123,7 @@ namespace StateSelection {
             const set = new Set<string>();
             const ret: StateObjectCell[] = [];
             for (const n of q(state)) {
+                if (!n) continue;
                 if (!set.has(n.transform.ref)) {
                     set.add(n.transform.ref);
                     ret.push(n);
@@ -169,21 +170,23 @@ namespace StateSelection {
     export function ofType(b: Selector, t: StateObject.Type) { return filter(b, n => n.obj ? n.obj.type === t : false); }
 
     registerModifier('ancestorOfType', ancestorOfType);
-    export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s, n.transform.ref, types))); }
+    export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }
 
     registerModifier('parent', parent);
     export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.nodes.get(n.transform.ref)!.parent))); }
 
-    function findAncestorOfType({ tree, cells }: State, root: string, types: StateObject.Ctor[]): StateObjectCell | undefined {
+    export function findAncestorOfType(tree: StateTree, cells: State.Cells, root: Transform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
         let current = tree.nodes.get(root)!, len = types.length;
         while (true) {
             current = tree.nodes.get(current.parent)!;
-            if (current.ref === Transform.RootRef) {
-                return cells.get(Transform.RootRef);
-            }
-            const obj = cells.get(current.ref)!.obj!;
+            const cell = cells.get(current.ref)!;
+            if (!cell.obj) return void 0;
+            const obj = cell.obj;
             for (let i = 0; i < len; i++) {
                 if (obj.type === types[i].type) return cells.get(current.ref);
+            }
+            if (current.ref === Transform.RootRef) {
+                return void 0;
             }
         }
     }

@@ -7,8 +7,7 @@
 import { Transformer, Transform, State } from 'mol-state';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
-import { PluginStateObject as PSO } from './state/base';
-import { PluginStateObjects as SO } from './state/objects';
+import { PluginStateObject as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from './state';
 import { MolScriptBuilder } from 'mol-script/language/builder';
@@ -135,19 +134,19 @@ export class PluginContext {
 
     private initEvents() {
         merge(this.events.state.data.object.created, this.events.state.behavior.object.created).subscribe(o => {
-            if (!PSO.isBehavior(o.obj)) return;
+            if (!SO.isBehavior(o.obj)) return;
             console.log('registering behavior', o.obj.label);
             o.obj.data.register();
         });
 
         merge(this.events.state.data.object.removed, this.events.state.behavior.object.removed).subscribe(o => {
-            if (!PSO.isBehavior(o.obj)) return;
+            if (!SO.isBehavior(o.obj)) return;
             o.obj.data.unregister();
         });
 
         merge(this.events.state.data.object.replaced, this.events.state.behavior.object.replaced).subscribe(o => {
-            if (o.oldObj && PSO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
-            if (o.newObj && PSO.isBehavior(o.newObj)) o.newObj.data.register();
+            if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
+            if (o.newObj && SO.isBehavior(o.newObj)) o.newObj.data.register();
         });
     }
 

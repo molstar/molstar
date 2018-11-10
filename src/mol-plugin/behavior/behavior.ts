@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginStateTransform, PluginStateObject } from '../state/base';
+import { PluginStateTransform, PluginStateObject } from '../state/objects';
 import { Transformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginContext } from 'mol-plugin/context';

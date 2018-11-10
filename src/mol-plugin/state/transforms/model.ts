@@ -4,8 +4,8 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginStateTransform } from '../base';
-import { PluginStateObjects as SO } from '../objects';
+import { PluginStateTransform } from '../objects';
+import { PluginStateObject as SO } from '../objects';
 import { Task } from 'mol-task';
 import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection } from 'mol-model/structure';
 import { ParamDefinition as PD } from 'mol-util/param-definition';

@@ -5,7 +5,7 @@
  */
 
 import { State } from 'mol-state';
-import { PluginStateObjects as SO } from './state/objects';
+import { PluginStateObject as SO } from './state/objects';
 import { Camera } from 'mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
 

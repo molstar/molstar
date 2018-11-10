@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { PluginStateObject } from 'mol-plugin/state/base';
+import { PluginStateObject } from 'mol-plugin/state/objects';
 import { State } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 

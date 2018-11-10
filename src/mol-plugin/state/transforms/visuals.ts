@@ -6,9 +6,8 @@
 
 import { Transformer } from 'mol-state';
 import { Task } from 'mol-task';
-import { PluginStateTransform } from '../base';
-import { PluginStateObjects as SO } from '../objects';
-//import { CartoonRepresentation, DefaultCartoonProps } from 'mol-repr/structure/representation/cartoon';
+import { PluginStateTransform } from '../objects';
+import { PluginStateObject as SO } from '../objects';
 import { BallAndStickRepresentation, DefaultBallAndStickProps } from 'mol-repr/structure/representation/ball-and-stick';
 import { PluginContext } from 'mol-plugin/context';
 

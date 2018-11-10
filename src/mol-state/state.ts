@@ -13,6 +13,7 @@ import { RuntimeContext, Task } from 'mol-task';
 import { StateSelection } from './state/selection';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { StateTreeBuilder } from './tree/builder';
+import { StateAction } from './action';
 
 export { State }
 
@@ -78,6 +79,10 @@ class State {
     select(selector: Transform.Ref | ((q: typeof StateSelection.Generators) => StateSelection.Selector)) {
         if (typeof selector === 'string') return StateSelection.select(selector, this);
         return StateSelection.select(selector(StateSelection.Generators), this)
+    }
+
+    apply(action: StateAction, ref: Transform.Ref) {
+        
     }
 
     update(tree: StateTree | StateTreeBuilder): Task<void> {
@@ -254,19 +259,6 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string) {
     }
 }
 
-function findAncestor(tree: StateTree, cells: State.Cells, root: Ref, types: { type: StateObject.Type }[]): StateObjectCell | undefined {
-    let current = tree.nodes.get(root)!;
-    while (true) {
-        current = tree.nodes.get(current.parent)!;
-        const cell = cells.get(current.ref)!;
-        if (!cell.obj) return void 0;
-        for (const t of types) if (cell.obj.type === t.type) return cells.get(current.ref)!;
-        if (current.ref === Transform.RootRef) {
-            return void 0;
-        }
-    }
-}
-
 async function updateSubtree(ctx: UpdateContext, root: Ref) {
     setCellStatus(ctx, root, 'processing');
 
@@ -296,7 +288,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
 async function updateNode(ctx: UpdateContext, currentRef: Ref) {
     const { oldTree, tree } = ctx;
     const transform = tree.nodes.get(currentRef);
-    const parentCell = findAncestor(tree, ctx.cells, currentRef, transform.transformer.definition.from);
+    const parentCell = StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
 
     if (!parentCell) {
         throw new Error(`No suitable parent found for '${currentRef}'`);
