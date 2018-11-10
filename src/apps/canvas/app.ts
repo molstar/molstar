@@ -12,6 +12,10 @@ import { CifBlock } from 'mol-io/reader/cif';
 import { VolumeView } from './volume-view';
 import { Ccp4File } from 'mol-io/reader/ccp4/schema';
 import { Progress } from 'mol-task';
+import { ColorTheme } from 'mol-theme/color';
+import { SizeTheme } from 'mol-theme/size';
+import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
+import { VolumeRepresentationRegistry } from 'mol-repr/volume/registry';
 
 export class App {
     canvas3d: Canvas3D
@@ -22,6 +26,11 @@ export class App {
 
     structureLoaded: BehaviorSubject<StructureView | null> = new BehaviorSubject<StructureView | null>(null)
     volumeLoaded: BehaviorSubject<VolumeView | null> = new BehaviorSubject<VolumeView | null>(null)
+
+    colorThemeRegistry = new ColorTheme.Registry()
+    sizeThemeRegistry = new SizeTheme.Registry()
+    structureRepresentationRegistry = new StructureRepresentationRegistry()
+    volumeRepresentationRegistry = new VolumeRepresentationRegistry()
 
     initViewer(_canvas: HTMLCanvasElement, _container: HTMLDivElement) {
         this.canvas = _canvas
@@ -62,6 +71,14 @@ export class App {
 
     log(progress: Progress) {
         console.log(Progress.format(progress))
+    }
+
+    get reprCtx () {
+        return {
+            webgl: this.canvas3d.webgl,
+            colorThemeRegistry: this.colorThemeRegistry,
+            sizeThemeRegistry: this.sizeThemeRegistry
+        }
     }
 
     //

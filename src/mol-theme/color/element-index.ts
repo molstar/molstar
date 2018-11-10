@@ -8,17 +8,28 @@ import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { StructureElement, Link } from 'mol-model/structure';
 import { OrderedSet } from 'mol-data/int';
-import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
+import { ColorTheme, LocationColor } from '../color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.'
 
-export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
-    let color: LocationColor
-    let scale = ColorScale.create({ list: props.list, minLabel: 'Start', maxLabel: 'End' })
+export const ElementIndexColorThemeParams = {
+    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+}
+export function getElementIndexColorThemeParams(ctx: ThemeDataContext) {
+    return ElementIndexColorThemeParams // TODO return copy
+}
+export type ElementIndexColorThemeProps = PD.DefaultValues<typeof ElementIndexColorThemeParams>
 
-    if (props.structure) {
-        const { units } = props.structure
+export function ElementIndexColorTheme(ctx: ThemeDataContext, props: ElementIndexColorThemeProps): ColorTheme<ElementIndexColorThemeProps> {
+    let color: LocationColor
+    let scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
+
+    if (ctx.structure) {
+        const { units } = ctx.structure
         const unitCount = units.length
         const cummulativeElementCount = new Map<number, number>()
         const unitIdIndex = new Map<number, number>()
@@ -48,10 +59,14 @@ export function ElementIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { structure: true, list: true },
         granularity: 'groupInstance',
         color,
+        props,
         description: Description,
         legend: scale ? scale.legend : undefined
     }
+}
+
+export const ElementIndexColorThemeProvider: ColorTheme.Provider<typeof ElementIndexColorThemeParams> = {
+    factory: ElementIndexColorTheme, params: getElementIndexColorThemeParams
 }

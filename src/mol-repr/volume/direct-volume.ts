@@ -6,7 +6,7 @@
 
 import { VolumeData } from 'mol-model/volume'
 import { RuntimeContext } from 'mol-task'
-import { VolumeVisual, VolumeRepresentation } from './index';
+import { VolumeVisual, VolumeRepresentation } from './representation';
 import { createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -17,11 +17,12 @@ import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Geometry, createRenderableState, Theme } from 'mol-geo/geometry/geometry';
+import { Geometry, createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
-import { VisualContext, RepresentationContext } from 'mol-repr';
+import { VisualContext, RepresentationContext } from 'mol-repr/representation';
+import { ThemeProps, Theme } from 'mol-theme/theme';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()
@@ -213,16 +214,15 @@ export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeP
     const volumeRepr = VolumeRepresentation(DirectVolumeVisual)
     return {
         label: 'Direct Volume',
-        params: DirectVolumeParams,
         get renderObjects() {
             return [ ...volumeRepr.renderObjects ]
         },
         get props() {
             return { ...volumeRepr.props }
         },
-        createOrUpdate: (ctx: RepresentationContext, props: Partial<DirectVolumeProps> = {}, volume?: VolumeData) => {
+        createOrUpdate: (ctx: RepresentationContext, props: Partial<DirectVolumeProps> = {}, themeProps: ThemeProps = {}, volume?: VolumeData) => {
             currentProps = Object.assign({}, DefaultDirectVolumeProps, currentProps, props)
-            return volumeRepr.createOrUpdate(ctx, currentProps, volume)
+            return volumeRepr.createOrUpdate(ctx, currentProps, themeProps, volume)
         },
         getLoci: (pickingId: PickingId) => {
             return volumeRepr.getLoci(pickingId)

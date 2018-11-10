@@ -5,25 +5,25 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { StructureElementIterator } from './util/element';
 import { EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsPointsVisual, UnitsPointsParams } from '../units-visual';
-import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Points } from 'mol-geo/geometry/points/points';
 import { PointsBuilder } from 'mol-geo/geometry/points/points-builder';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
     ...GaussianDensityParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    // TODO
+    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
+    // sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
     pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
 }
 export const DefaultGaussianDensityPointProps = PD.getDefaultValues(GaussianDensityPointParams)

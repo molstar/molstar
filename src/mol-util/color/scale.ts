@@ -5,9 +5,31 @@
  */
 
 import { Color } from './color'
-import { ColorBrewer } from './tables'
+import { ColorBrewer, ColorMatplotlib, ColorOther } from './tables'
 import { ScaleLegend } from 'mol-theme/color';
 import { defaults } from 'mol-util';
+
+export type ColorListName = (
+    keyof typeof ColorBrewer | keyof typeof ColorMatplotlib | keyof typeof ColorOther
+)
+export const ColorListNames = [
+    ...Object.keys(ColorBrewer), ...Object.keys(ColorMatplotlib), ...Object.keys(ColorOther)
+]
+export const ColorListOptions = ColorListNames.map(n => [n, n] as [ColorListName, string])
+
+export function getColorListFromName(name: ColorListName) {
+    if (name in ColorBrewer) {
+        return ColorBrewer[name as keyof typeof ColorBrewer]
+    } else if (name in ColorMatplotlib) {
+        return ColorMatplotlib[name as keyof typeof ColorMatplotlib]
+    } else if (name in ColorOther) {
+        return ColorOther[name as keyof typeof ColorOther]
+    }
+    console.warn(`unknown color list named '${name}'`)
+    return ColorBrewer.RdYlBu
+}
+
+//
 
 export interface ColorScale {
     /** Returns hex color for given value */
@@ -22,20 +44,20 @@ export interface ColorScale {
     readonly legend: ScaleLegend
 }
 
-export const DefaultColorScale = {
+export const DefaultColorScaleProps = {
     domain: [0, 1],
     reverse: false,
-    list: ColorBrewer.RdYlBu,
+    listOrName: ColorBrewer.RdYlBu as Color[] | ColorListName,
     minLabel: '' as string | undefined,
     maxLabel: '' as string | undefined,
 }
-export type ColorScaleProps = Partial<typeof DefaultColorScale>
+export type ColorScaleProps = Partial<typeof DefaultColorScaleProps>
 
 export namespace ColorScale {
     export function create(props: ColorScaleProps): ColorScale {
-        // ensure that no undefined .list property exists so that the default assignment works
-        if (props.list === undefined) delete props.list
-        const { domain, reverse, list } = { ...DefaultColorScale, ...props }
+        const { domain, reverse, listOrName } = { ...DefaultColorScaleProps, ...props }
+        const list = typeof listOrName === 'string' ? getColorListFromName(listOrName) : listOrName
+
         const colors = reverse ? list.slice().reverse() : list
         const count1 = colors.length - 1
 

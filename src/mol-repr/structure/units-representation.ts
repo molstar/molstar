@@ -8,27 +8,27 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { RepresentationProps, Visual, RepresentationContext } from '..';
+import { RepresentationProps, Visual, RepresentationContext } from '../representation';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
-import { StructureProps, StructureParams, StructureRepresentation } from './index';
+import { StructureProps, StructureRepresentation } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { Theme, createTheme } from 'mol-geo/geometry/geometry';
+import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
-export function UnitsRepresentation<P extends StructureProps>(label: string, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends StructureProps>(label: string, defaultProps: P, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
-    let _props: P
-    let _theme: Theme
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
+    let _props: P = Object.assign({}, defaultProps)
+    let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, structure?: Structure) {
-        _props = Object.assign({}, _props, props, { structure: structure || _structure })
-        _theme = createTheme(_props)
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
+        _props = Object.assign({}, _props, props)
+        _theme = createTheme(ctx, { structure: structure || _structure }, props, themeProps, _theme)
 
         return Task.create('Creating or updating UnitsRepresentation', async runtime => {
             if (!_structure && !structure) {
@@ -132,7 +132,6 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, vis
 
     return {
         label,
-        params: StructureParams, // TODO
         get renderObjects() {
             const renderObjects: RenderObject[] = []
             visuals.forEach(({ visual }) => {

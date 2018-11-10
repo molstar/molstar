@@ -12,61 +12,95 @@ import { MarkerAction } from '../mol-geo/geometry/marker-data';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { WebGLContext } from 'mol-gl/webgl/context';
 import { getQualityProps } from './util';
-import { Theme } from 'mol-geo/geometry/geometry';
-// import { ColorTheme } from 'mol-theme/color';
+import { ColorTheme } from 'mol-theme/color';
+import { SizeTheme } from 'mol-theme/size';
+import { ThemeProps, Theme, ThemeRegistryContext } from 'mol-theme/theme';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
 // }
 export type RepresentationProps = { [k: string]: any }
 
-export interface RepresentationContext {
-    webgl?: WebGLContext
+//
+
+export interface RepresentationProvider<D, P extends PD.Params> {
+    readonly factory: (defaultProps: PD.DefaultValues<P>) => Representation<D, PD.DefaultValues<P>>
+    readonly params: (ctx: ThemeRegistryContext, data: D) => P
 }
 
-export interface Representation<D, P extends RepresentationProps = {}> {
+export class RepresentationRegistry<D> {
+    private _list: { name: string, provider: RepresentationProvider<D, any> }[] = []
+    private _map = new Map<string, RepresentationProvider<D, any>>()
+
+    constructor() {};
+
+    add<P extends PD.Params>(name: string, factory: RepresentationProvider<D, P>['factory'], params: RepresentationProvider<D, P>['params']) {
+        const provider = { factory, params } as RepresentationProvider<D, P>
+        this._list.push({ name, provider })
+        this._map.set(name, provider)
+    }
+
+    get(id: string) {
+        return this._map.get(id)
+    }
+
+    create(id: string, ctx: ThemeRegistryContext, data: D, props = {}): Representation<D, any> {
+        const provider = this.get(id)
+        return provider ? provider.factory({ ...PD.getDefaultValues(provider.params(ctx, data)), ...props }) : Representation.Empty
+    }
+
+    get list() {
+        return this._list
+    }
+}
+
+//
+
+export interface RepresentationContext {
+    webgl?: WebGLContext
+    colorThemeRegistry: ColorTheme.Registry
+    sizeThemeRegistry: SizeTheme.Registry
+}
+
+export { Representation }
+interface Representation<D, P extends RepresentationProps = {}> {
     readonly label: string
-    readonly params: PD.Params
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
-    createOrUpdate: (ctx: RepresentationContext, props?: Partial<P>, data?: D) => Task<void>
+    createOrUpdate: (ctx: RepresentationContext, props?: Partial<P>, themeProps?: ThemeProps, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void
 }
-
-export namespace Representation {
+namespace Representation {
     export type Any = Representation<any>
-    export const Empty: Representation<undefined> = {
-        label: '', params: {}, renderObjects: [], props: {},
+    export const Empty: Representation<any> = {
+        label: '', renderObjects: [], props: {},
         createOrUpdate: () => Task.constant('', undefined),
         getLoci: () => EmptyLoci,
         mark: () => false,
         destroy: () => {}
     }
 
-    export function createMulti<D, P extends RepresentationProps = {}>(label: string, params: PD.Params, defaultProps: P, reprList: Representation<D, P>[]): Representation<D, P> {
-        let currentProps: P
+    export type Def<P extends RepresentationProps = {}> = { [k: string]: (defaultProps: P) => Representation<any, P> }
+
+    export function createMulti<D, P extends RepresentationProps = {}>(label: string, defaultProps: P, reprDefs: Def<P>): Representation<D, P> {
+        let currentProps: P = Object.assign({}, defaultProps)
         let currentData: D
 
-        const visualsOptions: [string, string][] = []
-        for (let i = 0, il = reprList.length; i < il; ++i) {
-            visualsOptions.push([ i.toString(), reprList[i].label ])
-        }
-        params['visuals'] = PD.MultiSelect<string>('Visuals', '', ['surface'], visualsOptions)
-
-        if (!defaultProps.visuals) {
-            defaultProps.visuals = reprList.map((r, i) => i.toString())
-        }
+        const reprMap: { [k: number]: string } = {}
+        const reprList: Representation<D, P>[] = Object.keys(reprDefs).map((name, i) => {
+            reprMap[i] = name
+            return reprDefs[name](defaultProps)
+        })
 
         return {
             label,
-            params,
             get renderObjects() {
                 const { visuals } = currentProps
                 const renderObjects: RenderObject[] = []
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    if (!visuals || visuals.includes(i.toString())) {
+                    if (!visuals || visuals.includes(reprMap[i])) {
                         renderObjects.push(...reprList[i].renderObjects)
                     }
                 }
@@ -77,16 +111,16 @@ export namespace Representation {
                 reprList.forEach(r => Object.assign(props, r.props))
                 return props as P
             },
-            createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, data?: D) => {
+            createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, data?: D) => {
                 if (data) currentData = data
-                const qualityProps = getQualityProps(Object.assign({}, currentProps, props), data)
-                currentProps = Object.assign({}, defaultProps, currentProps, props, qualityProps)
+                const qualityProps = getQualityProps(Object.assign({}, currentProps, props), currentData)
+                Object.assign(currentProps, props, qualityProps)
 
                 const { visuals } = currentProps
                 return Task.create(`Creating '${label}' representation`, async runtime => {
                     for (let i = 0, il = reprList.length; i < il; ++i) {
-                        if (!visuals || visuals.includes(i.toString())) {
-                            await reprList[i].createOrUpdate(ctx, currentProps, currentData).runInContext(runtime)
+                        if (!visuals || visuals.includes(reprMap[i])) {
+                            await reprList[i].createOrUpdate(ctx, currentProps, themeProps, currentData).runInContext(runtime)
                         }
                     }
                 })
@@ -116,7 +150,8 @@ export namespace Representation {
 
 //
 
-export interface VisualContext extends RepresentationContext {
+export interface VisualContext {
+    webgl?: WebGLContext
     runtime: RuntimeContext,
 }
 

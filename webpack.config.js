@@ -1,6 +1,7 @@
 const path = require('path');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+// const CircularDependencyPlugin = require('circular-dependency-plugin');
 module.exports = {
     module: {
         rules: [
@@ -30,6 +31,11 @@ module.exports = {
         ]
     },
     plugins: [
+        // new CircularDependencyPlugin({
+        //     include: [ path.resolve(__dirname, 'build/node_modules/') ],
+        //     failOnError: false,
+        //     cwd: process.cwd(),
+        // }),
         new ExtraWatchWebpackPlugin({
             files: [
                 './build/node_modules/**/*.vert',

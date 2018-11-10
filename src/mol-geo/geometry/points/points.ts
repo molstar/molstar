@@ -7,8 +7,7 @@
 import { ValueCell } from 'mol-util'
 import { Mat4 } from 'mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
-import { Geometry, Theme } from '../geometry';
-import { PointsValues } from 'mol-gl/renderable';
+import { Geometry } from '../geometry';
 import { RuntimeContext } from 'mol-task';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
@@ -18,6 +17,8 @@ import { LocationIterator } from '../../util/location-iterator';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Sphere3D } from 'mol-math/geometry';
+import { Theme } from 'mol-theme/theme';
+import { PointsValues } from 'mol-gl/renderable/points';
 
 /** Point cloud */
 export interface Points {

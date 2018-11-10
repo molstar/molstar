@@ -5,8 +5,8 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { RepresentationProps, Visual, VisualContext } from '../';
-import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureParams } from './index';
+import { RepresentationProps, Visual, VisualContext } from '../representation';
+import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams, StructureParams } from './representation';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
 import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, UnitKind, UnitKindOptions, includesUnitKind } from './visual/util/common';
@@ -14,7 +14,7 @@ import { deepEqual, ValueCell, UUID } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { RenderableValues } from 'mol-gl/renderable/schema';
-import { Geometry, updateRenderableState, Theme } from 'mol-geo/geometry/geometry';
+import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createMarkers, MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -24,7 +24,10 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { VisualUpdateState, colorChanged, sizeChanged } from 'mol-repr/util';
+import { VisualUpdateState } from 'mol-repr/util';
+import { Theme } from 'mol-theme/theme';
+import { ColorTheme } from 'mol-theme/color';
+import { SizeTheme } from 'mol-theme/size';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -52,7 +55,7 @@ interface UnitsVisualBuilder<P extends UnitsProps, G extends Geometry> {
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     mark(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
+    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P, newTheme: Theme, currentTheme: Theme): void
 }
 
 interface UnitsVisualGeometryBuilder<P extends UnitsProps, G extends Geometry> extends UnitsVisualBuilder<P, G> {
@@ -68,6 +71,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
 
     let renderObject: UnitsRenderObject | undefined
     let currentProps: P
+    let currentTheme: Theme
     let geometry: Geometry
     let currentGroup: Unit.SymmetryGroup
     let currentStructure: Structure
@@ -76,6 +80,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
 
     async function create(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<P> = {}) {
         currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
+        currentTheme = theme
         currentGroup = group
 
         const unit = group.units[0]
@@ -97,7 +102,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
 
         locationIt.reset()
         VisualUpdateState.reset(updateState)
-        setUpdateState(updateState, newProps, currentProps)
+        setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
         const newConformationId = Unit.conformationId(unit)
         if (newConformationId !== currentConformationId) {
@@ -107,7 +112,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
 
         if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
 
-        if (colorChanged(currentProps, newProps)) updateState.updateColor = true
+        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
@@ -143,6 +148,7 @@ export function UnitsVisual<P extends UnitsProps>(builder: UnitsVisualGeometryBu
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
+        currentTheme = theme
     }
 
     return {
@@ -212,9 +218,9 @@ export interface UnitsMeshVisualBuilder<P extends UnitsMeshProps> extends UnitsV
 export function UnitsMeshVisual<P extends UnitsMeshProps>(builder: UnitsMeshVisualBuilder<P>): UnitsVisual<P> {
     return UnitsVisual({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P) => {
-            builder.setUpdateState(state, newProps, currentProps)
-            if (sizeChanged(currentProps, newProps)) state.createGeometry = true
+        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createUnitsMeshRenderObject,
@@ -237,9 +243,9 @@ export function UnitsPointsVisual<P extends UnitsPointsProps>(builder: UnitsPoin
         ...builder,
         createEmptyGeometry: Points.createEmpty,
         createRenderObject: createUnitsPointsRenderObject,
-        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P) => {
-            builder.setUpdateState(state, newProps, currentProps)
-            if (sizeChanged(currentProps, newProps)) state.updateSize = true
+        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         updateValues: Points.updateValues
     })
@@ -260,9 +266,9 @@ export function UnitsLinesVisual<P extends UnitsLinesProps>(builder: UnitsLinesV
         ...builder,
         createEmptyGeometry: Lines.createEmpty,
         createRenderObject: createUnitsLinesRenderObject,
-        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P) => {
-            builder.setUpdateState(state, newProps, currentProps)
-            if (sizeChanged(currentProps, newProps)) state.updateSize = true
+        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         updateValues: Lines.updateValues
     })
@@ -283,9 +289,9 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeProps>(builde
         ...builder,
         createEmptyGeometry: DirectVolume.createEmpty,
         createRenderObject: createUnitsDirectVolumeRenderObject,
-        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P) => {
-            builder.setUpdateState(state, newProps, currentProps)
-            if (sizeChanged(currentProps, newProps)) state.createGeometry = true
+        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         updateValues: DirectVolume.updateValues
     })

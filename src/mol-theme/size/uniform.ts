@@ -4,18 +4,31 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { SizeTheme, SizeThemeProps } from '../size';
+import { SizeTheme } from '../size';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
 
-const DefaultSize = 1
-const DefaultFactor = 1
+const Description = 'Gives everything the same, uniform size.'
 
-export function UniformSizeTheme(props: SizeThemeProps): SizeTheme {
-    const value = props.value || DefaultSize
-    const factor = props.factor || DefaultFactor
-    const size = value * factor
+export const UniformSizeThemeParams = {
+    value: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+}
+export function getUniformSizeThemeParams(ctx: ThemeDataContext) {
+    return UniformSizeThemeParams // TODO return copy
+}
+export type UniformSizeThemeProps = PD.DefaultValues<typeof UniformSizeThemeParams>
+
+export function UniformSizeTheme(ctx: ThemeDataContext, props: UniformSizeThemeProps): SizeTheme<UniformSizeThemeProps> {
+    const size = props.value
 
     return {
         granularity: 'uniform',
-        size: () => size
+        size: () => size,
+        props,
+        description: Description
     }
+}
+
+export const UniformSizeThemeProvider: SizeTheme.Provider<typeof UniformSizeThemeParams> = {
+    factory: UniformSizeTheme, params: getUniformSizeThemeParams
 }

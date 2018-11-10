@@ -10,9 +10,8 @@ import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
 import { LocationIterator } from '../util/location-iterator';
 import { Location, NullLocation } from 'mol-model/location';
 import { RuntimeContext } from 'mol-task';
-import { SizeThemeProps, SizeTheme, SizeThemeName } from 'mol-theme/size';
+import { SizeTheme } from 'mol-theme/size';
 import { getGranularity } from './geometry';
-import { Structure } from 'mol-model/structure';
 
 export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -22,22 +21,6 @@ export type SizeData = {
     tSize: ValueCell<TextureImage<Uint8Array>>,
     uSizeTexDim: ValueCell<Vec2>,
     dSizeType: ValueCell<string>,
-}
-
-export interface SizeProps {
-    sizeTheme: SizeThemeName
-    sizeValue?: number
-    sizeFactor?: number
-    structure?: Structure
-}
-
-export function getSizeThemeProps(props: SizeProps): SizeThemeProps {
-    return {
-        name: props.sizeTheme,
-        value: props.sizeValue,
-        factor: props.sizeFactor,
-        structure: props.structure,
-    }
 }
 
 export async function createSizes(ctx: RuntimeContext, locationIt: LocationIterator, sizeTheme: SizeTheme, sizeData?: SizeData): Promise<SizeData> {

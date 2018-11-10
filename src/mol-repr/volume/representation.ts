@@ -5,10 +5,10 @@
  */
 
 import { Task } from 'mol-task'
-import { RepresentationProps, Representation, Visual, RepresentationContext, VisualContext } from '..';
+import { RepresentationProps, Representation, Visual, RepresentationContext, VisualContext, RepresentationProvider } from '../representation';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
-import { Geometry, updateRenderableState, Theme, createTheme } from 'mol-geo/geometry/geometry';
+import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -19,6 +19,7 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { VisualUpdateState } from 'mol-repr/util';
 import { ValueCell } from 'mol-util';
+import { ThemeProps, Theme, createTheme } from 'mol-theme/theme';
 
 export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
 
@@ -134,6 +135,10 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
 
 export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
 
+export type VolumeRepresentationProvider<P extends PD.Params> = RepresentationProvider<VolumeData, P>
+
+//
+
 export const VolumeParams = {
     ...Geometry.Params,
     isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
@@ -148,9 +153,9 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
     let _theme: Theme
     let busy = false
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, volumeData?: VolumeData) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, volumeData?: VolumeData) {
         _props = Object.assign({}, DefaultVolumeProps, _props, props)
-        _theme = createTheme(_props)
+        _theme = createTheme(ctx, _props, themeProps, {}, _theme)
 
         return Task.create('VolumeRepresentation.create', async runtime => {
             // TODO queue it somehow
@@ -173,7 +178,6 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
 
     return {
         label: 'Volume',
-        params: VolumeParams,
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },

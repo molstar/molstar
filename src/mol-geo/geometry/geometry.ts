@@ -9,15 +9,14 @@ import { Points } from './points/points';
 import { RenderableState } from 'mol-gl/renderable';
 import { ValueCell } from 'mol-util';
 import { BaseValues } from 'mol-gl/renderable/schema';
-import { Color } from 'mol-util/color';
-import { ColorThemeOptions, ColorThemeName, ColorScaleOptions, ColorScaleName, ColorTheme } from 'mol-theme/color';
 import { LocationIterator } from '../util/location-iterator';
-import { ColorType, getColorThemeProps } from './color-data';
-import { SizeType, getSizeThemeProps } from './size-data';
+import { ColorType } from './color-data';
+import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { DirectVolume } from './direct-volume/direct-volume';
-import { SizeTheme, SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
+import { BuiltInSizeThemeOptions, BuiltInSizeThemeName } from 'mol-theme/size';
+import { BuiltInColorThemeName, BuiltInColorThemeOptions } from 'mol-theme/color';
 
 //
 
@@ -35,18 +34,6 @@ export const VisualQualityInfo = {
 export type VisualQuality = keyof typeof VisualQualityInfo
 export const VisualQualityNames = Object.keys(VisualQualityInfo)
 export const VisualQualityOptions = VisualQualityNames.map(n => [n, n] as [VisualQuality, string])
-
-export interface Theme {
-    color: ColorTheme
-    size: SizeTheme
-}
-
-export function createTheme(props: Geometry.Props) {
-    return {
-        color: ColorTheme(getColorThemeProps(props)),
-        size: SizeTheme(getSizeThemeProps(props))
-    }
-}
 
 //
 
@@ -76,15 +63,11 @@ export namespace Geometry {
         visible: PD.Boolean('Visible', '', true),
         depthMask: PD.Boolean('Depth Mask', '', true),
         useFog: PD.Boolean('Use Fog', '', false),
+
         quality: PD.Select<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
 
-        colorTheme: PD.Select<ColorThemeName>('Color Name', '', 'uniform', ColorThemeOptions),
-        colorList: PD.Select<ColorScaleName>('Color Scale', '', 'default', ColorScaleOptions),
-        colorValue: PD.Color('Color Value', '', Color(0xCCCCCC)),
-
-        sizeTheme: PD.Select<SizeThemeName>('Size Name', '', 'uniform', SizeThemeOptions),
-        sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
-        sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
+        colorTheme: PD.Select<BuiltInColorThemeName>('Color Name', '', 'uniform', BuiltInColorThemeOptions),
+        sizeTheme: PD.Select<BuiltInSizeThemeName>('Size Name', '', 'uniform', BuiltInSizeThemeOptions),
     }
     export const DefaultProps = PD.getDefaultValues(Params)
     export type Props = typeof DefaultProps

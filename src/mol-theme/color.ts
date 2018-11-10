@@ -4,26 +4,25 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Color, ColorMap } from 'mol-util/color';
-import { Structure } from 'mol-model/structure';
+import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorType } from 'mol-geo/geometry/color-data';
-
-import { ElementIndexColorTheme } from './color/element-index';
-import { CarbohydrateSymbolColorTheme } from './color/carbohydrate-symbol';
-import { ChainIdColorTheme } from './color/chain-id';
-import { ElementSymbolColorTheme } from './color/element-symbol';
-import { UnitIndexColorTheme } from './color/unit-index';
-import { UniformColorTheme } from './color/uniform';
-import { CrossLinkColorTheme } from './color/cross-link';
-import { ShapeGroupColorTheme } from './color/shape-group';
-import { CustomColorTheme } from './color/custom';
-import { ResidueNameColorTheme } from './color/residue-name';
-import { SequenceIdColorTheme } from './color/sequence-id';
-import { SecondaryStructureColorTheme } from './color/secondary-structure';
-import { MoleculeTypeColorTheme } from './color/molecule-type';
-import { PolymerIndexColorTheme } from './color/polymer-index';
-import { ColorMatplotlib, ColorBrewer, ColorOther } from 'mol-util/color/tables';
+import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
+import { UniformColorTheme, UniformColorThemeProvider } from './color/uniform';
+import { deepEqual } from 'mol-util';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ChainIdColorThemeProvider } from './color/chain-id';
+import { CrossLinkColorThemeProvider } from './color/cross-link';
+import { ElementIndexColorThemeProvider } from './color/element-index';
+import { ElementSymbolColorThemeProvider } from './color/element-symbol';
+import { MoleculeTypeColorThemeProvider } from './color/molecule-type';
+import { PolymerIndexColorThemeProvider } from './color/polymer-index';
+import { ResidueNameColorThemeProvider } from './color/residue-name';
+import { SecondaryStructureColorThemeProvider } from './color/secondary-structure';
+import { SequenceIdColorThemeProvider } from './color/sequence-id';
+import { ShapeGroupColorThemeProvider } from './color/shape-group';
+import { UnitIndexColorThemeProvider } from './color/unit-index';
 
 export type LocationColor = (location: Location, isSecondary: boolean) => Color
 
@@ -37,29 +36,6 @@ export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[])
     return { kind: 'scale-legend', minLabel, maxLabel, colors }
 }
 
-export type ColorScaleName = (
-    'default' |
-    keyof typeof ColorBrewer | keyof typeof ColorMatplotlib | keyof typeof ColorOther
-)
-export const ColorScaleNames = [
-    'default',
-    ...Object.keys(ColorBrewer), ...Object.keys(ColorMatplotlib), ...Object.keys(ColorOther)
-]
-export const ColorScaleOptions = ColorScaleNames.map(n => [n, n] as [ColorScaleName, string])
-
-export function getColorScaleFromName(name: string) {
-    if (name === 'default') {
-        return
-    } else if (name in ColorBrewer) {
-        return ColorBrewer[name as keyof typeof ColorBrewer]
-    } else if (name in ColorMatplotlib) {
-        return ColorMatplotlib[name as keyof typeof ColorMatplotlib]
-    } else if (name in ColorOther) {
-        return ColorOther[name as keyof typeof ColorOther]
-    }
-    console.warn(`unknwon color list named '${name}'`)
-}
-
 export interface TableLegend {
     kind: 'table-legend'
     table: [ string, Color ][]
@@ -68,77 +44,76 @@ export function TableLegend(table: [ string, Color ][]): TableLegend {
     return { kind: 'table-legend', table }
 }
 
-export interface ColorThemeFeatures {
-    /** Does allow providing a structure object */
-    structure?: boolean
-    /** Does allow providing a volume object */
-    volume?: boolean
-    /** Does allow providing a list of colors (for creating a scale) */
-    list?: boolean
-    /** Does allow providing a map of colors */
-    map?: boolean
-    /** Does allow providing the boundaries for the scale */
-    domain?: boolean
-    /** Does allow providing a single/special color value */
-    value?: boolean
-}
+export type ColorThemeProps = { [k: string]: any }
 
-export interface ColorTheme {
-    features: ColorThemeFeatures
-    granularity: ColorType
-    color: LocationColor
-    description?: string
-    legend?: ScaleLegend | TableLegend
+export { ColorTheme }
+interface ColorTheme<P extends ColorThemeProps = {}> {
+    readonly granularity: ColorType
+    readonly color: LocationColor
+    readonly props: Readonly<P>
+    readonly description?: string
+    readonly legend?: Readonly<ScaleLegend | TableLegend>
 }
+namespace ColorTheme {
+    export type Props = { [k: string]: any }
+    export const Empty = UniformColorTheme({}, { value: Color(0xCCCCCC) })
 
-export function ColorTheme(props: ColorThemeProps): ColorTheme {
-    switch (props.name) {
-        case 'carbohydrate-symbol': return CarbohydrateSymbolColorTheme(props)
-        case 'chain-id': return ChainIdColorTheme(props)
-        case 'cross-link': return CrossLinkColorTheme(props)
-        case 'custom': return CustomColorTheme(props)
-        case 'element-index': return ElementIndexColorTheme(props)
-        case 'element-symbol': return ElementSymbolColorTheme(props)
-        case 'molecule-type': return MoleculeTypeColorTheme(props)
-        case 'polymer-index': return PolymerIndexColorTheme(props)
-        case 'residue-name': return ResidueNameColorTheme(props)
-        case 'secondary-structure': return SecondaryStructureColorTheme(props)
-        case 'sequence-id': return SequenceIdColorTheme(props)
-        case 'shape-group': return ShapeGroupColorTheme(props)
-        case 'unit-index': return UnitIndexColorTheme(props)
-        case 'uniform': return UniformColorTheme(props)
+    export function areEqual(themeA: ColorTheme, themeB: ColorTheme) {
+        return themeA === themeB && deepEqual(themeA.props, themeB.props)
+    }
+
+    export interface Provider<P extends PD.Params> {
+        readonly factory: (ctx: ThemeDataContext, props: PD.DefaultValues<P>) => ColorTheme<PD.DefaultValues<P>>
+        readonly params: (ctx: ThemeDataContext) => P
+    }
+
+    export class Registry {
+        private _list: { name: string, provider: Provider<any> }[] = []
+        private _map = new Map<string, Provider<any>>()
+
+        constructor() {
+            Object.keys(BuiltInColorThemes).forEach(name => {
+                const p = (BuiltInColorThemes as { [k: string]: Provider<any> })[name]
+                this.add(name, p.factory, p.params)
+            })
+        }
+
+        add<P extends PD.Params>(name: string, factory: Provider<P>['factory'], params: Provider<P>['params']) {
+            const provider = { factory, params } as Provider<P>
+            this._list.push({ name, provider })
+            this._map.set(name, provider)
+        }
+
+        get(id: string) {
+            return this._map.get(id)
+        }
+
+        create(id: string, ctx: ThemeDataContext, props = {}) {
+            const provider = this.get(id)
+            return provider ? provider.factory(ctx, { ...PD.getDefaultValues(provider.params(ctx)), ...props }) : Empty
+        }
+
+        get list() {
+            return this._list
+        }
     }
 }
 
-export interface ColorThemeProps {
-    name: ColorThemeName
-    domain?: [number, number]
-    value?: Color
-    list?: Color[]
-    map?: ColorMap<any>
-    structure?: Structure
-    color?: LocationColor
-    granularity?: ColorType,
-    description?: string,
-    legend?: ScaleLegend | TableLegend
+export const BuiltInColorThemes = {
+    'carbohydrate-symbol': CarbohydrateSymbolColorThemeProvider,
+    'chain-id': ChainIdColorThemeProvider,
+    'cross-link': CrossLinkColorThemeProvider,
+    'element-index': ElementIndexColorThemeProvider,
+    'element-symbol': ElementSymbolColorThemeProvider,
+    'molecule-type': MoleculeTypeColorThemeProvider,
+    'polymer-index': PolymerIndexColorThemeProvider,
+    'residue-name': ResidueNameColorThemeProvider,
+    'secondary-structure': SecondaryStructureColorThemeProvider,
+    'sequence-id': SequenceIdColorThemeProvider,
+    'shape-group': ShapeGroupColorThemeProvider,
+    'unit-index': UnitIndexColorThemeProvider,
+    'uniform': UniformColorThemeProvider,
 }
-
-export const ColorThemeInfo = {
-    'carbohydrate-symbol': {},
-    'chain-id': {},
-    'cross-link': {},
-    'custom': {},
-    'element-index': {},
-    'element-symbol': {},
-    'molecule-type': {},
-    'polymer-index': {},
-    'residue-name': {},
-    'secondary-structure': {},
-    'sequence-id': {},
-    'shape-group': {},
-    'unit-index': {},
-    'uniform': {},
-}
-export type ColorThemeName = keyof typeof ColorThemeInfo
-export const ColorThemeNames = Object.keys(ColorThemeInfo)
-export const ColorThemeOptions = ColorThemeNames.map(n => [n, n] as [ColorThemeName, string])
+export type BuiltInColorThemeName = keyof typeof BuiltInColorThemes
+export const BuiltInColorThemeNames = Object.keys(BuiltInColorThemes)
+export const BuiltInColorThemeOptions = BuiltInColorThemeNames.map(n => [n, n] as [BuiltInColorThemeName, string])

@@ -7,17 +7,28 @@
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { StructureElement, Link } from 'mol-model/structure';
-import { ColorTheme, ColorThemeProps, LocationColor } from '../color';
+import { ColorTheme, LocationColor } from '../color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer a unique color based on the position (index) of the polymer in the list of polymers in the structure.'
 
-export function PolymerIndexColorTheme(props: ColorThemeProps): ColorTheme {
-    let color: LocationColor
-    const scale = ColorScale.create({ list: props.list, minLabel: 'Start', maxLabel: 'End' })
+export const PolymerIndexColorThemeParams = {
+    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+}
+export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {
+    return PolymerIndexColorThemeParams // TODO return copy
+}
+export type PolymerIndexColorThemeProps = PD.DefaultValues<typeof PolymerIndexColorThemeParams>
 
-    if (props.structure) {
-        const { units } = props.structure
+export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PolymerIndexColorThemeProps): ColorTheme<PolymerIndexColorThemeProps> {
+    let color: LocationColor
+    const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
+
+    if (ctx.structure) {
+        const { units } = ctx.structure
         let polymerCount = 0
         for (let i = 0, il = units.length; i <il; ++i) {
             if (units[i].polymerElements.length > 0) ++polymerCount
@@ -45,10 +56,14 @@ export function PolymerIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { structure: true, list: true },
         granularity: 'instance',
         color,
+        props,
         description: Description,
         legend: scale ? scale.legend : undefined
     }
+}
+
+export const PolymerIndexColorThemeProvider: ColorTheme.Provider<typeof PolymerIndexColorThemeParams> = {
+    factory: PolymerIndexColorTheme, params: getPolymerIndexColorThemeParams
 }

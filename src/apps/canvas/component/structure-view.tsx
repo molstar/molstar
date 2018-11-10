@@ -7,8 +7,8 @@
 import * as React from 'react'
 import { StructureView } from '../structure-view';
 import { RepresentationComponent } from './representation';
-import { Representation } from 'mol-repr';
-import { StructureRepresentation } from 'mol-repr/structure/index';
+import { Representation } from 'mol-repr/representation';
+import { StructureRepresentation } from 'mol-repr/structure/representation';
 
 export interface StructureViewComponentProps {
     structureView: StructureView
@@ -37,6 +37,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
             structureView: sv,
 
             label: sv.label,
+            structure: sv.structure,
             modelId: sv.modelId,
             modelIds: sv.getModelIds(),
             assemblyId: sv.assemblyId,
@@ -84,7 +85,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
     }
 
     render() {
-        const { structureView, label, modelIds, assemblyIds, symmetryFeatureIds, active, structureRepresentations } = this.state
+        const { structureView, label, structure, modelIds, assemblyIds, symmetryFeatureIds, active, structureRepresentations } = this.state
 
         const modelIdOptions = modelIds.map(m => {
             return <option key={m.id} value={m.id}>{m.label}</option>
@@ -174,6 +175,9 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                             return <div key={i}>
                                 <RepresentationComponent
                                     repr={structureRepresentations[k] as Representation<any>}
+                                    params={
+                                        structureView.app.structureRepresentationRegistry.get(k)!.params(structureView.app.reprCtx, structure!)
+                                    }
                                     canvas3d={structureView.canvas3d}
                                     app={structureView.app}
                                 />

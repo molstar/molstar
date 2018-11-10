@@ -6,11 +6,19 @@
 
 import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { SizeThemeProps, SizeTheme } from '../size';
+import { SizeTheme } from '../size';
 import { VdwRadius } from 'mol-model/structure/model/properties/atomic';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
 
 const DefaultSize = 1
-const DefaultFactor = 1
+const Description = 'Assigns a physical size.'
+
+export const PhysicalSizeThemeParams = {}
+export function getPhysicalSizeThemeParams(ctx: ThemeDataContext) {
+    return PhysicalSizeThemeParams // TODO return copy
+}
+export type PhysicalSizeThemeProps = PD.DefaultValues<typeof PhysicalSizeThemeParams>
 
 export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
     if (Unit.isAtomic(unit)) {
@@ -26,10 +34,8 @@ export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
  * Create attribute data with the physical size of an element,
  * i.e. vdw for atoms and radius for coarse spheres
  */
-export function PhysicalSizeTheme(props: SizeThemeProps): SizeTheme {
-    const factor = props.factor || DefaultFactor
-
-    function sizeFn(location: Location): number {
+export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PhysicalSizeThemeProps): SizeTheme<PhysicalSizeThemeProps> {
+    function size(location: Location): number {
         let size: number
         if (StructureElement.isLocation(location)) {
             size = getPhysicalRadius(location.unit, location.element)
@@ -38,11 +44,17 @@ export function PhysicalSizeTheme(props: SizeThemeProps): SizeTheme {
         } else {
             size = DefaultSize
         }
-        return factor * size
+        return size
     }
 
     return {
         granularity: 'group',
-        size: sizeFn
+        size,
+        props,
+        description: Description
     }
+}
+
+export const PhysicalSizeThemeProvider: SizeTheme.Provider<typeof PhysicalSizeThemeParams> = {
+    factory: PhysicalSizeTheme, params: getPhysicalSizeThemeParams
 }

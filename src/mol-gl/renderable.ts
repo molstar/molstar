@@ -47,7 +47,3 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         dispose: () => renderItem.destroy()
     }
 }
-
-export { MeshRenderable, MeshSchema, MeshValues } from './renderable/mesh'
-export { PointsRenderable, PointsSchema, PointsValues } from './renderable/points'
-export { LinesRenderable, LinesSchema, LinesValues } from './renderable/lines'

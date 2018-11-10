@@ -6,7 +6,7 @@
  */
 
 import { VolumeData } from 'mol-model/volume'
-import { VolumeVisual, VolumeRepresentation } from './index';
+import { VolumeVisual, VolumeRepresentation } from './representation';
 import { createMeshRenderObject } from 'mol-gl/render-object';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -14,11 +14,12 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { createRenderableState, Theme } from 'mol-geo/geometry/geometry';
+import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
-import { RepresentationContext, VisualContext } from 'mol-repr';
+import { RepresentationContext, VisualContext } from 'mol-repr/representation';
+import { ThemeProps, Theme } from 'mol-theme/theme';
 
 interface VolumeIsosurfaceProps {
     isoValueAbsolute: number
@@ -72,16 +73,15 @@ export function IsosurfaceRepresentation(): VolumeRepresentation<IsosurfaceProps
     const volumeRepr = VolumeRepresentation(IsosurfaceVisual)
     return {
         label: 'Isosurface',
-        params: IsosurfaceParams,
         get renderObjects() {
             return [ ...volumeRepr.renderObjects ]
         },
         get props() {
             return { ...volumeRepr.props }
         },
-        createOrUpdate: (ctx: RepresentationContext, props: Partial<IsosurfaceProps> = {}, volume?: VolumeData) => {
+        createOrUpdate: (ctx: RepresentationContext, props: Partial<IsosurfaceProps> = {}, themeProps: ThemeProps = {}, volume?: VolumeData) => {
             currentProps = Object.assign({}, DefaultIsosurfaceProps, currentProps, props)
-            return volumeRepr.createOrUpdate(ctx, currentProps, volume)
+            return volumeRepr.createOrUpdate(ctx, currentProps, themeProps, volume)
         },
         getLoci: (pickingId: PickingId) => {
             return volumeRepr.getLoci(pickingId)

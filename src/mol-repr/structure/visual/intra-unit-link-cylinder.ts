@@ -6,20 +6,19 @@
  */
 
 import { Unit, Link, StructureElement, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { UnitsMeshVisual, UnitsMeshParams, StructureGroup } from '../units-visual';
 import { Interval } from 'mol-data/int';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
@@ -67,9 +66,10 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
 export const IntraUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
+    // TODO
+    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    // sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
+    // sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
 }
 export const DefaultIntraUnitLinkProps = PD.getDefaultValues(IntraUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps

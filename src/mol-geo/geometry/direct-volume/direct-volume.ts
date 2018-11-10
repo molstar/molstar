@@ -17,9 +17,10 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
-import { Geometry, Theme } from '../geometry';
+import { Geometry } from '../geometry';
 import { transformPositionArray } from 'mol-geo/util';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
+import { Theme } from 'mol-theme/theme';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]

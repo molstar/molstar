@@ -6,9 +6,9 @@
 
 import * as React from 'react'
 import { RepresentationComponent } from './representation';
-import { Representation } from 'mol-repr';
+import { Representation } from 'mol-repr/representation';
 import { VolumeView } from '../volume-view';
-import { VolumeRepresentation } from 'mol-repr/volume/index';
+import { VolumeRepresentation } from 'mol-repr/volume/representation';
 
 export interface VolumeViewComponentProps {
     volumeView: VolumeView
@@ -28,6 +28,7 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
         return {
             volumeView: vv,
             label: vv.label,
+            volume: vv.volume,
             active: vv.active,
             volumeRepresentations: vv.volumeRepresentations
         }
@@ -61,7 +62,7 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
     // }
 
     render() {
-        const { volumeView, label, active, volumeRepresentations } = this.state
+        const { volumeView, label, volume, active, volumeRepresentations } = this.state
 
         return <div>
             <div>
@@ -89,6 +90,9 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
                             return <div key={i}>
                                 <RepresentationComponent
                                     repr={volumeRepresentations[k] as Representation<any>}
+                                    params={
+                                        volumeView.app.volumeRepresentationRegistry.get(k)!.params(volumeView.app.reprCtx, volume!)
+                                    }
                                     canvas3d={volumeView.viewer}
                                     app={volumeView.app}
                                 />

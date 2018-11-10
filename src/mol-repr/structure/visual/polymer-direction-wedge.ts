@@ -5,18 +5,17 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Wedge } from 'mol-geo/primitive/wedge';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -31,15 +30,16 @@ const heightFactor = 6
 const wedge = Wedge()
 
 export const PolymerDirectionWedgeParams = {
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
 }
 export const DefaultPolymerDirectionWedgeProps = PD.getDefaultValues(PolymerDirectionWedgeParams)
 export type PolymerDirectionWedgeProps = typeof DefaultPolymerDirectionWedgeProps
 
 async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
+
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
+    const { sizeFactor } = props
 
     const vertexCount = polymerElementCount * 24
     const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
@@ -62,7 +62,7 @@ async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, s
         interpolateCurveSegment(state, v, tension, shift)
 
         if ((isSheet && !v.secStrucChange) || !isSheet) {
-            const size = theme.size.size(v.center)
+            const size = theme.size.size(v.center) * sizeFactor
             const depth = depthFactor * size
             const width = widthFactor * size
             const height = heightFactor * size

@@ -1,25 +1,29 @@
-/**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
- *
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
- */
+// /**
+//  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+//  *
+//  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+//  */
 
-import { PolymerBackboneVisual, PolymerBackboneParams } from '../visual/polymer-backbone-cylinder';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { UnitsRepresentation } from '../units-representation';
-import { StructureRepresentation } from '../index';
-import { Representation } from 'mol-repr';
+// import { PolymerBackboneVisual, PolymerBackboneParams } from '../visual/polymer-backbone-cylinder';
+// import { ParamDefinition as PD } from 'mol-util/param-definition';
+// import { UnitsRepresentation } from '../units-representation';
+// import { StructureRepresentation } from '../representation';
+// import { Representation } from 'mol-repr/representation';
+// import { ThemeRegistryContext } from 'mol-theme/theme';
+// import { Structure } from 'mol-model/structure';
 
-export const BackboneParams = {
-    ...PolymerBackboneParams
-}
-export const DefaultBackboneProps = PD.getDefaultValues(BackboneParams)
-export type BackboneProps = typeof DefaultBackboneProps
+// export const BackboneParams = {
+//     ...PolymerBackboneParams,
+// }
+// export function getBackboneParams(ctx: ThemeRegistryContext, structure: Structure) {
+//     return BackboneParams // TODO return copy
+// }
+// export type BackboneProps = PD.DefaultValues<typeof BackboneParams>
 
-export type BackboneRepresentation = StructureRepresentation<BackboneProps>
+// export type BackboneRepresentation = StructureRepresentation<BackboneProps>
 
-export function BackboneRepresentation(): BackboneRepresentation {
-    return Representation.createMulti('Backbone', BackboneParams, DefaultBackboneProps, [
-        UnitsRepresentation('Polymer backbone cylinder', PolymerBackboneVisual)
-    ] as StructureRepresentation<BackboneProps>[])
-}
+// export function BackboneRepresentation(defaultProps: BackboneProps): BackboneRepresentation {
+//     return Representation.createMulti('Backbone', defaultProps, [
+//         UnitsRepresentation('Polymer backbone cylinder', defaultProps, PolymerBackboneVisual)
+//     ])
+// }

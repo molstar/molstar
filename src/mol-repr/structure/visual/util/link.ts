@@ -13,7 +13,7 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { VisualContext } from 'mol-repr';
+import { VisualContext } from 'mol-repr/representation';
 
 export const LinkCylinderParams = {
     linkScale: PD.Range('Link Scale', '', 0.4, 0, 1, 0.1),

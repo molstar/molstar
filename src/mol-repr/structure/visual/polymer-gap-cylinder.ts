@@ -5,12 +5,11 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { PolymerGapIterator, PolymerGapLocationIterator, markPolymerGapElement, getPolymerGapElementLoci } from './util/polymer';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
-import { SizeThemeOptions, SizeThemeName } from 'mol-theme/size';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { LinkCylinderParams } from './util/link';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -18,12 +17,13 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { addFixedCountDashedCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 const segmentCount = 10
 
 export const PolymerGapCylinderParams = {
+    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
     radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
 }
 export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams)
@@ -33,7 +33,7 @@ async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, stru
     const polymerGapCount = unit.gapElements.length
     if (!polymerGapCount) return Mesh.createEmpty(mesh)
 
-    const { radialSegments } = props
+    const { sizeFactor, radialSegments } = props
 
     const vertexCountEstimate = segmentCount * radialSegments * 2 * polymerGapCount * 2
     const builder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 10, mesh)
@@ -57,11 +57,11 @@ async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, stru
             pos(centerA.element, pA)
             pos(centerB.element, pB)
 
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA)
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor
             builder.setGroup(i)
             addFixedCountDashedCylinder(builder, pA, pB, 0.5, segmentCount, cylinderProps)
 
-            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB)
+            cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB) * sizeFactor
             builder.setGroup(i + 1)
             addFixedCountDashedCylinder(builder, pB, pA, 0.5, segmentCount, cylinderProps)
         }
@@ -78,9 +78,10 @@ async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, stru
 export const InterUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
-    sizeFactor: PD.Numeric('Size Factor', '', 0.3, 0, 10, 0.1),
+    // TODO
+    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    // sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    // sizeFactor: PD.Numeric('Size Factor', '', 0.3, 0, 10, 0.1),
 }
 export const DefaultIntraUnitLinkProps = PD.getDefaultValues(InterUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps

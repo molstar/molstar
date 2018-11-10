@@ -8,16 +8,14 @@ import * as React from 'react'
 import Canvas3D from 'mol-canvas3d/canvas3d';
 import { App } from '../app';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Representation } from 'mol-repr';
+import { Representation } from 'mol-repr/representation';
 import { ParametersComponent } from 'mol-app/component/parameters';
-import { ColorTheme } from 'mol-theme/color';
-import { getColorThemeProps } from 'mol-geo/geometry/color-data';
-import { ColorThemeComponent } from 'mol-app/component/color-theme';
 
-export interface RepresentationComponentProps {
+export interface RepresentationComponentProps<P extends PD.Params> {
     app: App
     canvas3d: Canvas3D
-    repr: Representation<PD.Params>
+    repr: Representation<P>
+    params: P
 }
 
 export interface RepresentationComponentState {
@@ -26,13 +24,13 @@ export interface RepresentationComponentState {
     reprProps: Readonly<{}>
 }
 
-export class RepresentationComponent extends React.Component<RepresentationComponentProps, RepresentationComponentState> {
+export class RepresentationComponent<P extends PD.Params> extends React.Component<RepresentationComponentProps<P>, RepresentationComponentState> {
 
-    private stateFromRepr(repr: Representation<PD.Params>) {
+    private stateFromRepr(repr: Representation<P>) {
         return {
-            label: this.props.repr.label,
-            reprParams: this.props.repr.params,
-            reprProps: this.props.repr.props
+            label: repr.label,
+            reprParams: this.props.params,
+            reprProps: repr.props
         }
     }
 
@@ -41,8 +39,7 @@ export class RepresentationComponent extends React.Component<RepresentationCompo
     }
 
     async onChange(k: string, v: any) {
-        const ctx = { webgl: this.props.canvas3d.webgl }
-        await this.props.app.runTask(this.props.repr.createOrUpdate(ctx, { [k]: v }).run(
+        await this.props.app.runTask(this.props.repr.createOrUpdate(this.props.app.reprCtx, { [k]: v }).run(
             progress => this.props.app.log(progress)
         ), 'Representation Update')
         this.props.canvas3d.add(this.props.repr)
@@ -52,10 +49,10 @@ export class RepresentationComponent extends React.Component<RepresentationCompo
 
     render() {
         const { label, reprParams, reprProps } = this.state
-        let colorTheme: ColorTheme | undefined = undefined
-        if ('colorTheme' in reprProps) {
-            colorTheme = ColorTheme(getColorThemeProps(reprProps))
-        }
+        // let colorTheme: ColorTheme | undefined = undefined
+        // if ('colorTheme' in reprProps) {
+        //     colorTheme = ColorTheme(getColorThemeProps(reprProps))
+        // }
 
         return <div>
             <div>
@@ -68,7 +65,7 @@ export class RepresentationComponent extends React.Component<RepresentationCompo
                     onChange={(k, v) => this.onChange(k as string, v)}
                 />
             </div>
-            { colorTheme !== undefined ? <ColorThemeComponent colorTheme={colorTheme} /> : '' }
+            {/* { colorTheme !== undefined ? <ColorThemeComponent colorTheme={colorTheme} /> : '' } */}
         </div>;
     }
 }

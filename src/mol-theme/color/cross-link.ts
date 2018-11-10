@@ -8,13 +8,23 @@ import { Link } from 'mol-model/structure';
 
 import { Color, ColorScale } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
+import { ColorTheme, LocationColor } from '../color';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { ColorBrewer } from 'mol-util/color/tables';
-import { defaults } from 'mol-util';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ColorListName, ColorListOptions } from 'mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Colors cross-links by the deviation of the observed distance versus the modeled distance (e.g. `ihm_cross_link_restraint.distance_threshold`).'
+
+export const CrossLinkColorThemeParams = {
+    domain: PD.Interval('Color Domain', '', [-10, 10]),
+    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+}
+export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {
+    return CrossLinkColorThemeParams // TODO return copy
+}
+export type CrossLinkColorThemeProps = PD.DefaultValues<typeof CrossLinkColorThemeParams>
 
 const distVecA = Vec3.zero(), distVecB = Vec3.zero()
 function linkDistance(link: Link.Location) {
@@ -23,15 +33,15 @@ function linkDistance(link: Link.Location) {
     return Vec3.distance(distVecA, distVecB)
 }
 
-export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
+export function CrossLinkColorTheme(ctx: ThemeDataContext, props: CrossLinkColorThemeProps): ColorTheme<CrossLinkColorThemeProps> {
     let color: LocationColor
     let scale: ColorScale | undefined = undefined
 
-    if (props.structure) {
-        const crosslinks = props.structure.crossLinkRestraints
+    if (ctx.structure) {
+        const crosslinks = ctx.structure.crossLinkRestraints
         scale = ColorScale.create({
-            domain: defaults(props.domain, [ -10, 10 ]),
-            list: defaults(props.list, ColorBrewer.RdYlBu)
+            domain: props.domain,
+            listOrName: props.list
         })
         const scaleColor = scale.color
 
@@ -49,10 +59,14 @@ export function CrossLinkColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { list: true, domain: true, structure: true },
         granularity: 'group',
         color,
+        props,
         description: Description,
         legend: scale ? scale.legend : undefined
     }
+}
+
+export const CrossLinkColorThemeProvider: ColorTheme.Provider<typeof CrossLinkColorThemeParams> = {
+    factory: CrossLinkColorTheme, params: getCrossLinkColorThemeParams
 }

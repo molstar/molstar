@@ -7,9 +7,11 @@
 import { Color, ColorMap } from 'mol-util/color';
 import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme, TableLegend } from '../color';
+import { ColorTheme, TableLegend } from '../color';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 import { getElementMoleculeType } from 'mol-model/structure/util';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -28,6 +30,12 @@ const SecondaryStructureColors = ColorMap({
 
 const DefaultSecondaryStructureColor = Color(0x808080)
 const Description = 'Assigns a color based on the type of secondary structure and basic molecule type.'
+
+export const SecondaryStructureColorThemeParams = {}
+export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
+    return SecondaryStructureColorThemeParams // TODO return copy
+}
+export type SecondaryStructureColorThemeProps = PD.DefaultValues<typeof SecondaryStructureColorThemeParams>
 
 export function secondaryStructureColor(unit: Unit, element: ElementIndex): Color {
     let secStrucType = SecondaryStructureType.create(SecondaryStructureType.Flag.None)
@@ -61,7 +69,7 @@ export function secondaryStructureColor(unit: Unit, element: ElementIndex): Colo
     return DefaultSecondaryStructureColor
 }
 
-export function SecondaryStructureColorTheme(props: ColorThemeProps): ColorTheme {
+export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: SecondaryStructureColorThemeProps): ColorTheme<SecondaryStructureColorThemeProps> {
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             return secondaryStructureColor(location.unit, location.element)
@@ -72,12 +80,16 @@ export function SecondaryStructureColorTheme(props: ColorThemeProps): ColorTheme
     }
 
     return {
-        features: {},
         granularity: 'group',
         color,
+        props,
         description: Description,
         legend: TableLegend(Object.keys(SecondaryStructureColors).map(name => {
             return [name, (SecondaryStructureColors as any)[name] as Color] as [string, Color]
         }).concat([[ 'Other', DefaultSecondaryStructureColor ]]))
     }
+}
+
+export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<typeof SecondaryStructureColorThemeParams> = {
+    factory: SecondaryStructureColorTheme, params: getSecondaryStructureColorThemeParams
 }

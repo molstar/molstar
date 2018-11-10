@@ -4,12 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { PointsRenderable, MeshRenderable, RenderableState, MeshValues, PointsValues, LinesValues, LinesRenderable, Renderable } from './renderable'
+import { RenderableState, Renderable } from './renderable'
 import { RenderableValues } from './renderable/schema';
 import { idFactory } from 'mol-util/id-factory';
 import { WebGLContext } from './webgl/context';
 import { GaussianDensityValues, GaussianDensityRenderable } from './renderable/gaussian-density';
 import { DirectVolumeValues, DirectVolumeRenderable } from './renderable/direct-volume';
+import { MeshValues, MeshRenderable } from './renderable/mesh';
+import { PointsValues, PointsRenderable } from './renderable/points';
+import { LinesValues, LinesRenderable } from './renderable/lines';
 
 const getNextId = idFactory(0, 0x7FFFFFFF)
 

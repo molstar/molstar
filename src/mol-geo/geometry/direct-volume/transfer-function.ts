@@ -29,7 +29,7 @@ export function createTransferFunctionTexture(controlPoints: ControlPoint[], tex
     ]
     const scale = ColorScale.create({
         domain: [0, 1],
-        list: ColorMatplotlib.viridis
+        listOrName: ColorMatplotlib.viridis
     })
 
     const n = 256

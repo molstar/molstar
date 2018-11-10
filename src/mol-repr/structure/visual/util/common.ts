@@ -5,17 +5,18 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { StructureProps } from '../../index';
+import { StructureProps } from '../../representation';
 import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { TransformData, createTransform, createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { createRenderableState, Theme } from 'mol-geo/geometry/geometry';
+import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { VisualContext } from 'mol-repr';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length

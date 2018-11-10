@@ -8,23 +8,24 @@
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { StructureProps, StructureRepresentation, StructureParams } from './index';
+import { StructureProps, StructureRepresentation } from './representation';
 import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { RepresentationContext } from 'mol-repr';
-import { createTheme, Theme } from 'mol-geo/geometry/geometry';
+import { RepresentationContext } from 'mol-repr/representation';
+import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
 
-export function ComplexRepresentation<P extends StructureProps>(label: string, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureProps>(label: string, defaultProps: P, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let visual: ComplexVisual<P> | undefined
+
     let _structure: Structure
-    let _props: P
+    let _props: P = Object.assign({}, defaultProps)
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, structure?: Structure) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
         if (structure) _structure = structure
-        _props = Object.assign({}, _props, props, { structure: _structure })
-        _theme = createTheme(_props)
+        _props = Object.assign({}, _props, props)
+        _theme = createTheme(ctx, { structure: _structure }, props, themeProps, _theme)
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
@@ -46,7 +47,6 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, v
 
     return {
         label,
-        params: StructureParams, // TODO
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },

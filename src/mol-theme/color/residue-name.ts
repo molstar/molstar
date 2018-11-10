@@ -7,7 +7,9 @@
 import { Color, ColorMap } from 'mol-util/color';
 import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme, TableLegend } from '../color';
+import { ColorTheme, TableLegend } from '../color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
 
 // protein colors from Jmol http://jmol.sourceforge.net/jscolors/
 const ResidueNameColors = ColorMap({
@@ -59,6 +61,12 @@ const ResidueNameColors = ColorMap({
 const DefaultResidueNameColor = Color(0xFF00FF)
 const Description = 'Assigns a color to every residue according to its name.'
 
+export const ResidueNameColorThemeParams = {}
+export function getResidueNameColorThemeParams(ctx: ThemeDataContext) {
+    return ResidueNameColorThemeParams // TODO return copy
+}
+export type ResidueNameColorThemeProps = PD.DefaultValues<typeof ResidueNameColorThemeParams>
+
 export function residueNameColor(residueName: string): Color {
     const c = (ResidueNameColors as { [k: string]: Color })[residueName];
     return c === undefined ? DefaultResidueNameColor : c
@@ -84,7 +92,7 @@ function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIn
     }
 }
 
-export function ResidueNameColorTheme(props: ColorThemeProps): ColorTheme {
+export function ResidueNameColorTheme(ctx: ThemeDataContext, props: ResidueNameColorThemeProps): ColorTheme<ResidueNameColorThemeProps> {
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
@@ -105,12 +113,16 @@ export function ResidueNameColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: {},
         granularity: 'group',
         color,
+        props,
         description: Description,
         legend: TableLegend(Object.keys(ResidueNameColors).map(name => {
             return [name, (ResidueNameColors as any)[name] as Color] as [string, Color]
         }).concat([[ 'Unknown', DefaultResidueNameColor ]]))
     }
+}
+
+export const ResidueNameColorThemeProvider: ColorTheme.Provider<typeof ResidueNameColorThemeParams> = {
+    factory: ResidueNameColorTheme, params: getResidueNameColorThemeParams
 }

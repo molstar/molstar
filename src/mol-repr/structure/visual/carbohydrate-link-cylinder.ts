@@ -10,7 +10,6 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import { createLinkCylinderMesh, LinkCylinderProps, LinkCylinderParams } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { LinkType } from 'mol-model/structure/model/types';
 import { BitFlags } from 'mol-util';
 import { UnitsMeshParams } from '../units-visual';
@@ -19,8 +18,8 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualUpdateState } from '../../util';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 // TODO create seperate visual
 // for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
@@ -64,8 +63,9 @@ async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure:
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    // TODO
+    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
+    // sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
     detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
 export const DefaultCarbohydrateLinkProps = PD.getDefaultValues(CarbohydrateLinkParams)

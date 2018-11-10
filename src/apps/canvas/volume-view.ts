@@ -8,7 +8,7 @@ import Canvas3D from 'mol-canvas3d/canvas3d';
 import { BehaviorSubject } from 'rxjs';
 import { App } from './app';
 import { VolumeData } from 'mol-model/volume';
-import { VolumeRepresentation } from 'mol-repr/volume/index';
+import { VolumeRepresentation } from 'mol-repr/volume/representation';
 import { IsosurfaceRepresentation } from 'mol-repr/volume/isosurface-mesh';
 import { DirectVolumeRepresentation } from 'mol-repr/volume/direct-volume';
 
@@ -54,7 +54,7 @@ export async function VolumeView(app: App, viewer: Canvas3D, volume: VolumeData,
     async function createVolumeRepr() {
         for (const k in volumeRepresentations) {
             if (active[k]) {
-                await app.runTask(volumeRepresentations[k].createOrUpdate({ webgl: viewer.webgl }, {}, volume).run(
+                await app.runTask(volumeRepresentations[k].createOrUpdate(app.reprCtx, {}, {}, volume).run(
                     progress => app.log(progress)
                 ), 'Create/update representation')
                 viewer.add(volumeRepresentations[k])

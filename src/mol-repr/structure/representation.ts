@@ -6,9 +6,7 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { ColorThemeName, ColorThemeOptions } from 'mol-theme/color';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { Representation, RepresentationProps } from '..';
+import { Representation, RepresentationProps, RepresentationProvider } from '../representation';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Geometry } from 'mol-geo/geometry/geometry';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -17,12 +15,13 @@ import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 
 export interface StructureRepresentation<P extends RepresentationProps = {}> extends Representation<Structure, P> { }
-// export interface  StructureVisual<P extends RepresentationProps = {}> extends Visual<Structure, P> { }
+
+export type StructureRepresentationProvider<P extends PD.Params> = RepresentationProvider<Structure, P>
+
+//
 
 export const StructureParams = {
     ...Geometry.Params,
-    colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'polymer-index', ColorThemeOptions),
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
 }
 export const DefaultStructureProps = PD.getDefaultValues(StructureParams)
 export type StructureProps = typeof DefaultStructureProps
