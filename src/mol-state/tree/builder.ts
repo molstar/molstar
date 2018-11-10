@@ -9,6 +9,7 @@ import { TransientTree } from './transient';
 import { StateObject } from '../object';
 import { Transform } from '../transform';
 import { Transformer } from '../transformer';
+import { shallowEqual } from 'mol-util';
 
 export { StateTreeBuilder }
 
@@ -54,6 +55,15 @@ namespace StateTreeBuilder {
             } else {
                 params = paramsOrTransformer;
             }
+
+            if (old.transformer.definition.params && old.transformer.definition.params.areEqual) {
+                if (old.transformer.definition.params.areEqual(old.params, params)) return this.root;
+            } else {
+                if (shallowEqual(old.params, params)) {
+                    return this.root;
+                }
+            }
+
             this.state.tree.set(Transform.updateParams(old, params));
             return this.root;
         }

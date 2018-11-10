@@ -10,13 +10,13 @@ import { StateTransforms } from './state/transforms';
 import { PluginStateObject as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from './state';
-import { MolScriptBuilder } from 'mol-script/language/builder';
 import { PluginCommand, PluginCommands } from './command';
 import { Task } from 'mol-task';
 import { merge } from 'rxjs';
-import { PluginBehaviors } from './behavior';
+import { PluginBehaviors, BuiltInPluginBehaviors } from './behavior';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Representation } from 'mol-repr';
+import { CreateStructureFromPDBe } from './state/actions/basic';
 
 export class PluginContext {
     private disposed = false;
@@ -69,7 +69,7 @@ export class PluginContext {
     }
 
     async runTask<T>(task: Task<T>) {
-        return await task.run(p => console.log(p), 250);
+        return await task.run(p => console.log(p.root.progress.message), 250);
     }
 
     dispose() {
@@ -81,17 +81,27 @@ export class PluginContext {
         this.disposed = true;
     }
 
-    async _test_initBehaviours() {
+    private initBuiltInBehavior() {
+        BuiltInPluginBehaviors.State.ApplyAction(this);
+        BuiltInPluginBehaviors.State.RemoveObject(this);
+        BuiltInPluginBehaviors.State.SetCurrentObject(this);
+        BuiltInPluginBehaviors.State.Update(this);
+    }
+
+    async _test_initBehaviors() {
         const tree = this.state.behavior.tree.build()
-            .toRoot().apply(PluginBehaviors.Data.SetCurrentObject, { ref: PluginBehaviors.Data.SetCurrentObject.id })
-            .and().toRoot().apply(PluginBehaviors.Data.Update, { ref: PluginBehaviors.Data.Update.id })
-            .and().toRoot().apply(PluginBehaviors.Data.RemoveObject, { ref: PluginBehaviors.Data.RemoveObject.id })
-            .and().toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas, { ref: PluginBehaviors.Representation.AddRepresentationToCanvas.id })
+            .toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas, { ref: PluginBehaviors.Representation.AddRepresentationToCanvas.id })
             .and().toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
             .and().toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
             .getTree();
 
         await this.runTask(this.state.behavior.update(tree));
+    }
+
+    _test_initDataActions() {
+        this.state.data.actions
+            .add(CreateStructureFromPDBe)
+            .add(StateTransforms.Data.Download.toAction());
     }
 
     applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
@@ -104,32 +114,8 @@ export class PluginContext {
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
-    _test_createState(url: string) {
-        const b = this.state.data.tree.build();
-
-        const query = MolScriptBuilder.struct.generator.atomGroups({
-            // 'atom-test': MolScriptBuilder.core.rel.eq([
-            //     MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
-            //     MolScriptBuilder.es('C')
-            // ]),
-            'residue-test': MolScriptBuilder.core.rel.eq([
-                MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
-                'ALA'
-            ])
-        });
-
-        const newTree = b.toRoot()
-            .apply(StateTransforms.Data.Download, { url })
-            .apply(StateTransforms.Data.ParseCif)
-            .apply(StateTransforms.Model.ParseTrajectoryFromMmCif, {}, { ref: 'trajectory' })
-            .apply(StateTransforms.Model.CreateModelFromTrajectory, { modelIndex: 0 }, { ref: 'model' })
-            .apply(StateTransforms.Model.CreateStructureFromModel, { }, { ref: 'structure' })
-            .apply(StateTransforms.Model.CreateStructureAssembly)
-            .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
-            .apply(StateTransforms.Visuals.CreateStructureRepresentation)
-            .getTree();
-
-        this.runTask(this.state.data.update(newTree));
+    _test_createState(id: string) {
+        this.runTask(this.state.data.apply(CreateStructureFromPDBe, { id }));
     }
 
     private initEvents() {
@@ -159,30 +145,12 @@ export class PluginContext {
         this.canvas3d.requestDraw(true);
     }
 
-    async _test_nextModel() {
-        const traj = this.state.data.select('trajectory')[0].obj as SO.Molecule.Trajectory;
-        //const modelIndex = (this.state.data.select('model')[0].transform.params as CreateModelFromTrajectory.Params).modelIndex;
-        const newTree = this.state.data.build().to('model').update(
-            StateTransforms.Model.CreateModelFromTrajectory,
-            old => ({ modelIndex: (old.modelIndex + 1) % traj.data.length }))
-            .getTree();
-        // const newTree = StateTree.updateParams(this.state.data.tree, 'model', { modelIndex: (modelIndex + 1) % traj.data.length });
-        await this.runTask(this.state.data.update(newTree));
-        // this.viewer.requestDraw(true);
-    }
-
-    _test_playModels() {
-        const update = async () => {
-            await this._test_nextModel();
-            setTimeout(update, 1000 / 15);
-        }
-        update();
-    }
-
     constructor() {
         this.initEvents();
+        this.initBuiltInBehavior();
 
-        this._test_initBehaviours();
+        this._test_initBehaviors();
+        this._test_initDataActions();
     }
 
     // logger = ;

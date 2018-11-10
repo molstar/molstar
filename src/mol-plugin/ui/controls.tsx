@@ -6,17 +6,14 @@
 
 import * as React from 'react';
 import { PluginContext } from '../context';
-import { Transform, Transformer, State } from 'mol-state';
+import { Transform, State } from 'mol-state';
 import { ParametersComponent } from 'mol-app/component/parameters';
+import { StateAction } from 'mol-state/action';
+import { PluginCommands } from 'mol-plugin/command';
+import { UpdateTrajectory } from 'mol-plugin/state/actions/basic';
 
 export class Controls extends React.Component<{ plugin: PluginContext }, { id: string }> {
     state = { id: '1grm' };
-
-    private createState = () => {
-        const url = `http://www.ebi.ac.uk/pdbe/static/entry/${this.state.id.toLowerCase()}_updated.cif`;
-        // const url = `https://webchem.ncbr.muni.cz/CoordinateServer/${this.state.id.toLowerCase()}/full`
-        this.props.plugin._test_createState(url);
-    }
 
     private _snap: any = void 0;
     private getSnapshot = () => {
@@ -30,11 +27,7 @@ export class Controls extends React.Component<{ plugin: PluginContext }, { id: s
 
     render() {
         return <div>
-            <input type='text' defaultValue={this.state.id} onChange={e => this.setState({ id: e.currentTarget.value })} />
-            <button onClick={this.createState}>Create State</button><br/>
-            <button onClick={() => this.props.plugin._test_centerView()}>Center View</button><br/>
-            <button onClick={() => this.props.plugin._test_nextModel()}>Next Model</button><br/>
-            <button onClick={() => this.props.plugin._test_playModels()}>Play Models</button><br/>
+            <button onClick={() => this.props.plugin._test_centerView()}>Center View</button><br />
             <hr />
             <button onClick={this.getSnapshot}>Get Snapshot</button>
             <button onClick={this.setSnapshot}>Set Snapshot</button>
@@ -42,31 +35,57 @@ export class Controls extends React.Component<{ plugin: PluginContext }, { id: s
     }
 }
 
-export class _test_CreateTransform extends React.Component<{ plugin: PluginContext, nodeRef: Transform.Ref, state: State, transformer: Transformer }, { params: any }> {
+
+export class _test_TrajectoryControls extends React.Component<{ plugin: PluginContext }> {
+    render() {
+        return <div>
+            <b>Trajectory: </b>
+            <button onClick={() => PluginCommands.State.ApplyAction.dispatch(this.props.plugin, {
+                state: this.props.plugin.state.data,
+                action: UpdateTrajectory.create({ action: 'advance', by: -1 })
+            })}>&lt;&lt;</button>
+            <button onClick={() => PluginCommands.State.ApplyAction.dispatch(this.props.plugin, {
+                state: this.props.plugin.state.data,
+                action: UpdateTrajectory.create({ action: 'reset' })
+            })}>Reset</button>
+            <button onClick={() => PluginCommands.State.ApplyAction.dispatch(this.props.plugin, {
+                state: this.props.plugin.state.data,
+                action: UpdateTrajectory.create({ action: 'advance', by: +1 })
+            })}>&gt;&gt;</button><br />
+        </div>
+    }
+}
+
+export class _test_ApplyAction extends React.Component<{ plugin: PluginContext, nodeRef: Transform.Ref, state: State, action: StateAction }, { params: any }> {
     private getObj() {
         const obj = this.props.state.cells.get(this.props.nodeRef)!;
         return obj;
     }
 
     private getDefaultParams() {
-        const p = this.props.transformer.definition.params;
-        if (!p || !p.default) return { };
+        const p = this.props.action.definition.params;
+        if (!p || !p.default) return {};
         const obj = this.getObj();
-        if (!obj.obj) return { };
+        if (!obj.obj) return {};
         return p.default(obj.obj, this.props.plugin);
     }
 
     private getParamDef() {
-        const p = this.props.transformer.definition.params;
-        if (!p || !p.controls) return { };
+        const p = this.props.action.definition.params;
+        if (!p || !p.controls) return {};
         const obj = this.getObj();
-        if (!obj.obj) return { };
+        if (!obj.obj) return {};
         return p.controls(obj.obj, this.props.plugin);
     }
 
     private create() {
-        console.log(this.props.transformer.definition.name, this.state.params);
-        this.props.plugin.applyTransform(this.props.state, this.props.nodeRef, this.props.transformer, this.state.params);
+        console.log('Apply Action', this.state.params);
+        PluginCommands.State.ApplyAction.dispatch(this.props.plugin, {
+            state: this.props.state,
+            action: this.props.action.create(this.state.params),
+            ref: this.props.nodeRef
+        });
+        // this.props.plugin.applyTransform(this.props.state, this.props.nodeRef, this.props.transformer, this.state.params);
     }
 
     state = { params: this.getDefaultParams() }
@@ -78,10 +97,10 @@ export class _test_CreateTransform extends React.Component<{ plugin: PluginConte
             return <div />;
         }
 
-        const t = this.props.transformer;
+        const action = this.props.action;
 
-        return <div key={`${this.props.nodeRef} ${this.props.transformer.id}`}>
-            <div style={{ borderBottom: '1px solid #999'}}>{(t.definition.display && t.definition.display.name) || t.definition.name}</div>
+        return <div key={`${this.props.nodeRef} ${this.props.action.id}`}>
+            <div style={{ borderBottom: '1px solid #999' }}><h3>{(action.definition.display && action.definition.display.name) || action.id}</h3></div>
             <ParametersComponent params={this.getParamDef()} values={this.state.params as any} onChange={(k, v) => {
                 this.setState({ params: { ...this.state.params, [k]: v } });
             }} />
@@ -97,7 +116,7 @@ export class _test_UpdateTransform extends React.Component<{ plugin: PluginConte
 
     private getDefParams() {
         const cell = this.getCell();
-        if (!cell) return { };
+        if (!cell) return {};
         return cell.transform.params;
     }
 
@@ -136,8 +155,8 @@ export class _test_UpdateTransform extends React.Component<{ plugin: PluginConte
 
         const tr = transform.transformer;
 
-        return <div key={`${this.props.nodeRef} ${tr.id}`}>
-            <div style={{ borderBottom: '1px solid #999'}}>{(tr.definition.display && tr.definition.display.name) || tr.definition.name}</div>
+        return <div key={`${this.props.nodeRef} ${tr.id}`} style={{ marginBottom: '10ox' }}>
+            <div style={{ borderBottom: '1px solid #999' }}><h3>{(tr.definition.display && tr.definition.display.name) || tr.definition.name}</h3></div>
             <ParametersComponent params={params} values={this.state.params as any} onChange={(k, v) => {
                 this.setState({ params: { ...this.state.params, [k]: v } });
             }} />

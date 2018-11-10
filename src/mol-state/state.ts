@@ -14,6 +14,7 @@ import { StateSelection } from './state/selection';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { StateTreeBuilder } from './tree/builder';
 import { StateAction } from './action';
+import { StateActionManager } from './action/manager';
 
 export { State }
 
@@ -41,6 +42,8 @@ class State {
     readonly behaviors = {
         currentObject: this.ev.behavior<State.ObjectEvent>({ state: this, ref: Transform.RootRef })
     };
+
+    readonly actions = new StateActionManager();
 
     get tree() { return this._tree; }
     get current() { return this._current; }
@@ -81,8 +84,15 @@ class State {
         return StateSelection.select(selector(StateSelection.Generators), this)
     }
 
-    apply(action: StateAction, ref: Transform.Ref) {
-        
+    /** Is no ref is specified, apply to root */
+    apply<A extends StateAction>(action: A, params: StateAction.Params<A>, ref: Transform.Ref = Transform.RootRef): Task<void> {
+        return Task.create('Apply Action', ctx => {
+            const cell = this.cells.get(ref);
+            if (!cell) throw new Error(`'${ref}' does not exist.`);
+            if (cell.status !== 'ok') throw new Error(`Action cannot be applied to a cell with status '${cell.status}'`);
+
+            return runTask(action.definition.apply({ cell, a: cell.obj!, params, state: this }, this.globalContext), ctx);
+        });
     }
 
     update(tree: StateTree | StateTreeBuilder): Task<void> {

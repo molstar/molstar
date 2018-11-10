@@ -87,6 +87,23 @@ namespace StateSelection {
         }
 
         export function byValue(...objects: StateObjectCell[]) { return build(() => (state: State) => objects); }
+
+        export function rootsOfType(type: StateObject.Ctor) {
+            return build(() => state => {
+                const ctx = { roots: [] as StateObjectCell[], cells: state.cells, type: type.type };
+                StateTree.doPreOrder(state.tree, state.tree.root, ctx, _findRootsOfType);
+                return ctx.roots;
+            });
+        }
+
+        function _findRootsOfType(n: Transform, _: any, s: { type: StateObject.Type, roots: StateObjectCell[], cells: State.Cells }) {
+            const cell = s.cells.get(n.ref);
+            if (cell && cell.obj && cell.obj.type === s.type) {
+                s.roots.push(cell);
+                return false;
+            }
+            return true;
+        }
     }
 
     registerModifier('flatMap', flatMap);

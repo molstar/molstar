@@ -62,7 +62,6 @@ const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajec
     },
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
-        console.log('parans', params);
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
         const model = a.data[params.modelIndex];
         const label = { label: `Model ${model.modelNum}` };

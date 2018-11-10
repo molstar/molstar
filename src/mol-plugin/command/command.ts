@@ -111,14 +111,18 @@ namespace PluginCommand {
             }
         }
 
+        private executing = false;
         private async next() {
-            if (this.queue.count === 0) return;
+            if (this.queue.count === 0 || this.executing) return;
             const cmd = this.queue.removeFirst()!;
 
             const actions = this.subs.get(cmd.id);
-            if (!actions) return;
+            if (!actions) {
+                return;
+            }
 
             try {
+                this.executing = true;
                 // TODO: should actions be called "asynchronously" ("setImmediate") instead?
                 for (const a of actions) {
                     await a(cmd.params);
@@ -127,6 +131,7 @@ namespace PluginCommand {
             } catch (e) {
                 cmd.reject(e);
             } finally {
+                this.executing = false;
                 if (!this.disposing) this.next();
             }
         }

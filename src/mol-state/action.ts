@@ -14,6 +14,7 @@ import { Transformer } from './transformer';
 export { StateAction };
 
 interface StateAction<A extends StateObject = StateObject, T = any, P = unknown> {
+    create(params: P): StateAction.Instance,
     readonly id: UUID,
     readonly definition: StateAction.Definition<A, T, P>
 }
@@ -23,6 +24,11 @@ namespace StateAction {
     export type Params<T extends StateAction<any, any, any>> = T extends StateAction<any, any, infer P> ? P : unknown;
     export type ReType<T extends StateAction<any, any, any>> = T extends StateAction<any, infer T, any> ? T : unknown;
     export type ControlsFor<Props> = { [P in keyof Props]?: PD.Any }
+
+    export interface Instance {
+        action: StateAction,
+        params: any
+    }
 
     export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
         cell: StateObjectCell,
@@ -47,7 +53,12 @@ namespace StateAction {
     }
 
     export function create<A extends StateObject, T, P>(definition: Definition<A, T, P>): StateAction<A, T, P> {
-        return { id: UUID.create(), definition };
+        const action: StateAction<A, T, P> = {
+            create(params) { return { action, params }; },
+            id: UUID.create(),
+            definition
+        };
+        return action;
     }
 
     export function fromTransformer<T extends Transformer>(transformer: T) {
