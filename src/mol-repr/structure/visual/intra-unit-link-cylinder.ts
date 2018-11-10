@@ -20,7 +20,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
+async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: IntraUnitLinkProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const location = StructureElement.create(unit)
@@ -29,6 +29,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
     const links = unit.links
     const { edgeCount, a, b, edgeProps, offset } = links
     const { order: _order, flags: _flags } = edgeProps
+    const { sizeFactor } = props
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -56,7 +57,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
         flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]]
-            return theme.size.size(location)
+            return theme.size.size(location) * sizeFactor
         }
     }
 
@@ -66,10 +67,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
 export const IntraUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    // TODO
-    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    // sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
-    // sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
 }
 export const DefaultIntraUnitLinkProps = PD.getDefaultValues(IntraUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps

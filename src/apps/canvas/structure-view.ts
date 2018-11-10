@@ -58,10 +58,10 @@ interface StructureViewProps {
 
 export async function StructureView(app: App, canvas3d: Canvas3D, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
-        cartoon: true,
+        'cartoon': true,
+        'ball-and-stick': true,
         // point: false,
         // surface: false,
-        // ballAndStick: false,
         // carbohydrate: false,
         // spacefill: false,
         // distanceRestraint: false,
@@ -197,7 +197,7 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
                     if (structureRepresentations[k]) {
                         repr = structureRepresentations[k]
                     } else {
-                        repr = app.structureRepresentationRegistry.create('cartoon', app.reprCtx, structure)
+                        repr = app.structureRepresentationRegistry.create(k, app.reprCtx, structure)
                         structureRepresentations[k] = repr
                     }
                     await app.runTask(repr.createOrUpdate(app.reprCtx, {}, {}, structure).run(
