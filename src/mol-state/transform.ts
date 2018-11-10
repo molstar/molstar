@@ -14,7 +14,8 @@ export interface Transform<A extends StateObject = StateObject, B extends StateO
     readonly params: P,
     readonly ref: Transform.Ref,
     readonly version: string,
-    readonly cellState?: Partial<StateObjectCell.State>
+    readonly cellState?: Partial<StateObjectCell.State>,
+    readonly tag?: string
 }
 
 export namespace Transform {
@@ -22,7 +23,7 @@ export namespace Transform {
 
     export const RootRef = '-=root=-' as Ref;
 
-    export interface Options { ref?: Ref, cellState?: Partial<StateObjectCell.State> }
+    export interface Options { ref?: Ref, tag?: string, cellState?: Partial<StateObjectCell.State> }
 
     export function create<A extends StateObject, B extends StateObject, P>(parent: Ref, transformer: Transformer<A, B, P>, params?: P, options?: Options): Transform<A, B, P> {
         const ref = options && options.ref ? options.ref : UUID.create() as string as Ref;
@@ -32,7 +33,8 @@ export namespace Transform {
             params: params || {} as any,
             ref,
             version: UUID.create(),
-            cellState: options && options.cellState
+            cellState: options && options.cellState,
+            tag: options && options.tag
         }
     }
 
@@ -50,7 +52,8 @@ export namespace Transform {
         params: any,
         ref: string,
         version: string,
-        cellState?: Partial<StateObjectCell.State>
+        cellState?: Partial<StateObjectCell.State>,
+        tag?: string
     }
 
     function _id(x: any) { return x; }
@@ -64,7 +67,8 @@ export namespace Transform {
             params: pToJson(t.params),
             ref: t.ref,
             version: t.version,
-            cellState: t.cellState
+            cellState: t.cellState,
+            tag: t.tag
         };
     }
 
@@ -79,7 +83,8 @@ export namespace Transform {
             params: pFromJson(t.params),
             ref: t.ref as Ref,
             version: t.version,
-            cellState: t.cellState
+            cellState: t.cellState,
+            tag: t.tag
         };
     }
 }

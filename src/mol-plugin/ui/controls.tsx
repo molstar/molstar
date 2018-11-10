@@ -91,21 +91,24 @@ export class _test_CreateTransform extends React.Component<{ plugin: PluginConte
 }
 
 export class _test_UpdateTransform extends React.Component<{ plugin: PluginContext, state: State, nodeRef: Transform.Ref }, { params: any }> {
-    private getTransform() {
-        return this.props.state.tree.nodes.get(this.props.nodeRef)!;
+    private getCell(ref?: string) {
+        return this.props.state.cells.get(ref || this.props.nodeRef)!;
+    }
+
+    private getDefParams() {
+        const cell = this.getCell();
+        if (!cell) return { };
+        return cell.transform.params;
     }
 
     private getParamDef() {
-        const def = this.getTransform().transformer.definition;
-        if (!def.params || !def.params.controls) return void 0;
+        const cell = this.getCell();
+        const def = cell.transform.transformer.definition;
 
-        const src = this.props.state.select(q => q.byRef(this.props.nodeRef).ancestorOfType(def.from))[0];
-
-        // StateSelection.ancestorOfType(this.props.nodeRef, def.from).select(this.props.plugin.state.data)[0];
-
-        console.log(src, def.from);
-
+        if (!cell.sourceRef || !def.params || !def.params.controls) return void 0;
+        const src = this.getCell(cell.sourceRef);
         if (!src || !src.obj) return void 0;
+
         return def.params.controls(src.obj, this.props.plugin);
     }
 
@@ -119,10 +122,11 @@ export class _test_UpdateTransform extends React.Component<{ plugin: PluginConte
     //     if (t) this.setState({ params: t.value.params });
     // }
 
-    state = { params: this.getTransform() ? this.getTransform().params : { } };
+    state = { params: this.getDefParams() };
 
     render() {
-        const transform = this.getTransform();
+        const cell = this.getCell();
+        const transform = cell.transform;
         if (!transform || transform.ref === Transform.RootRef) {
             return <div />;
         }

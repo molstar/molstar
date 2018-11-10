@@ -123,8 +123,8 @@ namespace StateSelection {
             const set = new Set<string>();
             const ret: StateObjectCell[] = [];
             for (const n of q(state)) {
-                if (!set.has(n.ref)) {
-                    set.add(n.ref);
+                if (!set.has(n.transform.ref)) {
+                    set.add(n.transform.ref);
                     ret.push(n);
                 }
             }
@@ -151,7 +151,7 @@ namespace StateSelection {
     export function subtree(b: Selector) {
         return flatMap(b, (n, s) => {
             const nodes = [] as string[];
-            StateTree.doPreOrder(s.tree, s.tree.nodes.get(n.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
+            StateTree.doPreOrder(s.tree, s.tree.nodes.get(n.transform.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
             return nodes.map(x => s.cells.get(x)!);
         });
     }
@@ -160,7 +160,7 @@ namespace StateSelection {
     export function children(b: Selector) {
         return flatMap(b, (n, s) => {
             const nodes: StateObjectCell[] = [];
-            s.tree.children.get(n.ref).forEach(c => nodes.push(s.cells.get(c!)!));
+            s.tree.children.get(n.transform.ref).forEach(c => nodes.push(s.cells.get(c!)!));
             return nodes;
         });
     }
@@ -169,10 +169,10 @@ namespace StateSelection {
     export function ofType(b: Selector, t: StateObject.Type) { return filter(b, n => n.obj ? n.obj.type === t : false); }
 
     registerModifier('ancestorOfType', ancestorOfType);
-    export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s, n.ref, types))); }
+    export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s, n.transform.ref, types))); }
 
     registerModifier('parent', parent);
-    export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.nodes.get(n.ref)!.parent))); }
+    export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.nodes.get(n.transform.ref)!.parent))); }
 
     function findAncestorOfType({ tree, cells }: State, root: string, types: StateObject.Ctor[]): StateObjectCell | undefined {
         let current = tree.nodes.get(root)!, len = types.length;

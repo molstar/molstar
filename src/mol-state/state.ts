@@ -109,11 +109,11 @@ class State {
         const root = tree.root;
 
         (this.cells as Map<Transform.Ref, StateObjectCell>).set(root.ref, {
-            ref: root.ref,
+            transform: root,
+            sourceRef: void 0,
             obj: rootObject,
             status: 'ok',
-            version: root.version,
-            state: { ...StateObjectCell.DefaultState }
+            version: root.version
         });
 
         this.globalContext = params && params.globalContext;
@@ -216,11 +216,11 @@ function _initCellsVisitor(transform: Transform, _: any, ctx: UpdateContext) {
     if (ctx.cells.has(transform.ref)) return;
 
     const obj: StateObjectCell = {
-        ref: transform.ref,
+        transform,
+        sourceRef: void 0,
         status: 'pending',
         version: UUID.create(),
-        errorText: void 0,
-        state: { ...StateObjectCell.DefaultState, ...transform.cellState }
+        errorText: void 0
     };
     ctx.cells.set(transform.ref, obj);
 
@@ -250,15 +250,16 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string) {
     }
 }
 
-function findAncestor(tree: StateTree, cells: State.Cells, root: Ref, types: { type: StateObject.Type }[]): StateObject {
+function findAncestor(tree: StateTree, cells: State.Cells, root: Ref, types: { type: StateObject.Type }[]): StateObjectCell | undefined {
     let current = tree.nodes.get(root)!;
     while (true) {
         current = tree.nodes.get(current.parent)!;
+        const cell = cells.get(current.ref)!;
+        if (!cell.obj) return void 0;
+        for (const t of types) if (cell.obj.type === t.type) return cells.get(current.ref)!;
         if (current.ref === Transform.RootRef) {
-            return cells.get(Transform.RootRef)!.obj!;
+            return void 0;
         }
-        const obj = cells.get(current.ref)!.obj!;
-        for (const t of types) if (obj.type === t.type) return cells.get(current.ref)!.obj!;
     }
 }
 
@@ -289,23 +290,30 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
 }
 
 async function updateNode(ctx: UpdateContext, currentRef: Ref) {
-    const { oldTree, tree, cells } = ctx;
+    const { oldTree, tree } = ctx;
     const transform = tree.nodes.get(currentRef);
-    const parent = findAncestor(tree, cells, currentRef, transform.transformer.definition.from);
+    const parentCell = findAncestor(tree, ctx.cells, currentRef, transform.transformer.definition.from);
+
+    if (!parentCell) {
+        throw new Error(`No suitable parent found for '${currentRef}'`);
+    }
+
+    const parent = parentCell.obj!;
+    const current = ctx.cells.get(currentRef)!;
+    current.sourceRef = parentCell.transform.ref;
+
     // console.log('parent', transform.transformer.id, transform.transformer.definition.from[0].type, parent ? parent.ref : 'undefined')
-    if (!oldTree.nodes.has(currentRef) || !cells.has(currentRef)) {
+    if (!oldTree.nodes.has(currentRef)) {
         // console.log('creating...', transform.transformer.id, oldTree.nodes.has(currentRef), objects.has(currentRef));
         const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
-        const cell = cells.get(currentRef)!;
-        cell.obj = obj;
-        cell.version = transform.version;
+        current.obj = obj;
+        current.version = transform.version;
 
         return { action: 'created', obj };
     } else {
-        const current = cells.get(currentRef)!;
         const oldParams = oldTree.nodes.get(currentRef)!.params;
 
-        const updateKind = current.status === 'ok' || current.ref === Transform.RootRef
+        const updateKind = current.status === 'ok' || current.transform.ref === Transform.RootRef
             ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)
             : Transformer.UpdateResult.Recreate;
 
