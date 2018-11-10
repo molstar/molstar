@@ -9,28 +9,34 @@ import { Transform } from './transform';
 
 export { StateObject, StateObjectCell }
 
-interface StateObject<P = any, D = any, T = any> {
+interface StateObject<D = any, T extends StateObject.Type = { name: string, typeClass: any }> {
     readonly id: UUID,
-    readonly type: StateObject.Type<T>,
-    readonly props: P,
-    readonly data: D
+    readonly type: T,
+    readonly data: D,
+    readonly label: string,
+    readonly description?: string,
 }
 
 namespace StateObject {
-    export function factory<Type, CommonProps>() {
-        return <D = { }, P = {}>(type: Type) => create<P & CommonProps, D, Type>(type);
+    export function factory<T extends Type>() {
+        return <D = { }>(type: T) => create<D, T>(type);
     }
 
-    export type Type<I = unknown> = I
+    export type Type<Cls extends string = string> = { name: string, typeClass: Cls }
     export type Ctor = { new(...args: any[]): StateObject, type: any }
 
-    export function create<Props, Data, Type>(type: Type) {
-        return class implements StateObject<Props, Data, Type> {
+    export function create<Data, T extends Type>(type: T) {
+        return class implements StateObject<Data, T> {
             static type = type;
-            static is(obj?: StateObject): obj is StateObject<Props, Data, Type> { return !!obj && type === obj.type; }
+            static is(obj?: StateObject): obj is StateObject<Data, T> { return !!obj && type === obj.type; }
             id = UUID.create();
             type = type;
-            constructor(public props: Props, public data: Data) { }
+            label: string;
+            description?: string;
+            constructor(public data: Data, props?: { label: string, description?: string }) {
+                this.label = props && props.label || type.name;
+                this.description = props && props.description;
+            }
         }
     }
 }

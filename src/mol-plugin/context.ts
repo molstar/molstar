@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTree, Transformer, Transform, State } from 'mol-state';
+import { Transformer, Transform, State } from 'mol-state';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
 import { PluginStateObject as PSO } from './state/base';
@@ -96,12 +96,12 @@ export class PluginContext {
     }
 
     applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
-        const tree = state.tree.build().to(a).apply(transformer, params).getTree();
+        const tree = state.tree.build().to(a).apply(transformer, params);
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
     updateTransform(state: State, a: Transform.Ref, params: any) {
-        const tree = StateTree.updateParams(state.tree, a, params);
+        const tree = state.build().to(a).update(params);
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
@@ -122,8 +122,9 @@ export class PluginContext {
         const newTree = b.toRoot()
             .apply(StateTransforms.Data.Download, { url })
             .apply(StateTransforms.Data.ParseCif)
-            .apply(StateTransforms.Model.ParseModelsFromMmCif, {}, { ref: 'models' })
-            .apply(StateTransforms.Model.CreateStructureFromModel, { modelIndex: 0 }, { ref: 'structure' })
+            .apply(StateTransforms.Model.ParseTrajectoryFromMmCif, {}, { ref: 'trajectory' })
+            .apply(StateTransforms.Model.CreateModelFromTrajectory, { modelIndex: 0 }, { ref: 'model' })
+            .apply(StateTransforms.Model.CreateStructureFromModel, { }, { ref: 'structure' })
             .apply(StateTransforms.Model.CreateStructureAssembly)
             .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
             .apply(StateTransforms.Visuals.CreateStructureRepresentation)
@@ -134,8 +135,8 @@ export class PluginContext {
 
     private initEvents() {
         merge(this.events.state.data.object.created, this.events.state.behavior.object.created).subscribe(o => {
-            console.log('creating', o.obj.type);
             if (!PSO.isBehavior(o.obj)) return;
+            console.log('registering behavior', o.obj.label);
             o.obj.data.register();
         });
 
@@ -159,11 +160,15 @@ export class PluginContext {
         this.canvas3d.requestDraw(true);
     }
 
-    _test_nextModel() {
-        const models = this.state.data.select('models')[0].obj as SO.Molecule.Models;
-        const idx = (this.state.data.tree.nodes.get('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
-        const newTree = StateTree.updateParams(this.state.data.tree, 'structure', { modelIndex: (idx + 1) % models.data.length });
-        return this.runTask(this.state.data.update(newTree));
+    async _test_nextModel() {
+        const traj = this.state.data.select('trajectory')[0].obj as SO.Molecule.Trajectory;
+        //const modelIndex = (this.state.data.select('model')[0].transform.params as CreateModelFromTrajectory.Params).modelIndex;
+        const newTree = this.state.data.build().to('model').update(
+            StateTransforms.Model.CreateModelFromTrajectory,
+            old => ({ modelIndex: (old.modelIndex + 1) % traj.data.length }))
+            .getTree();
+        // const newTree = StateTree.updateParams(this.state.data.tree, 'model', { modelIndex: (modelIndex + 1) % traj.data.length });
+        await this.runTask(this.state.data.update(newTree));
         // this.viewer.requestDraw(true);
     }
 

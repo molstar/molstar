@@ -13,16 +13,16 @@ import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
 import { Mat4 } from 'mol-math/linear-algebra';
 
-export { ParseModelsFromMmCif }
-namespace ParseModelsFromMmCif { export interface Params { blockHeader?: string } }
-const ParseModelsFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Molecule.Models, ParseModelsFromMmCif.Params>({
-    name: 'parse-models-from-mmcif',
+export { ParseTrajectoryFromMmCif }
+namespace ParseTrajectoryFromMmCif { export interface Params { blockHeader?: string } }
+const ParseTrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Molecule.Trajectory, ParseTrajectoryFromMmCif.Params>({
+    name: 'parse-trajectory-from-mmcif',
     display: {
         name: 'Models from mmCIF',
         description: 'Identify and create all separate models in the specified CIF data block'
     },
     from: [SO.Data.Cif],
-    to: [SO.Molecule.Models],
+    to: [SO.Molecule.Trajectory],
     params: {
         default: a => ({ blockHeader: a.data.blocks[0].header }),
         controls(a) {
@@ -40,35 +40,57 @@ const ParseModelsFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Molecul
             if (!block) throw new Error(`Data block '${[header]}' not found.`);
             const models = await Model.create(Format.mmCIF(block)).runInContext(ctx);
             if (models.length === 0) throw new Error('No models found.');
-            const label = models.length === 1 ? `${models[0].label}` : `${models[0].label} (${models.length} models)`;
-            return new SO.Molecule.Models({ label }, models);
+            const label = { label: models[0].label, description: `${models.length} model${models.length === 1 ? '' : 's'}` };
+            return new SO.Molecule.Trajectory(models, label);
         });
     }
 });
 
-export { CreateStructureFromModel }
-namespace CreateStructureFromModel { export interface Params { modelIndex: number, transform3d?: Mat4 } }
-const CreateStructureFromModel = PluginStateTransform.Create<SO.Molecule.Models, SO.Molecule.Structure, CreateStructureFromModel.Params>({
-    name: 'create-structure-from-model',
+export { CreateModelFromTrajectory }
+namespace CreateModelFromTrajectory { export interface Params { modelIndex: number } }
+const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajectory, SO.Molecule.Model, CreateModelFromTrajectory.Params>({
+    name: 'create-model-from-trajectory',
     display: {
-        name: 'Structure from Model',
+        name: 'Model from Trajectory',
         description: 'Create a molecular structure from the specified model.'
     },
-    from: [SO.Molecule.Models],
-    to: [SO.Molecule.Structure],
+    from: [SO.Molecule.Trajectory],
+    to: [SO.Molecule.Model],
     params: {
         default: () => ({ modelIndex: 0 }),
         controls: a => ({ modelIndex: PD.Range('Model Index', 'Model Index', 0, 0, Math.max(0, a.data.length - 1), 1) })
     },
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
+        console.log('parans', params);
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
-        let s = Structure.ofModel(a.data[params.modelIndex]);
-        if (params.transform3d) s = Structure.transform(s, params.transform3d);
-        return new SO.Molecule.Structure({ label: `Model ${s.models[0].modelNum}`, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` }, s);
+        const model = a.data[params.modelIndex];
+        const label = { label: `Model ${model.modelNum}` };
+        return new SO.Molecule.Model(model, label);
     }
 });
 
+export { CreateStructureFromModel }
+namespace CreateStructureFromModel { export interface Params { transform3d?: Mat4 } }
+const CreateStructureFromModel = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, CreateStructureFromModel.Params>({
+    name: 'create-structure-from-model',
+    display: {
+        name: 'Structure from Model',
+        description: 'Create a molecular structure from the specified model.'
+    },
+    from: [SO.Molecule.Model],
+    to: [SO.Molecule.Structure],
+    apply({ a, params }) {
+        let s = Structure.ofModel(a.data);
+        if (params.transform3d) s = Structure.transform(s, params.transform3d);
+        const label = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
+        return new SO.Molecule.Structure(s, label);
+    }
+});
+
+function structureDesc(s: Structure) {
+    return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`;
+}
 
 export { CreateStructureAssembly }
 namespace CreateStructureAssembly { export interface Params { /** if not specified, use the 1st */ id?: string } }
@@ -98,7 +120,8 @@ const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Structur
             if (!asm) throw new Error(`Assembly '${id}' not found`);
 
             const s = await StructureSymmetry.buildAssembly(a.data, id!).runInContext(ctx);
-            return new SO.Molecule.Structure({ label: `Assembly ${id}`, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` }, s);
+            const label = { label: `Assembly ${id}`, description: structureDesc(s) };
+            return new SO.Molecule.Structure(s, label);
         })
     }
 });
@@ -118,6 +141,7 @@ const CreateStructureSelection = PluginStateTransform.Create<SO.Molecule.Structu
         const compiled = compile<StructureSelection>(params.query);
         const result = compiled(new QueryContext(a.data));
         const s = StructureSelection.unionStructure(result);
-        return new SO.Molecule.Structure({ label: `${params.label || 'Selection'}`, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` }, s);
+        const label = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
+        return new SO.Molecule.Structure(s, label);
     }
 });

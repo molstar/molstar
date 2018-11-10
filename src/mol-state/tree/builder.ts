@@ -21,6 +21,10 @@ namespace StateTreeBuilder {
         tree: TransientTree
     }
 
+    export function is(obj: any): obj is StateTreeBuilder {
+        return !!obj && typeof (obj as StateTreeBuilder).getTree === 'function';
+    }
+
     export class Root implements StateTreeBuilder {
         private state: State;
         to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref, this); }
@@ -38,6 +42,20 @@ namespace StateTreeBuilder {
             const t = tr.apply(this.ref, params, props);
             this.state.tree.add(t);
             return new To(this.state, t.ref, this.root);
+        }
+
+        update<T extends Transformer<A, any, any>>(transformer: T, params: (old: Transformer.Params<T>) => Transformer.Params<T>): Root
+        update(params: any): Root
+        update<T extends Transformer<A, any, any>>(paramsOrTransformer: T, provider?: (old: Transformer.Params<T>) => Transformer.Params<T>) {
+            const old = this.state.tree.nodes.get(this.ref)!;
+            let params: any;
+            if (provider) {
+                params = provider(old.params as any);
+            } else {
+                params = paramsOrTransformer;
+            }
+            this.state.tree.set(Transform.updateParams(old, params));
+            return this.root;
         }
 
         and() { return this.root; }

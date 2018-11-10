@@ -5,10 +5,10 @@
  */
 
 import { PluginCommand } from './command';
-import { Transform, StateTree, State } from 'mol-state';
+import { Transform, State } from 'mol-state';
 
 export const SetCurrentObject = PluginCommand<{ state: State, ref: Transform.Ref }>('ms-data', 'set-current-object');
-export const Update = PluginCommand<{ state: State, tree: StateTree }>('ms-data', 'update');
+export const Update = PluginCommand<{ state: State, tree: State.Tree | State.Builder }>('ms-data', 'update');
 
 // export const UpdateObject = PluginCommand<{ ref: Transform.Ref, params: any }>('ms-data', 'update-object');
 

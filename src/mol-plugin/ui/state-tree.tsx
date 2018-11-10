@@ -44,18 +44,16 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             }}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
-            const props = obj.props;
-            const type = obj.type;
-            label = <>[<span title={type.description}>{ type.shortName }</span>] <a href='#' onClick={e => {
+            label = <><a href='#' onClick={e => {
                 e.preventDefault();
                 PluginCommands.State.SetCurrentObject.dispatch(this.props.plugin, { state: this.props.state, ref: this.props.nodeRef });
-            }}>{props.label}</a> {props.description ? <small>{props.description}</small> : void 0}</>;
+            }}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
         }
 
         const children = this.props.state.tree.children.get(this.props.nodeRef);
 
         return <div>
-            {remove}{label}
+            {remove} {label}
             {children.size === 0
                 ? void 0
                 : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode plugin={this.props.plugin} state={this.props.state} nodeRef={c!} key={c} />)}</div>

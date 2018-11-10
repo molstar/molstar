@@ -23,7 +23,7 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.St
         return Task.create('Structure Representation', async ctx => {
             const repr = BallAndStickRepresentation(); // CartoonRepresentation();
             await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl }, DefaultBallAndStickProps, a.data).runInContext(ctx);
-            return new SO.Molecule.Representation3D({ label: 'Visual Repr.' }, repr);
+            return new SO.Molecule.Representation3D(repr);
         });
     },
     update({ a, b }, plugin: PluginContext) {

@@ -35,8 +35,8 @@ const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
             // TODO: track progress
             const data = await globalCtx.fetch(p.url, p.isBinary ? 'binary' : 'string');
             return p.isBinary
-                ? new SO.Data.Binary({ label: p.label ? p.label : p.url }, data as Uint8Array)
-                : new SO.Data.String({ label: p.label ? p.label : p.url }, data as string);
+                ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.url })
+                : new SO.Data.String(data as string, { label: p.label ? p.label : p.url });
         });
     }
 });
@@ -55,7 +55,7 @@ const ParseCif = PluginStateTransform.Create<SO.Data.String | SO.Data.Binary, SO
         return Task.create('Parse CIF', async ctx => {
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            return new SO.Data.Cif({ label: 'CIF File' }, parsed.result);
+            return new SO.Data.Cif(parsed.result);
         });
     }
 });

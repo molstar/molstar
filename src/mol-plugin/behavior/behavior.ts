@@ -22,8 +22,8 @@ interface PluginBehavior<P = unknown> {
 }
 
 namespace PluginBehavior {
-    export class Root extends PluginStateObject.Create({ name: 'Root', shortName: 'R', typeClass: 'Root', description: 'Where everything begins.' }) { }
-    export class Behavior extends PluginStateObject.CreateBehavior<PluginBehavior>({ name: 'Behavior', shortName: 'B', description: 'Modifies plugin functionality.' }) { }
+    export class Root extends PluginStateObject.Create({ name: 'Root', typeClass: 'Root' }) { }
+    export class Behavior extends PluginStateObject.CreateBehavior<PluginBehavior>({ name: 'Behavior' }) { }
 
     export interface Ctor<P = undefined> { new(ctx: PluginContext, params?: P): PluginBehavior<P> }
 
@@ -49,7 +49,7 @@ namespace PluginBehavior {
             params: params.params,
             apply({ params: p }, ctx: PluginContext) {
                 const label = params.label ? params.label(p) : { label: params.display.name, description: params.display.description };
-                return new Behavior(label, new params.ctor(ctx, p));
+                return new Behavior(new params.ctor(ctx, p), label);
             },
             update({ b, newParams }) {
                 return Task.create('Update Behavior', async () => {

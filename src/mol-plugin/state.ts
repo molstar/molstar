@@ -37,8 +37,8 @@ class PluginState {
     }
 
     constructor(private plugin: import('./context').PluginContext) {
-        this.data = State.create(new SO.Root({ label: 'Root' }, { }), { globalContext: plugin });
-        this.behavior = State.create(new PluginBehavior.Root({ label: 'Root' }, { }), { globalContext: plugin });
+        this.data = State.create(new SO.Root({ }), { globalContext: plugin });
+        this.behavior = State.create(new PluginBehavior.Root({ }), { globalContext: plugin });
     }
 }
 

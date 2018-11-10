@@ -12,6 +12,7 @@ import { UUID } from 'mol-util';
 import { RuntimeContext, Task } from 'mol-task';
 import { StateSelection } from './state/selection';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { StateTreeBuilder } from './tree/builder';
 
 export { State }
 
@@ -42,6 +43,8 @@ class State {
 
     get tree() { return this._tree; }
     get current() { return this._current; }
+
+    build() { return this._tree.build(); }
 
     readonly cells: State.Cells = new Map();
 
@@ -77,22 +80,19 @@ class State {
         return StateSelection.select(selector(StateSelection.Generators), this)
     }
 
-    query(q: StateSelection.Query) {
-        return q(this);
-    }
-
-    update(tree: StateTree): Task<void> {
+    update(tree: StateTree | StateTreeBuilder): Task<void> {
         // TODO: support cell state
+        const _tree = StateTreeBuilder.is(tree) ? tree.getTree() : tree;
         return Task.create('Update Tree', async taskCtx => {
             try {
                 const oldTree = this._tree;
-                this._tree = tree;
+                this._tree = _tree;
 
                 const ctx: UpdateContext = {
                     parent: this,
                     taskCtx,
                     oldTree,
-                    tree,
+                    tree: _tree,
                     cells: this.cells as Map<Transform.Ref, StateObjectCell>,
                     transformCache: this.transformCache
                 };
@@ -122,6 +122,9 @@ class State {
 
 namespace State {
     export type Cells = ReadonlyMap<Transform.Ref, StateObjectCell>
+
+    export type Tree = StateTree
+    export type Builder = StateTreeBuilder
 
     export interface ObjectEvent {
         state: State,
@@ -202,6 +205,7 @@ function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Sta
 }
 
 function _initCellStatusVisitor(t: Transform, _: any, ctx: UpdateContext) {
+    ctx.cells.get(t.ref)!.transform = t;
     setCellStatus(ctx, t.ref, 'pending');
 }
 

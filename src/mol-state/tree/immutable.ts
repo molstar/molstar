@@ -8,7 +8,6 @@ import { Map as ImmutableMap, OrderedSet } from 'immutable';
 import { Transform } from '../transform';
 import { TransientTree } from './transient';
 import { StateTreeBuilder } from './builder';
-import { Transformer } from '../transformer';
 
 export { StateTree }
 
@@ -64,12 +63,6 @@ namespace StateTree {
 
     export function create(nodes: Nodes, children: Children): StateTree {
         return new Impl(nodes, children);
-    }
-
-    export function updateParams<T extends Transformer = Transformer>(tree: StateTree, ref: Transform.Ref, params: Transformer.Params<T>): StateTree {
-        const t = tree.nodes.get(ref)!;
-        const newTransform = Transform.updateParams(t, params);
-        return tree.asTransient().set(newTransform).asImmutable();
     }
 
     type VisitorCtx = { tree: StateTree, state: any, f: (node: Node, tree: StateTree, state: any) => boolean | undefined | void };
