@@ -14,12 +14,20 @@ import { shallowEqual } from 'mol-util';
 export { StateTreeBuilder }
 
 interface StateTreeBuilder {
+    readonly editInfo: StateTreeBuilder.EditInfo,
     getTree(): StateTree
 }
 
 namespace StateTreeBuilder {
+    export interface EditInfo {
+        sourceTree: StateTree,
+        count: number,
+        lastUpdate?: Transform.Ref
+    }
+
     interface State {
-        tree: TransientTree
+        tree: TransientTree,
+        editInfo: EditInfo
     }
 
     export function is(obj: any): obj is StateTreeBuilder {
@@ -28,20 +36,27 @@ namespace StateTreeBuilder {
 
     export class Root implements StateTreeBuilder {
         private state: State;
+        get editInfo() { return this.state.editInfo; }
+
         to<A extends StateObject>(ref: Transform.Ref) { return new To<A>(this.state, ref, this); }
         toRoot<A extends StateObject>() { return new To<A>(this.state, this.state.tree.root.ref, this); }
         delete(ref: Transform.Ref) {
+            this.editInfo.count++;
             this.state.tree.remove(ref);
             return this;
         }
         getTree(): StateTree { return this.state.tree.asImmutable(); }
-        constructor(tree: StateTree) { this.state = { tree: tree.asTransient() } }
+        constructor(tree: StateTree) { this.state = { tree: tree.asTransient(), editInfo: { sourceTree: tree, count: 0, lastUpdate: void 0 } } }
     }
 
     export class To<A extends StateObject> implements StateTreeBuilder {
+        get editInfo() { return this.state.editInfo; }
+
         apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Options>): To<Transformer.To<T>> {
             const t = tr.apply(this.ref, params, props);
             this.state.tree.add(t);
+            this.editInfo.count++;
+            this.editInfo.lastUpdate = t.ref;
             return new To(this.state, t.ref, this.root);
         }
 
@@ -63,6 +78,9 @@ namespace StateTreeBuilder {
                     return this.root;
                 }
             }
+
+            this.editInfo.count++;
+            this.editInfo.lastUpdate = this.ref;
 
             this.state.tree.set(Transform.updateParams(old, params));
             return this.root;

@@ -11,7 +11,7 @@ import { PluginCommands } from 'mol-plugin/command';
 import { PluginComponent } from './base';
 
 export class StateTree extends PluginComponent<{ state: State }, { }> {
-    init() {
+    componentDidMount() {
         this.subscribe(this.props.state.events.changed, () => this.forceUpdate());
     }
 

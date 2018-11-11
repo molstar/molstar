@@ -37,7 +37,7 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 }
 
 export class _test_CurrentObject extends PluginComponent {
-    init() {
+    componentDidMount() {
         this.subscribe(this.context.behaviors.state.data.currentObject, () => this.forceUpdate());
     }
 

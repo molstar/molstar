@@ -21,6 +21,8 @@ export { State }
 class State {
     private _tree: StateTree = StateTree.createEmpty();
     private _current: Transform.Ref = this._tree.root.ref;
+
+    protected errorFree = true;
     private transformCache = new Map<Transform.Ref, unknown>();
 
     private ev = RxEventHelper.create();
@@ -106,13 +108,18 @@ class State {
 
                 const ctx: UpdateContext = {
                     parent: this,
+
+                    errorFree: this.errorFree,
                     taskCtx,
                     oldTree,
                     tree: _tree,
                     cells: this.cells as Map<Transform.Ref, StateObjectCell>,
                     transformCache: this.transformCache,
-                    changed: false
+                    changed: false,
+                    editInfo: StateTreeBuilder.is(tree) ? tree.editInfo : void 0
                 };
+
+                this.errorFree = true;
                 // TODO: handle "cancelled" error? Or would this be handled automatically?
                 updated = await update(ctx);
             } finally {
@@ -162,37 +169,51 @@ type Ref = Transform.Ref
 interface UpdateContext {
     parent: State,
 
+    errorFree: boolean,
     taskCtx: RuntimeContext,
     oldTree: StateTree,
     tree: StateTree,
     cells: Map<Transform.Ref, StateObjectCell>,
     transformCache: Map<Ref, unknown>,
-    changed: boolean
+    changed: boolean,
+
+    editInfo: StateTreeBuilder.EditInfo | undefined
 }
 
 async function update(ctx: UpdateContext) {
-    // 1: find all nodes that will definitely be deleted.
-    // this is done in "post order", meaning that leaves will be deleted first.
-    const deletes = findDeletes(ctx);
-    for (const d of deletes) {
-        const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
-        ctx.cells.delete(d);
-        ctx.transformCache.delete(d);
-        ctx.parent.events.object.removed.next({ state: ctx.parent, ref: d, obj });
-        // TODO: handle current object change
+
+    // if only a single node was added/updated, we can skip potentially expensive diffing
+    const fastTrack = !!(ctx.errorFree && ctx.editInfo && ctx.editInfo.count === 1 && ctx.editInfo.lastUpdate && ctx.editInfo.sourceTree === ctx.oldTree);
+
+    let deletes: Transform.Ref[], roots: Transform.Ref[];
+
+    if (fastTrack) {
+        deletes = [];
+        roots = [ctx.editInfo!.lastUpdate!];
+    } else {
+        // find all nodes that will definitely be deleted.
+        // this is done in "post order", meaning that leaves will be deleted first.
+        deletes = findDeletes(ctx);
+        for (const d of deletes) {
+            const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
+            ctx.cells.delete(d);
+            ctx.transformCache.delete(d);
+            ctx.parent.events.object.removed.next({ state: ctx.parent, ref: d, obj });
+            // TODO: handle current object change
+        }
+
+        // Find roots where transform version changed or where nodes will be added.
+        roots = findUpdateRoots(ctx.cells, ctx.tree);
     }
 
-    // 2: Find roots where transform version changed or where nodes will be added.
-    const roots = findUpdateRoots(ctx.cells, ctx.tree);
-
-    // 3: Init empty cells where not present
+    // Init empty cells where not present
     // this is done in "pre order", meaning that "parents" will be created 1st.
     initCells(ctx, roots);
 
-    // 4: Set status of cells that will be updated to 'pending'.
+    // Set status of cells that will be updated to 'pending'.
     initCellStatus(ctx, roots);
 
-    // 6: Sequentially update all the subtrees.
+    // Sequentially update all the subtrees.
     for (const root of roots) {
         await updateSubtree(ctx, root);
     }
@@ -266,7 +287,10 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
 
 /** Set status and error text of the cell. Remove all existing objects in the subtree. */
 function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
-    if (errorText) setCellStatus(ctx, ref, 'error', errorText);
+    if (errorText) {
+        (ctx.parent as any as { errorFree: boolean }).errorFree = false;
+        setCellStatus(ctx, ref, 'error', errorText);
+    }
 
     const cell = ctx.cells.get(ref)!;
     if (cell.obj) {
