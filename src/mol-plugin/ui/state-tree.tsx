@@ -5,34 +5,34 @@
  */
 
 import * as React from 'react';
-import { PluginContext } from '../context';
 import { PluginStateObject } from 'mol-plugin/state/objects';
 import { State } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
+import { PluginComponent } from './base';
 
-export class StateTree extends React.Component<{ plugin: PluginContext, state: State }, { }> {
-    componentDidMount() {
-        // TODO: move to constructor?
-        this.props.state.events.changed.subscribe(() => this.forceUpdate());
+export class StateTree extends PluginComponent<{ state: State }, { }> {
+    init() {
+        this.subscribe(this.props.state.events.changed, () => this.forceUpdate());
     }
+
     render() {
         // const n = this.props.plugin.state.data.tree.nodes.get(this.props.plugin.state.data.tree.rootRef)!;
         const n = this.props.state.tree.root.ref;
         return <div>
-            <StateTreeNode plugin={this.props.plugin} state={this.props.state} nodeRef={n} key={n} />
+            <StateTreeNode state={this.props.state} nodeRef={n} key={n} />
             { /* n.children.map(c => <StateTreeNode plugin={this.props.plugin} nodeRef={c!} key={c} />) */}
         </div>;
     }
 }
 
-export class StateTreeNode extends React.Component<{ plugin: PluginContext, nodeRef: string, state: State }, { }> {
+export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { }> {
     render() {
         const n = this.props.state.tree.nodes.get(this.props.nodeRef)!;
         const cell = this.props.state.cells.get(this.props.nodeRef)!;
 
         const remove = <>[<a href='#' onClick={e => {
             e.preventDefault();
-            PluginCommands.State.RemoveObject.dispatch(this.props.plugin, { state: this.props.state, ref: this.props.nodeRef });
+            PluginCommands.State.RemoveObject.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
         }}>X</a>]</>
 
         let label: any;
@@ -40,13 +40,13 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
             label = <><b>{cell.status}</b> <a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.State.SetCurrentObject.dispatch(this.props.plugin, { state: this.props.state, ref: this.props.nodeRef });
+                PluginCommands.State.SetCurrentObject.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
             }}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             label = <><a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.State.SetCurrentObject.dispatch(this.props.plugin, { state: this.props.state, ref: this.props.nodeRef });
+                PluginCommands.State.SetCurrentObject.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
             }}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
         }
 
@@ -56,7 +56,7 @@ export class StateTreeNode extends React.Component<{ plugin: PluginContext, node
             {remove} {label}
             {children.size === 0
                 ? void 0
-                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode plugin={this.props.plugin} state={this.props.state} nodeRef={c!} key={c} />)}</div>
+                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}</div>
             }
         </div>;
     }

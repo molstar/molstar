@@ -6,21 +6,15 @@
  */
 
 import * as React from 'react';
-import { PluginContext } from '../context';
-// import { Loci, EmptyLoci, areLociEqual } from 'mol-model/loci';
-// import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
-
-interface ViewportProps {
-    plugin: PluginContext
-}
+import { PluginComponent } from './base';
 
 interface ViewportState {
     noWebGl: boolean
 }
 
-export class Viewport extends React.Component<ViewportProps, ViewportState> {
+export class Viewport extends PluginComponent<{ }, ViewportState> {
     private container: HTMLDivElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
 
@@ -28,31 +22,31 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         noWebGl: false
     };
 
-    handleResize() {
-        this.props.plugin.canvas3d.handleResize();
+    private handleResize = () => {
+         this.context.canvas3d.handleResize();
     }
 
     componentDidMount() {
-        if (!this.canvas || !this.container || !this.props.plugin.initViewer(this.canvas, this.container)) {
+        if (!this.canvas || !this.container || !this.context.initViewer(this.canvas, this.container)) {
             this.setState({ noWebGl: true });
         }
         this.handleResize();
 
-        const canvas3d = this.props.plugin.canvas3d;
-        canvas3d.input.resize.subscribe(() => this.handleResize());
+        const canvas3d = this.context.canvas3d;
+        this.subscribe(canvas3d.input.resize, this.handleResize);
 
-        const idHelper = new Canvas3dIdentifyHelper(this.props.plugin, 15);
+        const idHelper = new Canvas3dIdentifyHelper(this.context, 15);
 
-        canvas3d.input.move.subscribe(({x, y, inside, buttons}) => {
+        this.subscribe(canvas3d.input.move, ({x, y, inside, buttons}) => {
             if (!inside || buttons) { return; }
             idHelper.move(x, y);
         });
 
-        canvas3d.input.leave.subscribe(() => {
+        this.subscribe(canvas3d.input.leave, () => {
             idHelper.leave();
         });
 
-        canvas3d.input.click.subscribe(({x, y, buttons}) => {
+        this.subscribe(canvas3d.input.click, ({x, y, buttons}) => {
             if (buttons !== ButtonsType.Flag.Primary) return;
             idHelper.select(x, y);
         });
