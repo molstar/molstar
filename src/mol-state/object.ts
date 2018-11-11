@@ -59,14 +59,14 @@ namespace StateObjectCell {
 
     export interface State {
         isObjectHidden: boolean,
-        isHidden: boolean,
+        isTransformHidden: boolean,
         isBinding: boolean,
         isCollapsed: boolean
     }
 
     export const DefaultState: State = {
         isObjectHidden: false,
-        isHidden: false,
+        isTransformHidden: false,
         isBinding: false,
         isCollapsed: false
     };

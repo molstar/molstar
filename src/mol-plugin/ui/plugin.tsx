@@ -10,6 +10,8 @@ import { StateTree } from './state-tree';
 import { Viewport } from './viewport';
 import { Controls, _test_UpdateTransform, _test_ApplyAction, _test_TrajectoryControls } from './controls';
 import { PluginComponent, PluginReactContext } from './base';
+import { merge } from 'rxjs';
+import { State } from 'mol-state';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     render() {
@@ -38,7 +40,16 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
 export class _test_CurrentObject extends PluginComponent {
     componentDidMount() {
-        this.subscribe(this.context.behaviors.state.data.currentObject, () => this.forceUpdate());
+        let current: State.ObjectEvent | undefined = void 0;
+        this.subscribe(merge(this.context.behaviors.state.data.currentObject, this.context.behaviors.state.behavior.currentObject), o => {
+            current = o;
+            this.forceUpdate()
+        });
+
+        this.subscribe(this.context.events.state.data.object.updated, ({ ref, state }) => {
+            if (!current || current.ref !== ref && current.state !== state) return;
+            this.forceUpdate();
+        });
     }
 
     render() {
@@ -55,7 +66,7 @@ export class _test_CurrentObject extends PluginComponent {
             : []
         return <div>
             <hr />
-            <h3>Update {ref}</h3>
+            <h3>Update {obj.obj ? obj.obj.label : ref}</h3>
             <_test_UpdateTransform key={`${ref} update`} state={current.state} nodeRef={ref} />
             <hr />
             <h3>Create</h3>

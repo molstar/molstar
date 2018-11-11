@@ -51,7 +51,6 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
         }
 
         const children = this.props.state.tree.children.get(this.props.nodeRef);
-
         return <div>
             {remove} {label}
             {children.size === 0

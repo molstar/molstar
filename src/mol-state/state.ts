@@ -20,7 +20,6 @@ export { State }
 
 class State {
     private _tree: StateTree = StateTree.createEmpty();
-    private _current: Transform.Ref = this._tree.root.ref;
 
     protected errorFree = true;
     private transformCache = new Map<Transform.Ref, unknown>();
@@ -33,8 +32,7 @@ class State {
             cellState: this.ev<State.ObjectEvent & { cell: StateObjectCell }>(),
             cellCreated: this.ev<State.ObjectEvent>(),
 
-            updated: this.ev<State.ObjectEvent & { obj?: StateObject }>(),
-            replaced: this.ev<State.ObjectEvent & { oldObj?: StateObject, newObj?: StateObject }>(),
+            updated: this.ev<State.ObjectEvent & { action: 'in-place' | 'recreate', obj: StateObject, oldObj?: StateObject }>(),
             created: this.ev<State.ObjectEvent & { obj: StateObject }>(),
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
         },
@@ -49,7 +47,7 @@ class State {
     readonly actions = new StateActionManager();
 
     get tree() { return this._tree; }
-    get current() { return this._current; }
+    get current() { return this.behaviors.currentObject.value.ref; }
 
     build() { return this._tree.build(); }
 
@@ -65,7 +63,6 @@ class State {
     }
 
     setCurrent(ref: Transform.Ref) {
-        this._current = ref;
         this.behaviors.currentObject.next({ state: this, ref });
     }
 
@@ -108,6 +105,7 @@ class State {
 
                 const ctx: UpdateContext = {
                     parent: this,
+                    editInfo: StateTreeBuilder.is(tree) ? tree.editInfo : void 0,
 
                     errorFree: this.errorFree,
                     taskCtx,
@@ -115,8 +113,10 @@ class State {
                     tree: _tree,
                     cells: this.cells as Map<Transform.Ref, StateObjectCell>,
                     transformCache: this.transformCache,
+
                     changed: false,
-                    editInfo: StateTreeBuilder.is(tree) ? tree.editInfo : void 0
+                    hadError: false,
+                    newCurrent: void 0
                 };
 
                 this.errorFree = true;
@@ -168,6 +168,7 @@ type Ref = Transform.Ref
 
 interface UpdateContext {
     parent: State,
+    editInfo: StateTreeBuilder.EditInfo | undefined
 
     errorFree: boolean,
     taskCtx: RuntimeContext,
@@ -175,13 +176,13 @@ interface UpdateContext {
     tree: StateTree,
     cells: Map<Transform.Ref, StateObjectCell>,
     transformCache: Map<Ref, unknown>,
-    changed: boolean,
 
-    editInfo: StateTreeBuilder.EditInfo | undefined
+    changed: boolean,
+    hadError: boolean,
+    newCurrent?: Ref
 }
 
 async function update(ctx: UpdateContext) {
-
     // if only a single node was added/updated, we can skip potentially expensive diffing
     const fastTrack = !!(ctx.errorFree && ctx.editInfo && ctx.editInfo.count === 1 && ctx.editInfo.lastUpdate && ctx.editInfo.sourceTree === ctx.oldTree);
 
@@ -194,6 +195,21 @@ async function update(ctx: UpdateContext) {
         // find all nodes that will definitely be deleted.
         // this is done in "post order", meaning that leaves will be deleted first.
         deletes = findDeletes(ctx);
+
+        const current = ctx.parent.current;
+        let hasCurrent = false;
+        for (const d of deletes) {
+            if (d === current) {
+                hasCurrent = true;
+                break;
+            }
+        }
+
+        if (hasCurrent) {
+            const newCurrent = findNewCurrent(ctx, current, deletes);
+            ctx.parent.setCurrent(newCurrent);
+        }
+
         for (const d of deletes) {
             const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
             ctx.cells.delete(d);
@@ -217,6 +233,8 @@ async function update(ctx: UpdateContext) {
     for (const root of roots) {
         await updateSubtree(ctx, root);
     }
+
+    if (ctx.newCurrent) ctx.parent.setCurrent(ctx.newCurrent);
 
     return deletes.length > 0 || roots.length > 0 || ctx.changed;
 }
@@ -285,10 +303,48 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
     }
 }
 
+function findNewCurrent(ctx: UpdateContext, start: Ref, deletes: Ref[]) {
+    const deleteSet = new Set(deletes);
+    return _findNewCurrent(ctx.oldTree, start, deleteSet);
+}
+
+function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
+    if (ref === Transform.RootRef) return ref;
+
+    const node = tree.nodes.get(ref)!;
+    const siblings = tree.children.get(node.parent)!.values();
+
+    let prevCandidate: Ref | undefined = void 0, seenRef = false;
+
+    while (true) {
+        const s = siblings.next();
+        if (s.done) break;
+
+        if (deletes.has(s.value)) continue;
+
+        const t = tree.nodes.get(s.value);
+        if (t.cellState && t.cellState.isTransformHidden) continue;
+        if (s.value === ref) {
+            seenRef = true;
+            if (!deletes.has(ref)) prevCandidate = ref;
+            continue;
+        }
+
+        if (seenRef) return t.ref;
+
+        prevCandidate = t.ref;
+    }
+
+    if (prevCandidate) return prevCandidate;
+    return _findNewCurrent(tree, node.parent, deletes);
+}
+
 /** Set status and error text of the cell. Remove all existing objects in the subtree. */
 function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
+    ctx.hadError = true;
+    (ctx.parent as any as { errorFree: boolean }).errorFree = false;
+
     if (errorText) {
-        (ctx.parent as any as { errorFree: boolean }).errorFree = false;
         setCellStatus(ctx, ref, 'error', errorText);
     }
 
@@ -312,7 +368,7 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
 type UpdateNodeResult =
     | { action: 'created', obj: StateObject }
     | { action: 'updated', obj: StateObject }
-    | { action: 'replaced', oldObj?: StateObject, newObj: StateObject  }
+    | { action: 'replaced', oldObj?: StateObject, newObj: StateObject }
     | { action: 'none' }
 
 async function updateSubtree(ctx: UpdateContext, root: Ref) {
@@ -325,13 +381,18 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         setCellStatus(ctx, root, 'ok');
         if (update.action === 'created') {
             ctx.parent.events.object.created.next({ state: ctx.parent, ref: root, obj: update.obj! });
+            if (!ctx.hadError) {
+                const transform = ctx.tree.nodes.get(root);
+                if (!transform.cellState || !transform.cellState.isTransformHidden) ctx.newCurrent = root;
+            }
         } else if (update.action === 'updated') {
-            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, obj: update.obj });
+            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'in-place', obj: update.obj });
         } else if (update.action === 'replaced') {
-            ctx.parent.events.object.replaced.next({ state: ctx.parent, ref: root, oldObj: update.oldObj, newObj: update.newObj });
+            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'recreate', obj: update.newObj, oldObj: update.oldObj });
         }
     } catch (e) {
         ctx.changed = true;
+        if (!ctx.hadError) ctx.newCurrent = root;
         doError(ctx, root, '' + e);
         return;
     }
@@ -346,15 +407,18 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
 
 async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNodeResult> {
     const { oldTree, tree } = ctx;
-    const transform = tree.nodes.get(currentRef);
-    const parentCell = StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
+    const current = ctx.cells.get(currentRef)!;
+    const transform = current.transform;
 
+    // special case for Root
+    if (current.transform.ref === Transform.RootRef) return { action: 'none' };
+
+    const parentCell = StateSelection.findAncestorOfType(tree, ctx.cells, currentRef, transform.transformer.definition.from);
     if (!parentCell) {
         throw new Error(`No suitable parent found for '${currentRef}'`);
     }
 
     const parent = parentCell.obj!;
-    const current = ctx.cells.get(currentRef)!;
     current.sourceRef = parentCell.transform.ref;
 
     if (!oldTree.nodes.has(currentRef)) {
@@ -366,7 +430,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     } else {
         const oldParams = oldTree.nodes.get(currentRef)!.params;
 
-        const updateKind = current.status === 'ok' || current.transform.ref === Transform.RootRef
+        const updateKind = !!current.obj
             ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)
             : Transformer.UpdateResult.Recreate;
 

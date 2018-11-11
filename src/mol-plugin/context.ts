@@ -104,6 +104,7 @@ export class PluginContext {
             .add(StateTransforms.Data.Download)
             .add(StateTransforms.Model.CreateStructureAssembly)
             .add(StateTransforms.Model.CreateStructure)
+            .add(StateTransforms.Model.CreateModelFromTrajectory)
             .add(StateTransforms.Visuals.CreateStructureRepresentation);
     }
 
@@ -133,9 +134,11 @@ export class PluginContext {
             o.obj.data.unregister();
         });
 
-        merge(this.events.state.data.object.replaced, this.events.state.behavior.object.replaced).subscribe(o => {
-            if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
-            if (o.newObj && SO.isBehavior(o.newObj)) o.newObj.data.register();
+        merge(this.events.state.data.object.updated, this.events.state.behavior.object.updated).subscribe(o => {
+            if (o.action === 'recreate') {
+                if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
+                if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register();
+            }
         });
     }
 
