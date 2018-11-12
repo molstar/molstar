@@ -28,7 +28,7 @@ export class StateTree extends PluginComponent<{ state: State }, { }> {
 
 export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { }> {
     componentDidMount() {
-        this.subscribe(merge(this.context.events.state.data.object.cellState, this.context.events.state.behavior.object.cellState), o => {
+        this.subscribe(merge(this.plugin.events.state.data.object.cellState, this.plugin.events.state.behavior.object.cellState), o => {
             if (o.ref === this.props.nodeRef && o.state === this.props.state) this.forceUpdate();
         });
     }
@@ -39,7 +39,7 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
 
         const remove = <>[<a href='#' onClick={e => {
             e.preventDefault();
-            PluginCommands.State.RemoveObject.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
+            PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
         }}>X</a>]</>
 
         let label: any;
@@ -47,13 +47,13 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
             const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
             label = <><b>{cell.status}</b> <a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.State.SetCurrentObject.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
+                PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
             }}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             label = <><a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.State.SetCurrentObject.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
+                PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
             }}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
         }
 
@@ -62,14 +62,14 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
         const expander = <>
             [<a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.State.ToggleExpanded.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
+                PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
             }}>{cellState.isCollapsed ? '+' : '-'}</a>]
         </>;
 
         const visibility = <>
             [<a href='#' onClick={e => {
                 e.preventDefault();
-                PluginCommands.State.ToggleVisibility.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
+                PluginCommands.State.ToggleVisibility.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
             }}>{cellState.isHidden ? 'H' : 'V'}</a>]
         </>;
 

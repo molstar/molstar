@@ -51,8 +51,8 @@ namespace StateSelection {
         withStatus(s: StateObjectCell.Status): Builder;
         subtree(): Builder;
         children(): Builder;
-        ofType(t: StateObject.Type): Builder;
-        ancestorOfType(t: StateObject.Type): Builder;
+        ofType(t: StateObject.Ctor): Builder;
+        ancestorOfType(t: StateObject.Ctor): Builder;
 
         select(state: State): CellSeq
     }
@@ -184,7 +184,7 @@ namespace StateSelection {
     }
 
     registerModifier('ofType', ofType);
-    export function ofType(b: Selector, t: StateObject.Type) { return filter(b, n => n.obj ? n.obj.type === t : false); }
+    export function ofType(b: Selector, t: StateObject.Ctor) { return filter(b, n => n.obj ? n.obj.type === t.type : false); }
 
     registerModifier('ancestorOfType', ancestorOfType);
     export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }

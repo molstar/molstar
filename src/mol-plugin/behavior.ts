@@ -8,7 +8,7 @@ export * from './behavior/behavior'
 
 import * as StaticState from './behavior/static/state'
 import * as StaticRepresentation from './behavior/static/representation'
-import * as StaticCamera from './behavior/static/representation'
+import * as StaticCamera from './behavior/static/camera'
 
 import * as DynamicRepresentation from './behavior/dynamic/representation'
 

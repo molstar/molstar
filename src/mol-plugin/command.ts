@@ -5,8 +5,11 @@
  */
 
 import * as State from './command/state';
+import * as Camera from './command/camera';
 
 export * from './command/command';
+
 export const PluginCommands = {
-    State
+    State,
+    Camera
 }

@@ -116,10 +116,6 @@ export class PluginContext {
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
-    _test_createState(id: string) {
-        this.runTask(this.state.data.apply(CreateStructureFromPDBe, { id }));
-    }
-
     private initEvents() {
         merge(this.events.state.data.object.created, this.events.state.behavior.object.created).subscribe(o => {
             if (!SO.isBehavior(o.obj)) return;
@@ -138,15 +134,6 @@ export class PluginContext {
                 if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register();
             }
         });
-    }
-
-    _test_centerView() {
-        const sel = this.state.data.select(q => q.root.subtree().ofType(SO.Molecule.Structure.type));
-        if (!sel.length) return;
-
-        const center = (sel[0].obj! as SO.Molecule.Structure).data.boundary.sphere.center;
-        this.canvas3d.camera.setState({ target: center });
-        this.canvas3d.requestDraw(true);
     }
 
     constructor() {

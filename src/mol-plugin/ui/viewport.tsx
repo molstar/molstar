@@ -9,9 +9,22 @@ import * as React from 'react';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
 import { PluginComponent } from './base';
+import { PluginCommands } from 'mol-plugin/command';
 
 interface ViewportState {
     noWebGl: boolean
+}
+
+export class ViewportControls extends PluginComponent {
+    resetCamera = () => {
+        PluginCommands.Camera.Reset.dispatch(this.plugin, {});
+    }
+
+    render() {
+        return <div style={{ position: 'absolute', right: '10px', top: '10px', height: '100%', color: 'white' }}>
+            <button onClick={this.resetCamera}>Reset Camera</button>
+        </div>
+    }
 }
 
 export class Viewport extends PluginComponent<{ }, ViewportState> {
@@ -23,19 +36,19 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
     };
 
     private handleResize = () => {
-         this.context.canvas3d.handleResize();
+         this.plugin.canvas3d.handleResize();
     }
 
     componentDidMount() {
-        if (!this.canvas || !this.container || !this.context.initViewer(this.canvas, this.container)) {
+        if (!this.canvas || !this.container || !this.plugin.initViewer(this.canvas, this.container)) {
             this.setState({ noWebGl: true });
         }
         this.handleResize();
 
-        const canvas3d = this.context.canvas3d;
+        const canvas3d = this.plugin.canvas3d;
         this.subscribe(canvas3d.input.resize, this.handleResize);
 
-        const idHelper = new Canvas3dIdentifyHelper(this.context, 15);
+        const idHelper = new Canvas3dIdentifyHelper(this.plugin, 15);
 
         this.subscribe(canvas3d.input.move, ({x, y, inside, buttons}) => {
             if (!inside || buttons) { return; }

@@ -12,7 +12,7 @@ export const PluginReactContext = React.createContext(void 0 as any as PluginCon
 
 export abstract class PluginComponent<P = {}, S = {}, SS = {}> extends React.Component<P, S, SS> {
     static contextType = PluginReactContext;
-    readonly context: PluginContext;
+    readonly plugin: PluginContext;
 
     private subs: Subscription[] | undefined = void 0;
 
@@ -30,6 +30,7 @@ export abstract class PluginComponent<P = {}, S = {}, SS = {}> extends React.Com
 
     constructor(props: P, context?: any) {
         super(props, context);
+        this.plugin = context;
         if (this.init) this.init();
     }
 }
