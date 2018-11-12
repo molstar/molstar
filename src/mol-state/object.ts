@@ -49,7 +49,6 @@ interface StateObjectCell {
 
     version: string
     status: StateObjectCell.Status,
-    visibility: StateObjectCell.Visibility,
 
     errorText?: string,
     obj?: StateObject
@@ -65,5 +64,14 @@ namespace StateObjectCell {
 
     export const DefaultState: State = { isHidden: false, isCollapsed: false };
 
-    export type Visibility = 'visible' | 'hidden' | 'partial'
+    export function areStatesEqual(a: State, b: State) {
+        return a.isHidden !== b.isHidden || a.isCollapsed !== b.isCollapsed;
+    }
+
+    export function isStateChange(a: State, b?: Partial<State>) {
+        if (!b) return false;
+        if (typeof b.isCollapsed !== 'undefined' && a.isCollapsed !== b.isCollapsed) return true;
+        if (typeof b.isHidden !== 'undefined' && a.isHidden !== b.isHidden) return true;
+        return false;
+    }
 }

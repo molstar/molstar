@@ -30,7 +30,7 @@ class State {
     readonly globalContext: unknown = void 0;
     readonly events = {
         object: {
-            cellState: this.ev<State.ObjectEvent & { cell: StateObjectCell }>(),
+            cellState: this.ev<State.ObjectEvent>(),
             cellCreated: this.ev<State.ObjectEvent>(),
 
             updated: this.ev<State.ObjectEvent & { action: 'in-place' | 'recreate', obj: StateObject, oldObj?: StateObject }>(),
@@ -68,13 +68,13 @@ class State {
     }
 
     updateCellState(ref: Transform.Ref, stateOrProvider: ((old: StateObjectCell.State) => Partial<StateObjectCell.State>) | Partial<StateObjectCell.State>) {
-        const cell = this.cells.get(ref)!;
-        const state = typeof stateOrProvider === 'function'
-            ? stateOrProvider(cell.transform.cellState)
+        const update = typeof stateOrProvider === 'function'
+            ? stateOrProvider(this.tree.cellStates.get(ref))
             : stateOrProvider;
 
-        cell.transform = this._tree.setCellState(ref, state);
-        this.events.object.cellState.next({ state: this, ref, cell });
+        if (this._tree.updateCellState(ref, update)) {
+            this.events.object.cellState.next({ state: this, ref });
+        }
     }
 
     dispose() {
@@ -144,7 +144,6 @@ class State {
             sourceRef: void 0,
             obj: rootObject,
             status: 'ok',
-            visibility: 'visible',
             version: root.version,
             errorText: void 0
         });
@@ -182,7 +181,7 @@ interface UpdateContext {
     errorFree: boolean,
     taskCtx: RuntimeContext,
     oldTree: StateTree,
-    tree: StateTree,
+    tree: TransientTree,
     cells: Map<Transform.Ref, StateObjectCell>,
     transformCache: Map<Ref, unknown>,
 
@@ -231,6 +230,11 @@ async function update(ctx: UpdateContext) {
         roots = findUpdateRoots(ctx.cells, ctx.tree);
     }
 
+    // Ensure cell states stay consistent
+    if (!ctx.editInfo) {
+        syncStates(ctx);
+    }
+
     // Init empty cells where not present
     // this is done in "pre order", meaning that "parents" will be created 1st.
     initCells(ctx, roots);
@@ -264,13 +268,21 @@ function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: 
 }
 
 type FindDeletesCtx = { newTree: StateTree, cells: State.Cells, deletes: Ref[] }
-function _visitCheckDelete(n: Transform, _: any, ctx: FindDeletesCtx) {
+function checkDeleteVisitor(n: Transform, _: any, ctx: FindDeletesCtx) {
     if (!ctx.newTree.transforms.has(n.ref) && ctx.cells.has(n.ref)) ctx.deletes.push(n.ref);
 }
 function findDeletes(ctx: UpdateContext): Ref[] {
     const deleteCtx: FindDeletesCtx = { newTree: ctx.tree, cells: ctx.cells, deletes: [] };
-    StateTree.doPostOrder(ctx.oldTree, ctx.oldTree.root, deleteCtx, _visitCheckDelete);
+    StateTree.doPostOrder(ctx.oldTree, ctx.oldTree.root, deleteCtx, checkDeleteVisitor);
     return deleteCtx.deletes;
+}
+
+function syncStatesVisitor(n: Transform, tree: StateTree, oldState: StateTree.CellStates) {
+    if (!oldState.has(n.ref)) return;
+    (tree as TransientTree).updateCellState(n.ref, oldState.get(n.ref));
+}
+function syncStates(ctx: UpdateContext) {
+    StateTree.doPreOrder(ctx.tree, ctx.tree.root, ctx.oldTree.cellStates, syncStatesVisitor);
 }
 
 function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Status, errorText?: string) {
@@ -278,7 +290,7 @@ function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Sta
     const changed = cell.status !== status;
     cell.status = status;
     cell.errorText = errorText;
-    if (changed) ctx.parent.events.object.cellState.next({ state: ctx.parent, ref, cell });
+    if (changed) ctx.parent.events.object.cellState.next({ state: ctx.parent, ref });
 }
 
 function initCellStatusVisitor(t: Transform, _: any, ctx: UpdateContext) {
@@ -294,21 +306,17 @@ function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
 
 function initCellsVisitor(transform: Transform, _: any, ctx: UpdateContext) {
     if (ctx.cells.has(transform.ref)) {
-        if (transform.cellState && transform.cellState.isHidden) {
-            ctx.cells.get(transform.ref)!.visibility = 'hidden';
-        }
         return;
     }
 
-    const obj: StateObjectCell = {
+    const cell: StateObjectCell = {
         transform,
         sourceRef: void 0,
         status: 'pending',
-        visibility: transform.cellState && transform.cellState.isHidden ? 'hidden' : 'visible',
         version: UUID.create22(),
         errorText: void 0
     };
-    ctx.cells.set(transform.ref, obj);
+    ctx.cells.set(transform.ref, cell);
     ctx.parent.events.object.cellCreated.next({ state: ctx.parent, ref: transform.ref });
 }
 

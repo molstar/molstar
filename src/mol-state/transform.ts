@@ -4,18 +4,17 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, StateObjectCell } from './object';
+import { StateObject } from './object';
 import { Transformer } from './transformer';
 import { UUID } from 'mol-util';
 
 export interface Transform<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
     readonly parent: Transform.Ref,
     readonly transformer: Transformer<A, B, P>,
-    readonly params: P,
     readonly props: Transform.Props,
     readonly ref: Transform.Ref,
-    readonly version: string,
-    readonly cellState: StateObjectCell.State
+    readonly params: P,
+    readonly version: string
 }
 
 export namespace Transform {
@@ -31,8 +30,7 @@ export namespace Transform {
 
     export interface Options {
         ref?: string,
-        props?: Props,
-        cellState?: Partial<StateObjectCell.State>
+        props?: Props
     }
 
     export function create<A extends StateObject, B extends StateObject, P>(parent: Ref, transformer: Transformer<A, B, P>, params?: P, options?: Options): Transform<A, B, P> {
@@ -40,20 +38,15 @@ export namespace Transform {
         return {
             parent,
             transformer,
-            params: params || {} as any,
             props: (options && options.props) || { },
             ref,
-            version: UUID.create22(),
-            cellState: { ...StateObjectCell.DefaultState, ...(options && options.cellState) }
+            params: params || {} as any,
+            version: UUID.create22()
         }
     }
 
     export function withParams<T>(t: Transform, params: any): Transform {
         return { ...t, params, version: UUID.create22() };
-    }
-
-    export function withCellState<T>(t: Transform, state: Partial<StateObjectCell.State>): Transform {
-        return { ...t, cellState: { ...t.cellState, ...state } };
     }
 
     export function createRoot(): Transform {
@@ -66,8 +59,7 @@ export namespace Transform {
         params: any,
         props: Props,
         ref: string,
-        version: string,
-        cellState: StateObjectCell.State,
+        version: string
     }
 
     function _id(x: any) { return x; }
@@ -81,8 +73,7 @@ export namespace Transform {
             params: pToJson(t.params),
             props: t.props,
             ref: t.ref,
-            version: t.version,
-            cellState: t.cellState,
+            version: t.version
         };
     }
 
@@ -97,8 +88,7 @@ export namespace Transform {
             params: pFromJson(t.params),
             props: t.props,
             ref: t.ref as Ref,
-            version: t.version,
-            cellState: t.cellState,
+            version: t.version
         };
     }
 }

@@ -6,7 +6,7 @@
 
 import { StateTree } from './immutable';
 import { TransientTree } from './transient';
-import { StateObject } from '../object';
+import { StateObject, StateObjectCell } from '../object';
 import { Transform } from '../transform';
 import { Transformer } from '../transformer';
 
@@ -51,9 +51,9 @@ namespace StateTreeBuilder {
     export class To<A extends StateObject> implements StateTreeBuilder {
         get editInfo() { return this.state.editInfo; }
 
-        apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, props?: Partial<Transform.Options>): To<Transformer.To<T>> {
-            const t = tr.apply(this.ref, params, props);
-            this.state.tree.add(t);
+        apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, options?: Partial<Transform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<Transformer.To<T>> {
+            const t = tr.apply(this.ref, params, options);
+            this.state.tree.add(t, initialCellState);
             this.editInfo.count++;
             this.editInfo.lastUpdate = t.ref;
             return new To(this.state, t.ref, this.root);
