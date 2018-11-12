@@ -169,7 +169,7 @@ namespace StateSelection {
     export function subtree(b: Selector) {
         return flatMap(b, (n, s) => {
             const nodes = [] as string[];
-            StateTree.doPreOrder(s.tree, s.tree.nodes.get(n.transform.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
+            StateTree.doPreOrder(s.tree, s.tree.transforms.get(n.transform.ref), nodes, (x, _, ctx) => { ctx.push(x.ref) });
             return nodes.map(x => s.cells.get(x)!);
         });
     }
@@ -190,12 +190,12 @@ namespace StateSelection {
     export function ancestorOfType(b: Selector, types: StateObject.Ctor[]) { return unique(mapEntity(b, (n, s) => findAncestorOfType(s.tree, s.cells, n.transform.ref, types))); }
 
     registerModifier('parent', parent);
-    export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.nodes.get(n.transform.ref)!.parent))); }
+    export function parent(b: Selector) { return unique(mapEntity(b, (n, s) => s.cells.get(s.tree.transforms.get(n.transform.ref)!.parent))); }
 
     export function findAncestorOfType(tree: StateTree, cells: State.Cells, root: Transform.Ref, types: StateObject.Ctor[]): StateObjectCell | undefined {
-        let current = tree.nodes.get(root)!, len = types.length;
+        let current = tree.transforms.get(root)!, len = types.length;
         while (true) {
-            current = tree.nodes.get(current.parent)!;
+            current = tree.transforms.get(current.parent)!;
             const cell = cells.get(current.ref)!;
             if (!cell.obj) return void 0;
             const obj = cell.obj;

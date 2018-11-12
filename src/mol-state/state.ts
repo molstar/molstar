@@ -265,7 +265,7 @@ function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: 
 
 type FindDeletesCtx = { newTree: StateTree, cells: State.Cells, deletes: Ref[] }
 function _visitCheckDelete(n: Transform, _: any, ctx: FindDeletesCtx) {
-    if (!ctx.newTree.nodes.has(n.ref) && ctx.cells.has(n.ref)) ctx.deletes.push(n.ref);
+    if (!ctx.newTree.transforms.has(n.ref) && ctx.cells.has(n.ref)) ctx.deletes.push(n.ref);
 }
 function findDeletes(ctx: UpdateContext): Ref[] {
     const deleteCtx: FindDeletesCtx = { newTree: ctx.tree, cells: ctx.cells, deletes: [] };
@@ -288,7 +288,7 @@ function initCellStatusVisitor(t: Transform, _: any, ctx: UpdateContext) {
 
 function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
     for (const root of roots) {
-        StateTree.doPreOrder(ctx.tree, ctx.tree.nodes.get(root), ctx, initCellStatusVisitor);
+        StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), ctx, initCellStatusVisitor);
     }
 }
 
@@ -314,7 +314,7 @@ function initCellsVisitor(transform: Transform, _: any, ctx: UpdateContext) {
 
 function initCells(ctx: UpdateContext, roots: Ref[]) {
     for (const root of roots) {
-        StateTree.doPreOrder(ctx.tree, ctx.tree.nodes.get(root), ctx, initCellsVisitor);
+        StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), ctx, initCellsVisitor);
     }
 }
 
@@ -326,7 +326,7 @@ function findNewCurrent(ctx: UpdateContext, start: Ref, deletes: Ref[]) {
 function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
     if (ref === Transform.RootRef) return ref;
 
-    const node = tree.nodes.get(ref)!;
+    const node = tree.transforms.get(ref)!;
     const siblings = tree.children.get(node.parent)!.values();
 
     let prevCandidate: Ref | undefined = void 0, seenRef = false;
@@ -337,7 +337,7 @@ function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
 
         if (deletes.has(s.value)) continue;
 
-        const t = tree.nodes.get(s.value);
+        const t = tree.transforms.get(s.value);
         if (t.props && t.props.isGhost) continue;
         if (s.value === ref) {
             seenRef = true;
@@ -397,7 +397,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         if (update.action === 'created') {
             ctx.parent.events.object.created.next({ state: ctx.parent, ref: root, obj: update.obj! });
             if (!ctx.hadError) {
-                const transform = ctx.tree.nodes.get(root);
+                const transform = ctx.tree.transforms.get(root);
                 if (!transform.props || !transform.props.isGhost) ctx.newCurrent = root;
             }
         } else if (update.action === 'updated') {
@@ -436,14 +436,14 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     const parent = parentCell.obj!;
     current.sourceRef = parentCell.transform.ref;
 
-    if (!oldTree.nodes.has(currentRef)) {
+    if (!oldTree.transforms.has(currentRef)) {
         const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
         current.obj = obj;
         current.version = transform.version;
 
         return { action: 'created', obj };
     } else {
-        const oldParams = oldTree.nodes.get(currentRef)!.params;
+        const oldParams = oldTree.transforms.get(currentRef)!.params;
 
         const updateKind = !!current.obj
             ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)

@@ -64,7 +64,7 @@ namespace StateTreeBuilder {
         update<T extends Transformer<A, any, any>>(paramsOrTransformer: T, provider?: (old: Transformer.Params<T>) => Transformer.Params<T>) {
             let params: any;
             if (provider) {
-                const old = this.state.tree.nodes.get(this.ref)!;
+                const old = this.state.tree.transforms.get(this.ref)!;
                 params = provider(old.params as any);
             } else {
                 params = paramsOrTransformer;
@@ -85,7 +85,7 @@ namespace StateTreeBuilder {
         getTree(): StateTree { return this.state.tree.asImmutable(); }
 
         constructor(private state: State, private ref: Transform.Ref, private root: Root) {
-            if (!this.state.tree.nodes.has(ref)) {
+            if (!this.state.tree.transforms.has(ref)) {
                 throw new Error(`Could not find node '${ref}'.`);
             }
         }

@@ -34,7 +34,7 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
     }
 
     render() {
-        const n = this.props.state.tree.nodes.get(this.props.nodeRef)!;
+        const n = this.props.state.tree.transforms.get(this.props.nodeRef)!;
         const cell = this.props.state.cells.get(this.props.nodeRef)!;
 
         const remove = <>[<a href='#' onClick={e => {

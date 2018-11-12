@@ -17,7 +17,7 @@ export { StateTree }
  */
 interface StateTree {
     readonly root: Transform,
-    readonly nodes: StateTree.Nodes,
+    readonly transforms: StateTree.Nodes,
     readonly children: StateTree.Children,
     asTransient(): TransientTree,
     build(): StateTreeBuilder.Root
@@ -40,12 +40,11 @@ namespace StateTree {
         get(ref: Ref): T
     }
 
-    export type Node = Transform
-    export type Nodes = _Map<Transform>
-    export type Children = _Map<ChildSet>
+    export interface Nodes extends _Map<Transform> {}
+    export interface Children extends _Map<ChildSet> { }
 
     class Impl implements StateTree {
-        get root() { return this.nodes.get(Transform.RootRef)! }
+        get root() { return this.transforms.get(Transform.RootRef)! }
 
         asTransient(): TransientTree {
             return new TransientTree(this);
@@ -55,7 +54,7 @@ namespace StateTree {
             return new StateTreeBuilder.Root(this);
         }
 
-        constructor(public nodes: StateTree.Nodes, public children: Children) {
+        constructor(public transforms: StateTree.Nodes, public children: Children) {
         }
     }
 
@@ -71,10 +70,10 @@ namespace StateTree {
         return new Impl(nodes, children);
     }
 
-    type VisitorCtx = { tree: StateTree, state: any, f: (node: Node, tree: StateTree, state: any) => boolean | undefined | void };
+    type VisitorCtx = { tree: StateTree, state: any, f: (node: Transform, tree: StateTree, state: any) => boolean | undefined | void };
 
-    function _postOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPostOrder(this, this.tree.nodes.get(c!)!); }
-    function _doPostOrder(ctx: VisitorCtx, root: Node) {
+    function _postOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPostOrder(this, this.tree.transforms.get(c!)!); }
+    function _doPostOrder(ctx: VisitorCtx, root: Transform) {
         const children = ctx.tree.children.get(root.ref);
         if (children && children.size) {
             children.forEach(_postOrderFunc, ctx);
@@ -85,14 +84,14 @@ namespace StateTree {
     /**
      * Visit all nodes in a subtree in "post order", meaning leafs get visited first.
      */
-    export function doPostOrder<S>(tree: StateTree, root: Node, state: S, f: (node: Node, tree: StateTree, state: S) => boolean | undefined | void): S {
+    export function doPostOrder<S>(tree: StateTree, root: Transform, state: S, f: (node: Transform, tree: StateTree, state: S) => boolean | undefined | void): S {
         const ctx: VisitorCtx = { tree, state, f };
         _doPostOrder(ctx, root);
         return ctx.state;
     }
 
-    function _preOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPreOrder(this, this.tree.nodes.get(c!)!); }
-    function _doPreOrder(ctx: VisitorCtx, root: Node) {
+    function _preOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPreOrder(this, this.tree.transforms.get(c!)!); }
+    function _doPreOrder(ctx: VisitorCtx, root: Transform) {
         const ret = ctx.f(root, ctx.tree, ctx.state);
         if (typeof ret === 'boolean' && !ret) return;
         const children = ctx.tree.children.get(root.ref);
@@ -105,24 +104,24 @@ namespace StateTree {
      * Visit all nodes in a subtree in "pre order", meaning leafs get visited last.
      * If the visitor function returns false, the visiting for that branch is interrupted.
      */
-    export function doPreOrder<S>(tree: StateTree, root: Node, state: S, f: (node: Node, tree: StateTree, state: S) => boolean | undefined | void): S {
+    export function doPreOrder<S>(tree: StateTree, root: Transform, state: S, f: (node: Transform, tree: StateTree, state: S) => boolean | undefined | void): S {
         const ctx: VisitorCtx = { tree, state, f };
         _doPreOrder(ctx, root);
         return ctx.state;
     }
 
-    function _subtree(n: Node, _: any, subtree: Node[]) { subtree.push(n); }
+    function _subtree(n: Transform, _: any, subtree: Transform[]) { subtree.push(n); }
     /**
      * Get all nodes in a subtree, leafs come first.
      */
-    export function subtreePostOrder<T>(tree: StateTree, root: Node) {
-        return doPostOrder<Node[]>(tree, root, [], _subtree);
+    export function subtreePostOrder<T>(tree: StateTree, root: Transform) {
+        return doPostOrder<Transform[]>(tree, root, [], _subtree);
     }
 
 
     // function _visitChildToJson(this: Ref[], ref: Ref) { this.push(ref); }
     // interface ToJsonCtx { nodes: Transform.Serialized[] }
-    function _visitNodeToJson(node: Node, tree: StateTree, ctx: Transform.Serialized[]) {
+    function _visitNodeToJson(node: Transform, tree: StateTree, ctx: Transform.Serialized[]) {
         // const children: Ref[] = [];
         // tree.children.get(node.ref).forEach(_visitChildToJson as any, children);
         ctx.push(Transform.toJSON(node));
@@ -140,7 +139,7 @@ namespace StateTree {
     }
 
     export function fromJSON<T>(data: Serialized): StateTree {
-        const nodes = ImmutableMap<Ref, Node>().asMutable();
+        const nodes = ImmutableMap<Ref, Transform>().asMutable();
         const children = ImmutableMap<Ref, OrderedSet<Ref>>().asMutable();
 
         for (const s of data.nodes) {
