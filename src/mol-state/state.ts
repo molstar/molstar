@@ -16,6 +16,8 @@ import { StateTreeBuilder } from './tree/builder';
 import { StateAction } from './action';
 import { StateActionManager } from './action/manager';
 import { TransientTree } from './tree/transient';
+import { LogEntry } from 'mol-util/log-entry';
+import { now, formatTimespan } from 'mol-util/now';
 
 export { State }
 
@@ -37,7 +39,7 @@ class State {
             created: this.ev<State.ObjectEvent & { obj: StateObject }>(),
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
         },
-        warn: this.ev<string>(),
+        log: this.ev<LogEntry>(),
         changed: this.ev<void>()
     };
 
@@ -369,6 +371,7 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
 
     if (errorText) {
         setCellStatus(ctx, ref, 'error', errorText);
+        ctx.parent.events.log.next({ type: 'error', timestamp: new Date(), message: errorText });
     }
 
     const cell = ctx.cells.get(ref)!;
@@ -391,27 +394,33 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
 type UpdateNodeResult =
     | { action: 'created', obj: StateObject }
     | { action: 'updated', obj: StateObject }
-    | { action: 'replaced', oldObj?: StateObject, newObj: StateObject }
+    | { action: 'replaced', oldObj?: StateObject, obj: StateObject }
     | { action: 'none' }
 
 async function updateSubtree(ctx: UpdateContext, root: Ref) {
     setCellStatus(ctx, root, 'processing');
 
     try {
+        const start = now();
         const update = await updateNode(ctx, root);
+        const time = now() - start;
+
         if (update.action !== 'none') ctx.changed = true;
 
         setCellStatus(ctx, root, 'ok');
         if (update.action === 'created') {
             ctx.parent.events.object.created.next({ state: ctx.parent, ref: root, obj: update.obj! });
+            ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
             if (!ctx.hadError) {
                 const transform = ctx.tree.transforms.get(root);
                 if (!transform.props || !transform.props.isGhost) ctx.newCurrent = root;
             }
         } else if (update.action === 'updated') {
             ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'in-place', obj: update.obj });
+            ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
-            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'recreate', obj: update.newObj, oldObj: update.oldObj });
+            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'recreate', obj: update.obj, oldObj: update.oldObj });
+            ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
         ctx.changed = true;
@@ -463,7 +472,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
                 const newObj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
                 current.obj = newObj;
                 current.version = transform.version;
-                return { action: 'replaced', oldObj, newObj: newObj };
+                return { action: 'replaced', oldObj, obj: newObj };
             }
             case Transformer.UpdateResult.Updated:
                 current.version = transform.version;

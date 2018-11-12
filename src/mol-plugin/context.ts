@@ -17,6 +17,7 @@ import { PluginBehaviors, BuiltInPluginBehaviors } from './behavior';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Representation } from 'mol-repr';
 import { CreateStructureFromPDBe } from './state/actions/basic';
+import { LogEntry } from 'mol-util/log-entry';
 
 export class PluginContext {
     private disposed = false;
@@ -31,7 +32,8 @@ export class PluginContext {
             behavior: this.state.behavior.events,
             cameraSnapshots: this.state.cameraSnapshots.events,
             snapshots: this.state.snapshots.events,
-        }
+        },
+        log: this.ev<LogEntry>()
     };
 
     readonly behaviors = {
@@ -61,6 +63,10 @@ export class PluginContext {
         }
     }
 
+    log(e: LogEntry) {
+        this.events.log.next(e);
+    }
+
     /**
      * This should be used in all transform related request so that it could be "spoofed" to allow
      * "static" access to resources.
@@ -87,6 +93,8 @@ export class PluginContext {
         BuiltInPluginBehaviors.State.registerDefault(this);
         BuiltInPluginBehaviors.Representation.registerDefault(this);
         BuiltInPluginBehaviors.Camera.registerDefault(this);
+
+        merge(this.state.data.events.log, this.state.behavior.events.log).subscribe(e => this.events.log.next(e));
     }
 
     async _test_initBehaviors() {

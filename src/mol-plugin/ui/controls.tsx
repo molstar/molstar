@@ -21,7 +21,7 @@ export class Controls extends PluginComponent<{ }, { }> {
 }
 
 
-export class _test_TrajectoryControls extends PluginComponent {
+export class TrajectoryControls extends PluginComponent {
     render() {
         return <div>
             <b>Trajectory: </b>

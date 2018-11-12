@@ -8,12 +8,15 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
-import { Controls, _test_UpdateTransform, _test_ApplyAction, _test_TrajectoryControls } from './controls';
+import { Controls, _test_UpdateTransform, _test_ApplyAction, TrajectoryControls } from './controls';
 import { PluginComponent, PluginReactContext } from './base';
 import { merge } from 'rxjs';
 import { State } from 'mol-state';
 import { CameraSnapshots } from './camera';
 import { StateSnapshots } from './state';
+import { List } from 'immutable';
+import { LogEntry } from 'mol-util/log-entry';
+import { formatTime } from 'mol-util';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     render() {
@@ -24,15 +27,15 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                     <h3>Behaviors</h3>
                     <StateTree state={this.props.plugin.state.behavior} />
                 </div>
-                <div style={{ position: 'absolute', left: '350px', right: '300px', height: '100%' }}>
+                <div style={{ position: 'absolute', left: '350px', right: '300px', top: '0', bottom: '100px' }}>
                     <Viewport />
                     <div style={{ position: 'absolute', left: '10px', top: '10px', height: '100%', color: 'white' }}>
-                        <_test_TrajectoryControls />
+                        <TrajectoryControls />
                     </div>
                     <ViewportControls />
                 </div>
-                <div style={{ position: 'absolute', width: '300px', right: '0', height: '100%', padding: '10px', overflowY: 'scroll' }}>
-                    <_test_CurrentObject />
+                <div style={{ position: 'absolute', width: '300px', right: '0', top: '0', padding: '10px', overflowY: 'scroll' }}>
+                    <CurrentObject />
                     <hr />
                     <Controls />
                     <hr />
@@ -40,12 +43,44 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                     <hr />
                     <StateSnapshots />
                 </div>
+                <div style={{ position: 'absolute', right: '300px', left: '350px', bottom: '0', height: '100px', overflow: 'hidden' }}>
+                    <Log />
+                </div>
             </div>
         </PluginReactContext.Provider>;
     }
 }
 
-export class _test_CurrentObject extends PluginComponent {
+export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
+    private wrapper = React.createRef<HTMLDivElement>();
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.log, e => this.setState({ entries: this.state.entries.push(e) }));
+    }
+
+    componentDidUpdate() {
+        this.scrollToBottom();
+    }
+
+    state = { entries: List<LogEntry>() };
+
+    private scrollToBottom() {
+        const log = this.wrapper.current;
+        if (log) log.scrollTop = log.scrollHeight - log.clientHeight - 1;
+    }
+
+    render() {
+        return <div ref={this.wrapper} style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', padding: '10px', overflowY: 'scroll' }}>
+            <ul style={{ listStyle: 'none' }}>
+                {this.state.entries.map((e, i) => <li key={i} style={{ borderBottom: '1px solid #999', padding: '3px' }}>
+                    [{e!.type}] [{formatTime(e!.timestamp)}] {e!.message}
+                </li>)}
+            </ul>
+        </div>;
+    }
+}
+
+export class CurrentObject extends PluginComponent {
     componentDidMount() {
         let current: State.ObjectEvent | undefined = void 0;
         this.subscribe(merge(this.plugin.behaviors.state.data.currentObject, this.plugin.behaviors.state.behavior.currentObject), o => {
