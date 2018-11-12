@@ -82,12 +82,13 @@ export class PluginContext {
     }
 
     private initBuiltInBehavior() {
-        BuiltInPluginBehaviors.State.registerAll(this);
+        BuiltInPluginBehaviors.State.registerDefault(this);
+        BuiltInPluginBehaviors.Representation.registerDefault(this);
+        BuiltInPluginBehaviors.Camera.registerDefault(this);
     }
 
     async _test_initBehaviors() {
         const tree = this.state.behavior.tree.build()
-            .toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas, { ref: PluginBehaviors.Representation.AddRepresentationToCanvas.id })
             .toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
             .toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
             .getTree();

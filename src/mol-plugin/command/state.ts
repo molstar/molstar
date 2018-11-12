@@ -17,3 +17,5 @@ export const Update = PluginCommand<{ state: State, tree: State.Tree | State.Bui
 export const RemoveObject = PluginCommand<{ state: State, ref: Transform.Ref }>();
 
 export const ToggleExpanded = PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true });
+
+export const ToggleVisibility = PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true });

@@ -66,9 +66,16 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
             }}>{cellState.isCollapsed ? '+' : '-'}</a>]
         </>;
 
+        const visibility = <>
+            [<a href='#' onClick={e => {
+                e.preventDefault();
+                PluginCommands.State.ToggleVisibility.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
+            }}>{cellState.isHidden ? 'H' : 'V'}</a>]
+        </>;
+
         const children = this.props.state.tree.children.get(this.props.nodeRef);
         return <div>
-            {remove}{children.size === 0 ? void 0 : expander} {label}
+            {remove}{visibility}{children.size === 0 ? void 0 : expander} {label}
             {cellState.isCollapsed || children.size === 0
                 ? void 0
                 : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}</div>
