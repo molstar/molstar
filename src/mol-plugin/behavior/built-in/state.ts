@@ -7,6 +7,14 @@
 import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
 
+export function registerAll(ctx: PluginContext) {
+    SetCurrentObject(ctx);
+    Update(ctx);
+    ApplyAction(ctx);
+    RemoveObject(ctx);
+    ToggleExpanded(ctx);
+}
+
 export function SetCurrentObject(ctx: PluginContext) {
     PluginCommands.State.SetCurrentObject.subscribe(ctx, ({ state, ref }) => state.setCurrent(ref));
 }
@@ -22,9 +30,12 @@ export function ApplyAction(ctx: PluginContext) {
 export function RemoveObject(ctx: PluginContext) {
     PluginCommands.State.RemoveObject.subscribe(ctx, ({ state, ref }) => {
         const tree = state.tree.build().delete(ref).getTree();
-        console.log('tree', tree);
         return ctx.runTask(state.update(tree));
     });
+}
+
+export function ToggleExpanded(ctx: PluginContext) {
+    PluginCommands.State.ToggleExpanded.subscribe(ctx, ({ state, ref }) => state.updateCellState(ref, ({ isCollapsed }) => ({ isCollapsed: !isCollapsed })));
 }
 
 // export const SetCurrentObject = PluginBehavior.create({

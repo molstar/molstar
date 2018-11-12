@@ -9,7 +9,6 @@ import { TransientTree } from './transient';
 import { StateObject } from '../object';
 import { Transform } from '../transform';
 import { Transformer } from '../transformer';
-import { shallowEqual } from 'mol-util';
 
 export { StateTreeBuilder }
 
@@ -63,30 +62,25 @@ namespace StateTreeBuilder {
         update<T extends Transformer<A, any, any>>(transformer: T, params: (old: Transformer.Params<T>) => Transformer.Params<T>): Root
         update(params: any): Root
         update<T extends Transformer<A, any, any>>(paramsOrTransformer: T, provider?: (old: Transformer.Params<T>) => Transformer.Params<T>) {
-            const old = this.state.tree.nodes.get(this.ref)!;
             let params: any;
             if (provider) {
+                const old = this.state.tree.nodes.get(this.ref)!;
                 params = provider(old.params as any);
             } else {
                 params = paramsOrTransformer;
             }
 
-            if (old.transformer.definition.params && old.transformer.definition.params.areEqual) {
-                if (old.transformer.definition.params.areEqual(old.params, params)) return this.root;
-            } else {
-                if (shallowEqual(old.params, params)) {
-                    return this.root;
-                }
+            if (this.state.tree.setParams(this.ref, params)) {
+                this.editInfo.count++;
+                this.editInfo.lastUpdate = this.ref;
             }
 
-            this.editInfo.count++;
-            this.editInfo.lastUpdate = this.ref;
-
-            this.state.tree.set(Transform.updateParams(old, params));
             return this.root;
         }
 
-        and() { return this.root; }
+        to<A extends StateObject>(ref: Transform.Ref) { return this.root.to<A>(ref); }
+        toRoot<A extends StateObject>() { return this.root.toRoot<A>(); }
+        delete(ref: Transform.Ref) { return this.root.delete(ref); }
 
         getTree(): StateTree { return this.state.tree.asImmutable(); }
 

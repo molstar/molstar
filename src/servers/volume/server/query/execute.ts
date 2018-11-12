@@ -26,7 +26,7 @@ export default async function execute(params: Data.QueryParams, outputProvider: 
     const start = getTime();
     State.pendingQueries++;
 
-    const guid = UUID.create() as any as string;
+    const guid = UUID.create22() as any as string;
     params.detail = Math.min(Math.max(0, params.detail | 0), ServerConfig.limits.maxOutputSizeInVoxelCountByPrecisionLevel.length - 1);
     ConsoleLogger.logId(guid, 'Info', `id=${params.sourceId},encoding=${params.asBinary ? 'binary' : 'text'},detail=${params.detail},${queryBoxToString(params.box)}`);
 

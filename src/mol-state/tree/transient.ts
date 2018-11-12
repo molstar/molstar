@@ -4,25 +4,29 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { OrderedSet } from 'immutable';
+import { Map as ImmutableMap, OrderedSet } from 'immutable';
 import { Transform } from '../transform';
 import { StateTree } from './immutable';
 import { StateTreeBuilder } from './builder';
+import { StateObjectCell } from 'mol-state/object';
+import { shallowEqual } from 'mol-util/object';
+import { UUID } from 'mol-util';
 
 export { TransientTree }
 
 class TransientTree implements StateTree {
-    nodes = this.tree.nodes;
-    children = this.tree.children;
+    nodes = this.tree.nodes as ImmutableMap<Transform.Ref, Transform>;
+    children = this.tree.children as ImmutableMap<Transform.Ref, OrderedSet<Transform.Ref>>;
 
     private changedNodes = false;
     private changedChildren = false;
-    private _mutations: Map<Transform.Ref, OrderedSet<Transform.Ref>> = void 0 as any;
+    private _childMutations: Map<Transform.Ref, OrderedSet<Transform.Ref>> | undefined = void 0;
+    private _transformMutations: Map<Transform.Ref, Transform> | undefined = void 0;
 
-    private get mutations() {
-        if (this._mutations) return this._mutations;
-        this._mutations = new Map();
-        return this._mutations;
+    private get childMutations() {
+        if (this._childMutations) return this._childMutations;
+        this._childMutations = new Map();
+        return this._childMutations;
     }
 
     get root() { return this.nodes.get(Transform.RootRef)! }
@@ -41,13 +45,13 @@ class TransientTree implements StateTree {
             this.children = this.children.asMutable();
         }
 
-        if (this.mutations.has(parent)) {
-            this.mutations.get(parent)!.add(child);
+        if (this.childMutations.has(parent)) {
+            this.childMutations.get(parent)!.add(child);
         } else {
             const set = (this.children.get(parent) as OrderedSet<Transform.Ref>).asMutable();
             set.add(child);
             this.children.set(parent, set);
-            this.mutations.set(parent, set);
+            this.childMutations.set(parent, set);
         }
     }
 
@@ -57,13 +61,13 @@ class TransientTree implements StateTree {
             this.children = this.children.asMutable();
         }
 
-        if (this.mutations.has(parent)) {
-            this.mutations.get(parent)!.remove(child);
+        if (this.childMutations.has(parent)) {
+            this.childMutations.get(parent)!.remove(child);
         } else {
             const set = (this.children.get(parent) as OrderedSet<Transform.Ref>).asMutable();
             set.remove(child);
             this.children.set(parent, set);
-            this.mutations.set(parent, set);
+            this.childMutations.set(parent, set);
         }
     }
 
@@ -76,7 +80,7 @@ class TransientTree implements StateTree {
             this.children = this.children.asMutable();
         }
         this.children.set(parent, set);
-        this.mutations.set(parent, set);
+        this.childMutations.set(parent, set);
     }
 
     add(transform: Transform) {
@@ -111,13 +115,59 @@ class TransientTree implements StateTree {
         return this;
     }
 
-    set(transform: Transform) {
+    /** Calls Transform.definition.params.areEqual if available, otherwise uses shallowEqual to check if the params changed */
+    setParams(ref: Transform.Ref, params: unknown) {
+        ensurePresent(this.nodes, ref);
+
+        const transform = this.nodes.get(ref)!;
+        const def = transform.transformer.definition;
+        if (def.params && def.params.areEqual) {
+            if (def.params.areEqual(transform.params, params)) return false;
+        } else {
+            if (shallowEqual(transform.params, params)) {
+                return false;
+            }
+        }
+
+        if (this._transformMutations && this._transformMutations.has(transform.ref)) {
+            const mutated = this._transformMutations.get(transform.ref)!;
+            (mutated.params as any) = params;
+            (mutated.version as UUID) = UUID.create22();
+        } else {
+            this.set(Transform.withParams(transform, params));
+        }
+
+        return true;
+    }
+
+    setCellState(ref: Transform.Ref, state: Partial<StateObjectCell.State>) {
+        ensurePresent(this.nodes, ref);
+
+        if (this._transformMutations && this._transformMutations.has(ref)) {
+            const transform = this._transformMutations.get(ref)!;
+            const old = transform.cellState;
+            (transform.cellState as StateObjectCell.State) = { ...old, ...state };
+            return transform;
+        } else {
+            const transform = this.nodes.get(ref);
+            const newT = Transform.withCellState(transform, state);
+            this.set(newT);
+            return newT;
+        }
+    }
+
+    private set(transform: Transform) {
         ensurePresent(this.nodes, transform.ref);
 
         if (!this.changedNodes) {
             this.changedNodes = true;
             this.nodes = this.nodes.asMutable();
         }
+
+        if (!this._transformMutations) {
+            this._transformMutations = new Map();
+        }
+        this._transformMutations.set(transform.ref, transform);
 
         this.nodes.set(transform.ref, transform);
         return this;
@@ -145,15 +195,15 @@ class TransientTree implements StateTree {
         for (const n of st) {
             this.nodes.delete(n.ref);
             this.children.delete(n.ref);
-            if (this._mutations) this._mutations.delete(n.ref);
+            if (this._childMutations) this._childMutations.delete(n.ref);
         }
 
         return st;
     }
 
     asImmutable() {
-        if (!this.changedNodes && !this.changedChildren && !this._mutations) return this.tree;
-        if (this._mutations) this._mutations.forEach(fixChildMutations, this.children);
+        if (!this.changedNodes && !this.changedChildren && !this._childMutations) return this.tree;
+        if (this._childMutations) this._childMutations.forEach(fixChildMutations, this.children);
         return StateTree.create(
             this.changedNodes ? this.nodes.asImmutable() : this.nodes,
             this.changedChildren ? this.children.asImmutable() : this.children);
@@ -164,7 +214,7 @@ class TransientTree implements StateTree {
     }
 }
 
-function fixChildMutations(this: StateTree.Children, m: OrderedSet<Transform.Ref>, k: Transform.Ref) { this.set(k, m.asImmutable()); }
+function fixChildMutations(this: ImmutableMap<Transform.Ref, OrderedSet<Transform.Ref>>, m: OrderedSet<Transform.Ref>, k: Transform.Ref) { this.set(k, m.asImmutable()); }
 
 function alreadyPresent(ref: Transform.Ref) {
     throw new Error(`Transform '${ref}' is already present in the tree.`);

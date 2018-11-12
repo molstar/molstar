@@ -9,6 +9,7 @@ import { PluginStateObject } from 'mol-plugin/state/objects';
 import { State } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 import { PluginComponent } from './base';
+import { merge } from 'rxjs';
 
 export class StateTree extends PluginComponent<{ state: State }, { }> {
     componentDidMount() {
@@ -26,6 +27,12 @@ export class StateTree extends PluginComponent<{ state: State }, { }> {
 }
 
 export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { }> {
+    componentDidMount() {
+        this.subscribe(merge(this.context.events.state.data.object.cellState, this.context.events.state.behavior.object.cellState), o => {
+            if (o.ref === this.props.nodeRef && o.state === this.props.state) this.forceUpdate();
+        });
+    }
+
     render() {
         const n = this.props.state.tree.nodes.get(this.props.nodeRef)!;
         const cell = this.props.state.cells.get(this.props.nodeRef)!;
@@ -50,10 +57,17 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
             }}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
         }
 
+        const expander = <>
+            [<a href='#' onClick={e => {
+                e.preventDefault();
+                PluginCommands.State.ToggleExpanded.dispatch(this.context, { state: this.props.state, ref: this.props.nodeRef });
+            }}>{cell.transform.cellState.isCollapsed ? '+' : '-'}</a>]
+        </>;
+
         const children = this.props.state.tree.children.get(this.props.nodeRef);
         return <div>
-            {remove} {label}
-            {children.size === 0
+            {remove}{children.size === 0 ? void 0 : expander} {label}
+            {cell.transform.cellState.isCollapsed || children.size === 0
                 ? void 0
                 : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}</div>
             }

@@ -29,7 +29,7 @@ namespace StateObject {
         return class implements StateObject<Data, T> {
             static type = type;
             static is(obj?: StateObject): obj is StateObject<Data, T> { return !!obj && type === obj.type; }
-            id = UUID.create();
+            id = UUID.create22();
             type = type;
             label: string;
             description?: string;
@@ -49,6 +49,7 @@ interface StateObjectCell {
 
     version: string
     status: StateObjectCell.Status,
+    visibility: StateObjectCell.Visibility,
 
     errorText?: string,
     obj?: StateObject
@@ -58,16 +59,11 @@ namespace StateObjectCell {
     export type Status = 'ok' | 'error' | 'pending' | 'processing'
 
     export interface State {
-        isObjectHidden: boolean,
-        isTransformHidden: boolean,
-        isBinding: boolean,
+        isHidden: boolean,
         isCollapsed: boolean
     }
 
-    export const DefaultState: State = {
-        isObjectHidden: false,
-        isTransformHidden: false,
-        isBinding: false,
-        isCollapsed: false
-    };
+    export const DefaultState: State = { isHidden: false, isCollapsed: false };
+
+    export type Visibility = 'visible' | 'hidden' | 'partial'
 }

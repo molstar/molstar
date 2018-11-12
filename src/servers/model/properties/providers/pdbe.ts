@@ -83,7 +83,7 @@ function getParam<T>(params: any, ...path: string[]): T | undefined {
 
 
 function apiQueryProvider(urlPrefix: string, cache: any) {
-    const cacheKey = UUID.create();
+    const cacheKey = UUID.create22();
     return async (model: Model) => {
         try {
             if (cache[cacheKey]) return cache[cacheKey];

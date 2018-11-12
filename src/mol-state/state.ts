@@ -15,11 +15,12 @@ import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { StateTreeBuilder } from './tree/builder';
 import { StateAction } from './action';
 import { StateActionManager } from './action/manager';
+import { TransientTree } from './tree/transient';
 
 export { State }
 
 class State {
-    private _tree: StateTree = StateTree.createEmpty();
+    private _tree: TransientTree = StateTree.createEmpty().asTransient();
 
     protected errorFree = true;
     private transformCache = new Map<Transform.Ref, unknown>();
@@ -46,7 +47,7 @@ class State {
 
     readonly actions = new StateActionManager();
 
-    get tree() { return this._tree; }
+    get tree(): StateTree { return this._tree; }
     get current() { return this.behaviors.currentObject.value.ref; }
 
     build() { return this._tree.build(); }
@@ -66,8 +67,14 @@ class State {
         this.behaviors.currentObject.next({ state: this, ref });
     }
 
-    updateCellState(ref: Transform.Ref, state?: Partial<StateObjectCell.State>) {
-        // TODO
+    updateCellState(ref: Transform.Ref, stateOrProvider: ((old: StateObjectCell.State) => Partial<StateObjectCell.State>) | Partial<StateObjectCell.State>) {
+        const cell = this.cells.get(ref)!;
+        const state = typeof stateOrProvider === 'function'
+            ? stateOrProvider(cell.transform.cellState)
+            : stateOrProvider;
+
+        cell.transform = this._tree.setCellState(ref, state);
+        this.events.object.cellState.next({ state: this, ref, cell });
     }
 
     dispose() {
@@ -96,7 +103,7 @@ class State {
     }
 
     update(tree: StateTree | StateTreeBuilder): Task<void> {
-        const _tree = StateTreeBuilder.is(tree) ? tree.getTree() : tree;
+        const _tree = (StateTreeBuilder.is(tree) ? tree.getTree() : tree).asTransient();
         return Task.create('Update Tree', async taskCtx => {
             let updated = false;
             try {
@@ -137,7 +144,9 @@ class State {
             sourceRef: void 0,
             obj: rootObject,
             status: 'ok',
-            version: root.version
+            visibility: 'visible',
+            version: root.version,
+            errorText: void 0
         });
 
         this.globalContext = params && params.globalContext;
@@ -284,13 +293,19 @@ function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
 }
 
 function initCellsVisitor(transform: Transform, _: any, ctx: UpdateContext) {
-    if (ctx.cells.has(transform.ref)) return;
+    if (ctx.cells.has(transform.ref)) {
+        if (transform.cellState && transform.cellState.isHidden) {
+            ctx.cells.get(transform.ref)!.visibility = 'hidden';
+        }
+        return;
+    }
 
     const obj: StateObjectCell = {
         transform,
         sourceRef: void 0,
         status: 'pending',
-        version: UUID.create(),
+        visibility: transform.cellState && transform.cellState.isHidden ? 'hidden' : 'visible',
+        version: UUID.create22(),
         errorText: void 0
     };
     ctx.cells.set(transform.ref, obj);
@@ -323,7 +338,7 @@ function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
         if (deletes.has(s.value)) continue;
 
         const t = tree.nodes.get(s.value);
-        if (t.cellState && t.cellState.isTransformHidden) continue;
+        if (t.props && t.props.isGhost) continue;
         if (s.value === ref) {
             seenRef = true;
             if (!deletes.has(ref)) prevCandidate = ref;
@@ -383,7 +398,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
             ctx.parent.events.object.created.next({ state: ctx.parent, ref: root, obj: update.obj! });
             if (!ctx.hadError) {
                 const transform = ctx.tree.nodes.get(root);
-                if (!transform.cellState || !transform.cellState.isTransformHidden) ctx.newCurrent = root;
+                if (!transform.props || !transform.props.isGhost) ctx.newCurrent = root;
             }
         } else if (update.action === 'updated') {
             ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'in-place', obj: update.obj });

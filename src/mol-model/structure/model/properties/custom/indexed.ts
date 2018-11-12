@@ -83,7 +83,7 @@ function arrayToMap<Idx extends IndexedCustomProperty.Index, T>(array: ArrayLike
 }
 
 class SegmentedMappedIndexedCustomProperty<Idx extends IndexedCustomProperty.Index, T = any> implements IndexedCustomProperty<Idx, T> {
-    readonly id: UUID = UUID.create();
+    readonly id: UUID = UUID.create22();
     readonly kind: Unit.Kind;
     has(idx: Idx): boolean { return this.map.has(idx); }
     get(idx: Idx) { return this.map.get(idx); }
@@ -129,7 +129,7 @@ class SegmentedMappedIndexedCustomProperty<Idx extends IndexedCustomProperty.Ind
 }
 
 class ElementMappedCustomProperty<T = any> implements IndexedCustomProperty<ElementIndex, T> {
-    readonly id: UUID = UUID.create();
+    readonly id: UUID = UUID.create22();
     readonly kind: Unit.Kind;
     readonly level = 'atom';
     has(idx: ElementIndex): boolean { return this.map.has(idx); }
@@ -173,7 +173,7 @@ class ElementMappedCustomProperty<T = any> implements IndexedCustomProperty<Elem
 }
 
 class EntityMappedCustomProperty<T = any> implements IndexedCustomProperty<EntityIndex, T> {
-    readonly id: UUID = UUID.create();
+    readonly id: UUID = UUID.create22();
     readonly kind: Unit.Kind;
     readonly level = 'entity';
     has(idx: EntityIndex): boolean { return this.map.has(idx); }

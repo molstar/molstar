@@ -82,17 +82,14 @@ export class PluginContext {
     }
 
     private initBuiltInBehavior() {
-        BuiltInPluginBehaviors.State.ApplyAction(this);
-        BuiltInPluginBehaviors.State.RemoveObject(this);
-        BuiltInPluginBehaviors.State.SetCurrentObject(this);
-        BuiltInPluginBehaviors.State.Update(this);
+        BuiltInPluginBehaviors.State.registerAll(this);
     }
 
     async _test_initBehaviors() {
         const tree = this.state.behavior.tree.build()
             .toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas, { ref: PluginBehaviors.Representation.AddRepresentationToCanvas.id })
-            .and().toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
-            .and().toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
+            .toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
+            .toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
             .getTree();
 
         await this.runTask(this.state.behavior.update(tree));

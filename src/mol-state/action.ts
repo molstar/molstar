@@ -55,7 +55,7 @@ namespace StateAction {
     export function create<A extends StateObject, T, P>(definition: Definition<A, T, P>): StateAction<A, T, P> {
         const action: StateAction<A, T, P> = {
             create(params) { return { action, params }; },
-            id: UUID.create(),
+            id: UUID.create22(),
             definition
         };
         return action;

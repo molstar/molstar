@@ -34,9 +34,15 @@ namespace StateTree {
         readonly map: OrderedSet<Ref>['map']
     }
 
+    interface _Map<T> {
+        readonly size: number,
+        has(ref: Ref): boolean,
+        get(ref: Ref): T
+    }
+
     export type Node = Transform
-    export type Nodes = ImmutableMap<Ref, Transform>
-    export type Children = ImmutableMap<Ref, ChildSet>
+    export type Nodes = _Map<Transform>
+    export type Children = _Map<ChildSet>
 
     class Impl implements StateTree {
         get root() { return this.nodes.get(Transform.RootRef)! }
@@ -67,7 +73,7 @@ namespace StateTree {
 
     type VisitorCtx = { tree: StateTree, state: any, f: (node: Node, tree: StateTree, state: any) => boolean | undefined | void };
 
-    function _postOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPostOrder(this, this.tree.nodes.get(c!)); }
+    function _postOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPostOrder(this, this.tree.nodes.get(c!)!); }
     function _doPostOrder(ctx: VisitorCtx, root: Node) {
         const children = ctx.tree.children.get(root.ref);
         if (children && children.size) {
@@ -85,7 +91,7 @@ namespace StateTree {
         return ctx.state;
     }
 
-    function _preOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPreOrder(this, this.tree.nodes.get(c!)); }
+    function _preOrderFunc(this: VisitorCtx, c: Ref | undefined) { _doPreOrder(this, this.tree.nodes.get(c!)!); }
     function _doPreOrder(ctx: VisitorCtx, root: Node) {
         const ret = ctx.f(root, ctx.tree, ctx.state);
         if (typeof ret === 'boolean' && !ret) return;

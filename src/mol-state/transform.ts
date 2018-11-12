@@ -12,10 +12,10 @@ export interface Transform<A extends StateObject = StateObject, B extends StateO
     readonly parent: Transform.Ref,
     readonly transformer: Transformer<A, B, P>,
     readonly params: P,
+    readonly props: Transform.Props,
     readonly ref: Transform.Ref,
     readonly version: string,
-    readonly cellState?: Partial<StateObjectCell.State>,
-    readonly tag?: string
+    readonly cellState: StateObjectCell.State
 }
 
 export namespace Transform {
@@ -23,23 +23,37 @@ export namespace Transform {
 
     export const RootRef = '-=root=-' as Ref;
 
-    export interface Options { ref?: Ref, tag?: string, cellState?: Partial<StateObjectCell.State> }
+    export interface Props {
+        tag?: string
+        isGhost?: boolean,
+        isBinding?: boolean
+    }
+
+    export interface Options {
+        ref?: string,
+        props?: Props,
+        cellState?: Partial<StateObjectCell.State>
+    }
 
     export function create<A extends StateObject, B extends StateObject, P>(parent: Ref, transformer: Transformer<A, B, P>, params?: P, options?: Options): Transform<A, B, P> {
-        const ref = options && options.ref ? options.ref : UUID.create() as string as Ref;
+        const ref = options && options.ref ? options.ref : UUID.create22() as string as Ref;
         return {
             parent,
             transformer,
             params: params || {} as any,
+            props: (options && options.props) || { },
             ref,
-            version: UUID.create(),
-            cellState: options && options.cellState,
-            tag: options && options.tag
+            version: UUID.create22(),
+            cellState: { ...StateObjectCell.DefaultState, ...(options && options.cellState) }
         }
     }
 
-    export function updateParams<T>(t: Transform, params: any): Transform {
-        return { ...t, params, version: UUID.create() };
+    export function withParams<T>(t: Transform, params: any): Transform {
+        return { ...t, params, version: UUID.create22() };
+    }
+
+    export function withCellState<T>(t: Transform, state: Partial<StateObjectCell.State>): Transform {
+        return { ...t, cellState: { ...t.cellState, ...state } };
     }
 
     export function createRoot(): Transform {
@@ -50,10 +64,10 @@ export namespace Transform {
         parent: string,
         transformer: string,
         params: any,
+        props: Props,
         ref: string,
         version: string,
-        cellState?: Partial<StateObjectCell.State>,
-        tag?: string
+        cellState: StateObjectCell.State,
     }
 
     function _id(x: any) { return x; }
@@ -65,10 +79,10 @@ export namespace Transform {
             parent: t.parent,
             transformer: t.transformer.id,
             params: pToJson(t.params),
+            props: t.props,
             ref: t.ref,
             version: t.version,
             cellState: t.cellState,
-            tag: t.tag
         };
     }
 
@@ -81,10 +95,10 @@ export namespace Transform {
             parent: t.parent as Ref,
             transformer,
             params: pFromJson(t.params),
+            props: t.props,
             ref: t.ref as Ref,
             version: t.version,
             cellState: t.cellState,
-            tag: t.tag
         };
     }
 }

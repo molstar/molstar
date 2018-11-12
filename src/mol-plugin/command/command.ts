@@ -7,22 +7,22 @@
 import { PluginContext } from '../context';
 import { LinkedList } from 'mol-data/generic';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { UUID } from 'mol-util';
 
 export { PluginCommand }
 
 interface PluginCommand<T = unknown> {
-    readonly id: PluginCommand.Id,
+    readonly id: UUID,
     dispatch(ctx: PluginContext, params: T): Promise<void>,
     subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription,
-    params?: { toJSON(params: T): any, fromJSON(json: any): T }
+    params: { isImmediate: boolean }
 }
 
 /** namespace.id must a globally unique identifier */
-function PluginCommand<T>(namespace: string, id: string, params?: PluginCommand<T>['params']): PluginCommand<T> {
-    return new Impl(`${namespace}.${id}` as PluginCommand.Id, params);
+function PluginCommand<T>(params?: Partial<PluginCommand<T>['params']>): PluginCommand<T> {
+    return new Impl({ isImmediate: false, ...params });
 }
 
-const cmdRepo = new Map<string, PluginCommand<any>>();
 class Impl<T> implements PluginCommand<T> {
     dispatch(ctx: PluginContext, params: T): Promise<void> {
         return ctx.commands.dispatch(this, params)
@@ -30,9 +30,8 @@ class Impl<T> implements PluginCommand<T> {
     subscribe(ctx: PluginContext, action: PluginCommand.Action<T>): PluginCommand.Subscription {
         return ctx.commands.subscribe(this, action);
     }
-    constructor(public id: PluginCommand.Id, public params: PluginCommand<T>['params']) {
-        if (cmdRepo.has(id)) throw new Error(`Command id '${id}' already in use.`);
-        cmdRepo.set(id, this);
+    id = UUID.create22();
+    constructor(public params: PluginCommand<T>['params']) {
     }
 }
 
@@ -44,7 +43,7 @@ namespace PluginCommand {
     }
 
     export type Action<T> = (params: T) => void | Promise<void>
-    type Instance = { id: string, params: any, resolve: () => void, reject: (e: any) => void }
+    type Instance = { cmd: PluginCommand<any>, params: any, resolve: () => void, reject: (e: any) => void }
 
     export class Manager {
         private subs = new Map<string, Action<any>[]>();
@@ -85,22 +84,27 @@ namespace PluginCommand {
 
 
         /** Resolves after all actions have completed */
-        dispatch<T>(cmd: PluginCommand<T> | Id, params: T) {
+        dispatch<T>(cmd: PluginCommand<T>, params: T) {
             return new Promise<void>((resolve, reject) => {
                 if (this.disposing) {
                     reject('disposed');
                     return;
                 }
 
-                const id = typeof cmd === 'string' ? cmd : (cmd as PluginCommand<T>).id;
-                const actions = this.subs.get(id);
+                const actions = this.subs.get(cmd.id);
                 if (!actions) {
                     resolve();
                     return;
                 }
 
-                this.queue.addLast({ id, params, resolve, reject });
-                this.next();
+                const instance: Instance = { cmd, params, resolve, reject };
+
+                if (cmd.params.isImmediate) {
+                    this.resolve(instance);
+                } else {
+                    this.queue.addLast({ cmd, params, resolve, reject });
+                    this.next();
+                }
             });
         }
 
@@ -111,29 +115,39 @@ namespace PluginCommand {
             }
         }
 
-        private executing = false;
-        private async next() {
-            if (this.queue.count === 0 || this.executing) return;
-            const cmd = this.queue.removeFirst()!;
-
-            const actions = this.subs.get(cmd.id);
+        private async resolve(instance: Instance) {
+            const actions = this.subs.get(instance.cmd.id);
             if (!actions) {
+                try {
+                    instance.resolve();
+                } finally {
+                    if (!instance.cmd.params.isImmediate && !this.disposing) this.next();
+                }
                 return;
             }
 
             try {
-                this.executing = true;
+                if (!instance.cmd.params.isImmediate) this.executing = true;
                 // TODO: should actions be called "asynchronously" ("setImmediate") instead?
                 for (const a of actions) {
-                    await a(cmd.params);
+                    await a(instance.params);
                 }
-                cmd.resolve();
+                instance.resolve();
             } catch (e) {
-                cmd.reject(e);
+                instance.reject(e);
             } finally {
-                this.executing = false;
-                if (!this.disposing) this.next();
+                if (!instance.cmd.params.isImmediate) {
+                    this.executing = false;
+                    if (!this.disposing) this.next();
+                }
             }
+        }
+
+        private executing = false;
+        private async next() {
+            if (this.queue.count === 0 || this.executing) return;
+            const instance = this.queue.removeFirst()!;
+            this.resolve(instance);
         }
     }
 }

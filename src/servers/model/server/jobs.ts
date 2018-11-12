@@ -43,7 +43,7 @@ export function createJob<Name extends QueryName>(definition: JobDefinition<Name
     const normalizedParams = normalizeQueryParams(queryDefinition, definition.queryParams);
     const sourceId = definition.sourceId || '_local_';
     return {
-        id: UUID.create(),
+        id: UUID.create22(),
         datetime_utc: `${new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '')}`,
         key: `${sourceId}/${definition.entryId}`,
         sourceId,
