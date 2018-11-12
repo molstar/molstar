@@ -8,7 +8,7 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
-import { Controls, _test_UpdateTransform, _test_ApplyAction, _test_TrajectoryControls } from './controls';
+import { Controls, _test_UpdateTransform, _test_ApplyAction, _test_TrajectoryControls, CameraSnapshots } from './controls';
 import { PluginComponent, PluginReactContext } from './base';
 import { merge } from 'rxjs';
 import { State } from 'mol-state';
@@ -33,6 +33,8 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                     <_test_CurrentObject />
                     <hr />
                     <Controls />
+                    <hr />
+                    <CameraSnapshots />
                 </div>
             </div>
         </PluginReactContext.Provider>;

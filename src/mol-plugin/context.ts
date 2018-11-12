@@ -28,7 +28,8 @@ export class PluginContext {
     readonly events = {
         state: {
             data: this.state.data.events,
-            behavior: this.state.behavior.events
+            behavior: this.state.behavior.events,
+            cameraSnapshots: this.state.cameraSnapshots.events
         }
     };
 
