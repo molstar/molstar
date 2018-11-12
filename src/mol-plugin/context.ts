@@ -29,7 +29,8 @@ export class PluginContext {
         state: {
             data: this.state.data.events,
             behavior: this.state.behavior.events,
-            cameraSnapshots: this.state.cameraSnapshots.events
+            cameraSnapshots: this.state.cameraSnapshots.events,
+            snapshots: this.state.snapshots.events,
         }
     };
 

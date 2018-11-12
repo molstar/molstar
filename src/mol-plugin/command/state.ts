@@ -19,3 +19,10 @@ export const RemoveObject = PluginCommand<{ state: State, ref: Transform.Ref }>(
 export const ToggleExpanded = PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true });
 
 export const ToggleVisibility = PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true });
+
+export const Snapshots = {
+    Add: PluginCommand<{ name?: string, description?: string }>({ isImmediate: true }),
+    Remove: PluginCommand<{ id: string }>({ isImmediate: true }),
+    Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
+    Clear: PluginCommand<{ }>({ isImmediate: true }),
+}

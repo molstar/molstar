@@ -7,6 +7,7 @@
 import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
 import { StateTree, Transform, State } from 'mol-state';
+import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
 
 export function registerDefault(ctx: PluginContext) {
     SetCurrentObject(ctx);
@@ -15,6 +16,7 @@ export function registerDefault(ctx: PluginContext) {
     RemoveObject(ctx);
     ToggleExpanded(ctx);
     ToggleVisibility(ctx);
+    Snapshots(ctx);
 }
 
 export function SetCurrentObject(ctx: PluginContext) {
@@ -50,4 +52,24 @@ function setVisibility(state: State, root: Transform.Ref, value: boolean) {
 
 function setVisibilityVisitor(t: Transform, tree: StateTree, ctx: { state: State, value: boolean }) {
     ctx.state.updateCellState(t.ref, { isHidden: ctx.value });
+}
+
+export function Snapshots(ctx: PluginContext) {
+    PluginCommands.State.Snapshots.Clear.subscribe(ctx, () => {
+        ctx.state.snapshots.clear();
+    });
+
+    PluginCommands.State.Snapshots.Remove.subscribe(ctx, ({ id }) => {
+        ctx.state.snapshots.remove(id);
+    });
+
+    PluginCommands.State.Snapshots.Add.subscribe(ctx, ({ name, description }) => {
+        const entry = PluginStateSnapshotManager.Entry(name || new Date().toLocaleTimeString(), ctx.state.getSnapshot(), description);
+        ctx.state.snapshots.add(entry);
+    });
+
+    PluginCommands.State.Snapshots.Apply.subscribe(ctx, ({ id }) => {
+        const e = ctx.state.snapshots.getEntry(id);
+        return ctx.state.setSnapshot(e.snapshot);
+    });
 }

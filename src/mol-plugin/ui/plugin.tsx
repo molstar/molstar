@@ -8,10 +8,12 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
-import { Controls, _test_UpdateTransform, _test_ApplyAction, _test_TrajectoryControls, CameraSnapshots } from './controls';
+import { Controls, _test_UpdateTransform, _test_ApplyAction, _test_TrajectoryControls } from './controls';
 import { PluginComponent, PluginReactContext } from './base';
 import { merge } from 'rxjs';
 import { State } from 'mol-state';
+import { CameraSnapshots } from './camera';
+import { StateSnapshots } from './state';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     render() {
@@ -29,12 +31,14 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                     </div>
                     <ViewportControls />
                 </div>
-                <div style={{ position: 'absolute', width: '300px', right: '0', height: '100%', padding: '10px' }}>
+                <div style={{ position: 'absolute', width: '300px', right: '0', height: '100%', padding: '10px', overflowY: 'scroll' }}>
                     <_test_CurrentObject />
                     <hr />
                     <Controls />
                     <hr />
                     <CameraSnapshots />
+                    <hr />
+                    <StateSnapshots />
                 </div>
             </div>
         </PluginReactContext.Provider>;

@@ -9,13 +9,16 @@ import { PluginStateObject as SO } from './state/objects';
 import { Camera } from 'mol-canvas3d/camera';
 import { PluginBehavior } from './behavior';
 import { CameraSnapshotManager } from './state/camera';
+import { PluginStateSnapshotManager } from './state/snapshots';
 
 export { PluginState }
 
 class PluginState {
     readonly data: State;
     readonly behavior: State;
-    readonly cameraSnapshots: CameraSnapshotManager = new CameraSnapshotManager();
+    readonly cameraSnapshots = new CameraSnapshotManager();
+
+    readonly snapshots = new PluginStateSnapshotManager();
 
     getSnapshot(): PluginState.Snapshot {
         return {
