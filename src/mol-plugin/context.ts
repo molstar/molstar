@@ -18,10 +18,12 @@ import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Representation } from 'mol-repr';
 import { CreateStructureFromPDBe } from './state/actions/basic';
 import { LogEntry } from 'mol-util/log-entry';
+import { TaskManager } from './util/task-manager';
 
 export class PluginContext {
     private disposed = false;
     private ev = RxEventHelper.create();
+    private tasks = new TaskManager();
 
     readonly state = new PluginState(this);
     readonly commands = new PluginCommand.Manager();
@@ -33,7 +35,8 @@ export class PluginContext {
             cameraSnapshots: this.state.cameraSnapshots.events,
             snapshots: this.state.snapshots.events,
         },
-        log: this.ev<LogEntry>()
+        log: this.ev<LogEntry>(),
+        task: this.tasks.events
     };
 
     readonly behaviors = {
@@ -76,8 +79,8 @@ export class PluginContext {
         return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
     }
 
-    async runTask<T>(task: Task<T>) {
-        return await task.run(p => console.log(p.root.progress.message), 250);
+    runTask<T>(task: Task<T>) {
+        return this.tasks.run(task);
     }
 
     dispose() {
@@ -86,6 +89,7 @@ export class PluginContext {
         this.canvas3d.dispose();
         this.ev.dispose();
         this.state.dispose();
+        this.tasks.dispose();
         this.disposed = true;
     }
 

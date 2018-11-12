@@ -17,6 +17,7 @@ import { StateSnapshots } from './state';
 import { List } from 'immutable';
 import { LogEntry } from 'mol-util/log-entry';
 import { formatTime } from 'mol-util';
+import { BackgroundTaskProgress } from './task';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     render() {
@@ -33,6 +34,9 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                         <TrajectoryControls />
                     </div>
                     <ViewportControls />
+                    <div style={{ position: 'absolute', left: '10px', bottom: '10px', color: 'white' }}>
+                        <BackgroundTaskProgress />
+                    </div>
                 </div>
                 <div style={{ position: 'absolute', width: '300px', right: '0', top: '0', padding: '10px', overflowY: 'scroll' }}>
                     <CurrentObject />
