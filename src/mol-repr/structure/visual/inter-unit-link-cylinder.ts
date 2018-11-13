@@ -64,7 +64,9 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {
         getLoci: getLinkLoci,
         mark: markLink,
         setUpdateState: (state: VisualUpdateState, newProps: InterUnitLinkProps, currentProps: InterUnitLinkProps) => {
-            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
+            if (newProps.linkScale !== currentProps.linkScale) state.createGeometry = true
+            if (newProps.linkSpacing !== currentProps.linkSpacing) state.createGeometry = true
+            if (newProps.radialSegments !== currentProps.radialSegments) state.createGeometry = true
         }
     })
 }
