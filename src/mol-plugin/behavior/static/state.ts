@@ -72,4 +72,20 @@ export function Snapshots(ctx: PluginContext) {
         const e = ctx.state.snapshots.getEntry(id);
         return ctx.state.setSnapshot(e.snapshot);
     });
+
+    PluginCommands.State.Snapshots.Upload.subscribe(ctx, ({ name, description, serverUrl }) => {
+        return fetch(`${serverUrl}/set?name=${encodeURIComponent(name || '')}&description=${encodeURIComponent(description || '')}`, {
+            method: 'POST',
+            mode: 'cors',
+            referrer: 'no-referrer',
+            headers: { 'Content-Type': 'application/json; charset=utf-8' },
+            body: JSON.stringify(ctx.state.getSnapshot())
+        }) as any as Promise<void>;
+    });
+
+    PluginCommands.State.Snapshots.Fetch.subscribe(ctx, async ({ url }) => {
+        const req = await fetch(url, { referrer: 'no-referrer' });
+        const json = await req.json();
+        return ctx.state.setSnapshot(json.data);
+    });
 }

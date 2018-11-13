@@ -38,7 +38,7 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                         <BackgroundTaskProgress />
                     </div>
                 </div>
-                <div style={{ position: 'absolute', width: '300px', right: '0', top: '0', padding: '10px', overflowY: 'scroll' }}>
+                <div style={{ position: 'absolute', width: '300px', right: '0', top: '0', bottom: '0', padding: '10px', overflowY: 'scroll' }}>
                     <CurrentObject />
                     <hr />
                     <Controls />

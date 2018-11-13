@@ -25,4 +25,7 @@ export const Snapshots = {
     Remove: PluginCommand<{ id: string }>({ isImmediate: true }),
     Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
     Clear: PluginCommand<{ }>({ isImmediate: true }),
+
+    Upload: PluginCommand<{ name?: string, description?: string, serverUrl: string }>({ isImmediate: true }),
+    Fetch: PluginCommand<{ url: string }>()
 }
