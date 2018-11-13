@@ -8,16 +8,16 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
-import { Controls, _test_UpdateTransform, _test_ApplyAction, TrajectoryControls } from './controls';
+import { Controls, TrajectoryControls } from './controls';
 import { PluginComponent, PluginReactContext } from './base';
 import { merge } from 'rxjs';
-import { State } from 'mol-state';
 import { CameraSnapshots } from './camera';
 import { StateSnapshots } from './state';
 import { List } from 'immutable';
 import { LogEntry } from 'mol-util/log-entry';
 import { formatTime } from 'mol-util';
 import { BackgroundTaskProgress } from './task';
+import { ActionContol } from './action';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     render() {
@@ -86,19 +86,24 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
 
 export class CurrentObject extends PluginComponent {
     componentDidMount() {
-        let current: State.ObjectEvent | undefined = void 0;
+        // let current: State.ObjectEvent | undefined = void 0;
         this.subscribe(merge(this.plugin.behaviors.state.data.currentObject, this.plugin.behaviors.state.behavior.currentObject), o => {
-            current = o;
+            // current = o;
             this.forceUpdate()
         });
 
         this.subscribe(this.plugin.events.state.data.object.updated, ({ ref, state }) => {
-            if (!current || current.ref !== ref && current.state !== state) return;
+            console.log('curr event', +new Date);
+            const current = this.plugin.behaviors.state.data.currentObject.value;
+            if (current.ref !== ref || current.state !== state) return;
+            console.log('curr event pass', +new Date);
             this.forceUpdate();
         });
     }
 
     render() {
+        console.log('curr', +new Date);
+
         const current = this.plugin.behaviors.state.data.currentObject.value;
 
         const ref = current.ref;
@@ -113,11 +118,11 @@ export class CurrentObject extends PluginComponent {
         return <div>
             <hr />
             <h3>Update {obj.obj ? obj.obj.label : ref}</h3>
-            <_test_UpdateTransform key={`${ref} update`} state={current.state} nodeRef={ref} />
+            <ActionContol key={`${ref} update`} state={current.state} nodeRef={ref} />
             <hr />
             <h3>Create</h3>
             {
-                actions.map((act, i) => <_test_ApplyAction key={`${act.id} ${ref} ${i}`}
+                actions.map((act, i) => <ActionContol key={`${act.id}`}
                     state={current.state} action={act} nodeRef={ref} />)
             }
         </div>;

@@ -72,7 +72,7 @@ export namespace Transformer {
             /** Specify default control descriptors for the parameters */
             controls?(a: A, globalCtx: unknown): ControlsFor<P>,
             /** Check the parameters and return a list of errors if the are not valid. */
-            validate?(a: A, params: P, globalCtx: unknown): string[] | undefined,
+            validate?(params: P, a: A, globalCtx: unknown): string[] | undefined,
             /** Optional custom parameter equality. Use deep structural equal by default. */
             areEqual?(oldParams: P, newParams: P): boolean
         },

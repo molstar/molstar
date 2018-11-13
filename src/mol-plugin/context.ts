@@ -114,6 +114,7 @@ export class PluginContext {
         this.state.data.actions
             .add(CreateStructureFromPDBe)
             .add(StateTransforms.Data.Download)
+            .add(StateTransforms.Data.ParseCif)
             .add(StateTransforms.Model.CreateStructureAssembly)
             .add(StateTransforms.Model.CreateStructure)
             .add(StateTransforms.Model.CreateModelFromTrajectory)
