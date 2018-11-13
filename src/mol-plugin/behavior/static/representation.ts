@@ -12,14 +12,15 @@ export function registerDefault(ctx: PluginContext) {
 }
 
 export function SyncRepresentationToCanvas(ctx: PluginContext) {
-    ctx.events.state.data.object.created.subscribe(e => {
+    const events = ctx.state.dataState.events;
+    events.object.created.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
         ctx.canvas3d.add(e.obj.data);
         ctx.canvas3d.requestDraw(true);
 
         // TODO: update visiblity
     });
-    ctx.events.state.data.object.updated.subscribe(e => {
+    events.object.updated.subscribe(e => {
         if (e.oldObj && SO.isRepresentation3D(e.oldObj)) {
             ctx.canvas3d.remove(e.oldObj.data);
             ctx.canvas3d.requestDraw(true);
@@ -32,7 +33,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
         ctx.canvas3d.add(e.obj.data);
         ctx.canvas3d.requestDraw(true);
     });
-    ctx.events.state.data.object.removed.subscribe(e => {
+    events.object.removed.subscribe(e => {
         const oo = e.obj;
         if (!SO.isRepresentation3D(oo)) return;
         ctx.canvas3d.remove(oo.data);
@@ -42,7 +43,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
 }
 
 export function UpdateRepresentationVisibility(ctx: PluginContext) {
-    ctx.events.state.data.object.cellState.subscribe(e => {
+    ctx.state.dataState.events.object.cellState.subscribe(e => {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
 

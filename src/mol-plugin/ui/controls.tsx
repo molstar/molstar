@@ -22,15 +22,15 @@ export class TrajectoryControls extends PluginComponent {
         return <div>
             <b>Trajectory: </b>
             <button onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
-                state: this.plugin.state.data,
+                state: this.plugin.state.dataState,
                 action: UpdateTrajectory.create({ action: 'advance', by: -1 })
             })}>&lt;&lt;</button>
             <button onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
-                state: this.plugin.state.data,
+                state: this.plugin.state.dataState,
                 action: UpdateTrajectory.create({ action: 'reset' })
             })}>Reset</button>
             <button onClick={() => PluginCommands.State.ApplyAction.dispatch(this.plugin, {
-                state: this.plugin.state.data,
+                state: this.plugin.state.dataState,
                 action: UpdateTrajectory.create({ action: 'advance', by: +1 })
             })}>&gt;&gt;</button><br />
         </div>

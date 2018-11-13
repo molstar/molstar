@@ -30,8 +30,16 @@ export class PluginContext {
 
     readonly events = {
         state: {
-            data: this.state.data.events,
-            behavior: this.state.behavior.events,
+            object: {
+                cellState: merge(this.state.dataState.events.object.cellState, this.state.behaviorState.events.object.cellState),
+                cellCreated: merge(this.state.dataState.events.object.cellCreated, this.state.behaviorState.events.object.cellCreated),
+
+                created: merge(this.state.dataState.events.object.created, this.state.behaviorState.events.object.created),
+                removed: merge(this.state.dataState.events.object.removed, this.state.behaviorState.events.object.removed),
+                updated: merge(this.state.dataState.events.object.updated, this.state.behaviorState.events.object.updated)
+            },
+            // data: this.state.dataState.events,
+            // behavior: this.state.behaviorState.events,
             cameraSnapshots: this.state.cameraSnapshots.events,
             snapshots: this.state.snapshots.events,
         },
@@ -40,10 +48,10 @@ export class PluginContext {
     };
 
     readonly behaviors = {
-        state: {
-            data: this.state.data.behaviors,
-            behavior: this.state.behavior.behaviors
-        },
+        // state: {
+        //     data: this.state.dataState.behaviors,
+        //     behavior: this.state.behaviorState.behaviors
+        // },
         canvas: {
             highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
             selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
@@ -98,20 +106,20 @@ export class PluginContext {
         BuiltInPluginBehaviors.Representation.registerDefault(this);
         BuiltInPluginBehaviors.Camera.registerDefault(this);
 
-        merge(this.state.data.events.log, this.state.behavior.events.log).subscribe(e => this.events.log.next(e));
+        merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
     }
 
     async _test_initBehaviors() {
-        const tree = this.state.behavior.tree.build()
+        const tree = this.state.behaviorState.tree.build()
             .toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
             .toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
             .getTree();
 
-        await this.runTask(this.state.behavior.update(tree));
+        await this.runTask(this.state.behaviorState.update(tree));
     }
 
     _test_initDataActions() {
-        this.state.data.actions
+        this.state.dataState.actions
             .add(CreateStructureFromPDBe)
             .add(StateTransforms.Data.Download)
             .add(StateTransforms.Data.ParseCif)
@@ -132,18 +140,17 @@ export class PluginContext {
     }
 
     private initEvents() {
-        merge(this.events.state.data.object.created, this.events.state.behavior.object.created).subscribe(o => {
+        this.events.state.object.created.subscribe(o => {
             if (!SO.isBehavior(o.obj)) return;
-            console.log('registering behavior', o.obj.label);
             o.obj.data.register();
         });
 
-        merge(this.events.state.data.object.removed, this.events.state.behavior.object.removed).subscribe(o => {
+        this.events.state.object.removed.subscribe(o => {
             if (!SO.isBehavior(o.obj)) return;
             o.obj.data.unregister();
         });
 
-        merge(this.events.state.data.object.updated, this.events.state.behavior.object.updated).subscribe(o => {
+        this.events.state.object.updated.subscribe(o => {
             if (o.action === 'recreate') {
                 if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
                 if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register();

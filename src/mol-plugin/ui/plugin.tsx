@@ -10,7 +10,6 @@ import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
 import { Controls, TrajectoryControls } from './controls';
 import { PluginComponent, PluginReactContext } from './base';
-import { merge } from 'rxjs';
 import { CameraSnapshots } from './camera';
 import { StateSnapshots } from './state';
 import { List } from 'immutable';
@@ -18,15 +17,14 @@ import { LogEntry } from 'mol-util/log-entry';
 import { formatTime } from 'mol-util';
 import { BackgroundTaskProgress } from './task';
 import { ActionContol } from './action';
+import { PluginState } from 'mol-plugin/state';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
             <div style={{ position: 'absolute', width: '100%', height: '100%', fontFamily: 'monospace' }}>
                 <div style={{ position: 'absolute', width: '350px', height: '100%', overflowY: 'scroll', padding: '10px' }}>
-                    <StateTree state={this.props.plugin.state.data} />
-                    <h3>Behaviors</h3>
-                    <StateTree state={this.props.plugin.state.behavior} />
+                    <State />
                 </div>
                 <div style={{ position: 'absolute', left: '350px', right: '300px', top: '0', bottom: '100px' }}>
                     <Viewport />
@@ -52,6 +50,26 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                 </div>
             </div>
         </PluginReactContext.Provider>;
+    }
+}
+
+export class State extends PluginComponent {
+    componentDidMount() {
+        this.subscribe(this.plugin.state.behavior.kind, () => this.forceUpdate());
+    }
+
+    set(kind: PluginState.Kind) {
+        // TODO: do command for this?
+        this.plugin.state.setKind(kind);
+    }
+
+    render() {
+        const kind = this.plugin.state.behavior.kind.value;
+        return <>
+            <button onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal'}}>Data</button>
+            <button onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal'}}>Behavior</button>
+            <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
+        </>
     }
 }
 
@@ -85,32 +103,32 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
 }
 
 export class CurrentObject extends PluginComponent {
+    get current() {
+        return this.plugin.state.behavior.currentObject.value;
+    }
+
     componentDidMount() {
-        // let current: State.ObjectEvent | undefined = void 0;
-        this.subscribe(merge(this.plugin.behaviors.state.data.currentObject, this.plugin.behaviors.state.behavior.currentObject), o => {
-            // current = o;
-            this.forceUpdate()
+        this.subscribe(this.plugin.state.behavior.currentObject, o => {
+            this.forceUpdate();
         });
 
-        this.subscribe(this.plugin.events.state.data.object.updated, ({ ref, state }) => {
-            console.log('curr event', +new Date);
-            const current = this.plugin.behaviors.state.data.currentObject.value;
+        this.subscribe(this.plugin.events.state.object.updated, ({ ref, state }) => {
+            const current = this.current;
             if (current.ref !== ref || current.state !== state) return;
-            console.log('curr event pass', +new Date);
             this.forceUpdate();
         });
     }
 
     render() {
-        console.log('curr', +new Date);
-
-        const current = this.plugin.behaviors.state.data.currentObject.value;
+        const current = this.current;
 
         const ref = current.ref;
         // const n = this.props.plugin.state.data.tree.nodes.get(ref)!;
-        const obj = this.plugin.state.data.cells.get(ref)!;
+        const obj = current.state.cells.get(ref)!;
 
         const type = obj && obj.obj ? obj.obj.type : void 0;
+
+        console.log(obj);
 
         const actions = type
             ? current.state.actions.fromType(type)

@@ -9,7 +9,6 @@ import { PluginStateObject } from 'mol-plugin/state/objects';
 import { State } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 import { PluginComponent } from './base';
-import { merge } from 'rxjs';
 
 export class StateTree extends PluginComponent<{ state: State }, { }> {
     componentDidMount() {
@@ -28,7 +27,7 @@ export class StateTree extends PluginComponent<{ state: State }, { }> {
 
 export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { }> {
     componentDidMount() {
-        this.subscribe(merge(this.plugin.events.state.data.object.cellState, this.plugin.events.state.behavior.object.cellState), o => {
+        this.subscribe(this.plugin.events.state.object.cellState, o => {
             if (o.ref === this.props.nodeRef && o.state === this.props.state) this.forceUpdate();
         });
     }

@@ -118,17 +118,23 @@ class ActionContol extends PluginComponent<ActionContol.Props, { params: any, in
 
     state = this.defaultState()
 
+    nothingToUpdate() {
+        return <div>Nothing to update</div>;
+    }
+
     render() {
-        console.log('render', this.props.nodeRef, this.action.id);
         const cell = this.cell;
-        if (cell.status !== 'ok' || (this.isUpdate && cell.transform.ref === Transform.RootRef)) return null;
+        if (cell.status !== 'ok' || (this.isUpdate && cell.transform.ref === Transform.RootRef)) return this.nothingToUpdate();
+
+        const paramDefs = this.getParamDefinitions();
+        if (this.isUpdate && Object.keys(paramDefs).length === 0) return this.nothingToUpdate();
 
         const action = this.action;
 
         return <div>
             <div style={{ borderBottom: '1px solid #999', marginBottom: '5px' }}><h3>{(action.definition.display && action.definition.display.name) || action.id}</h3></div>
 
-            <ParameterControls params={this.getParamDefinitions()} values={this.state.params} changes={this.changes} onEnter={this.onEnter} isEnabled={!this.state.busy} />
+            <ParameterControls params={paramDefs} values={this.state.params} changes={this.changes} onEnter={this.onEnter} isEnabled={!this.state.busy} />
 
             <div style={{ textAlign: 'right' }}>
                 <span style={{ color: 'red' }}>{this.state.error}</span>
