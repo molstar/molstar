@@ -13,17 +13,23 @@ import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { RepresentationContext } from 'mol-repr/representation';
-import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
+import { Theme, ThemeProps, createTheme, ThemeRegistryContext } from 'mol-theme/theme';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
-export function ComplexRepresentation<P extends StructureProps>(label: string, defaultProps: P, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureProps>(label: string, getParams: (ctx: ThemeRegistryContext, data: Structure) => PD.Params, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let visual: ComplexVisual<P> | undefined
 
     let _structure: Structure
-    let _props: P = Object.assign({}, defaultProps)
+    let _params: PD.Params
+    let _props: P
     let _theme: Theme
 
     function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
-        if (structure) _structure = structure
+        if (structure && structure !== _structure) {
+            _params = getParams(ctx, structure)
+            _structure = structure
+            if (!_props) _props = PD.getDefaultValues(_params) as P
+        }
         _props = Object.assign({}, _props, props)
         _theme = createTheme(ctx, { structure: _structure }, props, themeProps, _theme)
 
@@ -51,6 +57,7 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, d
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },
         get props() { return _props },
+        get params() { return _params },
         createOrUpdate,
         getLoci,
         mark,

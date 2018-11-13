@@ -67,6 +67,7 @@ interface Representation<D, P extends RepresentationProps = {}> {
     readonly label: string
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<P>
+    readonly params: Readonly<PD.Params>
     createOrUpdate: (ctx: RepresentationContext, props?: Partial<P>, themeProps?: ThemeProps, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
@@ -75,7 +76,7 @@ interface Representation<D, P extends RepresentationProps = {}> {
 namespace Representation {
     export type Any = Representation<any>
     export const Empty: Representation<any> = {
-        label: '', renderObjects: [], props: {},
+        label: '', renderObjects: [], props: {}, params: {},
         createOrUpdate: () => Task.constant('', undefined),
         getLoci: () => EmptyLoci,
         mark: () => false,
@@ -84,8 +85,9 @@ namespace Representation {
 
     export type Def<P extends RepresentationProps = {}> = { [k: string]: (defaultProps: P) => Representation<any, P> }
 
-    export function createMulti<D, P extends RepresentationProps = {}>(label: string, defaultProps: P, reprDefs: Def<P>): Representation<D, P> {
-        let currentProps: P = Object.assign({}, defaultProps)
+    export function createMulti<D, P extends RepresentationProps = {}>(label: string, getParams: (ctx: ThemeRegistryContext, data: D) => PD.Params, reprDefs: Def<P>): Representation<D, P> {
+        let currentParams: PD.Params
+        let currentProps: P
         let currentData: D
 
         const reprMap: { [k: number]: string } = {}
@@ -111,8 +113,16 @@ namespace Representation {
                 reprList.forEach(r => Object.assign(props, r.props))
                 return props as P
             },
+            get params() {
+                return currentParams
+            },
             createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, data?: D) => {
                 if (data) currentData = data
+                if (data && data !== currentData) {
+                    currentParams = getParams(ctx, data)
+                    currentData = data
+                    if (!currentProps) currentProps = PD.getDefaultValues(currentParams) as P
+                }
                 const qualityProps = getQualityProps(Object.assign({}, currentProps, props), currentData)
                 Object.assign(currentProps, props, qualityProps)
 
