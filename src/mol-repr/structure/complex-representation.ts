@@ -12,11 +12,11 @@ import { StructureProps, StructureRepresentation } from './representation';
 import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { RepresentationContext } from 'mol-repr/representation';
-import { Theme, ThemeProps, createTheme, ThemeRegistryContext } from 'mol-theme/theme';
+import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
+import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
-export function ComplexRepresentation<P extends StructureProps>(label: string, getParams: (ctx: ThemeRegistryContext, data: Structure) => PD.Params, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureProps>(label: string, getParams: RepresentationParamsGetter<Structure>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let visual: ComplexVisual<P> | undefined
 
     let _structure: Structure

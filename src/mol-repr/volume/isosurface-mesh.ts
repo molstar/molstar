@@ -8,18 +8,16 @@
 import { VolumeData } from 'mol-model/volume'
 import { VolumeVisual, VolumeRepresentation } from './representation';
 import { createMeshRenderObject } from 'mol-gl/render-object';
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { createRenderableState } from 'mol-geo/geometry/geometry';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
-import { RepresentationContext, VisualContext } from 'mol-repr/representation';
-import { ThemeProps, Theme } from 'mol-theme/theme';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
 
 interface VolumeIsosurfaceProps {
     isoValueAbsolute: number
@@ -46,12 +44,14 @@ export const IsosurfaceParams = {
     isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
     isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
-export const DefaultIsosurfaceProps = PD.getDefaultValues(IsosurfaceParams)
-export type IsosurfaceProps = typeof DefaultIsosurfaceProps
+export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
+    return IsosurfaceParams // TODO return copy
+}
+export type IsosurfaceProps = PD.DefaultValues<typeof IsosurfaceParams>
 
 export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
     return VolumeVisual<IsosurfaceProps>({
-        defaultProps: DefaultIsosurfaceProps,
+        defaultProps: PD.getDefaultValues(IsosurfaceParams),
         createGeometry: createVolumeIsosurface,
         getLoci: () => EmptyLoci,
         mark: () => false,
@@ -69,28 +69,5 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
 }
 
 export function IsosurfaceRepresentation(): VolumeRepresentation<IsosurfaceProps> {
-    let currentProps: IsosurfaceProps
-    const volumeRepr = VolumeRepresentation(IsosurfaceVisual)
-    return {
-        label: 'Isosurface',
-        get renderObjects() {
-            return [ ...volumeRepr.renderObjects ]
-        },
-        get props() {
-            return { ...volumeRepr.props }
-        },
-        createOrUpdate: (ctx: RepresentationContext, props: Partial<IsosurfaceProps> = {}, themeProps: ThemeProps = {}, volume?: VolumeData) => {
-            currentProps = Object.assign({}, DefaultIsosurfaceProps, currentProps, props)
-            return volumeRepr.createOrUpdate(ctx, currentProps, themeProps, volume)
-        },
-        getLoci: (pickingId: PickingId) => {
-            return volumeRepr.getLoci(pickingId)
-        },
-        mark: (loci: Loci, action: MarkerAction) => {
-            return volumeRepr.mark(loci, action)
-        },
-        destroy() {
-            volumeRepr.destroy()
-        }
-    }
+    return VolumeRepresentation('Isosurface', getIsosurfaceParams, IsosurfaceVisual)
 }

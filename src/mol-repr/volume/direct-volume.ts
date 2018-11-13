@@ -8,7 +8,7 @@ import { VolumeData } from 'mol-model/volume'
 import { RuntimeContext } from 'mol-task'
 import { VolumeVisual, VolumeRepresentation } from './representation';
 import { createDirectVolumeRenderObject } from 'mol-gl/render-object';
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Box3D } from 'mol-math/geometry';
@@ -18,11 +18,9 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Geometry, createRenderableState } from 'mol-geo/geometry/geometry';
-import { PickingId } from 'mol-geo/geometry/picking';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { VisualUpdateState } from 'mol-repr/util';
-import { VisualContext, RepresentationContext } from 'mol-repr/representation';
-import { ThemeProps, Theme } from 'mol-theme/theme';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
     const bbox = Box3D.empty()
@@ -114,8 +112,6 @@ function createVolumeTexture3d(volume: VolumeData) {
     const array = new Uint8Array(width * height * depth * 4)
     const textureVolume = { array, width, height, depth }
 
-    console.log('stats', stats)
-
     let i = 0
     for (let z = 0; z < depth; ++z) {
         for (let y = 0; y < height; ++y) {
@@ -124,35 +120,10 @@ function createVolumeTexture3d(volume: VolumeData) {
                     console.log(get(data, x, y, z), ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255)
                 }
                 array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
-                // array[i + 3] = ((get(data, x, z, y) - stats.min) / (stats.max - stats.min)) * 255
-                // array[i + 3] = ((get(data, y, x, z) - stats.min) / (stats.max - stats.min)) * 255
-                // array[i + 3] = ((get(data, y, z, x) - stats.min) / (stats.max - stats.min)) * 255
-                // array[i + 3] = ((get(data, z, y, x) - stats.min) / (stats.max - stats.min)) * 255
-                // array[i + 3] = ((get(data, z, x, y) - stats.min) / (stats.max - stats.min)) * 255
                 i += 4
             }
         }
     }
-
-    // let i = 0
-    // for (let z = 0; z < depth; ++z) {
-    //     for (let x = 0; x < width; ++x) {
-    //         for (let y = 0; y < height; ++y) {
-    //             array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
-    //             i += 4
-    //         }
-    //     }
-    // }
-
-    // let i = 0
-    // for (let x = 0; x < width; ++x) {
-    //     for (let y = 0; y < height; ++y) {
-    //         for (let z = 0; z < depth; ++z) {
-    //             array[i + 3] = ((get(data, x, y, z) - stats.min) / (stats.max - stats.min)) * 255
-    //             i += 4
-    //         }
-    //     }
-    // }
 
     return textureVolume
 }
@@ -188,12 +159,14 @@ export const DirectVolumeParams = {
     ...Geometry.Params,
     ...DirectVolume.Params
 }
-export const DefaultDirectVolumeProps = PD.getDefaultValues(DirectVolumeParams)
-export type DirectVolumeProps = typeof DefaultDirectVolumeProps
+export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: VolumeData) {
+    return DirectVolumeParams // TODO return copy
+}
+export type DirectVolumeProps = PD.DefaultValues<typeof DirectVolumeParams>
 
 export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
     return VolumeVisual<DirectVolumeProps>({
-        defaultProps: DefaultDirectVolumeProps,
+        defaultProps: PD.getDefaultValues(DirectVolumeParams),
         createGeometry: createDirectVolume,
         getLoci: () => EmptyLoci,
         mark: () => false,
@@ -210,28 +183,5 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
 }
 
 export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeProps> {
-    let currentProps: DirectVolumeProps
-    const volumeRepr = VolumeRepresentation(DirectVolumeVisual)
-    return {
-        label: 'Direct Volume',
-        get renderObjects() {
-            return [ ...volumeRepr.renderObjects ]
-        },
-        get props() {
-            return { ...volumeRepr.props }
-        },
-        createOrUpdate: (ctx: RepresentationContext, props: Partial<DirectVolumeProps> = {}, themeProps: ThemeProps = {}, volume?: VolumeData) => {
-            currentProps = Object.assign({}, DefaultDirectVolumeProps, currentProps, props)
-            return volumeRepr.createOrUpdate(ctx, currentProps, themeProps, volume)
-        },
-        getLoci: (pickingId: PickingId) => {
-            return volumeRepr.getLoci(pickingId)
-        },
-        mark: (loci: Loci, action: MarkerAction) => {
-            return volumeRepr.mark(loci, action)
-        },
-        destroy() {
-            volumeRepr.destroy()
-        }
-    }
+    return VolumeRepresentation('Direct Volume', getDirectVolumeParams, DirectVolumeVisual)
 }

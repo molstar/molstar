@@ -8,25 +8,31 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { RepresentationProps, Visual, RepresentationContext } from '../representation';
+import { RepresentationProps, Visual, RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
 import { StructureProps, StructureRepresentation } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
-export function UnitsRepresentation<P extends StructureProps>(label: string, defaultProps: P, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends StructureProps>(label: string, getParams: RepresentationParamsGetter<Structure>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
-    let _props: P = Object.assign({}, defaultProps)
+    let _params: PD.Params
+    let _props: P
     let _theme: Theme
 
     function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
+        if (structure && structure !== _structure) {
+            _params = getParams(ctx, structure)
+            if (!_props) _props = PD.getDefaultValues(_params) as P
+        }
         _props = Object.assign({}, _props, props)
         _theme = createTheme(ctx, { structure: structure || _structure }, props, themeProps, _theme)
 
@@ -139,9 +145,8 @@ export function UnitsRepresentation<P extends StructureProps>(label: string, def
             })
             return renderObjects
         },
-        get props() {
-            return _props
-        },
+        get props() { return _props },
+        get params() { return _params },
         createOrUpdate,
         getLoci,
         mark,

@@ -4,25 +4,25 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ElementSphereVisual, ElementSphereParams, ElementSphereProps } from '../visual/element-sphere';
+import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
 import { IntraUnitLinkVisual, IntraUnitLinkParams } from '../visual/intra-unit-link-cylinder';
-import { InterUnitLinkVisual, InterUnitLinkParams, InterUnitLinkProps } from '../visual/inter-unit-link-cylinder';
+import { InterUnitLinkVisual, InterUnitLinkParams } from '../visual/inter-unit-link-cylinder';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
-import { Representation } from 'mol-repr/representation';
+import { Representation, RepresentationParamsGetter } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
-import { IntraUnitLinkProps } from '../visual/polymer-gap-cylinder';
 import { BuiltInSizeThemeName, BuiltInSizeThemeOptions } from 'mol-theme/size';
 import { BuiltInColorThemeName, BuiltInColorThemeOptions } from 'mol-theme/color';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
+type ParamsGetter = RepresentationParamsGetter<Structure>
 const BallAndStickVisuals = {
-    'element-sphere': (defaultProps: ElementSphereProps) => UnitsRepresentation('Element sphere mesh', defaultProps, ElementSphereVisual),
-    'intra-link': (defaultProps: IntraUnitLinkProps) => UnitsRepresentation('Intra-unit link cylinder', defaultProps, IntraUnitLinkVisual),
-    'inter-link': (defaultProps: InterUnitLinkProps) => ComplexRepresentation('Inter-unit link cylinder', defaultProps, InterUnitLinkVisual),
+    'element-sphere': (getParams: ParamsGetter) => UnitsRepresentation('Element sphere mesh', getParams, ElementSphereVisual),
+    'intra-link': (getParams: ParamsGetter) => UnitsRepresentation('Intra-unit link cylinder', getParams, IntraUnitLinkVisual),
+    'inter-link': (getParams: ParamsGetter) => ComplexRepresentation('Inter-unit link cylinder', getParams, InterUnitLinkVisual),
 }
 type BallAndStickVisualName = keyof typeof BallAndStickVisuals
 const BallAndStickVisualOptions = Object.keys(BallAndStickVisuals).map(name => [name, name] as [BallAndStickVisualName, string])
@@ -44,10 +44,10 @@ export type BallAndStickProps = PD.DefaultValues<typeof BallAndStickParams>
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>
 
-export function BallAndStickRepresentation(defaultProps: BallAndStickProps): BallAndStickRepresentation {
-    return Representation.createMulti('Ball & Stick', defaultProps, BallAndStickVisuals as unknown as Representation.Def<BallAndStickProps>)
+export function BallAndStickRepresentation(getParams: ParamsGetter): BallAndStickRepresentation {
+    return Representation.createMulti('Ball & Stick', getParams, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickProps>)
 }
 
 export const BallAndStickRepresentationProvider: StructureRepresentationProvider<typeof BallAndStickParams> = {
-    factory: BallAndStickRepresentation, params: getBallAndStickParams
+    factory: BallAndStickRepresentation, getParams: getBallAndStickParams
 }

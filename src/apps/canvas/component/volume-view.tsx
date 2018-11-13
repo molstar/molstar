@@ -91,7 +91,7 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
                                 <RepresentationComponent
                                     repr={volumeRepresentations[k] as Representation<any>}
                                     params={
-                                        volumeView.app.volumeRepresentationRegistry.get(k)!.params(volumeView.app.reprCtx, volume!)
+                                        volumeView.app.volumeRepresentationRegistry.get(k)!.getParams(volumeView.app.reprCtx, volume!)
                                     }
                                     canvas3d={volumeView.viewer}
                                     app={volumeView.app}

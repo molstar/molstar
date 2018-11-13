@@ -5,7 +5,7 @@
  */
 
 import { Task } from 'mol-task'
-import { RepresentationProps, Representation, Visual, RepresentationContext, VisualContext, RepresentationProvider } from '../representation';
+import { RepresentationProps, Representation, Visual, RepresentationContext, VisualContext, RepresentationProvider, RepresentationParamsGetter } from '../representation';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
@@ -147,13 +147,21 @@ export const VolumeParams = {
 export const DefaultVolumeProps = PD.getDefaultValues(VolumeParams)
 export type VolumeProps = typeof DefaultVolumeProps
 
-export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
-    let visual: VolumeVisual<any>
+export function VolumeRepresentation<P extends VolumeProps>(label: string, getParams: RepresentationParamsGetter<VolumeData>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
+    let visual: VolumeVisual<P>
+
+    let _volume: VolumeData
     let _props: P
+    let _params: PD.Params
     let _theme: Theme
     let busy = false
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, volumeData?: VolumeData) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, volume?: VolumeData) {
+        if (volume && volume !== _volume) {
+            _params = getParams(ctx, volume)
+            _volume = volume
+            if (!_props) _props = PD.getDefaultValues(_params) as P
+        }
         _props = Object.assign({}, DefaultVolumeProps, _props, props)
         _theme = createTheme(ctx, _props, themeProps, {}, _theme)
 
@@ -161,38 +169,43 @@ export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeD
             // TODO queue it somehow
             if (busy) return
 
-            if (!visual && !volumeData) {
-                throw new Error('volumeData missing')
-            } else if (volumeData && !visual) {
+            if (!visual && !volume) {
+                throw new Error('volume data missing')
+            } else if (volume && !visual) {
                 busy = true
-                visual = visualCtor(volumeData)
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volumeData)
+                visual = visualCtor(volume)
+                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
                 busy = false
             } else {
                 busy = true
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volumeData)
+                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
                 busy = false
             }
         });
     }
 
+    function getLoci(pickingId: PickingId) {
+        return visual ? visual.getLoci(pickingId) : EmptyLoci
+    }
+
+    function mark(loci: Loci, action: MarkerAction) {
+        return visual ? visual.mark(loci, action) : false
+    }
+
+    function destroy() {
+        if (visual) visual.destroy()
+    }
+
     return {
-        label: 'Volume',
+        label,
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },
         get props () { return _props },
+        get params() { return _params },
         createOrUpdate,
-        getLoci(pickingId: PickingId) {
-            // TODO
-            return EmptyLoci
-        },
-        mark(loci: Loci, action: MarkerAction) {
-            // TODO
-            return false
-        },
-        destroy() {
-            // TODO
-        }
+        getLoci,
+        mark,
+        destroy
     }
 }

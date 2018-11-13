@@ -176,7 +176,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                                 <RepresentationComponent
                                     repr={structureRepresentations[k] as Representation<any>}
                                     params={
-                                        structureView.app.structureRepresentationRegistry.get(k)!.params(structureView.app.reprCtx, structure!)
+                                        structureView.app.structureRepresentationRegistry.get(k)!.getParams(structureView.app.reprCtx, structure!)
                                     }
                                     canvas3d={structureView.canvas3d}
                                     app={structureView.app}

@@ -38,6 +38,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
     let currentProps: P
+    let currentParams: PD.Params
 
     function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, shape?: Shape) {
         currentProps = Object.assign({}, DefaultShapeProps, currentProps, props)
@@ -64,6 +65,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
     return {
         label: 'Shape mesh',
         get renderObjects () { return renderObjects },
+        get params () { return currentParams },
         get props () { return currentProps },
         createOrUpdate,
         getLoci(pickingId: PickingId) {

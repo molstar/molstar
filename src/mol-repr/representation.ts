@@ -21,11 +21,13 @@ import { ThemeProps, Theme, ThemeRegistryContext } from 'mol-theme/theme';
 // }
 export type RepresentationProps = { [k: string]: any }
 
+export type RepresentationParamsGetter<D> = (ctx: ThemeRegistryContext, data: D) => PD.Params
+
 //
 
 export interface RepresentationProvider<D, P extends PD.Params> {
-    readonly factory: (defaultProps: PD.DefaultValues<P>) => Representation<D, PD.DefaultValues<P>>
-    readonly params: (ctx: ThemeRegistryContext, data: D) => P
+    readonly factory: (getParams: RepresentationParamsGetter<D>) => Representation<D, PD.DefaultValues<P>>
+    readonly getParams: (ctx: ThemeRegistryContext, data: D) => P
 }
 
 export class RepresentationRegistry<D> {
@@ -34,8 +36,8 @@ export class RepresentationRegistry<D> {
 
     constructor() {};
 
-    add<P extends PD.Params>(name: string, factory: RepresentationProvider<D, P>['factory'], params: RepresentationProvider<D, P>['params']) {
-        const provider = { factory, params } as RepresentationProvider<D, P>
+    add<P extends PD.Params>(name: string, factory: RepresentationProvider<D, P>['factory'], getParams: RepresentationProvider<D, P>['getParams']) {
+        const provider = { factory, getParams } as RepresentationProvider<D, P>
         this._list.push({ name, provider })
         this._map.set(name, provider)
     }
@@ -46,7 +48,7 @@ export class RepresentationRegistry<D> {
 
     create(id: string, ctx: ThemeRegistryContext, data: D, props = {}): Representation<D, any> {
         const provider = this.get(id)
-        return provider ? provider.factory({ ...PD.getDefaultValues(provider.params(ctx, data)), ...props }) : Representation.Empty
+        return provider ? provider.factory(provider.getParams) : Representation.Empty
     }
 
     get list() {
@@ -83,9 +85,9 @@ namespace Representation {
         destroy: () => {}
     }
 
-    export type Def<P extends RepresentationProps = {}> = { [k: string]: (defaultProps: P) => Representation<any, P> }
+    export type Def<D, P extends RepresentationProps = {}> = { [k: string]: (getParams: RepresentationParamsGetter<D>) => Representation<any, P> }
 
-    export function createMulti<D, P extends RepresentationProps = {}>(label: string, getParams: (ctx: ThemeRegistryContext, data: D) => PD.Params, reprDefs: Def<P>): Representation<D, P> {
+    export function createMulti<D, P extends RepresentationProps = {}>(label: string, getParams: RepresentationParamsGetter<D>, reprDefs: Def<D, P>): Representation<D, P> {
         let currentParams: PD.Params
         let currentProps: P
         let currentData: D
@@ -93,7 +95,7 @@ namespace Representation {
         const reprMap: { [k: number]: string } = {}
         const reprList: Representation<D, P>[] = Object.keys(reprDefs).map((name, i) => {
             reprMap[i] = name
-            return reprDefs[name](defaultProps)
+            return reprDefs[name](getParams)
         })
 
         return {
@@ -117,7 +119,6 @@ namespace Representation {
                 return currentParams
             },
             createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, data?: D) => {
-                if (data) currentData = data
                 if (data && data !== currentData) {
                     currentParams = getParams(ctx, data)
                     currentData = data
