@@ -47,6 +47,17 @@ export namespace Transformer {
 
     export enum UpdateResult { Unchanged, Updated, Recreate }
 
+    export interface ParamsDefinition<A extends StateObject = StateObject, P = unknown> {
+        /** Check the parameters and return a list of errors if the are not valid. */
+        default?(a: A, globalCtx: unknown): P,
+        /** Specify default control descriptors for the parameters */
+        controls?(a: A, globalCtx: unknown): ControlsFor<P>,
+        /** Check the parameters and return a list of errors if the are not valid. */
+        validate?(params: P, a: A, globalCtx: unknown): string[] | undefined,
+        /** Optional custom parameter equality. Use deep structural equal by default. */
+        areEqual?(oldParams: P, newParams: P): boolean
+    }
+
     export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
         readonly name: string,
         readonly from: StateObject.Ctor[],
@@ -66,16 +77,7 @@ export namespace Transformer {
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
-        readonly params?: {
-            /** Check the parameters and return a list of errors if the are not valid. */
-            default?(a: A, globalCtx: unknown): P,
-            /** Specify default control descriptors for the parameters */
-            controls?(a: A, globalCtx: unknown): ControlsFor<P>,
-            /** Check the parameters and return a list of errors if the are not valid. */
-            validate?(params: P, a: A, globalCtx: unknown): string[] | undefined,
-            /** Optional custom parameter equality. Use deep structural equal by default. */
-            areEqual?(oldParams: P, newParams: P): boolean
-        },
+        readonly params?: ParamsDefinition<A, P>,
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,

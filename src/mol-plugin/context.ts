@@ -30,10 +30,12 @@ export class PluginContext {
 
     readonly events = {
         state: {
+            cell: {
+                stateUpdated: merge(this.state.dataState.events.cell.stateUpdated, this.state.behaviorState.events.cell.stateUpdated),
+                created: merge(this.state.dataState.events.cell.created, this.state.behaviorState.events.cell.created),
+                removed: merge(this.state.dataState.events.cell.removed, this.state.behaviorState.events.cell.removed),
+            },
             object: {
-                cellState: merge(this.state.dataState.events.object.cellState, this.state.behaviorState.events.object.cellState),
-                cellCreated: merge(this.state.dataState.events.object.cellCreated, this.state.behaviorState.events.object.cellCreated),
-
                 created: merge(this.state.dataState.events.object.created, this.state.behaviorState.events.object.created),
                 removed: merge(this.state.dataState.events.object.removed, this.state.behaviorState.events.object.removed),
                 updated: merge(this.state.dataState.events.object.updated, this.state.behaviorState.events.object.updated)
@@ -66,9 +68,9 @@ export class PluginContext {
         try {
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             this.canvas3d.animate();
-            console.log('canvas3d created');
             return true;
         } catch (e) {
+            this.log(LogEntry.error('' + e));
             console.error(e);
             return false;
         }

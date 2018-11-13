@@ -31,10 +31,12 @@ class State {
 
     readonly globalContext: unknown = void 0;
     readonly events = {
+        cell: {
+            stateUpdated: this.ev<State.ObjectEvent & { cellState: StateObjectCell.State}>(),
+            created: this.ev<State.ObjectEvent & { cell: StateObjectCell }>(),
+            removed: this.ev<State.ObjectEvent & { parent: Transform.Ref }>(),
+        },
         object: {
-            cellState: this.ev<State.ObjectEvent>(),
-            cellCreated: this.ev<State.ObjectEvent>(),
-
             updated: this.ev<State.ObjectEvent & { action: 'in-place' | 'recreate', obj: StateObject, oldObj?: StateObject }>(),
             created: this.ev<State.ObjectEvent & { obj: StateObject }>(),
             removed: this.ev<State.ObjectEvent & { obj?: StateObject }>()
@@ -75,7 +77,7 @@ class State {
             : stateOrProvider;
 
         if (this._tree.updateCellState(ref, update)) {
-            this.events.object.cellState.next({ state: this, ref });
+            this.events.cell.stateUpdated.next({ state: this, ref, cellState: this.tree.cellStates.get(ref) });
         }
     }
 
@@ -196,7 +198,7 @@ async function update(ctx: UpdateContext) {
     // if only a single node was added/updated, we can skip potentially expensive diffing
     const fastTrack = !!(ctx.errorFree && ctx.editInfo && ctx.editInfo.count === 1 && ctx.editInfo.lastUpdate && ctx.editInfo.sourceTree === ctx.oldTree);
 
-    let deletes: Transform.Ref[], roots: Transform.Ref[];
+    let deletes: Transform.Ref[], deletedObjects: (StateObject | undefined)[] = [], roots: Transform.Ref[];
 
     if (fastTrack) {
         deletes = [];
@@ -224,22 +226,35 @@ async function update(ctx: UpdateContext) {
             const obj = ctx.cells.has(d) ? ctx.cells.get(d)!.obj : void 0;
             ctx.cells.delete(d);
             ctx.transformCache.delete(d);
-            ctx.parent.events.object.removed.next({ state: ctx.parent, ref: d, obj });
-            // TODO: handle current object change
+            deletedObjects.push(obj);
         }
 
         // Find roots where transform version changed or where nodes will be added.
         roots = findUpdateRoots(ctx.cells, ctx.tree);
     }
 
+    // Init empty cells where not present
+    // this is done in "pre order", meaning that "parents" will be created 1st.
+    const addedCells = initCells(ctx, roots);
+
     // Ensure cell states stay consistent
     if (!ctx.editInfo) {
         syncStates(ctx);
     }
 
-    // Init empty cells where not present
-    // this is done in "pre order", meaning that "parents" will be created 1st.
-    initCells(ctx, roots);
+    // Notify additions of new cells.
+    for (const cell of addedCells) {
+        ctx.parent.events.cell.created.next({ state: ctx.parent, ref: cell.transform.ref, cell });
+    }
+
+    for (let i = 0; i < deletes.length; i++) {
+        const d = deletes[i];
+        const parent = ctx.oldTree.transforms.get(d).parent;
+        ctx.parent.events.object.removed.next({ state: ctx.parent, ref: d, obj: deletedObjects[i] });
+        ctx.parent.events.cell.removed.next({ state: ctx.parent, ref: d, parent: parent });
+    }
+
+    if (deletedObjects.length) deletedObjects = [];
 
     // Set status of cells that will be updated to 'pending'.
     initCellStatus(ctx, roots);
@@ -292,7 +307,7 @@ function setCellStatus(ctx: UpdateContext, ref: Ref, status: StateObjectCell.Sta
     const changed = cell.status !== status;
     cell.status = status;
     cell.errorText = errorText;
-    if (changed) ctx.parent.events.object.cellState.next({ state: ctx.parent, ref });
+    if (changed) ctx.parent.events.cell.stateUpdated.next({ state: ctx.parent, ref, cellState: ctx.tree.cellStates.get(ref) });
 }
 
 function initCellStatusVisitor(t: Transform, _: any, ctx: UpdateContext) {
@@ -306,7 +321,8 @@ function initCellStatus(ctx: UpdateContext, roots: Ref[]) {
     }
 }
 
-function initCellsVisitor(transform: Transform, _: any, ctx: UpdateContext) {
+type InitCellsCtx = { ctx: UpdateContext, added: StateObjectCell[] }
+function initCellsVisitor(transform: Transform, _: any, { ctx, added }: InitCellsCtx) {
     if (ctx.cells.has(transform.ref)) {
         return;
     }
@@ -319,13 +335,15 @@ function initCellsVisitor(transform: Transform, _: any, ctx: UpdateContext) {
         errorText: void 0
     };
     ctx.cells.set(transform.ref, cell);
-    ctx.parent.events.object.cellCreated.next({ state: ctx.parent, ref: transform.ref });
+    added.push(cell);
 }
 
 function initCells(ctx: UpdateContext, roots: Ref[]) {
+    const initCtx: InitCellsCtx = { ctx, added: [] };
     for (const root of roots) {
-        StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), ctx, initCellsVisitor);
+        StateTree.doPreOrder(ctx.tree, ctx.tree.transforms.get(root), initCtx, initCellsVisitor);
     }
+    return initCtx.added;
 }
 
 function findNewCurrent(ctx: UpdateContext, start: Ref, deletes: Ref[]) {

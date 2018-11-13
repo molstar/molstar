@@ -43,7 +43,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
 }
 
 export function UpdateRepresentationVisibility(ctx: PluginContext) {
-    ctx.state.dataState.events.object.cellState.subscribe(e => {
+    ctx.state.dataState.events.cell.stateUpdated.subscribe(e => {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
 

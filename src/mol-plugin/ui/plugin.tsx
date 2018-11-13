@@ -16,8 +16,9 @@ import { List } from 'immutable';
 import { LogEntry } from 'mol-util/log-entry';
 import { formatTime } from 'mol-util';
 import { BackgroundTaskProgress } from './task';
-import { ActionContol } from './action';
+import { ApplyActionContol } from './state/apply-action';
 import { PluginState } from 'mol-plugin/state';
+import { UpdateTransformContol } from './state/update-transform';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
     render() {
@@ -128,20 +129,19 @@ export class CurrentObject extends PluginComponent {
 
         const type = obj && obj.obj ? obj.obj.type : void 0;
 
-        console.log(obj);
+        const transform = current.state.tree.transforms.get(ref);
 
         const actions = type
             ? current.state.actions.fromType(type)
             : []
         return <div>
             <hr />
-            <h3>Update {obj.obj ? obj.obj.label : ref}</h3>
-            <ActionContol key={`${ref} update`} state={current.state} nodeRef={ref} />
+            <h3>{obj.obj ? obj.obj.label : ref}</h3>
+            <UpdateTransformContol state={current.state} transform={transform} />
             <hr />
             <h3>Create</h3>
             {
-                actions.map((act, i) => <ActionContol key={`${act.id}`}
-                    state={current.state} action={act} nodeRef={ref} />)
+                actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)
             }
         </div>;
     }

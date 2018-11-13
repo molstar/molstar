@@ -12,29 +12,107 @@ import { PluginComponent } from './base';
 
 export class StateTree extends PluginComponent<{ state: State }, { }> {
     componentDidMount() {
-        this.subscribe(this.props.state.events.changed, () => this.forceUpdate());
+        // this.subscribe(this.props.state.events.changed, () => {
+        //     this.forceUpdate()
+        // });
     }
 
     render() {
         // const n = this.props.plugin.state.data.tree.nodes.get(this.props.plugin.state.data.tree.rootRef)!;
         const n = this.props.state.tree.root.ref;
         return <div>
-            <StateTreeNode state={this.props.state} nodeRef={n} key={n} />
-            { /* n.children.map(c => <StateTreeNode plugin={this.props.plugin} nodeRef={c!} key={c} />) */}
+            <StateTreeNode state={this.props.state} nodeRef={n} />
+            {/* n.children.map(c => <StateTreeNode plugin={this.props.plugin} nodeRef={c!} key={c} />) */}
         </div>;
     }
 }
 
-export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { }> {
+class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { }> {
+    is(e: State.ObjectEvent) {
+        return e.ref === this.props.nodeRef && e.state === this.props.state;
+    }
+
+    get cellState() {
+        return this.props.state.tree.cellStates.get(this.props.nodeRef);
+    }
+
     componentDidMount() {
-        this.subscribe(this.plugin.events.state.object.cellState, o => {
-            if (o.ref === this.props.nodeRef && o.state === this.props.state) this.forceUpdate();
+        let isCollapsed = this.cellState.isCollapsed;
+        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+            if (this.is(e) && isCollapsed !== e.cellState.isCollapsed) {
+                isCollapsed = e.cellState.isCollapsed;
+                this.forceUpdate();
+            }
+        });
+
+        this.subscribe(this.plugin.events.state.cell.created, e => {
+            if (this.props.state === e.state && this.props.nodeRef === e.cell.transform.parent) {
+                this.forceUpdate();
+            }
+        });
+
+        this.subscribe(this.plugin.events.state.cell.removed, e => {
+            if (this.props.state === e.state && this.props.nodeRef === e.parent) {
+                this.forceUpdate();
+            }
+        });
+    }
+
+    render() {
+        const cellState = this.props.state.tree.cellStates.get(this.props.nodeRef);
+
+        const expander = <>
+            [<a href='#' onClick={e => {
+                e.preventDefault();
+                PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+            }}>{cellState.isCollapsed ? '+' : '-'}</a>]
+        </>;
+
+        const children = this.props.state.tree.children.get(this.props.nodeRef);
+        return <div>
+            {children.size === 0 ? void 0 : expander} <StateTreeNodeLabel nodeRef={this.props.nodeRef} state={this.props.state} />
+            {cellState.isCollapsed || children.size === 0
+                ? void 0
+                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}</div>
+            }
+        </div>;
+    }
+}
+
+class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State }> {
+    is(e: State.ObjectEvent) {
+        return e.ref === this.props.nodeRef && e.state === this.props.state;
+    }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
+            if (this.is(e)) this.forceUpdate();
+        });
+
+        let isCurrent = this.is(this.props.state.behaviors.currentObject.value);
+
+        this.subscribe(this.plugin.state.behavior.currentObject, e => {
+            let update = false;
+            if (this.is(e)) {
+                if (!isCurrent) {
+                    isCurrent = true;
+                    update = true;
+                }
+            } else if (isCurrent) {
+                isCurrent = false;
+                update = true;
+            }
+            if (update && e.state.tree.transforms.has(this.props.nodeRef)) {
+                this.forceUpdate();
+            }
         });
     }
 
     render() {
         const n = this.props.state.tree.transforms.get(this.props.nodeRef)!;
         const cell = this.props.state.cells.get(this.props.nodeRef)!;
+
+        const isCurrent = this.is(this.props.state.behaviors.currentObject.value);
 
         const remove = <>[<a href='#' onClick={e => {
             e.preventDefault();
@@ -58,12 +136,7 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
 
         const cellState = this.props.state.tree.cellStates.get(this.props.nodeRef);
 
-        const expander = <>
-            [<a href='#' onClick={e => {
-                e.preventDefault();
-                PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
-            }}>{cellState.isCollapsed ? '+' : '-'}</a>]
-        </>;
+        if (!cellState) console.log('missing state', this.props.nodeRef, this.props.state.tree, this.props.state.tree.transforms.has(this.props.nodeRef));
 
         const visibility = <>
             [<a href='#' onClick={e => {
@@ -72,13 +145,8 @@ export class StateTreeNode extends PluginComponent<{ nodeRef: string, state: Sta
             }}>{cellState.isHidden ? 'H' : 'V'}</a>]
         </>;
 
-        const children = this.props.state.tree.children.get(this.props.nodeRef);
-        return <div>
-            {remove}{visibility}{children.size === 0 ? void 0 : expander} {label}
-            {cellState.isCollapsed || children.size === 0
-                ? void 0
-                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}</div>
-            }
-        </div>;
+        return <>
+            {remove}{visibility} {isCurrent ? <b>{label}</b> : label}
+        </>;
     }
 }

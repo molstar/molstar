@@ -163,4 +163,13 @@ namespace StateTree {
 
         return create(nodes.asImmutable(), children.asImmutable(), cellStates.asImmutable());
     }
+
+    export function dump(tree: StateTree) {
+        console.log({
+            tr: (tree.transforms as ImmutableMap<any, any>).keySeq().toArray(),
+            tr1: (tree.transforms as ImmutableMap<any, any>).valueSeq().toArray().map(t => t.ref),
+            ch: (tree.children as ImmutableMap<any, any>).keySeq().toArray(),
+            cs: (tree.cellStates as ImmutableMap<any, any>).keySeq().toArray()
+        });
+    }
 }

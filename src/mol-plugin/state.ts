@@ -40,7 +40,7 @@ class PluginState {
     getSnapshot(): PluginState.Snapshot {
         return {
             data: this.dataState.getSnapshot(),
-            behaviours: this.behaviorState.getSnapshot(),
+            behaviour: this.behaviorState.getSnapshot(),
             cameraSnapshots: this.cameraSnapshots.getStateSnapshot(),
             canvas3d: {
                 camera: this.plugin.canvas3d.camera.getSnapshot()
@@ -49,7 +49,7 @@ class PluginState {
     }
 
     async setSnapshot(snapshot: PluginState.Snapshot) {
-        await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviours));
+        // await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
         await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
         this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
@@ -83,7 +83,7 @@ namespace PluginState {
 
     export interface Snapshot {
         data: State.Snapshot,
-        behaviours: State.Snapshot,
+        behaviour: State.Snapshot,
         cameraSnapshots: CameraSnapshotManager.StateSnapshot,
         canvas3d: {
             camera: Camera.Snapshot

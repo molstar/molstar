@@ -7,16 +7,11 @@
 
 import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { Subject } from 'rxjs';
-
-export function createChangeSubject(): ParamChanges {
-    return new Subject<{ param: PD.Base<any>, name: string, value: any }>();
-}
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
     values: any,
-    changes: ParamChanges,
+    onChange: ParamOnChange,
     isEnabled?: boolean,
     onEnter?: () => void
 }
@@ -24,7 +19,7 @@ export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
 export class ParameterControls<P extends PD.Params> extends React.PureComponent<ParameterControlsProps<P>, {}> {
     render() {
         const common = {
-            changes: this.props.changes,
+            changes: this.props.onChange,
             isEnabled: this.props.isEnabled,
             onEnter: this.props.onEnter,
         }
@@ -48,14 +43,15 @@ function controlFor(param: PD.Any): ValueControl {
     }
     throw new Error('not supporter');
 }
-type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, changes: ParamChanges, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
-export type ParamChanges = Subject<{ param: PD.Base<any>, name: string, value: any }>
+
+type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, changes: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
+export type ParamOnChange = (params: { param: PD.Base<any>, name: string, value: any }) => void
 type ValueControlProps<P extends PD.Base<any> = PD.Base<any>> = { value: any, param: P, isEnabled?: boolean, onChange: (v: any) => void, onEnter?: () => void }
 type ValueControl = React.ComponentClass<ValueControlProps<any>>
 
 export class ParamWrapper extends React.PureComponent<ParamWrapperProps> {
     onChange = (value: any) => {
-        this.props.changes.next({ param: this.props.param, name: this.props.name, value });
+        this.props.changes({ param: this.props.param, name: this.props.name, value });
     }
 
     render() {
@@ -78,14 +74,16 @@ export class BoolControl extends React.PureComponent<ValueControlProps> {
     }
 }
 
-export class NumberControl extends React.PureComponent<ValueControlProps<PD.Numeric>> {
+export class NumberControl extends React.PureComponent<ValueControlProps<PD.Numeric>, { value: string }> {
+    // state = { value: this.props.value }
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         this.props.onChange(+e.target.value);
+        // this.setState({ value: e.target.value });
     }
 
     render() {
         return <input type='range'
-            value={this.props.value}
+            value={'' + this.props.value}
             min={this.props.param.min}
             max={this.props.param.max}
             step={this.props.param.step}
@@ -125,7 +123,7 @@ export class SelectControl extends React.PureComponent<ValueControlProps<PD.Sele
     }
 
     render() {
-        return <select value={this.props.value} onChange={this.onChange}>
+        return <select value={this.props.value || ''} onChange={this.onChange}>
             {this.props.param.options.map(([value, label]) => <option key={label} value={value}>{label}</option>)}
         </select>;
     }
