@@ -27,10 +27,21 @@ export type RepresentationParamsGetter<D, P extends PD.Params> = (ctx: ThemeRegi
 //
 
 export interface RepresentationProvider<D, P extends PD.Params> {
+    readonly label: string
+    readonly description: string
     readonly factory: (getParams: RepresentationParamsGetter<D, P>) => Representation<D, P>
     readonly getParams: (ctx: ThemeRegistryContext, data: D) => P
-    // TODO
-    // readonly defaultParams: PD.Values<P>
+    readonly defaultValues: PD.Values<P>
+}
+
+export type AnyRepresentationProvider = RepresentationProvider<any, {}>
+
+export const EmptyRepresentationProvider = {
+    label: '',
+    description: '',
+    factory: () => Representation.Empty,
+    getParams: () => ({}),
+    defaultValues: {}
 }
 
 export class RepresentationRegistry<D> {
@@ -39,24 +50,18 @@ export class RepresentationRegistry<D> {
 
     get default() { return this._list[0]; }
     get types(): [string, string][] {
-        return this._list.map(e => [e.name, e.name] as [string, string]);
+        return this._list.map(e => [e.name, e.provider.label] as [string, string]);
     }
 
     constructor() {};
 
-    add<P extends PD.Params>(name: string, factory: RepresentationProvider<D, P>['factory'], getParams: RepresentationProvider<D, P>['getParams']) {
-        const provider = { factory, getParams } as RepresentationProvider<D, P>
+    add<P extends PD.Params>(name: string, provider: RepresentationProvider<D, P>) {
         this._list.push({ name, provider })
         this._map.set(name, provider)
     }
 
-    get(id: string) {
-        return this._map.get(id)
-    }
-
-    create(id: string, ctx: ThemeRegistryContext, data: D, props = {}): Representation<D, any> {
-        const provider = this.get(id)
-        return provider ? provider.factory(provider.getParams) : Representation.Empty
+    get<P extends PD.Params>(name: string): RepresentationProvider<D, P> {
+        return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P>
     }
 
     get list() {
@@ -82,15 +87,17 @@ interface Representation<D, P extends PD.Params = {}> {
     createOrUpdate: (ctx: RepresentationContext, props?: Partial<PD.Values<P>>, themeProps?: ThemeProps, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
+    setVisibility: (value: boolean) => void
     destroy: () => void
 }
 namespace Representation {
     export type Any = Representation<any>
-    export const Empty: Representation<any> = {
+    export const Empty: Any = {
         label: '', renderObjects: [], props: {}, params: {}, updated: new BehaviorSubject(0),
         createOrUpdate: () => Task.constant('', undefined),
         getLoci: () => EmptyLoci,
         mark: () => false,
+        setVisibility: () => {},
         destroy: () => {}
     }
 
@@ -163,6 +170,11 @@ namespace Representation {
                 }
                 return marked
             },
+            setVisibility: (value: boolean) => {
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    reprList[i].setVisibility(value)
+                }
+            },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].destroy()
@@ -184,5 +196,6 @@ export interface Visual<D, P extends PD.Params> {
     createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
+    setVisibility: (value: boolean) => void
     destroy: () => void
 }

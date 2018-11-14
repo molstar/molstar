@@ -127,6 +127,9 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
             }
             return changed
         },
+        setVisibility(value: boolean) {
+            if (renderObject) renderObject.state.visible = value
+        },
         destroy() {
             // TODO
             renderObject = undefined
@@ -198,6 +201,10 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         if (visual) visual.destroy()
     }
 
+    function setVisibility(value: boolean) {
+        if (visual) visual.setVisibility(value)
+    }
+
     return {
         label,
         get renderObjects() {
@@ -209,6 +216,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         createOrUpdate,
         getLoci,
         mark,
+        setVisibility,
         destroy
     }
 }

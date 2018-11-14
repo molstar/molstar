@@ -97,10 +97,9 @@ export namespace Lines {
         ...Geometry.Params,
         lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
     }
-    export const DefaultProps = PD.getDefaultValues(Params)
-    export type Props = typeof DefaultProps
+    export type Params = typeof Params
 
-    export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<LinesValues> {
+    export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): Promise<LinesValues> {
         const { instanceCount, groupCount } = locationIt
         const color = await createColors(ctx, locationIt, theme.color)
         const size = await createSizes(ctx, locationIt, theme.size)
@@ -138,7 +137,7 @@ export namespace Lines {
         }
     }
 
-    export function updateValues(values: LinesValues, props: Props) {
+    export function updateValues(values: LinesValues, props: PD.Values<Params>) {
         const boundingSphere = Sphere3D.addSphere(
             calculateBoundingSphere(
                 values.aStart.ref.value, Math.floor(values.aStart.ref.value.length / 3),

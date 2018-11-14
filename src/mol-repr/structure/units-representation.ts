@@ -141,6 +141,12 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         return changed
     }
 
+    function setVisibility(value: boolean) {
+        visuals.forEach(({ visual }) => {
+            visual.setVisibility(value)
+        })
+    }
+
     function destroy() {
         visuals.forEach(({ visual }) => visual.destroy())
         visuals.clear()
@@ -161,6 +167,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         createOrUpdate,
         getLoci,
         mark,
+        setVisibility,
         destroy
     }
 }

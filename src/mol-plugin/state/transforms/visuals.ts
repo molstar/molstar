@@ -29,21 +29,22 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.St
         default: (a, ctx: PluginContext) => ({
             type: {
                 name: ctx.structureReprensentation.registry.default.name,
-                params: PD.getDefaultValues(ctx.structureReprensentation.registry.default.provider.getParams(ctx.structureReprensentation.themeCtx, a.data))
+                params: ctx.structureReprensentation.registry.default.provider.defaultValues
             }
         }),
         definition: (a, ctx: PluginContext) => ({
             type: PD.Mapped('Type', '',
                 ctx.structureReprensentation.registry.default.name,
                 ctx.structureReprensentation.registry.types,
-                name => PD.Group('Params', '', ctx.structureReprensentation.registry.get(name)!.getParams(ctx.structureReprensentation.themeCtx, a.data)))
+                name => PD.Group('Params', '', ctx.structureReprensentation.registry.get(name).getParams(ctx.structureReprensentation.themeCtx, a.data)))
         })
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            const repr = plugin.structureReprensentation.registry.create(params.type.name, plugin.structureReprensentation.themeCtx, a.data)
+            const provider = plugin.structureReprensentation.registry.get(params.type.name)
+            const repr = provider.factory(provider.getParams)
             await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl, ...plugin.structureReprensentation.themeCtx }, params.type.params || {}, {}, a.data).runInContext(ctx);
-            return new SO.Molecule.Representation3D(repr, { label: params.type.name });
+            return new SO.Molecule.Representation3D(repr, { label: provider.label });
         });
     },
     update({ a, b, oldParams, newParams }, plugin: PluginContext) {

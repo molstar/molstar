@@ -75,10 +75,9 @@ export namespace DirectVolume {
         renderMode: PD.Select('Render Mode', '', 'isosurface', RenderModeOptions),
         controlPoints: PD.Text('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
     }
-    export const DefaultProps = PD.getDefaultValues(Params)
-    export type Props = typeof DefaultProps
+    export type Params = typeof Params
 
-    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<DirectVolumeValues> {
+    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): Promise<DirectVolumeValues> {
         const { gridTexture, gridTextureDim } = directVolume
         const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume
 
@@ -126,7 +125,7 @@ export namespace DirectVolume {
         }
     }
 
-    export function updateValues(values: DirectVolumeValues, props: Props) {
+    export function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
         const vertices = new Float32Array(values.aPosition.ref.value)
         transformPositionArray(values.uTransform.ref.value, vertices, 0, vertices.length / 3)
         const boundingSphere = calculateBoundingSphere(

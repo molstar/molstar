@@ -14,7 +14,7 @@ export class StructureRepresentationRegistry extends RepresentationRegistry<Stru
         super()
         Object.keys(BuiltInStructureRepresentations).forEach(name => {
             const p = (BuiltInStructureRepresentations as { [k: string]: RepresentationProvider<Structure, any> })[name]
-            this.add(name, p.factory, p.getParams)
+            this.add(name, p)
         })
     }
 }

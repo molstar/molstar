@@ -12,7 +12,7 @@ export class VolumeRepresentationRegistry extends RepresentationRegistry<VolumeD
         super()
         Object.keys(BuiltInVolumeRepresentations).forEach(name => {
             const p = (BuiltInVolumeRepresentations as { [k: string]: RepresentationProvider<VolumeData, any> })[name]
-            this.add(name, p.factory, p.getParams)
+            this.add(name, p)
         })
     }
 }

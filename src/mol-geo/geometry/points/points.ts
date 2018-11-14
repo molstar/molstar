@@ -61,10 +61,9 @@ export namespace Points {
         pointFilledCircle: PD.Boolean('Point Filled Circle', '', false),
         pointEdgeBleach: PD.Numeric('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
     }
-    export const DefaultProps = PD.getDefaultValues(Params)
-    export type Props = typeof DefaultProps
+    export type Params = typeof Params
 
-    export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<PointsValues> {
+    export async function createValues(ctx: RuntimeContext, points: Points, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): Promise<PointsValues> {
         const { instanceCount, groupCount } = locationIt
         const color = await createColors(ctx, locationIt, theme.color)
         const size = await createSizes(ctx, locationIt, theme.size)
@@ -93,7 +92,7 @@ export namespace Points {
         }
     }
 
-    export function updateValues(values: PointsValues, props: Props) {
+    export function updateValues(values: PointsValues, props: PD.Values<Params>) {
         const boundingSphere = calculateBoundingSphere(
             values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
             values.aTransform.ref.value, values.instanceCount.ref.value
