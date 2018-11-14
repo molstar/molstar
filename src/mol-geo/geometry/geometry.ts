@@ -17,6 +17,8 @@ import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { DirectVolume } from './direct-volume/direct-volume';
 import { BuiltInSizeThemeOptions, BuiltInSizeThemeName } from 'mol-theme/size';
 import { BuiltInColorThemeName, BuiltInColorThemeOptions } from 'mol-theme/color';
+import { Color } from 'mol-util/color';
+import { Vec3 } from 'mol-math/linear-algebra';
 
 //
 
@@ -63,6 +65,8 @@ export namespace Geometry {
         visible: PD.Boolean('Visible', '', true),
         depthMask: PD.Boolean('Depth Mask', '', true),
         useFog: PD.Boolean('Use Fog', '', false),
+        highlightColor: PD.Color('Highlight Color', '', Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
+        selectColor: PD.Color('Select Color', '', Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
 
         quality: PD.Select<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
 
@@ -77,6 +81,8 @@ export namespace Geometry {
     export function createValues(props: Props, counts: Counts) {
         return {
             uAlpha: ValueCell.create(props.alpha),
+            uHighlightColor: ValueCell.create(Color.toArrayNormalized(props.highlightColor, Vec3.zero(), 0)),
+            uSelectColor: ValueCell.create(Color.toArrayNormalized(props.selectColor, Vec3.zero(), 0)),
             uGroupCount: ValueCell.create(counts.groupCount),
             drawCount: ValueCell.create(counts.drawCount),
             dUseFog: ValueCell.create(props.useFog),
@@ -84,6 +90,12 @@ export namespace Geometry {
     }
 
     export function updateValues(values: BaseValues, props: Props) {
+        if (Color.fromNormalizedArray(values.uHighlightColor.ref.value, 0) !== props.highlightColor) {
+            ValueCell.update(values.uHighlightColor, Color.toArrayNormalized(props.highlightColor, values.uHighlightColor.ref.value, 0))
+        }
+        if (Color.fromNormalizedArray(values.uSelectColor.ref.value, 0) !== props.selectColor) {
+            ValueCell.update(values.uSelectColor, Color.toArrayNormalized(props.selectColor, values.uSelectColor.ref.value, 0))
+        }
         ValueCell.updateIfChanged(values.uAlpha, props.alpha)
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
     }

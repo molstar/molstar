@@ -26,12 +26,20 @@ export namespace Color {
         return [ (hexColor >> 16 & 255) / 255, (hexColor >> 8 & 255) / 255, (hexColor & 255) / 255 ]
     }
 
-    export function fromRgb(r: number, g: number, b: number ): Color {
+    export function fromRgb(r: number, g: number, b: number): Color {
         return ((r << 16) | (g << 8) | b) as Color
     }
 
-    export function fromNormalizedRgb(r: number, g: number, b: number ): Color {
+    export function fromNormalizedRgb(r: number, g: number, b: number): Color {
         return (((r * 255) << 16) | ((g * 255) << 8) | (b * 255)) as Color
+    }
+
+    export function fromArray(array: Helpers.NumberArray, offset: number): Color {
+        return fromRgb(array[offset], array[offset + 1], array[offset + 2])
+    }
+
+    export function fromNormalizedArray(array: Helpers.NumberArray, offset: number): Color {
+        return fromNormalizedRgb(array[offset], array[offset + 1], array[offset + 2])
     }
 
     /** Copies hex color to rgb array */
@@ -39,13 +47,15 @@ export namespace Color {
         array[ offset ] = (hexColor >> 16 & 255)
         array[ offset + 1 ] = (hexColor >> 8 & 255)
         array[ offset + 2 ] = (hexColor & 255)
+        return array
     }
 
     /** Copies normalized (0 to 1) hex color to rgb array */
-    export function toArrayNormalized(hexColor: Color, array: Helpers.NumberArray, offset: number) {
+    export function toArrayNormalized<T extends Helpers.NumberArray>(hexColor: Color, array: T, offset: number) {
         array[ offset ] = (hexColor >> 16 & 255) / 255
         array[ offset + 1 ] = (hexColor >> 8 & 255) / 255
         array[ offset + 2 ] = (hexColor & 255) / 255
+        return array
     }
 
     /** Linear interpolation between two colors */
