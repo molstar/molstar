@@ -13,19 +13,18 @@ import { DiamondPrism, PentagonalPrism, HexagonalPrism } from 'mol-geo/primitive
 import { Structure, StructureElement } from 'mol-model/structure';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { getSaccharideShape, SaccharideShapes } from 'mol-model/structure/structure/carbohydrates/constants';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { ComplexMeshParams, ComplexMeshVisual } from '../complex-visual';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ComplexVisual } from '../index';
+import { ComplexVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -45,7 +44,7 @@ const diamondPrism = DiamondPrism()
 const pentagonalPrism = PentagonalPrism()
 const hexagonalPrism = HexagonalPrism()
 
-async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: CarbohydrateSymbolProps, mesh?: Mesh) {
+async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.DefaultValues<CarbohydrateSymbolParams>, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const { detail } = props
@@ -148,21 +147,18 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
 
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 1, 0, 10, 0.1),
     detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultCarbohydrateSymbolProps = PD.getDefaultValues(CarbohydrateSymbolParams)
-export type CarbohydrateSymbolProps = typeof DefaultCarbohydrateSymbolProps
+export type CarbohydrateSymbolParams = typeof CarbohydrateSymbolParams
 
-export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProps> {
-    return ComplexMeshVisual<CarbohydrateSymbolProps>({
-        defaultProps: DefaultCarbohydrateSymbolProps,
+export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolParams> {
+    return ComplexMeshVisual<CarbohydrateSymbolParams>({
+        defaultProps: PD.getDefaultValues(CarbohydrateSymbolParams),
         createGeometry: createCarbohydrateSymbolMesh,
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,
-        setUpdateState: (state: VisualUpdateState, newProps: CarbohydrateSymbolProps, currentProps: CarbohydrateSymbolProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<CarbohydrateSymbolParams>, currentProps: PD.DefaultValues<CarbohydrateSymbolParams>) => {
             state.createGeometry = newProps.detail !== currentProps.detail
         }
     })

@@ -7,8 +7,6 @@
 import { defaults } from 'mol-util';
 import { Structure } from 'mol-model/structure';
 import { VisualQuality } from 'mol-geo/geometry/geometry';
-import { SizeProps } from 'mol-geo/geometry/size-data';
-import { ColorProps } from 'mol-geo/geometry/color-data';
 
 export interface VisualUpdateState {
     updateTransform: boolean
@@ -31,24 +29,6 @@ export namespace VisualUpdateState {
         state.updateSize = false
         state.createGeometry = false
     }
-}
-
-export function sizeChanged(oldProps: SizeProps, newProps: SizeProps) {
-    return (
-        oldProps.sizeTheme !== newProps.sizeTheme ||
-        oldProps.sizeValue !== newProps.sizeValue ||
-        oldProps.sizeFactor !== newProps.sizeFactor
-    )
-}
-
-export function colorChanged(oldProps: ColorProps, newProps: ColorProps) {
-    return (
-        oldProps.colorTheme !== newProps.colorTheme ||
-        oldProps.colorValue !== newProps.colorValue ||
-        oldProps.colorDomain !== newProps.colorDomain ||
-        oldProps.colorList !== newProps.colorList ||
-        oldProps.colorMap !== newProps.colorMap
-    )
 }
 
 //

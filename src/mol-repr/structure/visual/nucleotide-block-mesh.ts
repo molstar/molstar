@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
 import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
@@ -17,8 +17,8 @@ import { Box } from 'mol-geo/primitive/box';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -34,9 +34,16 @@ const t = Mat4.identity()
 const sVec = Vec3.zero()
 const box = Box()
 
-// TODO define props, should be scalable
-async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: {}, mesh?: Mesh) {
+export const NucleotideBlockMeshParams = {
+    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
+}
+export const DefaultNucleotideBlockMeshProps = PD.getDefaultValues(NucleotideBlockMeshParams)
+export type NucleotideBlockMeshProps = typeof DefaultNucleotideBlockMeshProps
+
+async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideBlockMeshProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
+
+    const { sizeFactor } = props
 
     // TODO better vertex count estimate
     const builder = MeshBuilder.create(256, 128, mesh)
@@ -64,7 +71,7 @@ async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structu
                 const parentId = modifiedResidues.parentId.get(compId)
                 if (parentId !== undefined) compId = parentId
                 let idx1 = -1, idx2 = -1, idx3 = -1, idx4 = -1, idx5 = -1, idx6 = -1
-                let width = 4.5, height = 4.5, depth = 0.5
+                let width = 4.5, height = 4.5, depth = 2.5 * sizeFactor
 
                 if (isPurinBase(compId)) {
                     height = 4.5
@@ -87,7 +94,7 @@ async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structu
                 if (idx5 !== -1 && idx6 !== -1) {
                     pos(idx5, p5); pos(idx6, p6)
                     builder.setGroup(i)
-                    addCylinder(builder, p5, p6, 1, { radiusTop: 0.2, radiusBottom: 0.2 })
+                    addCylinder(builder, p5, p6, 1, { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor })
                     if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1) {
                         pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4);
                         Vec3.normalize(v12, Vec3.sub(v12, p2, p1))
@@ -113,14 +120,14 @@ async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structu
 }
 
 export const NucleotideBlockParams = {
-    ...UnitsMeshParams
+    ...UnitsMeshParams,
+    ...NucleotideBlockMeshParams
 }
-export const DefaultNucleotideBlockProps = PD.getDefaultValues(NucleotideBlockParams)
-export type NucleotideBlockProps = typeof DefaultNucleotideBlockProps
+export type NucleotideBlockParams = typeof NucleotideBlockParams
 
-export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
-    return UnitsMeshVisual<NucleotideBlockProps>({
-        defaultProps: DefaultNucleotideBlockProps,
+export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
+    return UnitsMeshVisual<NucleotideBlockParams>({
+        defaultProps: PD.getDefaultValues(NucleotideBlockParams),
         createGeometry: createNucleotideBlockMesh,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,

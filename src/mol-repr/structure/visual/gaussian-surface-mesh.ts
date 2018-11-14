@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
@@ -13,8 +13,8 @@ import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 async function createGaussianSurfaceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, mesh?: Mesh): Promise<Mesh> {
     const { smoothness } = props
@@ -38,17 +38,16 @@ export const GaussianSurfaceParams = {
     ...UnitsMeshParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianSurfaceProps = PD.getDefaultValues(GaussianSurfaceParams)
-export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
+export type GaussianSurfaceParams = typeof GaussianSurfaceParams
 
-export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {
-    return UnitsMeshVisual<GaussianSurfaceProps>({
-        defaultProps: DefaultGaussianSurfaceProps,
+export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceParams> {
+    return UnitsMeshVisual<GaussianSurfaceParams>({
+        defaultProps: PD.getDefaultValues(GaussianSurfaceParams),
         createGeometry: createGaussianSurfaceMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: GaussianSurfaceProps, currentProps: GaussianSurfaceProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianSurfaceParams>, currentProps: PD.DefaultValues<GaussianSurfaceParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true

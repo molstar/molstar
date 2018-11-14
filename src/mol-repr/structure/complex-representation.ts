@@ -8,27 +8,37 @@
 import { Structure } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { StructureProps, StructureRepresentation, StructureParams } from './index';
+import { StructureRepresentation, StructureParams } from './representation';
 import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { RepresentationContext } from 'mol-repr';
-import { createTheme, Theme } from 'mol-geo/geometry/geometry';
+import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
+import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { BehaviorSubject } from 'rxjs';
 
-export function ComplexRepresentation<P extends StructureProps>(label: string, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+    const updated = new BehaviorSubject(0)
     let visual: ComplexVisual<P> | undefined
+
     let _structure: Structure
-    let _props: P
+    let _params: P
+    let _props: PD.DefaultValues<P>
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, structure?: Structure) {
-        if (structure) _structure = structure
-        _props = Object.assign({}, _props, props, { structure: _structure })
-        _theme = createTheme(_props)
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.DefaultValues<P>> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
+        if (structure && structure !== _structure) {
+            _params = getParams(ctx, structure)
+            _structure = structure
+            if (!_props) _props = PD.getDefaultValues(_params)
+        }
+        _props = Object.assign({}, _props, props)
+        _theme = createTheme(ctx, { structure: _structure }, props, themeProps, _theme)
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
             await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, structure)
+            updated.next(updated.getValue() + 1)
         });
     }
 
@@ -46,11 +56,12 @@ export function ComplexRepresentation<P extends StructureProps>(label: string, v
 
     return {
         label,
-        params: StructureParams, // TODO
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },
         get props() { return _props },
+        get params() { return _params },
+        get updated() { return updated },
         createOrUpdate,
         getLoci,
         mark,

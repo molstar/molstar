@@ -8,7 +8,9 @@ import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Color, ColorMap } from 'mol-util/color';
 import { StructureElement, Unit, Link } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme, TableLegend } from '../color';
+import { ColorTheme, TableLegend } from '../color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
@@ -18,12 +20,18 @@ export const ElementSymbolColors = ColorMap({
 const DefaultElementSymbolColor = Color(0xFFFFFF)
 const Description = 'Assigns a color to every atom according to its chemical element.'
 
+export const ElementSymbolColorThemeParams = {}
+export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
+    return ElementSymbolColorThemeParams // TODO return copy
+}
+export type ElementSymbolColorThemeProps = PD.DefaultValues<typeof ElementSymbolColorThemeParams>
+
 export function elementSymbolColor(element: ElementSymbol): Color {
     const c = (ElementSymbolColors as { [k: string]: Color })[element];
     return c === undefined ? DefaultElementSymbolColor : c
 }
 
-export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
+export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: ElementSymbolColorThemeProps): ColorTheme<ElementSymbolColorThemeProps> {
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
@@ -40,12 +48,16 @@ export function ElementSymbolColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: {},
         granularity: 'group',
         color,
+        props,
         description: Description,
         legend: TableLegend(Object.keys(ElementSymbolColors).map(name => {
             return [name, (ElementSymbolColors as any)[name] as Color] as [string, Color]
         }))
     }
+}
+
+export const ElementSymbolColorThemeProvider: ColorTheme.Provider<typeof ElementSymbolColorThemeParams> = {
+    factory: ElementSymbolColorTheme, params: getElementSymbolColorThemeParams
 }

@@ -8,12 +8,21 @@ import { Unit, StructureElement, Link, ElementIndex } from 'mol-model/structure'
 
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme } from '../color';
-import { ColorOther } from 'mol-util/color/tables';
-import { defaults } from 'mol-util';
+import { ColorTheme } from '../color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer residue a color based on its `seq_id` value.'
+
+export const SequenceIdColorThemeParams = {
+    list: PD.Select<ColorListName>('Color Scale', '', 'rainbow', ColorListOptions),
+}
+export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {
+    return SequenceIdColorThemeParams // TODO return copy
+}
+export type SequenceIdColorThemeProps = PD.DefaultValues<typeof SequenceIdColorThemeParams>
 
 function getSeqId(unit: Unit, element: ElementIndex): number {
     const { model } = unit
@@ -55,15 +64,12 @@ function getSequenceLength(unit: Unit, element: ElementIndex) {
     return model.sequence.byEntityKey[entityIndex].sequence.sequence.length
 }
 
-export function SequenceIdColorTheme(props: ColorThemeProps): ColorTheme {
-    const p = {
-        ...props,
-        list: defaults(props.list, ColorOther.rainbow),
+export function SequenceIdColorTheme(ctx: ThemeDataContext, props: SequenceIdColorThemeProps): ColorTheme<SequenceIdColorThemeProps> {
+    const scale = ColorScale.create({
+        listOrName: props.list,
         minLabel: 'Start',
         maxLabel: 'End',
-    }
-
-    const scale = ColorScale.create(p)
+    })
     const color = (location: Location): Color => {
         if (StructureElement.isLocation(location)) {
             const { unit, element } = location
@@ -84,11 +90,14 @@ export function SequenceIdColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { list: true },
         granularity: 'group',
         color,
+        props,
         description: Description,
-        // legend: scale ? TableLegend(table) : undefined
         legend: scale ? scale.legend : undefined
     }
+}
+
+export const SequenceIdColorThemeProvider: ColorTheme.Provider<typeof SequenceIdColorThemeParams> = {
+    factory: SequenceIdColorTheme, params: getSequenceIdColorThemeParams
 }

@@ -6,40 +6,40 @@
 
 import { Task } from 'mol-task'
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
-import { RepresentationProps, Representation, RepresentationContext } from '..';
+import { Representation, RepresentationContext } from '../representation';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { ValueCell } from 'mol-util';
-import { ColorThemeName, ColorThemeOptions } from 'mol-theme/color';
 import { Shape } from 'mol-model/shape';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { createRenderableState, createTheme } from 'mol-geo/geometry/geometry';
+import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
+import { ThemeProps, createTheme } from 'mol-theme/theme';
+import { BehaviorSubject } from 'rxjs';
 
-export interface ShapeRepresentation<P extends RepresentationProps = {}> extends Representation<Shape, P> { }
+export interface ShapeRepresentation<P extends ShapeParams> extends Representation<Shape, P> { }
 
 export const ShapeParams = {
     ...Mesh.Params,
-    colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
+    // TODO
+    // colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
 }
-export const DefaultShapeProps = PD.getDefaultValues(ShapeParams)
-export type ShapeProps = typeof DefaultShapeProps
+export type ShapeParams = typeof ShapeParams
 
-// TODO
-// export type ShapeRepresentation = ShapeRepresentation<ShapeProps>
-
-export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation<P> {
+export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentation<P> {
+    const updated = new BehaviorSubject(0)
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
-    let currentProps: P
+    let currentProps: PD.DefaultValues<P> = PD.getDefaultValues(ShapeParams) as PD.DefaultValues<P>
+    let currentParams: P
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, shape?: Shape) {
-        currentProps = Object.assign({}, DefaultShapeProps, currentProps, props)
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.DefaultValues<P>> = {}, themeProps: ThemeProps = {}, shape?: Shape) {
+        currentProps = Object.assign({}, currentProps, props)
         if (shape) _shape = shape
 
         return Task.create('ShapeRepresentation.create', async runtime => {
@@ -49,7 +49,7 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
 
             const mesh = _shape.mesh
             const locationIt = ShapeGroupIterator.fromShape(_shape)
-            const theme = createTheme(currentProps)
+            const theme = createTheme(ctx, currentProps, themeProps, {})
             const transform = createIdentityTransform()
 
             const values = await Mesh.createValues(runtime, mesh, transform, locationIt, theme, currentProps)
@@ -57,13 +57,15 @@ export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation
 
             _renderObject = createMeshRenderObject(values, state)
             renderObjects.push(_renderObject)
+            updated.next(updated.getValue() + 1)
         });
     }
 
     return {
         label: 'Shape mesh',
-        params: ShapeParams,
+        updated,
         get renderObjects () { return renderObjects },
+        get params () { return currentParams },
         get props () { return currentProps },
         createOrUpdate,
         getLoci(pickingId: PickingId) {

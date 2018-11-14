@@ -146,9 +146,6 @@ export const GlobalUniformSchema = {
     uViewportHeight: UniformSpec('f'),
     uViewport: UniformSpec('v4'),
 
-    uHighlightColor: UniformSpec('v3'),
-    uSelectColor: UniformSpec('v3'),
-
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
@@ -193,6 +190,8 @@ export const BaseSchema = {
     uInstanceCount: UniformSpec('i'),
     uGroupCount: UniformSpec('i'),
     uMarkerTexDim: UniformSpec('v2'),
+    uHighlightColor: UniformSpec('v3'),
+    uSelectColor: UniformSpec('v3'),
 
     tMarker: TextureSpec('image-uint8', 'alpha', 'ubyte', 'nearest'),
 

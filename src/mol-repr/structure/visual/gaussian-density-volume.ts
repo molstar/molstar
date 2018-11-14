@@ -5,15 +5,15 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { UnitsDirectVolumeVisual, UnitsDirectVolumeParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams, computeUnitGaussianDensityTexture } from 'mol-model/structure/structure/unit/gaussian-density';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 async function createGaussianDensityVolume(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, directVolume?: DirectVolume): Promise<DirectVolume> {
     const { runtime, webgl } = ctx
@@ -31,17 +31,16 @@ export const GaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianDensityVolumeProps = PD.getDefaultValues(GaussianDensityVolumeParams)
-export type GaussianDensityVolumeProps = typeof DefaultGaussianDensityVolumeProps
+export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
 
-export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolumeProps> {
-    return UnitsDirectVolumeVisual<GaussianDensityVolumeProps>({
-        defaultProps: DefaultGaussianDensityVolumeProps,
+export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolumeParams> {
+    return UnitsDirectVolumeVisual<GaussianDensityVolumeParams>({
+        defaultProps: PD.getDefaultValues(GaussianDensityVolumeParams),
         createGeometry: createGaussianDensityVolume,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: GaussianDensityVolumeProps, currentProps: GaussianDensityVolumeProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianDensityVolumeParams>, currentProps: PD.DefaultValues<GaussianDensityVolumeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) {

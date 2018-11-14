@@ -8,8 +8,14 @@ import { Transformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
-import { BallAndStickRepresentation, DefaultBallAndStickProps } from 'mol-repr/structure/representation/ball-and-stick';
 import { PluginContext } from 'mol-plugin/context';
+import { ColorTheme } from 'mol-theme/color';
+import { SizeTheme } from 'mol-theme/size';
+import { RepresentationRegistry } from 'mol-repr/representation';
+
+const colorThemeRegistry = new ColorTheme.Registry()
+const sizeThemeRegistry = new SizeTheme.Registry()
+const representationRegistry = new RepresentationRegistry()
 
 export { CreateStructureRepresentation }
 namespace CreateStructureRepresentation { export interface Params { } }
@@ -20,14 +26,14 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.St
     to: [SO.Molecule.Representation3D],
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            const repr = BallAndStickRepresentation(); // CartoonRepresentation();
-            await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl }, DefaultBallAndStickProps, a.data).runInContext(ctx);
+            const repr = representationRegistry.create('cartoon', { colorThemeRegistry, sizeThemeRegistry }, a.data)
+            await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl, colorThemeRegistry, sizeThemeRegistry }, {}, {}, a.data).runInContext(ctx);
             return new SO.Molecule.Representation3D(repr);
         });
     },
     update({ a, b }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            await b.data.createOrUpdate({ webgl: plugin.canvas3d.webgl }, b.data.props, a.data).runInContext(ctx);
+            await b.data.createOrUpdate({ webgl: plugin.canvas3d.webgl, colorThemeRegistry, sizeThemeRegistry }, b.data.props, {}, a.data).runInContext(ctx);
             return Transformer.UpdateResult.Updated;
         });
     }

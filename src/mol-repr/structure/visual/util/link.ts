@@ -13,12 +13,11 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { CylinderProps } from 'mol-geo/primitive/cylinder';
 import { addFixedCountDashedCylinder, addCylinder, addDoubleCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { VisualContext } from 'mol-repr';
+import { VisualContext } from 'mol-repr/representation';
 
 export const LinkCylinderParams = {
     linkScale: PD.Range('Link Scale', '', 0.4, 0, 1, 0.1),
     linkSpacing: PD.Range('Link Spacing', '', 1, 0, 2, 0.01),
-    linkRadius: PD.Range('Link Radius', '', 0.25, 0, 10, 0.05),
     radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
 }
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams)

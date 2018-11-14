@@ -1,28 +1,29 @@
-/**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
- *
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
- */
+// /**
+//  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+//  *
+//  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+//  */
 
-import { CrossLinkRestraintVisual, CrossLinkRestraintParams } from '../visual/cross-link-restraint-cylinder';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { ComplexRepresentation } from '../complex-representation';
-import { StructureRepresentation } from '../index';
-import { Representation } from 'mol-repr';
+// import { CrossLinkRestraintVisual, CrossLinkRestraintParams } from '../visual/cross-link-restraint-cylinder';
+// import { ParamDefinition as PD } from 'mol-util/param-definition';
+// import { ComplexRepresentation } from '../complex-representation';
+// import { StructureRepresentation } from '../representation';
+// import { Representation } from 'mol-repr/representation';
+// import { ThemeRegistryContext } from 'mol-theme/theme';
+// import { Structure } from 'mol-model/structure';
 
-export const DistanceRestraintParams = {
-    ...CrossLinkRestraintParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 0.25, 0, 0.05, 20),
-}
-export const DefaultDistanceRestraintProps = PD.getDefaultValues(DistanceRestraintParams)
-export type DistanceRestraintProps = typeof DefaultDistanceRestraintProps
+// export const DistanceRestraintParams = {
+//     ...CrossLinkRestraintParams,
+// }
+// export function getDistanceRestraintParams(ctx: ThemeRegistryContext, structure: Structure) {
+//     return DistanceRestraintParams // TODO return copy
+// }
+// export type DistanceRestraintProps = PD.DefaultValues<typeof DistanceRestraintParams>
 
-export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
+// export type DistanceRestraintRepresentation = StructureRepresentation<DistanceRestraintProps>
 
-export function DistanceRestraintRepresentation(): DistanceRestraintRepresentation {
-    return Representation.createMulti('Distance restraint', DistanceRestraintParams, DefaultDistanceRestraintProps, [
-        ComplexRepresentation('Cross-link restraint', CrossLinkRestraintVisual)
-    ] as StructureRepresentation<DistanceRestraintProps>[])
-}
+// export function DistanceRestraintRepresentation(defaultProps: DistanceRestraintProps): DistanceRestraintRepresentation {
+//     return Representation.createMulti('Distance restraint', defaultProps, [
+//         ComplexRepresentation('Cross-link restraint', defaultProps, CrossLinkRestraintVisual)
+//     ])
+// }

@@ -5,10 +5,10 @@
  */
 
 import { Task } from 'mol-task'
-import { RepresentationProps, Representation, Visual, RepresentationContext, VisualContext } from '..';
+import { Representation, Visual, RepresentationContext, VisualContext, RepresentationProvider, RepresentationParamsGetter } from '../representation';
 import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
-import { Geometry, updateRenderableState, Theme, createTheme } from 'mol-geo/geometry/geometry';
+import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -19,36 +19,38 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { VisualUpdateState } from 'mol-repr/util';
 import { ValueCell } from 'mol-util';
+import { ThemeProps, Theme, createTheme } from 'mol-theme/theme';
+import { BehaviorSubject } from 'rxjs';
 
-export interface VolumeVisual<P extends RepresentationProps = {}> extends Visual<VolumeData, P> { }
+export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
 type VolumeRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
-interface VolumeVisualBuilder<P extends VolumeProps, G extends Geometry> {
-    defaultProps: P
-    createGeometry(ctx: VisualContext, volumeData: VolumeData, props: P, geometry?: G): Promise<G>
+interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
+    defaultProps: PD.DefaultValues<P>
+    createGeometry(ctx: VisualContext, volumeData: VolumeData, props: PD.DefaultValues<P>, geometry?: G): Promise<G>
     getLoci(pickingId: PickingId, id: number): Loci
     mark(loci: Loci, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
+    setUpdateState(state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>): void
 }
 
-interface VolumeVisualGeometryBuilder<P extends VolumeProps, G extends Geometry> extends VolumeVisualBuilder<P, G> {
-    createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: P): Promise<VolumeRenderObject>
-    updateValues(values: RenderableValues, newProps: P): void
+interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
+    createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.DefaultValues<P>): Promise<VolumeRenderObject>
+    updateValues(values: RenderableValues, newProps: PD.DefaultValues<P>): void
 }
 
-export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometryBuilder<P, Geometry>) {
+export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>) {
     const { defaultProps, createGeometry, getLoci, mark, setUpdateState } = builder
     const { createRenderObject, updateValues } = builder
     const updateState = VisualUpdateState.create()
 
-    let currentProps: P
+    let currentProps: PD.DefaultValues<P>
     let renderObject: VolumeRenderObject | undefined
     let currentVolume: VolumeData
     let geometry: Geometry
     let locationIt: LocationIterator
 
-    async function create(ctx: VisualContext, volume: VolumeData, theme: Theme, props: Partial<VolumeProps> = {}) {
+    async function create(ctx: VisualContext, volume: VolumeData, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
         if (props.isoValueRelative) {
             currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
@@ -60,7 +62,7 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
         renderObject = await createRenderObject(ctx, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, theme: Theme, props: Partial<VolumeProps> = {}) {
+    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}) {
         if (!renderObject) return
         const newProps = Object.assign({}, currentProps, props)
 
@@ -85,7 +87,7 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<VolumeProps> = {}, volume?: VolumeData) {
+        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}, volume?: VolumeData) {
             if (!volume && !currentVolume) {
                 throw new Error('missing volume')
             } else if (volume && (!currentVolume || !renderObject)) {
@@ -132,63 +134,81 @@ export function VolumeVisual<P extends VolumeProps>(builder: VolumeVisualGeometr
     }
 }
 
-export interface VolumeRepresentation<P extends RepresentationProps = {}> extends Representation<VolumeData, P> { }
+export interface VolumeRepresentation<P extends VolumeParams> extends Representation<VolumeData, P> { }
+
+export type VolumeRepresentationProvider<P extends VolumeParams> = RepresentationProvider<VolumeData, P>
+
+//
 
 export const VolumeParams = {
     ...Geometry.Params,
     isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
     isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
-export const DefaultVolumeProps = PD.getDefaultValues(VolumeParams)
-export type VolumeProps = typeof DefaultVolumeProps
+export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeProps>(visualCtor: (volumeData: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
-    let visual: VolumeVisual<any>
-    let _props: P
+export function VolumeRepresentation<P extends VolumeParams>(label: string, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
+    const updated = new BehaviorSubject(0)
+    let visual: VolumeVisual<P>
+
+    let _volume: VolumeData
+    let _props: PD.DefaultValues<P>
+    let _params: P
     let _theme: Theme
     let busy = false
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, volumeData?: VolumeData) {
-        _props = Object.assign({}, DefaultVolumeProps, _props, props)
-        _theme = createTheme(_props)
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.DefaultValues<P>> = {}, themeProps: ThemeProps = {}, volume?: VolumeData) {
+        if (volume && volume !== _volume) {
+            _params = getParams(ctx, volume)
+            _volume = volume
+            if (!_props) _props = PD.getDefaultValues(_params)
+        }
+        _props = Object.assign({}, _props, props)
+        _theme = createTheme(ctx, _props, themeProps, {}, _theme)
 
         return Task.create('VolumeRepresentation.create', async runtime => {
             // TODO queue it somehow
             if (busy) return
 
-            if (!visual && !volumeData) {
-                throw new Error('volumeData missing')
-            } else if (volumeData && !visual) {
+            if (!visual && !volume) {
+                throw new Error('volume data missing')
+            } else if (volume && !visual) {
                 busy = true
-                visual = visualCtor(volumeData)
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volumeData)
+                visual = visualCtor(volume)
+                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
                 busy = false
             } else {
                 busy = true
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volumeData)
+                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
                 busy = false
             }
+            updated.next(updated.getValue() + 1)
         });
     }
 
+    function getLoci(pickingId: PickingId) {
+        return visual ? visual.getLoci(pickingId) : EmptyLoci
+    }
+
+    function mark(loci: Loci, action: MarkerAction) {
+        return visual ? visual.mark(loci, action) : false
+    }
+
+    function destroy() {
+        if (visual) visual.destroy()
+    }
+
     return {
-        label: 'Volume',
-        params: VolumeParams,
+        label,
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },
         get props () { return _props },
+        get params() { return _params },
+        get updated() { return updated },
         createOrUpdate,
-        getLoci(pickingId: PickingId) {
-            // TODO
-            return EmptyLoci
-        },
-        mark(loci: Loci, action: MarkerAction) {
-            // TODO
-            return false
-        },
-        destroy() {
-            // TODO
-        }
+        getLoci,
+        mark,
+        destroy
     }
 }

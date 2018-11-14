@@ -5,17 +5,16 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { UnitsLinesVisual, UnitsLinesParams } from '../units-visual';
 import { StructureElementIterator, getElementLoci, markElement } from './util/element';
 import { GaussianDensityProps, GaussianDensityParams } from 'mol-model/structure/structure/unit/gaussian-density';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { computeMarchingCubesLines } from 'mol-geo/util/marching-cubes/algorithm';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, lines?: Lines): Promise<Lines> {
     const { smoothness } = props
@@ -36,21 +35,18 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 2, 0, 10, 0.1),
     lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
 }
-export const DefaultGaussianWireframeProps = PD.getDefaultValues(GaussianWireframeParams)
-export type GaussianWireframeProps = typeof DefaultGaussianWireframeProps
+export type GaussianWireframeParams = typeof GaussianWireframeParams
 
-export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {
-    return UnitsLinesVisual<GaussianWireframeProps>({
-        defaultProps: DefaultGaussianWireframeProps,
+export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeParams> {
+    return UnitsLinesVisual<GaussianWireframeParams>({
+        defaultProps: PD.getDefaultValues(GaussianWireframeParams),
         createGeometry: createGaussianWireframe,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: GaussianWireframeProps, currentProps: GaussianWireframeProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianWireframeParams>, currentProps: PD.DefaultValues<GaussianWireframeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true

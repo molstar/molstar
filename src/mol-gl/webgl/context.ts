@@ -199,7 +199,7 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
         const pbo = gl.createBuffer()
         readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
-            gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STATIC_COPY)
+            gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STREAM_READ)
             gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0)
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
             // need to unbind/bind PBO before/after async awaiting the fence

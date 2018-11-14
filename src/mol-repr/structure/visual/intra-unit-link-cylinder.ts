@@ -6,22 +6,21 @@
  */
 
 import { Unit, Link, StructureElement, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { UnitsMeshVisual, UnitsMeshParams, StructureGroup } from '../units-visual';
 import { Interval } from 'mol-data/int';
-import { SizeThemeName, SizeThemeOptions } from 'mol-theme/size';
 import { BitFlags } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
-async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
+async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.DefaultValues<IntraUnitLinkParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const location = StructureElement.create(unit)
@@ -30,6 +29,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
     const links = unit.links
     const { edgeCount, a, b, edgeProps, offset } = links
     const { order: _order, flags: _flags } = edgeProps
+    const { sizeFactor } = props
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -57,7 +57,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
         flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]]
-            return theme.size.size(location)
+            return theme.size.size(location) * sizeFactor
         }
     }
 
@@ -67,22 +67,21 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
 export const IntraUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    sizeValue: PD.Numeric('Size Value', '', 0.2, 0, 10, 0.1),
-    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
+    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
 }
-export const DefaultIntraUnitLinkProps = PD.getDefaultValues(IntraUnitLinkParams)
-export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
+export type IntraUnitLinkParams = typeof IntraUnitLinkParams
 
-export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
-    return UnitsMeshVisual<IntraUnitLinkProps>({
-        defaultProps: DefaultIntraUnitLinkProps,
+export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkParams> {
+    return UnitsMeshVisual<IntraUnitLinkParams>({
+        defaultProps: PD.getDefaultValues(IntraUnitLinkParams),
         createGeometry: createIntraUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
         mark: markLink,
         setUpdateState: (state: VisualUpdateState, newProps: LinkCylinderProps, currentProps: LinkCylinderProps) => {
-            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
+            if (newProps.linkScale !== currentProps.linkScale) state.createGeometry = true
+            if (newProps.linkSpacing !== currentProps.linkSpacing) state.createGeometry = true
+            if (newProps.radialSegments !== currentProps.radialSegments) state.createGeometry = true
         }
     })
 }

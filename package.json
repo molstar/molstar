@@ -88,6 +88,7 @@
     "@types/react-dom": "^16.0.9",
     "@types/webgl2": "0.0.4",
     "benchmark": "^2.1.4",
+    "circular-dependency-plugin": "^5.0.2",
     "cpx": "^1.5.0",
     "css-loader": "^1.0.1",
     "extra-watch-webpack-plugin": "^1.0.3",

@@ -6,14 +6,13 @@
 
 import { ValueCell } from 'mol-util';
 import { TextureImage, createTextureImage } from 'mol-gl/renderable/util';
-import { Color, ColorMap } from 'mol-util/color';
+import { Color } from 'mol-util/color';
 import { Vec2, Vec3 } from 'mol-math/linear-algebra';
 import { LocationIterator } from '../util/location-iterator';
 import { NullLocation } from 'mol-model/location';
-import { LocationColor, ColorThemeProps, ColorTheme, ColorThemeName, ScaleLegend, TableLegend, ColorScaleName, getColorScaleFromName } from 'mol-theme/color';
+import { LocationColor, ColorTheme } from 'mol-theme/color';
 import { RuntimeContext } from 'mol-task';
 import { getGranularity } from './geometry';
-import { Structure } from 'mol-model/structure';
 
 export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
@@ -23,37 +22,6 @@ export type ColorData = {
     tColor: ValueCell<TextureImage<Uint8Array>>,
     uColorTexDim: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
-}
-
-export interface ColorProps {
-    colorTheme: ColorThemeName
-    colorList?: Color[] | ColorScaleName
-    colorMap?: ColorMap<any>
-    colorDomain?: [number, number]
-    colorValue?: Color
-    colorFunction?: LocationColor,
-    colorGranularity?: ColorType,
-    colorDescription?: string,
-    colorLegend?: ScaleLegend | TableLegend
-    structure?: Structure
-}
-
-export function getColorThemeProps(props: ColorProps): ColorThemeProps {
-    const p: ColorThemeProps = {
-        name: props.colorTheme
-    }
-    if (props.colorDomain !== undefined) p.domain = props.colorDomain
-    if (props.colorList !== undefined) {
-        p.list = typeof props.colorList === 'string' ? getColorScaleFromName(props.colorList) : props.colorList
-    }
-    if (props.colorMap !== undefined) p.map = props.colorMap
-    if (props.colorValue !== undefined) p.value = props.colorValue
-    if (props.structure !== undefined) p.structure = props.structure
-    if (props.colorFunction !== undefined) p.color = props.colorFunction
-    if (props.colorGranularity !== undefined) p.granularity = props.colorGranularity
-    if (props.colorDescription !== undefined) p.description = props.colorDescription
-    if (props.colorLegend !== undefined) p.legend = props.colorLegend
-    return p
 }
 
 export function createColors(ctx: RuntimeContext, locationIt: LocationIterator, colorTheme: ColorTheme, colorData?: ColorData): Promise<ColorData> {

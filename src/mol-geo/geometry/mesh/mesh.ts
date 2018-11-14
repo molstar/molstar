@@ -9,8 +9,7 @@ import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
-import { MeshValues } from 'mol-gl/renderable';
-import { Geometry, Theme } from '../geometry';
+import { Geometry } from '../geometry';
 import { createMarkers } from '../marker-data';
 import { TransformData } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
@@ -18,6 +17,8 @@ import { createColors } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
+import { Theme } from 'mol-theme/theme';
+import { MeshValues } from 'mol-gl/renderable/mesh';
 
 export interface Mesh {
     readonly kind: 'mesh',

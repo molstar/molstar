@@ -8,17 +8,34 @@ import { StructureElement, Link, ElementIndex, Unit } from 'mol-model/structure'
 
 import { SaccharideColors, MonosaccharidesColorTable } from 'mol-model/structure/structure/carbohydrates/constants';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme, LocationColor, TableLegend } from '../color';
+import { ColorTheme, LocationColor, TableLegend } from '../color';
 import { Color } from 'mol-util/color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors according to the Symbol Nomenclature for Glycans (SNFG).'
 
-export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme {
+// name: ColorThemeName
+// domain?: [number, number]
+// value?: Color
+// list?: Color[]
+// map?: ColorMap<any>
+
+export const CarbohydrateSymbolColorThemeParams = {
+    // domain: PD.Interval('Color Domain', '', [0, 1]),
+    // value: PD.Color('Color Value', '', DefaultColor),
+}
+export function getCarbohydrateSymbolColorThemeParams(ctx: ThemeDataContext) {
+    return CarbohydrateSymbolColorThemeParams // TODO return copy
+}
+export type CarbohydrateSymbolColorThemeProps = PD.DefaultValues<typeof CarbohydrateSymbolColorThemeParams>
+
+export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: CarbohydrateSymbolColorThemeProps): ColorTheme<CarbohydrateSymbolColorThemeProps> {
     let color: LocationColor
 
-    if (props.structure) {
-        const { elements, getElementIndex, getAnomericCarbon } = props.structure.carbohydrates
+    if (ctx.structure) {
+        const { elements, getElementIndex, getAnomericCarbon } = ctx.structure.carbohydrates
 
         const getColor = (unit: Unit, index: ElementIndex) => {
             const residueIndex = unit.model.atomicHierarchy.residueAtomSegments.index[index]
@@ -47,10 +64,14 @@ export function CarbohydrateSymbolColorTheme(props: ColorThemeProps): ColorTheme
     }
 
     return {
-        features: {},
         granularity: 'group',
         color: color,
+        props: props,
         description: Description,
         legend: TableLegend(MonosaccharidesColorTable)
     }
+}
+
+export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<typeof CarbohydrateSymbolColorThemeParams> = {
+    factory: CarbohydrateSymbolColorTheme, params: getCarbohydrateSymbolColorThemeParams
 }

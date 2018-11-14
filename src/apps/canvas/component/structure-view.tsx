@@ -7,8 +7,8 @@
 import * as React from 'react'
 import { StructureView } from '../structure-view';
 import { RepresentationComponent } from './representation';
-import { Representation } from 'mol-repr';
-import { StructureRepresentation } from 'mol-repr/structure/index';
+import { Representation } from 'mol-repr/representation';
+import { StructureRepresentation } from 'mol-repr/structure/representation';
 
 export interface StructureViewComponentProps {
     structureView: StructureView
@@ -37,6 +37,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
             structureView: sv,
 
             label: sv.label,
+            structure: sv.structure,
             modelId: sv.modelId,
             modelIds: sv.getModelIds(),
             assemblyId: sv.assemblyId,

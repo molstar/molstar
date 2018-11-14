@@ -1,25 +1,29 @@
-/**
- * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
- *
- * @author Alexander Rose <alexander.rose@weirdbyte.de>
- */
+// /**
+//  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+//  *
+//  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+//  */
 
-import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
-import { UnitsRepresentation } from '../units-representation';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StructureRepresentation } from '../index';
-import { Representation } from 'mol-repr';
+// import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
+// import { UnitsRepresentation } from '../units-representation';
+// import { ParamDefinition as PD } from 'mol-util/param-definition';
+// import { StructureRepresentation } from '../representation';
+// import { Representation } from 'mol-repr/representation';
+// import { ThemeRegistryContext } from 'mol-theme/theme';
+// import { Structure } from 'mol-model/structure';
 
-export const SpacefillParams = {
-    ...ElementSphereParams
-}
-export const DefaultSpacefillProps = PD.getDefaultValues(SpacefillParams)
-export type SpacefillProps = typeof DefaultSpacefillProps
+// export const SpacefillParams = {
+//     ...ElementSphereParams,
+// }
+// export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
+//     return SpacefillParams // TODO return copy
+// }
+// export type SpacefillProps = PD.DefaultValues<typeof SpacefillParams>
 
-export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>
+// export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>
 
-export function SpacefillRepresentation(): SpacefillRepresentation {
-    return Representation.createMulti('Spacefill', SpacefillParams, DefaultSpacefillProps, [
-        UnitsRepresentation('Sphere mesh', ElementSphereVisual)
-    ] as StructureRepresentation<SpacefillProps>[])
-}
+// export function SpacefillRepresentation(defaultProps: SpacefillProps): SpacefillRepresentation {
+//     return Representation.createMulti('Spacefill', defaultProps, [
+//         UnitsRepresentation('Sphere mesh', defaultProps, ElementSphereVisual)
+//     ])
+// }

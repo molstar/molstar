@@ -8,9 +8,9 @@ import { CifFile } from 'mol-io/reader/cif';
 import { Model as _Model, Structure as _Structure } from 'mol-model/structure';
 import { VolumeData } from 'mol-model/volume';
 import { PluginBehavior } from 'mol-plugin/behavior/behavior';
-import { Representation } from 'mol-repr';
-import { StructureRepresentation } from 'mol-repr/structure/index';
-import { VolumeRepresentation } from 'mol-repr/volume';
+import { Representation } from 'mol-repr/representation';
+import { StructureRepresentation } from 'mol-repr/structure/representation';
+import { VolumeRepresentation } from 'mol-repr/volume/representation';
 import { StateObject, Transformer } from 'mol-state';
 
 export type TypeClass = 'root' | 'data' | 'prop'

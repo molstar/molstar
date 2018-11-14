@@ -8,10 +8,21 @@ import { Unit, StructureProperties, StructureElement, Link } from 'mol-model/str
 
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
-import { ColorThemeProps, ColorTheme, LocationColor } from '../color';
+import { ColorTheme, LocationColor } from '../color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every chain a color based on its `asym_id` value.'
+
+export const ChainIdColorThemeParams = {
+    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+}
+export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
+    return ChainIdColorThemeParams // TODO return copy
+}
+export type ChainIdColorThemeProps = PD.DefaultValues<typeof ChainIdColorThemeParams>
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -23,14 +34,13 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
+export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThemeProps): ColorTheme<ChainIdColorThemeProps> {
     let color: LocationColor
-    const scale = ColorScale.create({ list: props.list, minLabel: 'Start', maxLabel: 'End' })
-    // const table: [string, Color][] = []
+    const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
-    if (props.structure) {
+    if (ctx.structure) {
         const l = StructureElement.create()
-        const { models } = props.structure
+        const { models } = ctx.structure
         const asymIdSerialMap = new Map<string, number>()
         let j = 0
         for (let i = 0, il = models.length; i <il; ++i) {
@@ -43,8 +53,6 @@ export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
         }
         scale.setDomain(0, asymIdSerialMap.size - 1)
         const scaleColor = scale.color
-
-        // asymIdSerialMap.forEach((v, k) => table.push([k, scaleColor(v)]))
 
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
@@ -63,11 +71,14 @@ export function ChainIdColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { structure: true, list: true },
         granularity: 'group',
         color,
+        props,
         description: Description,
-        // legend: scale ? TableLegend(table) : undefined
         legend: scale ? scale.legend : undefined
     }
+}
+
+export const ChainIdColorThemeProvider: ColorTheme.Provider<typeof ChainIdColorThemeParams> = {
+    factory: ChainIdColorTheme, params: getChainIdColorThemeParams
 }

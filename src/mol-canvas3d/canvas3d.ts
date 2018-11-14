@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import { now } from 'mol-util/now';
 
 import { Vec3 } from 'mol-math/linear-algebra'
@@ -17,7 +17,7 @@ import TrackballControls from './controls/trackball'
 import { Viewport } from './camera/util'
 import { resizeCanvas } from './util';
 import { createContext, getGLContext, WebGLContext } from 'mol-gl/webgl/context';
-import { Representation } from 'mol-repr';
+import { Representation } from 'mol-repr/representation';
 import { createRenderTarget } from 'mol-gl/webgl/render-target';
 import Scene from 'mol-gl/scene';
 import { RenderVariant } from 'mol-gl/webgl/render-item';
@@ -41,11 +41,11 @@ export { Canvas3D }
 interface Canvas3D {
     readonly webgl: WebGLContext,
 
-    hide: (repr: Representation<any>) => void
-    show: (repr: Representation<any>) => void
+    hide: (repr: Representation.Any) => void
+    show: (repr: Representation.Any) => void
 
-    add: (repr: Representation<any>) => void
-    remove: (repr: Representation<any>) => void
+    add: (repr: Representation.Any) => void
+    remove: (repr: Representation.Any) => void
     update: () => void
     clear: () => void
 
@@ -54,8 +54,8 @@ interface Canvas3D {
     animate: () => void
     pick: () => void
     identify: (x: number, y: number) => Promise<PickingId | undefined>
-    mark: (loci: Loci, action: MarkerAction) => void
-    getLoci: (pickingId: PickingId) => { loci: Loci, repr?: Representation<any> }
+    mark: (loci: Loci, action: MarkerAction, repr?: Representation.Any) => void
+    getLoci: (pickingId: PickingId) => { loci: Loci, repr?: Representation.Any }
 
     readonly didDraw: BehaviorSubject<now.Timestamp>
 
@@ -77,7 +77,9 @@ namespace Canvas3D {
     export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
         const p = { ...props, ...DefaultCanvas3DProps }
 
-        const reprMap = new Map<Representation<any>, Set<RenderObject>>()
+        const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
+        const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>()
+        const reprCount = new BehaviorSubject(0)
 
         const startTime = now()
         const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp)
@@ -120,7 +122,7 @@ namespace Canvas3D {
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
             let repr: Representation.Any = Representation.Empty
-            reprMap.forEach((_, _repr) => {
+            reprRenderObjects.forEach((_, _repr) => {
                 const _loci = _repr.getLoci(pickingId)
                 if (!isEmptyLoci(_loci)) {
                     if (!isEmptyLoci(loci)) console.warn('found another loci')
@@ -131,10 +133,12 @@ namespace Canvas3D {
             return { loci, repr }
         }
 
-        function mark(loci: Loci, action: MarkerAction) {
+        function mark(loci: Loci, action: MarkerAction, repr?: Representation.Any) {
             let changed = false
-            reprMap.forEach((roSet, repr) => {
-                changed = repr.mark(loci, action) || changed
+            reprRenderObjects.forEach((_, _repr) => {
+                if (!repr || repr === _repr) {
+                    changed = _repr.mark(loci, action) || changed
+                }
             })
             if (changed) {
                 // console.log('changed')
@@ -270,45 +274,57 @@ namespace Canvas3D {
             }
         }
 
+        function add(repr: Representation.Any) {
+            const oldRO = reprRenderObjects.get(repr)
+            const newRO = new Set<RenderObject>()
+            repr.renderObjects.forEach(o => newRO.add(o))
+            if (oldRO) {
+                SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
+                SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
+                scene.update()
+            } else {
+                repr.renderObjects.forEach(o => scene.add(o))
+            }
+            reprRenderObjects.set(repr, newRO)
+            reprCount.next(reprRenderObjects.size)
+            scene.update()
+            requestDraw(true)
+        }
+
         handleResize()
 
         return {
             webgl,
 
-            hide: (repr: Representation<any>) => {
-                const renderObjectSet = reprMap.get(repr)
+            hide: (repr: Representation.Any) => {
+                const renderObjectSet = reprRenderObjects.get(repr)
                 if (renderObjectSet) renderObjectSet.forEach(o => o.state.visible = false)
             },
-            show: (repr: Representation<any>) => {
-                const renderObjectSet = reprMap.get(repr)
+            show: (repr: Representation.Any) => {
+                const renderObjectSet = reprRenderObjects.get(repr)
                 if (renderObjectSet) renderObjectSet.forEach(o => o.state.visible = true)
             },
 
-            add: (repr: Representation<any>) => {
-                const oldRO = reprMap.get(repr)
-                const newRO = new Set<RenderObject>()
-                repr.renderObjects.forEach(o => newRO.add(o))
-                if (oldRO) {
-                    SetUtils.difference(newRO, oldRO).forEach(o => scene.add(o))
-                    SetUtils.difference(oldRO, newRO).forEach(o => scene.remove(o))
-                    scene.update()
-                } else {
-                    repr.renderObjects.forEach(o => scene.add(o))
-                }
-                reprMap.set(repr, newRO)
-                scene.update()
+            add: (repr: Representation.Any) => {
+                add(repr)
+                reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => add(repr)))
             },
-            remove: (repr: Representation<any>) => {
-                const renderObjectSet = reprMap.get(repr)
-                if (renderObjectSet) {
-                    renderObjectSet.forEach(o => scene.remove(o))
-                    reprMap.delete(repr)
+            remove: (repr: Representation.Any) => {
+                const updatedSubscription = reprUpdatedSubscriptions.get(repr)
+                if (updatedSubscription) {
+                    updatedSubscription.unsubscribe()
+                }
+                const renderObjects = reprRenderObjects.get(repr)
+                if (renderObjects) {
+                    renderObjects.forEach(o => scene.remove(o))
+                    reprRenderObjects.delete(repr)
+                    reprCount.next(reprRenderObjects.size)
                     scene.update()
                 }
             },
             update: () => scene.update(),
             clear: () => {
-                reprMap.clear()
+                reprRenderObjects.clear()
                 scene.clear()
             },
 

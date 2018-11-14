@@ -6,6 +6,7 @@
  */
 
 import { Color as ColorData } from './color';
+import { shallowClone } from 'mol-util';
 
 export namespace ParamDefinition {
     export interface Base<T> {
@@ -82,13 +83,25 @@ export namespace ParamDefinition {
         return { type: 'number', label, description, defaultValue, min, max, step }
     }
 
-    export type Any = /* ValueParam<any> | */ Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric
+    export interface Interval extends Base<[number, number]> {
+        type: 'interval'
+    }
+    export function Interval(label: string, description: string, defaultValue: [number, number]): Interval {
+        return { type: 'interval', label, description, defaultValue }
+    }
+
+    export type Any = /* GenericValue<any> | */ Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric | Interval
     export type Params = { [k: string]: Any }
+    export type DefaultValues<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
 
     export function getDefaultValues<T extends Params>(params: T) {
         const d: { [k: string]: any } = {}
         Object.keys(params).forEach(k => d[k] = params[k].defaultValue)
-        return d as { [k in keyof T]: T[k]['defaultValue'] }
+        return d as DefaultValues<T>
+    }
+
+    export function clone<P extends Params>(params: P): P {
+        return shallowClone(params)
     }
 
     /**

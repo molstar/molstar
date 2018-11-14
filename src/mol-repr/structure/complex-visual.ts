@@ -5,64 +5,68 @@
  */
 
 import { Structure } from 'mol-model/structure';
-import { Visual, VisualContext } from '..';
+import { Visual, VisualContext } from '../representation';
 import { MeshRenderObject, LinesRenderObject, PointsRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
 import { createComplexMeshRenderObject, UnitKind, UnitKindOptions } from './visual/util/common';
-import { StructureProps, StructureMeshParams, StructureParams } from './index';
+import { StructureMeshParams, StructureParams } from './representation';
 import { deepEqual, ValueCell } from 'mol-util';
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { RenderableValues } from 'mol-gl/renderable/schema';
 import { createSizes } from 'mol-geo/geometry/size-data';
-import { Geometry, updateRenderableState, Theme } from 'mol-geo/geometry/geometry';
+import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createColors } from 'mol-geo/geometry/color-data';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { VisualUpdateState, colorChanged, sizeChanged } from 'mol-repr/util';
+import { VisualUpdateState } from 'mol-repr/util';
+import { Theme } from 'mol-theme/theme';
+import { ColorTheme } from 'mol-theme/color';
+import { SizeTheme } from 'mol-theme/size';
 
-export interface  ComplexVisual<P extends StructureProps> extends Visual<Structure, P> { }
+export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
 const ComplexParams = {
     ...StructureParams,
     unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
 }
-const DefaultComplexProps = PD.getDefaultValues(ComplexParams)
-type ComplexProps = typeof DefaultComplexProps
+type ComplexParams = typeof ComplexParams
 
 type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
-interface ComplexVisualBuilder<P extends ComplexProps, G extends Geometry> {
-    defaultProps: P
-    createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: P, geometry?: G): Promise<G>
+interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
+    defaultProps: PD.DefaultValues<P>
+    createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.DefaultValues<P>, geometry?: G): Promise<G>
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
-    setUpdateState(state: VisualUpdateState, newProps: P, currentProps: P): void
+    setUpdateState(state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
-interface ComplexVisualGeometryBuilder<P extends ComplexProps, G extends Geometry> extends ComplexVisualBuilder<P, G> {
+interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: P): Promise<ComplexRenderObject>
-    updateValues(values: RenderableValues, newProps: P): void
+    createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.DefaultValues<P>): Promise<ComplexRenderObject>
+    updateValues(values: RenderableValues, newProps: PD.DefaultValues<P>): void
 }
 
-export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
+export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
     const { createRenderObject, updateValues } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: ComplexRenderObject | undefined
-    let currentProps: P
+    let currentProps: PD.DefaultValues<P>
+    let currentTheme: Theme
     let geometry: Geometry
     let currentStructure: Structure
     let locationIt: LocationIterator
     let conformationHash: number
 
-    async function create(ctx: VisualContext, structure: Structure, theme: Theme, props: Partial<P> = {}) {
+    async function create(ctx: VisualContext, structure: Structure, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
+        currentTheme = theme
         currentStructure = structure
 
         conformationHash = Structure.conformationHash(currentStructure)
@@ -72,14 +76,14 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
         renderObject = await createRenderObject(ctx, structure, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, theme: Theme, props: Partial<P>) {
+    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>>) {
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
 
         if (!renderObject) return false
 
         locationIt.reset()
         VisualUpdateState.reset(updateState)
-        setUpdateState(updateState, newProps, currentProps)
+        setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
         const newConformationHash = Structure.conformationHash(currentStructure)
         if (newConformationHash !== conformationHash) {
@@ -87,7 +91,7 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
             updateState.createGeometry = true
         }
 
-        if (colorChanged(currentProps, newProps)) updateState.updateColor = true
+        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
@@ -113,12 +117,13 @@ export function ComplexVisual<P extends ComplexMeshProps>(builder: ComplexVisual
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
+        currentTheme = theme
         return true
     }
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<P> = {}, structure?: Structure) {
+        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}, structure?: Structure) {
             if (!structure && !currentStructure) {
                 throw new Error('missing structure')
             } else if (structure && (!currentStructure || !renderObject)) {
@@ -170,17 +175,16 @@ export const ComplexMeshParams = {
     ...StructureMeshParams,
     unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
 }
-export const DefaultComplexMeshProps = PD.getDefaultValues(ComplexMeshParams)
-export type ComplexMeshProps = typeof DefaultComplexMeshProps
+export type ComplexMeshParams = typeof ComplexMeshParams
 
-export interface ComplexMeshVisualBuilder<P extends ComplexMeshProps> extends ComplexVisualBuilder<P, Mesh> { }
+export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends ComplexVisualBuilder<P, Mesh> { }
 
-export function ComplexMeshVisual<P extends ComplexMeshProps>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
+export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
     return ComplexVisual({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: P, currentProps: P) => {
-            builder.setUpdateState(state, newProps, currentProps)
-            if (sizeChanged(currentProps, newProps)) state.createGeometry = true
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme) => {
+            builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
+            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createComplexMeshRenderObject,

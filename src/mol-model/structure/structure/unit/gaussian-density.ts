@@ -5,7 +5,6 @@
  */
 
 import { Unit, StructureElement, ElementIndex } from 'mol-model/structure';
-import { SizeTheme } from 'mol-theme/size';
 import { GaussianDensity } from 'mol-math/geometry/gaussian-density';
 import { Task, RuntimeContext } from 'mol-task';
 import { DensityData } from 'mol-math/geometry';
@@ -13,6 +12,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { GaussianDensityTexture } from 'mol-math/geometry/gaussian-density/gpu';
 import { Texture } from 'mol-gl/webgl/texture';
 import { WebGLContext } from 'mol-gl/webgl/context';
+import { PhysicalSizeTheme } from 'mol-theme/size/physical';
 
 export const GaussianDensityParams = {
     resolution: PD.Numeric('Resolution', '', 1, 0.1, 10, 0.1),
@@ -43,7 +43,7 @@ function getConformationAndRadius(unit: Unit) {
     }
 
     const l = StructureElement.create(unit)
-    const sizeTheme = SizeTheme({ name: 'physical' })
+    const sizeTheme = PhysicalSizeTheme({}, {})
     const radius = (index: number) => {
         l.element = index as ElementIndex
         return sizeTheme.size(l)

@@ -17,15 +17,8 @@ import { Canvas3D } from 'mol-canvas3d/canvas3d';
 // import { addBoundingBox } from 'mol-geo/mesh/builder/bounding-box';
 import { BehaviorSubject } from 'rxjs';
 import { App } from './app';
-import { StructureRepresentation } from 'mol-repr/structure/index';
-import { ShapeRepresentation, ShapeProps } from 'mol-repr/shape/index';
-import { CartoonRepresentation } from 'mol-repr/structure/representation/cartoon';
-import { MolecularSurfaceRepresentation } from 'mol-repr/structure/representation/molecular-surface';
-import { PointRepresentation } from 'mol-repr/structure/representation/point';
-import { BallAndStickRepresentation } from 'mol-repr/structure/representation/ball-and-stick';
-import { CarbohydrateRepresentation } from 'mol-repr/structure/representation/carbohydrate';
-import { SpacefillRepresentation } from 'mol-repr/structure/representation/spacefill';
-import { DistanceRestraintRepresentation } from 'mol-repr/structure/representation/distance-restraint';
+import { StructureRepresentation } from 'mol-repr/structure/representation';
+import { ShapeRepresentation, ShapeParams } from 'mol-repr/shape/representation';
 
 export interface StructureView {
     readonly app: App
@@ -39,7 +32,7 @@ export interface StructureView {
     readonly active: { [k: string]: boolean }
     readonly structureRepresentations: { [k: string]: StructureRepresentation<any> }
     readonly updated: BehaviorSubject<null>
-    readonly symmetryAxes: ShapeRepresentation<ShapeProps>
+    readonly symmetryAxes: ShapeRepresentation<ShapeParams>
 
     setSymmetryAxes(value: boolean): void
     setStructureRepresentation(name: string, value: boolean): void
@@ -65,26 +58,18 @@ interface StructureViewProps {
 
 export async function StructureView(app: App, canvas3d: Canvas3D, models: ReadonlyArray<Model>, props: StructureViewProps = {}): Promise<StructureView> {
     const active: { [k: string]: boolean } = {
-        cartoon: true,
-        point: false,
-        surface: false,
-        ballAndStick: false,
-        carbohydrate: false,
-        spacefill: false,
-        distanceRestraint: false,
-        symmetryAxes: true,
+        'cartoon': true,
+        'ball-and-stick': true,
+        // point: false,
+        // surface: false,
+        // carbohydrate: false,
+        // spacefill: false,
+        // distanceRestraint: false,
+        // symmetryAxes: true,
         // polymerSphere: false,
     }
 
-    const structureRepresentations: { [k: string]: StructureRepresentation<any> } = {
-        cartoon: CartoonRepresentation(),
-        surface: MolecularSurfaceRepresentation(),
-        point: PointRepresentation(),
-        ballAndStick: BallAndStickRepresentation(),
-        carbohydrate: CarbohydrateRepresentation(),
-        spacefill: SpacefillRepresentation(),
-        distanceRestraint: DistanceRestraintRepresentation(),
-    }
+    const structureRepresentations: { [k: string]: StructureRepresentation<any> } = {}
 
     const symmetryAxes = ShapeRepresentation()
     const polymerSphere = ShapeRepresentation()
@@ -206,14 +191,25 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
     async function createStructureRepr() {
         if (structure) {
             console.log('createStructureRepr')
-            for (const k in structureRepresentations) {
+            for (const k in active) {
                 if (active[k]) {
-                    await app.runTask(structureRepresentations[k].createOrUpdate({ webgl: canvas3d.webgl }, {}, structure).run(
+                    let repr: StructureRepresentation
+                    if (structureRepresentations[k]) {
+                        repr = structureRepresentations[k]
+                    } else {
+                        repr = app.structureRepresentationRegistry.create(k, app.reprCtx, structure)
+                        structureRepresentations[k] = repr
+                        canvas3d.add(repr)
+                    }
+                    await app.runTask(repr.createOrUpdate(app.reprCtx, {}, {}, structure).run(
                         progress => app.log(progress)
                     ), 'Create/update representation')
-                    canvas3d.add(structureRepresentations[k])
                 } else {
-                    canvas3d.remove(structureRepresentations[k])
+                    if (structureRepresentations[k]) {
+                        canvas3d.remove(structureRepresentations[k])
+                        structureRepresentations[k].destroy()
+                        delete structureRepresentations[k]
+                    }
                 }
             }
 
@@ -264,7 +260,7 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
                     //     colorFunction: colorTheme.color,
                     //     colorGranularity: colorTheme.granularity,
                     // }).run()
-                    await symmetryAxes.createOrUpdate({ webgl: canvas3d.webgl }, {}, axesShape).run()
+                    await symmetryAxes.createOrUpdate(app.reprCtx, {}, {}, axesShape).run()
                     canvas3d.add(symmetryAxes)
                 } else {
                     canvas3d.remove(symmetryAxes)

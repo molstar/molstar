@@ -7,17 +7,28 @@
 import { ColorScale, Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { StructureElement, Link } from 'mol-model/structure';
-import { ColorTheme, ColorThemeProps, LocationColor } from '../color';
+import { ColorTheme, LocationColor } from '../color';
+import { ParamDefinition as PD } from 'mol-util/param-definition'
+import { ThemeDataContext } from 'mol-theme/theme';
+import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
-export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
-    let color: LocationColor
-    const scale = ColorScale.create({ list: props.list, minLabel: 'Start', maxLabel: 'End' })
+export const UnitIndexColorThemeParams = {
+    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+}
+export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
+    return UnitIndexColorThemeParams // TODO return copy
+}
+export type UnitIndexColorThemeProps = PD.DefaultValues<typeof UnitIndexColorThemeParams>
 
-    if (props.structure) {
-        const { units } = props.structure
+export function UnitIndexColorTheme(ctx: ThemeDataContext, props: UnitIndexColorThemeProps): ColorTheme<UnitIndexColorThemeProps> {
+    let color: LocationColor
+    const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
+
+    if (ctx.structure) {
+        const { units } = ctx.structure
         scale.setDomain(0, units.length - 1)
         const unitIdColor = new Map<number, Color>()
         for (let i = 0, il = units.length; i <il; ++i) {
@@ -37,10 +48,14 @@ export function UnitIndexColorTheme(props: ColorThemeProps): ColorTheme {
     }
 
     return {
-        features: { structure: true, list: true },
         granularity: 'instance',
         color,
+        props,
         description: Description,
         legend: scale ? scale.legend : undefined
     }
+}
+
+export const UnitIndexColorThemeProvider: ColorTheme.Provider<typeof UnitIndexColorThemeParams> = {
+    factory: UnitIndexColorTheme, params: getUnitIndexColorThemeParams
 }

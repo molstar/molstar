@@ -7,7 +7,7 @@
 import { PluginContext } from '../context';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
-import { Representation } from 'mol-repr';
+import { Representation } from 'mol-repr/representation';
 
 export class Canvas3dIdentifyHelper {
     private cX = -1;

@@ -6,9 +6,9 @@
 
 import * as React from 'react'
 import { RepresentationComponent } from './representation';
-import { Representation } from 'mol-repr';
+import { Representation } from 'mol-repr/representation';
 import { VolumeView } from '../volume-view';
-import { VolumeRepresentation } from 'mol-repr/volume/index';
+import { VolumeRepresentation } from 'mol-repr/volume/representation';
 
 export interface VolumeViewComponentProps {
     volumeView: VolumeView
@@ -28,6 +28,7 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
         return {
             volumeView: vv,
             label: vv.label,
+            volume: vv.volume,
             active: vv.active,
             volumeRepresentations: vv.volumeRepresentations
         }

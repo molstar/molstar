@@ -15,7 +15,7 @@ import { Task } from 'mol-task';
 import { merge } from 'rxjs';
 import { PluginBehaviors, BuiltInPluginBehaviors } from './behavior';
 import { Loci, EmptyLoci } from 'mol-model/loci';
-import { Representation } from 'mol-repr';
+import { Representation } from 'mol-repr/representation';
 import { CreateStructureFromPDBe } from './state/actions/basic';
 import { LogEntry } from 'mol-util/log-entry';
 import { TaskManager } from './util/task-manager';

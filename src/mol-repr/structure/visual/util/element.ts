@@ -14,16 +14,17 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSphere } from 'mol-geo/geometry/mesh/builder/sphere';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
 
 export interface ElementSphereMeshProps {
     detail: number,
+    sizeFactor: number
 }
 
 export async function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh) {
-    const { detail } = props
+    const { detail, sizeFactor } = props
 
     const { elements } = unit;
     const elementCount = elements.length;
@@ -40,7 +41,7 @@ export async function createElementSphereMesh(ctx: VisualContext, unit: Unit, st
         pos(elements[i], v)
 
         meshBuilder.setGroup(i)
-        addSphere(meshBuilder, v, theme.size.size(l), detail)
+        addSphere(meshBuilder, v, theme.size.size(l) * sizeFactor, detail)
 
         if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
             await ctx.runtime.update({ message: 'Sphere mesh', current: i, max: elementCount });

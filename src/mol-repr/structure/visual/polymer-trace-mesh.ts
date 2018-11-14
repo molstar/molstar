@@ -5,7 +5,7 @@
  */
 
 import { Unit, Structure } from 'mol-model/structure';
-import { UnitsVisual } from '../index';
+import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
 import { PolymerTraceIterator, createCurveSegmentState, interpolateCurveSegment, PolymerLocationIterator, getPolymerElementLoci, markPolymerElement } from './util/polymer';
 import { SecondaryStructureType, isNucleic } from 'mol-model/structure/model/types';
@@ -15,10 +15,11 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addSheet } from 'mol-geo/geometry/mesh/builder/sheet';
 import { addTube } from 'mol-geo/geometry/mesh/builder/tube';
-import { VisualContext } from 'mol-repr';
-import { Theme } from 'mol-geo/geometry/geometry';
+import { VisualContext } from 'mol-repr/representation';
+import { Theme } from 'mol-theme/theme';
 
 export const PolymerTraceMeshParams = {
+    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
     linearSegments: PD.Numeric('Linear Segments', '', 8, 1, 48, 1),
     radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
     aspectRatio: PD.Numeric('Aspect Ratio', '', 5, 0.1, 5, 0.1),
@@ -33,7 +34,7 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
     const polymerElementCount = unit.polymerElements.length
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
-    const { linearSegments, radialSegments, aspectRatio, arrowFactor } = props
+    const { sizeFactor, linearSegments, radialSegments, aspectRatio, arrowFactor } = props
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
     const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
@@ -56,7 +57,7 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
 
         interpolateCurveSegment(state, v, tension, shift)
 
-        let width = theme.size.size(v.center)
+        let width = theme.size.size(v.center) * sizeFactor
         if (isCoarse) width *= aspectRatio / 2
 
         if (isSheet) {
@@ -89,17 +90,16 @@ export const PolymerTraceParams = {
     ...UnitsMeshParams,
     ...PolymerTraceMeshParams
 }
-export const DefaultPolymerTraceProps = PD.getDefaultValues(PolymerTraceParams)
-export type PolymerTraceProps = typeof DefaultPolymerTraceProps
+export type PolymerTraceParams = typeof PolymerTraceParams
 
-export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
-    return UnitsMeshVisual<PolymerTraceProps>({
-        defaultProps: DefaultPolymerTraceProps,
+export function PolymerTraceVisual(): UnitsVisual<PolymerTraceParams> {
+    return UnitsMeshVisual<PolymerTraceParams>({
+        defaultProps: PD.getDefaultValues(PolymerTraceParams),
         createGeometry: createPolymerTraceMesh,
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         mark: markPolymerElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PolymerTraceProps, currentProps: PolymerTraceProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<PolymerTraceParams>, currentProps: PD.DefaultValues<PolymerTraceParams>) => {
             state.createGeometry = (
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||
