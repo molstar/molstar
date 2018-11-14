@@ -30,7 +30,7 @@ export const MoleculeTypeColorThemeParams = {}
 export function getMoleculeTypeColorThemeParams(ctx: ThemeDataContext) {
     return MoleculeTypeColorThemeParams // TODO return copy
 }
-export type MoleculeTypeColorThemeProps = PD.DefaultValues<typeof MoleculeTypeColorThemeParams>
+export type MoleculeTypeColorThemeProps = PD.Values<typeof MoleculeTypeColorThemeParams>
 
 export function moleculeTypeColor(unit: Unit, element: ElementIndex): Color {
     const moleculeType = getElementMoleculeType(unit, element)

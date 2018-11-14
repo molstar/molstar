@@ -18,7 +18,7 @@ export const ShapeGroupColorThemeParams = {}
 export function getShapeGroupColorThemeParams(ctx: ThemeDataContext) {
     return ShapeGroupColorThemeParams // TODO return copy
 }
-export type ShapeGroupColorThemeProps = PD.DefaultValues<typeof ShapeGroupColorThemeParams>
+export type ShapeGroupColorThemeProps = PD.Values<typeof ShapeGroupColorThemeParams>
 
 export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: ShapeGroupColorThemeProps): ColorTheme<ShapeGroupColorThemeProps> {
     return {

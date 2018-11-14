@@ -19,6 +19,10 @@ import { Representation } from 'mol-repr/representation';
 import { CreateStructureFromPDBe } from './state/actions/basic';
 import { LogEntry } from 'mol-util/log-entry';
 import { TaskManager } from './util/task-manager';
+import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
+import { ColorTheme } from 'mol-theme/color';
+import { SizeTheme } from 'mol-theme/size';
+import { ThemeRegistryContext } from 'mol-theme/theme';
 
 export class PluginContext {
     private disposed = false;
@@ -48,6 +52,11 @@ export class PluginContext {
         log: this.ev<LogEntry>(),
         task: this.tasks.events
     };
+
+    readonly structureReprensentation = {
+        registry: new StructureRepresentationRegistry(),
+        themeCtx: { colorThemeRegistry: new ColorTheme.Registry(), sizeThemeRegistry: new SizeTheme.Registry() } as ThemeRegistryContext
+    }
 
     readonly behaviors = {
         // state: {

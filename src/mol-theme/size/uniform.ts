@@ -16,7 +16,7 @@ export const UniformSizeThemeParams = {
 export function getUniformSizeThemeParams(ctx: ThemeDataContext) {
     return UniformSizeThemeParams // TODO return copy
 }
-export type UniformSizeThemeProps = PD.DefaultValues<typeof UniformSizeThemeParams>
+export type UniformSizeThemeProps = PD.Values<typeof UniformSizeThemeParams>
 
 export function UniformSizeTheme(ctx: ThemeDataContext, props: UniformSizeThemeProps): SizeTheme<UniformSizeThemeProps> {
     const size = props.value

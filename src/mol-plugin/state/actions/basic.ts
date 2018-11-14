@@ -9,6 +9,7 @@ import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateSelection } from 'mol-state/state/selection';
+import { CartoonParams } from 'mol-repr/structure/representation/cartoon';
 
 export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root, void, { id: string }>({
     from: [PluginStateObject.Root],
@@ -45,7 +46,12 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
             .apply(StateTransforms.Model.CreateModelFromTrajectory, { modelIndex: 0 })
             .apply(StateTransforms.Model.CreateStructureAssembly)
             // .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
-            .apply(StateTransforms.Visuals.CreateStructureRepresentation)
+            .apply(StateTransforms.Visuals.CreateStructureRepresentation, {
+                type: {
+                    name: 'cartoon',
+                    params: PD.getDefaultValues(CartoonParams)
+                }
+            })
             .getTree();
 
         return state.update(newTree);

@@ -62,7 +62,7 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkParams> {
         createLocationIterator: LinkIterator.fromStructure,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<InterUnitLinkParams>, currentProps: PD.DefaultValues<InterUnitLinkParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitLinkParams>, currentProps: PD.Values<InterUnitLinkParams>) => {
             if (newProps.linkScale !== currentProps.linkScale) state.createGeometry = true
             if (newProps.linkSpacing !== currentProps.linkSpacing) state.createGeometry = true
             if (newProps.radialSegments !== currentProps.radialSegments) state.createGeometry = true

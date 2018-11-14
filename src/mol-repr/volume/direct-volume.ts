@@ -143,7 +143,7 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
 
 //
 
-export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, props: PD.DefaultValues<DirectVolumeParams>, directVolume?: DirectVolume) {
+export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, props: PD.Values<DirectVolumeParams>, directVolume?: DirectVolume) {
     const { runtime, webgl } = ctx
     if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
 
@@ -170,9 +170,9 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
         createGeometry: createDirectVolume,
         getLoci: () => EmptyLoci,
         mark: () => false,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<DirectVolumeParams>, currentProps: PD.DefaultValues<DirectVolumeParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
         },
-        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<DirectVolumeParams>) => {
+        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<DirectVolumeParams>) => {
             const transform = createIdentityTransform()
             const values = await DirectVolume.createValues(ctx.runtime, geometry, transform, locationIt, theme, props)
             const state = createRenderableState(props)

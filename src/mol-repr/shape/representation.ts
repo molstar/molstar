@@ -35,10 +35,10 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
-    let currentProps: PD.DefaultValues<P> = PD.getDefaultValues(ShapeParams) as PD.DefaultValues<P>
+    let currentProps: PD.Values<P> = PD.getDefaultValues(ShapeParams) as PD.Values<P>
     let currentParams: P
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.DefaultValues<P>> = {}, themeProps: ThemeProps = {}, shape?: Shape) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, themeProps: ThemeProps = {}, shape?: Shape) {
         currentProps = Object.assign({}, currentProps, props)
         if (shape) _shape = shape
 

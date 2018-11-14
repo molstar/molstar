@@ -24,7 +24,7 @@ export const ElementSymbolColorThemeParams = {}
 export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
     return ElementSymbolColorThemeParams // TODO return copy
 }
-export type ElementSymbolColorThemeProps = PD.DefaultValues<typeof ElementSymbolColorThemeParams>
+export type ElementSymbolColorThemeProps = PD.Values<typeof ElementSymbolColorThemeParams>
 
 export function elementSymbolColor(element: ElementSymbol): Color {
     const c = (ElementSymbolColors as { [k: string]: Color })[element];

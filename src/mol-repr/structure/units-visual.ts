@@ -44,18 +44,18 @@ function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.Symmetry
 type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
-    defaultProps: PD.DefaultValues<P>
-    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.DefaultValues<P>, geometry?: G): Promise<G>
+    defaultProps: PD.Values<P>
+    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G>
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     mark(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
-    setUpdateState(state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme): void
+    setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.DefaultValues<P>): Promise<UnitsRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.DefaultValues<P>): void
+    createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<UnitsRenderObject>
+    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
 }
 
 export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
@@ -64,7 +64,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     const updateState = VisualUpdateState.create()
 
     let renderObject: UnitsRenderObject | undefined
-    let currentProps: PD.DefaultValues<P>
+    let currentProps: PD.Values<P>
     let currentTheme: Theme
     let geometry: Geometry
     let currentGroup: Unit.SymmetryGroup
@@ -72,7 +72,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     let locationIt: LocationIterator
     let currentConformationId: UUID
 
-    async function create(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}) {
+    async function create(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentTheme = theme
         currentGroup = group
@@ -88,7 +88,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         renderObject = await createRenderObject(ctx, group, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}) {
+    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
@@ -147,7 +147,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}, structureGroup?: StructureGroup) {
+        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structureGroup?: StructureGroup) {
             if (structureGroup) currentStructure = structureGroup.structure
             const group = structureGroup ? structureGroup.group : undefined
             if (!group && !currentGroup) {
@@ -211,7 +211,7 @@ export interface UnitsMeshVisualBuilder<P extends UnitsMeshParams> extends Units
 export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVisualBuilder<P>): UnitsVisual<P> {
     return UnitsVisual({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
@@ -235,7 +235,7 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPoi
         ...builder,
         createEmptyGeometry: Points.createEmpty,
         createRenderObject: createUnitsPointsRenderObject,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
@@ -257,7 +257,7 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
         ...builder,
         createEmptyGeometry: Lines.createEmpty,
         createRenderObject: createUnitsLinesRenderObject,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
@@ -279,7 +279,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(build
         ...builder,
         createEmptyGeometry: DirectVolume.createEmpty,
         createRenderObject: createUnitsDirectVolumeRenderObject,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },

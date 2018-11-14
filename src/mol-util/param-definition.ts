@@ -90,24 +90,39 @@ export namespace ParamDefinition {
         return { type: 'interval', label, description, defaultValue }
     }
 
-    export interface Obj<P extends Params> extends Base<{ [K in keyof P]: P[K]['defaultValue']}> {
-        type: 'obj',
-        pivot?: keyof P,
-        params: P
+    export interface Group<T extends { [key: string]: any }> extends Base<T> {
+        type: 'group',
+        params: T
     }
-    export function Obj<P extends Params>(label: string, description: string, params: P, pivot?: keyof P): Obj<P> {
-        return { type: 'obj', label, description, defaultValue: getDefaultValues(params), params, pivot };
+    export function Group<T extends { [key: string]: any }>(label: string, description: string, params: T): Group<T> {
+        return { type: 'group', label, description, defaultValue: getDefaultValues(params), params };
     }
 
-    export type Any = Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric | Interval | Obj<any>
+    export interface Mapped<T> extends Base<{ name: string, params: T }> {
+        type: 'mapped',
+        select: Select<string>,
+        map(name: string): Params
+    }
+    export function Mapped<T>(label: string, description: string, defaultKey: string, names: [string, string][], map: Mapped<T>['map']): Mapped<T> {
+        return {
+            type: 'mapped',
+            label,
+            description,
+            defaultValue: { name: defaultKey, params: getDefaultValues(map(defaultKey)) as any },
+            select: Select<string>(label, description, defaultKey, names),
+            map
+        };
+    }
+
+    export type Any = Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric | Interval | Group<any> | Mapped<any>
 
     export type Params = { [k: string]: Any }
-    export type DefaultValues<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
+    export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
 
     export function getDefaultValues<T extends Params>(params: T) {
         const d: { [k: string]: any } = {}
         Object.keys(params).forEach(k => d[k] = params[k].defaultValue)
-        return d as DefaultValues<T>
+        return d as Values<T>
     }
 
     export function clone<P extends Params>(params: P): P {

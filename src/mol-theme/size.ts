@@ -27,7 +27,7 @@ namespace SizeTheme {
     }
 
     export interface Provider<P extends PD.Params> {
-        readonly factory: (ctx: ThemeDataContext, props: PD.DefaultValues<P>) => SizeTheme<PD.DefaultValues<P>>
+        readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => SizeTheme<PD.Values<P>>
         readonly params: (ctx: ThemeDataContext) => P
     }
 

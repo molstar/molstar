@@ -65,7 +65,7 @@ export const ResidueNameColorThemeParams = {}
 export function getResidueNameColorThemeParams(ctx: ThemeDataContext) {
     return ResidueNameColorThemeParams // TODO return copy
 }
-export type ResidueNameColorThemeProps = PD.DefaultValues<typeof ResidueNameColorThemeParams>
+export type ResidueNameColorThemeProps = PD.Values<typeof ResidueNameColorThemeParams>
 
 export function residueNameColor(residueName: string): Color {
     const c = (ResidueNameColors as { [k: string]: Color })[residueName];

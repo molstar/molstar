@@ -18,7 +18,7 @@ export const UniformColorThemeParams = {
 export function getUniformColorThemeParams(ctx: ThemeDataContext) {
     return UniformColorThemeParams // TODO return copy
 }
-export type UniformColorThemeProps = PD.DefaultValues<typeof UniformColorThemeParams>
+export type UniformColorThemeProps = PD.Values<typeof UniformColorThemeParams>
 
 export function UniformColorTheme(ctx: ThemeDataContext, props: UniformColorThemeProps): ColorTheme<UniformColorThemeProps> {
     const color = props.value || DefaultColor

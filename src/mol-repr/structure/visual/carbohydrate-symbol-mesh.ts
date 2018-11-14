@@ -44,7 +44,7 @@ const diamondPrism = DiamondPrism()
 const pentagonalPrism = PentagonalPrism()
 const hexagonalPrism = HexagonalPrism()
 
-async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.DefaultValues<CarbohydrateSymbolParams>, mesh?: Mesh) {
+async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateSymbolParams>, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const { detail } = props
@@ -158,7 +158,7 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolPara
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<CarbohydrateSymbolParams>, currentProps: PD.DefaultValues<CarbohydrateSymbolParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateSymbolParams>, currentProps: PD.Values<CarbohydrateSymbolParams>) => {
             state.createGeometry = newProps.detail !== currentProps.detail
         }
     })

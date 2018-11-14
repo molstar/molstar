@@ -27,7 +27,7 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereParams> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<ElementSphereParams>, currentProps: PD.DefaultValues<ElementSphereParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
             state.createGeometry = newProps.detail !== currentProps.detail
         }
     })

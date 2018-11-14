@@ -46,7 +46,7 @@ export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeParams> 
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianWireframeParams>, currentProps: PD.DefaultValues<GaussianWireframeParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianWireframeParams>, currentProps: PD.Values<GaussianWireframeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true

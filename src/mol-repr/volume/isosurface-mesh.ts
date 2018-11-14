@@ -55,10 +55,10 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceParams> {
         createGeometry: createVolumeIsosurface,
         getLoci: () => EmptyLoci,
         mark: () => false,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<IsosurfaceParams>, currentProps: PD.DefaultValues<IsosurfaceParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IsosurfaceParams>, currentProps: PD.Values<IsosurfaceParams>) => {
             if (newProps.isoValueAbsolute !== currentProps.isoValueAbsolute) state.createGeometry = true
         },
-        createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<IsosurfaceParams>) => {
+        createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<IsosurfaceParams>) => {
             const transform = createIdentityTransform()
             const values = await Mesh.createValues(ctx.runtime, geometry, transform, locationIt, theme, props)
             const state = createRenderableState(props)

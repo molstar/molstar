@@ -47,7 +47,7 @@ export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceParams> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianSurfaceParams>, currentProps: PD.DefaultValues<GaussianSurfaceParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<GaussianSurfaceParams>, currentProps: PD.Values<GaussianSurfaceParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true

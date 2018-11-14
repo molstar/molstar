@@ -99,7 +99,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceParams> {
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         mark: markPolymerElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<PolymerTraceParams>, currentProps: PD.DefaultValues<PolymerTraceParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>) => {
             state.createGeometry = (
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||

@@ -74,7 +74,7 @@ export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkParams> 
         createLocationIterator: CarbohydrateLinkIterator,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<CarbohydrateLinkParams>, currentProps: PD.DefaultValues<CarbohydrateLinkParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateLinkParams>, currentProps: PD.Values<CarbohydrateLinkParams>) => {
             state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })

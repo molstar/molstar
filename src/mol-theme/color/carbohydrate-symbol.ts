@@ -29,7 +29,7 @@ export const CarbohydrateSymbolColorThemeParams = {
 export function getCarbohydrateSymbolColorThemeParams(ctx: ThemeDataContext) {
     return CarbohydrateSymbolColorThemeParams // TODO return copy
 }
-export type CarbohydrateSymbolColorThemeProps = PD.DefaultValues<typeof CarbohydrateSymbolColorThemeParams>
+export type CarbohydrateSymbolColorThemeProps = PD.Values<typeof CarbohydrateSymbolColorThemeParams>
 
 export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: CarbohydrateSymbolColorThemeProps): ColorTheme<CarbohydrateSymbolColorThemeProps> {
     let color: LocationColor

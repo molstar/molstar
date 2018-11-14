@@ -29,11 +29,18 @@ export type RepresentationParamsGetter<D, P extends PD.Params> = (ctx: ThemeRegi
 export interface RepresentationProvider<D, P extends PD.Params> {
     readonly factory: (getParams: RepresentationParamsGetter<D, P>) => Representation<D, P>
     readonly getParams: (ctx: ThemeRegistryContext, data: D) => P
+    // TODO
+    // readonly defaultParams: PD.Values<P>
 }
 
 export class RepresentationRegistry<D> {
     private _list: { name: string, provider: RepresentationProvider<D, any> }[] = []
     private _map = new Map<string, RepresentationProvider<D, any>>()
+
+    get default() { return this._list[0]; }
+    get types(): [string, string][] {
+        return this._list.map(e => [e.name, e.name] as [string, string]);
+    }
 
     constructor() {};
 
@@ -70,9 +77,9 @@ interface Representation<D, P extends PD.Params = {}> {
     readonly label: string
     readonly updated: BehaviorSubject<number>
     readonly renderObjects: ReadonlyArray<RenderObject>
-    readonly props: Readonly<PD.DefaultValues<P>>
+    readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
-    createOrUpdate: (ctx: RepresentationContext, props?: Partial<PD.DefaultValues<P>>, themeProps?: ThemeProps, data?: D) => Task<void>
+    createOrUpdate: (ctx: RepresentationContext, props?: Partial<PD.Values<P>>, themeProps?: ThemeProps, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void
@@ -93,7 +100,7 @@ namespace Representation {
         const updated = new BehaviorSubject(0)
 
         let currentParams: P
-        let currentProps: PD.DefaultValues<P>
+        let currentProps: PD.Values<P>
         let currentData: D
 
         const reprMap: { [k: number]: string } = {}
@@ -174,7 +181,7 @@ export interface VisualContext {
 
 export interface Visual<D, P extends PD.Params> {
     readonly renderObject: RenderObject | undefined
-    createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.DefaultValues<P>>, data?: D) => Promise<void>
+    createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void

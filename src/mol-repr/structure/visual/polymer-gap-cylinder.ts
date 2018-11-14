@@ -95,7 +95,7 @@ export function PolymerGapVisual(): UnitsVisual<PolymerGapParams> {
         createLocationIterator: PolymerGapLocationIterator.fromGroup,
         getLoci: getPolymerGapElementLoci,
         mark: markPolymerGapElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<PolymerGapParams>, currentProps: PD.DefaultValues<PolymerGapParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerGapParams>, currentProps: PD.Values<PolymerGapParams>) => {
             state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })

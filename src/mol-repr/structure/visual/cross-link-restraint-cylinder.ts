@@ -63,7 +63,7 @@ export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintPara
         createLocationIterator: CrossLinkRestraintIterator,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<CrossLinkRestraintParams>, currentProps: PD.DefaultValues<CrossLinkRestraintParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CrossLinkRestraintParams>, currentProps: PD.Values<CrossLinkRestraintParams>) => {
             state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })

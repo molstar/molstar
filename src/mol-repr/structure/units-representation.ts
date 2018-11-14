@@ -34,10 +34,10 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
     let _params: P
-    let _props: PD.DefaultValues<P>
+    let _props: PD.Values<P>
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.DefaultValues<P>> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
             if (!_props) _props = PD.getDefaultValues(_params)

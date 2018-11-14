@@ -63,7 +63,7 @@ namespace ColorTheme {
     }
 
     export interface Provider<P extends PD.Params> {
-        readonly factory: (ctx: ThemeDataContext, props: PD.DefaultValues<P>) => ColorTheme<PD.DefaultValues<P>>
+        readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<PD.Values<P>>
         readonly params: (ctx: ThemeDataContext) => P
     }
 

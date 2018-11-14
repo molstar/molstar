@@ -21,7 +21,7 @@ export const PolymerIndexColorThemeParams = {
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {
     return PolymerIndexColorThemeParams // TODO return copy
 }
-export type PolymerIndexColorThemeProps = PD.DefaultValues<typeof PolymerIndexColorThemeParams>
+export type PolymerIndexColorThemeProps = PD.Values<typeof PolymerIndexColorThemeParams>
 
 export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PolymerIndexColorThemeProps): ColorTheme<PolymerIndexColorThemeProps> {
     let color: LocationColor

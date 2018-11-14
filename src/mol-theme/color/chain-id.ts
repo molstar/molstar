@@ -22,7 +22,7 @@ export const ChainIdColorThemeParams = {
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
     return ChainIdColorThemeParams // TODO return copy
 }
-export type ChainIdColorThemeProps = PD.DefaultValues<typeof ChainIdColorThemeParams>
+export type ChainIdColorThemeProps = PD.Values<typeof ChainIdColorThemeParams>
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {

@@ -37,18 +37,18 @@ type ComplexParams = typeof ComplexParams
 type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
 interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
-    defaultProps: PD.DefaultValues<P>
-    createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.DefaultValues<P>, geometry?: G): Promise<G>
+    defaultProps: PD.Values<P>
+    createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G>
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
-    setUpdateState(state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme): void
+    setUpdateState(state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme): void
 }
 
 interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.DefaultValues<P>): Promise<ComplexRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.DefaultValues<P>): void
+    createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<ComplexRenderObject>
+    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
 }
 
 export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
@@ -57,14 +57,14 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
     const updateState = VisualUpdateState.create()
 
     let renderObject: ComplexRenderObject | undefined
-    let currentProps: PD.DefaultValues<P>
+    let currentProps: PD.Values<P>
     let currentTheme: Theme
     let geometry: Geometry
     let currentStructure: Structure
     let locationIt: LocationIterator
     let conformationHash: number
 
-    async function create(ctx: VisualContext, structure: Structure, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}) {
+    async function create(ctx: VisualContext, structure: Structure, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
         currentTheme = theme
         currentStructure = structure
@@ -76,7 +76,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         renderObject = await createRenderObject(ctx, structure, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>>) {
+    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>>) {
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
 
         if (!renderObject) return false
@@ -123,7 +123,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
 
     return {
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.DefaultValues<P>> = {}, structure?: Structure) {
+        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
             if (!structure && !currentStructure) {
                 throw new Error('missing structure')
             } else if (structure && (!currentStructure || !renderObject)) {
@@ -182,7 +182,7 @@ export interface ComplexMeshVisualBuilder<P extends ComplexMeshParams> extends C
 export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexMeshVisualBuilder<P>): ComplexVisual<P> {
     return ComplexVisual({
         ...builder,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<P>, currentProps: PD.DefaultValues<P>, newTheme: Theme, currentTheme: Theme) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },

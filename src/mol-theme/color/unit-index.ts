@@ -21,7 +21,7 @@ export const UnitIndexColorThemeParams = {
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
     return UnitIndexColorThemeParams // TODO return copy
 }
-export type UnitIndexColorThemeProps = PD.DefaultValues<typeof UnitIndexColorThemeParams>
+export type UnitIndexColorThemeProps = PD.Values<typeof UnitIndexColorThemeParams>
 
 export function UnitIndexColorTheme(ctx: ThemeDataContext, props: UnitIndexColorThemeProps): ColorTheme<UnitIndexColorThemeProps> {
     let color: LocationColor

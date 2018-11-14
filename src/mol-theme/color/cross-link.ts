@@ -24,7 +24,7 @@ export const CrossLinkColorThemeParams = {
 export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {
     return CrossLinkColorThemeParams // TODO return copy
 }
-export type CrossLinkColorThemeProps = PD.DefaultValues<typeof CrossLinkColorThemeParams>
+export type CrossLinkColorThemeProps = PD.Values<typeof CrossLinkColorThemeParams>
 
 const distVecA = Vec3.zero(), distVecB = Vec3.zero()
 function linkDistance(link: Link.Location) {

@@ -49,14 +49,14 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
 
 // mesh
 
-export async function createComplexMeshRenderObject(ctx: VisualContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<StructureMeshParams>) {
+export async function createComplexMeshRenderObject(ctx: VisualContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
     const transform = createIdentityTransform()
     const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
-export async function createUnitsMeshRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<StructureMeshParams>) {
+export async function createUnitsMeshRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
     const transform = createUnitsTransform(group)
     const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, theme, props)
     const state = createRenderableState(props)
@@ -65,7 +65,7 @@ export async function createUnitsMeshRenderObject(ctx: VisualContext, group: Uni
 
 // points
 
-export async function createUnitsPointsRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<StructurePointsParams>) {
+export async function createUnitsPointsRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructurePointsParams>) {
     const transform = createUnitsTransform(group)
     const values = await Points.createValues(ctx.runtime, points, transform, locationIt, theme, props)
     const state = createRenderableState(props)
@@ -74,7 +74,7 @@ export async function createUnitsPointsRenderObject(ctx: VisualContext, group: U
 
 // lines
 
-export async function createUnitsLinesRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<StructureLinesParams>) {
+export async function createUnitsLinesRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureLinesParams>) {
     const transform = createUnitsTransform(group)
     const values = await Lines.createValues(ctx.runtime, lines, transform, locationIt, theme, props)
     const state = createRenderableState(props)
@@ -83,7 +83,7 @@ export async function createUnitsLinesRenderObject(ctx: VisualContext, group: Un
 
 // direct-volume
 
-export async function createUnitsDirectVolumeRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<StructureDirectVolumeParams>) {
+export async function createUnitsDirectVolumeRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
     const transform = createUnitsTransform(group)
     const values = await DirectVolume.createValues(ctx.runtime, directVolume, transform, locationIt, theme, props)
     const state = createRenderableState(props)

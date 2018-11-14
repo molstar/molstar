@@ -19,14 +19,18 @@ export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
 export class ParameterControls<P extends PD.Params> extends React.PureComponent<ParameterControlsProps<P>, {}> {
     render() {
         const common = {
-            changes: this.props.onChange,
+            onChange: this.props.onChange,
             isEnabled: this.props.isEnabled,
             onEnter: this.props.onEnter,
         }
         const params = this.props.params;
         const values = this.props.values;
         return <div style={{ width: '100%' }}>
-            {Object.keys(params).map(key => <ParamWrapper control={controlFor(params[key])} param={params[key]} key={key} {...common} name={key} value={values[key]} />)}
+            {Object.keys(params).map(key => {
+                const param = params[key];
+                if (param.type === 'mapped') return <MappedControl param={param} key={key} {...common} name={key} value={values[key]} />
+                return <ParamWrapper control={controlFor(param)} param={param} key={key} {...common} name={key} value={values[key]} />
+            })}
         </div>;
     }
 }
@@ -36,22 +40,27 @@ function controlFor(param: PD.Any): ValueControl {
         case 'boolean': return BoolControl;
         case 'number': return NumberControl;
         case 'range': return NumberControl;
-        case 'multi-select': throw new Error('nyi');
-        case 'color': throw new Error('nyi');
+        case 'multi-select': return MultiSelectControl;
+        case 'color': return ColorControl;
         case 'select': return SelectControl;
         case 'text': return TextControl;
+        case 'interval': return IntervalControl;
+        case 'group': return GroupControl;
+        case 'mapped': throw Error('Must be handled separately');
     }
-    throw new Error('not supporter');
+    throw new Error('not supported');
 }
 
-type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, changes: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
+type MappedWrapperProps = { name: string, value: PD.Mapped<any>['defaultValue'], param: PD.Mapped<any>, onChange: ParamOnChange, onEnter?: () => void, isEnabled?: boolean }
+
+type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, onChange: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
 export type ParamOnChange = (params: { param: PD.Base<any>, name: string, value: any }) => void
 type ValueControlProps<P extends PD.Base<any> = PD.Base<any>> = { value: any, param: P, isEnabled?: boolean, onChange: (v: any) => void, onEnter?: () => void }
 type ValueControl = React.ComponentClass<ValueControlProps<any>>
 
 export class ParamWrapper extends React.PureComponent<ParamWrapperProps> {
     onChange = (value: any) => {
-        this.props.changes({ param: this.props.param, name: this.props.name, value });
+        this.props.onChange({ param: this.props.param, name: this.props.name, value });
     }
 
     render() {
@@ -124,7 +133,84 @@ export class SelectControl extends React.PureComponent<ValueControlProps<PD.Sele
 
     render() {
         return <select value={this.props.value || ''} onChange={this.onChange}>
-            {this.props.param.options.map(([value, label]) => <option key={label} value={value}>{label}</option>)}
+            {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>;
+    }
+}
+
+
+export class MultiSelectControl extends React.PureComponent<ValueControlProps<PD.MultiSelect<any>>> {
+    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    //     this.setState({ value: e.target.value });
+    //     this.props.onChange(e.target.value);
+    // }
+
+    render() {
+        return <span>multiselect TODO</span>;
+        // return <select value={this.props.value || ''} onChange={this.onChange}>
+        //     {this.props.param.options.map(([value, label]) => <option key={label} value={value}>{label}</option>)}
+        // </select>;
+    }
+}
+
+export class IntervalControl extends React.PureComponent<ValueControlProps<PD.Interval>> {
+    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    //     this.setState({ value: e.target.value });
+    //     this.props.onChange(e.target.value);
+    // }
+
+    render() {
+        return <span>interval TODO</span>;
+    }
+}
+
+export class ColorControl extends React.PureComponent<ValueControlProps<PD.Color>> {
+    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    //     this.setState({ value: e.target.value });
+    //     this.props.onChange(e.target.value);
+    // }
+
+    render() {
+        return <span>color TODO</span>;
+    }
+}
+
+export class GroupControl extends React.PureComponent<ValueControlProps<PD.Group<any>>> {
+    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    //     this.setState({ value: e.target.value });
+    //     this.props.onChange(e.target.value);
+    // }
+
+    render() {
+        return <span>group TODO</span>;
+    }
+}
+
+export class MappedControl extends React.PureComponent<MappedWrapperProps> {
+    change(value: PD.Mapped<any>['defaultValue'] ) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    onChangeName: ParamOnChange = e => {
+        this.change({ name: e.value, params: PD.getDefaultValues(this.props.param.map(e.value)) });
+    }
+
+    onChangeParam: ParamOnChange = e => {
+        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
+        this.change({ name: value.name, params: { ...value.params, [e.name]: e.value } });
+    }
+
+    render() {
+        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
+        const params = this.props.param.map(value.name);
+
+        return <div>
+            <ParamWrapper control={SelectControl} param={this.props.param.select}
+                isEnabled={this.props.isEnabled} onChange={this.onChangeName} onEnter={this.props.onEnter}
+                name={'name'} value={value.name} />
+            <div style={{ borderLeft: '5px solid #777', paddingLeft: '5px' }}>
+                <ParameterControls params={params} onChange={this.onChangeParam} values={value.params} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
+            </div>
+        </div>
     }
 }

@@ -22,7 +22,7 @@ export const SequenceIdColorThemeParams = {
 export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {
     return SequenceIdColorThemeParams // TODO return copy
 }
-export type SequenceIdColorThemeProps = PD.DefaultValues<typeof SequenceIdColorThemeParams>
+export type SequenceIdColorThemeProps = PD.Values<typeof SequenceIdColorThemeParams>
 
 function getSeqId(unit: Unit, element: ElementIndex): number {
     const { model } = unit

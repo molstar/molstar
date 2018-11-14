@@ -79,7 +79,7 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneParams> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<PolymerBackboneParams>, currentProps: PD.DefaultValues<PolymerBackboneParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneParams>, currentProps: PD.Values<PolymerBackboneParams>) => {
             state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })

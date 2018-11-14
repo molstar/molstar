@@ -24,7 +24,7 @@ export type ElementPointParams = typeof ElementPointParams
 
 // TODO size
 
-export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.DefaultValues<ElementPointParams>, points: Points) {
+export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
     const elements = unit.elements
     const n = elements.length
     const builder = PointsBuilder.create(n, n / 10, points)
@@ -50,7 +50,7 @@ export function ElementPointVisual(): UnitsVisual<ElementPointParams> {
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<ElementPointParams>, currentProps: PD.DefaultValues<ElementPointParams>) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementPointParams>, currentProps: PD.Values<ElementPointParams>) => {
 
         }
     })

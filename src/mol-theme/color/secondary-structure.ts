@@ -35,7 +35,7 @@ export const SecondaryStructureColorThemeParams = {}
 export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
     return SecondaryStructureColorThemeParams // TODO return copy
 }
-export type SecondaryStructureColorThemeProps = PD.DefaultValues<typeof SecondaryStructureColorThemeParams>
+export type SecondaryStructureColorThemeProps = PD.Values<typeof SecondaryStructureColorThemeParams>
 
 export function secondaryStructureColor(unit: Unit, element: ElementIndex): Color {
     let secStrucType = SecondaryStructureType.create(SecondaryStructureType.Flag.None)

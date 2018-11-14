@@ -22,7 +22,7 @@ export const ElementIndexColorThemeParams = {
 export function getElementIndexColorThemeParams(ctx: ThemeDataContext) {
     return ElementIndexColorThemeParams // TODO return copy
 }
-export type ElementIndexColorThemeProps = PD.DefaultValues<typeof ElementIndexColorThemeParams>
+export type ElementIndexColorThemeProps = PD.Values<typeof ElementIndexColorThemeParams>
 
 export function ElementIndexColorTheme(ctx: ThemeDataContext, props: ElementIndexColorThemeProps): ColorTheme<ElementIndexColorThemeProps> {
     let color: LocationColor

@@ -18,7 +18,7 @@ export const PhysicalSizeThemeParams = {}
 export function getPhysicalSizeThemeParams(ctx: ThemeDataContext) {
     return PhysicalSizeThemeParams // TODO return copy
 }
-export type PhysicalSizeThemeProps = PD.DefaultValues<typeof PhysicalSizeThemeParams>
+export type PhysicalSizeThemeProps = PD.Values<typeof PhysicalSizeThemeParams>
 
 export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
     if (Unit.isAtomic(unit)) {
