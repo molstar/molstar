@@ -14,7 +14,10 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 export { CreateStructureRepresentation }
 namespace CreateStructureRepresentation {
     export interface Params {
-        type: { name: string, params: any /** todo is there "common type" */ }
+        type: { name: string, params: any /** todo is there "common type" */ },
+        // TODO
+        // colorTheme: { name: string, params: any /** todo is there "common type" */ }
+        // sizeTheme: { name: string, params: any /** todo is there "common type" */ }
     }
 }
 const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Representation3D, CreateStructureRepresentation.Params>({

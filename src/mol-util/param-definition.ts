@@ -135,14 +135,8 @@ export namespace ParamDefinition {
      */
     export type ParamErrors = [string, string | string[]][]
 
-    export interface Provider<A = any, P = any, Ctx = any> {
-        /** Check the parameters and return a list of errors if the are not valid. */
-        default?(a: A, globalCtx: Ctx): P,
-        /** Specify default control descriptors for the parameters */
-        definition?(a: A, globalCtx: Ctx): { [K in keyof P]?: Any },
-        /** Check the parameters and return a list of errors if the are not valid. */
-        validate?(params: P, a: A, globalCtx: unknown): ParamErrors | undefined,
-        /** Optional custom parameter equality. Use shallow structural equal by default. */
-        areEqual?(oldParams: P, newParams: P): boolean
+    export function validate(params: Params, values: any): ParamErrors | undefined {
+        // TODO
+        return void 0;
     }
 }

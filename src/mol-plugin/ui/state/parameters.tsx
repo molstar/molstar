@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, State, Transform, StateObjectCell } from 'mol-state';
+import { StateObject, State, Transform, StateObjectCell, Transformer } from 'mol-state';
 import { shallowEqual } from 'mol-util/object';
 import * as React from 'react';
 import { PurePluginComponent } from '../base';
@@ -23,11 +23,14 @@ class StateTransformParameters extends PurePluginComponent<StateTransformParamet
     }
 
     validate(params: any) {
-        const validate = this.props.info.definition.validate;
-        if (!validate) return void 0;
-        const result = validate(params, this.props.info.source, this.plugin);
-        if (!result || result.length === 0) return void 0;
-        return result.map(r => r[0]);
+        // TODO
+        return void 0;
+
+        // const validate = this.props.info.definition.validate;
+        // if (!validate) return void 0;
+        // const result = validate(params, this.props.info.source, this.plugin);
+        // if (!result || result.length === 0) return void 0;
+        // return result.map(r => r[0]);
     }
 
     areInitial(params: any) {
@@ -50,7 +53,7 @@ class StateTransformParameters extends PurePluginComponent<StateTransformParamet
 namespace StateTransformParameters {
     export interface Props {
         info: {
-            definition: PD.Provider,
+            definition: Transformer.ParamsProvider,
             params: PD.Params,
             initialValues: any,
             source: StateObject,
