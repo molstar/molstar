@@ -46,7 +46,7 @@ namespace StateAction {
          */
         apply(params: ApplyParams<A, P>, globalCtx: unknown): T | Task<T>,
 
-        readonly params?: Transformer<A, any, P>['definition']['params'],
+        readonly params?: PD.Provider<A, P, unknown>
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean

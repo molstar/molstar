@@ -25,7 +25,7 @@ const ParseTrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Mol
     to: [SO.Molecule.Trajectory],
     params: {
         default: a => ({ blockHeader: a.data.blocks[0].header }),
-        controls(a) {
+        definition(a) {
             const { blocks } = a.data;
             if (blocks.length === 0) return {};
             return {
@@ -58,7 +58,7 @@ const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajec
     to: [SO.Molecule.Model],
     params: {
         default: () => ({ modelIndex: 0 }),
-        controls: a => ({ modelIndex: PD.Range('Model Index', 'Model Index', 0, 0, Math.max(0, a.data.length - 1), 1) })
+        definition: a => ({ modelIndex: PD.Range('Model Index', 'Model Index', 0, 0, Math.max(0, a.data.length - 1), 1) })
     },
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
@@ -103,7 +103,7 @@ const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Model, S
     to: [SO.Molecule.Structure],
     params: {
         default: () => ({ id: void 0 }),
-        controls(a) {
+        definition(a) {
             const model = a.data;
             const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
             return { id: PD.Select('Asm Id', 'Assembly Id', ids.length ? ids[0][0] : '', ids) };

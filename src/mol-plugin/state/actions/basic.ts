@@ -18,10 +18,10 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
     },
     params: {
         default: () => ({ id: '1grm' }),
-        controls: () => ({
+        definition: () => ({
             id: PD.Text('PDB id', '', '1grm'),
         }),
-        validate: p => !p.id || !p.id.trim() ? ['Enter id.'] : void 0
+        validate: p => !p.id || !p.id.trim() ? [['Enter id.', 'id']] : void 0
     },
     apply({ params, state }) {
         const url = `http://www.ebi.ac.uk/pdbe/static/entry/${params.id.toLowerCase()}_updated.cif`;

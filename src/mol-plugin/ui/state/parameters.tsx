@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, Transformer, State, Transform, StateObjectCell } from 'mol-state';
+import { StateObject, State, Transform, StateObjectCell } from 'mol-state';
 import { shallowEqual } from 'mol-util/object';
 import * as React from 'react';
 import { PurePluginComponent } from '../base';
@@ -17,7 +17,7 @@ export { StateTransformParameters };
 
 class StateTransformParameters extends PurePluginComponent<StateTransformParameters.Props> {
     getDefinition() {
-        const controls = this.props.info.definition.controls;
+        const controls = this.props.info.definition.definition;
         if (!controls) return { };
         return controls!(this.props.info.source, this.plugin)
     }
@@ -25,7 +25,9 @@ class StateTransformParameters extends PurePluginComponent<StateTransformParamet
     validate(params: any) {
         const validate = this.props.info.definition.validate;
         if (!validate) return void 0;
-        return validate(params, this.props.info.source, this.plugin)
+        const result = validate(params, this.props.info.source, this.plugin);
+        if (!result || result.length === 0) return void 0;
+        return result.map(r => r[0]);
     }
 
     areInitial(params: any) {
@@ -48,7 +50,7 @@ class StateTransformParameters extends PurePluginComponent<StateTransformParamet
 namespace StateTransformParameters {
     export interface Props {
         info: {
-            definition: Transformer.ParamsDefinition,
+            definition: PD.Provider,
             params: PD.Params,
             initialValues: any,
             source: StateObject,
@@ -68,7 +70,7 @@ namespace StateTransformParameters {
         const source = state.cells.get(nodeRef)!.obj!;
         const definition = action.definition.params || { };
         const initialValues = definition.default ? definition.default(source, plugin) : {};
-        const params = definition.controls ? definition.controls(source, plugin) : {};
+        const params = definition.definition ? definition.definition(source, plugin) : {};
         return {
             source,
             definition: action.definition.params || { },
@@ -82,7 +84,7 @@ namespace StateTransformParameters {
         const cell = state.cells.get(transform.ref)!;
         const source: StateObjectCell | undefined = (cell.sourceRef && state.cells.get(cell.sourceRef)!) || void 0;
         const definition = transform.transformer.definition.params || { };
-        const params = definition.controls ? definition.controls((source && source.obj) as any, plugin) : {};
+        const params = definition.definition ? definition.definition((source && source.obj) as any, plugin) : {};
         return {
             source: (source && source.obj) as any,
             definition,
