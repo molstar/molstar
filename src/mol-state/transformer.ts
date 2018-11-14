@@ -10,7 +10,7 @@ import { Transform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateAction } from './action';
 
-export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
+export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
     apply(parent: Transform.Ref, params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
     toAction(): StateAction<A, void, P>,
     readonly namespace: string,
@@ -29,14 +29,14 @@ export namespace Transformer {
         return !!obj && typeof (obj as Transformer).toAction === 'function' && typeof (obj as Transformer).apply === 'function';
     }
 
-    export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
+    export interface ApplyParams<A extends StateObject = StateObject, P extends {} = {}> {
         a: A,
         params: P,
         /** A cache object that is purged each time the corresponding StateObject is removed or recreated. */
         cache: unknown
     }
 
-    export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
+    export interface UpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
         a: A,
         b: B,
         oldParams: P,
@@ -56,7 +56,7 @@ export namespace Transformer {
         areEqual?(oldParams: P, newParams: P): boolean
     }
 
-    export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
+    export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
         readonly name: string,
         readonly from: StateObject.Ctor[],
         readonly to: StateObject.Ctor[],
@@ -112,7 +112,7 @@ export namespace Transformer {
         return fromTypeIndex.get(type) || [];
     }
 
-    export function create<A extends StateObject, B extends StateObject, P>(namespace: string, definition: Definition<A, B, P>) {
+    export function create<A extends StateObject, B extends StateObject, P extends {} = {}>(namespace: string, definition: Definition<A, B, P>) {
         const { name } = definition;
         const id = `${namespace}.${name}` as Id;
 
@@ -134,10 +134,10 @@ export namespace Transformer {
     }
 
     export function factory(namespace: string) {
-        return <A extends StateObject, B extends StateObject, P>(definition: Definition<A, B, P>) => create(namespace, definition);
+        return <A extends StateObject, B extends StateObject, P extends {} = {}>(definition: Definition<A, B, P>) => create(namespace, definition);
     }
 
-    export const ROOT = create<any, any, any>('build-in', {
+    export const ROOT = create<any, any, {}>('build-in', {
         name: 'root',
         from: [],
         to: [],

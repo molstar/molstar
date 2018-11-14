@@ -13,7 +13,7 @@ import { Transformer } from './transformer';
 
 export { StateAction };
 
-interface StateAction<A extends StateObject = StateObject, T = any, P = unknown> {
+interface StateAction<A extends StateObject = StateObject, T = any, P extends {} = {}> {
     create(params: P): StateAction.Instance,
     readonly id: UUID,
     readonly definition: StateAction.Definition<A, T, P>
@@ -30,14 +30,14 @@ namespace StateAction {
         params: any
     }
 
-    export interface ApplyParams<A extends StateObject = StateObject, P = unknown> {
+    export interface ApplyParams<A extends StateObject = StateObject, P extends {} = {}> {
         cell: StateObjectCell,
         a: A,
         state: State,
         params: P
     }
 
-    export interface Definition<A extends StateObject = StateObject, T = any, P = unknown> {
+    export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}> {
         readonly from: StateObject.Ctor[],
         readonly display?: { readonly name: string, readonly description?: string },
 
@@ -52,7 +52,7 @@ namespace StateAction {
         isApplicable?(a: A, globalCtx: unknown): boolean
     }
 
-    export function create<A extends StateObject, T, P>(definition: Definition<A, T, P>): StateAction<A, T, P> {
+    export function create<A extends StateObject, T, P extends {} = {}>(definition: Definition<A, T, P>): StateAction<A, T, P> {
         const action: StateAction<A, T, P> = {
             create(params) { return { action, params }; },
             id: UUID.create22(),
