@@ -92,12 +92,11 @@ export const PolymerDirectionParams = {
     ...UnitsMeshParams,
     ...PolymerDirectionWedgeParams
 }
-export const DefaultPolymerDirectionProps = PD.getDefaultValues(PolymerDirectionParams)
-export type PolymerDirectionProps = typeof DefaultPolymerDirectionProps
+export type PolymerDirectionParams = typeof PolymerDirectionParams
 
-export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionProps> {
-    return UnitsMeshVisual<PolymerDirectionProps>({
-        defaultProps: DefaultPolymerDirectionProps,
+export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionParams> {
+    return UnitsMeshVisual<PolymerDirectionParams>({
+        defaultProps: PD.getDefaultValues(PolymerDirectionParams),
         createGeometry: createPolymerDirectionWedgeMesh,
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,

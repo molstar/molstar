@@ -53,21 +53,17 @@ async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structur
 export const CrossLinkRestraintParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    // TODO
-    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    // sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
 }
-export const DefaultCrossLinkRestraintProps = PD.getDefaultValues(CrossLinkRestraintParams)
-export type CrossLinkRestraintProps = typeof DefaultCrossLinkRestraintProps
+export type CrossLinkRestraintParams = typeof CrossLinkRestraintParams
 
-export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintProps> {
-    return ComplexMeshVisual<CrossLinkRestraintProps>({
-        defaultProps: DefaultCrossLinkRestraintProps,
+export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintParams> {
+    return ComplexMeshVisual<CrossLinkRestraintParams>({
+        defaultProps: PD.getDefaultValues(CrossLinkRestraintParams),
         createGeometry: createCrossLinkRestraintCylinderMesh,
         createLocationIterator: CrossLinkRestraintIterator,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: VisualUpdateState, newProps: CrossLinkRestraintProps, currentProps: CrossLinkRestraintProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<CrossLinkRestraintParams>, currentProps: PD.DefaultValues<CrossLinkRestraintParams>) => {
             state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })

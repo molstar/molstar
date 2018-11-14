@@ -38,17 +38,16 @@ export const GaussianSurfaceParams = {
     ...UnitsMeshParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianSurfaceProps = PD.getDefaultValues(GaussianSurfaceParams)
-export type GaussianSurfaceProps = typeof DefaultGaussianSurfaceProps
+export type GaussianSurfaceParams = typeof GaussianSurfaceParams
 
-export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceProps> {
-    return UnitsMeshVisual<GaussianSurfaceProps>({
-        defaultProps: DefaultGaussianSurfaceProps,
+export function GaussianSurfaceVisual(): UnitsVisual<GaussianSurfaceParams> {
+    return UnitsMeshVisual<GaussianSurfaceParams>({
+        defaultProps: PD.getDefaultValues(GaussianSurfaceParams),
         createGeometry: createGaussianSurfaceMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: GaussianSurfaceProps, currentProps: GaussianSurfaceProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianSurfaceParams>, currentProps: PD.DefaultValues<GaussianSurfaceParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true

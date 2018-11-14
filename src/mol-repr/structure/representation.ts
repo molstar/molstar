@@ -23,36 +23,31 @@ export type StructureRepresentationProvider<P extends PD.Params> = Representatio
 export const StructureParams = {
     ...Geometry.Params,
 }
-export const DefaultStructureProps = PD.getDefaultValues(StructureParams)
-export type StructureProps = typeof DefaultStructureProps
+export type StructureParams = typeof StructureParams
 
 export const StructureMeshParams = {
     ...Mesh.Params,
     ...StructureParams,
 }
-export const DefaultStructureMeshProps = PD.getDefaultValues(StructureMeshParams)
-export type StructureMeshProps = typeof DefaultStructureMeshProps
+export type StructureMeshParams = typeof StructureMeshParams
 
 export const StructurePointsParams = {
     ...Points.Params,
     ...StructureParams,
 }
-export const DefaultStructurePointsProps = PD.getDefaultValues(StructurePointsParams)
-export type StructurePointsProps = typeof DefaultStructurePointsProps
+export type StructurePointsParams = typeof StructurePointsParams
 
 export const StructureLinesParams = {
     ...Lines.Params,
     ...StructureParams,
 }
-export const DefaultStructureLinesProps = PD.getDefaultValues(StructureLinesParams)
-export type StructureLinesProps = typeof DefaultStructureLinesProps
+export type StructureLinesParams = typeof StructureLinesParams
 
 export const StructureDirectVolumeParams = {
     ...DirectVolume.Params,
     ...StructureParams,
 }
-export const DefaultStructureDirectVolumeProps = PD.getDefaultValues(StructureDirectVolumeParams)
-export type StructureDirectVolumeProps = typeof DefaultStructureDirectVolumeProps
+export type StructureDirectVolumeParams = typeof StructureDirectVolumeParams
 
 export { ComplexRepresentation } from './complex-representation'
 export { UnitsRepresentation } from './units-representation'

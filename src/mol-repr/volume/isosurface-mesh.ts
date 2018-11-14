@@ -44,21 +44,21 @@ export const IsosurfaceParams = {
     isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
     isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
+export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
     return IsosurfaceParams // TODO return copy
 }
-export type IsosurfaceProps = PD.DefaultValues<typeof IsosurfaceParams>
 
-export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
-    return VolumeVisual<IsosurfaceProps>({
+export function IsosurfaceVisual(): VolumeVisual<IsosurfaceParams> {
+    return VolumeVisual<IsosurfaceParams>({
         defaultProps: PD.getDefaultValues(IsosurfaceParams),
         createGeometry: createVolumeIsosurface,
         getLoci: () => EmptyLoci,
         mark: () => false,
-        setUpdateState: (state: VisualUpdateState, newProps: IsosurfaceProps, currentProps: IsosurfaceProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<IsosurfaceParams>, currentProps: PD.DefaultValues<IsosurfaceParams>) => {
             if (newProps.isoValueAbsolute !== currentProps.isoValueAbsolute) state.createGeometry = true
         },
-        createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: IsosurfaceProps) => {
+        createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<IsosurfaceParams>) => {
             const transform = createIdentityTransform()
             const values = await Mesh.createValues(ctx.runtime, geometry, transform, locationIt, theme, props)
             const state = createRenderableState(props)
@@ -68,6 +68,6 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceProps> {
     })
 }
 
-export function IsosurfaceRepresentation(): VolumeRepresentation<IsosurfaceProps> {
+export function IsosurfaceRepresentation(): VolumeRepresentation<IsosurfaceParams> {
     return VolumeRepresentation('Isosurface', getIsosurfaceParams, IsosurfaceVisual)
 }

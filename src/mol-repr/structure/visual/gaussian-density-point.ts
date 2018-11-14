@@ -21,13 +21,9 @@ import { Theme } from 'mol-theme/theme';
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
     ...GaussianDensityParams,
-    // TODO
-    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    // sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
     pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
 }
-export const DefaultGaussianDensityPointProps = PD.getDefaultValues(GaussianDensityPointParams)
-export type GaussianDensityPointProps = typeof DefaultGaussianDensityPointProps
+export type GaussianDensityPointParams = typeof GaussianDensityPointParams
 
 export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: GaussianDensityProps, points?: Points) {
     const { transform, field: { space, data } } = await unit.computeGaussianDensity(props, ctx.runtime, ctx.webgl)
@@ -59,14 +55,14 @@ export async function createGaussianDensityPoint(ctx: VisualContext, unit: Unit,
     return builder.getPoints()
 }
 
-export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointProps> {
-    return UnitsPointsVisual<GaussianDensityPointProps>({
-        defaultProps: DefaultGaussianDensityPointProps,
+export function GaussianDensityPointVisual(): UnitsVisual<GaussianDensityPointParams> {
+    return UnitsPointsVisual<GaussianDensityPointParams>({
+        defaultProps: PD.getDefaultValues(GaussianDensityPointParams),
         createGeometry: createGaussianDensityPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: () => EmptyLoci,
         mark: () => false,
-        setUpdateState: (state: VisualUpdateState, newProps: GaussianDensityPointProps, currentProps: GaussianDensityPointProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianDensityPointParams>, currentProps: PD.DefaultValues<GaussianDensityPointParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true

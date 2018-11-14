@@ -53,17 +53,16 @@ export const InterUnitLinkParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
 }
-export const DefaultInterUnitLinkProps = PD.getDefaultValues(InterUnitLinkParams)
-export type InterUnitLinkProps = typeof DefaultInterUnitLinkProps
+export type InterUnitLinkParams = typeof InterUnitLinkParams
 
-export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkProps> {
-    return ComplexMeshVisual<InterUnitLinkProps>({
-        defaultProps: DefaultInterUnitLinkProps,
+export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkParams> {
+    return ComplexMeshVisual<InterUnitLinkParams>({
+        defaultProps: PD.getDefaultValues(InterUnitLinkParams),
         createGeometry: createInterUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromStructure,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: VisualUpdateState, newProps: InterUnitLinkProps, currentProps: InterUnitLinkProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<InterUnitLinkParams>, currentProps: PD.DefaultValues<InterUnitLinkParams>) => {
             if (newProps.linkScale !== currentProps.linkScale) state.createGeometry = true
             if (newProps.linkSpacing !== currentProps.linkSpacing) state.createGeometry = true
             if (newProps.radialSegments !== currentProps.radialSegments) state.createGeometry = true

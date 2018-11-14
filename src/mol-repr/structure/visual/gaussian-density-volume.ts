@@ -31,17 +31,16 @@ export const GaussianDensityVolumeParams = {
     ...UnitsDirectVolumeParams,
     ...GaussianDensityParams,
 }
-export const DefaultGaussianDensityVolumeProps = PD.getDefaultValues(GaussianDensityVolumeParams)
-export type GaussianDensityVolumeProps = typeof DefaultGaussianDensityVolumeProps
+export type GaussianDensityVolumeParams = typeof GaussianDensityVolumeParams
 
-export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolumeProps> {
-    return UnitsDirectVolumeVisual<GaussianDensityVolumeProps>({
-        defaultProps: DefaultGaussianDensityVolumeProps,
+export function GaussianDensityVolumeVisual(): UnitsVisual<GaussianDensityVolumeParams> {
+    return UnitsDirectVolumeVisual<GaussianDensityVolumeParams>({
+        defaultProps: PD.getDefaultValues(GaussianDensityVolumeParams),
         createGeometry: createGaussianDensityVolume,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: GaussianDensityVolumeProps, currentProps: GaussianDensityVolumeProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianDensityVolumeParams>, currentProps: PD.DefaultValues<GaussianDensityVolumeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) {

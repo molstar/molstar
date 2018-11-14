@@ -44,7 +44,7 @@ const diamondPrism = DiamondPrism()
 const pentagonalPrism = PentagonalPrism()
 const hexagonalPrism = HexagonalPrism()
 
-async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: CarbohydrateSymbolProps, mesh?: Mesh) {
+async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.DefaultValues<CarbohydrateSymbolParams>, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const { detail } = props
@@ -147,22 +147,18 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
 
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
-    // TODO
-    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    // sizeValue: PD.Numeric('Size Value', '', 1, 0, 10, 0.1),
     detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultCarbohydrateSymbolProps = PD.getDefaultValues(CarbohydrateSymbolParams)
-export type CarbohydrateSymbolProps = typeof DefaultCarbohydrateSymbolProps
+export type CarbohydrateSymbolParams = typeof CarbohydrateSymbolParams
 
-export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolProps> {
-    return ComplexMeshVisual<CarbohydrateSymbolProps>({
-        defaultProps: DefaultCarbohydrateSymbolProps,
+export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolParams> {
+    return ComplexMeshVisual<CarbohydrateSymbolParams>({
+        defaultProps: PD.getDefaultValues(CarbohydrateSymbolParams),
         createGeometry: createCarbohydrateSymbolMesh,
         createLocationIterator: CarbohydrateElementIterator,
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,
-        setUpdateState: (state: VisualUpdateState, newProps: CarbohydrateSymbolProps, currentProps: CarbohydrateSymbolProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<CarbohydrateSymbolParams>, currentProps: PD.DefaultValues<CarbohydrateSymbolParams>) => {
             state.createGeometry = newProps.detail !== currentProps.detail
         }
     })

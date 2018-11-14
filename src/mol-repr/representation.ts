@@ -21,12 +21,12 @@ import { ThemeProps, Theme, ThemeRegistryContext } from 'mol-theme/theme';
 // }
 export type RepresentationProps = { [k: string]: any }
 
-export type RepresentationParamsGetter<D> = (ctx: ThemeRegistryContext, data: D) => PD.Params
+export type RepresentationParamsGetter<D, P extends PD.Params> = (ctx: ThemeRegistryContext, data: D) => P
 
 //
 
 export interface RepresentationProvider<D, P extends PD.Params> {
-    readonly factory: (getParams: RepresentationParamsGetter<D>) => Representation<D, PD.DefaultValues<P>>
+    readonly factory: (getParams: RepresentationParamsGetter<D, P>) => Representation<D, P>
     readonly getParams: (ctx: ThemeRegistryContext, data: D) => P
 }
 
@@ -65,12 +65,12 @@ export interface RepresentationContext {
 }
 
 export { Representation }
-interface Representation<D, P extends RepresentationProps = {}> {
+interface Representation<D, P extends PD.Params = {}> {
     readonly label: string
     readonly renderObjects: ReadonlyArray<RenderObject>
-    readonly props: Readonly<P>
-    readonly params: Readonly<PD.Params>
-    createOrUpdate: (ctx: RepresentationContext, props?: Partial<P>, themeProps?: ThemeProps, data?: D) => Task<void>
+    readonly props: Readonly<PD.DefaultValues<P>>
+    readonly params: Readonly<P>
+    createOrUpdate: (ctx: RepresentationContext, props?: Partial<PD.DefaultValues<P>>, themeProps?: ThemeProps, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void
@@ -85,11 +85,11 @@ namespace Representation {
         destroy: () => {}
     }
 
-    export type Def<D, P extends RepresentationProps = {}> = { [k: string]: (getParams: RepresentationParamsGetter<D>) => Representation<any, P> }
+    export type Def<D, P extends PD.Params = {}> = { [k: string]: (getParams: RepresentationParamsGetter<D, P>) => Representation<any, P> }
 
-    export function createMulti<D, P extends RepresentationProps = {}>(label: string, getParams: RepresentationParamsGetter<D>, reprDefs: Def<D, P>): Representation<D, P> {
-        let currentParams: PD.Params
-        let currentProps: P
+    export function createMulti<D, P extends PD.Params = {}>(label: string, getParams: RepresentationParamsGetter<D, P>, reprDefs: Def<D, P>): Representation<D, P> {
+        let currentParams: P
+        let currentProps: PD.DefaultValues<P>
         let currentData: D
 
         const reprMap: { [k: number]: string } = {}
@@ -166,9 +166,9 @@ export interface VisualContext {
     runtime: RuntimeContext,
 }
 
-export interface Visual<D, P extends RepresentationProps> {
+export interface Visual<D, P extends PD.Params> {
     readonly renderObject: RenderObject | undefined
-    createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<P>, data?: D) => Promise<void>
+    createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.DefaultValues<P>>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void

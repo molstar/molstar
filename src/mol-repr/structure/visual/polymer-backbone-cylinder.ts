@@ -69,18 +69,17 @@ export const PolymerBackboneParams = {
     ...UnitsMeshParams,
     ...PolymerBackboneCylinderParams,
 }
-export const DefaultPolymerBackboneProps = PD.getDefaultValues(PolymerBackboneParams)
-export type PolymerBackboneProps = typeof DefaultPolymerBackboneProps
+export type PolymerBackboneParams = typeof PolymerBackboneParams
 
-export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneProps> {
-    return UnitsMeshVisual<PolymerBackboneProps>({
-        defaultProps: DefaultPolymerBackboneProps,
+export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneParams> {
+    return UnitsMeshVisual<PolymerBackboneParams>({
+        defaultProps: PD.getDefaultValues(PolymerBackboneParams),
         createGeometry: createPolymerBackboneCylinderMesh,
         // TODO create a specialized location iterator
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PolymerBackboneProps, currentProps: PolymerBackboneProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<PolymerBackboneParams>, currentProps: PD.DefaultValues<PolymerBackboneParams>) => {
             state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })

@@ -8,30 +8,37 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { RepresentationProps, Visual, RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Visual, RepresentationContext, RepresentationParamsGetter } from '../representation';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
-import { StructureProps, StructureRepresentation } from './representation';
+import { StructureRepresentation, StructureParams } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { UnitKind, UnitKindOptions } from './visual/util/common';
 
-export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
+export const UnitsParams = {
+    ...StructureParams,
+    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
+}
+export type UnitsParams = typeof UnitsParams
 
-export function UnitsRepresentation<P extends StructureProps>(label: string, getParams: RepresentationParamsGetter<Structure>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGroup, P> { }
+
+export function UnitsRepresentation<P extends UnitsParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
-    let _params: PD.Params
-    let _props: P
+    let _params: P
+    let _props: PD.DefaultValues<P>
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.DefaultValues<P>> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
-            if (!_props) _props = PD.getDefaultValues(_params) as P
+            if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
         _theme = createTheme(ctx, { structure: structure || _structure }, props, themeProps, _theme)

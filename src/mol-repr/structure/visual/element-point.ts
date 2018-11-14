@@ -18,17 +18,13 @@ import { Theme } from 'mol-theme/theme';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
-    // TODO
-    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    // sizeValue: PD.Numeric('Size Value', '', 3, 0, 20, 0.1),
     pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
 }
-export const DefaultElementPointProps = PD.getDefaultValues(ElementPointParams)
-export type ElementPointProps = typeof DefaultElementPointProps
+export type ElementPointParams = typeof ElementPointParams
 
 // TODO size
 
-export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementPointProps, points: Points) {
+export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.DefaultValues<ElementPointParams>, points: Points) {
     const elements = unit.elements
     const n = elements.length
     const builder = PointsBuilder.create(n, n / 10, points)
@@ -47,14 +43,14 @@ export async function createElementPoint(ctx: VisualContext, unit: Unit, structu
     return builder.getPoints()
 }
 
-export function ElementPointVisual(): UnitsVisual<ElementPointProps> {
-    return UnitsPointsVisual<ElementPointProps>({
-        defaultProps: DefaultElementPointProps,
+export function ElementPointVisual(): UnitsVisual<ElementPointParams> {
+    return UnitsPointsVisual<ElementPointParams>({
+        defaultProps: PD.getDefaultValues(ElementPointParams),
         createGeometry: createElementPoint,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: ElementPointProps, currentProps: ElementPointProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<ElementPointParams>, currentProps: PD.DefaultValues<ElementPointParams>) => {
 
         }
     })

@@ -18,11 +18,10 @@ import { BuiltInSizeThemeName, BuiltInSizeThemeOptions } from 'mol-theme/size';
 import { BuiltInColorThemeName, BuiltInColorThemeOptions } from 'mol-theme/color';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
-type ParamsGetter = RepresentationParamsGetter<Structure>
 const BallAndStickVisuals = {
-    'element-sphere': (getParams: ParamsGetter) => UnitsRepresentation('Element sphere mesh', getParams, ElementSphereVisual),
-    'intra-link': (getParams: ParamsGetter) => UnitsRepresentation('Intra-unit link cylinder', getParams, IntraUnitLinkVisual),
-    'inter-link': (getParams: ParamsGetter) => ComplexRepresentation('Inter-unit link cylinder', getParams, InterUnitLinkVisual),
+    'element-sphere': (getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Element sphere mesh', getParams, ElementSphereVisual),
+    'intra-link': (getParams: RepresentationParamsGetter<Structure, IntraUnitLinkParams>) => UnitsRepresentation('Intra-unit link cylinder', getParams, IntraUnitLinkVisual),
+    'inter-link': (getParams: RepresentationParamsGetter<Structure, InterUnitLinkParams>) => ComplexRepresentation('Inter-unit link cylinder', getParams, InterUnitLinkVisual),
 }
 type BallAndStickVisualName = keyof typeof BallAndStickVisuals
 const BallAndStickVisualOptions = Object.keys(BallAndStickVisuals).map(name => [name, name] as [BallAndStickVisualName, string])
@@ -37,15 +36,14 @@ export const BallAndStickParams = {
     colorTheme: PD.Select<BuiltInColorThemeName>('Color Theme', '', 'polymer-index', BuiltInColorThemeOptions),
     visuals: PD.MultiSelect<BallAndStickVisualName>('Visuals', '', ['element-sphere', 'intra-link', 'inter-link'], BallAndStickVisualOptions),
 }
+export type BallAndStickParams = typeof BallAndStickParams
 export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Structure) {
     return BallAndStickParams // TODO return copy
 }
-export type BallAndStickProps = PD.DefaultValues<typeof BallAndStickParams>
 
-export type BallAndStickRepresentation = StructureRepresentation<BallAndStickProps>
-
-export function BallAndStickRepresentation(getParams: ParamsGetter): BallAndStickRepresentation {
-    return Representation.createMulti('Ball & Stick', getParams, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickProps>)
+export type BallAndStickRepresentation = StructureRepresentation<BallAndStickParams>
+export function BallAndStickRepresentation(getParams: RepresentationParamsGetter<Structure, BallAndStickParams>): BallAndStickRepresentation {
+    return Representation.createMulti('Ball & Stick', getParams, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>)
 }
 
 export const BallAndStickRepresentationProvider: StructureRepresentationProvider<typeof BallAndStickParams> = {

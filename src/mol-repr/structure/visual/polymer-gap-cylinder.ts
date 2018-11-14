@@ -78,10 +78,6 @@ async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, stru
 export const InterUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    // TODO
-    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'physical', SizeThemeOptions),
-    // sizeValue: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
-    // sizeFactor: PD.Numeric('Size Factor', '', 0.3, 0, 10, 0.1),
 }
 export const DefaultIntraUnitLinkProps = PD.getDefaultValues(InterUnitLinkParams)
 export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
@@ -90,17 +86,16 @@ export const PolymerGapParams = {
     ...UnitsMeshParams,
     ...PolymerGapCylinderParams
 }
-export const DefaultPolymerGapProps = PD.getDefaultValues(PolymerGapParams)
-export type PolymerGapProps = typeof DefaultPolymerGapProps
+export type PolymerGapParams = typeof PolymerGapParams
 
-export function PolymerGapVisual(): UnitsVisual<PolymerGapProps> {
-    return UnitsMeshVisual<PolymerGapProps>({
-        defaultProps: DefaultPolymerGapProps,
+export function PolymerGapVisual(): UnitsVisual<PolymerGapParams> {
+    return UnitsMeshVisual<PolymerGapParams>({
+        defaultProps: PD.getDefaultValues(PolymerGapParams),
         createGeometry: createPolymerGapCylinderMesh,
         createLocationIterator: PolymerGapLocationIterator.fromGroup,
         getLoci: getPolymerGapElementLoci,
         mark: markPolymerGapElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PolymerGapProps, currentProps: PolymerGapProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<PolymerGapParams>, currentProps: PD.DefaultValues<PolymerGapParams>) => {
             state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
         }
     })

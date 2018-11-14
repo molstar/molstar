@@ -123,12 +123,11 @@ export const NucleotideBlockParams = {
     ...UnitsMeshParams,
     ...NucleotideBlockMeshParams
 }
-export const DefaultNucleotideBlockProps = PD.getDefaultValues(NucleotideBlockParams)
-export type NucleotideBlockProps = typeof DefaultNucleotideBlockProps
+export type NucleotideBlockParams = typeof NucleotideBlockParams
 
-export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockProps> {
-    return UnitsMeshVisual<NucleotideBlockProps>({
-        defaultProps: DefaultNucleotideBlockProps,
+export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
+    return UnitsMeshVisual<NucleotideBlockParams>({
+        defaultProps: PD.getDefaultValues(NucleotideBlockParams),
         createGeometry: createNucleotideBlockMesh,
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,

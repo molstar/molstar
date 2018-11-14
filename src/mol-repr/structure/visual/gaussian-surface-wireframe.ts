@@ -35,22 +35,18 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
-    // TODO
-    // sizeTheme: PD.Select<SizeThemeName>('Size Theme', '', 'uniform', SizeThemeOptions),
-    // sizeValue: PD.Numeric('Size Value', '', 2, 0, 10, 0.1),
     lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
 }
-export const DefaultGaussianWireframeProps = PD.getDefaultValues(GaussianWireframeParams)
-export type GaussianWireframeProps = typeof DefaultGaussianWireframeProps
+export type GaussianWireframeParams = typeof GaussianWireframeParams
 
-export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeProps> {
-    return UnitsLinesVisual<GaussianWireframeProps>({
-        defaultProps: DefaultGaussianWireframeProps,
+export function GaussianWireframeVisual(): UnitsVisual<GaussianWireframeParams> {
+    return UnitsLinesVisual<GaussianWireframeParams>({
+        defaultProps: PD.getDefaultValues(GaussianWireframeParams),
         createGeometry: createGaussianWireframe,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: GaussianWireframeProps, currentProps: GaussianWireframeProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<GaussianWireframeParams>, currentProps: PD.DefaultValues<GaussianWireframeParams>) => {
             if (newProps.resolution !== currentProps.resolution) state.createGeometry = true
             if (newProps.radiusOffset !== currentProps.radiusOffset) state.createGeometry = true
             if (newProps.smoothness !== currentProps.smoothness) state.createGeometry = true

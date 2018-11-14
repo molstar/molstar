@@ -20,7 +20,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: IntraUnitLinkProps, mesh?: Mesh) {
+async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.DefaultValues<IntraUnitLinkParams>, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const location = StructureElement.create(unit)
@@ -69,12 +69,11 @@ export const IntraUnitLinkParams = {
     ...LinkCylinderParams,
     sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
 }
-export const DefaultIntraUnitLinkProps = PD.getDefaultValues(IntraUnitLinkParams)
-export type IntraUnitLinkProps = typeof DefaultIntraUnitLinkProps
+export type IntraUnitLinkParams = typeof IntraUnitLinkParams
 
-export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkProps> {
-    return UnitsMeshVisual<IntraUnitLinkProps>({
-        defaultProps: DefaultIntraUnitLinkProps,
+export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkParams> {
+    return UnitsMeshVisual<IntraUnitLinkParams>({
+        defaultProps: PD.getDefaultValues(IntraUnitLinkParams),
         createGeometry: createIntraUnitLinkCylinderMesh,
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,

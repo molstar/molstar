@@ -18,17 +18,16 @@ export const ElementSphereParams = {
     sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
     detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
 }
-export const DefaultElementSphereProps = PD.getDefaultValues(ElementSphereParams)
-export type ElementSphereProps = typeof DefaultElementSphereProps
+export type ElementSphereParams = typeof ElementSphereParams
 
-export function ElementSphereVisual(): UnitsVisual<ElementSphereProps> {
-    return UnitsMeshVisual<ElementSphereProps>({
-        defaultProps: DefaultElementSphereProps,
+export function ElementSphereVisual(): UnitsVisual<ElementSphereParams> {
+    return UnitsMeshVisual<ElementSphereParams>({
+        defaultProps: PD.getDefaultValues(ElementSphereParams),
         createGeometry: createElementSphereMesh,
         createLocationIterator: StructureElementIterator.fromGroup,
         getLoci: getElementLoci,
         mark: markElement,
-        setUpdateState: (state: VisualUpdateState, newProps: ElementSphereProps, currentProps: ElementSphereProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<ElementSphereParams>, currentProps: PD.DefaultValues<ElementSphereParams>) => {
             state.createGeometry = newProps.detail !== currentProps.detail
         }
     })

@@ -90,17 +90,16 @@ export const PolymerTraceParams = {
     ...UnitsMeshParams,
     ...PolymerTraceMeshParams
 }
-export const DefaultPolymerTraceProps = PD.getDefaultValues(PolymerTraceParams)
-export type PolymerTraceProps = typeof DefaultPolymerTraceProps
+export type PolymerTraceParams = typeof PolymerTraceParams
 
-export function PolymerTraceVisual(): UnitsVisual<PolymerTraceProps> {
-    return UnitsMeshVisual<PolymerTraceProps>({
-        defaultProps: DefaultPolymerTraceProps,
+export function PolymerTraceVisual(): UnitsVisual<PolymerTraceParams> {
+    return UnitsMeshVisual<PolymerTraceParams>({
+        defaultProps: PD.getDefaultValues(PolymerTraceParams),
         createGeometry: createPolymerTraceMesh,
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         mark: markPolymerElement,
-        setUpdateState: (state: VisualUpdateState, newProps: PolymerTraceProps, currentProps: PolymerTraceProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<PolymerTraceParams>, currentProps: PD.DefaultValues<PolymerTraceParams>) => {
             state.createGeometry = (
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||

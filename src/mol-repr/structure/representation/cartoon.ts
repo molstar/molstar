@@ -17,12 +17,11 @@ import { ThemeRegistryContext } from 'mol-theme/theme';
 import { BuiltInSizeThemeName, BuiltInSizeThemeOptions } from 'mol-theme/size';
 import { BuiltInColorThemeOptions, BuiltInColorThemeName } from 'mol-theme/color';
 
-type ParamsGetter = RepresentationParamsGetter<Structure>
 const CartoonVisuals = {
-    'polymer-trace': (getParams: ParamsGetter) => UnitsRepresentation('Polymer trace mesh', getParams, PolymerTraceVisual),
-    'polymer-gap': (getParams: ParamsGetter) => UnitsRepresentation('Polymer gap cylinder', getParams, PolymerGapVisual),
-    'nucleotide-block': (getParams: ParamsGetter) => UnitsRepresentation('Nucleotide block mesh', getParams, NucleotideBlockVisual),
-    'direction-wedge': (getParams: ParamsGetter) => UnitsRepresentation('Polymer direction wedge', getParams, PolymerDirectionVisual)
+    'polymer-trace': (getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', getParams, PolymerTraceVisual),
+    'polymer-gap': (getParams: RepresentationParamsGetter<Structure, PolymerGapParams>) => UnitsRepresentation('Polymer gap cylinder', getParams, PolymerGapVisual),
+    'nucleotide-block': (getParams: RepresentationParamsGetter<Structure, NucleotideBlockParams>) => UnitsRepresentation('Nucleotide block mesh', getParams, NucleotideBlockVisual),
+    'direction-wedge': (getParams: RepresentationParamsGetter<Structure, PolymerDirectionParams>) => UnitsRepresentation('Polymer direction wedge', getParams, PolymerDirectionVisual)
 }
 type CartoonVisualName = keyof typeof CartoonVisuals
 const CartoonVisualOptions = Object.keys(CartoonVisuals).map(name => [name, name] as [CartoonVisualName, string])
@@ -37,16 +36,16 @@ export const CartoonParams = {
     colorTheme: PD.Select<BuiltInColorThemeName>('Color Theme', '', 'polymer-index', BuiltInColorThemeOptions),
     visuals: PD.MultiSelect<CartoonVisualName>('Visuals', '', ['polymer-trace', 'polymer-gap', 'nucleotide-block'], CartoonVisualOptions),
 }
+export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {
     return CartoonParams // TODO return copy
 }
-export type CartoonProps = PD.DefaultValues<typeof CartoonParams>
 
-export type CartoonRepresentation = StructureRepresentation<CartoonProps>
-export function CartoonRepresentation(getParams: ParamsGetter): CartoonRepresentation {
-    return Representation.createMulti('Cartoon', getParams, CartoonVisuals as unknown as Representation.Def<Structure, CartoonProps>)
+export type CartoonRepresentation = StructureRepresentation<CartoonParams>
+export function CartoonRepresentation(getParams: RepresentationParamsGetter<Structure, CartoonParams>): CartoonRepresentation {
+    return Representation.createMulti('Cartoon', getParams, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>)
 }
 
-export const CartoonRepresentationProvider: StructureRepresentationProvider<typeof CartoonParams> = {
+export const CartoonRepresentationProvider: StructureRepresentationProvider<CartoonParams> = {
     factory: CartoonRepresentation, getParams: getCartoonParams
 }

@@ -143,7 +143,7 @@ export function createDirectVolume3d(ctx: RuntimeContext, webgl: WebGLContext, v
 
 //
 
-export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, props: DirectVolumeProps, directVolume?: DirectVolume) {
+export async function createDirectVolume(ctx: VisualContext, volume: VolumeData, props: PD.DefaultValues<DirectVolumeParams>, directVolume?: DirectVolume) {
     const { runtime, webgl } = ctx
     if (webgl === undefined) throw new Error('DirectVolumeVisual requires `webgl` in props')
 
@@ -159,20 +159,20 @@ export const DirectVolumeParams = {
     ...Geometry.Params,
     ...DirectVolume.Params
 }
+export type DirectVolumeParams = typeof DirectVolumeParams
 export function getDirectVolumeParams(ctx: ThemeRegistryContext, volume: VolumeData) {
     return DirectVolumeParams // TODO return copy
 }
-export type DirectVolumeProps = PD.DefaultValues<typeof DirectVolumeParams>
 
-export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
-    return VolumeVisual<DirectVolumeProps>({
+export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
+    return VolumeVisual<DirectVolumeParams>({
         defaultProps: PD.getDefaultValues(DirectVolumeParams),
         createGeometry: createDirectVolume,
         getLoci: () => EmptyLoci,
         mark: () => false,
-        setUpdateState: (state: VisualUpdateState, newProps: DirectVolumeProps, currentProps: DirectVolumeProps) => {
+        setUpdateState: (state: VisualUpdateState, newProps: PD.DefaultValues<DirectVolumeParams>, currentProps: PD.DefaultValues<DirectVolumeParams>) => {
         },
-        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: DirectVolumeProps) => {
+        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.DefaultValues<DirectVolumeParams>) => {
             const transform = createIdentityTransform()
             const values = await DirectVolume.createValues(ctx.runtime, geometry, transform, locationIt, theme, props)
             const state = createRenderableState(props)
@@ -182,6 +182,6 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeProps> {
     })
 }
 
-export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeProps> {
+export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeParams> {
     return VolumeRepresentation('Direct Volume', getDirectVolumeParams, DirectVolumeVisual)
 }

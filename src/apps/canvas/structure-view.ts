@@ -18,7 +18,7 @@ import Canvas3D from 'mol-canvas3d/canvas3d';
 import { BehaviorSubject } from 'rxjs';
 import { App } from './app';
 import { StructureRepresentation } from 'mol-repr/structure/representation';
-import { ShapeRepresentation, ShapeProps } from 'mol-repr/shape/representation';
+import { ShapeRepresentation, ShapeParams } from 'mol-repr/shape/representation';
 
 export interface StructureView {
     readonly app: App
@@ -32,7 +32,7 @@ export interface StructureView {
     readonly active: { [k: string]: boolean }
     readonly structureRepresentations: { [k: string]: StructureRepresentation<any> }
     readonly updated: BehaviorSubject<null>
-    readonly symmetryAxes: ShapeRepresentation<ShapeProps>
+    readonly symmetryAxes: ShapeRepresentation<ShapeParams>
 
     setSymmetryAxes(value: boolean): void
     setStructureRepresentation(name: string, value: boolean): void

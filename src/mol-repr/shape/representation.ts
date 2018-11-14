@@ -6,7 +6,7 @@
 
 import { Task } from 'mol-task'
 import { RenderObject, createMeshRenderObject, MeshRenderObject } from 'mol-gl/render-object';
-import { RepresentationProps, Representation, RepresentationContext } from '../representation';
+import { Representation, RepresentationContext } from '../representation';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { ValueCell } from 'mol-util';
 import { Shape } from 'mol-model/shape';
@@ -20,28 +20,24 @@ import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { ThemeProps, createTheme } from 'mol-theme/theme';
 
-export interface ShapeRepresentation<P extends RepresentationProps = {}> extends Representation<Shape, P> { }
+export interface ShapeRepresentation<P extends ShapeParams> extends Representation<Shape, P> { }
 
 export const ShapeParams = {
     ...Mesh.Params,
     // TODO
     // colorTheme: PD.Select<ColorThemeName>('Color Theme', '', 'shape-group', ColorThemeOptions)
 }
-export const DefaultShapeProps = PD.getDefaultValues(ShapeParams)
-export type ShapeProps = typeof DefaultShapeProps
+export type ShapeParams = typeof ShapeParams
 
-// TODO
-// export type ShapeRepresentation = ShapeRepresentation<ShapeProps>
-
-export function ShapeRepresentation<P extends ShapeProps>(): ShapeRepresentation<P> {
+export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentation<P> {
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
-    let currentProps: P
-    let currentParams: PD.Params
+    let currentProps: PD.DefaultValues<P> = PD.getDefaultValues(ShapeParams) as PD.DefaultValues<P>
+    let currentParams: P
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, shape?: Shape) {
-        currentProps = Object.assign({}, DefaultShapeProps, currentProps, props)
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.DefaultValues<P>> = {}, themeProps: ThemeProps = {}, shape?: Shape) {
+        currentProps = Object.assign({}, currentProps, props)
         if (shape) _shape = shape
 
         return Task.create('ShapeRepresentation.create', async runtime => {
