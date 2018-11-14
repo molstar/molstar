@@ -2,6 +2,7 @@
  * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -55,3 +56,26 @@ export function shallowMerge<T>(source: T, ...rest: (Partial<T> | undefined)[]):
     }
     return ret;
 }
+
+/** Simple deep clone for number, boolean, string, null, undefined, object, array */
+export function deepClone<T>(source: T): T {
+    if (null === source || "object" !== typeof source) return source;
+  
+    if (source instanceof Array) {
+      const copy: any[] = [];
+      for (let i = 0, len = source.length; i < len; i++) {
+          copy[i] = deepClone(source[i]);
+      }
+      return copy as any as T;
+    }
+  
+    if (source instanceof Object) {
+        const copy: { [k: string]: any } = {};
+        for (let k in source) {
+            if (hasOwnProperty.call(source, k)) copy[k] = deepClone(source[k]);
+        }
+        return copy as any as T;
+    }
+  
+    throw new Error(`Can't clone, type "${typeof source}" unsupported`);
+  }
