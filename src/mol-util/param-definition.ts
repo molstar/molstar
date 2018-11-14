@@ -6,6 +6,7 @@
  */
 
 import { Color as ColorData } from './color';
+import { shallowClone } from 'mol-util';
 
 export namespace ParamDefinition {
     export interface Base<T> {
@@ -97,5 +98,9 @@ export namespace ParamDefinition {
         const d: { [k: string]: any } = {}
         Object.keys(params).forEach(k => d[k] = params[k].defaultValue)
         return d as DefaultValues<T>
+    }
+
+    export function clone<P extends Params>(params: P): P {
+        return shallowClone(params)
     }
 }

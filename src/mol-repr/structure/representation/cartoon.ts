@@ -38,7 +38,7 @@ export const CartoonParams = {
 }
 export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return CartoonParams // TODO return copy
+    return PD.clone(CartoonParams)
 }
 
 export type CartoonRepresentation = StructureRepresentation<CartoonParams>

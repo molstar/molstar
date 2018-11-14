@@ -46,7 +46,7 @@ export const IsosurfaceParams = {
 }
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
-    return IsosurfaceParams // TODO return copy
+    return PD.clone(IsosurfaceParams)
 }
 
 export function IsosurfaceVisual(): VolumeVisual<IsosurfaceParams> {

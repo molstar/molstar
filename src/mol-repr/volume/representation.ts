@@ -145,8 +145,6 @@ export const VolumeParams = {
     isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
 }
 export type VolumeParams = typeof VolumeParams
-// export const DefaultVolumeProps = PD.getDefaultValues(VolumeParams)
-// export type VolumeProps = typeof DefaultVolumeProps
 
 export function VolumeRepresentation<P extends VolumeParams>(label: string, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     let visual: VolumeVisual<P>
