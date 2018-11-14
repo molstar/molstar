@@ -100,6 +100,9 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
             }
             return changed
         },
+        setVisibility(value: boolean) {
+            renderObjects.forEach(ro => ro.state.visible = value)
+        },
         destroy() {
             // TODO
             renderObjects.length = 0

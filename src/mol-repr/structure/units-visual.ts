@@ -192,6 +192,9 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             }
             return changed
         },
+        setVisibility(value: boolean) {
+            if (renderObject) renderObject.state.visible = value
+        },
         destroy() {
             // TODO
             renderObject = undefined

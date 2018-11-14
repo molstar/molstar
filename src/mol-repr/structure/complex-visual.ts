@@ -162,6 +162,9 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
             }
             return changed
         },
+        setVisibility(value: boolean) {
+            if (renderObject) renderObject.state.visible = value
+        },
         destroy() {
             // TODO
             renderObject = undefined

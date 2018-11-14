@@ -87,6 +87,7 @@ interface Representation<D, P extends PD.Params = {}> {
     createOrUpdate: (ctx: RepresentationContext, props?: Partial<PD.Values<P>>, themeProps?: ThemeProps, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
+    setVisibility: (value: boolean) => void
     destroy: () => void
 }
 namespace Representation {
@@ -96,6 +97,7 @@ namespace Representation {
         createOrUpdate: () => Task.constant('', undefined),
         getLoci: () => EmptyLoci,
         mark: () => false,
+        setVisibility: () => {},
         destroy: () => {}
     }
 
@@ -168,6 +170,11 @@ namespace Representation {
                 }
                 return marked
             },
+            setVisibility: (value: boolean) => {
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    reprList[i].setVisibility(value)
+                }
+            },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].destroy()
@@ -189,5 +196,6 @@ export interface Visual<D, P extends PD.Params> {
     createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
+    setVisibility: (value: boolean) => void
     destroy: () => void
 }

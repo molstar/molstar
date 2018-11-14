@@ -62,7 +62,6 @@ export namespace Geometry {
 
     export const Params = {
         alpha: PD.Range('Opacity', '', 1, 0, 1, 0.01),
-        visible: PD.Boolean('Visible', '', true),
         depthMask: PD.Boolean('Depth Mask', '', true),
         useFog: PD.Boolean('Use Fog', '', false),
         highlightColor: PD.Color('Highlight Color', '', Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
@@ -105,13 +104,12 @@ export namespace Geometry {
 
 export function createRenderableState(props: Geometry.Props): RenderableState {
     return {
-        visible: props.visible,
+        visible: true,
         depthMask: props.depthMask
     }
 }
 
 export function updateRenderableState(state: RenderableState, props: Geometry.Props) {
-    state.visible = props.visible
     state.depthMask = props.depthMask
 }
 

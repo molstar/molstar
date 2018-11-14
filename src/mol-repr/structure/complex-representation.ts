@@ -50,6 +50,10 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return visual ? visual.mark(loci, action) : false
     }
 
+    function setVisibility(value: boolean) {
+        if (visual) visual.setVisibility(value)
+    }
+
     function destroy() {
         if (visual) visual.destroy()
     }
@@ -65,6 +69,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         createOrUpdate,
         getLoci,
         mark,
+        setVisibility,
         destroy
     }
 }

@@ -18,7 +18,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
         ctx.canvas3d.add(e.obj.data);
         ctx.canvas3d.requestDraw(true);
 
-        // TODO: update visiblity
+        // TODO: update visiblity, e.obj.data.setVisibility()
     });
     events.object.updated.subscribe(e => {
         if (e.oldObj && SO.isRepresentation3D(e.oldObj)) {
@@ -29,7 +29,7 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
 
         if (!SO.isRepresentation3D(e.obj)) return;
 
-        // TODO: update visiblity
+        // TODO: update visiblity, e.obj.data.setVisibility()
         ctx.canvas3d.add(e.obj.data);
         ctx.canvas3d.requestDraw(true);
     });
@@ -47,6 +47,6 @@ export function UpdateRepresentationVisibility(ctx: PluginContext) {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
 
-        // TODO: update visiblity
+        // TODO: update visiblity, e.obj.data.setVisibility()
     })
 }
