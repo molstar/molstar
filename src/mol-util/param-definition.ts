@@ -90,7 +90,17 @@ export namespace ParamDefinition {
         return { type: 'interval', label, description, defaultValue }
     }
 
-    export type Any = /* GenericValue<any> | */ Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric | Interval
+    export interface Obj<P extends Params> extends Base<{ [K in keyof P]: P[K]['defaultValue']}> {
+        type: 'obj',
+        pivot?: keyof P,
+        params: P
+    }
+    export function Obj<P extends Params>(label: string, description: string, params: P, pivot?: keyof P): Obj<P> {
+        return { type: 'obj', label, description, defaultValue: getDefaultValues(params), params, pivot };
+    }
+
+    export type Any = Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric | Interval | Obj<any>
+
     export type Params = { [k: string]: Any }
     export type DefaultValues<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
 
@@ -117,7 +127,7 @@ export namespace ParamDefinition {
         definition?(a: A, globalCtx: Ctx): { [K in keyof P]?: Any },
         /** Check the parameters and return a list of errors if the are not valid. */
         validate?(params: P, a: A, globalCtx: unknown): ParamErrors | undefined,
-        /** Optional custom parameter equality. Use deep structural equal by default. */
+        /** Optional custom parameter equality. Use shallow structural equal by default. */
         areEqual?(oldParams: P, newParams: P): boolean
     }
 }

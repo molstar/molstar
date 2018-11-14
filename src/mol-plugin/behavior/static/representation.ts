@@ -18,6 +18,8 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
         ctx.canvas3d.add(e.obj.data);
         ctx.canvas3d.requestDraw(true);
 
+        console.log(e.obj.data);
+
         // TODO: update visiblity
     });
     events.object.updated.subscribe(e => {
