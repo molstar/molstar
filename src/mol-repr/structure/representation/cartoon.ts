@@ -47,5 +47,9 @@ export function CartoonRepresentation(getParams: RepresentationParamsGetter<Stru
 }
 
 export const CartoonRepresentationProvider: StructureRepresentationProvider<CartoonParams> = {
-    factory: CartoonRepresentation, getParams: getCartoonParams
+    label: 'Cartoon',
+    description: 'Displays a ribbon smoothly following the trace atom of polymers.',
+    factory: CartoonRepresentation,
+    getParams: getCartoonParams,
+    defaultValues: PD.getDefaultValues(CartoonParams)
 }

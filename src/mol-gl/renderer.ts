@@ -44,7 +44,7 @@ interface Renderer {
 }
 
 export const DefaultRendererProps = {
-    clearColor: 0x000000 as Color,
+    clearColor: Color(0x000000),
     viewport: Viewport.create(0, 0, 0, 0)
 }
 export type RendererProps = typeof DefaultRendererProps

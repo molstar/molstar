@@ -47,5 +47,9 @@ export function BallAndStickRepresentation(getParams: RepresentationParamsGetter
 }
 
 export const BallAndStickRepresentationProvider: StructureRepresentationProvider<typeof BallAndStickParams> = {
-    factory: BallAndStickRepresentation, getParams: getBallAndStickParams
+    label: 'Ball & Stick',
+    description: 'Displays atoms as spheres and bonds as cylinders.',
+    factory: BallAndStickRepresentation,
+    getParams: getBallAndStickParams,
+    defaultValues: PD.getDefaultValues(BallAndStickParams)
 }

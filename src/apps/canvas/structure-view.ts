@@ -197,7 +197,8 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
                     if (structureRepresentations[k]) {
                         repr = structureRepresentations[k]
                     } else {
-                        repr = app.structureRepresentationRegistry.create(k, app.reprCtx, structure)
+                        const provider = app.structureRepresentationRegistry.get(k)
+                        repr = provider.factory(provider.getParams)
                         structureRepresentations[k] = repr
                         canvas3d.add(repr)
                     }
