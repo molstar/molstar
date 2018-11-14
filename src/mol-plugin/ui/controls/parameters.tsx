@@ -28,6 +28,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
         return <div style={{ width: '100%' }}>
             {Object.keys(params).map(key => {
                 const param = params[key];
+                if (param.type === 'value') return null;
                 if (param.type === 'mapped') return <MappedControl param={param} key={key} {...common} name={key} value={values[key]} />
                 if (param.type === 'group') return <GroupControl param={param} key={key} {...common} name={key} value={values[key]} />
                 return <ParamWrapper control={controlFor(param)} param={param} key={key} {...common} name={key} value={values[key]} />
@@ -222,7 +223,7 @@ export class MappedControl extends React.PureComponent<MappedWrapperProps> {
             <div style={{ borderLeft: '5px solid #777', paddingLeft: '5px' }}>
                 {param.type === 'group'
                 ? <GroupControl param={param} value={value} name='param' onChange={this.onChangeParam} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
-                : param.type === 'mapped' ? 'nested mapped params are not supported'
+                : param.type === 'mapped' || param.type === 'value' ? null
                 : <ParamWrapper control={controlFor(param)} param={param} onChange={this.onChangeParam} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} name={'value'} value={value} />}
             </div>
         </div>

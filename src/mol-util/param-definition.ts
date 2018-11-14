@@ -15,11 +15,11 @@ export namespace ParamDefinition {
         defaultValue: T
     }
 
-    export interface GenericValue<T> extends Base<T> {
-        type: 'generic-value'
+    export interface Value<T> extends Base<T> {
+        type: 'value'
     }
-    export function GenericValue<T>(label: string, description: string, defaultValue: T): GenericValue<T> {
-        return { type: 'generic-value', label, description, defaultValue }
+    export function Value<T>(label: string, description: string, defaultValue: T): Value<T> {
+        return { type: 'value', label, description, defaultValue }
     }
 
     export interface Select<T extends string> extends Base<T> {
@@ -114,7 +114,7 @@ export namespace ParamDefinition {
         };
     }
 
-    export type Any = Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric | Interval | Group<any> | Mapped<any>
+    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Range | Text | Color | Numeric | Interval | Group<any> | Mapped<any>
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
