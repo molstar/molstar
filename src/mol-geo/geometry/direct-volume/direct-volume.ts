@@ -70,8 +70,7 @@ export namespace DirectVolume {
 
     export const Params = {
         ...Geometry.Params,
-        isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-        isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
+        isoValue: PD.Range('Iso Value', '', 0.22, -1, 1, 0.01),
         renderMode: PD.Select('Render Mode', '', 'isosurface', RenderModeOptions),
         controlPoints: PD.Text('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
     }
@@ -109,7 +108,7 @@ export namespace DirectVolume {
             elements: ValueCell.create(VolumeBox.indices as Uint32Array),
             boundingSphere: ValueCell.create(boundingSphere),
 
-            uIsoValue: ValueCell.create(props.isoValueAbsolute),
+            uIsoValue: ValueCell.create(props.isoValue),
             uBboxMin: bboxMin,
             uBboxMax: bboxMax,
             uBboxSize: bboxSize,
@@ -136,7 +135,7 @@ export namespace DirectVolume {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
 
-        ValueCell.updateIfChanged(values.uIsoValue, props.isoValueAbsolute)
+        ValueCell.updateIfChanged(values.uIsoValue, props.isoValue)
         ValueCell.updateIfChanged(values.uAlpha, props.alpha)
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)

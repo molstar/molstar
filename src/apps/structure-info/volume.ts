@@ -38,7 +38,7 @@ function print(data: Volume) {
 }
 
 async function doMesh(data: Volume, filename: string) {
-    const mesh = await Task.create('', runtime => createVolumeIsosurface({ runtime }, data.volume, { isoValueAbsolute: VolumeIsoValue.calcAbsolute(data.volume.dataStats, 1.5) } )).run();
+    const mesh = await Task.create('', runtime => createVolumeIsosurface({ runtime }, data.volume, { isoValue: VolumeIsoValue.calcAbsolute(data.volume.dataStats, 1.5) } )).run();
     console.log({ vc: mesh.vertexCount, tc: mesh.triangleCount });
 
     // Export the mesh in OBJ format.

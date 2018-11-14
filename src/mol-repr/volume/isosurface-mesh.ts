@@ -20,14 +20,14 @@ import { VisualContext } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
 
 interface VolumeIsosurfaceProps {
-    isoValueAbsolute: number
+    isoValue: number
 }
 
 export async function createVolumeIsosurface(ctx: VisualContext, volume: VolumeData, props: VolumeIsosurfaceProps, mesh?: Mesh) {
     ctx.runtime.update({ message: 'Marching cubes...' });
 
     const surface = await computeMarchingCubesMesh({
-        isoLevel: props.isoValueAbsolute,
+        isoLevel: props.isoValue,
         scalarField: volume.data
     }, mesh).runAsChild(ctx.runtime);
 
@@ -41,8 +41,7 @@ export async function createVolumeIsosurface(ctx: VisualContext, volume: VolumeD
 
 export const IsosurfaceParams = {
     ...Mesh.Params,
-    isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-    isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
+    isoValue: PD.Range('Iso Value', '', 0.22, -1, 1, 0.01),
 }
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {
@@ -56,7 +55,7 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceParams> {
         getLoci: () => EmptyLoci,
         mark: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IsosurfaceParams>, currentProps: PD.Values<IsosurfaceParams>) => {
-            if (newProps.isoValueAbsolute !== currentProps.isoValueAbsolute) state.createGeometry = true
+            if (newProps.isoValue !== currentProps.isoValue) state.createGeometry = true
         },
         createRenderObject: async (ctx: VisualContext, geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<IsosurfaceParams>) => {
             const transform = createIdentityTransform()

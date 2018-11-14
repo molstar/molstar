@@ -6,7 +6,7 @@
 
 import { Task } from 'mol-task'
 import { Representation, Visual, RepresentationContext, VisualContext, RepresentationProvider, RepresentationParamsGetter } from '../representation';
-import { VolumeData, VolumeIsoValue } from 'mol-model/volume';
+import { VolumeData } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
 import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -52,11 +52,6 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
 
     async function create(ctx: VisualContext, volume: VolumeData, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
-        if (props.isoValueRelative) {
-            currentProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
-            // console.log('create props.isoValueRelative', props.isoValueRelative, currentProps.isoValueAbsolute, currentVolume.dataStats)
-        }
-
         geometry = await createGeometry(ctx, volume, currentProps, geometry)
         locationIt = LocationIterator(1, 1, () => NullLocation)
         renderObject = await createRenderObject(ctx, geometry, locationIt, theme, currentProps)
@@ -65,11 +60,6 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
     async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         if (!renderObject) return
         const newProps = Object.assign({}, currentProps, props)
-
-        if (props.isoValueRelative) {
-            newProps.isoValueAbsolute = VolumeIsoValue.calcAbsolute(currentVolume.dataStats, props.isoValueRelative)
-            // console.log('update props.isoValueRelative', props.isoValueRelative, newProps.isoValueAbsolute, currentVolume.dataStats)
-        }
 
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps)
@@ -145,8 +135,7 @@ export type VolumeRepresentationProvider<P extends VolumeParams> = Representatio
 
 export const VolumeParams = {
     ...Geometry.Params,
-    isoValueAbsolute: PD.Range('Iso Value Absolute', '', 0.22, -1, 1, 0.01),
-    isoValueRelative: PD.Range('Iso Value Relative', '', 2, -10, 10, 0.1),
+    isoValue: PD.Range('Iso Value', '', 0.22, -1, 1, 0.01),
 }
 export type VolumeParams = typeof VolumeParams
 
