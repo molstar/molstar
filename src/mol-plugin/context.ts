@@ -4,25 +4,24 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Transformer, Transform, State } from 'mol-state';
 import { Canvas3D } from 'mol-canvas3d/canvas3d';
-import { StateTransforms } from './state/transforms';
-import { PluginStateObject as SO } from './state/objects';
-import { RxEventHelper } from 'mol-util/rx-event-helper';
-import { PluginState } from './state';
-import { PluginCommand, PluginCommands } from './command';
-import { Task } from 'mol-task';
-import { merge } from 'rxjs';
-import { PluginBehaviors, BuiltInPluginBehaviors } from './behavior';
-import { Loci, EmptyLoci } from 'mol-model/loci';
+import { EmptyLoci, Loci } from 'mol-model/loci';
 import { Representation } from 'mol-repr/representation';
-import { CreateStructureFromPDBe } from './state/actions/basic';
-import { LogEntry } from 'mol-util/log-entry';
-import { TaskManager } from './util/task-manager';
 import { StructureRepresentationRegistry } from 'mol-repr/structure/registry';
+import { State, Transform, Transformer } from 'mol-state';
+import { Task } from 'mol-task';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { ThemeRegistryContext } from 'mol-theme/theme';
+import { LogEntry } from 'mol-util/log-entry';
+import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { merge } from 'rxjs';
+import { BuiltInPluginBehaviors } from './behavior';
+import { PluginCommand, PluginCommands } from './command';
+import { PluginSpec } from './spec';
+import { PluginState } from './state';
+import { PluginStateObject as SO } from './state/objects';
+import { TaskManager } from './util/task-manager';
 
 export class PluginContext {
     private disposed = false;
@@ -120,24 +119,20 @@ export class PluginContext {
         merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
     }
 
-    async _test_initBehaviors() {
-        const tree = this.state.behaviorState.tree.build()
-            .toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
-            .toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
-            .getTree();
+    async initBehaviors() {
+        const tree = this.state.behaviorState.tree.build();
+
+        for (const b of this.spec.behaviors) {
+            tree.toRoot().apply(b.transformer, b.defaultParams || { }, { ref: b.transformer.id });
+        }
 
         await this.runTask(this.state.behaviorState.update(tree));
     }
 
-    _test_initDataActions() {
-        this.state.dataState.actions
-            .add(CreateStructureFromPDBe)
-            .add(StateTransforms.Data.Download)
-            .add(StateTransforms.Data.ParseCif)
-            .add(StateTransforms.Model.CreateStructureAssembly)
-            .add(StateTransforms.Model.CreateStructure)
-            .add(StateTransforms.Model.CreateModelFromTrajectory)
-            .add(StateTransforms.Visuals.CreateStructureRepresentation);
+    initDataActions() {
+        for (const a of this.spec.actions) {
+            this.state.dataState.actions.add(a.action);
+        }
     }
 
     applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
@@ -169,12 +164,12 @@ export class PluginContext {
         });
     }
 
-    constructor() {
+    constructor(public spec: PluginSpec) {
         this.initEvents();
         this.initBuiltInBehavior();
 
-        this._test_initBehaviors();
-        this._test_initDataActions();
+        this.initBehaviors();
+        this.initDataActions();
     }
 
     // logger = ;

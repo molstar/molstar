@@ -64,11 +64,12 @@ export class ParamWrapper extends React.PureComponent<ParamWrapperProps> {
     }
 
     render() {
-        return <div>
-            <span title={this.props.param.description}>{this.props.param.label}</span>
-            <div>
+        return <div style={{ padding: '0 3px', borderBottom: '1px solid #ccc' }}>
+            <div style={{ lineHeight: '20px', float: 'left' }} title={this.props.param.description}>{this.props.param.label}</div>
+            <div style={{ float: 'left', marginLeft: '5px' }}>
                 <this.props.control value={this.props.value} param={this.props.param} onChange={this.onChange} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
             </div>
+            <div style={{ clear: 'both' }} />
         </div>;
     }
 }
