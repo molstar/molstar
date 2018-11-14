@@ -5,10 +5,19 @@
  */
 
 export * from './behavior/behavior'
-import * as Data from './behavior/data'
-import * as Representation from './behavior/representation'
+
+import * as StaticState from './behavior/static/state'
+import * as StaticRepresentation from './behavior/static/representation'
+import * as StaticCamera from './behavior/static/camera'
+
+import * as DynamicRepresentation from './behavior/dynamic/representation'
+
+export const BuiltInPluginBehaviors = {
+    State: StaticState,
+    Representation: StaticRepresentation,
+    Camera: StaticCamera
+}
 
 export const PluginBehaviors = {
-    Data,
-    Representation
+    Representation: DynamicRepresentation
 }

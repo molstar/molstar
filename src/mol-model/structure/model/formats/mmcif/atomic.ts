@@ -62,7 +62,7 @@ function createHierarchyData(atom_site: AtomSite, offsets: { residues: ArrayLike
 
 function getConformation(atom_site: AtomSite): AtomicConformation {
     return {
-        id: UUID.create(),
+        id: UUID.create22(),
         atomId: atom_site.id,
         occupancy: atom_site.occupancy,
         B_iso_or_equiv: atom_site.B_iso_or_equiv,

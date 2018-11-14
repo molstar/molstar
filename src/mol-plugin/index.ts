@@ -8,6 +8,7 @@ import { PluginContext } from './context';
 import { Plugin } from './ui/plugin'
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import { PluginCommands } from './command';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -28,8 +29,9 @@ export function createPlugin(target: HTMLElement): PluginContext {
 }
 
 function trySetSnapshot(ctx: PluginContext) {
-    const snapshot = getParam('snapshot', `(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?`);
-    if (!snapshot) return;
-    const data = JSON.parse(atob(snapshot));
-    setTimeout(() => ctx.state.setSnapshot(data), 250);
+    const snapshotUrl = getParam('snapshot-url', `[^&]+`);
+    if (!snapshotUrl) return;
+    // const data = JSON.parse(atob(snapshot));
+    // setTimeout(() => ctx.state.setSnapshot(data), 250);
+    PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url: snapshotUrl })
 }

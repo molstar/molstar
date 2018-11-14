@@ -37,4 +37,4 @@ export function areLociEqual(lociA: Loci, lociB: Loci) {
     return false
 }
 
-export type Loci =  StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci
+export type Loci = StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci

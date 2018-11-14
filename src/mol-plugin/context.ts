@@ -4,36 +4,59 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateTree, StateSelection, Transformer, Transform } from 'mol-state';
-import Canvas3D from 'mol-canvas3d/canvas3d';
+import { Transformer, Transform, State } from 'mol-state';
+import { Canvas3D } from 'mol-canvas3d/canvas3d';
 import { StateTransforms } from './state/transforms';
-import { PluginStateObjects as SO } from './state/objects';
+import { PluginStateObject as SO } from './state/objects';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { PluginState } from './state';
-import { MolScriptBuilder } from 'mol-script/language/builder';
 import { PluginCommand, PluginCommands } from './command';
 import { Task } from 'mol-task';
 import { merge } from 'rxjs';
-import { PluginBehaviors } from './behavior';
+import { PluginBehaviors, BuiltInPluginBehaviors } from './behavior';
+import { Loci, EmptyLoci } from 'mol-model/loci';
+import { Representation } from 'mol-repr/representation';
+import { CreateStructureFromPDBe } from './state/actions/basic';
+import { LogEntry } from 'mol-util/log-entry';
+import { TaskManager } from './util/task-manager';
 
 export class PluginContext {
     private disposed = false;
     private ev = RxEventHelper.create();
+    private tasks = new TaskManager();
 
     readonly state = new PluginState(this);
     readonly commands = new PluginCommand.Manager();
 
     readonly events = {
         state: {
-            data: this.state.data.context.events,
-            behavior: this.state.behavior.context.events
-        }
+            cell: {
+                stateUpdated: merge(this.state.dataState.events.cell.stateUpdated, this.state.behaviorState.events.cell.stateUpdated),
+                created: merge(this.state.dataState.events.cell.created, this.state.behaviorState.events.cell.created),
+                removed: merge(this.state.dataState.events.cell.removed, this.state.behaviorState.events.cell.removed),
+            },
+            object: {
+                created: merge(this.state.dataState.events.object.created, this.state.behaviorState.events.object.created),
+                removed: merge(this.state.dataState.events.object.removed, this.state.behaviorState.events.object.removed),
+                updated: merge(this.state.dataState.events.object.updated, this.state.behaviorState.events.object.updated)
+            },
+            // data: this.state.dataState.events,
+            // behavior: this.state.behaviorState.events,
+            cameraSnapshots: this.state.cameraSnapshots.events,
+            snapshots: this.state.snapshots.events,
+        },
+        log: this.ev<LogEntry>(),
+        task: this.tasks.events
     };
 
     readonly behaviors = {
-        state: {
-            data: this.state.data.context.behaviors,
-            behavior: this.state.behavior.context.behaviors
+        // state: {
+        //     data: this.state.dataState.behaviors,
+        //     behavior: this.state.behaviorState.behaviors
+        // },
+        canvas: {
+            highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
+            selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
         },
         command: this.commands.behaviour
     };
@@ -45,12 +68,16 @@ export class PluginContext {
         try {
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
             this.canvas3d.animate();
-            console.log('canvas3d created');
             return true;
         } catch (e) {
+            this.log(LogEntry.error('' + e));
             console.error(e);
             return false;
         }
+    }
+
+    log(e: LogEntry) {
+        this.events.log.next(e);
     }
 
     /**
@@ -62,8 +89,8 @@ export class PluginContext {
         return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
     }
 
-    async runTask<T>(task: Task<T>) {
-        return await task.run(p => console.log(p), 250);
+    runTask<T>(task: Task<T>) {
+        return this.tasks.run(task);
     }
 
     dispose() {
@@ -72,100 +99,73 @@ export class PluginContext {
         this.canvas3d.dispose();
         this.ev.dispose();
         this.state.dispose();
+        this.tasks.dispose();
         this.disposed = true;
     }
 
-    async _test_initBehaviours() {
-        const tree = StateTree.build(this.state.behavior.tree)
-            .toRoot().apply(PluginBehaviors.Data.SetCurrentObject)
-            .and().toRoot().apply(PluginBehaviors.Data.Update)
-            .and().toRoot().apply(PluginBehaviors.Data.RemoveObject)
-            .and().toRoot().apply(PluginBehaviors.Representation.AddRepresentationToCanvas)
-            .getTree();
+    private initBuiltInBehavior() {
+        BuiltInPluginBehaviors.State.registerDefault(this);
+        BuiltInPluginBehaviors.Representation.registerDefault(this);
+        BuiltInPluginBehaviors.Camera.registerDefault(this);
 
-        await this.state.updateBehaviour(tree);
+        merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
     }
 
-    _test_applyTransform(a: Transform.Ref, transformer: Transformer, params: any) {
-        const tree = StateTree.build(this.state.data.tree).to(a).apply(transformer, params).getTree();
-        PluginCommands.Data.Update.dispatch(this, { tree });
-    }
-
-    _test_createState(url: string) {
-        const b = StateTree.build(this.state.data.tree);
-
-        const query = MolScriptBuilder.struct.generator.atomGroups({
-            // 'atom-test': MolScriptBuilder.core.rel.eq([
-            //     MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
-            //     MolScriptBuilder.es('C')
-            // ]),
-            'residue-test': MolScriptBuilder.core.rel.eq([
-                MolScriptBuilder.struct.atomProperty.macromolecular.label_comp_id(),
-                'ALA'
-            ])
-        });
-
-        const newTree = b.toRoot()
-            .apply(StateTransforms.Data.Download, { url })
-            .apply(StateTransforms.Data.ParseCif)
-            .apply(StateTransforms.Model.ParseModelsFromMmCif, {}, { ref: 'models' })
-            .apply(StateTransforms.Model.CreateStructureFromModel, { modelIndex: 0 }, { ref: 'structure' })
-            .apply(StateTransforms.Model.CreateStructureAssembly)
-            .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
-            .apply(StateTransforms.Visuals.CreateStructureRepresentation)
+    async _test_initBehaviors() {
+        const tree = this.state.behaviorState.tree.build()
+            .toRoot().apply(PluginBehaviors.Representation.HighlightLoci, { ref: PluginBehaviors.Representation.HighlightLoci.id })
+            .toRoot().apply(PluginBehaviors.Representation.SelectLoci, { ref: PluginBehaviors.Representation.SelectLoci.id })
             .getTree();
 
-        this.state.updateData(newTree);
+        await this.runTask(this.state.behaviorState.update(tree));
+    }
+
+    _test_initDataActions() {
+        this.state.dataState.actions
+            .add(CreateStructureFromPDBe)
+            .add(StateTransforms.Data.Download)
+            .add(StateTransforms.Data.ParseCif)
+            .add(StateTransforms.Model.CreateStructureAssembly)
+            .add(StateTransforms.Model.CreateStructure)
+            .add(StateTransforms.Model.CreateModelFromTrajectory)
+            .add(StateTransforms.Visuals.CreateStructureRepresentation);
+    }
+
+    applyTransform(state: State, a: Transform.Ref, transformer: Transformer, params: any) {
+        const tree = state.tree.build().to(a).apply(transformer, params);
+        return PluginCommands.State.Update.dispatch(this, { state, tree });
+    }
+
+    updateTransform(state: State, a: Transform.Ref, params: any) {
+        const tree = state.build().to(a).update(params);
+        return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
     private initEvents() {
-        merge(this.events.state.data.object.created, this.events.state.behavior.object.created).subscribe(o => {
-            console.log('creating', o.obj.type);
-            if (!SO.Behavior.is(o.obj)) return;
+        this.events.state.object.created.subscribe(o => {
+            if (!SO.isBehavior(o.obj)) return;
             o.obj.data.register();
         });
 
-        merge(this.events.state.data.object.removed, this.events.state.behavior.object.removed).subscribe(o => {
-            if (!SO.Behavior.is(o.obj)) return;
+        this.events.state.object.removed.subscribe(o => {
+            if (!SO.isBehavior(o.obj)) return;
             o.obj.data.unregister();
         });
 
-        merge(this.events.state.data.object.replaced, this.events.state.behavior.object.replaced).subscribe(o => {
-            if (o.oldObj && SO.Behavior.is(o.oldObj)) o.oldObj.data.unregister();
-            if (o.newObj && SO.Behavior.is(o.newObj)) o.newObj.data.register();
+        this.events.state.object.updated.subscribe(o => {
+            if (o.action === 'recreate') {
+                if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
+                if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register();
+            }
         });
-    }
-
-    _test_centerView() {
-        const sel = StateSelection.select(StateSelection.root().subtree().ofType(SO.Structure.type), this.state.data);
-        if (!sel.length) return;
-
-        const center = (sel[0].obj! as SO.Structure).data.boundary.sphere.center;
-        console.log({ sel, center, rc: this.canvas3d.reprCount });
-        this.canvas3d.center(center);
-        this.canvas3d.requestDraw(true);
-    }
-
-    _test_nextModel() {
-        const models = StateSelection.select('models', this.state.data)[0].obj as SO.Models;
-        const idx = (this.state.data.tree.getValue('structure')!.params as Transformer.Params<typeof StateTransforms.Model.CreateStructureFromModel>).modelIndex;
-        const newTree = StateTree.updateParams(this.state.data.tree, 'structure', { modelIndex: (idx + 1) % models.data.length });
-        return this.state.updateData(newTree);
-        // this.viewer.requestDraw(true);
-    }
-
-    _test_playModels() {
-        const update = async () => {
-            await this._test_nextModel();
-            setTimeout(update, 1000 / 15);
-        }
-        update();
     }
 
     constructor() {
         this.initEvents();
+        this.initBuiltInBehavior();
 
-        this._test_initBehaviours();
+        this._test_initBehaviors();
+        this._test_initDataActions();
     }
 
     // logger = ;

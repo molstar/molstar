@@ -11,7 +11,7 @@ import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
 import { labelFirst } from 'mol-theme/label';
 import { ButtonsType } from 'mol-util/input/input-observer';
 import { throttleTime } from 'rxjs/operators'
-import { CombinedCameraMode } from 'mol-canvas3d/camera/combined';
+import { Camera } from 'mol-canvas3d/camera';
 import { ColorParamComponent } from 'mol-app/component/parameter/color';
 import { Color } from 'mol-util/color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
@@ -24,7 +24,7 @@ interface ViewportState {
     noWebGl: boolean
     pickingInfo: string
     taskInfo: string
-    cameraMode: CombinedCameraMode
+    cameraMode: Camera.Mode
     backgroundColor: Color
 }
 
@@ -148,7 +148,7 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
                         value={this.state.cameraMode}
                         style={{width: '150'}}
                         onChange={e => {
-                            const p = { cameraMode: e.target.value as CombinedCameraMode }
+                            const p = { cameraMode: e.target.value as Camera.Mode }
                             this.props.app.canvas3d.setProps(p)
                             this.setState(p)
                         }}

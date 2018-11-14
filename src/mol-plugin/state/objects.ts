@@ -4,38 +4,70 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginStateObject } from './base';
 import { CifFile } from 'mol-io/reader/cif';
-import { Model as _Model, Structure as _Structure } from 'mol-model/structure'
+import { Model as _Model, Structure as _Structure } from 'mol-model/structure';
+import { VolumeData } from 'mol-model/volume';
+import { PluginBehavior } from 'mol-plugin/behavior/behavior';
+import { Representation } from 'mol-repr/representation';
 import { StructureRepresentation } from 'mol-repr/structure/representation';
+import { VolumeRepresentation } from 'mol-repr/volume/representation';
+import { StateObject, Transformer } from 'mol-state';
 
-const _create = PluginStateObject.Create
+export type TypeClass = 'root' | 'data' | 'prop'
 
-namespace PluginStateObjects {
-    export class DataRoot extends _create({ name: 'Root', shortName: 'R', typeClass: 'Root', description: 'Where everything begins.' }) { }
-    export class BehaviorRoot extends _create({ name: 'Root', shortName: 'R', typeClass: 'Root', description: 'Where everything begins.' }) { }
+export namespace PluginStateObject {
+    export type Any = StateObject<any, TypeInfo>
 
-    export class Group extends _create({ name: 'Group', shortName: 'G', typeClass: 'Group', description: 'A group on entities.' }) { }
+    export type TypeClass = 'Root' | 'Group' | 'Data' | 'Object' | 'Representation3D' | 'Behavior'
+    export interface TypeInfo { name: string, typeClass: TypeClass }
 
-    export class Behavior extends _create<import('../behavior').PluginBehavior>({ name: 'Behavior', shortName: 'B', typeClass: 'Behavior', description: 'Modifies plugin functionality.' }) { }
+    export const Create = StateObject.factory<TypeInfo>();
+
+    export function isRepresentation3D(o?: Any): o is StateObject<Representation.Any, TypeInfo> {
+        return !!o && o.type.typeClass === 'Representation3D';
+    }
+
+    export function isBehavior(o?: Any): o is StateObject<PluginBehavior, TypeInfo> {
+        return !!o && o.type.typeClass === 'Behavior';
+    }
+
+    export function CreateRepresentation3D<T extends Representation.Any>(type: { name: string }) {
+        return Create<T>({ ...type, typeClass: 'Representation3D' })
+    }
+
+    export function CreateBehavior<T extends PluginBehavior>(type: { name: string }) {
+        return Create<T>({ ...type, typeClass: 'Behavior' })
+    }
+
+    export class Root extends Create({ name: 'Root', typeClass: 'Root' }) { }
+
+    export class Group extends Create({ name: 'Group', typeClass: 'Group' }) { }
 
     export namespace Data {
-        export class String extends _create<string>({ name: 'String Data', typeClass: 'Data', shortName: 'S_D', description: 'A string.' }) { }
-        export class Binary extends _create<Uint8Array>({ name: 'Binary Data', typeClass: 'Data', shortName: 'B_D', description: 'A binary blob.' }) { }
-        export class Json extends _create<any>({ name: 'JSON Data', typeClass: 'Data', shortName: 'JS_D', description: 'Represents JSON data.' }) { }
-        export class Cif extends _create<CifFile>({ name: 'Cif File', typeClass: 'Data', shortName: 'CF', description: 'Represents parsed CIF data.' }) { }
+        export class String extends Create<string>({ name: 'String Data', typeClass: 'Data', }) { }
+        export class Binary extends Create<Uint8Array>({ name: 'Binary Data', typeClass: 'Data' }) { }
+        export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
+        export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
 
         // TODO
-        // export class MultipleRaw extends _create<{
+        // export class MultipleRaw extends Create<{
         //     [key: string]: { type: 'String' | 'Binary', data: string | Uint8Array }
         // }>({ name: 'Data', typeClass: 'Data', shortName: 'MD', description: 'Multiple Keyed Data.' }) { }
     }
 
-    export class Models extends _create<ReadonlyArray<_Model>>({ name: 'Molecule Model', typeClass: 'Object', shortName: 'M_M', description: 'A model of a molecule.' }) { }
-    export class Structure extends _create<_Structure>({ name: 'Molecule Structure', typeClass: 'Object', shortName: 'M_S', description: 'A structure of a molecule.' }) { }
+    export namespace Molecule {
+        export class Trajectory extends Create<ReadonlyArray<_Model>>({ name: 'Trajectory', typeClass: 'Object' }) { }
+        export class Model extends Create<_Model>({ name: 'Model', typeClass: 'Object' }) { }
+        export class Structure extends Create<_Structure>({ name: 'Structure', typeClass: 'Object' }) { }
+        export class Representation3D extends CreateRepresentation3D<StructureRepresentation<any>>({ name: 'Structure 3D' }) { }
+    }
 
-
-    export class StructureRepresentation3D extends _create<StructureRepresentation<any>>({ name: 'Molecule Structure Representation', typeClass: 'Representation', shortName: 'S_R', description: 'A representation of a molecular structure.' }) { }
+    export namespace Volume {
+        export class Data extends Create<VolumeData>({ name: 'Volume Data', typeClass: 'Object' }) { }
+        export class Representation3D extends CreateRepresentation3D<VolumeRepresentation<any>>({ name: 'Volume 3D' }) { }
+    }
 }
 
-export { PluginStateObjects }
+export namespace PluginStateTransform {
+    export const Create = Transformer.factory('ms-plugin');
+}

@@ -4,9 +4,12 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import * as Data from './command/data';
+import * as State from './command/state';
+import * as Camera from './command/camera';
 
 export * from './command/command';
+
 export const PluginCommands = {
-    Data
+    State,
+    Camera
 }

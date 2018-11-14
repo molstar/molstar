@@ -21,6 +21,12 @@ export interface PickingId {
     groupId: number
 }
 
+export namespace PickingId {
+    export function areSame(a: PickingId, b: PickingId) {
+        return a.objectId === b.objectId && a.instanceId === b.instanceId && a.groupId === b.groupId;
+    }
+}
+
 export interface PickingInfo {
     label: string
     data?: any

@@ -4,8 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { PluginStateTransform } from '../state/base';
-import { PluginStateObjects as SO } from '../state/objects';
+import { PluginStateTransform, PluginStateObject } from '../state/objects';
 import { Transformer } from 'mol-state';
 import { Task } from 'mol-task';
 import { PluginContext } from 'mol-plugin/context';
@@ -23,26 +22,34 @@ interface PluginBehavior<P = unknown> {
 }
 
 namespace PluginBehavior {
+    export class Root extends PluginStateObject.Create({ name: 'Root', typeClass: 'Root' }) { }
+    export class Behavior extends PluginStateObject.CreateBehavior<PluginBehavior>({ name: 'Behavior' }) { }
+
     export interface Ctor<P = undefined> { new(ctx: PluginContext, params?: P): PluginBehavior<P> }
 
     export interface CreateParams<P> {
         name: string,
         ctor: Ctor<P>,
         label?: (params: P) => { label: string, description?: string },
-        display: { name: string, description?: string },
-        params?: Transformer.Definition<SO.BehaviorRoot, SO.Behavior, P>['params']
+        display: {
+            name: string,
+            group: string,
+            description?: string
+        },
+        params?: Transformer.Definition<Root, Behavior, P>['params'],
     }
 
     export function create<P>(params: CreateParams<P>) {
-        return PluginStateTransform.Create<SO.BehaviorRoot, SO.Behavior, P>({
+        // TODO: cache groups etc
+        return PluginStateTransform.Create<Root, Behavior, P>({
             name: params.name,
             display: params.display,
-            from: [SO.BehaviorRoot],
-            to: [SO.Behavior],
+            from: [Root],
+            to: [Behavior],
             params: params.params,
             apply({ params: p }, ctx: PluginContext) {
                 const label = params.label ? params.label(p) : { label: params.display.name, description: params.display.description };
-                return new SO.Behavior(label, new params.ctor(ctx, p));
+                return new Behavior(new params.ctor(ctx, p), label);
             },
             update({ b, newParams }) {
                 return Task.create('Update Behavior', async () => {

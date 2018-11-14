@@ -1,60 +1,77 @@
-
 /**
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Transform } from './transform';
 import { UUID } from 'mol-util';
+import { Transform } from './transform';
 
-/** A mutable state object */
-export interface StateObject<P = any, D = any> {
+export { StateObject, StateObjectCell }
+
+interface StateObject<D = any, T extends StateObject.Type = { name: string, typeClass: any }> {
     readonly id: UUID,
-    readonly type: StateObject.Type,
-    readonly props: P,
-    readonly data: D
+    readonly type: T,
+    readonly data: D,
+    readonly label: string,
+    readonly description?: string,
 }
 
-export namespace StateObject {
-    export enum StateType {
-        // The object has been successfully created
-        Ok,
-        // An error occured during the creation of the object
-        Error,
-        // The object is queued to be created
-        Pending,
-        // The object is currently being created
-        Processing
+namespace StateObject {
+    export function factory<T extends Type>() {
+        return <D = { }>(type: T) => create<D, T>(type);
     }
 
-    export interface Type<Info = any> {
-        info: Info
-    }
+    export type Type<Cls extends string = string> = { name: string, typeClass: Cls }
+    export type Ctor = { new(...args: any[]): StateObject, type: any }
 
-    export function factory<TypeInfo, CommonProps>() {
-        return <D = { }, P = {}>(typeInfo: TypeInfo) => create<P & CommonProps, D, TypeInfo>(typeInfo);
-    }
-
-    export type Ctor = { new(...args: any[]): StateObject, type: Type }
-
-    export function create<Props, Data, TypeInfo>(typeInfo: TypeInfo) {
-        const dataType: Type<TypeInfo> = { info: typeInfo };
-        return class implements StateObject<Props, Data> {
-            static type = dataType;
-            static is(obj?: StateObject): obj is StateObject<Props, Data> { return !!obj && dataType === obj.type; }
-            id = UUID.create();
-            type = dataType;
-            constructor(public props: Props, public data: Data) { }
+    export function create<Data, T extends Type>(type: T) {
+        return class implements StateObject<Data, T> {
+            static type = type;
+            static is(obj?: StateObject): obj is StateObject<Data, T> { return !!obj && type === obj.type; }
+            id = UUID.create22();
+            type = type;
+            label: string;
+            description?: string;
+            constructor(public data: Data, props?: { label: string, description?: string }) {
+                this.label = props && props.label || type.name;
+                this.description = props && props.description;
+            }
         }
     }
+}
 
-    export interface Node {
-        ref: Transform.Ref,
-        state: StateType,
-        props: unknown,
-        errorText?: string,
-        obj?: StateObject,
-        version: string
+interface StateObjectCell {
+    transform: Transform,
+
+    // Which object was used as a parent to create data in this cell
+    sourceRef: Transform.Ref | undefined,
+
+    version: string
+    status: StateObjectCell.Status,
+
+    errorText?: string,
+    obj?: StateObject
+}
+
+namespace StateObjectCell {
+    export type Status = 'ok' | 'error' | 'pending' | 'processing'
+
+    export interface State {
+        isHidden: boolean,
+        isCollapsed: boolean
+    }
+
+    export const DefaultState: State = { isHidden: false, isCollapsed: false };
+
+    export function areStatesEqual(a: State, b: State) {
+        return a.isHidden !== b.isHidden || a.isCollapsed !== b.isCollapsed;
+    }
+
+    export function isStateChange(a: State, b?: Partial<State>) {
+        if (!b) return false;
+        if (typeof b.isCollapsed !== 'undefined' && a.isCollapsed !== b.isCollapsed) return true;
+        if (typeof b.isHidden !== 'undefined' && a.isHidden !== b.isHidden) return true;
+        return false;
     }
 }

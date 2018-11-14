@@ -31,7 +31,7 @@ function ModelPropertyDescriptor<Ctx, Desc extends ModelPropertyDescriptor<Ctx>>
 namespace ModelPropertyDescriptor {
     export function getUUID(prop: ModelPropertyDescriptor): UUID {
         if (!(prop as any).__key) {
-            (prop as any).__key = UUID.create();
+            (prop as any).__key = UUID.create22();
         }
         return (prop as any).__key;
     }

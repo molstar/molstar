@@ -9,43 +9,57 @@ import { Transformer } from './transformer';
 import { UUID } from 'mol-util';
 
 export interface Transform<A extends StateObject = StateObject, B extends StateObject = StateObject, P = unknown> {
+    readonly parent: Transform.Ref,
     readonly transformer: Transformer<A, B, P>,
-    readonly params: P,
+    readonly props: Transform.Props,
     readonly ref: Transform.Ref,
-    readonly version: string,
-    readonly defaultProps?: unknown
+    readonly params: P,
+    readonly version: string
 }
 
 export namespace Transform {
     export type Ref = string
 
-    export interface Options { ref?: Ref, defaultProps?: unknown }
+    export const RootRef = '-=root=-' as Ref;
 
-    export function create<A extends StateObject, B extends StateObject, P>(transformer: Transformer<A, B, P>, params?: P, options?: Options): Transform<A, B, P> {
-        const ref = options && options.ref ? options.ref : UUID.create() as string as Ref;
+    export interface Props {
+        tag?: string
+        isGhost?: boolean,
+        isBinding?: boolean
+    }
+
+    export interface Options {
+        ref?: string,
+        props?: Props
+    }
+
+    export function create<A extends StateObject, B extends StateObject, P>(parent: Ref, transformer: Transformer<A, B, P>, params?: P, options?: Options): Transform<A, B, P> {
+        const ref = options && options.ref ? options.ref : UUID.create22() as string as Ref;
         return {
+            parent,
             transformer,
-            params: params || {} as any,
+            props: (options && options.props) || { },
             ref,
-            version: UUID.create(),
-            defaultProps: options && options.defaultProps
+            params: params || {} as any,
+            version: UUID.create22()
         }
     }
 
-    export function updateParams<T>(t: Transform, params: any): Transform {
-        return { ...t, params, version: UUID.create() };
+    export function withParams<T>(t: Transform, params: any): Transform {
+        return { ...t, params, version: UUID.create22() };
     }
 
-    export function createRoot(ref: Ref): Transform {
-        return create(Transformer.ROOT, {}, { ref });
+    export function createRoot(): Transform {
+        return create(RootRef, Transformer.ROOT, {}, { ref: RootRef });
     }
 
     export interface Serialized {
+        parent: string,
         transformer: string,
         params: any,
+        props: Props,
         ref: string,
-        version: string,
-        defaultProps?: unknown
+        version: string
     }
 
     function _id(x: any) { return x; }
@@ -54,11 +68,12 @@ export namespace Transform {
             ? t.transformer.definition.customSerialization.toJSON
             : _id;
         return {
+            parent: t.parent,
             transformer: t.transformer.id,
             params: pToJson(t.params),
+            props: t.props,
             ref: t.ref,
-            version: t.version,
-            defaultProps: t.defaultProps
+            version: t.version
         };
     }
 
@@ -68,11 +83,12 @@ export namespace Transform {
             ? transformer.definition.customSerialization.toJSON
             : _id;
         return {
+            parent: t.parent as Ref,
             transformer,
             params: pFromJson(t.params),
-            ref: t.ref,
-            version: t.version,
-            defaultProps: t.defaultProps
+            props: t.props,
+            ref: t.ref as Ref,
+            version: t.version
         };
     }
 }

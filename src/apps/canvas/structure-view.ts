@@ -8,7 +8,7 @@ import { Model, Structure } from 'mol-model/structure';
 import { getStructureFromModel } from './util';
 import { AssemblySymmetry } from 'mol-model-props/rcsb/symmetry';
 import { getAxesShape } from './assembly-symmetry';
-import Canvas3D from 'mol-canvas3d/canvas3d';
+import { Canvas3D } from 'mol-canvas3d/canvas3d';
 // import { MeshBuilder } from 'mol-geo/mesh/mesh-builder';
 // import { addSphere } from 'mol-geo/mesh/builder/sphere';
 // import { Shape } from 'mol-model/shape';
@@ -213,7 +213,7 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
                 }
             }
 
-            canvas3d.center(structure.boundary.sphere.center)
+            canvas3d.camera.setState({ target: structure.boundary.sphere.center })
 
             // const mb = MeshBuilder.create()
             // mb.setGroup(0)

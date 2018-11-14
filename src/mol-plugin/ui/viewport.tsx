@@ -6,20 +6,28 @@
  */
 
 import * as React from 'react';
-import { PluginContext } from '../context';
-import { Loci, EmptyLoci, areLociEqual } from 'mol-model/loci';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { ButtonsType } from 'mol-util/input/input-observer';
-
-interface ViewportProps {
-    plugin: PluginContext
-}
+import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
+import { PluginComponent } from './base';
+import { PluginCommands } from 'mol-plugin/command';
 
 interface ViewportState {
     noWebGl: boolean
 }
 
-export class Viewport extends React.Component<ViewportProps, ViewportState> {
+export class ViewportControls extends PluginComponent {
+    resetCamera = () => {
+        PluginCommands.Camera.Reset.dispatch(this.plugin, {});
+    }
+
+    render() {
+        return <div style={{ position: 'absolute', right: '10px', top: '10px', height: '100%', color: 'white' }}>
+            <button onClick={this.resetCamera}>Reset Camera</button>
+        </div>
+    }
+}
+
+export class Viewport extends PluginComponent<{ }, ViewportState> {
     private container: HTMLDivElement | null = null;
     private canvas: HTMLCanvasElement | null = null;
 
@@ -27,42 +35,34 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
         noWebGl: false
     };
 
-    handleResize() {
-        this.props.plugin.canvas3d.handleResize();
+    private handleResize = () => {
+         this.plugin.canvas3d.handleResize();
     }
 
     componentDidMount() {
-        if (!this.canvas || !this.container || !this.props.plugin.initViewer(this.canvas, this.container)) {
+        if (!this.canvas || !this.container || !this.plugin.initViewer(this.canvas, this.container)) {
             this.setState({ noWebGl: true });
         }
         this.handleResize();
 
-        const canvas3d = this.props.plugin.canvas3d;
-        canvas3d.input.resize.subscribe(() => this.handleResize());
+        const canvas3d = this.plugin.canvas3d;
+        this.subscribe(canvas3d.input.resize, this.handleResize);
 
-        let prevLoci: Loci = EmptyLoci;
-        canvas3d.input.move.subscribe(async ({x, y, inside, buttons}) => {
-            if (!inside || buttons) return;
-            const p = await canvas3d.identify(x, y);
-            if (p) {
-                const { loci } = canvas3d.getLoci(p);
+        const idHelper = new Canvas3dIdentifyHelper(this.plugin, 15);
 
-                if (!areLociEqual(loci, prevLoci)) {
-                    canvas3d.mark(prevLoci, MarkerAction.RemoveHighlight);
-                    canvas3d.mark(loci, MarkerAction.Highlight);
-                    prevLoci = loci;
-                }
-            }
-        })
+        this.subscribe(canvas3d.input.move, ({x, y, inside, buttons}) => {
+            if (!inside || buttons) { return; }
+            idHelper.move(x, y);
+        });
 
-        canvas3d.input.click.subscribe(async ({x, y, buttons}) => {
-            if (buttons !== ButtonsType.Flag.Primary) return
-            const p = await canvas3d.identify(x, y)
-            if (p) {
-                const { loci } = canvas3d.getLoci(p)
-                canvas3d.mark(loci, MarkerAction.Toggle)
-            }
-        })
+        this.subscribe(canvas3d.input.leave, () => {
+            idHelper.leave();
+        });
+
+        this.subscribe(canvas3d.input.click, ({x, y, buttons}) => {
+            if (buttons !== ButtonsType.Flag.Primary) return;
+            idHelper.select(x, y);
+        });
     }
 
     componentWillUnmount() {

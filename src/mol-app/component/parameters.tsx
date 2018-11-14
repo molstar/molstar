@@ -48,7 +48,7 @@ export class ParametersComponent<P extends PD.Params> extends React.Component<Pa
     }
 
     render() {
-        return <div>
+        return <div style={{ width: '100%' }}>
             { Object.keys(this.props.params).map(k => {
                 const param = this.props.params[k]
                 const value = this.props.values[k]

@@ -169,7 +169,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
     if (previous && atomic.sameAsPrevious) {
         return {
             ...previous,
-            id: UUID.create(),
+            id: UUID.create22(),
             modelNum: atom_site.pdbx_PDB_model_num.value(0),
             atomicConformation: atomic.conformation,
             _dynamicPropertyData: Object.create(null)
@@ -182,7 +182,7 @@ function createStandardModel(format: mmCIF_Format, atom_site: AtomSite, entities
         : format.data._name;
 
     return {
-        id: UUID.create(),
+        id: UUID.create22(),
         label,
         sourceData: format,
         modelNum: atom_site.pdbx_PDB_model_num.value(0),
@@ -208,7 +208,7 @@ function createModelIHM(format: mmCIF_Format, data: IHMData, formatData: FormatD
     const coarse = getIHMCoarse(data, formatData);
 
     return {
-        id: UUID.create(),
+        id: UUID.create22(),
         label: data.model_name,
         sourceData: format,
         modelNum: data.model_id,

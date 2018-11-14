@@ -25,7 +25,7 @@ export namespace Shape {
         let currentGroupCount = -1
 
         return {
-            id: UUID.create(),
+            id: UUID.create22(),
             name,
             mesh,
             get groupCount() {

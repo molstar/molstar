@@ -141,6 +141,8 @@ interface InputObserver {
     pinch: Subject<PinchInput>,
     click: Subject<ClickInput>,
     move: Subject<MoveInput>,
+    leave: Subject<undefined>,
+    enter: Subject<undefined>,
     resize: Subject<ResizeInput>,
 
     dispose: () => void
@@ -175,6 +177,8 @@ namespace InputObserver {
         const wheel = new Subject<WheelInput>()
         const pinch = new Subject<PinchInput>()
         const resize = new Subject<ResizeInput>()
+        const leave = new Subject<undefined>()
+        const enter = new Subject<undefined>()
 
         attach()
 
@@ -189,6 +193,8 @@ namespace InputObserver {
             pinch,
             click,
             move,
+            leave,
+            enter,
             resize,
 
             dispose
@@ -203,6 +209,9 @@ namespace InputObserver {
             // mouse move/up events have to be added to a parent, i.e. window
             window.addEventListener('mousemove', onMouseMove as any, false)
             window.addEventListener('mouseup', onMouseUp as any, false)
+
+            element.addEventListener('mouseenter', onMouseEnter as any, false)
+            element.addEventListener('mouseleave', onMouseLeave as any, false)
 
             element.addEventListener('touchstart', onTouchStart as any, false)
             element.addEventListener('touchmove', onTouchMove as any, false)
@@ -226,6 +235,9 @@ namespace InputObserver {
             element.removeEventListener('mousedown', onMouseDown as any, false)
             window.removeEventListener('mousemove', onMouseMove as any, false)
             window.removeEventListener('mouseup', onMouseUp as any, false)
+
+            element.removeEventListener('mouseenter', onMouseEnter as any, false)
+            element.removeEventListener('mouseleave', onMouseLeave as any, false)
 
             element.removeEventListener('touchstart', onTouchStart as any, false)
             element.removeEventListener('touchmove', onTouchMove as any, false)
@@ -384,6 +396,14 @@ namespace InputObserver {
             if (dx || dy || dz) {
                 wheel.next({ dx, dy, dz, buttons, modifiers })
             }
+        }
+
+        function onMouseEnter (ev: Event) {
+            enter.next();
+        }
+
+        function onMouseLeave (ev: Event) {
+            leave.next();
         }
 
         function onResize (ev: Event) {

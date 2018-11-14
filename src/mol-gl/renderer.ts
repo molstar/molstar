@@ -6,7 +6,7 @@
 
 // import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Viewport } from 'mol-canvas3d/camera/util';
-import { Camera } from 'mol-canvas3d/camera/base';
+import { Camera } from 'mol-canvas3d/camera';
 
 import Scene from './scene';
 import { WebGLContext, createImageData } from './webgl/context';
@@ -100,8 +100,8 @@ namespace Renderer {
             uHighlightColor: ValueCell.create(Vec3.clone(highlightColor)),
             uSelectColor: ValueCell.create(Vec3.clone(selectColor)),
 
-            uFogNear: ValueCell.create(camera.near),
-            uFogFar: ValueCell.create(camera.far / 50),
+            uFogNear: ValueCell.create(camera.state.near),
+            uFogFar: ValueCell.create(camera.state.far / 50),
             uFogColor: ValueCell.create(Vec3.clone(fogColor)),
         }
 
@@ -157,8 +157,8 @@ namespace Renderer {
             ValueCell.update(globalUniforms.uModelViewProjection, Mat4.mul(modelViewProjection, modelView, camera.projection))
             ValueCell.update(globalUniforms.uInvModelViewProjection, Mat4.invert(invModelViewProjection, modelViewProjection))
 
-            ValueCell.update(globalUniforms.uFogFar, camera.fogFar)
-            ValueCell.update(globalUniforms.uFogNear, camera.fogNear)
+            ValueCell.update(globalUniforms.uFogFar, camera.state.fogFar)
+            ValueCell.update(globalUniforms.uFogNear, camera.state.fogNear)
 
             currentProgramId = -1
 

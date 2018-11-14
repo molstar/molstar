@@ -2,6 +2,7 @@
  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ * @author David Sehnal <david.sehnal@gmail.com>
  */
 
 /*
@@ -16,7 +17,6 @@ import { Object3D } from 'mol-gl/object3d';
 
 export const DefaultTrackballControlsProps = {
     noScroll: true,
-    target: [0, 0, 0] as Vec3,
 
     rotateSpeed: 3.0,
     zoomSpeed: 4.0,
@@ -25,14 +25,13 @@ export const DefaultTrackballControlsProps = {
     staticMoving: true,
     dynamicDampingFactor: 0.2,
 
-    minDistance: 0,
+    minDistance: 0.01,
     maxDistance: Infinity
 }
 export type TrackballControlsProps = Partial<typeof DefaultTrackballControlsProps>
 
 interface TrackballControls {
     viewport: Viewport
-    target: Vec3
 
     dynamicDampingFactor: number
     rotateSpeed: number
@@ -45,11 +44,11 @@ interface TrackballControls {
 }
 
 namespace TrackballControls {
-    export function create (input: InputObserver, object: Object3D, props: TrackballControlsProps = {}): TrackballControls {
+    export function create (input: InputObserver, object: Object3D & { target: Vec3 }, props: TrackballControlsProps = {}): TrackballControls {
         const p = { ...DefaultTrackballControlsProps, ...props }
 
         const viewport: Viewport = { x: 0, y: 0, width: 0, height: 0 }
-        const target: Vec3 = Vec3.clone(p.target)
+        const target: Vec3 = object.target
 
         let { rotateSpeed, zoomSpeed, panSpeed } = p
         let { staticMoving, dynamicDampingFactor } = p
@@ -294,7 +293,6 @@ namespace TrackballControls {
 
         return {
             viewport,
-            target,
 
             get dynamicDampingFactor() { return dynamicDampingFactor },
             set dynamicDampingFactor(value: number ) { dynamicDampingFactor = value },

@@ -49,7 +49,7 @@ export function getIHMCoarse(data: IHMData, formatData: FormatData): { hierarchy
             gaussians: { ...gaussianData, ...gaussianKeys, ...gaussianRanges },
         },
         conformation: {
-            id: UUID.create(),
+            id: UUID.create22(),
             spheres: sphereConformation,
             gaussians: gaussianConformation
         }

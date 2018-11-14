@@ -7,7 +7,7 @@
 declare var process: any;
 declare var window: any;
 
-const now: () => number = (function () {
+const now: () => now.Timestamp = (function () {
     if (typeof window !== 'undefined' && window.performance) {
         const perf = window.performance;
         return () => perf.now();
@@ -23,4 +23,25 @@ const now: () => number = (function () {
     }
 }());
 
-export { now }
+namespace now {
+    export type Timestamp = number & { '@type': 'now-timestamp' }
+}
+
+
+function formatTimespan(t: number) {
+    if (isNaN(t)) return 'n/a';
+
+    let h = Math.floor(t / (60 * 60 * 1000)),
+        m = Math.floor(t / (60 * 1000) % 60),
+        s = Math.floor(t / 1000 % 60),
+        ms = Math.floor(t % 1000).toString();
+
+    while (ms.length < 3) ms = '0' + ms;
+
+    if (h > 0) return `${h}h${m}m${s}.${ms}s`;
+    if (m > 0) return `${m}m${s}.${ms}s`;
+    if (s > 0) return `${s}.${ms}s`;
+    return `${t.toFixed(0)}ms`;
+}
+
+export { now, formatTimespan }

@@ -4,4 +4,4 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-// TODO actions that modify state and can be "applied" to certain state objects.
+// TODO manage snapshots etc

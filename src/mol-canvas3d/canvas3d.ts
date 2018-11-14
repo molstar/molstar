@@ -5,8 +5,9 @@
  */
 
 import { BehaviorSubject, Subscription } from 'rxjs';
+import { now } from 'mol-util/now';
 
-import { Vec3, Mat4, EPSILON } from 'mol-math/linear-algebra'
+import { Vec3 } from 'mol-math/linear-algebra'
 import InputObserver from 'mol-util/input/input-observer'
 import * as SetUtils from 'mol-util/set'
 import Renderer, { RendererStats } from 'mol-gl/renderer'
@@ -24,19 +25,21 @@ import { PickingId, decodeIdRGB } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
-import { CombinedCamera, CombinedCameraMode } from './camera/combined';
+import { Camera } from './camera';
 
 export const DefaultCanvas3DProps = {
+    // TODO: FPS cap?
+    // maxFps: 30,
     cameraPosition: Vec3.create(0, 0, 50),
-    cameraMode: 'perspective' as CombinedCameraMode,
+    cameraMode: 'perspective' as Camera.Mode,
     backgroundColor: Color(0x000000),
 }
 export type Canvas3DProps = typeof DefaultCanvas3DProps
 
+export { Canvas3D }
+
 interface Canvas3D {
     readonly webgl: WebGLContext,
-
-    center: (p: Vec3) => void
 
     hide: (repr: Representation.Any) => void
     show: (repr: Representation.Any) => void
@@ -46,7 +49,7 @@ interface Canvas3D {
     update: () => void
     clear: () => void
 
-    draw: (force?: boolean) => void
+    // draw: (force?: boolean) => void
     requestDraw: (force?: boolean) => void
     animate: () => void
     pick: () => void
@@ -54,13 +57,11 @@ interface Canvas3D {
     mark: (loci: Loci, action: MarkerAction) => void
     getLoci: (pickingId: PickingId) => { loci: Loci, repr?: Representation.Any }
 
-    readonly reprCount: BehaviorSubject<number>
-    readonly identified: BehaviorSubject<string>
-    readonly didDraw: BehaviorSubject<number>
+    readonly didDraw: BehaviorSubject<now.Timestamp>
 
     handleResize: () => void
     resetCamera: () => void
-    readonly camera: CombinedCamera
+    readonly camera: Camera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
     setProps: (props: Partial<Canvas3DProps>) => void
@@ -79,13 +80,12 @@ namespace Canvas3D {
         const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>()
         const reprCount = new BehaviorSubject(0)
-        const identified = new BehaviorSubject('')
 
-        const startTime = performance.now()
-        const didDraw = new BehaviorSubject(0)
+        const startTime = now()
+        const didDraw = new BehaviorSubject<now.Timestamp>(0 as now.Timestamp)
         const input = InputObserver.create(canvas)
 
-        const camera = CombinedCamera.create({
+        const camera = new Camera({
             near: 0.1,
             far: 10000,
             position: Vec3.clone(p.cameraPosition),
@@ -118,8 +118,6 @@ namespace Canvas3D {
         let isPicking = false
         let drawPending = false
         let lastRenderTime = -1
-        const prevProjectionView = Mat4.zero()
-        const prevSceneView = Mat4.zero()
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -156,7 +154,7 @@ namespace Canvas3D {
         //     return 0
         // }
 
-        function render(variant: RenderVariant, force?: boolean) {
+        function render(variant: RenderVariant, force: boolean) {
             if (isPicking) return false
             // const p = scene.boundingSphere.center
             // console.log(p[0], p[1], p[2])
@@ -178,51 +176,56 @@ namespace Canvas3D {
 
             // console.log(camera.fogNear, camera.fogFar, targetDistance)
 
-            switch (variant) {
-                case 'pickObject': objectPickTarget.bind(); break;
-                case 'pickInstance': instancePickTarget.bind(); break;
-                case 'pickGroup': groupPickTarget.bind(); break;
-                case 'draw':
-                    webgl.unbindFramebuffer();
-                    renderer.setViewport(0, 0, canvas.width, canvas.height);
-                    break;
-            }
             let didRender = false
             controls.update()
-            CombinedCamera.update(camera)
-            if (force || !Mat4.areEqual(camera.projectionView, prevProjectionView, EPSILON.Value) || !Mat4.areEqual(scene.view, prevSceneView, EPSILON.Value)) {
-                // console.log('foo', force, prevSceneView, scene.view)
-                Mat4.copy(prevProjectionView, camera.projectionView)
-                Mat4.copy(prevSceneView, scene.view)
+            const cameraChanged = camera.updateMatrices();
+
+            if (force || cameraChanged) {
+                switch (variant) {
+                    case 'pickObject': objectPickTarget.bind(); break;
+                    case 'pickInstance': instancePickTarget.bind(); break;
+                    case 'pickGroup': groupPickTarget.bind(); break;
+                    case 'draw':
+                        webgl.unbindFramebuffer();
+                        renderer.setViewport(0, 0, canvas.width, canvas.height);
+                        break;
+                }
+
                 renderer.render(scene, variant)
                 if (variant === 'draw') {
-                    lastRenderTime = performance.now()
+                    lastRenderTime = now()
                     pickDirty = true
                 }
                 didRender = true
             }
-            return didRender
+
+            return didRender && cameraChanged;
         }
 
+        let forceNextDraw = false;
+
         function draw(force?: boolean) {
-            if (render('draw', force)) {
-                didDraw.next(performance.now() - startTime)
+            if (render('draw', !!force || forceNextDraw)) {
+                didDraw.next(now() - startTime as now.Timestamp)
             }
+            forceNextDraw = false;
             drawPending = false
         }
 
         function requestDraw(force?: boolean) {
             if (drawPending) return
             drawPending = true
-            window.requestAnimationFrame(() => draw(force))
+            forceNextDraw = !!force;
+            // The animation frame is being requested by animate already.
+            // window.requestAnimationFrame(() => draw(force))
         }
 
         function animate() {
             draw(false)
-            if (performance.now() - lastRenderTime > 200) {
+            if (now() - lastRenderTime > 200) {
                 if (pickDirty) pick()
             }
-            window.requestAnimationFrame(() => animate())
+            window.requestAnimationFrame(animate)
         }
 
         function pick() {
@@ -291,11 +294,6 @@ namespace Canvas3D {
         return {
             webgl,
 
-            center: (p: Vec3) => {
-                Vec3.set(controls.target, p[0], p[1], p[2])
-                Vec3.set(camera.target, p[0], p[1], p[2])
-            },
-
             hide: (repr: Representation.Any) => {
                 const renderObjectSet = reprRenderObjects.get(repr)
                 if (renderObjectSet) renderObjectSet.forEach(o => o.state.visible = false)
@@ -328,7 +326,7 @@ namespace Canvas3D {
                 scene.clear()
             },
 
-            draw,
+            // draw,
             requestDraw,
             animate,
             pick,
@@ -352,12 +350,10 @@ namespace Canvas3D {
                     case 'pickGroup': return groupPickTarget.getImageData()
                 }
             },
-            reprCount,
-            identified,
             didDraw,
             setProps: (props: Partial<Canvas3DProps>) => {
-                if (props.cameraMode !== undefined && props.cameraMode !== camera.mode) {
-                    camera.mode = props.cameraMode
+                if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
+                    camera.setState({ mode: props.cameraMode })
                 }
                 if (props.backgroundColor !== undefined && props.backgroundColor !== renderer.props.clearColor) {
                     renderer.setClearColor(props.backgroundColor)
@@ -368,7 +364,7 @@ namespace Canvas3D {
             get props() {
                 return {
                     cameraPosition: Vec3.clone(camera.position),
-                    cameraMode: camera.mode,
+                    cameraMode: camera.state.mode,
                     backgroundColor: renderer.props.clearColor
                 }
             },
@@ -383,6 +379,7 @@ namespace Canvas3D {
                 input.dispose()
                 controls.dispose()
                 renderer.dispose()
+                camera.dispose()
             }
         }
 
@@ -400,5 +397,3 @@ namespace Canvas3D {
         }
     }
 }
-
-export default Canvas3D
