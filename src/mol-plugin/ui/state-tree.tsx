@@ -58,22 +58,26 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
         });
     }
 
+    toggleExpanded = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+    }
+
     render() {
-        const cellState = this.props.state.tree.cellStates.get(this.props.nodeRef);
+        const cellState = this.cellState;
 
         const expander = <>
-            [<a href='#' onClick={e => {
-                e.preventDefault();
-                PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
-            }}>{cellState.isCollapsed ? '+' : '-'}</a>]
+            [<a href='#' onClick={this.toggleExpanded}>{cellState.isCollapsed ? '+' : '-'}</a>]
         </>;
 
         const children = this.props.state.tree.children.get(this.props.nodeRef);
         return <div>
             {children.size === 0 ? void 0 : expander} <StateTreeNodeLabel nodeRef={this.props.nodeRef} state={this.props.state} />
-            {cellState.isCollapsed || children.size === 0
+            {children.size === 0
                 ? void 0
-                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999' }}>{children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}</div>
+                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999', display: cellState.isCollapsed ? 'none' : 'block' }}>
+                    {children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}
+                </div>
             }
         </div>;
     }
@@ -92,20 +96,32 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
         let isCurrent = this.is(this.props.state.behaviors.currentObject.value);
 
         this.subscribe(this.plugin.state.behavior.currentObject, e => {
-            let update = false;
             if (this.is(e)) {
                 if (!isCurrent) {
                     isCurrent = true;
-                    update = true;
+                    this.forceUpdate();
                 }
             } else if (isCurrent) {
                 isCurrent = false;
-                update = true;
-            }
-            if (update && e.state.tree.transforms.has(this.props.nodeRef)) {
-                this.forceUpdate();
+                // have to check the node wasn't remove
+                if (e.state.tree.transforms.has(this.props.nodeRef)) this.forceUpdate();
             }
         });
+    }
+
+    setCurrent = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+    }
+
+    remove = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+    }
+
+    toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.ToggleVisibility.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
     }
 
     render() {
@@ -114,36 +130,19 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
 
         const isCurrent = this.is(this.props.state.behaviors.currentObject.value);
 
-        const remove = <>[<a href='#' onClick={e => {
-            e.preventDefault();
-            PluginCommands.State.RemoveObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
-        }}>X</a>]</>
+        const remove = <>[<a href='#' onClick={this.remove}>X</a>]</>
 
         let label: any;
         if (cell.status !== 'ok' || !cell.obj) {
             const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
-            label = <><b>{cell.status}</b> <a href='#' onClick={e => {
-                e.preventDefault();
-                PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
-            }}>{name}</a>: <i>{cell.errorText}</i></>;
+            label = <><b>{cell.status}</b> <a href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
-            label = <><a href='#' onClick={e => {
-                e.preventDefault();
-                PluginCommands.State.SetCurrentObject.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
-            }}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
+            label = <><a href='#' onClick={this.setCurrent}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
         }
 
         const cellState = this.props.state.tree.cellStates.get(this.props.nodeRef);
-
-        if (!cellState) console.log('missing state', this.props.nodeRef, this.props.state.tree, this.props.state.tree.transforms.has(this.props.nodeRef));
-
-        const visibility = <>
-            [<a href='#' onClick={e => {
-                e.preventDefault();
-                PluginCommands.State.ToggleVisibility.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
-            }}>{cellState.isHidden ? 'H' : 'V'}</a>]
-        </>;
+        const visibility = <>[<a href='#' onClick={this.toggleVisible}>{cellState.isHidden ? 'H' : 'V'}</a>]</>;
 
         return <>
             {remove}{visibility} {isCurrent ? <b>{label}</b> : label}
