@@ -72,12 +72,11 @@ export namespace Geometry {
         colorTheme: PD.Select<BuiltInColorThemeName>('Color Name', '', 'uniform', BuiltInColorThemeOptions),
         sizeTheme: PD.Select<BuiltInSizeThemeName>('Size Name', '', 'uniform', BuiltInSizeThemeOptions),
     }
-    export const DefaultProps = PD.getDefaultValues(Params)
-    export type Props = typeof DefaultProps
+    export type Params = typeof Params
 
     export type Counts = { drawCount: number, groupCount: number, instanceCount: number }
 
-    export function createValues(props: Props, counts: Counts) {
+    export function createValues(props: PD.Values<Params>, counts: Counts) {
         return {
             uAlpha: ValueCell.create(props.alpha),
             uHighlightColor: ValueCell.create(Color.toArrayNormalized(props.highlightColor, Vec3.zero(), 0)),
@@ -88,7 +87,7 @@ export namespace Geometry {
         }
     }
 
-    export function updateValues(values: BaseValues, props: Props) {
+    export function updateValues(values: BaseValues, props: PD.Values<Params>) {
         if (Color.fromNormalizedArray(values.uHighlightColor.ref.value, 0) !== props.highlightColor) {
             ValueCell.update(values.uHighlightColor, Color.toArrayNormalized(props.highlightColor, values.uHighlightColor.ref.value, 0))
         }
@@ -102,14 +101,14 @@ export namespace Geometry {
 
 //
 
-export function createRenderableState(props: Geometry.Props): RenderableState {
+export function createRenderableState(props: PD.Values<Geometry.Params>): RenderableState {
     return {
         visible: true,
         depthMask: props.depthMask
     }
 }
 
-export function updateRenderableState(state: RenderableState, props: Geometry.Props) {
+export function updateRenderableState(state: RenderableState, props: PD.Values<Geometry.Params>) {
     state.depthMask = props.depthMask
 }
 

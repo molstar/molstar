@@ -345,10 +345,9 @@ export namespace Mesh {
         flipSided: PD.Boolean('Flip Sided', '', false),
         flatShaded: PD.Boolean('Flat Shaded', '', false),
     }
-    export const DefaultProps = PD.getDefaultValues(Params)
-    export type Props = typeof DefaultProps
+    export type Params = typeof Params
 
-    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: Props): Promise<MeshValues> {
+    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): Promise<MeshValues> {
         const { instanceCount, groupCount } = locationIt
         const color = await createColors(ctx, locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
@@ -377,7 +376,7 @@ export namespace Mesh {
         }
     }
 
-    export function updateValues(values: MeshValues, props: Props) {
+    export function updateValues(values: MeshValues, props: PD.Values<Params>) {
         const boundingSphere = calculateBoundingSphere(
             values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
             values.aTransform.ref.value, values.instanceCount.ref.value
