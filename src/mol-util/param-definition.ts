@@ -90,25 +90,25 @@ export namespace ParamDefinition {
         return { type: 'interval', label, description, defaultValue }
     }
 
-    export interface Group<T extends { [key: string]: any }> extends Base<T> {
+    export interface Group<T> extends Base<T> {
         type: 'group',
-        params: T
+        params: Params
     }
-    export function Group<T extends { [key: string]: any }>(label: string, description: string, params: T): Group<T> {
-        return { type: 'group', label, description, defaultValue: getDefaultValues(params), params };
+    export function Group<P extends Params>(label: string, description: string, params: P): Group<Values<P>> {
+        return { type: 'group', label, description, defaultValue: getDefaultValues(params) as any, params };
     }
 
     export interface Mapped<T> extends Base<{ name: string, params: T }> {
         type: 'mapped',
         select: Select<string>,
-        map(name: string): Params
+        map(name: string): Any
     }
     export function Mapped<T>(label: string, description: string, defaultKey: string, names: [string, string][], map: Mapped<T>['map']): Mapped<T> {
         return {
             type: 'mapped',
             label,
             description,
-            defaultValue: { name: defaultKey, params: getDefaultValues(map(defaultKey)) as any },
+            defaultValue: { name: defaultKey, params: map(defaultKey).defaultValue as any },
             select: Select<string>(label, description, defaultKey, names),
             map
         };

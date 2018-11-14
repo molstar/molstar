@@ -29,6 +29,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
             {Object.keys(params).map(key => {
                 const param = params[key];
                 if (param.type === 'mapped') return <MappedControl param={param} key={key} {...common} name={key} value={values[key]} />
+                if (param.type === 'group') return <GroupControl param={param} key={key} {...common} name={key} value={values[key]} />
                 return <ParamWrapper control={controlFor(param)} param={param} key={key} {...common} name={key} value={values[key]} />
             })}
         </div>;
@@ -45,13 +46,11 @@ function controlFor(param: PD.Any): ValueControl {
         case 'select': return SelectControl;
         case 'text': return TextControl;
         case 'interval': return IntervalControl;
-        case 'group': return GroupControl;
+        case 'group': throw Error('Must be handled separately');
         case 'mapped': throw Error('Must be handled separately');
     }
     throw new Error('not supported');
 }
-
-type MappedWrapperProps = { name: string, value: PD.Mapped<any>['defaultValue'], param: PD.Mapped<any>, onChange: ParamOnChange, onEnter?: () => void, isEnabled?: boolean }
 
 type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, onChange: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
 export type ParamOnChange = (params: { param: PD.Base<any>, name: string, value: any }) => void
@@ -176,41 +175,55 @@ export class ColorControl extends React.PureComponent<ValueControlProps<PD.Color
     }
 }
 
-export class GroupControl extends React.PureComponent<ValueControlProps<PD.Group<any>>> {
-    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    //     this.setState({ value: e.target.value });
-    //     this.props.onChange(e.target.value);
-    // }
+type GroupWrapperProps = { name: string, value: PD.Group<any>['defaultValue'], param: PD.Group<any>, onChange: ParamOnChange, onEnter?: () => void, isEnabled?: boolean }
+export class GroupControl extends React.PureComponent<GroupWrapperProps> {
+    change(value: PD.Mapped<any>['defaultValue'] ) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    onChangeParam: ParamOnChange = e => {
+        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
+        this.change({ ...value.params, [e.name]: e.value });
+    }
 
     render() {
-        return <span>group TODO</span>;
+        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
+        const params = this.props.param.params;
+
+        return <div>
+            <ParameterControls params={params} onChange={this.onChangeParam} values={value.params} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
+        </div>
     }
 }
 
+type MappedWrapperProps = { name: string, value: PD.Mapped<any>['defaultValue'], param: PD.Mapped<any>, onChange: ParamOnChange, onEnter?: () => void, isEnabled?: boolean }
 export class MappedControl extends React.PureComponent<MappedWrapperProps> {
     change(value: PD.Mapped<any>['defaultValue'] ) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
     }
 
     onChangeName: ParamOnChange = e => {
-        this.change({ name: e.value, params: PD.getDefaultValues(this.props.param.map(e.value)) });
+        this.change({ name: e.value, params: this.props.param.map(e.value).defaultValue });
     }
 
     onChangeParam: ParamOnChange = e => {
         const value: PD.Mapped<any>['defaultValue'] = this.props.value;
-        this.change({ name: value.name, params: { ...value.params, [e.name]: e.value } });
+        this.change({ name: value.name, params: e.value });
     }
 
     render() {
         const value: PD.Mapped<any>['defaultValue'] = this.props.value;
-        const params = this.props.param.map(value.name);
+        const param = this.props.param.map(value.name);
 
         return <div>
             <ParamWrapper control={SelectControl} param={this.props.param.select}
                 isEnabled={this.props.isEnabled} onChange={this.onChangeName} onEnter={this.props.onEnter}
                 name={'name'} value={value.name} />
             <div style={{ borderLeft: '5px solid #777', paddingLeft: '5px' }}>
-                <ParameterControls params={params} onChange={this.onChangeParam} values={value.params} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
+                {param.type === 'group'
+                ? <GroupControl param={param} value={value} name='param' onChange={this.onChangeParam} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
+                : param.type === 'mapped' ? 'nested mapped params are not supported'
+                : <ParamWrapper control={controlFor(param)} param={param} onChange={this.onChangeParam} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} name={'value'} value={value} />}
             </div>
         </div>
     }
