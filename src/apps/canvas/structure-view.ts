@@ -199,11 +199,11 @@ export async function StructureView(app: App, canvas3d: Canvas3D, models: Readon
                     } else {
                         repr = app.structureRepresentationRegistry.create(k, app.reprCtx, structure)
                         structureRepresentations[k] = repr
+                        canvas3d.add(repr)
                     }
                     await app.runTask(repr.createOrUpdate(app.reprCtx, {}, {}, structure).run(
                         progress => app.log(progress)
                     ), 'Create/update representation')
-                    canvas3d.add(repr)
                 } else {
                     if (structureRepresentations[k]) {
                         canvas3d.remove(structureRepresentations[k])

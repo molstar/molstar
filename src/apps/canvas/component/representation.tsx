@@ -15,7 +15,6 @@ export interface RepresentationComponentProps<P extends PD.Params> {
     app: App
     canvas3d: Canvas3D
     repr: Representation<P>
-    params: P
 }
 
 export interface RepresentationComponentState {
@@ -29,7 +28,7 @@ export class RepresentationComponent<P extends PD.Params> extends React.Componen
     private stateFromRepr(repr: Representation<P>) {
         return {
             label: repr.label,
-            reprParams: this.props.params,
+            reprParams: repr.params,
             reprProps: repr.props
         }
     }
@@ -42,8 +41,6 @@ export class RepresentationComponent<P extends PD.Params> extends React.Componen
         await this.props.app.runTask(this.props.repr.createOrUpdate(this.props.app.reprCtx, { [k]: v }).run(
             progress => this.props.app.log(progress)
         ), 'Representation Update')
-        this.props.canvas3d.add(this.props.repr)
-        this.props.canvas3d.requestDraw(true)
         this.setState(this.stateFromRepr(this.props.repr))
     }
 

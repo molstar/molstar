@@ -85,7 +85,7 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
     }
 
     render() {
-        const { structureView, label, structure, modelIds, assemblyIds, symmetryFeatureIds, active, structureRepresentations } = this.state
+        const { structureView, label, modelIds, assemblyIds, symmetryFeatureIds, active, structureRepresentations } = this.state
 
         const modelIdOptions = modelIds.map(m => {
             return <option key={m.id} value={m.id}>{m.label}</option>
@@ -175,9 +175,6 @@ export class StructureViewComponent extends React.Component<StructureViewCompone
                             return <div key={i}>
                                 <RepresentationComponent
                                     repr={structureRepresentations[k] as Representation<any>}
-                                    params={
-                                        structureView.app.structureRepresentationRegistry.get(k)!.getParams(structureView.app.reprCtx, structure!)
-                                    }
                                     canvas3d={structureView.canvas3d}
                                     app={structureView.app}
                                 />

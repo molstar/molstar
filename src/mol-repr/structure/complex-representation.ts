@@ -15,8 +15,10 @@ import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { BehaviorSubject } from 'rxjs';
 
 export function ComplexRepresentation<P extends StructureParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+    const updated = new BehaviorSubject(0)
     let visual: ComplexVisual<P> | undefined
 
     let _structure: Structure
@@ -36,6 +38,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
             await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, structure)
+            updated.next(updated.getValue() + 1)
         });
     }
 
@@ -58,6 +61,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         },
         get props() { return _props },
         get params() { return _params },
+        get updated() { return updated },
         createOrUpdate,
         getLoci,
         mark,

@@ -17,6 +17,7 @@ import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
+import { BehaviorSubject } from 'rxjs';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -27,6 +28,7 @@ export type UnitsParams = typeof UnitsParams
 export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGroup, P> { }
 
 export function UnitsRepresentation<P extends UnitsParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+    const updated = new BehaviorSubject(0)
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure
@@ -91,7 +93,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                 //     visuals.set(group.hashCode, { visual, group })
                 // })
                 // unusedVisuals.forEach(visual => visual.destroy())
-            } else if (structure && _structure.hashCode === structure.hashCode) {
+            } else if (structure && structure !== _structure && _structure.hashCode === structure.hashCode) {
                 // console.log('_structure.hashCode === structure.hashCode')
                 // Expects that for structures with the same hashCode,
                 // the unitSymmetryGroups are the same as well.
@@ -113,11 +115,12 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                 const visualsList: [ UnitsVisual<P>, Unit.SymmetryGroup ][] = [] // TODO avoid allocation
                 visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]))
                 for (let i = 0, il = visualsList.length; i < il; ++i) {
-                    const [ visual, group ] = visualsList[i]
-                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure: _structure })
+                    const [ visual ] = visualsList[i]
+                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props)
                 }
             }
             if (structure) _structure = structure
+            updated.next(updated.getValue() + 1)
         });
     }
 
@@ -154,6 +157,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         },
         get props() { return _props },
         get params() { return _params },
+        get updated() { return updated },
         createOrUpdate,
         getLoci,
         mark,

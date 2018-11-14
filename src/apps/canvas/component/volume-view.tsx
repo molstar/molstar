@@ -62,7 +62,7 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
     // }
 
     render() {
-        const { volumeView, label, volume, active, volumeRepresentations } = this.state
+        const { volumeView, label, active, volumeRepresentations } = this.state
 
         return <div>
             <div>
@@ -90,9 +90,6 @@ export class VolumeViewComponent extends React.Component<VolumeViewComponentProp
                             return <div key={i}>
                                 <RepresentationComponent
                                     repr={volumeRepresentations[k] as Representation<any>}
-                                    params={
-                                        volumeView.app.volumeRepresentationRegistry.get(k)!.getParams(volumeView.app.reprCtx, volume!)
-                                    }
                                     canvas3d={volumeView.viewer}
                                     app={volumeView.app}
                                 />

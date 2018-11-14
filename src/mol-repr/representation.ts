@@ -15,6 +15,7 @@ import { getQualityProps } from './util';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { ThemeProps, Theme, ThemeRegistryContext } from 'mol-theme/theme';
+import { BehaviorSubject } from 'rxjs';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -67,6 +68,7 @@ export interface RepresentationContext {
 export { Representation }
 interface Representation<D, P extends PD.Params = {}> {
     readonly label: string
+    readonly updated: BehaviorSubject<number>
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<PD.DefaultValues<P>>
     readonly params: Readonly<P>
@@ -78,7 +80,7 @@ interface Representation<D, P extends PD.Params = {}> {
 namespace Representation {
     export type Any = Representation<any>
     export const Empty: Representation<any> = {
-        label: '', renderObjects: [], props: {}, params: {},
+        label: '', renderObjects: [], props: {}, params: {}, updated: new BehaviorSubject(0),
         createOrUpdate: () => Task.constant('', undefined),
         getLoci: () => EmptyLoci,
         mark: () => false,
@@ -88,6 +90,8 @@ namespace Representation {
     export type Def<D, P extends PD.Params = {}> = { [k: string]: (getParams: RepresentationParamsGetter<D, P>) => Representation<any, P> }
 
     export function createMulti<D, P extends PD.Params = {}>(label: string, getParams: RepresentationParamsGetter<D, P>, reprDefs: Def<D, P>): Representation<D, P> {
+        const updated = new BehaviorSubject(0)
+
         let currentParams: P
         let currentProps: PD.DefaultValues<P>
         let currentData: D
@@ -100,12 +104,15 @@ namespace Representation {
 
         return {
             label,
+            updated,
             get renderObjects() {
-                const { visuals } = currentProps
                 const renderObjects: RenderObject[] = []
-                for (let i = 0, il = reprList.length; i < il; ++i) {
-                    if (!visuals || visuals.includes(reprMap[i])) {
-                        renderObjects.push(...reprList[i].renderObjects)
+                if (currentProps) {
+                    const { visuals } = currentProps
+                    for (let i = 0, il = reprList.length; i < il; ++i) {
+                        if (!visuals || visuals.includes(reprMap[i])) {
+                            renderObjects.push(...reprList[i].renderObjects)
+                        }
                     }
                 }
                 return renderObjects
@@ -115,9 +122,7 @@ namespace Representation {
                 reprList.forEach(r => Object.assign(props, r.props))
                 return props as P
             },
-            get params() {
-                return currentParams
-            },
+            get params() { return currentParams },
             createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, data?: D) => {
                 if (data && data !== currentData) {
                     currentParams = getParams(ctx, data)
@@ -134,6 +139,7 @@ namespace Representation {
                             await reprList[i].createOrUpdate(ctx, currentProps, themeProps, currentData).runInContext(runtime)
                         }
                     }
+                    updated.next(updated.getValue() + 1)
                 })
             },
             getLoci: (pickingId: PickingId) => {
