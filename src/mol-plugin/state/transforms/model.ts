@@ -12,6 +12,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
 import { Mat4 } from 'mol-math/linear-algebra';
+import { MolScriptBuilder } from 'mol-script/language/builder';
 
 export { ParseTrajectoryFromMmCif }
 namespace ParseTrajectoryFromMmCif { export interface Params { blockHeader?: string } }
@@ -23,16 +24,14 @@ const ParseTrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Mol
     },
     from: [SO.Data.Cif],
     to: [SO.Molecule.Trajectory],
-    params: {
-        default: a => ({ blockHeader: a.data.blocks[0].header }),
-        definition(a) {
-            const { blocks } = a.data;
-            if (blocks.length === 0) return {};
-            return {
-                blockHeader: PD.Select(blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })
-            };
-        }
+    params(a) {
+        const { blocks } = a.data;
+        if (blocks.length === 0) return { };
+        return {
+            blockHeader: PD.Select(blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })
+        };
     },
+    isApplicable: a => a.data.blocks.length > 0,
     apply({ a, params }) {
         return Task.create('Parse mmCIF', async ctx => {
             const header = params.blockHeader || a.data.blocks[0].header;
@@ -57,10 +56,7 @@ const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajec
     },
     from: [SO.Molecule.Trajectory],
     to: [SO.Molecule.Model],
-    params: {
-        default: () => ({ modelIndex: 0 }),
-        definition: a => ({ modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) })
-    },
+    params: a => ({ modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) }),
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
@@ -80,6 +76,7 @@ const CreateStructure = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecu
     },
     from: [SO.Molecule.Model],
     to: [SO.Molecule.Structure],
+    params: () => ({}),
     apply({ a, params }) {
         let s = Structure.ofModel(a.data);
         if (params.transform3d) s = Structure.transform(s, params.transform3d);
@@ -102,13 +99,10 @@ const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Model, S
     },
     from: [SO.Molecule.Model],
     to: [SO.Molecule.Structure],
-    params: {
-        default: () => ({ id: void 0 }),
-        definition(a) {
-            const model = a.data;
-            const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
-            return { id: PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' }) };
-        }
+    params(a) {
+        const model = a.data;
+        const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
+        return { id: PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' }) };
     },
     apply({ a, params }) {
         return Task.create('Build Assembly', async ctx => {
@@ -136,6 +130,10 @@ const CreateStructureSelection = PluginStateTransform.Create<SO.Molecule.Structu
     },
     from: [SO.Molecule.Structure],
     to: [SO.Molecule.Structure],
+    params: () => ({
+        query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all),
+        label: PD.Text('', { isOptional: true })
+    }),
     apply({ a, params }) {
         // TODO: use cache, add "update"
         const compiled = compile<StructureSelection>(params.query);

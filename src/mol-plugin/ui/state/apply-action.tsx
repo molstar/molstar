@@ -10,6 +10,7 @@ import { State, Transform } from 'mol-state';
 import { StateAction } from 'mol-state/action';
 import { memoizeOne } from 'mol-util/memoize';
 import { StateTransformParameters, TransformContolBase } from './common';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export { ApplyActionContol };
 
@@ -55,13 +56,12 @@ class ApplyActionContol extends TransformContolBase<ApplyActionContol.Props, App
         if (version === state.version) return null;
 
         const source = props.state.cells.get(props.nodeRef)!.obj!;
-        const definition = props.action.definition.params || { };
-        const initialValues = definition.default ? definition.default(source, props.plugin) : {};
+        const params = PD.getDefaultValues(props.action.definition.params(source, props.plugin));
 
         const newState: Partial<ApplyActionContol.ComponentState> = {
             ref: props.nodeRef,
             version,
-            params: initialValues,
+            params,
             isInitial: true,
             error: void 0
         };

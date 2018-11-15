@@ -23,7 +23,6 @@ export namespace Transformer {
     export type Params<T extends Transformer<any, any, any>> = T extends Transformer<any, any, infer P> ? P : unknown;
     export type From<T extends Transformer<any, any, any>> = T extends Transformer<infer A, any, any> ? A : unknown;
     export type To<T extends Transformer<any, any, any>> = T extends Transformer<any, infer B, any> ? B : unknown;
-    export type ControlsFor<Props> = { [P in keyof Props]?: PD.Any }
 
     export function is(obj: any): obj is Transformer {
         return !!obj && typeof (obj as Transformer).toAction === 'function' && typeof (obj as Transformer).apply === 'function';
@@ -47,14 +46,10 @@ export namespace Transformer {
 
     export enum UpdateResult { Unchanged, Updated, Recreate }
 
-    export interface ParamsDefinition<A extends StateObject = StateObject, P = any> {
-        /** Check the parameters and return a list of errors if the are not valid. */
-        default?(a: A, globalCtx: unknown): P,
-        /** Specify default control descriptors for the parameters */
-        definition?(a: A, globalCtx: unknown): { [K in keyof P]?: PD.Any },
-        /** Optional custom parameter equality. Use shallow structural equal by default. */
-        areEqual?(oldParams: P, newParams: P): boolean
-    }
+    export const EmptyParams = () => ({});
+
+    /** Specify default control descriptors for the parameters */
+    export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
 
     export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
         readonly name: string,
@@ -75,7 +70,7 @@ export namespace Transformer {
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
-        readonly params?: ParamsDefinition<A, P>,
+        params(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,
@@ -141,6 +136,7 @@ export namespace Transformer {
         name: 'root',
         from: [],
         to: [],
+        params: EmptyParams,
         apply() { throw new Error('should never be applied'); },
         update() { return UpdateResult.Unchanged; }
     })

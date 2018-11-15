@@ -10,6 +10,7 @@ import { Task } from 'mol-task';
 import { PluginContext } from 'mol-plugin/context';
 import { PluginCommand } from '../command';
 import { Observable } from 'rxjs';
+import { ParamDefinition } from 'mol-util/param-definition';
 
 export { PluginBehavior }
 
@@ -36,7 +37,7 @@ namespace PluginBehavior {
             group: string,
             description?: string
         },
-        params?: Transformer.Definition<Root, Behavior, P>['params'],
+        params(a: Root, globalCtx: PluginContext): { [K in keyof P]: ParamDefinition.Any }
     }
 
     export function create<P>(params: CreateParams<P>) {

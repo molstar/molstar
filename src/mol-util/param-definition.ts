@@ -12,14 +12,16 @@ import { camelCaseToWords } from './string';
 
 export namespace ParamDefinition {
     export interface Info {
-        label?: string
-        description?: string
+        label?: string,
+        description?: string,
+        isOptional?: boolean
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
         if (info.description) param.description = info.description;
         if (info.label) param.label = info.label;
+        if (info.isOptional) param.isOptional = info.isOptional;
         return param;
     }
 
