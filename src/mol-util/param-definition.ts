@@ -6,7 +6,7 @@
  */
 
 import { Color as ColorData } from './color';
-import { shallowClone } from 'mol-util';
+import { shallowClone, shallowEqual } from 'mol-util';
 import { Vec2 } from 'mol-math/linear-algebra';
 
 export namespace ParamDefinition {
@@ -103,7 +103,8 @@ export namespace ParamDefinition {
         return { type: 'group', defaultValue: getDefaultValues(params) as any, params, ...info };
     }
 
-    export interface Mapped<T> extends Base<{ name: string, params: T }> {
+    export interface NamedParams<T = any> { name: string, params: T }
+    export interface Mapped<T> extends Base<NamedParams<T>> {
         type: 'mapped',
         select: Select<string>,
         map(name: string): Any
@@ -153,5 +154,48 @@ export namespace ParamDefinition {
     export function validate(params: Params, values: any): ParamErrors | undefined {
         // TODO
         return void 0;
+    }
+
+    export function areEqual(params: Params, a: any, b: any): boolean {
+        if (a === b) return true;
+        if (!a) return !b;
+        if (!b) return !a;
+
+        if (typeof a !== 'object' || typeof b !== 'object') return false;
+        for (const k of Object.keys(params)) {
+            if (!isParamEqual(params[k], a[k], b[k])) return false;
+        }
+        return true;
+    }
+
+    function isParamEqual(p: Any, a: any, b: any): boolean {
+        if (a === b) return true;
+        if (!a) return !b;
+        if (!b) return !a;
+
+        if (p.type === 'group') {
+            return areEqual(p.params, a, b);
+        } else if (p.type === 'mapped') {
+            const u = a as NamedParams, v = b as NamedParams;
+            if (!u) return !v;
+            if (!u || !v) return false;
+            if (u.name !== v.name) return false;
+            const map = p.map(u.name);
+            return isParamEqual(map, u.params, v.params);
+        } else if (p.type === 'interval') {
+            return a[0] === b[0] && a[1] === b[1];
+        } else if (p.type === 'line-graph') {
+            const u = a as LineGraph['defaultValue'], v = b as LineGraph['defaultValue'];
+            if (u.length !== v.length) return false;
+            for (let i = 0, _i = u.length; i < _i; i++) {
+                if (!Vec2.areEqual(u[i], v[i])) return false;
+            }
+            return true;
+        } else if (typeof a === 'object' && typeof b === 'object') {
+            return shallowEqual(a, b);
+        }
+
+        // a === b was checked at the top.
+        return false;
     }
 }

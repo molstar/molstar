@@ -152,6 +152,10 @@ namespace Vec2 {
         out[1] = 1.0 / a[1];
         return out;
     }
+
+    export function areEqual(a: Vec2, b: Vec2) {
+        return a[0] === b[0] && a[1] === b[1];
+    }
 }
 
 export default Vec2

@@ -189,7 +189,7 @@ export class ConvertedControl extends React.PureComponent<ValueControlProps<PD.C
     render() {
         const Control: ValueControl = controlFor(this.props.param.param as PD.Any);
 
-        return <Control value={this.props.param.fromValue(this.props.value)} param={this.props.param} onChange={this.onChange} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
+        return <Control value={this.props.param.fromValue(this.props.value)} param={this.props.param.param} onChange={this.onChange} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
     }
 }
 
