@@ -7,6 +7,7 @@
 
 import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { camelCaseToWords } from 'mol-util/string';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -57,6 +58,10 @@ export type ParamOnChange = (params: { param: PD.Base<any>, name: string, value:
 type ValueControlProps<P extends PD.Base<any> = PD.Base<any>> = { value: any, param: P, isEnabled?: boolean, onChange: (v: any) => void, onEnter?: () => void }
 type ValueControl = React.ComponentClass<ValueControlProps<any>>
 
+function getLabel(name: string, param: PD.Base<any>) {
+    return param.label === undefined ? camelCaseToWords(name) : param.label
+}
+
 export class ParamWrapper extends React.PureComponent<ParamWrapperProps> {
     onChange = (value: any) => {
         this.props.onChange({ param: this.props.param, name: this.props.name, value });
@@ -64,7 +69,7 @@ export class ParamWrapper extends React.PureComponent<ParamWrapperProps> {
 
     render() {
         return <div style={{ padding: '0 3px', borderBottom: '1px solid #ccc' }}>
-            <div style={{ lineHeight: '20px', float: 'left' }} title={this.props.param.description}>{this.props.param.label}</div>
+            <div style={{ lineHeight: '20px', float: 'left' }} title={this.props.param.description}>{getLabel(this.props.name, this.props.param)}</div>
             <div style={{ float: 'left', marginLeft: '5px' }}>
                 <this.props.control value={this.props.value} param={this.props.param} onChange={this.onChange} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
             </div>
@@ -140,16 +145,17 @@ export class SelectControl extends React.PureComponent<ValueControlProps<PD.Sele
 
 
 export class MultiSelectControl extends React.PureComponent<ValueControlProps<PD.MultiSelect<any>>> {
-    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    //     this.setState({ value: e.target.value });
-    //     this.props.onChange(e.target.value);
-    // }
+    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const value = Array.from(e.target.options).filter(option => option.selected).map(option => option.value);
+        this.setState({ value });
+        this.props.onChange(value);
+    }
 
     render() {
-        return <span>multiselect TODO</span>;
-        // return <select value={this.props.value || ''} onChange={this.onChange}>
-        //     {this.props.param.options.map(([value, label]) => <option key={label} value={value}>{label}</option>)}
-        // </select>;
+        // return <span>multiselect TODO</span>;
+        return <select multiple value={this.props.value || ''} onChange={this.onChange}>
+            {this.props.param.options.map(([value, label]) => <option key={label} value={value}>{label}</option>)}
+        </select>;
     }
 }
 

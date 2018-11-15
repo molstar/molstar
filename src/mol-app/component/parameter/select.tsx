@@ -8,6 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface SelectParamComponentProps<T extends string> {
+    label: string
     param: PD.Select<T>
     value: T
     onChange(v: T): void
@@ -29,7 +30,7 @@ export class SelectParamComponent<T extends string> extends React.Component<Sele
 
     render() {
         return <div>
-            <span>{this.props.param.label} </span>
+            <span>{this.props.label} </span>
             <select value={this.state.value} onChange={e => this.onChange(e.target.value as T) }>
                 {this.props.param.options.map(v => {
                     const [value, label] = v

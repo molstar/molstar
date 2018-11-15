@@ -12,6 +12,7 @@ import { SelectParamComponent } from './parameter/select';
 import { MultiSelectParamComponent } from './parameter/multi-select';
 import { TextParamComponent } from './parameter/text';
 import { ColorParamComponent } from './parameter/color';
+import { camelCaseToWords } from 'mol-util/string';
 
 interface ParametersProps<P extends PD.Params> {
     params: P
@@ -21,22 +22,26 @@ interface ParametersProps<P extends PD.Params> {
 
 type ParametersState = {}
 
-function getParamComponent<P extends PD.Any>(p: PD.Any, value: P['defaultValue'], onChange: (v: P['defaultValue']) => void) {
-    switch (p.type) {
+function getParamComponent<P extends PD.Any>(label: string, param: PD.Any, value: P['defaultValue'], onChange: (v: P['defaultValue']) => void) {
+    switch (param.type) {
         case 'boolean':
-            return <BooleanParamComponent param={p} value={value} onChange={onChange} />
+            return <BooleanParamComponent label={label} param={param} value={value} onChange={onChange} />
         case 'number':
-            return <NumberParamComponent param={p} value={value} onChange={onChange} />
+            return <NumberParamComponent label={label} param={param} value={value} onChange={onChange} />
         case 'select':
-            return <SelectParamComponent param={p} value={value} onChange={onChange} />
+            return <SelectParamComponent label={label} param={param} value={value} onChange={onChange} />
         case 'multi-select':
-            return <MultiSelectParamComponent param={p} value={value} onChange={onChange} />
+            return <MultiSelectParamComponent label={label} param={param} value={value} onChange={onChange} />
         case 'text':
-            return <TextParamComponent param={p} value={value} onChange={onChange} />
+            return <TextParamComponent label={label} param={param} value={value} onChange={onChange} />
         case 'color':
-            return <ColorParamComponent param={p} value={value} onChange={onChange} />
+            return <ColorParamComponent label={label} param={param} value={value} onChange={onChange} />
     }
     return ''
+}
+
+function getLabel(name: string, param: PD.Base<any>) {
+    return param.label === undefined ? camelCaseToWords(name) : param.label
 }
 
 export class ParametersComponent<P extends PD.Params> extends React.Component<ParametersProps<P>, ParametersState> {
@@ -49,8 +54,9 @@ export class ParametersComponent<P extends PD.Params> extends React.Component<Pa
             { Object.keys(this.props.params).map(k => {
                 const param = this.props.params[k]
                 const value = this.props.values[k]
+                const label = getLabel(k, param)
                 return <div key={k}>
-                    {getParamComponent(param, value, v => this.onChange(k, v))}
+                    {getParamComponent(label, param, value, v => this.onChange(k, v))}
                 </div>
             })}
         </div>;

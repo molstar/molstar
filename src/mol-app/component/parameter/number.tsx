@@ -8,6 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface NumberParamComponentProps {
+    label: string
     param: PD.Numeric
     value: number
     onChange(v: number): void
@@ -30,7 +31,7 @@ export class NumberParamComponent extends React.Component<NumberParamComponentPr
 
     render() {
         return <div>
-            <span>{this.props.param.label} </span>
+            <span>{this.props.label} </span>
             <input type='range'
                 value={this.state.value}
                 min={this.props.param.min}

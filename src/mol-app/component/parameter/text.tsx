@@ -8,6 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface TextParamComponentProps {
+    label: string
     param: PD.Text
     value: string
     onChange(v: string): void
@@ -29,7 +30,7 @@ export class TextParamComponent extends React.Component<TextParamComponentProps,
 
     render() {
         return <div>
-            <span>{this.props.param.label} </span>
+            <span>{this.props.label} </span>
             <input type='text'
                 value={this.state.value}
                 onChange={e => this.onChange(e.currentTarget.value)}

@@ -8,7 +8,6 @@
 import { Color as ColorData } from './color';
 import { shallowClone } from 'mol-util';
 import { Vec2 } from 'mol-math/linear-algebra';
-import { camelCaseToWords } from './string';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -101,7 +100,7 @@ export namespace ParamDefinition {
         params: Params
     }
     export function Group<P extends Params>(params: P, info: Info = {}): Group<Values<P>> {
-        return { type: 'group', defaultValue: getDefaultValues(params) as any, params };
+        return { type: 'group', defaultValue: getDefaultValues(params) as any, params, ...info };
     }
 
     export interface Mapped<T> extends Base<{ name: string, params: T }> {
@@ -134,15 +133,6 @@ export namespace ParamDefinition {
         const d: { [k: string]: any } = {}
         Object.keys(params).forEach(k => d[k] = params[k].defaultValue)
         return d as Values<T>
-    }
-
-    export function getLabels<T extends Params>(params: T) {
-        const d: { [k: string]: string } = {}
-        Object.keys(params).forEach(k => {
-            const label = params[k].label
-            d[k] = label === undefined ? camelCaseToWords(k) : label
-        })
-        return d as { [k in keyof T]: string }
     }
 
     export function clone<P extends Params>(params: P): P {

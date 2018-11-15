@@ -8,6 +8,7 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface BooleanParamComponentProps {
+    label: string
     param: PD.Boolean
     value: boolean
     onChange(v: boolean): void
@@ -29,7 +30,7 @@ export class BooleanParamComponent extends React.Component<BooleanParamComponent
 
     render() {
         return <div>
-            <span>{this.props.param.label} </span>
+            <span>{this.props.label} </span>
             <button onClick={e => this.onChange(!this.state.value) }>
                 {this.state.value ? 'Off' : 'On'}
             </button>

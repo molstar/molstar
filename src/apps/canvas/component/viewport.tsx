@@ -158,6 +158,7 @@ export class Viewport extends React.Component<ViewportProps, ViewportState> {
                     </select>
                 </div>
                 <ColorParamComponent
+                    label={BackgroundColorParam.label || ''}
                     param={BackgroundColorParam}
                     value={this.state.backgroundColor}
                     onChange={value => {
