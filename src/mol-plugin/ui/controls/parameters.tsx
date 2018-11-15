@@ -8,6 +8,8 @@
 import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
+import { ColorNames } from 'mol-util/color/tables';
+import { Color } from 'mol-util/color';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -37,6 +39,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'value': return void 0;
         case 'boolean': return BoolControl;
         case 'number': return NumberControl;
+        case 'converted': return ConvertedControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
         case 'select': return SelectControl;
@@ -122,18 +125,6 @@ export class SelectControl extends SimpleParam<PD.Select<any>> {
     }
 }
 
-
-export class MultiSelectControl extends SimpleParam<PD.MultiSelect<any>> {
-    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    //     this.setState({ value: e.target.value });
-    //     this.props.onChange(e.target.value);
-    // }
-
-    renderControl() {
-        return <span>multiselect TODO</span>;
-    }
-}
-
 export class IntervalControl extends SimpleParam<PD.Interval> {
     // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     //     this.setState({ value: e.target.value });
@@ -146,13 +137,44 @@ export class IntervalControl extends SimpleParam<PD.Interval> {
 }
 
 export class ColorControl extends SimpleParam<PD.Color> {
-    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    //     this.setState({ value: e.target.value });
-    //     this.props.onChange(e.target.value);
-    // }
+    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        this.update(Color(parseInt(e.target.value)));
+    }
 
     renderControl() {
-        return <span>color TODO</span>;
+        return <select value={this.props.value} onChange={this.onChange}>
+            {Object.keys(ColorNames).map(name => {
+                return <option key={name} value={(ColorNames as { [k: string]: Color})[name]}>{name}</option>
+            })}
+        </select>;
+    }
+}
+
+export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiSelect<any>>> {
+    change(value: PD.MultiSelect<any>['defaultValue'] ) {
+        console.log(this.props.name, value);
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    toggle(key: string) {
+        return () => {
+            if (this.props.value.indexOf(key) < 0) this.change(this.props.value.concat(key));
+            else this.change(this.props.value.filter(v => v !== key))
+        }
+    }
+
+    render() {
+        const current = this.props.value;
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        return <div>
+            <div>{label} <small>{`${current.length} of ${this.props.param.options.length}`}</small></div>
+            <div style={{ paddingLeft: '7px' }}>
+                {this.props.param.options.map(([value, label]) =>
+                    <button key={value} onClick={this.toggle(value)} disabled={this.props.isDisabled}>
+                        {current.indexOf(value) >= 0 ? `✓ ${label}` : `✗ ${label}`}
+                    </button>)}
+            </div>
+        </div>;
     }
 }
 
@@ -169,8 +191,11 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>>
     render() {
         const value: PD.Mapped<any>['defaultValue'] = this.props.value;
         const params = this.props.param.params;
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
 
+        // TODO toggle panel
         return <div>
+            <div>{label}</div>
             <ParameterControls params={params} onChange={this.onChangeParam} values={value.params} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
         </div>
     }
@@ -182,6 +207,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
     }
 
     onChangeName: ParamOnChange = e => {
+        // TODO: Cache values when changing types?
         this.change({ name: e.value, params: this.props.param.map(e.value).defaultValue });
     }
 
@@ -209,5 +235,23 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
                 <Mapped param={param} value={value} name='param' onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
             </div>
         </div>
+    }
+}
+
+export class ConvertedControl extends React.PureComponent<ParamProps<PD.Converted<any, any>>> {
+    onChange: ParamOnChange = e => {
+        this.props.onChange({
+            name: this.props.name,
+            param: this.props.param,
+            value: { name: e.value, params: this.props.param.toValue(e.value) }
+        });
+    }
+
+    render() {
+        const value = this.props.param.fromValue(this.props.value);
+        const Converted = controlFor(this.props.param.converted);
+
+        if (!Converted) return null;
+        return <Converted param={this.props.param.converted} value={value} name={this.props.name} onChange={this.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
     }
 }

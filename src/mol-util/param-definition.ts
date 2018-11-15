@@ -134,12 +134,12 @@ export namespace ParamDefinition {
 
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
-        convertedControl: Any,
+        converted: Any,
         fromValue(v: T): C,
         toValue(v: C): T
     }
-    export function Converted<T, C extends Any>(defaultValue: T, convertedControl: C, fromValue: (v: T) => C, toValue: (v: C) => T, info?: Info): Converted<T, C> {
-        return setInfo<Converted<T, C>>({ type: 'converted', defaultValue, convertedControl, fromValue, toValue }, info);
+    export function Converted<T, C extends Any>(defaultValue: T, converted: C, fromValue: (v: T) => C, toValue: (v: C) => T): Converted<T, C> {
+        return { type: 'converted', defaultValue, converted, fromValue, toValue };
     }
 
     export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>

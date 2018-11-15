@@ -38,8 +38,9 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.St
                 ctx.structureReprensentation.registry.types,
                 name => PD.Group(
                     ctx.structureReprensentation.registry.get(name).getParams(ctx.structureReprensentation.themeCtx, a.data),
-                    { label: 'Params' }
-                )
+                    { label: 'Type Parameters' }
+                ),
+                { label: 'Type' }
             )
         })
     },
