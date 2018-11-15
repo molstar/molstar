@@ -45,7 +45,7 @@ class StateTransformParameters extends PurePluginComponent<StateTransformParamet
 namespace StateTransformParameters {
     export interface Props {
         info: {
-            definition: Transformer.ParamsProvider,
+            definition: Transformer.ParamsDefinition,
             params: PD.Params,
             initialValues: any,
             source: StateObject,

@@ -53,5 +53,5 @@ export function UpdateRepresentationVisibility(ctx: PluginContext) {
 }
 
 function updateVisibility(e: State.ObjectEvent, r: Representation<any>) {
-    r.setVisibility(!e.state.tree.cellStates.get(e.ref).isHidden);
+    r.setVisibility(!e.state.cellStates.get(e.ref).isHidden);
 }

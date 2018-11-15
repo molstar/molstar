@@ -138,8 +138,8 @@ export namespace ParamDefinition {
         fromValue(v: T): C,
         toValue(v: C): T
     }
-    export function Converted<T, C extends Any>(defaultValue: T, converted: C, fromValue: (v: T) => C, toValue: (v: C) => T): Converted<T, C> {
-        return { type: 'converted', defaultValue, converted, fromValue, toValue };
+    export function Converted<T, C extends Any>(fromValue: (v: T) => C['defaultValue'], toValue: (v: C['defaultValue']) => T, converted: C): Converted<T, C['defaultValue']> {
+        return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
     }
 
     export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>

@@ -47,7 +47,7 @@ export namespace Transformer {
 
     export enum UpdateResult { Unchanged, Updated, Recreate }
 
-    export interface ParamsProvider<A extends StateObject = StateObject, P = any> {
+    export interface ParamsDefinition<A extends StateObject = StateObject, P = any> {
         /** Check the parameters and return a list of errors if the are not valid. */
         default?(a: A, globalCtx: unknown): P,
         /** Specify default control descriptors for the parameters */
@@ -75,7 +75,7 @@ export namespace Transformer {
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
-        readonly params?: ParamsProvider<A, P>,
+        readonly params?: ParamsDefinition<A, P>,
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,

@@ -47,6 +47,7 @@ const ParseTrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Mol
 });
 
 export { CreateModelFromTrajectory }
+const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 namespace CreateModelFromTrajectory { export interface Params { modelIndex: number } }
 const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajectory, SO.Molecule.Model, CreateModelFromTrajectory.Params>({
     name: 'create-model-from-trajectory',
@@ -58,7 +59,7 @@ const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajec
     to: [SO.Molecule.Model],
     params: {
         default: () => ({ modelIndex: 0 }),
-        definition: a => ({ modelIndex: PD.Numeric(0, { min: 0, max: Math.max(0, a.data.length - 1), step: 1 }, { description: 'Model Index' }) })
+        definition: a => ({ modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) })
     },
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {

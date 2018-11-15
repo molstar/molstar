@@ -129,7 +129,7 @@ export class CurrentObject extends PluginComponent {
 
         const type = obj && obj.obj ? obj.obj.type : void 0;
 
-        const transform = current.state.tree.transforms.get(ref);
+        const transform = current.state.transforms.get(ref);
 
         const actions = type
             ? current.state.actions.fromType(type)

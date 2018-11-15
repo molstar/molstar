@@ -22,7 +22,8 @@ namespace ApplyActionContol {
     }
 
     export interface ComponentState {
-        nodeRef: Transform.Ref,
+        ref: Transform.Ref,
+        version: string,
         params: any,
         error?: string,
         busy: boolean,
@@ -38,24 +39,28 @@ class ApplyActionContol extends TransformContolBase<ApplyActionContol.Props, App
             ref: this.props.nodeRef
         });
     }
-    getInfo() { return this._getInfo(this.props.nodeRef); }
+    getInfo() { return this._getInfo(this.props.nodeRef, this.props.state.transforms.get(this.props.nodeRef).version); }
     getHeader() { return this.props.action.definition.display; }
     getHeaderFallback() { return this.props.action.id; }
     isBusy() { return !!this.state.error || this.state.busy; }
     applyText() { return 'Apply'; }
 
-    private _getInfo = memoizeOne((t: Transform.Ref) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
+    private _getInfo = memoizeOne((t: Transform.Ref, v: string) => StateTransformParameters.infoFromAction(this.plugin, this.props.state, this.props.action, this.props.nodeRef));
 
-    state = { nodeRef: this.props.nodeRef, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false };
+    state = { ref: this.props.nodeRef, version: this.props.state.transforms.get(this.props.nodeRef).version, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false };
 
     static getDerivedStateFromProps(props: ApplyActionContol.Props, state: ApplyActionContol.ComponentState) {
-        if (props.nodeRef === state.nodeRef) return null;
+        if (props.nodeRef === state.ref) return null;
+        const version = props.state.transforms.get(props.nodeRef).version;
+        if (version === state.version) return null;
+
         const source = props.state.cells.get(props.nodeRef)!.obj!;
         const definition = props.action.definition.params || { };
         const initialValues = definition.default ? definition.default(source, props.plugin) : {};
 
         const newState: Partial<ApplyActionContol.ComponentState> = {
-            nodeRef: props.nodeRef,
+            ref: props.nodeRef,
+            version,
             params: initialValues,
             isInitial: true,
             error: void 0

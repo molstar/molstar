@@ -33,7 +33,7 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
     }
 
     get cellState() {
-        return this.props.state.tree.cellStates.get(this.props.nodeRef);
+        return this.props.state.cellStates.get(this.props.nodeRef);
     }
 
     componentDidMount() {
@@ -104,7 +104,7 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
             } else if (isCurrent) {
                 isCurrent = false;
                 // have to check the node wasn't remove
-                if (e.state.tree.transforms.has(this.props.nodeRef)) this.forceUpdate();
+                if (e.state.transforms.has(this.props.nodeRef)) this.forceUpdate();
             }
         });
     }
@@ -125,7 +125,7 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
     }
 
     render() {
-        const n = this.props.state.tree.transforms.get(this.props.nodeRef)!;
+        const n = this.props.state.transforms.get(this.props.nodeRef)!;
         const cell = this.props.state.cells.get(this.props.nodeRef)!;
 
         const isCurrent = this.is(this.props.state.behaviors.currentObject.value);
@@ -141,7 +141,7 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
             label = <><a href='#' onClick={this.setCurrent}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
         }
 
-        const cellState = this.props.state.tree.cellStates.get(this.props.nodeRef);
+        const cellState = this.props.state.cellStates.get(this.props.nodeRef);
         const visibility = <>[<a href='#' onClick={this.toggleVisible}>{cellState.isHidden ? 'H' : 'V'}</a>]</>;
 
         return <>

@@ -87,7 +87,10 @@ export class BoolControl extends SimpleParam<PD.Boolean> {
 export class NumberControl extends SimpleParam<PD.Numeric> {
     onChange = (e: React.ChangeEvent<HTMLInputElement>) => { this.update(+e.target.value); }
     renderControl() {
-        return <input type='range' value={'' + this.props.value} min={this.props.param.min} max={this.props.param.max} step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} />;
+        return <span>
+            <input type='range' value={'' + this.props.value} min={this.props.param.min} max={this.props.param.max} step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} />
+            <br />{this.props.value}
+        </span>
     }
 }
 
@@ -243,7 +246,7 @@ export class ConvertedControl extends React.PureComponent<ParamProps<PD.Converte
         this.props.onChange({
             name: this.props.name,
             param: this.props.param,
-            value: { name: e.value, params: this.props.param.toValue(e.value) }
+            value: this.props.param.toValue(e.value)
         });
     }
 
