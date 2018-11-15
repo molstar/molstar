@@ -8,6 +8,7 @@
 import { Color as ColorData } from './color';
 import { shallowClone, shallowEqual } from 'mol-util';
 import { Vec2 } from 'mol-math/linear-algebra';
+import { deepClone } from './object';
 
 export namespace ParamDefinition {
     export interface Info {
@@ -142,7 +143,7 @@ export namespace ParamDefinition {
     }
 
     export function clone<P extends Params>(params: P): P {
-        return shallowClone(params)
+        return deepClone(params)
     }
 
     /**
