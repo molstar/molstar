@@ -6,7 +6,7 @@
 
 import { StateAction } from 'mol-state/action';
 import { Transformer } from 'mol-state';
-import { StateTransformParameters } from './ui/state/parameters';
+import { StateTransformParameters } from './ui/state/common';
 
 export { PluginSpec }
 
