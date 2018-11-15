@@ -75,8 +75,7 @@ export namespace ParamDefinition {
         return setInfo<Color>({ type: 'color', defaultValue }, info)
     }
 
-    export interface Numeric extends Base<number> {
-        type: 'number'
+    export interface Range {
         /** If given treat as a range. */
         min?: number
         /** If given treat as a range. */
@@ -87,10 +86,7 @@ export namespace ParamDefinition {
          */
         step?: number
     }
-    export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info): Numeric {
-        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info)
-    }
-    function setRange(p: Numeric, range?: { min?: number, max?: number, step?: number }) {
+    function setRange<T extends Numeric | Interval>(p: T, range?: { min?: number, max?: number, step?: number }) {
         if (!range) return p;
         if (typeof range.min !== 'undefined') p.min = range.min;
         if (typeof range.max !== 'undefined') p.max = range.max;
@@ -98,11 +94,18 @@ export namespace ParamDefinition {
         return p;
     }
 
-    export interface Interval extends Base<[number, number]> {
+    export interface Numeric extends Base<number>, Range {
+        type: 'number'
+    }
+    export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info): Numeric {
+        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info)
+    }
+
+    export interface Interval extends Base<[number, number]>, Range {
         type: 'interval'
     }
-    export function Interval(defaultValue: [number, number], info?: Info): Interval {
-        return setInfo<Interval>({ type: 'interval', defaultValue }, info)
+    export function Interval(defaultValue: [number, number], range?: { min?: number, max?: number, step?: number }, info?: Info): Interval {
+        return setInfo<Interval>(setRange({ type: 'interval', defaultValue }, range), info)
     }
 
     export interface LineGraph extends Base<Vec2[]> {
@@ -151,8 +154,11 @@ export namespace ParamDefinition {
 
     export function getDefaultValues<T extends Params>(params: T) {
         const d: { [k: string]: any } = {}
-        Object.keys(params).forEach(k => d[k] = params[k].defaultValue)
-        return d as Values<T>
+        for (const k of Object.keys(params)) {
+            if (params[k].isOptional) continue;
+            d[k] = params[k].defaultValue;
+        }
+        return d as Values<T>;
     }
 
     export function getLabels<T extends Params>(params: T) {
