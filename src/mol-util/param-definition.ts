@@ -7,13 +7,20 @@
 
 import { Color as ColorData } from './color';
 import { shallowClone, shallowEqual } from 'mol-util';
-import { Vec2, Vec3 } from 'mol-math/linear-algebra';
+import { Vec2 } from 'mol-math/linear-algebra';
 import { camelCaseToWords } from './string';
 
 export namespace ParamDefinition {
     export interface Info {
         label?: string
         description?: string
+    }
+
+    function setInfo<T extends Info>(param: T, info?: Info): T {
+        if (!info) return param;
+        if (info.description) param.description = info.description;
+        if (info.label) param.label = info.label;
+        return param;
     }
 
     export interface Base<T> extends Info {
@@ -23,8 +30,8 @@ export namespace ParamDefinition {
     export interface Value<T> extends Base<T> {
         type: 'value'
     }
-    export function Value<T>(defaultValue: T, info: Info = {}): Value<T> {
-        return { type: 'value', defaultValue, ...info }
+    export function Value<T>(defaultValue: T, info?: Info): Value<T> {
+        return setInfo<Value<T>>({ type: 'value', defaultValue }, info);
     }
 
     export interface Select<T extends string> extends Base<T> {
@@ -32,8 +39,8 @@ export namespace ParamDefinition {
         /** array of (value, label) tuples */
         options: [T, string][]
     }
-    export function Select<T extends string>(defaultValue: T, options: [T, string][], info: Info = {}): Select<T> {
-        return { type: 'select', defaultValue, options, ...info }
+    export function Select<T extends string>(defaultValue: T, options: [T, string][], info?: Info): Select<T> {
+        return setInfo<Select<T>>({ type: 'select', defaultValue, options }, info)
     }
 
     export interface MultiSelect<E extends string, T = E[]> extends Base<T> {
@@ -41,29 +48,29 @@ export namespace ParamDefinition {
         /** array of (value, label) tuples */
         options: [E, string][]
     }
-    export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: [E, string][], info: Info = {}): MultiSelect<E, T> {
-        return { type: 'multi-select', defaultValue, options, ...info }
+    export function MultiSelect<E extends string, T = E[]>(defaultValue: T, options: [E, string][], info?: Info): MultiSelect<E, T> {
+        return setInfo<MultiSelect<E, T>>({ type: 'multi-select', defaultValue, options }, info)
     }
 
     export interface Boolean extends Base<boolean> {
         type: 'boolean'
     }
-    export function Boolean(defaultValue: boolean, info: Info = {}): Boolean {
-        return { type: 'boolean', defaultValue, ...info }
+    export function Boolean(defaultValue: boolean, info?: Info): Boolean {
+        return setInfo<Boolean>({ type: 'boolean', defaultValue }, info)
     }
 
     export interface Text extends Base<string> {
         type: 'text'
     }
-    export function Text(defaultValue: string = '', info: Info = {}): Text {
-        return { type: 'text', defaultValue, ...info }
+    export function Text(defaultValue: string = '', info?: Info): Text {
+        return setInfo<Text>({ type: 'text', defaultValue }, info)
     }
 
     export interface Color extends Base<ColorData> {
         type: 'color'
     }
-    export function Color(defaultValue: ColorData, info: Info = {}): Color {
-        return { type: 'color', defaultValue, ...info }
+    export function Color(defaultValue: ColorData, info?: Info): Color {
+        return setInfo<Color>({ type: 'color', defaultValue }, info)
     }
 
     export interface Numeric extends Base<number> {
@@ -78,30 +85,37 @@ export namespace ParamDefinition {
          */
         step?: number
     }
-    export function Numeric(defaultValue: number, range: { min?: number, max?: number, step?: number } = {}, info: Info = {}): Numeric {
-        return { type: 'number', defaultValue, ...range, ...info }
+    export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info): Numeric {
+        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info)
+    }
+    function setRange(p: Numeric, range?: { min?: number, max?: number, step?: number }) {
+        if (!range) return p;
+        if (typeof range.min !== 'undefined') p.min = range.min;
+        if (typeof range.max !== 'undefined') p.max = range.max;
+        if (typeof range.step !== 'undefined') p.step = range.step;
+        return p;
     }
 
     export interface Interval extends Base<[number, number]> {
         type: 'interval'
     }
-    export function Interval(defaultValue: [number, number], info: Info = {}): Interval {
-        return { type: 'interval', defaultValue, ...info }
+    export function Interval(defaultValue: [number, number], info?: Info): Interval {
+        return setInfo<Interval>({ type: 'interval', defaultValue }, info)
     }
 
     export interface LineGraph extends Base<Vec2[]> {
         type: 'line-graph'
     }
-    export function LineGraph(defaultValue: Vec2[], info: Info = {}): LineGraph {
-        return { type: 'line-graph', defaultValue, ...info }
+    export function LineGraph(defaultValue: Vec2[], info?: Info): LineGraph {
+        return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info)
     }
 
     export interface Group<T> extends Base<T> {
         type: 'group',
         params: Params
     }
-    export function Group<P extends Params>(params: P, info: Info = {}): Group<Values<P>> {
-        return { type: 'group', defaultValue: getDefaultValues(params) as any, params };
+    export function Group<P extends Params>(params: P, info?: Info): Group<Values<P>> {
+        return setInfo<Group<Values<P>>>({ type: 'group', defaultValue: getDefaultValues(params) as any, params }, info);
     }
 
     export interface NamedParams<T = any> { name: string, params: T }
@@ -110,20 +124,22 @@ export namespace ParamDefinition {
         select: Select<string>,
         map(name: string): Any
     }
-    export function Mapped<T>(defaultKey: string, names: [string, string][], map: Mapped<T>['map'], info: Info = {}): Mapped<T> {
-        return {
+    export function Mapped<T>(defaultKey: string, names: [string, string][], map: Mapped<T>['map'], info?: Info): Mapped<T> {
+        return setInfo<Mapped<T>>({
             type: 'mapped',
             defaultValue: { name: defaultKey, params: map(defaultKey).defaultValue as any },
             select: Select<string>(defaultKey, names, info),
-            map
-        };
+            map }, info);
     }
 
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
-        convertedControl: Base<C>,
+        convertedControl: Any,
         fromValue(v: T): C,
         toValue(v: C): T
+    }
+    export function Converted<T, C extends Any>(defaultValue: T, convertedControl: C, fromValue: (v: T) => C, toValue: (v: C) => T, info?: Info): Converted<T, C> {
+        return setInfo<Converted<T, C>>({ type: 'converted', defaultValue, convertedControl, fromValue, toValue }, info);
     }
 
     export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
