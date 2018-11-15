@@ -16,9 +16,9 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { VisualContext } from 'mol-repr/representation';
 
 export const LinkCylinderParams = {
-    linkScale: PD.Range('Link Scale', '', 0.4, 0, 1, 0.1),
-    linkSpacing: PD.Range('Link Spacing', '', 1, 0, 2, 0.01),
-    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
+    linkScale: PD.Numeric(0.4, { min: 0, max: 1, step: 0.1 }),
+    linkSpacing: PD.Numeric(1, { min: 0, max: 2, step: 0.01 }),
+    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
 }
 export const DefaultLinkCylinderProps = PD.getDefaultValues(LinkCylinderParams)
 export type LinkCylinderProps = typeof DefaultLinkCylinderProps

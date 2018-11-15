@@ -23,7 +23,7 @@ export class NumberParamComponent extends React.Component<NumberParamComponentPr
     }
 
     onChange(valueStr: string) {
-        const value = Number.isInteger(this.props.param.step) ? parseInt(valueStr) : parseFloat(valueStr)
+        const value = this.props.param.step && Number.isInteger(this.props.param.step) ? parseInt(valueStr) : parseFloat(valueStr)
         this.setState({ value })
         this.props.onChange(value)
     }

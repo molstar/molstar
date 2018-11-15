@@ -31,10 +31,10 @@ export const CartoonParams = {
     ...PolymerGapParams,
     ...NucleotideBlockParams,
     ...PolymerDirectionParams,
-    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
-    sizeTheme: PD.Select<BuiltInSizeThemeName>('Size Theme', '', 'uniform', BuiltInSizeThemeOptions),
-    colorTheme: PD.Select<BuiltInColorThemeName>('Color Theme', '', 'polymer-index', BuiltInColorThemeOptions),
-    visuals: PD.MultiSelect<CartoonVisualName>('Visuals', '', ['polymer-trace', 'polymer-gap', 'nucleotide-block'], CartoonVisualOptions),
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    sizeTheme: PD.Select<BuiltInSizeThemeName>('uniform', BuiltInSizeThemeOptions),
+    colorTheme: PD.Select<BuiltInColorThemeName>('polymer-index', BuiltInColorThemeOptions),
+    visuals: PD.MultiSelect<CartoonVisualName>(['polymer-trace', 'polymer-gap', 'nucleotide-block'], CartoonVisualOptions),
 }
 export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {

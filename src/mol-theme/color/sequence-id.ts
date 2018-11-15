@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every polymer residue a color based on its `seq_id` value.'
 
 export const SequenceIdColorThemeParams = {
-    list: PD.Select<ColorListName>('Color Scale', '', 'rainbow', ColorListOptions),
+    list: PD.Select<ColorListName>('rainbow', ColorListOptions),
 }
 export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {
     return SequenceIdColorThemeParams // TODO return copy

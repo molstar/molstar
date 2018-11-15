@@ -21,7 +21,7 @@ import { Theme } from 'mol-theme/theme';
 export const GaussianDensityPointParams = {
     ...UnitsPointsParams,
     ...GaussianDensityParams,
-    pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
+    pointSizeAttenuation: PD.Boolean(false),
 }
 export type GaussianDensityPointParams = typeof GaussianDensityPointParams
 

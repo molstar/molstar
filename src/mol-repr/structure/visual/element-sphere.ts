@@ -14,9 +14,9 @@ import { BuiltInSizeThemeName, BuiltInSizeThemeOptions } from 'mol-theme/size';
 
 export const ElementSphereParams = {
     ...UnitsMeshParams,
-    sizeTheme: PD.Select<BuiltInSizeThemeName>('Size Theme', '', 'physical', BuiltInSizeThemeOptions),
-    sizeFactor: PD.Numeric('Size Factor', '', 1, 0, 10, 0.1),
-    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
+    sizeTheme: PD.Select<BuiltInSizeThemeName>('physical', BuiltInSizeThemeOptions),
+    sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
 }
 export type ElementSphereParams = typeof ElementSphereParams
 

@@ -35,7 +35,7 @@ const sVec = Vec3.zero()
 const box = Box()
 
 export const NucleotideBlockMeshParams = {
-    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
 }
 export const DefaultNucleotideBlockMeshProps = PD.getDefaultValues(NucleotideBlockMeshParams)
 export type NucleotideBlockMeshProps = typeof DefaultNucleotideBlockMeshProps

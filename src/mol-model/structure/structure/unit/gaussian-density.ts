@@ -15,11 +15,11 @@ import { WebGLContext } from 'mol-gl/webgl/context';
 import { PhysicalSizeTheme } from 'mol-theme/size/physical';
 
 export const GaussianDensityParams = {
-    resolution: PD.Numeric('Resolution', '', 1, 0.1, 10, 0.1),
-    radiusOffset: PD.Numeric('Radius Offset', '', 0, 0, 10, 0.1),
-    smoothness: PD.Numeric('Smoothness', '', 1.5, 0.5, 2.5, 0.1),
-    useGpu: PD.Boolean('Use GPU', '', true),
-    ignoreCache: PD.Boolean('Ignore Cache', '', false),
+    resolution: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
+    radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
+    smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
+    useGpu: PD.Boolean(true),
+    ignoreCache: PD.Boolean(false),
 }
 export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams)
 export type GaussianDensityProps = typeof DefaultGaussianDensityProps

@@ -70,9 +70,9 @@ export namespace DirectVolume {
 
     export const Params = {
         ...Geometry.Params,
-        isoValue: PD.Range('Iso Value', '', 0.22, -1, 1, 0.01),
-        renderMode: PD.Select('Render Mode', '', 'isosurface', RenderModeOptions),
-        controlPoints: PD.Text('Control Points', '', '0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
+        isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
+        renderMode: PD.Select('isosurface', RenderModeOptions),
+        controlPoints: PD.Text('0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
     }
     export type Params = typeof Params
 

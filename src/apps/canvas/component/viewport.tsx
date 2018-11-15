@@ -28,7 +28,7 @@ interface ViewportState {
     backgroundColor: Color
 }
 
-const BackgroundColorParam = PD.Color('Background Color', '', Color(0x000000))
+const BackgroundColorParam = PD.Color(Color(0x000000), { label: 'Background Color' })
 
 export class Viewport extends React.Component<ViewportProps, ViewportState> {
     private container: HTMLDivElement | null = null;

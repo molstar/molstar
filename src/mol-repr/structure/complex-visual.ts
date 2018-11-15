@@ -30,7 +30,7 @@ export interface  ComplexVisual<P extends StructureParams> extends Visual<Struct
 
 const ComplexParams = {
     ...StructureParams,
-    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
+    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
 }
 type ComplexParams = typeof ComplexParams
 
@@ -176,7 +176,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
 
 export const ComplexMeshParams = {
     ...StructureMeshParams,
-    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', [ 'atomic', 'spheres' ], UnitKindOptions),
+    unitKinds: PD.MultiSelect<UnitKind>([ 'atomic', 'spheres' ], UnitKindOptions),
 }
 export type ComplexMeshParams = typeof ComplexMeshParams
 

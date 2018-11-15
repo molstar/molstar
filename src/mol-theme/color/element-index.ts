@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every element (atom or coarse sphere/gaussian) a unique color based on the position (index) of the element in the list of elements in the structure.'
 
 export const ElementIndexColorThemeParams = {
-    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+    list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
 export function getElementIndexColorThemeParams(ctx: ThemeDataContext) {
     return ElementIndexColorThemeParams // TODO return copy

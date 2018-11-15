@@ -41,7 +41,6 @@ function controlFor(param: PD.Any): ValueControl {
     switch (param.type) {
         case 'boolean': return BoolControl;
         case 'number': return NumberControl;
-        case 'range': return NumberControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
         case 'select': return SelectControl;

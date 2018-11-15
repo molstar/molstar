@@ -35,7 +35,7 @@ async function createGaussianWireframe(ctx: VisualContext, unit: Unit, structure
 export const GaussianWireframeParams = {
     ...UnitsLinesParams,
     ...GaussianDensityParams,
-    lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
+    lineSizeAttenuation: PD.Boolean(false),
 }
 export type GaussianWireframeParams = typeof GaussianWireframeParams
 

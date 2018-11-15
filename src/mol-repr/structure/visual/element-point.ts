@@ -18,7 +18,7 @@ import { Theme } from 'mol-theme/theme';
 
 export const ElementPointParams = {
     ...UnitsPointsParams,
-    pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
+    pointSizeAttenuation: PD.Boolean(false),
 }
 export type ElementPointParams = typeof ElementPointParams
 

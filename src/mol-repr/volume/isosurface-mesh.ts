@@ -41,7 +41,7 @@ export async function createVolumeIsosurface(ctx: VisualContext, volume: VolumeD
 
 export const IsosurfaceParams = {
     ...Mesh.Params,
-    isoValue: PD.Range('Iso Value', '', 0.22, -1, 1, 0.01),
+    isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
 }
 export type IsosurfaceParams = typeof IsosurfaceParams
 export function getIsosurfaceParams(ctx: ThemeRegistryContext, volume: VolumeData) {

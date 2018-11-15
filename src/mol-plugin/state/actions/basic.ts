@@ -20,7 +20,7 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
     params: {
         default: () => ({ id: '1grm' }),
         definition: () => ({
-            id: PD.Text('PDB id', '', '1grm'),
+            id: PD.Text('1grm', { label: 'PDB id' }),
         }),
         // validate: p => !p.id || !p.id.trim() ? [['Enter id.', 'id']] : void 0
     },

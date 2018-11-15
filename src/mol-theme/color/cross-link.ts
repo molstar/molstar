@@ -18,8 +18,8 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Colors cross-links by the deviation of the observed distance versus the modeled distance (e.g. `ihm_cross_link_restraint.distance_threshold`).'
 
 export const CrossLinkColorThemeParams = {
-    domain: PD.Interval('Color Domain', '', [-10, 10]),
-    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+    domain: PD.Interval([-10, 10]),
+    list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
 export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {
     return CrossLinkColorThemeParams // TODO return copy

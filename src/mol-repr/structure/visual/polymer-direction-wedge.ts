@@ -30,7 +30,7 @@ const heightFactor = 6
 const wedge = Wedge()
 
 export const PolymerDirectionWedgeParams = {
-    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
 }
 export const DefaultPolymerDirectionWedgeProps = PD.getDefaultValues(PolymerDirectionWedgeParams)
 export type PolymerDirectionWedgeProps = typeof DefaultPolymerDirectionWedgeProps

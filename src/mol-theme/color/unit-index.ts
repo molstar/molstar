@@ -16,7 +16,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every unit (single chain or collection of single elements) a unique color based on the position (index) of the unit in the list of units in the structure.'
 
 export const UnitIndexColorThemeParams = {
-    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+    list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
     return UnitIndexColorThemeParams // TODO return copy

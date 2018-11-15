@@ -21,7 +21,7 @@ import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
 export const PolymerBackboneCylinderParams = {
-    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
+    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
 }
 export const DefaultPolymerBackboneCylinderProps = PD.getDefaultValues(PolymerBackboneCylinderParams)
 export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps

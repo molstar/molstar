@@ -29,7 +29,7 @@ const ParseTrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Mol
             const { blocks } = a.data;
             if (blocks.length === 0) return {};
             return {
-                blockHeader: PD.Select('Header', 'Header of the block to parse', blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]))
+                blockHeader: PD.Select(blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })
             };
         }
     },
@@ -58,7 +58,7 @@ const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajec
     to: [SO.Molecule.Model],
     params: {
         default: () => ({ modelIndex: 0 }),
-        definition: a => ({ modelIndex: PD.Range('Model Index', 'Model Index', 0, 0, Math.max(0, a.data.length - 1), 1) })
+        definition: a => ({ modelIndex: PD.Numeric(0, { min: 0, max: Math.max(0, a.data.length - 1), step: 1 }, { description: 'Model Index' }) })
     },
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
@@ -106,7 +106,7 @@ const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Model, S
         definition(a) {
             const model = a.data;
             const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
-            return { id: PD.Select('Asm Id', 'Assembly Id', ids.length ? ids[0][0] : '', ids) };
+            return { id: PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' }) };
         }
     },
     apply({ a, params }) {

@@ -13,7 +13,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives everything the same, uniform color.'
 
 export const UniformColorThemeParams = {
-    value: PD.Color('Color Value', '', DefaultColor),
+    value: PD.Color(DefaultColor),
 }
 export function getUniformColorThemeParams(ctx: ThemeDataContext) {
     return UniformColorThemeParams // TODO return copy

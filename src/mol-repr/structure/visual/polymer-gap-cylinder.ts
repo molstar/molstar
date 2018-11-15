@@ -23,8 +23,8 @@ import { Theme } from 'mol-theme/theme';
 const segmentCount = 10
 
 export const PolymerGapCylinderParams = {
-    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
-    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
 }
 export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams)
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps

@@ -63,7 +63,7 @@ async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure:
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
 }
 export type CarbohydrateLinkParams = typeof CarbohydrateLinkParams
 

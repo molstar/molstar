@@ -11,7 +11,7 @@ import { ThemeDataContext } from 'mol-theme/theme';
 const Description = 'Gives everything the same, uniform size.'
 
 export const UniformSizeThemeParams = {
-    value: PD.Numeric('Size Value', '', 1, 0, 20, 0.1),
+    value: PD.Numeric(1, { min: 0, max: 20, step: 0.1 }),
 }
 export function getUniformSizeThemeParams(ctx: ThemeDataContext) {
     return UniformSizeThemeParams // TODO return copy

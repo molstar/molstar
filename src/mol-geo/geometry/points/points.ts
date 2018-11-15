@@ -57,9 +57,9 @@ export namespace Points {
 
     export const Params = {
         ...Geometry.Params,
-        pointSizeAttenuation: PD.Boolean('Point Size Attenuation', '', false),
-        pointFilledCircle: PD.Boolean('Point Filled Circle', '', false),
-        pointEdgeBleach: PD.Numeric('Point Edge Bleach', '', 0.2, 0, 1, 0.05),
+        pointSizeAttenuation: PD.Boolean(false),
+        pointFilledCircle: PD.Boolean(false),
+        pointEdgeBleach: PD.Numeric(0.2, { min: 0, max: 1, step: 0.05 }),
     }
     export type Params = typeof Params
 

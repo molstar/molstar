@@ -61,16 +61,16 @@ export namespace Geometry {
     //
 
     export const Params = {
-        alpha: PD.Range('Opacity', '', 1, 0, 1, 0.01),
-        depthMask: PD.Boolean('Depth Mask', '', true),
-        useFog: PD.Boolean('Use Fog', '', false),
-        highlightColor: PD.Color('Highlight Color', '', Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
-        selectColor: PD.Color('Select Color', '', Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
+        alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
+        depthMask: PD.Boolean(true),
+        useFog: PD.Boolean(false),
+        highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
+        selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
 
-        quality: PD.Select<VisualQuality>('Quality', '', 'auto', VisualQualityOptions),
+        quality: PD.Select<VisualQuality>('auto', VisualQualityOptions),
 
-        colorTheme: PD.Select<BuiltInColorThemeName>('Color Name', '', 'uniform', BuiltInColorThemeOptions),
-        sizeTheme: PD.Select<BuiltInSizeThemeName>('Size Name', '', 'uniform', BuiltInSizeThemeOptions),
+        colorTheme: PD.Select<BuiltInColorThemeName>('uniform', BuiltInColorThemeOptions),
+        sizeTheme: PD.Select<BuiltInSizeThemeName>('uniform', BuiltInSizeThemeOptions),
     }
     export type Params = typeof Params
 

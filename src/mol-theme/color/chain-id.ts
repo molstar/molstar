@@ -17,7 +17,7 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every chain a color based on its `asym_id` value.'
 
 export const ChainIdColorThemeParams = {
-    list: PD.Select<ColorListName>('Color Scale', '', 'RdYlBu', ColorListOptions),
+    list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
     return ChainIdColorThemeParams // TODO return copy

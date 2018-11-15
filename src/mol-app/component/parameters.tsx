@@ -8,7 +8,6 @@ import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BooleanParamComponent } from './parameter/boolean';
 import { NumberParamComponent } from './parameter/number';
-import { RangeParamComponent } from './parameter/range';
 import { SelectParamComponent } from './parameter/select';
 import { MultiSelectParamComponent } from './parameter/multi-select';
 import { TextParamComponent } from './parameter/text';
@@ -28,8 +27,6 @@ function getParamComponent<P extends PD.Any>(p: PD.Any, value: P['defaultValue']
             return <BooleanParamComponent param={p} value={value} onChange={onChange} />
         case 'number':
             return <NumberParamComponent param={p} value={value} onChange={onChange} />
-        case 'range':
-            return <RangeParamComponent param={p} value={value} onChange={onChange} />
         case 'select':
             return <SelectParamComponent param={p} value={value} onChange={onChange} />
         case 'multi-select':

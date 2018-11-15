@@ -147,7 +147,7 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
 
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
-    detail: PD.Numeric('Sphere Detail', '', 0, 0, 3, 1),
+    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
 }
 export type CarbohydrateSymbolParams = typeof CarbohydrateSymbolParams
 

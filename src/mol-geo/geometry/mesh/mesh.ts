@@ -341,9 +341,9 @@ export namespace Mesh {
 
     export const Params = {
         ...Geometry.Params,
-        doubleSided: PD.Boolean('Double Sided', '', false),
-        flipSided: PD.Boolean('Flip Sided', '', false),
-        flatShaded: PD.Boolean('Flat Shaded', '', false),
+        doubleSided: PD.Boolean(false),
+        flipSided: PD.Boolean(false),
+        flatShaded: PD.Boolean(false),
     }
     export type Params = typeof Params
 

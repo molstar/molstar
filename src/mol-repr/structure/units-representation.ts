@@ -21,7 +21,7 @@ import { BehaviorSubject } from 'rxjs';
 
 export const UnitsParams = {
     ...StructureParams,
-    unitKinds: PD.MultiSelect<UnitKind>('Unit Kind', '', ['atomic', 'spheres'], UnitKindOptions),
+    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
 }
 export type UnitsParams = typeof UnitsParams
 

@@ -33,10 +33,14 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.St
             }
         }),
         definition: (a, ctx: PluginContext) => ({
-            type: PD.Mapped('Type', '',
+            type: PD.Mapped(
                 ctx.structureReprensentation.registry.default.name,
                 ctx.structureReprensentation.registry.types,
-                name => PD.Group('Params', '', ctx.structureReprensentation.registry.get(name).getParams(ctx.structureReprensentation.themeCtx, a.data)))
+                name => PD.Group(
+                    ctx.structureReprensentation.registry.get(name).getParams(ctx.structureReprensentation.themeCtx, a.data),
+                    { label: 'Params' }
+                )
+            )
         })
     },
     apply({ a, params }, plugin: PluginContext) {

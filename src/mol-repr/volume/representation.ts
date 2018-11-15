@@ -135,7 +135,7 @@ export type VolumeRepresentationProvider<P extends VolumeParams> = Representatio
 
 export const VolumeParams = {
     ...Geometry.Params,
-    isoValue: PD.Range('Iso Value', '', 0.22, -1, 1, 0.01),
+    isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
 }
 export type VolumeParams = typeof VolumeParams
 

@@ -67,7 +67,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
 export const IntraUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
 }
 export type IntraUnitLinkParams = typeof IntraUnitLinkParams
 

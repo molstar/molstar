@@ -19,11 +19,11 @@ import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
 export const PolymerTraceMeshParams = {
-    sizeFactor: PD.Numeric('Size Factor', '', 0.2, 0, 10, 0.01),
-    linearSegments: PD.Numeric('Linear Segments', '', 8, 1, 48, 1),
-    radialSegments: PD.Numeric('Radial Segments', '', 16, 3, 56, 1),
-    aspectRatio: PD.Numeric('Aspect Ratio', '', 5, 0.1, 5, 0.1),
-    arrowFactor: PD.Numeric('Arrow Factor', '', 1.5, 0.1, 5, 0.1),
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    linearSegments: PD.Numeric(8, { min: 1, max: 48, step: 1 }),
+    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
+    aspectRatio: PD.Numeric(5, { min: 0.1, max: 5, step: 0.1 }),
+    arrowFactor: PD.Numeric(1.5, { min: 0.1, max: 5, step: 0.1 }),
 }
 export const DefaultPolymerTraceMeshProps = PD.getDefaultValues(PolymerTraceMeshParams)
 export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps

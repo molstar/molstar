@@ -95,7 +95,7 @@ export namespace Lines {
 
     export const Params = {
         ...Geometry.Params,
-        lineSizeAttenuation: PD.Boolean('Line Size Attenuation', '', false),
+        lineSizeAttenuation: PD.Boolean(false),
     }
     export type Params = typeof Params
 
