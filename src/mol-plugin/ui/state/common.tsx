@@ -16,10 +16,6 @@ import { Subject } from 'rxjs';
 export { StateTransformParameters, TransformContolBase };
 
 class StateTransformParameters extends PurePluginComponent<StateTransformParameters.Props> {
-    getDefinition() {
-        return this.props.info.createDefinition(this.props.info.source, this.plugin)
-    }
-
     validate(params: any) {
         // TODO
         return void 0;
@@ -43,7 +39,6 @@ class StateTransformParameters extends PurePluginComponent<StateTransformParamet
 namespace StateTransformParameters {
     export interface Props {
         info: {
-            createDefinition: Transformer.ParamsDefinition,
             params: PD.Params,
             initialValues: any,
             source: StateObject,
@@ -61,11 +56,10 @@ namespace StateTransformParameters {
 
     export function infoFromAction(plugin: PluginContext, state: State, action: StateAction, nodeRef: Transform.Ref): Props['info'] {
         const source = state.cells.get(nodeRef)!.obj!;
-        const params = action.definition.params(source, plugin);
+        const params = action.definition.params ? action.definition.params(source, plugin) : { };
         const initialValues = PD.getDefaultValues(params);
         return {
             source,
-            createDefinition: action.definition.params,
             initialValues,
             params,
             isEmpty: Object.keys(params).length === 0
@@ -75,11 +69,10 @@ namespace StateTransformParameters {
     export function infoFromTransform(plugin: PluginContext, state: State, transform: Transform): Props['info'] {
         const cell = state.cells.get(transform.ref)!;
         const source: StateObjectCell | undefined = (cell.sourceRef && state.cells.get(cell.sourceRef)!) || void 0;
-        const createDefinition = transform.transformer.definition.params;
-        const params = createDefinition((source && source.obj) as any, plugin);
+        const create = transform.transformer.definition.params;
+        const params = create ? create((source && source.obj) as any, plugin) : { };
         return {
             source: (source && source.obj) as any,
-            createDefinition,
             initialValues: transform.params,
             params,
             isEmpty: Object.keys(params).length === 0

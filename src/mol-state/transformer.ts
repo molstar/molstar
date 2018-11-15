@@ -46,10 +46,8 @@ export namespace Transformer {
 
     export enum UpdateResult { Unchanged, Updated, Recreate }
 
-    export const EmptyParams = () => ({});
-
     /** Specify default control descriptors for the parameters */
-    export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
+    // export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
 
     export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
         readonly name: string,
@@ -70,7 +68,7 @@ export namespace Transformer {
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
-        params(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
+        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,
@@ -136,7 +134,6 @@ export namespace Transformer {
         name: 'root',
         from: [],
         to: [],
-        params: EmptyParams,
         apply() { throw new Error('should never be applied'); },
         update() { return UpdateResult.Unchanged; }
     })

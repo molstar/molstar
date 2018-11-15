@@ -76,7 +76,6 @@ const CreateStructure = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecu
     },
     from: [SO.Molecule.Model],
     to: [SO.Molecule.Structure],
-    params: () => ({}),
     apply({ a, params }) {
         let s = Structure.ofModel(a.data);
         if (params.transform3d) s = Structure.transform(s, params.transform3d);

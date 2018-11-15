@@ -56,7 +56,9 @@ class ApplyActionContol extends TransformContolBase<ApplyActionContol.Props, App
         if (version === state.version) return null;
 
         const source = props.state.cells.get(props.nodeRef)!.obj!;
-        const params = PD.getDefaultValues(props.action.definition.params(source, props.plugin));
+        const params = props.action.definition.params
+            ? PD.getDefaultValues(props.action.definition.params(source, props.plugin))
+            : { };
 
         const newState: Partial<ApplyActionContol.ComponentState> = {
             ref: props.nodeRef,

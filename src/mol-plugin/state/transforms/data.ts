@@ -56,7 +56,6 @@ const ParseCif = PluginStateTransform.Create<SO.Data.String | SO.Data.Binary, SO
     },
     from: [SO.Data.String, SO.Data.Binary],
     to: [SO.Data.Cif],
-    params: () => ({}),
     apply({ a }) {
         return Task.create('Parse CIF', async ctx => {
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);

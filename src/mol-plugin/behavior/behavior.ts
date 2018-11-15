@@ -37,7 +37,7 @@ namespace PluginBehavior {
             group: string,
             description?: string
         },
-        params(a: Root, globalCtx: PluginContext): { [K in keyof P]: ParamDefinition.Any }
+        params?(a: Root, globalCtx: PluginContext): { [K in keyof P]: ParamDefinition.Any }
     }
 
     export function create<P>(params: CreateParams<P>) {

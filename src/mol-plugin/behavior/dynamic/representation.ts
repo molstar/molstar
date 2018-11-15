@@ -25,8 +25,7 @@ export const HighlightLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Highlight Loci on Canvas', group: 'Data' },
-    params: () => ({})
+    display: { name: 'Highlight Loci on Canvas', group: 'Data' }
 });
 
 export const SelectLoci = PluginBehavior.create({
@@ -39,6 +38,5 @@ export const SelectLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Select Loci on Canvas', group: 'Data' },
-    params: () => ({})
+    display: { name: 'Select Loci on Canvas', group: 'Data' }
 });
