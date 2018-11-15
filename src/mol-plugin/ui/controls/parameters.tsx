@@ -47,6 +47,7 @@ function controlFor(param: PD.Any): ValueControl {
         case 'select': return SelectControl;
         case 'text': return TextControl;
         case 'interval': return IntervalControl;
+        case 'converted': return ConvertedControl;
         case 'group': throw Error('Must be handled separately');
         case 'mapped': throw Error('Must be handled separately');
     }
@@ -143,7 +144,6 @@ export class SelectControl extends React.PureComponent<ValueControlProps<PD.Sele
     }
 }
 
-
 export class MultiSelectControl extends React.PureComponent<ValueControlProps<PD.MultiSelect<any>>> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const value = Array.from(e.target.options).filter(option => option.selected).map(option => option.value);
@@ -152,7 +152,6 @@ export class MultiSelectControl extends React.PureComponent<ValueControlProps<PD
     }
 
     render() {
-        // return <span>multiselect TODO</span>;
         return <select multiple value={this.props.value || ''} onChange={this.onChange}>
             {this.props.param.options.map(([value, label]) => <option key={label} value={value}>{label}</option>)}
         </select>;
@@ -178,6 +177,19 @@ export class ColorControl extends React.PureComponent<ValueControlProps<PD.Color
 
     render() {
         return <span>color TODO</span>;
+    }
+}
+
+export class ConvertedControl extends React.PureComponent<ValueControlProps<PD.Converted<any, any>>> {
+    onChange = (v: any) => {
+        console.log('onChange', v)
+        this.props.onChange(this.props.param.toValue(v));
+    }
+
+    render() {
+        const Control: ValueControl = controlFor(this.props.param.param as PD.Any);
+
+        return <Control value={this.props.param.fromValue(this.props.value)} param={this.props.param} onChange={this.onChange} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
     }
 }
 

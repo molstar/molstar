@@ -117,11 +117,16 @@ export namespace ParamDefinition {
         };
     }
 
-    export interface Converted<T, C> extends Base<T> {
+    export interface Converted<T, C> extends Base<C> {
         type: 'converted',
-        convertedControl: Base<C>,
+        param: Base<C>,
+        /** converts from prop value to display value */
         fromValue(v: T): C,
+        /** converts from display value to prop value */
         toValue(v: C): T
+    }
+    export function Converted<T, C>(param: Base<C>, fromValue: Converted<T, C>['fromValue'], toValue: Converted<T, C>['toValue']): Converted<T, C> {
+        return { type: 'converted', param, defaultValue: param.defaultValue, fromValue, toValue, label: param.label, description: param.description };
     }
 
     export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
