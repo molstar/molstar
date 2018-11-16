@@ -7,9 +7,10 @@
 import { Color, ColorMap } from 'mol-util/color';
 import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorTheme, TableLegend } from '../color';
+import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ThemeDataContext } from '../theme';
+import { TableLegend } from 'mol-util/color/tables';
 
 // protein colors from Jmol http://jmol.sourceforge.net/jscolors/
 const ResidueNameColors = ColorMap({
@@ -124,5 +125,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: ResidueNameC
 }
 
 export const ResidueNameColorThemeProvider: ColorTheme.Provider<typeof ResidueNameColorThemeParams> = {
-    factory: ResidueNameColorTheme, params: getResidueNameColorThemeParams
+    label: 'Residue Name',
+    factory: ResidueNameColorTheme,
+    getParams: getResidueNameColorThemeParams
 }

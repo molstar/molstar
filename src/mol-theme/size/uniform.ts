@@ -30,5 +30,7 @@ export function UniformSizeTheme(ctx: ThemeDataContext, props: UniformSizeThemeP
 }
 
 export const UniformSizeThemeProvider: SizeTheme.Provider<typeof UniformSizeThemeParams> = {
-    factory: UniformSizeTheme, params: getUniformSizeThemeParams
+    label: 'Uniform',
+    factory: UniformSizeTheme,
+    getParams: getUniformSizeThemeParams
 }

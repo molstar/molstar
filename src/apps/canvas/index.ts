@@ -28,14 +28,14 @@ if (pdbId) app.loadPdbIdOrMmcifUrl(pdbId, { assemblyId })
 // app.loadPdbIdOrMmcifUrl('3pqr')
 // app.loadCcp4Url('http://localhost:8091/ngl/data/3pqr-mode0.ccp4')
 
-// app.loadPdbIdOrMmcifUrl('1lee')
-// app.loadCcp4Url('http://localhost:8091/ngl/data/1lee.ccp4')
+app.loadPdbIdOrMmcifUrl('1lee')
+app.loadCcp4Url('http://localhost:8091/ngl/data/1lee.ccp4')
 
 // app.loadPdbIdOrMmcifUrl('6DRV')
 // app.loadCcp4Url('http://localhost:8091/ngl/data/betaGal.mrc')
 
 // app.loadPdbIdOrMmcifUrl('3pqr')
-// app.loadVolCifUrl('https://webchem.ncbr.muni.cz/DensityServer/x-ray/3pqr/cell?space=fractional', true)
+// app.loadVolcifUrl('https://webchem.ncbr.muni.cz/DensityServer/x-ray/3pqr/cell?space=fractional', true)
 
 // app.loadPdbIdOrMmcifUrl('5ire')
 // app.loadVolcifUrl('https://webchem.ncbr.muni.cz/DensityServer/em/emd-8116/cell?space=cartesian&detail=6', true)

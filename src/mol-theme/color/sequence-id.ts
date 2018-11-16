@@ -99,5 +99,7 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: SequenceIdCol
 }
 
 export const SequenceIdColorThemeProvider: ColorTheme.Provider<typeof SequenceIdColorThemeParams> = {
-    factory: SequenceIdColorTheme, params: getSequenceIdColorThemeParams
+    label: 'Sequence Id',
+    factory: SequenceIdColorTheme,
+    getParams: getSequenceIdColorThemeParams
 }

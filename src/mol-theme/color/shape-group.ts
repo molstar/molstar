@@ -35,5 +35,7 @@ export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: ShapeGroupCol
 }
 
 export const ShapeGroupColorThemeProvider: ColorTheme.Provider<typeof ShapeGroupColorThemeParams> = {
-    factory: ShapeGroupColorTheme, params: getShapeGroupColorThemeParams
+    label: 'Shape Group',
+    factory: ShapeGroupColorTheme,
+    getParams: getShapeGroupColorThemeParams
 }

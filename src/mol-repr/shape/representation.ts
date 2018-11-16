@@ -18,7 +18,7 @@ import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { ThemeProps, createTheme } from 'mol-theme/theme';
+import { createTheme } from 'mol-theme/theme';
 import { BehaviorSubject } from 'rxjs';
 
 export interface ShapeRepresentation<P extends ShapeParams> extends Representation<Shape, P> { }
@@ -38,7 +38,7 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
     let currentProps: PD.Values<P> = PD.getDefaultValues(ShapeParams) as PD.Values<P>
     let currentParams: P
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, themeProps: ThemeProps = {}, shape?: Shape) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, shape?: Shape) {
         currentProps = Object.assign({}, currentProps, props)
         if (shape) _shape = shape
 
@@ -49,7 +49,7 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
 
             const mesh = _shape.mesh
             const locationIt = ShapeGroupIterator.fromShape(_shape)
-            const theme = createTheme(ctx, currentProps, themeProps, {})
+            const theme = createTheme(ctx, currentProps, {})
             const transform = createIdentityTransform()
 
             const values = await Mesh.createValues(runtime, mesh, transform, locationIt, theme, currentProps)

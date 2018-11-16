@@ -14,7 +14,7 @@ import { WebGLContext } from 'mol-gl/webgl/context';
 import { getQualityProps } from './util';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
-import { ThemeProps, Theme, ThemeRegistryContext } from 'mol-theme/theme';
+import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
 import { BehaviorSubject } from 'rxjs';
 
 // export interface RepresentationProps {
@@ -84,7 +84,7 @@ interface Representation<D, P extends PD.Params = {}> {
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
-    createOrUpdate: (ctx: RepresentationContext, props?: Partial<PD.Values<P>>, themeProps?: ThemeProps, data?: D) => Task<void>
+    createOrUpdate: (ctx: RepresentationContext, props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (value: boolean) => void
@@ -137,7 +137,7 @@ namespace Representation {
                 return props as P
             },
             get params() { return currentParams },
-            createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, themeProps: ThemeProps = {}, data?: D) => {
+            createOrUpdate: (ctx: RepresentationContext, props: Partial<P> = {}, data?: D) => {
                 if (data && data !== currentData) {
                     currentParams = getParams(ctx, data)
                     currentData = data
@@ -150,7 +150,7 @@ namespace Representation {
                 return Task.create(`Creating '${label}' representation`, async runtime => {
                     for (let i = 0, il = reprList.length; i < il; ++i) {
                         if (!visuals || visuals.includes(reprMap[i])) {
-                            await reprList[i].createOrUpdate(ctx, currentProps, themeProps, currentData).runInContext(runtime)
+                            await reprList[i].createOrUpdate(ctx, currentProps, currentData).runInContext(runtime)
                         }
                     }
                     updated.next(updated.getValue() + 1)

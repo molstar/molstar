@@ -15,9 +15,6 @@ export { CreateStructureRepresentation }
 namespace CreateStructureRepresentation {
     export interface Params {
         type: { name: string, params: any /** todo is there "common type" */ },
-        // TODO
-        // colorTheme: { name: string, params: any /** todo is there "common type" */ }
-        // sizeTheme: { name: string, params: any /** todo is there "common type" */ }
     }
 }
 const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Representation3D, CreateStructureRepresentation.Params>({
@@ -47,7 +44,7 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.St
         return Task.create('Structure Representation', async ctx => {
             const provider = plugin.structureReprensentation.registry.get(params.type.name)
             const repr = provider.factory(provider.getParams)
-            await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl, ...plugin.structureReprensentation.themeCtx }, params.type.params || {}, {}, a.data).runInContext(ctx);
+            await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl, ...plugin.structureReprensentation.themeCtx }, params.type.params || {}, a.data).runInContext(ctx);
             return new SO.Molecule.Representation3D(repr, { label: provider.label });
         });
     },
@@ -55,7 +52,7 @@ const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.St
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return Transformer.UpdateResult.Recreate;
 
-            await b.data.createOrUpdate({ webgl: plugin.canvas3d.webgl, ...plugin.structureReprensentation.themeCtx }, { ...b.data.props, ...newParams.type.params }, {}, a.data).runInContext(ctx);
+            await b.data.createOrUpdate({ webgl: plugin.canvas3d.webgl, ...plugin.structureReprensentation.themeCtx }, { ...b.data.props, ...newParams.type.params }, a.data).runInContext(ctx);
             return Transformer.UpdateResult.Updated;
         });
     }

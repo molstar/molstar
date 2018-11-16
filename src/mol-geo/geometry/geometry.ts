@@ -15,8 +15,8 @@ import { SizeType } from './size-data';
 import { Lines } from './lines/lines';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { DirectVolume } from './direct-volume/direct-volume';
-import { BuiltInSizeThemeOptions, BuiltInSizeThemeName } from 'mol-theme/size';
-import { BuiltInColorThemeName, BuiltInColorThemeOptions } from 'mol-theme/color';
+import { BuiltInSizeThemeOptions, getBuiltInSizeThemeParams } from 'mol-theme/size';
+import { BuiltInColorThemeOptions, getBuiltInColorThemeParams } from 'mol-theme/color';
 import { Color } from 'mol-util/color';
 import { Vec3 } from 'mol-math/linear-algebra';
 
@@ -69,8 +69,8 @@ export namespace Geometry {
 
         quality: PD.Select<VisualQuality>('auto', VisualQualityOptions),
 
-        colorTheme: PD.Select<BuiltInColorThemeName>('uniform', BuiltInColorThemeOptions),
-        sizeTheme: PD.Select<BuiltInSizeThemeName>('uniform', BuiltInSizeThemeOptions),
+        colorTheme: PD.Mapped('uniform', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
+        sizeTheme: PD.Mapped('uniform', BuiltInSizeThemeOptions, getBuiltInSizeThemeParams),
     }
     export type Params = typeof Params
 

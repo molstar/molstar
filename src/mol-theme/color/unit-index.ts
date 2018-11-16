@@ -57,5 +57,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: UnitIndexColor
 }
 
 export const UnitIndexColorThemeProvider: ColorTheme.Provider<typeof UnitIndexColorThemeParams> = {
-    factory: UnitIndexColorTheme, params: getUnitIndexColorThemeParams
+    label: 'Unit Index',
+    factory: UnitIndexColorTheme,
+    getParams: getUnitIndexColorThemeParams
 }

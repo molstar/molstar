@@ -8,9 +8,10 @@ import { ElementSymbol } from 'mol-model/structure/model/types';
 import { Color, ColorMap } from 'mol-util/color';
 import { StructureElement, Unit, Link } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorTheme, TableLegend } from '../color';
+import { ColorTheme } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ThemeDataContext } from '../theme';
+import { TableLegend } from 'mol-util/color/tables';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (or 0xFFFFFF)
 export const ElementSymbolColors = ColorMap({
@@ -59,5 +60,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: ElementSym
 }
 
 export const ElementSymbolColorThemeProvider: ColorTheme.Provider<typeof ElementSymbolColorThemeParams> = {
-    factory: ElementSymbolColorTheme, params: getElementSymbolColorThemeParams
+    label: 'Element Symbol',
+    factory: ElementSymbolColorTheme,
+    getParams: getElementSymbolColorThemeParams
 }

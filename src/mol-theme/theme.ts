@@ -8,6 +8,7 @@ import { ColorTheme } from './color';
 import { SizeTheme } from './size';
 import { Structure } from 'mol-model/structure';
 import { VolumeData } from 'mol-model/volume';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
 export interface ThemeRegistryContext {
     colorThemeRegistry: ColorTheme.Registry
@@ -20,8 +21,6 @@ export interface ThemeDataContext {
     volume?: VolumeData
 }
 
-export interface ThemeProps { color?: {}, size?: {} }
-
 export interface Theme {
     color: ColorTheme
     size: SizeTheme
@@ -30,17 +29,17 @@ export interface Theme {
 
 type Props = { [k: string]: any }
 
-export function createTheme(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props, themeProps: ThemeProps = {}, theme?: Theme) {
+export function createTheme(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props, theme?: Theme) {
     theme = theme || {
         color: ColorTheme.Empty,
         size: SizeTheme.Empty
     }
-    // TODO check if props have changed
-    if (typeof props.colorTheme === 'string') {
-        theme.color = ctx.colorThemeRegistry.create(props.colorTheme, data, themeProps.color)
-    }
-    if (typeof props.sizeTheme === 'string') {
-        theme.size = ctx.sizeThemeRegistry.create(props.sizeTheme, data, themeProps.size)
-    }
+
+    const colorProps = props.colorTheme as PD.NamedParams
+    const sizeProps = props.sizeTheme as PD.NamedParams
+
+    theme.color = ctx.colorThemeRegistry.create(colorProps.name, data, colorProps.params)
+    theme.size = ctx.sizeThemeRegistry.create(sizeProps.name, data, sizeProps.params)
+
     return theme
 }

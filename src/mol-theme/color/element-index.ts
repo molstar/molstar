@@ -68,5 +68,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: ElementInde
 }
 
 export const ElementIndexColorThemeProvider: ColorTheme.Provider<typeof ElementIndexColorThemeParams> = {
-    factory: ElementIndexColorTheme, params: getElementIndexColorThemeParams
+    label: 'Element Index',
+    factory: ElementIndexColorTheme,
+    getParams: getElementIndexColorThemeParams
 }

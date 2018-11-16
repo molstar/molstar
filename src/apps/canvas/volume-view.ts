@@ -54,7 +54,7 @@ export async function VolumeView(app: App, viewer: Canvas3D, volume: VolumeData,
     async function createVolumeRepr() {
         for (const k in volumeRepresentations) {
             if (active[k]) {
-                await app.runTask(volumeRepresentations[k].createOrUpdate(app.reprCtx, {}, {}, volume).run(
+                await app.runTask(volumeRepresentations[k].createOrUpdate(app.reprCtx, {}, volume).run(
                     progress => app.log(progress)
                 ), 'Create/update representation')
                 viewer.add(volumeRepresentations[k])

@@ -7,11 +7,12 @@
 import { Color, ColorMap } from 'mol-util/color';
 import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorTheme, TableLegend } from '../color';
+import { ColorTheme } from '../color';
 import { MoleculeType } from 'mol-model/structure/model/types';
 import { getElementMoleculeType } from 'mol-model/structure/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ThemeDataContext } from '../theme';
+import { TableLegend } from 'mol-util/color/tables';
 
 const MoleculeTypeColors = ColorMap({
     water: 0x386cb0,
@@ -68,5 +69,7 @@ export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: MoleculeTyp
 }
 
 export const MoleculeTypeColorThemeProvider: ColorTheme.Provider<typeof MoleculeTypeColorThemeParams> = {
-    factory: MoleculeTypeColorTheme, params: getMoleculeTypeColorThemeParams
+    label: 'Molecule Type',
+    factory: MoleculeTypeColorTheme,
+    getParams: getMoleculeTypeColorThemeParams
 }

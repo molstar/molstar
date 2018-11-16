@@ -65,5 +65,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PolymerInde
 }
 
 export const PolymerIndexColorThemeProvider: ColorTheme.Provider<typeof PolymerIndexColorThemeParams> = {
-    factory: PolymerIndexColorTheme, params: getPolymerIndexColorThemeParams
+    label: 'Polymer Index',
+    factory: PolymerIndexColorTheme,
+    getParams: getPolymerIndexColorThemeParams
 }

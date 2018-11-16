@@ -14,8 +14,7 @@ import { StructureRepresentation, StructureRepresentationProvider } from '../rep
 import { Representation, RepresentationParamsGetter } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
-import { BuiltInSizeThemeName, BuiltInSizeThemeOptions } from 'mol-theme/size';
-import { BuiltInColorThemeName, BuiltInColorThemeOptions } from 'mol-theme/color';
+import { BuiltInColorThemeOptions, BuiltInColorThemes, ColorTheme } from 'mol-theme/color';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const BallAndStickVisuals = {
@@ -32,8 +31,7 @@ export const BallAndStickParams = {
     ...InterUnitLinkParams,
     unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
     sizeFactor: PD.Numeric(0.2, { min: 0.01, max: 10, step: 0.01 }),
-    sizeTheme: PD.Select<BuiltInSizeThemeName>('uniform', BuiltInSizeThemeOptions),
-    colorTheme: PD.Select<BuiltInColorThemeName>('polymer-index', BuiltInColorThemeOptions),
+    colorTheme: PD.Mapped('polymer-index', BuiltInColorThemeOptions, name => PD.Group((BuiltInColorThemes as { [k: string]: ColorTheme.Provider<any> })[name].getParams({}))),
     visuals: PD.MultiSelect<BallAndStickVisualName>(['element-sphere', 'intra-link', 'inter-link'], BallAndStickVisualOptions),
 }
 export type BallAndStickParams = typeof BallAndStickParams

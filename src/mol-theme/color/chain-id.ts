@@ -80,5 +80,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThem
 }
 
 export const ChainIdColorThemeProvider: ColorTheme.Provider<typeof ChainIdColorThemeParams> = {
-    factory: ChainIdColorTheme, params: getChainIdColorThemeParams
+    label: 'Chain Id',
+    factory: ChainIdColorTheme,
+    getParams: getChainIdColorThemeParams
 }

@@ -13,7 +13,7 @@ import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
-import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
+import { Theme, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BehaviorSubject } from 'rxjs';
 
@@ -26,14 +26,14 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
     let _props: PD.Values<P>
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
             _structure = structure
             if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
-        _theme = createTheme(ctx, { structure: _structure }, props, themeProps, _theme)
+        _theme = createTheme(ctx, { structure: _structure }, props, _theme)
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()

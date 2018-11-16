@@ -7,11 +7,12 @@
 import { Color, ColorMap } from 'mol-util/color';
 import { StructureElement, Unit, Link, ElementIndex } from 'mol-model/structure';
 import { Location } from 'mol-model/location';
-import { ColorTheme, TableLegend } from '../color';
+import { ColorTheme } from '../color';
 import { SecondaryStructureType, MoleculeType } from 'mol-model/structure/model/types';
 import { getElementMoleculeType } from 'mol-model/structure/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ThemeDataContext } from '../theme';
+import { TableLegend } from 'mol-util/color/tables';
 
 // from Jmol http://jmol.sourceforge.net/jscolors/ (shapely)
 const SecondaryStructureColors = ColorMap({
@@ -91,5 +92,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: Secon
 }
 
 export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<typeof SecondaryStructureColorThemeParams> = {
-    factory: SecondaryStructureColorTheme, params: getSecondaryStructureColorThemeParams
+    label: 'Secondary Structure',
+    factory: SecondaryStructureColorTheme,
+    getParams: getSecondaryStructureColorThemeParams
 }

@@ -6,7 +6,6 @@
 
 import { Color } from './color'
 import { ColorBrewer, ColorMatplotlib, ColorOther } from './tables'
-import { ScaleLegend } from 'mol-theme/color';
 import { defaults } from 'mol-util';
 
 export type ColorListName = (
@@ -30,6 +29,16 @@ export function getColorListFromName(name: ColorListName) {
 }
 
 //
+
+export interface ScaleLegend {
+    kind: 'scale-legend'
+    minLabel: string,
+    maxLabel: string,
+    colors: Color[]
+}
+export function ScaleLegend(minLabel: string, maxLabel: string, colors: Color[]): ScaleLegend {
+    return { kind: 'scale-legend', minLabel, maxLabel, colors }
+}
 
 export interface ColorScale {
     /** Returns hex color for given value */

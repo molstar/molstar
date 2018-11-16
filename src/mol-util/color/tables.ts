@@ -4,7 +4,15 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorMap, ColorTable } from './color';
+import { ColorMap, ColorTable, Color } from './color';
+
+export interface TableLegend {
+    kind: 'table-legend'
+    table: [ string, Color ][]
+}
+export function TableLegend(table: [ string, Color ][]): TableLegend {
+    return { kind: 'table-legend', table }
+}
 
 /**
  * Brewer Color Lists

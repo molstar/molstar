@@ -19,7 +19,7 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { VisualUpdateState } from 'mol-repr/util';
 import { ValueCell } from 'mol-util';
-import { ThemeProps, Theme, createTheme } from 'mol-theme/theme';
+import { Theme, createTheme } from 'mol-theme/theme';
 import { BehaviorSubject } from 'rxjs';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
@@ -149,14 +149,14 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
     let _theme: Theme
     let busy = false
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, themeProps: ThemeProps = {}, volume?: VolumeData) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
         if (volume && volume !== _volume) {
             _params = getParams(ctx, volume)
             _volume = volume
             if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
-        _theme = createTheme(ctx, _props, themeProps, {}, _theme)
+        _theme = createTheme(ctx, _props, {}, _theme)
 
         return Task.create('VolumeRepresentation.create', async runtime => {
             // TODO queue it somehow

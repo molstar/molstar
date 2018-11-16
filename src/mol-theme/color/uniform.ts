@@ -4,10 +4,11 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { ColorTheme, TableLegend } from '../color';
+import { ColorTheme } from '../color';
 import { Color } from 'mol-util/color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
-import { ThemeDataContext } from 'mol-theme/theme';
+import { ThemeDataContext } from '../theme';
+import { TableLegend } from 'mol-util/color/tables';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives everything the same, uniform color.'
@@ -33,5 +34,7 @@ export function UniformColorTheme(ctx: ThemeDataContext, props: UniformColorThem
 }
 
 export const UniformColorThemeProvider: ColorTheme.Provider<typeof UniformColorThemeParams> = {
-    factory: UniformColorTheme, params: getUniformColorThemeParams
+    label: 'Uniform',
+    factory: UniformColorTheme,
+    getParams: getUniformColorThemeParams
 }

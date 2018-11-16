@@ -27,23 +27,28 @@ namespace SizeTheme {
     }
 
     export interface Provider<P extends PD.Params> {
+        readonly label: string
         readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => SizeTheme<PD.Values<P>>
-        readonly params: (ctx: ThemeDataContext) => P
+        readonly getParams: (ctx: ThemeDataContext) => P
     }
 
     export class Registry {
         private _list: { name: string, provider: Provider<any> }[] = []
         private _map = new Map<string, Provider<any>>()
 
+        get default() { return this._list[0]; }
+        get types(): [string, string][] {
+            return this._list.map(e => [e.name, e.provider.label] as [string, string]);
+        }
+
         constructor() {
             Object.keys(BuiltInSizeThemes).forEach(name => {
                 const p = (BuiltInSizeThemes as { [k: string]: Provider<any> })[name]
-                this.add(name, p.factory, p.params)
+                this.add(name, p)
             })
         }
 
-        add<P extends PD.Params>(name: string, factory: Provider<P>['factory'], params: Provider<P>['params']) {
-            const provider = { factory, params } as Provider<P>
+        add<P extends PD.Params>(name: string, provider: Provider<P>) {
             this._list.push({ name, provider })
             this._map.set(name, provider)
         }
@@ -54,7 +59,7 @@ namespace SizeTheme {
 
         create(id: string, ctx: ThemeDataContext, props = {}) {
             const provider = this.get(id)
-            return provider ? provider.factory(ctx, { ...PD.getDefaultValues(provider.params(ctx)), ...props }) : Empty
+            return provider ? provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props }) : Empty
         }
 
         get list() {
@@ -70,3 +75,4 @@ export const BuiltInSizeThemes = {
 export type BuiltInSizeThemeName = keyof typeof BuiltInSizeThemes
 export const BuiltInSizeThemeNames = Object.keys(BuiltInSizeThemes)
 export const BuiltInSizeThemeOptions = BuiltInSizeThemeNames.map(n => [n, n] as [BuiltInSizeThemeName, string])
+export const getBuiltInSizeThemeParams = (name: string, ctx: ThemeDataContext = {}) => PD.Group((BuiltInSizeThemes as { [k: string]: SizeTheme.Provider<any> })[name].getParams(ctx))

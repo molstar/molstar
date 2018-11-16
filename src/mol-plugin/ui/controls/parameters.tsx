@@ -187,9 +187,9 @@ export class ConvertedControl extends React.PureComponent<ValueControlProps<PD.C
     }
 
     render() {
-        const Control: ValueControl = controlFor(this.props.param.param as PD.Any);
+        const Control: ValueControl = controlFor(this.props.param.convertedControl as PD.Any);
 
-        return <Control value={this.props.param.fromValue(this.props.value)} param={this.props.param.param} onChange={this.onChange} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
+        return <Control value={this.props.param.fromValue(this.props.value)} param={this.props.param.convertedControl} onChange={this.onChange} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />
     }
 }
 
@@ -236,7 +236,7 @@ export class MappedControl extends React.PureComponent<MappedWrapperProps> {
         return <div>
             <ParamWrapper control={SelectControl} param={this.props.param.select}
                 isEnabled={this.props.isEnabled} onChange={this.onChangeName} onEnter={this.props.onEnter}
-                name={'name'} value={value.name} />
+                name={getLabel(this.props.name, this.props.param)} value={value.name} />
             <div style={{ borderLeft: '5px solid #777', paddingLeft: '5px' }}>
                 {param.type === 'group'
                     ? <GroupControl param={param} value={value} name='param' onChange={this.onChangeParam} onEnter={this.props.onEnter} isEnabled={this.props.isEnabled} />

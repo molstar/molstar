@@ -14,7 +14,7 @@ import { StructureGroup } from './units-visual';
 import { StructureRepresentation, StructureParams } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { Theme, ThemeProps, createTheme } from 'mol-theme/theme';
+import { Theme, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { BehaviorSubject } from 'rxjs';
@@ -37,13 +37,13 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
     let _props: PD.Values<P>
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, themeProps: ThemeProps = {}, structure?: Structure) {
+    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
             if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
-        _theme = createTheme(ctx, { structure: structure || _structure }, props, themeProps, _theme)
+        _theme = createTheme(ctx, { structure: structure || _structure }, props, _theme)
 
         return Task.create('Creating or updating UnitsRepresentation', async runtime => {
             if (!_structure && !structure) {
