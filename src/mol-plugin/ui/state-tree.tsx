@@ -58,24 +58,15 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
         });
     }
 
-    toggleExpanded = (e: React.MouseEvent<HTMLElement>) => {
-        e.preventDefault();
-        PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
-    }
-
     render() {
         const cellState = this.cellState;
 
-        const expander = <>
-            [<a href='#' onClick={this.toggleExpanded}>{cellState.isCollapsed ? '+' : '-'}</a>]
-        </>;
-
         const children = this.props.state.tree.children.get(this.props.nodeRef);
         return <div>
-            {children.size === 0 ? void 0 : expander} <StateTreeNodeLabel nodeRef={this.props.nodeRef} state={this.props.state} />
+            <StateTreeNodeLabel nodeRef={this.props.nodeRef} state={this.props.state} />
             {children.size === 0
                 ? void 0
-                : <div style={{ marginLeft: '7px', paddingLeft: '3px', borderLeft: '1px solid #999', display: cellState.isCollapsed ? 'none' : 'block' }}>
+                : <div className='msp-tree-children' style={{ display: cellState.isCollapsed ? 'none' : 'block' }}>
                     {children.map(c => <StateTreeNode state={this.props.state} nodeRef={c!} key={c} />)}
                 </div>
             }
@@ -103,7 +94,7 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
                 }
             } else if (isCurrent) {
                 isCurrent = false;
-                // have to check the node wasn't remove
+                // have to check the node wasn't removed
                 if (e.state.transforms.has(this.props.nodeRef)) this.forceUpdate();
             }
         });
@@ -122,6 +113,13 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
     toggleVisible = (e: React.MouseEvent<HTMLElement>) => {
         e.preventDefault();
         PluginCommands.State.ToggleVisibility.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        e.currentTarget.blur();
+    }
+
+    toggleExpanded = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.ToggleExpanded.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        e.currentTarget.blur();
     }
 
     render() {
@@ -130,22 +128,35 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
 
         const isCurrent = this.is(this.props.state.behaviors.currentObject.value);
 
-        const remove = <>[<a href='#' onClick={this.remove}>X</a>]</>
 
         let label: any;
         if (cell.status !== 'ok' || !cell.obj) {
             const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
-            label = <><b>{cell.status}</b> <a href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
+            const title = `${cell.errorText}`
+            label = <><b>{cell.status}</b> <a title={title} href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
-            label = <><a href='#' onClick={this.setCurrent}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
+            const title = `${obj.label} ${obj.description ? obj.description : ''}`
+            label = <><a title={title} href='#' onClick={this.setCurrent}>{obj.label}</a> {obj.description ? <small>{obj.description}</small> : void 0}</>;
         }
 
+        const children = this.props.state.tree.children.get(this.props.nodeRef);
         const cellState = this.props.state.cellStates.get(this.props.nodeRef);
-        const visibility = <>[<a href='#' onClick={this.toggleVisible}>{cellState.isHidden ? 'H' : 'V'}</a>]</>;
 
-        return <>
-            {remove}{visibility} {isCurrent ? <b>{label}</b> : label}
-        </>;
+        const remove = <button onClick={this.remove} className='msp-btn msp-btn-link msp-tree-remove-button'>
+            <span className='msp-icon msp-icon-remove' />
+        </button>;
+
+        const visibility = <button onClick={this.toggleVisible} className={`msp-btn msp-btn-link msp-tree-visibility${cellState.isHidden ? ' msp-tree-visibility-hidden' : ''}`}>
+            <span className='msp-icon msp-icon-visual-visibility' />
+        </button>;
+
+        return <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`}>
+            {isCurrent ? <b>{label}</b> : label}
+            {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
+                <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />
+            </button>}
+            {remove}{visibility}
+        </div>
     }
 }

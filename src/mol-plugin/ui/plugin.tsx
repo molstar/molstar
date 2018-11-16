@@ -59,7 +59,7 @@ export class ViewportWrapper extends PluginComponent {
                 <TrajectoryControls />
             </div>
             <ViewportControls />
-            <div style={{ position: 'absolute', left: '10px', bottom: '10px', color: 'white' }}>
+            <div style={{ position: 'absolute', left: '10px', bottom: '10px' }}>
                 <BackgroundTaskProgress />
             </div>
         </>;
@@ -79,8 +79,10 @@ export class State extends PluginComponent {
     render() {
         const kind = this.plugin.state.behavior.kind.value;
         return <>
-            <button onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal'}}>Data</button>
-            <button onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal'}}>Behavior</button>
+            <div className='msp-btn-row-group msp-data-beh'>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal'}}>Data</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal'}}>Behavior</button>
+            </div>
             <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
         </>
     }

@@ -54,3 +54,54 @@
     top: 0;
     width: $row-height;
 }
+
+.msp-tree-row {
+    position: relative;
+    height: $row-height;
+    line-height: $row-height;
+    background: color-lower-contrast($control-background, 4%);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 1px;
+    padding-left: $row-height;
+    padding-right: 2 * $row-height + $control-spacing;
+    border-bottom-left-radius: $control-spacing;
+
+    &-current {
+        background: $control-background
+    }
+}
+
+.msp-tree-remove-button {
+    position: absolute;
+    right: $row-height;
+    top: 0;
+    width: $row-height;
+    font-size: 80%;
+    color: color-lower-contrast($font-color, 24%);
+}
+
+.msp-tree-toggle-exp-button {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: $row-height;
+    color: color-lower-contrast($font-color, 24%);
+}
+
+.msp-tree-visibility {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: $row-height;
+    font-size: 80%;
+
+    &-hidden {
+        color: color-lower-contrast($font-color, 36%);
+    }
+}
+
+.msp-tree-children {
+    margin-left: $control-spacing;
+}

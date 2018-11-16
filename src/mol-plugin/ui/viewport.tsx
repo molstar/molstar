@@ -22,7 +22,7 @@ export class ViewportControls extends PluginComponent {
 
     render() {
         return <div style={{ position: 'absolute', right: '10px', top: '10px', height: '100%', color: 'white' }}>
-            <button onClick={this.resetCamera}>Reset Camera</button>
+            <button className='msp-btn msp-btn-link' onClick={this.resetCamera}>↻ Camera</button>
         </div>
     }
 }

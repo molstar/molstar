@@ -12,9 +12,10 @@ import { List } from 'immutable';
 import { LogEntry } from 'mol-util/log-entry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
+import { Subject } from 'rxjs';
 
 export class StateSnapshots extends PluginComponent<{ }, { serverUrl: string }> {
-    state = { serverUrl: 'http://webchem.ncbr.muni.cz/molstar-state' }
+    state = { serverUrl: 'https://webchem.ncbr.muni.cz/molstar-state' }
 
     updateServerUrl = (serverUrl: string) => { this.setState({ serverUrl }) };
 
@@ -28,13 +29,16 @@ export class StateSnapshots extends PluginComponent<{ }, { serverUrl: string }> 
     }
 }
 
+// TODO: this is not nice: device some custom event system.
+const UploadedEvent = new Subject();
+
 class StateSnapshotControls extends PluginComponent<{ serverUrl: string, serverChanged: (url: string) => void }, { name: string, description: string, serverUrl: string, isUploading: boolean }> {
     state = { name: '', description: '', serverUrl: this.props.serverUrl, isUploading: false };
 
     static Params = {
         name: PD.Text(),
         description: PD.Text(),
-        serverUrl: PD.Text('http://webchem.ncbr.muni.cz/molstar-state')
+        serverUrl: PD.Text()
     }
 
     add = () => {
@@ -54,6 +58,8 @@ class StateSnapshotControls extends PluginComponent<{ serverUrl: string, serverC
         this.setState({ isUploading: true });
         await PluginCommands.State.Snapshots.Upload.dispatch(this.plugin, { name: this.state.name, description: this.state.description, serverUrl: this.state.serverUrl });
         this.setState({ isUploading: false });
+        this.plugin.log(LogEntry.message('Snapshot uploaded.'));
+        UploadedEvent.next();
     }
 
     render() {
@@ -91,7 +97,7 @@ class LocalStateSnapshotList extends PluginComponent<{ }, { }> {
         return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.state.snapshots.entries.valueSeq().map(e =><li key={e!.id}>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
-                <button onClick={this.remove(e!.id)} style={{ float: 'right' }} className='msp-btn msp-btn-link msp-state-list-remove-button'>
+                <button onClick={this.remove(e!.id)} className='msp-btn msp-btn-link msp-state-list-remove-button'>
                     <span className='msp-icon msp-icon-remove' />
                 </button>
             </li>)}
@@ -99,13 +105,14 @@ class LocalStateSnapshotList extends PluginComponent<{ }, { }> {
     }
 }
 
-type RemoteEntry = { url: string, timestamp: number, id: string, name: string, description: string }
+type RemoteEntry = { url: string, removeUrl: string, timestamp: number, id: string, name: string, description: string }
 class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { entries: List<RemoteEntry>, isFetching: boolean }> {
     state = { entries: List<RemoteEntry>(), isFetching: false };
 
     componentDidMount() {
         this.subscribe(this.plugin.events.state.snapshots.changed, () => this.forceUpdate());
         this.refresh();
+        this.subscribe(UploadedEvent, this.refresh);
     }
 
     refresh = async () => {
@@ -113,7 +120,13 @@ class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { e
             this.setState({ isFetching: true });
             const req = await fetch(`${this.props.serverUrl}/list`);
             const json: RemoteEntry[] = await req.json();
-            this.setState({ entries: List<RemoteEntry>(json.map((e: RemoteEntry) => ({ ...e, url: `${this.props.serverUrl}/get/${e.id}` }))), isFetching: false })
+            this.setState({
+                entries: List<RemoteEntry>(json.map((e: RemoteEntry) => ({
+                    ...e,
+                    url: `${this.props.serverUrl}/get/${e.id}`,
+                    removeUrl: `${this.props.serverUrl}/remove/${e.id}`
+                }))),
+                isFetching: false })
         } catch (e) {
             this.plugin.log(LogEntry.error('Fetching Remote Snapshots: ' + e));
             this.setState({ entries: List<RemoteEntry>(), isFetching: false })
@@ -124,6 +137,16 @@ class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { e
         return () => PluginCommands.State.Snapshots.Fetch.dispatch(this.plugin, { url });
     }
 
+    remove(url: string) {
+        return async () => {
+            this.setState({ entries: List() });
+            try {
+                await fetch(url);
+            } catch { }
+            this.refresh();
+        }
+    }
+
     render() {
         return <div>
             <button title='Click to Refresh' style={{fontWeight: 'bold'}} className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isFetching}>↻ Remote Snapshots</button>
@@ -131,6 +154,9 @@ class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { e
             <ul style={{ listStyle: 'none' }} className='msp-state-list'>
                 {this.state.entries.valueSeq().map(e =><li key={e!.id}>
                     <button className='msp-btn msp-btn-block msp-form-control' onClick={this.fetch(e!.url)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
+                    <button onClick={this.remove(e!.removeUrl)} className='msp-btn msp-btn-link msp-state-list-remove-button'>
+                        <span className='msp-icon msp-icon-remove' />
+                    </button>
                 </li>)}
             </ul>
         </div>;
