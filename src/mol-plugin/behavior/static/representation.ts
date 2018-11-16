@@ -6,19 +6,21 @@
 
 import { PluginStateObject as SO } from '../../state/objects';
 import { PluginContext } from 'mol-plugin/context';
+import { Representation } from 'mol-repr/representation';
+import { State } from 'mol-state';
 
 export function registerDefault(ctx: PluginContext) {
     SyncRepresentationToCanvas(ctx);
+    UpdateRepresentationVisibility(ctx);
 }
 
 export function SyncRepresentationToCanvas(ctx: PluginContext) {
     const events = ctx.state.dataState.events;
     events.object.created.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
+        updateVisibility(e, e.obj.data);
         ctx.canvas3d.add(e.obj.data);
         ctx.canvas3d.requestDraw(true);
-
-        // TODO: update visiblity, e.obj.data.setVisibility()
     });
     events.object.updated.subscribe(e => {
         if (e.oldObj && SO.isRepresentation3D(e.oldObj)) {
@@ -29,16 +31,15 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
 
         if (!SO.isRepresentation3D(e.obj)) return;
 
-        // TODO: update visiblity, e.obj.data.setVisibility()
+        updateVisibility(e, e.obj.data);
         ctx.canvas3d.add(e.obj.data);
         ctx.canvas3d.requestDraw(true);
     });
     events.object.removed.subscribe(e => {
-        const oo = e.obj;
-        if (!SO.isRepresentation3D(oo)) return;
-        ctx.canvas3d.remove(oo.data);
+        if (!SO.isRepresentation3D(e.obj)) return;
+        ctx.canvas3d.remove(e.obj.data);
         ctx.canvas3d.requestDraw(true);
-        oo.data.destroy();
+        e.obj.data.destroy();
     });
 }
 
@@ -46,7 +47,11 @@ export function UpdateRepresentationVisibility(ctx: PluginContext) {
     ctx.state.dataState.events.cell.stateUpdated.subscribe(e => {
         const cell = e.state.cells.get(e.ref)!;
         if (!SO.isRepresentation3D(cell.obj)) return;
-
-        // TODO: update visiblity, e.obj.data.setVisibility()
+        updateVisibility(e, cell.obj.data);
+        ctx.canvas3d.requestDraw(true);
     })
+}
+
+function updateVisibility(e: State.ObjectEvent, r: Representation<any>) {
+    r.setVisibility(!e.state.cellStates.get(e.ref).isHidden);
 }

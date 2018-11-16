@@ -22,17 +22,11 @@ const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
     },
     from: [SO.Root],
     to: [SO.Data.String, SO.Data.Binary],
-    params: {
-        default: () => ({
-            url: 'https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif'
-        }),
-        definition: () => ({
-            url: PD.Text('', { description: 'Resource URL. Must be the same domain or support CORS.' }),
-            label: PD.Text(''),
-            isBinary: PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' })
-        }),
-        // validate: p => !p.url || !p.url.trim() ? [['Enter url.', 'url']] : void 0
-    },
+    params: () => ({
+        url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
+        label: PD.Text('', { isOptional: true }),
+        isBinary: PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)', isOptional: true })
+    }),
     apply({ params: p }, globalCtx: PluginContext) {
         return Task.create('Download', async ctx => {
             // TODO: track progress

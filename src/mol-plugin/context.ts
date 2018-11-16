@@ -20,7 +20,6 @@ import { BuiltInPluginBehaviors } from './behavior';
 import { PluginCommand, PluginCommands } from './command';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
-import { PluginStateObject as SO } from './state/objects';
 import { TaskManager } from './util/task-manager';
 
 export class PluginContext {
@@ -43,8 +42,6 @@ export class PluginContext {
                 removed: merge(this.state.dataState.events.object.removed, this.state.behaviorState.events.object.removed),
                 updated: merge(this.state.dataState.events.object.updated, this.state.behaviorState.events.object.updated)
             },
-            // data: this.state.dataState.events,
-            // behavior: this.state.behaviorState.events,
             cameraSnapshots: this.state.cameraSnapshots.events,
             snapshots: this.state.snapshots.events,
         },
@@ -58,10 +55,6 @@ export class PluginContext {
     }
 
     readonly behaviors = {
-        // state: {
-        //     data: this.state.dataState.behaviors,
-        //     behavior: this.state.behaviorState.behaviors
-        // },
         canvas: {
             highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
             selectLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
@@ -145,33 +138,12 @@ export class PluginContext {
         return PluginCommands.State.Update.dispatch(this, { state, tree });
     }
 
-    private initEvents() {
-        this.events.state.object.created.subscribe(o => {
-            if (!SO.isBehavior(o.obj)) return;
-            o.obj.data.register();
-        });
-
-        this.events.state.object.removed.subscribe(o => {
-            if (!SO.isBehavior(o.obj)) return;
-            o.obj.data.unregister();
-        });
-
-        this.events.state.object.updated.subscribe(o => {
-            if (o.action === 'recreate') {
-                if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
-                if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register();
-            }
-        });
-    }
-
     constructor(public spec: PluginSpec) {
-        this.initEvents();
         this.initBuiltInBehavior();
 
         this.initBehaviors();
         this.initDataActions();
     }
 
-    // logger = ;
     // settings = ;
 }

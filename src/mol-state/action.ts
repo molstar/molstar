@@ -46,7 +46,7 @@ namespace StateAction {
          */
         apply(params: ApplyParams<A, P>, globalCtx: unknown): T | Task<T>,
 
-        readonly params?: Transformer.ParamsProvider<A, P>
+        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean
@@ -66,7 +66,7 @@ namespace StateAction {
         return create<Transformer.From<T>, void, Transformer.Params<T>>({
             from: def.from,
             display: def.display,
-            params: def.params as Transformer<Transformer.From<T>, any, Transformer.Params<T>>['definition']['params'],
+            params: def.params as Transformer.Definition<Transformer.From<T>, any, Transformer.Params<T>>['params'],
             apply({ cell, state, params }) {
                 const tree = state.build().to(cell.transform.ref).apply(transformer, params);
                 return state.update(tree);

@@ -138,13 +138,9 @@ class TransientTree implements StateTree {
         ensurePresent(this.transforms, ref);
 
         const transform = this.transforms.get(ref)!;
-        const def = transform.transformer.definition;
-        if (def.params && def.params.areEqual) {
-            if (def.params.areEqual(transform.params, params)) return false;
-        } else {
-            if (shallowEqual(transform.params, params)) {
-                return false;
-            }
+        // TODO: should this be here?
+        if (shallowEqual(transform.params, params)) {
+            return false;
         }
 
         if (!this.changedNodes) {

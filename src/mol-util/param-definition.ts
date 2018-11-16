@@ -12,14 +12,16 @@ import { deepClone } from './object';
 
 export namespace ParamDefinition {
     export interface Info {
-        label?: string
-        description?: string
+        label?: string,
+        description?: string,
+        isOptional?: boolean
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
         if (info.description) param.description = info.description;
         if (info.label) param.label = info.label;
+        if (info.isOptional) param.isOptional = info.isOptional;
         return param;
     }
 
@@ -73,8 +75,7 @@ export namespace ParamDefinition {
         return setInfo<Color>({ type: 'color', defaultValue }, info)
     }
 
-    export interface Numeric extends Base<number> {
-        type: 'number'
+    export interface Range {
         /** If given treat as a range. */
         min?: number
         /** If given treat as a range. */
@@ -85,10 +86,7 @@ export namespace ParamDefinition {
          */
         step?: number
     }
-    export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info): Numeric {
-        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info)
-    }
-    function setRange(p: Numeric, range?: { min?: number, max?: number, step?: number }) {
+    function setRange<T extends Numeric | Interval>(p: T, range?: { min?: number, max?: number, step?: number }) {
         if (!range) return p;
         if (typeof range.min !== 'undefined') p.min = range.min;
         if (typeof range.max !== 'undefined') p.max = range.max;
@@ -96,11 +94,18 @@ export namespace ParamDefinition {
         return p;
     }
 
-    export interface Interval extends Base<[number, number]> {
+    export interface Numeric extends Base<number>, Range {
+        type: 'number'
+    }
+    export function Numeric(defaultValue: number, range?: { min?: number, max?: number, step?: number }, info?: Info): Numeric {
+        return setInfo<Numeric>(setRange({ type: 'number', defaultValue }, range), info)
+    }
+
+    export interface Interval extends Base<[number, number]>, Range {
         type: 'interval'
     }
-    export function Interval(defaultValue: [number, number], info?: Info): Interval {
-        return setInfo<Interval>({ type: 'interval', defaultValue }, info)
+    export function Interval(defaultValue: [number, number], range?: { min?: number, max?: number, step?: number }, info?: Info): Interval {
+        return setInfo<Interval>(setRange({ type: 'interval', defaultValue }, range), info)
     }
 
     export interface LineGraph extends Base<Vec2[]> {
@@ -134,14 +139,14 @@ export namespace ParamDefinition {
 
     export interface Converted<T, C> extends Base<T> {
         type: 'converted',
-        convertedControl: Any,
-        /** converts from prop value to display value */
+        converted: Any,
+        /** converts from props value to display value */
         fromValue(v: T): C,
         /** converts from display value to prop value */
         toValue(v: C): T
     }
-    export function Converted<T, C extends Any>(defaultValue: T, convertedControl: C, fromValue: (v: T) => C, toValue: (v: C) => T, info?: Info): Converted<T, C> {
-        return setInfo<Converted<T, C>>({ type: 'converted', defaultValue, convertedControl, fromValue, toValue }, info);
+    export function Converted<T, C extends Any>(fromValue: (v: T) => C['defaultValue'], toValue: (v: C['defaultValue']) => T, converted: C): Converted<T, C['defaultValue']> {
+        return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
     }
 
     export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
@@ -151,8 +156,11 @@ export namespace ParamDefinition {
 
     export function getDefaultValues<T extends Params>(params: T) {
         const d: { [k: string]: any } = {}
-        Object.keys(params).forEach(k => d[k] = params[k].defaultValue)
-        return d as Values<T>
+        for (const k of Object.keys(params)) {
+            if (params[k].isOptional) continue;
+            d[k] = params[k].defaultValue;
+        }
+        return d as Values<T>;
     }
 
     export function clone<P extends Params>(params: P): P {

@@ -8,8 +8,10 @@ import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
 import { StateTree, Transform, State } from 'mol-state';
 import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
+import { PluginStateObject as SO } from '../../state/objects';
 
 export function registerDefault(ctx: PluginContext) {
+    SyncBehaviors(ctx);
     SetCurrentObject(ctx);
     Update(ctx);
     ApplyAction(ctx);
@@ -17,6 +19,25 @@ export function registerDefault(ctx: PluginContext) {
     ToggleExpanded(ctx);
     ToggleVisibility(ctx);
     Snapshots(ctx);
+}
+
+export function SyncBehaviors(ctx: PluginContext) {
+    ctx.events.state.object.created.subscribe(o => {
+        if (!SO.isBehavior(o.obj)) return;
+        o.obj.data.register();
+    });
+
+    ctx.events.state.object.removed.subscribe(o => {
+        if (!SO.isBehavior(o.obj)) return;
+        o.obj.data.unregister();
+    });
+
+    ctx.events.state.object.updated.subscribe(o => {
+        if (o.action === 'recreate') {
+            if (o.oldObj && SO.isBehavior(o.oldObj)) o.oldObj.data.unregister();
+            if (o.obj && SO.isBehavior(o.obj)) o.obj.data.register();
+        }
+    });
 }
 
 export function SetCurrentObject(ctx: PluginContext) {
@@ -43,11 +64,11 @@ export function ToggleExpanded(ctx: PluginContext) {
 }
 
 export function ToggleVisibility(ctx: PluginContext) {
-    PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.tree.cellStates.get(ref).isHidden));
+    PluginCommands.State.ToggleVisibility.subscribe(ctx, ({ state, ref }) => setVisibility(state, ref, !state.cellStates.get(ref).isHidden));
 }
 
 function setVisibility(state: State, root: Transform.Ref, value: boolean) {
-    StateTree.doPreOrder(state.tree, state.tree.transforms.get(root), { state, value }, setVisibilityVisitor);
+    StateTree.doPreOrder(state.tree, state.transforms.get(root), { state, value }, setVisibilityVisitor);
 }
 
 function setVisibilityVisitor(t: Transform, tree: StateTree, ctx: { state: State, value: boolean }) {

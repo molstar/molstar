@@ -52,6 +52,8 @@ class State {
     readonly actions = new StateActionManager();
 
     get tree(): StateTree { return this._tree; }
+    get transforms() { return (this._tree as StateTree).transforms; }
+    get cellStates() { return (this._tree as StateTree).cellStates; }
     get current() { return this.behaviors.currentObject.value.ref; }
 
     build() { return this._tree.build(); }

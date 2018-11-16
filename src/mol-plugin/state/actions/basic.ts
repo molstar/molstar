@@ -17,13 +17,7 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
         name: 'Entry from PDBe',
         description: 'Download a structure from PDBe and create its default Assembly and visual'
     },
-    params: {
-        default: () => ({ id: '1grm' }),
-        definition: () => ({
-            id: PD.Text('1grm', { label: 'PDB id' }),
-        }),
-        // validate: p => !p.id || !p.id.trim() ? [['Enter id.', 'id']] : void 0
-    },
+    params: () => ({ id: PD.Text('1grm', { label: 'PDB id' }) }),
     apply({ params, state }) {
         const url = `http://www.ebi.ac.uk/pdbe/static/entry/${params.id.toLowerCase()}_updated.cif`;
         const b = state.build();
@@ -63,9 +57,10 @@ export const UpdateTrajectory = StateAction.create<PluginStateObject.Root, void,
     display: {
         name: 'Update Trajectory'
     },
-    params: {
-        default: () => ({ action: 'reset', by: 1 })
-    },
+    params: () => ({
+        action: PD.Select('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
+        by: PD.Numeric(1, { min: -1, max: 1, step: 1 }, { isOptional: true })
+    }),
     apply({ params, state }) {
         const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model).filter(c => c.transform.transformer === StateTransforms.Model.CreateModelFromTrajectory));
 
