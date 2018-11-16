@@ -147,6 +147,12 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         })
     }
 
+    function setPickable(value: boolean) {
+        visuals.forEach(({ visual }) => {
+            visual.setPickable(value)
+        })
+    }
+
     function destroy() {
         visuals.forEach(({ visual }) => visual.destroy())
         visuals.clear()
@@ -168,6 +174,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         getLoci,
         mark,
         setVisibility,
+        setPickable,
         destroy
     }
 }

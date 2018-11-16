@@ -12,6 +12,7 @@ import { Vec3 } from 'mol-math/linear-algebra';
 
 export type RenderableState = {
     visible: boolean
+    pickable: boolean
     depthMask: boolean
 }
 

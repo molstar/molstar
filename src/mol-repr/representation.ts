@@ -88,6 +88,7 @@ interface Representation<D, P extends PD.Params = {}> {
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (value: boolean) => void
+    setPickable: (value: boolean) => void
     destroy: () => void
 }
 namespace Representation {
@@ -98,6 +99,7 @@ namespace Representation {
         getLoci: () => EmptyLoci,
         mark: () => false,
         setVisibility: () => {},
+        setPickable: () => {},
         destroy: () => {}
     }
 
@@ -175,6 +177,11 @@ namespace Representation {
                     reprList[i].setVisibility(value)
                 }
             },
+            setPickable: (value: boolean) => {
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    reprList[i].setPickable(value)
+                }
+            },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].destroy()
@@ -197,5 +204,6 @@ export interface Visual<D, P extends PD.Params> {
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (value: boolean) => void
+    setPickable: (value: boolean) => void
     destroy: () => void
 }

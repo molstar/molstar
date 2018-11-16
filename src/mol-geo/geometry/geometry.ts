@@ -104,6 +104,7 @@ export namespace Geometry {
 export function createRenderableState(props: PD.Values<Geometry.Params>): RenderableState {
     return {
         visible: true,
+        pickable: true,
         depthMask: props.depthMask
     }
 }

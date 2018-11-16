@@ -39,7 +39,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void
 }
 
-export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>) {
+export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>): VolumeVisual<P> {
     const { defaultProps, createGeometry, getLoci, mark, setUpdateState } = builder
     const { createRenderObject, updateValues } = builder
     const updateState = VisualUpdateState.create()
@@ -120,6 +120,9 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
         setVisibility(value: boolean) {
             if (renderObject) renderObject.state.visible = value
         },
+        setPickable(value: boolean) {
+            if (renderObject) renderObject.state.pickable = value
+        },
         destroy() {
             // TODO
             renderObject = undefined
@@ -194,6 +197,10 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         if (visual) visual.setVisibility(value)
     }
 
+    function setPickable(value: boolean) {
+        if (visual) visual.setPickable(value)
+    }
+
     return {
         label,
         get renderObjects() {
@@ -206,6 +213,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         getLoci,
         mark,
         setVisibility,
+        setPickable,
         destroy
     }
 }

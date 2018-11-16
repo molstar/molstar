@@ -103,6 +103,9 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
         setVisibility(value: boolean) {
             renderObjects.forEach(ro => ro.state.visible = value)
         },
+        setPickable(value: boolean) {
+            renderObjects.forEach(ro => ro.state.pickable = value)
+        },
         destroy() {
             // TODO
             renderObjects.length = 0

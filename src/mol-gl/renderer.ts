@@ -103,7 +103,7 @@ namespace Renderer {
         let currentProgramId = -1
         const renderObject = (r: Renderable<RenderableValues & BaseValues>, variant: RenderVariant) => {
             const program = r.getProgram(variant)
-            if (r.state.visible) {
+            if (r.state.visible && (variant === 'draw' || r.state.pickable)) {
                 if (currentProgramId !== program.id) {
                     program.use()
                     program.setUniforms(globalUniforms)

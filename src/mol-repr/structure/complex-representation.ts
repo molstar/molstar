@@ -54,6 +54,10 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         if (visual) visual.setVisibility(value)
     }
 
+    function setPickable(value: boolean) {
+        if (visual) visual.setPickable(value)
+    }
+
     function destroy() {
         if (visual) visual.destroy()
     }
@@ -70,6 +74,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         getLoci,
         mark,
         setVisibility,
+        setPickable,
         destroy
     }
 }
