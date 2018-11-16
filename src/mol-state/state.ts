@@ -127,6 +127,8 @@ class State {
                     cells: this.cells as Map<Transform.Ref, StateObjectCell>,
                     transformCache: this.transformCache,
 
+                    results: [],
+
                     changed: false,
                     hadError: false,
                     newCurrent: void 0
@@ -190,6 +192,8 @@ interface UpdateContext {
     tree: TransientTree,
     cells: Map<Transform.Ref, StateObjectCell>,
     transformCache: Map<Ref, unknown>,
+
+    results: UpdateNodeResult[],
 
     changed: boolean,
     hadError: boolean,
@@ -266,7 +270,24 @@ async function update(ctx: UpdateContext) {
         await updateSubtree(ctx, root);
     }
 
+    let newCurrent: Transform.Ref | undefined;
+    // Raise object updated events
+    for (const update of ctx.results) {
+        if (update.action === 'created') {
+            ctx.parent.events.object.created.next({ state: ctx.parent, ref: update.ref, obj: update.obj! });
+            if (!ctx.hadError) {
+                const transform = ctx.tree.transforms.get(update.ref);
+                if (!transform.props || !transform.props.isGhost) newCurrent = update.ref;
+            }
+        } else if (update.action === 'updated') {
+            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: update.ref, action: 'in-place', obj: update.obj });
+        } else if (update.action === 'replaced') {
+            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: update.ref, action: 'recreate', obj: update.obj, oldObj: update.oldObj });
+        }
+    }
+
     if (ctx.newCurrent) ctx.parent.setCurrent(ctx.newCurrent);
+    else if (newCurrent) ctx.parent.setCurrent(newCurrent);
 
     return deletes.length > 0 || roots.length > 0 || ctx.changed;
 }
@@ -412,9 +433,9 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
 }
 
 type UpdateNodeResult =
-    | { action: 'created', obj: StateObject }
-    | { action: 'updated', obj: StateObject }
-    | { action: 'replaced', oldObj?: StateObject, obj: StateObject }
+    | { ref: Ref, action: 'created', obj: StateObject }
+    | { ref: Ref, action: 'updated', obj: StateObject }
+    | { ref: Ref, action: 'replaced', oldObj?: StateObject, obj: StateObject }
     | { action: 'none' }
 
 async function updateSubtree(ctx: UpdateContext, root: Ref) {
@@ -428,18 +449,12 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         if (update.action !== 'none') ctx.changed = true;
 
         setCellStatus(ctx, root, 'ok');
+        ctx.results.push(update);
         if (update.action === 'created') {
-            ctx.parent.events.object.created.next({ state: ctx.parent, ref: root, obj: update.obj! });
             ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
-            if (!ctx.hadError) {
-                const transform = ctx.tree.transforms.get(root);
-                if (!transform.props || !transform.props.isGhost) ctx.newCurrent = root;
-            }
         } else if (update.action === 'updated') {
-            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'in-place', obj: update.obj });
             ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
-            ctx.parent.events.object.updated.next({ state: ctx.parent, ref: root, action: 'recreate', obj: update.obj, oldObj: update.oldObj });
             ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
@@ -478,7 +493,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
         current.obj = obj;
         current.version = transform.version;
 
-        return { action: 'created', obj };
+        return { ref: currentRef, action: 'created', obj };
     } else {
         const oldParams = oldTree.transforms.get(currentRef)!.params;
 
@@ -492,11 +507,11 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
                 const newObj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
                 current.obj = newObj;
                 current.version = transform.version;
-                return { action: 'replaced', oldObj, obj: newObj };
+                return { ref: currentRef, action: 'replaced', oldObj, obj: newObj };
             }
             case Transformer.UpdateResult.Updated:
                 current.version = transform.version;
-                return { action: 'updated', obj: current.obj! };
+                return { ref: currentRef, action: 'updated', obj: current.obj! };
             default:
                 return { action: 'none' };
         }
