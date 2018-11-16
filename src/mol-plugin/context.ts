@@ -21,6 +21,7 @@ import { PluginCommand, PluginCommands } from './command';
 import { PluginSpec } from './spec';
 import { PluginState } from './state';
 import { TaskManager } from './util/task-manager';
+import { Color } from 'mol-util/color';
 
 export class PluginContext {
     private disposed = false;
@@ -68,6 +69,7 @@ export class PluginContext {
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
+            this.canvas3d.setProps({ backgroundColor: Color(0xFCFBF9) });
             this.canvas3d.animate();
             return true;
         } catch (e) {

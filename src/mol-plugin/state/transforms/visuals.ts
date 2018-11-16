@@ -19,18 +19,14 @@ namespace CreateStructureRepresentation {
 }
 const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Representation3D, CreateStructureRepresentation.Params>({
     name: 'create-structure-representation',
-    display: { name: 'Create 3D Representation' },
+    display: { name: '3D Representation' },
     from: [SO.Molecule.Structure],
     to: [SO.Molecule.Representation3D],
     params: (a, ctx: PluginContext) => ({
         type: PD.Mapped(
             ctx.structureReprensentation.registry.default.name,
             ctx.structureReprensentation.registry.types,
-            name => PD.Group<any>(
-                ctx.structureReprensentation.registry.get(name).getParams(ctx.structureReprensentation.themeCtx, a.data),
-                { label: 'Type Parameters' }
-            ),
-            { label: 'Type' })
+            name => PD.Group<any>(ctx.structureReprensentation.registry.get(name).getParams(ctx.structureReprensentation.themeCtx, a.data)))
     }),
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {

@@ -83,8 +83,8 @@ export class Viewport extends PluginComponent<{ }, ViewportState> {
     render() {
         if (this.state.noWebGl) return this.renderMissing();
 
-        return <div style={{ backgroundColor: 'rgb(0, 0, 0)', width: '100%', height: '100%'}}>
-            <div ref={elm => this.container = elm} style={{width: '100%', height: '100%'}}>
+        return <div className='msp-viewport'>
+            <div className='msp-viewport-host3d' ref={elm => this.container = elm}>
                 <canvas ref={elm => this.canvas = elm}></canvas>
             </div>
         </div>;

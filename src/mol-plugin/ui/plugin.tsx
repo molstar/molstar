@@ -21,36 +21,48 @@ import { PluginState } from 'mol-plugin/state';
 import { UpdateTransformContol } from './state/update-transform';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
+
+    region(kind: 'left' | 'right' | 'bottom' | 'main', element: JSX.Element) {
+        return <div className={`msp-layout-region msp-layout-${kind}`}>
+            <div className='msp-layout-static'>
+                {element}
+            </div>
+        </div>
+    }
+
     render() {
         return <PluginReactContext.Provider value={this.props.plugin}>
-            <div style={{ position: 'absolute', width: '100%', height: '100%', fontFamily: 'monospace' }}>
-                <div style={{ position: 'absolute', width: '350px', height: '100%', overflowY: 'scroll', padding: '10px' }}>
-                    <State />
-                </div>
-                <div style={{ position: 'absolute', left: '350px', right: '300px', top: '0', bottom: '100px' }}>
-                    <Viewport />
-                    <div style={{ position: 'absolute', left: '10px', top: '10px', height: '100%', color: 'white' }}>
-                        <TrajectoryControls />
+            <div className='msp-plugin'>
+                <div className='msp-plugin-content msp-layout-expanded'>
+                    <div className='msp-layout-hide-top'>
+                        {this.region('main', <ViewportWrapper />)}
+                        {this.region('left', <State />)}
+                        {this.region('right', <div className='msp-scrollable-container'>
+                            <CurrentObject />
+                            <Controls />
+                            <CameraSnapshots />
+                            <StateSnapshots />
+                        </div>)}
+                        {this.region('bottom', <Log />)}
                     </div>
-                    <ViewportControls />
-                    <div style={{ position: 'absolute', left: '10px', bottom: '10px', color: 'white' }}>
-                        <BackgroundTaskProgress />
-                    </div>
-                </div>
-                <div style={{ position: 'absolute', width: '300px', right: '0', top: '0', bottom: '0', padding: '10px', overflowY: 'scroll' }}>
-                    <CurrentObject />
-                    <hr />
-                    <Controls />
-                    <hr />
-                    <CameraSnapshots />
-                    <hr />
-                    <StateSnapshots />
-                </div>
-                <div style={{ position: 'absolute', right: '300px', left: '350px', bottom: '0', height: '100px', overflow: 'hidden' }}>
-                    <Log />
                 </div>
             </div>
         </PluginReactContext.Provider>;
+    }
+}
+
+export class ViewportWrapper extends PluginComponent {
+    render() {
+        return <>
+            <Viewport />
+            <div style={{ position: 'absolute', left: '10px', top: '10px', height: '100%', color: 'white' }}>
+                <TrajectoryControls />
+            </div>
+            <ViewportControls />
+            <div style={{ position: 'absolute', left: '10px', bottom: '10px', color: 'white' }}>
+                <BackgroundTaskProgress />
+            </div>
+        </>;
     }
 }
 

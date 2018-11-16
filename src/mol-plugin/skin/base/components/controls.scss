@@ -1,4 +1,20 @@
 
+.msp-row {
+    position: relative;
+    height: $row-height;
+    background: $default-background;
+    margin-top: 1px;
+
+    select, button, input[type=text] {
+        @extend .msp-form-control;
+    }
+    
+    button {
+        @extend .msp-btn;
+        @extend .msp-btn-block;
+    }
+}
+
 .msp-control-row {    
     position: relative;
     height: $row-height;
@@ -54,41 +70,41 @@
 }
 
 .msp-slider {    
-    > div {        
-        > div:first-child {
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            width: 100%;
-            padding-right: 50px;
-            display: table;
-            
-            > div {
-                height: $row-height;
-                display: table-cell;
-                vertical-align: middle;
-                padding: 0 ($control-spacing + 4px);
-            }
-        }
-        > div:last-child {
-            position: absolute;
-            height: $row-height;
-            right: 0;
-            width: 50px;
-            top: 0;
-            bottom: 0;
-        }
-    }
-    
-    input[type=text] {
-        text-align: right;
-    }
-    
-    input[type=range] {
+    > div:first-child {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 50px;
         width: 100%;
+        padding-right: 50px;
+        display: table;
+        
+        > div {
+            height: $row-height;
+            display: table-cell;
+            vertical-align: middle;
+            padding: 0 ($control-spacing + 4px);
+        }
     }
+    > div:last-child {
+        position: absolute;
+        height: $row-height;
+        line-height: $row-height;
+        text-align: center;
+        right: 0;
+        width: 50px;
+        top: 0;
+        bottom: 0;
+    }
+    
+    // input[type=text] {
+    //     text-align: right;
+    // }
+    
+    // input[type=range] {
+    //     width: 100%;
+    // }
 }
 
 .msp-toggle-color-picker {
@@ -135,6 +151,42 @@
     }
 }
 
+.msp-control-offset {
+    // border-left-width: $control-spacing / 2;
+    // border-left-style: solid;
+    // border-left-color: color-increase-contrast($default-background, 10%);
+    // padding-left: 1px;
+    padding-left: $control-spacing;
+}
+
+.msp-control-group-wrapper {
+    //border-left-width: $control-spacing / 2;
+    //border-left-style: solid;
+    //border-left-color: color-increase-contrast($default-background, 10%);
+
+    margin-bottom: 1px;
+    padding-top: 1px;
+}
+
+// TODO : get rid of the important
+.msp-control-group-header {
+    > button {
+        padding-left: $control-spacing / 2 !important;
+        text-align: left !important;
+        height: 2 * $row-height / 3 !important;
+        line-height: 2 * $row-height / 3 !important;
+        font-size: 70% !important;
+        background: $default-background !important;        
+        color: color-lower-contrast($font-color, 15%) !important;
+    }
+}
+
+.msp-control-group-footer {
+    background: color-increase-contrast($default-background, 5%);
+    height: $control-spacing / 2;
+    font-size: 1px;
+    margin-top: 1px;
+}
 
 .msp-control-subgroup {
     margin-top: 1px;

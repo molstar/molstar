@@ -16,7 +16,16 @@
     position: absolute;
 }
 
-.msp-layout-scrollable {
+.msp-scrollable {
+    overflow-y: auto;
+}
+
+.msp-scrollable-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
     overflow-y: auto;
 }
 
@@ -33,13 +42,12 @@
     }    
 }
 
-.msp-layout-right {
-        
+.msp-layout-right {        
     .msp-layout-static {        
         left: 0;
         right: 0;
         top: 0;
-        height: $row-height + $control-spacing;
+        bottom: 0; // height: $row-height + $control-spacing;
     }
     
     .msp-layout-scrollable {
