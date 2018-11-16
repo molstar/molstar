@@ -105,3 +105,13 @@
 .msp-tree-children {
     margin-left: $control-spacing;
 }
+
+.msp-log-list {
+    list-style: none;
+
+    > li {
+        background: $msp-form-control-background;
+        margin-bottom: 1px;
+        padding: 3px 6px;
+    }
+}

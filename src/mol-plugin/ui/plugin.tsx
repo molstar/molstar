@@ -8,7 +8,7 @@ import * as React from 'react';
 import { PluginContext } from '../context';
 import { StateTree } from './state-tree';
 import { Viewport, ViewportControls } from './viewport';
-import { Controls, TrajectoryControls } from './controls';
+import { Controls, TrajectoryControls, LociLabelControl } from './controls';
 import { PluginComponent, PluginReactContext } from './base';
 import { CameraSnapshots } from './camera';
 import { StateSnapshots } from './state';
@@ -62,6 +62,9 @@ export class ViewportWrapper extends PluginComponent {
             <div style={{ position: 'absolute', left: '10px', bottom: '10px' }}>
                 <BackgroundTaskProgress />
             </div>
+            <div style={{ position: 'absolute', right: '10px', bottom: '10px' }}>
+                <LociLabelControl />
+            </div>
         </>;
     }
 }
@@ -107,10 +110,10 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     }
 
     render() {
-        return <div ref={this.wrapper} style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'scroll' }}>
-            <ul style={{ listStyle: 'none' }}>
-                {this.state.entries.map((e, i) => <li key={i} style={{ borderBottom: '1px solid #999', padding: '3px' }}>
-                    [{e!.type}] [{formatTime(e!.timestamp)}] {e!.message}
+        return <div ref={this.wrapper} style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'auto' }}>
+            <ul style={{ listStyle: 'none' }} className='msp-log-list'>
+                {this.state.entries.map((e, i) => <li key={i}>
+                    <b>[{formatTime(e!.timestamp)} | {e!.type}]</b> {e!.message}
                 </li>)}
             </ul>
         </div>;

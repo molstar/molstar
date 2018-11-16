@@ -13,6 +13,7 @@ import { PluginSpec } from './spec';
 import { CreateStructureFromPDBe } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
+import { LogEntry } from 'mol-util/log-entry';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -31,7 +32,8 @@ const DefaultSpec: PluginSpec = {
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
-        PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci)
+        PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
+        PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider)
     ]
 }
 
@@ -39,19 +41,18 @@ export function createPlugin(target: HTMLElement): PluginContext {
     const ctx = new PluginContext(DefaultSpec);
     ReactDOM.render(React.createElement(Plugin, { plugin: ctx }), target);
 
-    try {
-        trySetSnapshot(ctx);
-    } catch (e) {
-        console.warn('Failed to load snapshot', e);
-    }
+    trySetSnapshot(ctx);
 
     return ctx;
 }
 
-function trySetSnapshot(ctx: PluginContext) {
-    const snapshotUrl = getParam('snapshot-url', `[^&]+`);
-    if (!snapshotUrl) return;
-    // const data = JSON.parse(atob(snapshot));
-    // setTimeout(() => ctx.state.setSnapshot(data), 250);
-    PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url: snapshotUrl })
+async function trySetSnapshot(ctx: PluginContext) {
+    try {
+        const snapshotUrl = getParam('snapshot-url', `[^&]+`);
+        if (!snapshotUrl) return;
+        await PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url: snapshotUrl })
+    } catch (e) {
+        ctx.log(LogEntry.error('Failed to load snapshot.'));
+        console.warn('Failed to load snapshot', e);
+    }
 }

@@ -8,6 +8,7 @@ import * as React from 'react';
 import { PluginCommands } from 'mol-plugin/command';
 import { UpdateTrajectory } from 'mol-plugin/state/actions/basic';
 import { PluginComponent } from './base';
+import { LociLabelEntry } from 'mol-plugin/util/loci-label-manager';
 
 export class Controls extends PluginComponent<{ }, { }> {
     render() {
@@ -32,6 +33,20 @@ export class TrajectoryControls extends PluginComponent {
                 state: this.plugin.state.dataState,
                 action: UpdateTrajectory.create({ action: 'advance', by: +1 })
             })}>►</button><br />
+        </div>
+    }
+}
+
+export class LociLabelControl extends PluginComponent<{}, { entries: ReadonlyArray<LociLabelEntry> }> {
+    state = { entries: [] }
+
+    componentDidMount() {
+        this.subscribe(this.plugin.events.labels.highlight, e => this.setState({ entries: e.entries }));
+    }
+
+    render() {
+        return <div>
+            {this.state.entries.map((e, i) => <div key={'' + i}>{e}</div>)}
         </div>
     }
 }

@@ -22,6 +22,7 @@ import { PluginSpec } from './spec';
 import { PluginState } from './state';
 import { TaskManager } from './util/task-manager';
 import { Color } from 'mol-util/color';
+import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 
 export class PluginContext {
     private disposed = false;
@@ -47,8 +48,13 @@ export class PluginContext {
             snapshots: this.state.snapshots.events,
         },
         log: this.ev<LogEntry>(),
-        task: this.tasks.events
+        task: this.tasks.events,
+        labels: {
+            highlight: this.ev<{ entries: ReadonlyArray<LociLabelEntry> }>()
+        }
     };
+
+    readonly lociLabels: LociLabelManager;
 
     readonly structureReprensentation = {
         registry: new StructureRepresentationRegistry(),
@@ -145,6 +151,8 @@ export class PluginContext {
 
         this.initBehaviors();
         this.initDataActions();
+
+        this.lociLabels = new LociLabelManager(this);
     }
 
     // settings = ;

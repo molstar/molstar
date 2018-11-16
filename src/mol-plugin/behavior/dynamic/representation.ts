@@ -7,6 +7,8 @@
 import { PluginBehavior } from '../behavior';
 import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { labelFirst } from 'mol-theme/label';
+import { PluginContext } from 'mol-plugin/context';
 
 export const HighlightLoci = PluginBehavior.create({
     name: 'representation-highlight-loci',
@@ -25,7 +27,7 @@ export const HighlightLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Highlight Loci on Canvas', group: 'Data' }
+    display: { name: 'Highlight Loci on Canvas', group: 'Representation' }
 });
 
 export const SelectLoci = PluginBehavior.create({
@@ -38,5 +40,16 @@ export const SelectLoci = PluginBehavior.create({
             });
         }
     },
-    display: { name: 'Select Loci on Canvas', group: 'Data' }
+    display: { name: 'Select Loci on Canvas', group: 'Representation' }
+});
+
+export const DefaultLociLabelProvider = PluginBehavior.create({
+    name: 'default-loci-label-provider',
+    ctor: class implements PluginBehavior<undefined> {
+        private f = labelFirst;
+        register(): void { this.ctx.lociLabels.addProvider(this.f); }
+        unregister() { this.ctx.lociLabels.removeProvider(this.f); }
+        constructor(protected ctx: PluginContext) { }
+    },
+    display: { name: 'Provide Default Loci Label', group: 'Representation' }
 });
