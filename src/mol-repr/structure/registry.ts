@@ -9,6 +9,7 @@ import { RepresentationProvider, RepresentationRegistry } from '../representatio
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';
 import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
+import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure> {
     constructor() {
@@ -24,6 +25,7 @@ export const BuiltInStructureRepresentations = {
     'cartoon': CartoonRepresentationProvider,
     'ball-and-stick': BallAndStickRepresentationProvider,
     'molecular-surface': MolecularSurfaceRepresentationProvider,
+    'carbohydrate': CarbohydrateRepresentationProvider,
 }
 export type BuiltInStructureRepresentationsName = keyof typeof BuiltInStructureRepresentations
 export const BuiltInStructureRepresentationsNames = Object.keys(BuiltInStructureRepresentations)
