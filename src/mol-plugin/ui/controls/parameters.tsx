@@ -155,7 +155,6 @@ export class ColorControl extends SimpleParam<PD.Color> {
 
 export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiSelect<any>>> {
     change(value: PD.MultiSelect<any>['defaultValue'] ) {
-        console.log(this.props.name, value);
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
     }
 
@@ -222,11 +221,12 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
     render() {
         const value: PD.Mapped<any>['defaultValue'] = this.props.value;
         const param = this.props.param.map(value.name);
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
         const Mapped = controlFor(param);
 
         const select = <SelectControl param={this.props.param.select}
             isDisabled={this.props.isDisabled} onChange={this.onChangeName} onEnter={this.props.onEnter}
-            name={'name'} value={value.name} />
+            name={label} value={value.name} />
 
         if (!Mapped) {
             return select;
@@ -235,7 +235,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
         return <div>
             {select}
             <div style={{ borderLeft: '5px solid #777', paddingLeft: '5px' }}>
-                <Mapped param={param} value={value} name='param' onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+                <Mapped param={param} value={value} name='' onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
             </div>
         </div>
     }
