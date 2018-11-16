@@ -8,6 +8,7 @@ import { Structure } from 'mol-model/structure';
 import { RepresentationProvider, RepresentationRegistry } from '../representation';
 import { CartoonRepresentationProvider } from './representation/cartoon';
 import { BallAndStickRepresentationProvider } from './representation/ball-and-stick';
+import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure> {
     constructor() {
@@ -22,6 +23,7 @@ export class StructureRepresentationRegistry extends RepresentationRegistry<Stru
 export const BuiltInStructureRepresentations = {
     'cartoon': CartoonRepresentationProvider,
     'ball-and-stick': BallAndStickRepresentationProvider,
+    'molecular-surface': MolecularSurfaceRepresentationProvider,
 }
 export type BuiltInStructureRepresentationsName = keyof typeof BuiltInStructureRepresentations
 export const BuiltInStructureRepresentationsNames = Object.keys(BuiltInStructureRepresentations)
