@@ -85,7 +85,8 @@ namespace TransformContolBase {
         params: any,
         error?: string,
         busy: boolean,
-        isInitial: boolean
+        isInitial: boolean,
+        isCollapsed?: boolean
     }
 }
 
@@ -94,7 +95,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.State> exten
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): Transformer.Definition['display'];
     abstract getHeaderFallback(): string;
-    abstract isBusy(): boolean;
+    abstract canApply(): boolean;
     abstract applyText(): string;
     abstract state: S;
 
@@ -134,25 +135,35 @@ abstract class TransformContolBase<P, S extends TransformContolBase.State> exten
         this.setState({ params, isInitial: PD.areEqual(info.params, params, info.initialValues), error: void 0 });
     }
 
+    toggleExpanded = () => {
+        this.setState({ isCollapsed: !this.state.isCollapsed });
+    }
+
     render() {
         const info = this.getInfo();
-        if (info.isEmpty) return <div>Nothing to update</div>;
+        if (info.isEmpty) return null;
 
         const display = this.getHeader();
 
-        return <div>
-            <div style={{ borderBottom: '1px solid #999', marginBottom: '5px' }}>
-                <button onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>
-                <h3>{(display && display.name) || this.getHeaderFallback()}</h3>
+        return <div className='msp-transform-wrapper'>
+            <div className='msp-transform-header'>
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{(display && display.name) || this.getHeaderFallback()}</button>
+                {!this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
             </div>
+            {!this.state.isCollapsed && <>
+                <StateTransformParameters info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
 
-            <StateTransformParameters info={info} events={this.events} params={this.state.params} isDisabled={this.state.busy} />
-
-            <div style={{ textAlign: 'right' }}>
-                <span style={{ color: 'red' }}>{this.state.error}</span>
-                {this.state.isInitial ? void 0 : <button title='Refresh params' onClick={this.refresh} disabled={this.state.busy}>↶</button>}
-                <button onClick={this.apply} disabled={this.isBusy()}>{this.applyText()}</button>
-            </div>
+                <div className='msp-transform-apply-wrap'>
+                    <button className='msp-btn msp-btn-block msp-transform-refresh msp-form-control' title='Refresh params' onClick={this.refresh} disabled={this.state.busy || this.state.isInitial}>
+                        ↶ Reset
+                    </button>
+                    <div className='msp-transform-apply'>
+                        <button className={`msp-btn msp-btn-block msp-btn-commit msp-btn-commit-${this.canApply() ? 'on' : 'off'}`} onClick={this.apply} disabled={!this.canApply()}>
+                            {this.applyText()}
+                        </button>
+                    </div>
+                </div>
+            </>}
         </div>
     }
 }

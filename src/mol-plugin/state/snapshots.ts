@@ -50,13 +50,14 @@ class PluginStateSnapshotManager {
 namespace PluginStateSnapshotManager {
     export interface Entry {
         id: UUID,
-        name: string,
+        timestamp: string,
+        name?: string,
         description?: string,
         snapshot: PluginState.Snapshot
     }
 
-    export function Entry(name: string, snapshot: PluginState.Snapshot, description?: string): Entry {
-        return { id: UUID.create22(), name, snapshot, description };
+    export function Entry(snapshot: PluginState.Snapshot, name?: string, description?: string): Entry {
+        return { id: UUID.create22(), timestamp: new Date().toLocaleString(), name, snapshot, description };
     }
 
     export interface StateSnapshot {

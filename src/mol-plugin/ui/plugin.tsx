@@ -37,7 +37,7 @@ export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
                     <div className='msp-layout-hide-top'>
                         {this.region('main', <ViewportWrapper />)}
                         {this.region('left', <State />)}
-                        {this.region('right', <div className='msp-scrollable-container'>
+                        {this.region('right', <div className='msp-scrollable-container msp-right-controls'>
                             <CurrentObject />
                             <Controls />
                             <CameraSnapshots />
@@ -105,7 +105,7 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     }
 
     render() {
-        return <div ref={this.wrapper} style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', padding: '10px', overflowY: 'scroll' }}>
+        return <div ref={this.wrapper} style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'scroll' }}>
             <ul style={{ listStyle: 'none' }}>
                 {this.state.entries.map((e, i) => <li key={i} style={{ borderBottom: '1px solid #999', padding: '3px' }}>
                     [{e!.type}] [{formatTime(e!.timestamp)}] {e!.message}
@@ -146,15 +146,14 @@ export class CurrentObject extends PluginComponent {
         const actions = type
             ? current.state.actions.fromType(type)
             : []
-        return <div>
-            <hr />
-            <h3>{obj.obj ? obj.obj.label : ref}</h3>
+        return <>
+            <div className='msp-section-header'>
+                {obj.obj ? obj.obj.label : ref}
+            </div>
             <UpdateTransformContol state={current.state} transform={transform} />
-            <hr />
-            <h3>Create</h3>
             {
                 actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)
             }
-        </div>;
+        </>;
     }
 }

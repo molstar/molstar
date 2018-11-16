@@ -37,3 +37,51 @@
         }
     }
 }
+
+.msp-transform-wrapper {
+    margin-bottom: $control-spacing;
+}
+
+.msp-transform-header {
+    position: relative;
+
+    > button {
+        text-align: left;
+        background: color-lower-contrast($default-background, 4%);
+        font-weight: bold;
+    }
+
+    > button:hover {
+        color: color-lower-contrast($font-color, 15%);
+    }
+}
+
+.msp-transform-default-params {
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.msp-transform-default-params:hover {
+    background: color-lower-contrast($default-background, 20%);
+}
+
+.msp-transform-apply-wrap {
+    position: relative;
+    margin-top: 1px;
+    width: 100%;
+}
+
+.msp-transform-refresh {
+    width: $control-label-width + $control-spacing;
+    background: $default-background;
+    text-align: right;
+}
+
+.msp-transform-apply {
+    display: block;
+    position: absolute;
+    left: $control-label-width + $control-spacing;
+    right: 0;
+    top: 0;
+}

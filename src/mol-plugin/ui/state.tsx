@@ -10,6 +10,8 @@ import { PluginComponent } from './base';
 import { shallowEqual } from 'mol-util';
 import { List } from 'immutable';
 import { LogEntry } from 'mol-util/log-entry';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParameterControls } from './controls/parameters';
 
 export class StateSnapshots extends PluginComponent<{ }, { serverUrl: string }> {
     state = { serverUrl: 'http://webchem.ncbr.muni.cz/molstar-state' }
@@ -18,9 +20,8 @@ export class StateSnapshots extends PluginComponent<{ }, { serverUrl: string }> 
 
     render() {
         return <div>
-            <h3>State Snapshots</h3>
+            <div className='msp-section-header'>State Snapshots</div>
             <StateSnapshotControls serverUrl={this.state.serverUrl} serverChanged={this.updateServerUrl} />
-            <b>Local</b>
             <LocalStateSnapshotList />
             <RemoteStateSnapshotList serverUrl={this.state.serverUrl} />
         </div>;
@@ -29,6 +30,12 @@ export class StateSnapshots extends PluginComponent<{ }, { serverUrl: string }> 
 
 class StateSnapshotControls extends PluginComponent<{ serverUrl: string, serverChanged: (url: string) => void }, { name: string, description: string, serverUrl: string, isUploading: boolean }> {
     state = { name: '', description: '', serverUrl: this.props.serverUrl, isUploading: false };
+
+    static Params = {
+        name: PD.Text(),
+        description: PD.Text(),
+        serverUrl: PD.Text('http://webchem.ncbr.muni.cz/molstar-state')
+    }
 
     add = () => {
         PluginCommands.State.Snapshots.Add.dispatch(this.plugin, { name: this.state.name, description: this.state.description });
@@ -51,15 +58,16 @@ class StateSnapshotControls extends PluginComponent<{ serverUrl: string, serverC
 
     render() {
         return <div>
-            <input type='text' value={this.state.name} placeholder='Name...' style={{ width: '33%', display: 'block', float: 'left' }} onChange={e => this.setState({ name: e.target.value })} />
-            <input type='text' value={this.state.description} placeholder='Description...' style={{ width: '67%', display: 'block' }} onChange={e => this.setState({ description: e.target.value })} />
-            <input type='text' value={this.state.serverUrl} placeholder='Server URL...' style={{ width: '100%', display: 'block' }} onChange={e => {
-                this.setState({ serverUrl: e.target.value });
-                this.props.serverChanged(e.target.value);
-            }} />
-            <button style={{ float: 'right' }} onClick={this.clear}>Clear</button>
-            <button onClick={this.add}>Add Local</button>
-            <button onClick={this.upload} disabled={this.state.isUploading}>Upload</button>
+            <ParameterControls params={StateSnapshotControls.Params} values={this.state} onEnter={this.add} onChange={p => {
+                this.setState({ [p.name]: p.value } as any);
+                if (p.name === 'serverUrl') this.props.serverChanged(p.value);
+            }}/>
+
+            <div className='msp-btn-row-group'>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Add Local</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.upload} disabled={this.state.isUploading}>Upload</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clear}>Clear</button>
+            </div>
         </div>;
     }
 }
@@ -80,11 +88,12 @@ class LocalStateSnapshotList extends PluginComponent<{ }, { }> {
     }
 
     render() {
-        return <ul style={{ listStyle: 'none' }}>
+        return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.state.snapshots.entries.valueSeq().map(e =><li key={e!.id}>
-                <button onClick={this.apply(e!.id)}>Set</button>
-                &nbsp;{e!.name} <small>{e!.description}</small>
-                <button onClick={this.remove(e!.id)} style={{ float: 'right' }}>X</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
+                <button onClick={this.remove(e!.id)} style={{ float: 'right' }} className='msp-btn msp-btn-link msp-state-list-remove-button'>
+                    <span className='msp-icon msp-icon-remove' />
+                </button>
             </li>)}
         </ul>;
     }
@@ -117,11 +126,11 @@ class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { e
 
     render() {
         return <div>
-            <b>Remote</b> <button onClick={this.refresh} disabled={this.state.isFetching}>Refresh</button>
-            <ul style={{ listStyle: 'none' }}>
+            <button title='Click to Refresh' style={{fontWeight: 'bold'}} className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isFetching}>↻ Remote Snapshots</button>
+
+            <ul style={{ listStyle: 'none' }} className='msp-state-list'>
                 {this.state.entries.valueSeq().map(e =><li key={e!.id}>
-                    <button onClick={this.fetch(e!.url)} disabled={this.state.isFetching}>Fetch</button>
-                    &nbsp;{e!.name} <small>{e!.description}</small>
+                    <button className='msp-btn msp-btn-block msp-form-control' onClick={this.fetch(e!.url)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
                 </li>)}
             </ul>
         </div>;

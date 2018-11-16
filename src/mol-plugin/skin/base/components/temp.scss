@@ -1,0 +1,56 @@
+.msp-right-controls {
+    padding-top: $control-spacing;
+}
+
+.msp-section-header {
+    height: $row-height;
+    line-height: $row-height;
+    margin-bottom: $control-spacing;
+    text-align: center;
+    font-weight: bold;
+    background: $default-background;
+}
+
+.msp-btn-row-group {
+    display:flex;
+    flex-direction:row;
+    height: $row-height;
+    margin-top: 1px;
+    width: 100%;
+
+    > button {
+        margin: 0;
+        flex: 1 1 auto;
+        margin-right: 1px;
+        height: $row-height;
+    }
+
+    > button:last-child {
+        margin-right: 0;
+    }
+}
+
+.msp-state-list {
+    list-style: none;
+    margin-top: $control-spacing;
+
+    > li {
+        position: relative;
+
+        > button:first-child {
+            border-left: $control-spacing solid color-increase-contrast($default-background, 12%) !important;
+        }
+    }
+
+    button {
+        margin-bottom: 1px;
+        text-align: left;
+    }
+}
+
+.msp-state-list-remove-button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: $row-height;
+}

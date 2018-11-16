@@ -46,7 +46,7 @@ export function Snapshots(ctx: PluginContext) {
     });
 
     PluginCommands.Camera.Snapshots.Add.subscribe(ctx, ({ name, description }) => {
-        const entry = CameraSnapshotManager.Entry(name || new Date().toLocaleTimeString(), ctx.canvas3d.camera.getSnapshot(), description);
+        const entry = CameraSnapshotManager.Entry(ctx.canvas3d.camera.getSnapshot(), name, description);
         ctx.state.cameraSnapshots.add(entry);
     });
 

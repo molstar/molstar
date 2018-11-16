@@ -7,11 +7,13 @@
 import { PluginCommands } from 'mol-plugin/command';
 import * as React from 'react';
 import { PluginComponent } from './base';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParameterControls } from './controls/parameters';
 
 export class CameraSnapshots extends PluginComponent<{ }, { }> {
     render() {
         return <div>
-            <h3>Camera Snapshots</h3>
+            <div className='msp-section-header'>Camera Snapshots</div>
             <CameraSnapshotControls />
             <CameraSnapshotList />
         </div>;
@@ -19,7 +21,11 @@ export class CameraSnapshots extends PluginComponent<{ }, { }> {
 }
 
 class CameraSnapshotControls extends PluginComponent<{ }, { name: string, description: string }> {
-    state = { name: '', description: '' };
+    static Params = {
+        name: PD.Text(),
+        description: PD.Text()
+    }
+    state = PD.getDefaultValues(CameraSnapshotControls.Params);
 
     add = () => {
         PluginCommands.Camera.Snapshots.Add.dispatch(this.plugin, this.state);
@@ -32,10 +38,12 @@ class CameraSnapshotControls extends PluginComponent<{ }, { name: string, descri
 
     render() {
         return <div>
-            <input type='text' value={this.state.name} placeholder='Name...' style={{ width: '33%', display: 'block', float: 'left' }} onChange={e => this.setState({ name: e.target.value })} />
-            <input type='text' value={this.state.description} placeholder='Description...' style={{ width: '67%', display: 'block' }} onChange={e => this.setState({ description: e.target.value })} />
-            <button style={{ float: 'right' }} onClick={this.clear}>Clear</button>
-            <button onClick={this.add}>Add</button>
+            <ParameterControls params={CameraSnapshotControls.Params} values={this.state} onEnter={this.add} onChange={p => this.setState({ [p.name]: p.value } as any)}  />
+
+            <div className='msp-btn-row-group'>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.add}>Add</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.clear}>Clear</button>
+            </div>
         </div>;
     }
 }
@@ -56,11 +64,12 @@ class CameraSnapshotList extends PluginComponent<{ }, { }> {
     }
 
     render() {
-        return <ul style={{ listStyle: 'none' }}>
+        return <ul style={{ listStyle: 'none' }} className='msp-state-list'>
             {this.plugin.state.cameraSnapshots.entries.valueSeq().map(e =><li key={e!.id}>
-                <button onClick={this.apply(e!.id)}>Set</button>
-                &nbsp;{e!.name} <small>{e!.description}</small>
-                <button onClick={this.remove(e!.id)} style={{ float: 'right' }}>X</button>
+                <button className='msp-btn msp-btn-block msp-form-control' onClick={this.apply(e!.id)}>{e!.name || e!.timestamp} <small>{e!.description}</small></button>
+                <button onClick={this.remove(e!.id)} style={{ float: 'right' }} className='msp-btn msp-btn-link msp-state-list-remove-button'>
+                    <span className='msp-icon msp-icon-remove' />
+                </button>
             </li>)}
         </ul>;
     }

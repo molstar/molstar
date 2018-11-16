@@ -121,8 +121,10 @@ export class TextControl extends SimpleParam<PD.Text> {
     }
 
     renderControl() {
+        const placeholder = this.props.param.label || camelCaseToWords(this.props.name);
         return <input type='text'
             value={this.props.value || ''}
+            placeholder={placeholder}
             onChange={this.onChange}
             onKeyPress={this.props.onEnter ? this.onKeyPress : void 0}
             disabled={this.props.isDisabled}
@@ -227,7 +229,6 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
         const params = this.props.param.params;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 
-        // TODO toggle panel
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
