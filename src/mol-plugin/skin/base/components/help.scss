@@ -1,0 +1,27 @@
+
+.msp-help-row {    
+    position: relative;
+    height: $row-height;
+    background: $default-background;
+    margin-top: 1px;
+    display: table;
+    width: 100%;
+    
+    > span {
+        width: $control-label-width + $control-spacing;
+        text-align: right;
+        padding: $info-vertical-padding $control-spacing; 
+        color: color-lower-contrast($font-color, 15%);
+        display: table-cell;
+        font-weight: bold;
+        
+        @include non-selectable;        
+    }
+        
+    > div {
+        background: $msp-form-control-background;
+        position: relative;
+        padding: $info-vertical-padding $control-spacing;
+        display: table-cell;
+    }
+}

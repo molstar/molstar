@@ -1,0 +1,132 @@
+.msp-task-state {
+    
+    line-height: $row-height;
+    //height: $row-height;
+    //position: relative;
+    //margin-top: 1px;
+    
+    > span {
+        @include non-selectable;
+        //display: inline-block;
+        //padding: 0 $control-spacing;
+    }
+    
+    > button {
+        //margin-top: -2px;
+        //float: left;
+        //display: block;
+        //line-height: $row-height;
+        //height: $row-height;
+    }
+}
+
+/* overlay */
+
+.msp-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    z-index: 1000;
+        
+    .msp-overlay-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: transparent;
+        //background: black;
+        //opacity: 0.5;
+    }
+    
+    .msp-overlay-content-wrap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+    
+    .msp-overlay-content {
+        text-align: center;          
+        
+        > div {  
+            
+            padding-top: 2 * $row-height;
+                         
+            .msp-task-state {    
+                $size: $row-height;
+                text-align: center;
+                            
+                > div {
+                    height: $size;
+                    margin-top: $control-spacing;
+                    position: relative;
+                    text-align: center;
+                    width: 100%;
+                    
+                    > div {
+                        height: $size;
+                        line-height: $size;
+                        display: inline-block;                        
+                        background: $default-background;
+                        padding: 0 ($control-spacing);
+                        font-weight: bold;
+                        @include non-selectable;
+                    }
+                    
+                    > button {
+                        display: inline-block;       
+                        margin-top: -3px;
+                        font-size: 140%;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* background */
+
+.msp-background-tasks {
+    position: absolute;    
+    left: 0;
+    bottom: 0;
+    z-index: 1000;
+    
+    .msp-task-state {    
+        $size: $row-height;
+                    
+        > div {
+            height: $size;
+            margin-top: 1px;
+            position: relative;
+            width: 100%;
+            background: $default-background;
+            
+            > div {
+                height: $size;
+                line-height: $size;
+                display: inline-block;                 
+                padding: 0 ($control-spacing);
+                @include non-selectable;
+            }
+            
+            > button {
+                display: inline-block;       
+                margin-top: -3px;
+                font-size: 140%;
+            }
+        }        
+    }
+}
+
+// .msp-background-tasks .msp-task-state {
+//     color: 
+// }
+

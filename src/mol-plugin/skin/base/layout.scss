@@ -1,0 +1,29 @@
+﻿
+@import 'layout/common';
+
+.msp-layout-standard-outside {
+    position: absolute;
+    @import 'layout/controls-outside';    
+}
+
+.msp-layout-standard-landscape {
+    position: absolute;
+    @import 'layout/controls-landscape';    
+}
+
+.msp-layout-standard-portrait {
+    position: absolute;
+    @import 'layout/controls-portrait';    
+}
+
+.msp-layout-expanded {    
+    position: fixed;
+        
+    @media (orientation:landscape) {
+        @import 'layout/controls-landscape';
+    };     
+    
+    @media (orientation:portrait) {
+        @import 'layout/controls-portrait';
+    }  ;
+}

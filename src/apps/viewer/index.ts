@@ -6,5 +6,6 @@
 
 import { createPlugin } from 'mol-plugin';
 import './index.html'
+require('mol-plugin/skin/light.scss')
 
 createPlugin(document.getElementById('app')!);

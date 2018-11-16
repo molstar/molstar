@@ -1,0 +1,144 @@
+.msp-btn {
+    padding: 0 $control-spacing;
+    line-height: $row-height;
+    border: none;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.msp-btn, .msp-btn:active, .msp-btn-link:focus, .msp-btn:hover {
+    outline: none !important;
+}
+
+.msp-btn-icon {
+    height: $row-height;
+    width: $row-height;
+    line-height: $row-height;
+    padding: 0;
+    text-align: center;
+}
+
+.msp-btn-link {
+    .msp-icon {
+        font-size: 100%;
+    }
+}
+
+.msp-btn-link, .msp-btn-link:active, .msp-btn-link:focus {
+    color: $msp-btn-link-font-color;
+    text-decoration: none;   
+}
+
+.msp-btn-link:hover {
+    color: $hover-font-color;
+    text-decoration: none;
+}
+
+.msp-btn-link-toggle-on {
+    color: $msp-btn-link-toggle-on-font-color;
+}
+
+.msp-btn-link-toggle-off, .msp-btn-link-toggle-off:active, .msp-btn-link-toggle-off:focus {
+    color: $msp-btn-link-toggle-off-font-color;
+}
+
+.msp-btn-link-toggle-off:hover,  .msp-btn-link-toggle-on:hover {
+    color: $hover-font-color;
+}
+
+@mixin msp-btn($name, $font, $bg) {
+    .msp-btn-#{$name}, .msp-btn-#{$name}:active, .msp-btn-#{$name}:focus {
+        color: $font;
+        background: $bg;
+    }    
+    .msp-btn-#{$name}:hover {
+        color: $hover-font-color;
+        background: color-lower-contrast($bg, 2.5%);
+    }
+    
+    .msp-btn-#{$name}[disabled], .msp-btn-#{$name}[disabled]:hover, 
+    .msp-btn-#{$name}[disabled]:active, .msp-btn-#{$name}[disabled]:focus {
+        color: color-lower-contrast($font, 1%);
+    }
+}
+
+@include msp-btn('remove', $msp-btn-remove-font-color, $msp-btn-remove-background);
+@include msp-btn('action', $font-color, $msp-btn-action-background);
+@include msp-btn('commit-on', $msp-btn-commit-on-font-color, $msp-btn-commit-on-background);
+@include msp-btn('commit-off', $msp-btn-commit-off-font-color, $msp-btn-commit-off-background);
+
+.msp-btn-remove:hover {
+    color: $msp-btn-remove-hover-font-color;
+}
+.msp-btn-commit-on:hover {
+	color: $msp-btn-commit-on-hover-font-color;
+}
+
+.msp-btn-action {
+    height: $row-height;
+    line-height: $row-height;
+}
+
+.msp-form-control {    
+    width: 100%;
+    background: $msp-form-control-background;
+    color: $font-color;
+    border: none !important;
+    padding: 0 $control-spacing;   
+    line-height: $row-height - 2px;  
+    height: $row-height;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;    
+    box-shadow: none !important;
+    
+    &:hover {
+        color: $hover-font-color;
+        background-color: color-increase-contrast($msp-form-control-background, 5%);
+        border: none;
+        outline-offset: -1px;
+        outline: 1px solid color-increase-contrast($msp-form-control-background, 20%);    
+    }
+    
+    &:active, &:focus {
+        color: $font-color;
+        background-color: $msp-form-control-background;
+        border: none;
+        outline-offset: 0;
+        outline: none;    
+    }
+}
+
+.msp-btn-commit {        
+    text-align: right;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-right: $control-spacing;
+    padding-left: 0;
+    line-height: $row-height;
+    border: none;
+    overflow: hidden;
+    
+    .msp-icon {
+        display: block-inline;
+        line-height: $row-height;
+        margin-right: $control-spacing;
+        width: $row-height;
+        text-align: center;
+        float: left;
+    } 
+}
+
+select.msp-form-control { 
+    background: none;
+    background-color: $msp-form-control-background;
+    background-size: 8px 12px;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAUCAMAAACzvE1FAAAADFBMVEUzMzMzMzMzMzMzMzMKAG/3AAAAA3RSTlMAf4C/aSLHAAAAPElEQVR42q3NMQ4AIAgEQTn//2cLdRKppSGzBYwzVXvznNWs8C58CiussPJj8h6NwgorrKRdTvuV9v16Afn0AYFOB7aYAAAAAElFTkSuQmCC);
+    background-repeat: no-repeat;
+    background-position: right $control-spacing top (($row-height - 12px) / 2);    
+}
+
+select.msp-form-control:-moz-focusring {
+    color: transparent;
+    text-shadow: 0 0 0 $font-color;
+}

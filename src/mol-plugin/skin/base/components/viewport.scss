@@ -1,0 +1,93 @@
+.msp-viewport {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: black;
+    
+    .msp-btn-link {
+        background: rgba(0,0,0,0.2);
+    }
+    
+}
+
+.msp-viewport-expanded {
+    position: fixed;
+    z-index: 1000;
+}
+
+.msp-viewport-host3d {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    -webkit-touch-callout: none;
+}
+
+.msp-viewport-controls {
+    position: absolute;
+    right: $control-spacing;
+    top: $control-spacing;   
+}
+
+.msp-viewport-controls-buttons {
+    text-align: right;
+    
+    > button {
+        padding: 0;
+        text-align: center;
+        width: $row-height;
+    }
+    
+    > button:last-child {
+        margin-left: $control-spacing;
+    }    
+    
+    .msp-btn-link, .msp-btn-link-toggle-on {
+        color: #eee;
+    }
+    
+    .msp-btn-link-toggle-off {
+        color: $msp-btn-link-toggle-off-font-color;
+    }
+    
+    .msp-btn-link:hover {
+        color: $hover-font-color;
+    }
+}
+
+.msp-viewport-controls-scene-options {
+    width: 290px;
+    background: $control-background;
+}
+
+/* highlight */
+
+.msp-highlight-info {
+    
+    color: $highlight-info-font-color;
+    padding: $info-vertical-padding $control-spacing;
+    background: $default-background; //$highlight-info-background;
+    
+    position: absolute;
+    top: $control-spacing;
+    left: $control-spacing;
+    text-align: left;
+    min-height: $row-height;
+    max-width: 95%;
+    
+    //border-bottom-right-radius: 6px;
+    z-index: 10000;
+    @include non-selectable;
+}
+
+.msp-highlight-info-additional {
+    font-size: 85%;
+    display: inline-block;
+    color: $highlight-info-additional-font-color;
+}
+
