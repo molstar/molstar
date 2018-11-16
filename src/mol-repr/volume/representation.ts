@@ -20,7 +20,7 @@ import { NullLocation } from 'mol-model/location';
 import { VisualUpdateState } from 'mol-repr/util';
 import { ValueCell } from 'mol-util';
 import { Theme, createTheme } from 'mol-theme/theme';
-import { BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -143,7 +143,8 @@ export const VolumeParams = {
 export type VolumeParams = typeof VolumeParams
 
 export function VolumeRepresentation<P extends VolumeParams>(label: string, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
-    const updated = new BehaviorSubject(0)
+    let version = 0
+    const updated = new Subject<number>()
     let visual: VolumeVisual<P>
 
     let _volume: VolumeData
@@ -177,7 +178,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
                 await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
                 busy = false
             }
-            updated.next(updated.getValue() + 1)
+            updated.next(version++)
         });
     }
 

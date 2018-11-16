@@ -19,7 +19,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createTheme } from 'mol-theme/theme';
-import { BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 
 export interface ShapeRepresentation<P extends ShapeParams> extends Representation<Shape, P> { }
 
@@ -31,7 +31,8 @@ export const ShapeParams = {
 export type ShapeParams = typeof ShapeParams
 
 export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentation<P> {
-    const updated = new BehaviorSubject(0)
+    let version = 0
+    const updated = new Subject<number>()
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
@@ -57,7 +58,7 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
 
             _renderObject = createMeshRenderObject(values, state)
             renderObjects.push(_renderObject)
-            updated.next(updated.getValue() + 1)
+            updated.next(version++)
         });
     }
 

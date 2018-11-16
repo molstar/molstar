@@ -17,7 +17,7 @@ import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Theme, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
-import { BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 
 export const UnitsParams = {
     ...StructureParams,
@@ -28,7 +28,8 @@ export type UnitsParams = typeof UnitsParams
 export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGroup, P> { }
 
 export function UnitsRepresentation<P extends UnitsParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
-    const updated = new BehaviorSubject(0)
+    let version = 0
+    const updated = new Subject<number>()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure
@@ -120,7 +121,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                 }
             }
             if (structure) _structure = structure
-            updated.next(updated.getValue() + 1)
+            updated.next(version++)
         });
     }
 
@@ -169,7 +170,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         },
         get props() { return _props },
         get params() { return _params },
-        get updated() { return updated },
+        updated,
         createOrUpdate,
         getLoci,
         mark,
