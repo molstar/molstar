@@ -21,6 +21,7 @@ import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
 export const PolymerBackboneCylinderParams = {
+    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
     radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
 }
 export const DefaultPolymerBackboneCylinderProps = PD.getDefaultValues(PolymerBackboneCylinderParams)
@@ -30,7 +31,7 @@ async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit,
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
-    const { radialSegments } = props
+    const { radialSegments, sizeFactor } = props
 
     const vertexCountEstimate = radialSegments * 2 * polymerElementCount * 2
     const builder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 10, mesh)
@@ -48,11 +49,11 @@ async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit,
         pos(centerA.element, pA)
         pos(centerB.element, pB)
 
-        cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA)
+        cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor
         builder.setGroup(OrderedSet.indexOf(elements, centerA.element))
         addCylinder(builder, pA, pB, 0.5, cylinderProps)
 
-        cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB)
+        cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB) * sizeFactor
         builder.setGroup(OrderedSet.indexOf(elements, centerB.element))
         addCylinder(builder, pB, pA, 0.5, cylinderProps)
 
@@ -80,7 +81,10 @@ export function PolymerBackboneVisual(): UnitsVisual<PolymerBackboneParams> {
         getLoci: getElementLoci,
         mark: markElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerBackboneParams>, currentProps: PD.Values<PolymerBackboneParams>) => {
-            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.radialSegments !== currentProps.radialSegments
+            )
         }
     })
 }

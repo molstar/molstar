@@ -159,7 +159,10 @@ export function CarbohydrateSymbolVisual(): ComplexVisual<CarbohydrateSymbolPara
         getLoci: getCarbohydrateLoci,
         mark: markCarbohydrate,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateSymbolParams>, currentProps: PD.Values<CarbohydrateSymbolParams>) => {
-            state.createGeometry = newProps.detail !== currentProps.detail
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.detail !== currentProps.detail
+            )
         }
     })
 }

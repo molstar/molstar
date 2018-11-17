@@ -8,7 +8,7 @@
 import { Unit, Link, StructureElement, Structure } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
-import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
+import { createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { UnitsMeshVisual, UnitsMeshParams, StructureGroup } from '../units-visual';
@@ -29,7 +29,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
     const links = unit.links
     const { edgeCount, a, b, edgeProps, offset } = links
     const { order: _order, flags: _flags } = edgeProps
-    const { sizeFactor } = props
+    const { sizeFactor, sizeAspectRatio } = props
 
     if (!edgeCount) return Mesh.createEmpty(mesh)
 
@@ -57,7 +57,7 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
         flags: (edgeIndex: number) => BitFlags.create(_flags[edgeIndex]),
         radius: (edgeIndex: number) => {
             location.element = elements[a[edgeIndex]]
-            return theme.size.size(location) * sizeFactor
+            return theme.size.size(location) * sizeFactor * sizeAspectRatio
         }
     }
 
@@ -67,7 +67,8 @@ async function createIntraUnitLinkCylinderMesh(ctx: VisualContext, unit: Unit, s
 export const IntraUnitLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
+    sizeAspectRatio: PD.Numeric(2/3, { min: 0, max: 3, step: 0.01 }),
 }
 export type IntraUnitLinkParams = typeof IntraUnitLinkParams
 
@@ -78,10 +79,14 @@ export function IntraUnitLinkVisual(): UnitsVisual<IntraUnitLinkParams> {
         createLocationIterator: LinkIterator.fromGroup,
         getLoci: getLinkLoci,
         mark: markLink,
-        setUpdateState: (state: VisualUpdateState, newProps: LinkCylinderProps, currentProps: LinkCylinderProps) => {
-            if (newProps.linkScale !== currentProps.linkScale) state.createGeometry = true
-            if (newProps.linkSpacing !== currentProps.linkSpacing) state.createGeometry = true
-            if (newProps.radialSegments !== currentProps.radialSegments) state.createGeometry = true
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<IntraUnitLinkParams>, currentProps: PD.Values<IntraUnitLinkParams>) => {
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.linkScale !== currentProps.linkScale ||
+                newProps.linkSpacing !== currentProps.linkSpacing
+            )
         }
     })
 }

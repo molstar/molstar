@@ -53,7 +53,8 @@ async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: St
 export const InterUnitLinkParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
-    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    sizeFactor: PD.Numeric(0.3, { min: 0, max: 10, step: 0.01 }),
+    sizeAspectRatio: PD.Numeric(2/3, { min: 0, max: 3, step: 0.01 }),
 }
 export type InterUnitLinkParams = typeof InterUnitLinkParams
 
@@ -65,9 +66,13 @@ export function InterUnitLinkVisual(): ComplexVisual<InterUnitLinkParams> {
         getLoci: getLinkLoci,
         mark: markLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<InterUnitLinkParams>, currentProps: PD.Values<InterUnitLinkParams>) => {
-            if (newProps.linkScale !== currentProps.linkScale) state.createGeometry = true
-            if (newProps.linkSpacing !== currentProps.linkSpacing) state.createGeometry = true
-            if (newProps.radialSegments !== currentProps.radialSegments) state.createGeometry = true
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.sizeAspectRatio !== currentProps.sizeAspectRatio ||
+                newProps.radialSegments !== currentProps.radialSegments ||
+                newProps.linkScale !== currentProps.linkScale ||
+                newProps.linkSpacing !== currentProps.linkSpacing
+            )
         }
     })
 }

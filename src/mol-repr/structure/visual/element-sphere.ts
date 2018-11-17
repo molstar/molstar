@@ -28,7 +28,10 @@ export function ElementSphereVisual(): UnitsVisual<ElementSphereParams> {
         getLoci: getElementLoci,
         mark: markElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<ElementSphereParams>, currentProps: PD.Values<ElementSphereParams>) => {
-            state.createGeometry = newProps.detail !== currentProps.detail
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.detail !== currentProps.detail
+            )
         }
     })
 }
