@@ -123,6 +123,11 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                 tmp = ((prevValue - uIsoValue) / ((prevValue - uIsoValue) - (value - uIsoValue)));
                 isoPos = mix(pos - step, pos, tmp);
 
+                #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
+                    if (uAlpha < uPickingAlphaThreshold)
+                        discard; // ignore so the element below can be picked
+                #else
+
                 #if defined(dColorType_objectPicking)
                     return vec4(encodeIdRGB(float(uObjectId)), 1.0);
                 #elif defined(dColorType_instancePicking)
