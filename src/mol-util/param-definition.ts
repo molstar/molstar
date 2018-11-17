@@ -7,7 +7,7 @@
 
 import { Color as ColorData } from './color';
 import { shallowEqual } from 'mol-util';
-import { Vec2 } from 'mol-math/linear-algebra';
+import { Vec2 as Vec2Data, Vec3 as Vec3Data } from 'mol-math/linear-algebra';
 import { deepClone } from './object';
 
 export namespace ParamDefinition {
@@ -75,6 +75,13 @@ export namespace ParamDefinition {
         return setInfo<Color>({ type: 'color', defaultValue }, info)
     }
 
+    export interface Vec3 extends Base<Vec3Data> {
+        type: 'vec3'
+    }
+    export function Vec3(defaultValue: Vec3Data, info?: Info): Vec3 {
+        return setInfo<Vec3>({ type: 'vec3', defaultValue }, info)
+    }
+
     export interface Range {
         /** If given treat as a range. */
         min?: number
@@ -108,10 +115,10 @@ export namespace ParamDefinition {
         return setInfo<Interval>(setRange({ type: 'interval', defaultValue }, range), info)
     }
 
-    export interface LineGraph extends Base<Vec2[]> {
+    export interface LineGraph extends Base<Vec2Data[]> {
         type: 'line-graph'
     }
-    export function LineGraph(defaultValue: Vec2[], info?: Info): LineGraph {
+    export function LineGraph(defaultValue: Vec2Data[], info?: Info): LineGraph {
         return setInfo<LineGraph>({ type: 'line-graph', defaultValue }, info)
     }
 
@@ -149,7 +156,7 @@ export namespace ParamDefinition {
         return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
+    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
@@ -210,9 +217,11 @@ export namespace ParamDefinition {
             const u = a as LineGraph['defaultValue'], v = b as LineGraph['defaultValue'];
             if (u.length !== v.length) return false;
             for (let i = 0, _i = u.length; i < _i; i++) {
-                if (!Vec2.areEqual(u[i], v[i])) return false;
+                if (!Vec2Data.areEqual(u[i], v[i])) return false;
             }
             return true;
+        } else if (p.type === 'vec3') {
+            return Vec3Data.equals(a, b);
         } else if (typeof a === 'object' && typeof b === 'object') {
             return shallowEqual(a, b);
         }

@@ -26,15 +26,16 @@ import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 import { Camera } from './camera';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 
-export const DefaultCanvas3DProps = {
+export const Canvas3DParams = {
     // TODO: FPS cap?
-    // maxFps: 30,
-    cameraPosition: Vec3.create(0, 0, 50),
-    cameraMode: 'perspective' as Camera.Mode,
-    backgroundColor: Color(0x000000),
+    // maxFps: PD.Numeric(30),
+    cameraPosition: PD.Vec3(Vec3.create(0, 0, 50)), // TODO or should it be in a seperate 'state' property?
+    cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
+    backgroundColor: PD.Color(Color(0x000000)),
 }
-export type Canvas3DProps = typeof DefaultCanvas3DProps
+export type Canvas3DParams = typeof Canvas3DParams
 
 export { Canvas3D }
 
@@ -64,18 +65,18 @@ interface Canvas3D {
     readonly camera: Camera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
-    setProps: (props: Partial<Canvas3DProps>) => void
+    setProps: (props: Partial<PD.Values<Canvas3DParams>>) => void
 
     /** Returns a copy of the current Canvas3D instance props */
-    readonly props: Canvas3DProps
+    readonly props: PD.Values<Canvas3DParams>
     readonly input: InputObserver
     readonly stats: RendererStats
     dispose: () => void
 }
 
 namespace Canvas3D {
-    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DProps> = {}): Canvas3D {
-        const p = { ...props, ...DefaultCanvas3DProps }
+    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<PD.Values<Canvas3DParams>> = {}): Canvas3D {
+        const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
         const reprUpdatedSubscriptions = new Map<Representation.Any, Subscription>()
@@ -353,7 +354,7 @@ namespace Canvas3D {
                 }
             },
             didDraw,
-            setProps: (props: Partial<Canvas3DProps>) => {
+            setProps: (props: Partial<PD.Values<Canvas3DParams>>) => {
                 if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
                     camera.setState({ mode: props.cameraMode })
                 }

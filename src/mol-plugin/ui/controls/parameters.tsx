@@ -44,6 +44,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'converted': return ConvertedControl;
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
+        case 'vec3': return Vec3Control;
         case 'select': return SelectControl;
         case 'text': return TextControl;
         case 'interval': return IntervalControl;
@@ -163,6 +164,17 @@ export class ColorControl extends SimpleParam<PD.Color> {
                 return <option key={name} value={(ColorNames as { [k: string]: Color})[name]}>{name}</option>
             })}
         </select>;
+    }
+}
+
+export class Vec3Control extends SimpleParam<PD.Vec3> {
+    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    //     this.setState({ value: e.target.value });
+    //     this.props.onChange(e.target.value);
+    // }
+
+    renderControl() {
+        return <span>vec3 TODO</span>;
     }
 }
 
