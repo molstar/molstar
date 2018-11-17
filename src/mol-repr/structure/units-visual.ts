@@ -146,6 +146,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     }
 
     return {
+        get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
         async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structureGroup?: StructureGroup) {
             if (structureGroup) currentStructure = structureGroup.structure

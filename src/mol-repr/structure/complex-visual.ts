@@ -122,6 +122,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
     }
 
     return {
+        get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
         async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
             if (!structure && !currentStructure) {

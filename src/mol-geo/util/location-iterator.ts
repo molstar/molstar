@@ -28,6 +28,7 @@ export interface LocationIterator extends Iterator<LocationValue> {
     readonly isNextNewInstance: boolean
     readonly groupCount: number
     readonly instanceCount: number
+    readonly count: number
     /** If true, may have multiple units per instance; if false one unit per instance */
     readonly isComplex: boolean
     move(): LocationValue
@@ -55,8 +56,9 @@ export function LocationIterator(groupCount: number, instanceCount: number, getL
     return {
         get hasNext () { return hasNext },
         get isNextNewInstance () { return isNextNewInstance },
-        get groupCount () { return groupCount },
-        get instanceCount () { return instanceCount },
+        groupCount,
+        instanceCount,
+        count: groupCount * instanceCount,
         isComplex,
         move() {
             if (hasNext) {

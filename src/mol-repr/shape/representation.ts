@@ -38,6 +38,7 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
     let _shape: Shape
     let currentProps: PD.Values<P> = PD.getDefaultValues(ShapeParams) as PD.Values<P>
     let currentParams: P
+    let locationIt: LocationIterator
 
     function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, shape?: Shape) {
         currentProps = Object.assign({}, currentProps, props)
@@ -49,7 +50,7 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
             if (!_shape) return
 
             const mesh = _shape.mesh
-            const locationIt = ShapeGroupIterator.fromShape(_shape)
+            locationIt = ShapeGroupIterator.fromShape(_shape)
             const theme = createTheme(ctx, currentProps, {})
             const transform = createIdentityTransform()
 
@@ -65,6 +66,7 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
     return {
         label: 'Shape mesh',
         updated,
+        get groupCount () { return locationIt ? locationIt.count : 0 },
         get renderObjects () { return renderObjects },
         get params () { return currentParams },
         get props () { return currentProps },

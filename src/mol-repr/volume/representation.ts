@@ -76,6 +76,7 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
     }
 
     return {
+        get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
         async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
             if (!volume && !currentVolume) {
@@ -204,6 +205,9 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
 
     return {
         label,
+        get groupCount() {
+            return visual ? visual.groupCount : 0
+        },
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },

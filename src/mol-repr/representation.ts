@@ -81,6 +81,8 @@ export { Representation }
 interface Representation<D, P extends PD.Params = {}> {
     readonly label: string
     readonly updated: Subject<number>
+    /** Number of addressable groups in all visuals of the representation */
+    readonly groupCount: number
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
@@ -94,7 +96,7 @@ interface Representation<D, P extends PD.Params = {}> {
 namespace Representation {
     export type Any = Representation<any>
     export const Empty: Any = {
-        label: '', renderObjects: [], props: {}, params: {}, updated: new Subject(),
+        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(),
         createOrUpdate: () => Task.constant('', undefined),
         getLoci: () => EmptyLoci,
         mark: () => false,
@@ -122,6 +124,18 @@ namespace Representation {
         return {
             label,
             updated,
+            get groupCount() {
+                let groupCount = 0
+                if (currentProps) {
+                    const { visuals } = currentProps
+                    for (let i = 0, il = reprList.length; i < il; ++i) {
+                        if (!visuals || visuals.includes(reprMap[i])) {
+                            groupCount += reprList[i].groupCount
+                        }
+                    }
+                }
+                return groupCount
+            },
             get renderObjects() {
                 const renderObjects: RenderObject[] = []
                 if (currentProps) {
@@ -200,6 +214,8 @@ export interface VisualContext {
 }
 
 export interface Visual<D, P extends PD.Params> {
+    /** Number of addressable groups in all instances of the visual */
+    readonly groupCount: number
     readonly renderObject: RenderObject | undefined
     createOrUpdate: (ctx: VisualContext, theme: Theme, props?: Partial<PD.Values<P>>, data?: D) => Promise<void>
     getLoci: (pickingId: PickingId) => Loci
