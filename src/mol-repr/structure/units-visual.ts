@@ -195,6 +195,9 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         setVisibility(value: boolean) {
             if (renderObject) renderObject.state.visible = value
         },
+        setPickable(value: boolean) {
+            if (renderObject) renderObject.state.pickable = value
+        },
         destroy() {
             // TODO
             renderObject = undefined

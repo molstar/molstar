@@ -69,6 +69,7 @@ function createPoints() {
         ...size,
 
         uAlpha: ValueCell.create(1.0),
+        uPickingAlphaThreshold: ValueCell.create(0.3),
         uHighlightColor: ValueCell.create(Vec3.create(1.0, 0.4, 0.6)),
         uSelectColor: ValueCell.create(Vec3.create(0.2, 1.0, 0.1)),
         uInstanceCount: ValueCell.create(1),
@@ -85,6 +86,7 @@ function createPoints() {
     }
     const state: RenderableState = {
         visible: true,
+        pickable: true,
         depthMask: true,
     }
 

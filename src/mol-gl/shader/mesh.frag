@@ -33,7 +33,8 @@ void main() {
     #pragma glslify: import('./chunks/assign-material-color.glsl')
 
     #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
-        // gl_FragColor = vec4(material.r, material.g, material.a, 1.0);
+        if (uAlpha < uPickingAlphaThreshold)
+            discard; // ignore so the element below can be picked
         gl_FragColor = material;
     #else
         // determine surface to light direction

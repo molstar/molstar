@@ -9,9 +9,11 @@ import { RenderableValues, Values, RenderableSchema } from './renderable/schema'
 import { RenderVariant, RenderItem } from './webgl/render-item';
 import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { ValueCell } from 'mol-util';
 
 export type RenderableState = {
     visible: boolean
+    pickable: boolean
     depthMask: boolean
 }
 
@@ -41,7 +43,12 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
         },
         get opaque () { return values.uAlpha && values.uAlpha.ref.value === 1 },
 
-        render: (variant: RenderVariant) => renderItem.render(variant),
+        render: (variant: RenderVariant) => {
+            if (values.uPickable) {
+                ValueCell.updateIfChanged(values.uPickable, state.pickable ? 1 : 0)
+            }
+            renderItem.render(variant)
+        },
         getProgram: (variant: RenderVariant) => renderItem.getProgram(variant),
         update: () => renderItem.update(),
         dispose: () => renderItem.destroy()

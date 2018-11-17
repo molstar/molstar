@@ -7,7 +7,7 @@
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
-import { LinkCylinderProps, createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
+import { createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
@@ -19,9 +19,10 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
+async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
     const links = structure.links
     const { bondCount, bonds } = links
+    const { sizeFactor } = props
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
@@ -42,7 +43,7 @@ async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: St
             const b = bonds[edgeIndex]
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
-            return theme.size.size(location)
+            return theme.size.size(location) * sizeFactor
         }
     }
 
@@ -52,6 +53,7 @@ async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: St
 export const InterUnitLinkParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
+    sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
 }
 export type InterUnitLinkParams = typeof InterUnitLinkParams
 

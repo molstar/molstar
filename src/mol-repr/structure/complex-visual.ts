@@ -165,6 +165,9 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         setVisibility(value: boolean) {
             if (renderObject) renderObject.state.visible = value
         },
+        setPickable(value: boolean) {
+            if (renderObject) renderObject.state.pickable = value
+        },
         destroy() {
             // TODO
             renderObject = undefined

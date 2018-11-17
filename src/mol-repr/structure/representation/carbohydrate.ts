@@ -6,6 +6,7 @@
 
 import { CarbohydrateSymbolVisual, CarbohydrateSymbolParams } from '../visual/carbohydrate-symbol-mesh';
 import { CarbohydrateLinkVisual, CarbohydrateLinkParams } from '../visual/carbohydrate-link-cylinder';
+import { CarbohydrateTerminalLinkParams, CarbohydrateTerminalLinkVisual } from '../visual/carbohydrate-terminal-link-cylinder';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ComplexRepresentation } from '../complex-representation';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
@@ -17,6 +18,7 @@ import { BuiltInColorThemeOptions, getBuiltInColorThemeParams } from 'mol-theme/
 const CarbohydrateVisuals = {
     'carbohydrate-symbol': (getParams: RepresentationParamsGetter<Structure, CarbohydrateSymbolParams>) => ComplexRepresentation('Carbohydrate symbol mesh', getParams, CarbohydrateSymbolVisual),
     'carbohydrate-link': (getParams: RepresentationParamsGetter<Structure, CarbohydrateLinkParams>) => ComplexRepresentation('Carbohydrate link cylinder', getParams, CarbohydrateLinkVisual),
+    'carbohydrate-terminal-link': (getParams: RepresentationParamsGetter<Structure, CarbohydrateTerminalLinkParams>) => ComplexRepresentation('Carbohydrate terminal link cylinder', getParams, CarbohydrateTerminalLinkVisual),
 }
 type CarbohydrateVisualName = keyof typeof CarbohydrateVisuals
 const CarbohydrateVisualOptions = Object.keys(CarbohydrateVisuals).map(name => [name, name] as [CarbohydrateVisualName, string])
@@ -24,8 +26,9 @@ const CarbohydrateVisualOptions = Object.keys(CarbohydrateVisuals).map(name => [
 export const CarbohydrateParams = {
     ...CarbohydrateSymbolParams,
     ...CarbohydrateLinkParams,
+    ...CarbohydrateTerminalLinkParams,
     colorTheme: PD.Mapped('carbohydrate-symbol', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
-    visuals: PD.MultiSelect<CarbohydrateVisualName>(['carbohydrate-symbol', 'carbohydrate-link'], CarbohydrateVisualOptions),
+    visuals: PD.MultiSelect<CarbohydrateVisualName>(['carbohydrate-symbol', 'carbohydrate-link', 'carbohydrate-terminal-link'], CarbohydrateVisualOptions),
 }
 PD.getDefaultValues(CarbohydrateParams).colorTheme.name
 export type CarbohydrateParams = typeof CarbohydrateParams

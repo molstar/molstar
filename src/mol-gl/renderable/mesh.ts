@@ -26,7 +26,8 @@ export type MeshValues = Values<MeshSchema>
 export function MeshRenderable(ctx: WebGLContext, id: number, values: MeshValues, state: RenderableState): Renderable<MeshValues> {
     const schema = { ...GlobalUniformSchema, ...InternalSchema, ...MeshSchema }
     const internalValues: InternalValues = {
-        uObjectId: ValueCell.create(id)
+        uObjectId: ValueCell.create(id),
+        uPickable: ValueCell.create(state.pickable ? 1 : 0)
     }
     const shaderCode = MeshShaderCode
     const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
