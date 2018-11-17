@@ -38,7 +38,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
     const delta = getDelta(Box3D.expand(Box3D.empty(), box, Vec3.create(pad, pad, pad)), resolution)
     const dim = Vec3.zero()
     Vec3.ceil(dim, Vec3.mul(dim, extent, delta))
-    console.log('grid dim', dim)
+    // console.log('grid dim', dim)
 
     const space = Tensor.Space(dim, [0, 1, 2], Float32Array)
     const data = space.create()
@@ -63,7 +63,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
 
     const gridPad = 1 / Math.max(...delta)
 
-    console.time('gaussian density cpu')
+    // console.time('gaussian density cpu')
     for (let i = 0; i < n; ++i) {
         const j = OrderedSet.getAt(indices, i)
 
@@ -105,7 +105,7 @@ export async function GaussianDensityCPU(ctx: RuntimeContext, position: Position
             await ctx.update({ message: 'filling density grid', current: i, max: n })
         }
     }
-    console.timeEnd('gaussian density cpu')
+    // console.timeEnd('gaussian density cpu')
 
     const transform = Mat4.identity()
     Mat4.fromScaling(transform, Vec3.inverse(Vec3.zero(), delta))
