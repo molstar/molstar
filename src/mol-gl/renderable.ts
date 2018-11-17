@@ -14,7 +14,6 @@ import { ValueCell } from 'mol-util';
 export type RenderableState = {
     visible: boolean
     pickable: boolean
-    depthMask: boolean
 }
 
 export interface Renderable<T extends RenderableValues> {
