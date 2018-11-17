@@ -57,6 +57,7 @@ const tmpPixel = new Uint8Array(1 * 4);
 
 function fence(gl: WebGL2RenderingContext) {
     return new Promise(resolve => {
+        gl.finish()
         const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
         if (!sync) {
             console.warn('could not create a WebGL2 sync object')
