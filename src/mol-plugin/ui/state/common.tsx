@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { StateObject, State, Transform, StateObjectCell, Transformer } from 'mol-state';
+import { State, Transform, StateObjectCell, Transformer } from 'mol-state';
 import * as React from 'react';
 import { PurePluginComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
@@ -41,7 +41,6 @@ namespace StateTransformParameters {
         info: {
             params: PD.Params,
             initialValues: any,
-            source: StateObject,
             isEmpty: boolean
         },
         events: {
@@ -59,7 +58,6 @@ namespace StateTransformParameters {
         const params = action.definition.params ? action.definition.params(source, plugin) : { };
         const initialValues = PD.getDefaultValues(params);
         return {
-            source,
             initialValues,
             params,
             isEmpty: Object.keys(params).length === 0
@@ -72,7 +70,6 @@ namespace StateTransformParameters {
         const create = transform.transformer.definition.params;
         const params = create ? create((source && source.obj) as any, plugin) : { };
         return {
-            source: (source && source.obj) as any,
             initialValues: transform.params,
             params,
             isEmpty: Object.keys(params).length === 0
@@ -81,7 +78,7 @@ namespace StateTransformParameters {
 }
 
 namespace TransformContolBase {
-    export interface State {
+    export interface ControlState {
         params: any,
         error?: string,
         busy: boolean,
@@ -90,7 +87,7 @@ namespace TransformContolBase {
     }
 }
 
-abstract class TransformContolBase<P, S extends TransformContolBase.State> extends PurePluginComponent<P, S> {
+abstract class TransformContolBase<P, S extends TransformContolBase.ControlState> extends PurePluginComponent<P, S> {
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): Transformer.Definition['display'];

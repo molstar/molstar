@@ -30,7 +30,13 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
         }
 
         if (!SO.isRepresentation3D(e.obj)) return;
+
         updateVisibility(e, e.obj.data);
+
+        if (e.action === 'recreate') {
+            ctx.canvas3d.add(e.obj.data);
+            ctx.canvas3d.requestDraw(true);
+        }
     });
     events.object.removed.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
