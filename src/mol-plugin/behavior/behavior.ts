@@ -11,6 +11,7 @@ import { PluginContext } from 'mol-plugin/context';
 import { PluginCommand } from '../command';
 import { Observable } from 'rxjs';
 import { ParamDefinition } from 'mol-util/param-definition';
+import { shallowEqual } from 'mol-util';
 
 export { PluginBehavior }
 
@@ -26,7 +27,7 @@ namespace PluginBehavior {
     export class Root extends PluginStateObject.Create({ name: 'Root', typeClass: 'Root' }) { }
     export class Behavior extends PluginStateObject.CreateBehavior<PluginBehavior>({ name: 'Behavior' }) { }
 
-    export interface Ctor<P = undefined> { new(ctx: PluginContext, params?: P): PluginBehavior<P> }
+    export interface Ctor<P = undefined> { new(ctx: PluginContext, params: P): PluginBehavior<P> }
 
     export interface CreateParams<P> {
         name: string,
@@ -63,7 +64,7 @@ namespace PluginBehavior {
     }
 
     export function simpleCommandHandler<T>(cmd: PluginCommand<T>, action: (data: T, ctx: PluginContext) => void | Promise<void>) {
-        return class implements PluginBehavior<undefined> {
+        return class implements PluginBehavior<{}> {
             private sub: PluginCommand.Subscription | undefined = void 0;
             register(): void {
                 this.sub = cmd.subscribe(this.ctx, data => action(data, this.ctx));
@@ -76,7 +77,7 @@ namespace PluginBehavior {
         }
     }
 
-    export abstract class Handler implements PluginBehavior<undefined> {
+    export abstract class Handler<P = { }> implements PluginBehavior<P> {
         private subs: PluginCommand.Subscription[] = [];
         protected subscribeCommand<T>(cmd: PluginCommand<T>, action: PluginCommand.Action<T>) {
             this.subs.push(cmd.subscribe(this.ctx, action));
@@ -92,8 +93,12 @@ namespace PluginBehavior {
             for (const s of this.subs) s.unsubscribe();
             this.subs = [];
         }
-        constructor(protected ctx: PluginContext) {
-
+        update(params: P): boolean {
+            if (shallowEqual(params, this.params)) return false;
+            this.params = params;
+            return true;
+        }
+        constructor(protected ctx: PluginContext, protected params: P) {
         }
     }
 }

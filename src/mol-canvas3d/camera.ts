@@ -82,6 +82,13 @@ class Camera implements Object3D {
         return ret;
     }
 
+    focus(target: Vec3, radius: number) {
+        const position = Vec3.zero();
+        Vec3.scale(position, this.state.direction, -radius);
+        Vec3.add(position, position, target);
+        this.setState({ target, position });
+    }
+
     // lookAt(target: Vec3) {
     //     cameraLookAt(this.position, this.up, this.direction, target);
     // }

@@ -7,6 +7,10 @@
 import { StructureElement } from './structure'
 import { Link } from './structure/structure/unit/links'
 import { Shape } from './shape';
+import { Sphere3D } from 'mol-math/geometry';
+import { CentroidHelper } from 'mol-math/geometry/centroid-helper';
+import { Vec3 } from 'mol-math/linear-algebra';
+import { OrderedSet } from 'mol-data/int';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -37,4 +41,62 @@ export function areLociEqual(lociA: Loci, lociB: Loci) {
     return false
 }
 
-export type Loci = StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci
+
+export { Loci }
+
+type Loci = StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci
+
+namespace Loci {
+
+    const sphereHelper = new CentroidHelper(), tempPos = Vec3.zero();
+
+    export function getBoundingSphere(loci: Loci): Sphere3D | undefined {
+        if (loci.kind === 'every-loci' || loci.kind === 'empty-loci') return void 0;
+
+        sphereHelper.reset();
+        if (loci.kind === 'element-loci') {
+            for (const e of loci.elements) {
+                const { indices } = e;
+                const pos = e.unit.conformation.position;
+                const { elements } = e.unit;
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    pos(elements[OrderedSet.getAt(indices, i)], tempPos);
+                    sphereHelper.includeStep(tempPos);
+                }
+            }
+            sphereHelper.finishedIncludeStep();
+            for (const e of loci.elements) {
+                const { indices } = e;
+                const pos = e.unit.conformation.position;
+                const { elements } = e.unit;
+                for (let i = 0, _i = OrderedSet.size(indices); i < _i; i++) {
+                    pos(elements[OrderedSet.getAt(indices, i)], tempPos);
+                    sphereHelper.radiusStep(tempPos);
+                }
+            }
+        } else if (loci.kind === 'link-loci') {
+            for (const e of loci.links) {
+                let pos = e.aUnit.conformation.position;
+                pos(e.aUnit.elements[e.aIndex], tempPos);
+                sphereHelper.includeStep(tempPos);
+                pos = e.bUnit.conformation.position;
+                pos(e.bUnit.elements[e.bIndex], tempPos);
+                sphereHelper.includeStep(tempPos);
+            }
+            sphereHelper.finishedIncludeStep();
+            for (const e of loci.links) {
+                let pos = e.aUnit.conformation.position;
+                pos(e.aUnit.elements[e.aIndex], tempPos);
+                sphereHelper.radiusStep(tempPos);
+                pos = e.bUnit.conformation.position;
+                pos(e.bUnit.elements[e.bIndex], tempPos);
+                sphereHelper.radiusStep(tempPos);
+            }
+        } else if (loci.kind === 'group-loci') {
+            // TODO
+            return void 0;
+        }
+
+        return Sphere3D.create(Vec3.clone(sphereHelper.center), Math.sqrt(sphereHelper.radiusSq));
+    }
+}

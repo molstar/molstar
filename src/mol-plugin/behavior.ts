@@ -11,6 +11,7 @@ import * as StaticRepresentation from './behavior/static/representation'
 import * as StaticCamera from './behavior/static/camera'
 
 import * as DynamicRepresentation from './behavior/dynamic/representation'
+import * as DynamicCamera from './behavior/dynamic/camera'
 
 export const BuiltInPluginBehaviors = {
     State: StaticState,
@@ -19,5 +20,6 @@ export const BuiltInPluginBehaviors = {
 }
 
 export const PluginBehaviors = {
-    Representation: DynamicRepresentation
+    Representation: DynamicRepresentation,
+    Camera: DynamicCamera,
 }
