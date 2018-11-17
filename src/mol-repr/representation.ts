@@ -15,7 +15,7 @@ import { getQualityProps } from './util';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
-import { BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -80,7 +80,7 @@ export interface RepresentationContext {
 export { Representation }
 interface Representation<D, P extends PD.Params = {}> {
     readonly label: string
-    readonly updated: BehaviorSubject<number>
+    readonly updated: Subject<number>
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
@@ -88,23 +88,26 @@ interface Representation<D, P extends PD.Params = {}> {
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (value: boolean) => void
+    setPickable: (value: boolean) => void
     destroy: () => void
 }
 namespace Representation {
     export type Any = Representation<any>
     export const Empty: Any = {
-        label: '', renderObjects: [], props: {}, params: {}, updated: new BehaviorSubject(0),
+        label: '', renderObjects: [], props: {}, params: {}, updated: new Subject(),
         createOrUpdate: () => Task.constant('', undefined),
         getLoci: () => EmptyLoci,
         mark: () => false,
         setVisibility: () => {},
+        setPickable: () => {},
         destroy: () => {}
     }
 
     export type Def<D, P extends PD.Params = {}> = { [k: string]: (getParams: RepresentationParamsGetter<D, P>) => Representation<any, P> }
 
     export function createMulti<D, P extends PD.Params = {}>(label: string, getParams: RepresentationParamsGetter<D, P>, reprDefs: Def<D, P>): Representation<D, P> {
-        const updated = new BehaviorSubject(0)
+        let version = 0
+        const updated = new Subject<number>()
 
         let currentParams: P
         let currentProps: PD.Values<P>
@@ -153,7 +156,7 @@ namespace Representation {
                             await reprList[i].createOrUpdate(ctx, currentProps, currentData).runInContext(runtime)
                         }
                     }
-                    updated.next(updated.getValue() + 1)
+                    updated.next(version++)
                 })
             },
             getLoci: (pickingId: PickingId) => {
@@ -173,6 +176,11 @@ namespace Representation {
             setVisibility: (value: boolean) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     reprList[i].setVisibility(value)
+                }
+            },
+            setPickable: (value: boolean) => {
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    reprList[i].setPickable(value)
                 }
             },
             destroy() {
@@ -197,5 +205,6 @@ export interface Visual<D, P extends PD.Params> {
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     setVisibility: (value: boolean) => void
+    setPickable: (value: boolean) => void
     destroy: () => void
 }

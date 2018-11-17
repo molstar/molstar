@@ -195,6 +195,9 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         setVisibility(value: boolean) {
             if (renderObject) renderObject.state.visible = value
         },
+        setPickable(value: boolean) {
+            if (renderObject) renderObject.state.pickable = value
+        },
         destroy() {
             // TODO
             renderObject = undefined
@@ -216,7 +219,7 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVis
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
-            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createUnitsMeshRenderObject,
@@ -240,7 +243,7 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPoi
         createRenderObject: createUnitsPointsRenderObject,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
-            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         updateValues: Points.updateValues
     })
@@ -262,7 +265,7 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
         createRenderObject: createUnitsLinesRenderObject,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
-            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         updateValues: Lines.updateValues
     })
@@ -284,7 +287,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(build
         createRenderObject: createUnitsDirectVolumeRenderObject,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
-            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         updateValues: DirectVolume.updateValues
     })

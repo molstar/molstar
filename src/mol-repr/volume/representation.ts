@@ -20,7 +20,7 @@ import { NullLocation } from 'mol-model/location';
 import { VisualUpdateState } from 'mol-repr/util';
 import { ValueCell } from 'mol-util';
 import { Theme, createTheme } from 'mol-theme/theme';
-import { BehaviorSubject } from 'rxjs';
+import { Subject } from 'rxjs';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -39,7 +39,7 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void
 }
 
-export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>) {
+export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>): VolumeVisual<P> {
     const { defaultProps, createGeometry, getLoci, mark, setUpdateState } = builder
     const { createRenderObject, updateValues } = builder
     const updateState = VisualUpdateState.create()
@@ -120,6 +120,9 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
         setVisibility(value: boolean) {
             if (renderObject) renderObject.state.visible = value
         },
+        setPickable(value: boolean) {
+            if (renderObject) renderObject.state.pickable = value
+        },
         destroy() {
             // TODO
             renderObject = undefined
@@ -140,7 +143,8 @@ export const VolumeParams = {
 export type VolumeParams = typeof VolumeParams
 
 export function VolumeRepresentation<P extends VolumeParams>(label: string, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
-    const updated = new BehaviorSubject(0)
+    let version = 0
+    const updated = new Subject<number>()
     let visual: VolumeVisual<P>
 
     let _volume: VolumeData
@@ -174,7 +178,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
                 await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
                 busy = false
             }
-            updated.next(updated.getValue() + 1)
+            updated.next(version++)
         });
     }
 
@@ -194,6 +198,10 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         if (visual) visual.setVisibility(value)
     }
 
+    function setPickable(value: boolean) {
+        if (visual) visual.setPickable(value)
+    }
+
     return {
         label,
         get renderObjects() {
@@ -206,6 +214,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         getLoci,
         mark,
         setVisibility,
+        setPickable,
         destroy
     }
 }

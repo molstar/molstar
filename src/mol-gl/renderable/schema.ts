@@ -149,12 +149,15 @@ export const GlobalUniformSchema = {
     uFogNear: UniformSpec('f'),
     uFogFar: UniformSpec('f'),
     uFogColor: UniformSpec('v3'),
+
+    uPickingAlphaThreshold: UniformSpec('f'),
 }
 export type GlobalUniformSchema = typeof GlobalUniformSchema
 export type GlobalUniformValues = { [k in keyof GlobalUniformSchema]: ValueCell<any> }
 
 export const InternalSchema = {
     uObjectId: UniformSpec('i'),
+    uPickable: UniformSpec('i'),
 }
 export type InternalSchema = typeof InternalSchema
 export type InternalValues = { [k in keyof InternalSchema]: ValueCell<any> }

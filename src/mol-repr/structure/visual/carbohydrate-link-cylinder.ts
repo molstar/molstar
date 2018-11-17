@@ -7,7 +7,7 @@
 import { Structure, Link, StructureElement } from 'mol-model/structure';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { createLinkCylinderMesh, LinkCylinderProps, LinkCylinderParams } from './util/link';
+import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
 import { OrderedSet, Interval } from 'mol-data/int';
 import { ComplexMeshVisual, ComplexVisual } from '../complex-visual';
 import { LinkType } from 'mol-model/structure/model/types';
@@ -21,22 +21,10 @@ import { VisualUpdateState } from '../../util';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-// TODO create seperate visual
-// for (let i = 0, il = carbohydrates.terminalLinks.length; i < il; ++i) {
-//     const tl = carbohydrates.terminalLinks[i]
-//     const center = carbohydrates.elements[tl.carbohydrateIndex].geometry.center
-//     tl.elementUnit.conformation.position(tl.elementUnit.elements[tl.elementIndex], p)
-//     if (tl.fromCarbohydrate) {
-//         builder.addCylinder(center, p, 0.5, linkParams)
-//     } else {
-//         builder.addCylinder(p, center, 0.5, linkParams)
-//     }
-// }
-
-const radiusFactor = 0.3
-
-async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
+async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateLinkParams>, mesh?: Mesh) {
     const { links, elements } = structure.carbohydrates
+    const { linkSizeFactor } = props
+
     const location = StructureElement.create()
 
     const builderProps = {
@@ -53,7 +41,7 @@ async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure:
             const l = links[edgeIndex]
             location.unit = elements[l.carbohydrateIndexA].unit
             location.element = elements[l.carbohydrateIndexA].anomericCarbon
-            return theme.size.size(location) * radiusFactor
+            return theme.size.size(location) * linkSizeFactor
         }
     }
 
@@ -64,6 +52,7 @@ export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    linkSizeFactor: PD.Numeric(0.3, { min: 0, max: 3, step: 0.01 }),
 }
 export type CarbohydrateLinkParams = typeof CarbohydrateLinkParams
 

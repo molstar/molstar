@@ -165,6 +165,9 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         setVisibility(value: boolean) {
             if (renderObject) renderObject.state.visible = value
         },
+        setPickable(value: boolean) {
+            if (renderObject) renderObject.state.pickable = value
+        },
         destroy() {
             // TODO
             renderObject = undefined
@@ -187,7 +190,7 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
         ...builder,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<P>, currentProps: PD.Values<P>, newTheme: Theme, currentTheme: Theme) => {
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
-            if (SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
+            if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createComplexMeshRenderObject,

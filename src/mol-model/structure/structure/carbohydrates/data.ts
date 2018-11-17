@@ -8,6 +8,7 @@ import Unit from '../unit';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { ResidueIndex, ElementIndex } from '../../model';
 import { SaccharideComponent } from './constants';
+import StructureElement from '../element';
 
 export interface CarbohydrateLink {
     readonly carbohydrateIndexA: number
@@ -16,7 +17,7 @@ export interface CarbohydrateLink {
 
 export interface CarbohydrateTerminalLink {
     readonly carbohydrateIndex: number
-    readonly elementIndex: number
+    readonly elementIndex: StructureElement.UnitIndex
     readonly elementUnit: Unit
     /** specifies direction of the link */
     readonly fromCarbohydrate: boolean
@@ -31,7 +32,7 @@ export interface CarbohydrateElement {
     readonly ringAltId: string,
 }
 
-// partial carbohydrate with no ring present
+/** partial carbohydrate with no ring present */
 export interface PartialCarbohydrateElement {
     readonly unit: Unit.Atomic,
     readonly residueIndex: ResidueIndex,
@@ -45,5 +46,6 @@ export interface Carbohydrates {
     partialElements: ReadonlyArray<PartialCarbohydrateElement>
     getElementIndex: (unit: Unit, anomericCarbon: ElementIndex) => number | undefined
     getLinkIndex: (unitA: Unit, anomericCarbonA: ElementIndex, unitB: Unit, anomericCarbonB: ElementIndex) => number | undefined
+    getTerminalLinkIndex: (unitA: Unit, elementA: ElementIndex, unitB: Unit, elementB: ElementIndex) => number | undefined
     getAnomericCarbon: (unit: Unit, residueIndex: ResidueIndex) => ElementIndex | undefined
 }

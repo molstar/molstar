@@ -39,20 +39,22 @@ interface Renderer {
     render: (scene: Scene, variant: RenderVariant) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     setClearColor: (color: Color) => void
+    setPickingAlphaThreshold: (value: number) => void
     getImageData: () => ImageData
     dispose: () => void
 }
 
 export const DefaultRendererProps = {
     clearColor: Color(0x000000),
-    viewport: Viewport.create(0, 0, 0, 0)
+    viewport: Viewport.create(0, 0, 0, 0),
+    pickingAlphaThreshold: 0.5,
 }
 export type RendererProps = typeof DefaultRendererProps
 
 namespace Renderer {
     export function create(ctx: WebGLContext, camera: Camera, props: Partial<RendererProps> = {}): Renderer {
         const { gl } = ctx
-        let { clearColor, viewport: _viewport } = { ...DefaultRendererProps, ...props }
+        let { clearColor, viewport: _viewport, pickingAlphaThreshold } = { ...DefaultRendererProps, ...props }
 
         const viewport = Viewport.clone(_viewport)
         const viewportVec4 = Viewport.toVec4(Vec4.zero(), viewport)
@@ -98,6 +100,8 @@ namespace Renderer {
             uFogNear: ValueCell.create(camera.state.near),
             uFogFar: ValueCell.create(camera.state.far / 50),
             uFogColor: ValueCell.create(Vec3.clone(fogColor)),
+
+            uPickingAlphaThreshold: ValueCell.create(pickingAlphaThreshold),
         }
 
         let currentProgramId = -1
@@ -175,6 +179,10 @@ namespace Renderer {
             render,
 
             setClearColor,
+            setPickingAlphaThreshold: (value: number) => {
+                pickingAlphaThreshold = value
+                ValueCell.update(globalUniforms.uPickingAlphaThreshold, pickingAlphaThreshold)
+            },
             setViewport: (x: number, y: number, width: number, height: number) => {
                 Viewport.set(viewport, x, y, width, height)
                 gl.viewport(x, y, width, height)
@@ -192,6 +200,7 @@ namespace Renderer {
             get props() {
                 return {
                     clearColor,
+                    pickingAlphaThreshold,
                     viewport
                 }
             },

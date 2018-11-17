@@ -30,8 +30,7 @@ const t = Mat4.identity()
 const sVec = Vec3.zero()
 const pd = Vec3.zero()
 
-const sideFactor = 1.75 * 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
-const radiusFactor = 1.75
+const SideFactor = 2 * 0.806; // 0.806 == Math.cos(Math.PI / 4)
 
 const box = Box()
 const perforatedBox = PerforatedBox()
@@ -47,7 +46,7 @@ const hexagonalPrism = HexagonalPrism()
 async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateSymbolParams>, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
-    const { detail } = props
+    const { detail, sizeFactor } = props
 
     const carbohydrates = structure.carbohydrates
     const n = carbohydrates.elements.length
@@ -60,8 +59,8 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
         l.unit = c.unit
         l.element = c.unit.elements[c.anomericCarbon]
         const size = theme.size.size(l)
-        const radius = size * radiusFactor
-        const side = size * sideFactor
+        const radius = size * sizeFactor
+        const side = size * sizeFactor * SideFactor
 
         const { center, normal, direction } = c.geometry
         Vec3.add(pd, center, direction)
@@ -148,6 +147,7 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
 export const CarbohydrateSymbolParams = {
     ...ComplexMeshParams,
     detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
+    sizeFactor: PD.Numeric(1.75, { min: 0, max: 10, step: 0.01 }),
 }
 export type CarbohydrateSymbolParams = typeof CarbohydrateSymbolParams
 

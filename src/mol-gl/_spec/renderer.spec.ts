@@ -85,6 +85,7 @@ function createPoints() {
     }
     const state: RenderableState = {
         visible: true,
+        pickable: true,
         depthMask: true,
     }
 
