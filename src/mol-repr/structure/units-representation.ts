@@ -161,6 +161,13 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
 
     return {
         label,
+        get groupCount() {
+            let groupCount = 0
+            visuals.forEach(({ visual }) => {
+                if (visual.renderObject) groupCount += visual.groupCount
+            })
+            return groupCount
+        },
         get renderObjects() {
             const renderObjects: RenderObject[] = []
             visuals.forEach(({ visual }) => {

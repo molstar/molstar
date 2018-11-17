@@ -65,6 +65,9 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
     return {
         label,
+        get groupCount() {
+            return visual ? visual.groupCount : 0
+        },
         get renderObjects() {
             return visual && visual.renderObject ? [ visual.renderObject ] : []
         },
