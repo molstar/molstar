@@ -10,24 +10,14 @@ import { State } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 import { PluginComponent } from './base';
 
-export class StateTree extends PluginComponent<{ state: State }, { }> {
-    componentDidMount() {
-        // this.subscribe(this.props.state.events.changed, () => {
-        //     this.forceUpdate()
-        // });
-    }
-
+export class StateTree extends PluginComponent<{ state: State }> {
     render() {
-        // const n = this.props.plugin.state.data.tree.nodes.get(this.props.plugin.state.data.tree.rootRef)!;
         const n = this.props.state.tree.root.ref;
-        return <div>
-            <StateTreeNode state={this.props.state} nodeRef={n} />
-            {/* n.children.map(c => <StateTreeNode plugin={this.props.plugin} nodeRef={c!} key={c} />) */}
-        </div>;
+        return <StateTreeNode state={this.props.state} nodeRef={n} />;
     }
 }
 
-class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { }> {
+class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, { state: State, isCollapsed: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.props.nodeRef && e.state === this.props.state;
     }
@@ -37,11 +27,9 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
     }
 
     componentDidMount() {
-        let isCollapsed = this.cellState.isCollapsed;
         this.subscribe(this.plugin.events.state.cell.stateUpdated, e => {
-            if (this.is(e) && isCollapsed !== e.cellState.isCollapsed) {
-                isCollapsed = e.cellState.isCollapsed;
-                this.forceUpdate();
+            if (this.is(e) && e.state.transforms.has(this.props.nodeRef)) {
+                this.setState({ isCollapsed: e.cellState.isCollapsed });
             }
         });
 
@@ -56,6 +44,19 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
                 this.forceUpdate();
             }
         });
+    }
+
+    state = {
+        isCollapsed: this.props.state.cellStates.get(this.props.nodeRef).isCollapsed,
+        state: this.props.state
+    }
+
+    static getDerivedStateFromProps(props: { nodeRef: string, state: State }, state: { state: State, isCollapsed: boolean }) {
+        if (props.state === state.state) return null;
+        return {
+            isCollapsed: props.state.cellStates.get(props.nodeRef).isCollapsed,
+            state: props.state
+        };
     }
 
     render() {
@@ -74,7 +75,7 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
     }
 }
 
-class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State }> {
+class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State }, { state: State, isCurrent: boolean, isCollapsed: boolean }> {
     is(e: State.ObjectEvent) {
         return e.ref === this.props.nodeRef && e.state === this.props.state;
     }
@@ -84,20 +85,36 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
             if (this.is(e)) this.forceUpdate();
         });
 
-        let isCurrent = this.is(this.props.state.behaviors.currentObject.value);
-
         this.subscribe(this.plugin.state.behavior.currentObject, e => {
-            if (this.is(e)) {
-                if (!isCurrent) {
-                    isCurrent = true;
-                    this.forceUpdate();
+            if (!this.is(e)) {
+                if (this.state.isCurrent && e.state.transforms.has(this.props.nodeRef)) {
+                    this.setState({ isCurrent: this.props.state.current === this.props.nodeRef });
                 }
-            } else if (isCurrent) {
-                isCurrent = false;
-                // have to check the node wasn't removed
-                if (e.state.transforms.has(this.props.nodeRef)) this.forceUpdate();
+                return;
+            }
+
+            if (e.state.transforms.has(this.props.nodeRef)) {
+                this.setState({
+                    isCurrent: this.props.state.current === this.props.nodeRef,
+                    isCollapsed: this.props.state.cellStates.get(this.props.nodeRef).isCollapsed
+                });
             }
         });
+    }
+
+    state = {
+        isCurrent: this.props.state.current === this.props.nodeRef,
+        isCollapsed: this.props.state.cellStates.get(this.props.nodeRef).isCollapsed,
+        state: this.props.state
+    }
+
+    static getDerivedStateFromProps(props: { nodeRef: string, state: State }, state: { state: State, isCurrent: boolean, isCollapsed: boolean }) {
+        if (props.state === state.state) return null;
+        return {
+            isCurrent: props.state.current === props.nodeRef,
+            isCollapsed: props.state.cellStates.get(props.nodeRef).isCollapsed,
+            state: props.state
+        };
     }
 
     setCurrent = (e: React.MouseEvent<HTMLElement>) => {

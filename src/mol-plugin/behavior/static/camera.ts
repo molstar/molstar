@@ -51,6 +51,6 @@ export function Snapshots(ctx: PluginContext) {
 
     PluginCommands.Camera.Snapshots.Apply.subscribe(ctx, ({ id }) => {
         const e = ctx.state.cameraSnapshots.getEntry(id);
-        return PluginCommands.Camera.SetSnapshot.dispatch(ctx, { snapshot: e.snapshot, durationMs: 500 });
+        return PluginCommands.Camera.SetSnapshot.dispatch(ctx, { snapshot: e.snapshot, durationMs: 200 });
     });
 }
