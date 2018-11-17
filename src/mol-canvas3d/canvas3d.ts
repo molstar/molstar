@@ -257,17 +257,21 @@ namespace Canvas3D {
             const yp = Math.round(y * pickScale)
 
             objectPickTarget.bind()
-            await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
+            // TODO slow in Chrome, ok in FF; doesn't play well with gpu surface calc
+            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
+            webgl.readPixels(xp, yp, 1, 1, buffer)
             const objectId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
             if (objectId === -1) return
 
             instancePickTarget.bind()
-            await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
+            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
+            webgl.readPixels(xp, yp, 1, 1, buffer)
             const instanceId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
             if (instanceId === -1) return
 
             groupPickTarget.bind()
-            await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
+            // await webgl.readPixelsAsync(xp, yp, 1, 1, buffer)
+            webgl.readPixels(xp, yp, 1, 1, buffer)
             const groupId = decodeIdRGB(buffer[0], buffer[1], buffer[2])
             if (groupId === -1) return
 

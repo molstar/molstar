@@ -11,7 +11,6 @@ varying vec3 unitCoord;
 varying vec3 origPos;
 varying float instance;
 
-uniform float uAlpha;
 uniform mat4 uInvView;
 uniform float uIsoValue;
 uniform vec3 uGridDim;
@@ -25,6 +24,10 @@ uniform vec3 uHighlightColor;
 uniform vec3 uSelectColor;
 uniform vec2 uMarkerTexDim;
 uniform sampler2D tMarker;
+
+uniform float uAlpha;
+uniform float uPickingAlphaThreshold;
+uniform int uPickable;
 
 #if defined(dGridTexType_2d)
     precision mediump sampler2D;
@@ -126,7 +129,9 @@ vec4 raymarch(vec3 startLoc, vec3 step, vec3 viewDir) {
                 #if defined(dColorType_objectPicking) || defined(dColorType_instancePicking) || defined(dColorType_groupPicking)
                     if (uAlpha < uPickingAlphaThreshold)
                         discard; // ignore so the element below can be picked
-                #else
+                    if (uPickable == 0)
+                        return vec4(0.0, 0.0, 0.0, 1.0); // set to empty picking id
+                #endif
 
                 #if defined(dColorType_objectPicking)
                     return vec4(encodeIdRGB(float(uObjectId)), 1.0);
