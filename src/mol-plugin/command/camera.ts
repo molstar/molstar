@@ -8,7 +8,7 @@ import { PluginCommand } from './command';
 import { Camera } from 'mol-canvas3d/camera';
 
 export const Reset = PluginCommand<{}>({ isImmediate: true });
-export const SetSnapshot = PluginCommand<{ snapshot: Camera.Snapshot }>({ isImmediate: true });
+export const SetSnapshot = PluginCommand<{ snapshot: Camera.Snapshot, durationMs?: number }>({ isImmediate: true });
 
 export const Snapshots = {
     Add: PluginCommand<{ name?: string, description?: string }>({ isImmediate: true }),

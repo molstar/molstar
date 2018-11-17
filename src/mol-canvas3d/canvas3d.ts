@@ -225,8 +225,10 @@ namespace Canvas3D {
         }
 
         function animate() {
+            const t = now();
+            camera.transition.tick(t);
             draw(false)
-            if (now() - lastRenderTime > 200) {
+            if (t - lastRenderTime > 200) {
                 if (pickDirty) pick()
             }
             window.requestAnimationFrame(animate)

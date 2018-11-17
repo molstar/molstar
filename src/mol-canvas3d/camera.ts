@@ -6,9 +6,10 @@
  */
 
 import { Mat4, Vec3, Vec4, EPSILON } from 'mol-math/linear-algebra'
-import { Viewport, cameraLookAt, cameraProject, cameraUnproject } from './camera/util';
+import { Viewport, cameraProject, cameraUnproject } from './camera/util';
 import { Object3D } from 'mol-gl/object3d';
 import { BehaviorSubject } from 'rxjs';
+import { CameraTransitionManager } from './camera/transition';
 
 export { Camera }
 
@@ -24,6 +25,8 @@ class Camera implements Object3D {
 
     readonly viewport: Viewport;
     readonly state: Readonly<Camera.Snapshot> = Camera.createDefaultSnapshot();
+
+    readonly transition: CameraTransitionManager = new CameraTransitionManager(this);
 
     get position() { return this.state.position; }
     set position(v: Vec3) { Vec3.copy(this.state.position, v); }
@@ -69,8 +72,8 @@ class Camera implements Object3D {
         return changed;
     }
 
-    setState(snapshot?: Partial<Camera.Snapshot>) {
-        Camera.copySnapshot(this.state, snapshot);
+    setState(snapshot: Partial<Camera.Snapshot>) {
+        this.transition.apply(snapshot);
     }
 
     getSnapshot() {
@@ -79,13 +82,14 @@ class Camera implements Object3D {
         return ret;
     }
 
-    lookAt(target: Vec3) {
-        cameraLookAt(this.direction, this.up, this.position, target);
-    }
+    // lookAt(target: Vec3) {
+    //     cameraLookAt(this.position, this.up, this.direction, target);
+    // }
 
-    translate(v: Vec3) {
-        Vec3.add(this.position, this.position, v)
-    }
+    // translate(v: Vec3) {
+    //     Vec3.add(this.position, this.position, v);
+    //     cameraLookAt(this.position, this.up, this.direction, this.target);
+    // }
 
     project(out: Vec4, point: Vec3) {
         return cameraProject(out, point, this.viewport, this.projectionView)
@@ -133,6 +137,7 @@ namespace Camera {
         mode: Mode,
 
         position: Vec3,
+        // Normalized camera direction
         direction: Vec3,
         up: Vec3,
         target: Vec3,

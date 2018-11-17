@@ -46,6 +46,13 @@ namespace Quat {
         return out;
     }
 
+    export function setIdentity(out: Quat) {
+        out[0] = 0;
+        out[1] = 0;
+        out[2] = 0;
+        out[3] = 1;
+    }
+
     export function create(x: number, y: number, z: number, w: number) {
         const out = identity();
         out[0] = x;
