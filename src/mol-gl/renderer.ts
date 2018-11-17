@@ -39,6 +39,7 @@ interface Renderer {
     render: (scene: Scene, variant: RenderVariant) => void
     setViewport: (x: number, y: number, width: number, height: number) => void
     setClearColor: (color: Color) => void
+    setPickingAlphaThreshold: (value: number) => void
     getImageData: () => ImageData
     dispose: () => void
 }
@@ -178,6 +179,10 @@ namespace Renderer {
             render,
 
             setClearColor,
+            setPickingAlphaThreshold: (value: number) => {
+                pickingAlphaThreshold = value
+                ValueCell.update(globalUniforms.uPickingAlphaThreshold, pickingAlphaThreshold)
+            },
             setViewport: (x: number, y: number, width: number, height: number) => {
                 Viewport.set(viewport, x, y, width, height)
                 gl.viewport(x, y, width, height)

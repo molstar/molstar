@@ -34,6 +34,7 @@ export const Canvas3DParams = {
     cameraPosition: PD.Vec3(Vec3.create(0, 0, 50)), // TODO or should it be in a seperate 'state' property?
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     backgroundColor: PD.Color(Color(0x000000)),
+    pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
 }
 export type Canvas3DParams = typeof Canvas3DParams
 
@@ -361,6 +362,9 @@ namespace Canvas3D {
                 if (props.backgroundColor !== undefined && props.backgroundColor !== renderer.props.clearColor) {
                     renderer.setClearColor(props.backgroundColor)
                 }
+                if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
+                    renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
+                }
                 requestDraw(true)
             },
 
@@ -368,7 +372,8 @@ namespace Canvas3D {
                 return {
                     cameraPosition: Vec3.clone(camera.position),
                     cameraMode: camera.state.mode,
-                    backgroundColor: renderer.props.clearColor
+                    backgroundColor: renderer.props.clearColor,
+                    pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
                 }
             },
             get input() {
