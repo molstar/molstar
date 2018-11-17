@@ -27,8 +27,8 @@ class CameraTransitionManager {
             return;
         }
 
-        Camera.copySnapshot(this.source, this.camera);
-        Camera.copySnapshot(this.target, this.camera);
+        Camera.copySnapshot(this.source, this.camera.state);
+        Camera.copySnapshot(this.target, this.camera.state);
         Camera.copySnapshot(this.target, to);
 
         this.inTransition = true;
