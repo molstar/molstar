@@ -11,14 +11,14 @@ import { PluginStateObject as SO } from '../objects';
 import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 
-export { CreateStructureRepresentation }
-namespace CreateStructureRepresentation {
+export { StructureRepresentation3D }
+namespace StructureRepresentation3D {
     export interface Params {
         type: { name: string, params: any /** todo is there "common type" */ },
     }
 }
-const CreateStructureRepresentation = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Representation3D, CreateStructureRepresentation.Params>({
-    name: 'create-structure-representation',
+const StructureRepresentation3D = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Representation3D, StructureRepresentation3D.Params>({
+    name: 'structure-representation-3d',
     display: { name: '3D Representation' },
     from: [SO.Molecule.Structure],
     to: [SO.Molecule.Representation3D],

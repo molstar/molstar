@@ -6,10 +6,10 @@
 
 import * as Data from './transforms/data'
 import * as Model from './transforms/model'
-import * as Visuals from './transforms/visuals'
+import * as Representation from './transforms/representation'
 
 export const StateTransforms = {
     Data,
     Model,
-    Visuals
+    Representation
 }

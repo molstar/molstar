@@ -7,17 +7,16 @@
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
 import { Task } from 'mol-task';
-import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection } from 'mol-model/structure';
+import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel } from 'mol-model/structure';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
-import { Mat4 } from 'mol-math/linear-algebra';
 import { MolScriptBuilder } from 'mol-script/language/builder';
 
-export { ParseTrajectoryFromMmCif }
-namespace ParseTrajectoryFromMmCif { export interface Params { blockHeader?: string } }
-const ParseTrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Molecule.Trajectory, ParseTrajectoryFromMmCif.Params>({
-    name: 'parse-trajectory-from-mmcif',
+export { TrajectoryFromMmCif }
+namespace TrajectoryFromMmCif { export interface Params { blockHeader?: string } }
+const TrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Molecule.Trajectory, TrajectoryFromMmCif.Params>({
+    name: 'trajectory-from-mmcif',
     display: {
         name: 'Models from mmCIF',
         description: 'Identify and create all separate models in the specified CIF data block'
@@ -45,11 +44,11 @@ const ParseTrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Mol
     }
 });
 
-export { CreateModelFromTrajectory }
+export { ModelFromTrajectory }
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
-namespace CreateModelFromTrajectory { export interface Params { modelIndex: number } }
-const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajectory, SO.Molecule.Model, CreateModelFromTrajectory.Params>({
-    name: 'create-model-from-trajectory',
+namespace ModelFromTrajectory { export interface Params { modelIndex: number } }
+const ModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajectory, SO.Molecule.Model, ModelFromTrajectory.Params>({
+    name: 'model-from-trajectory',
     display: {
         name: 'Model from Trajectory',
         description: 'Create a molecular structure from the specified model.'
@@ -66,19 +65,18 @@ const CreateModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajec
     }
 });
 
-export { CreateStructure }
-namespace CreateStructure { export interface Params { transform3d?: Mat4 } }
-const CreateStructure = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, CreateStructure.Params>({
-    name: 'create-structure-from-model',
+export { StructureFromModel }
+namespace StructureFromModel { export interface Params { } }
+const StructureFromModel = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, StructureFromModel.Params>({
+    name: 'structure-from-model',
     display: {
         name: 'Structure from Model',
         description: 'Create a molecular structure from the specified model.'
     },
     from: [SO.Molecule.Model],
     to: [SO.Molecule.Structure],
-    apply({ a, params }) {
+    apply({ a }) {
         let s = Structure.ofModel(a.data);
-        if (params.transform3d) s = Structure.transform(s, params.transform3d);
         const label = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
         return new SO.Molecule.Structure(s, label);
     }
@@ -88,10 +86,10 @@ function structureDesc(s: Structure) {
     return s.elementCount === 1 ? '1 element' : `${s.elementCount} elements`;
 }
 
-export { CreateStructureAssembly }
-namespace CreateStructureAssembly { export interface Params { /** if not specified, use the 1st */ id?: string } }
-const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, CreateStructureAssembly.Params>({
-    name: 'create-structure-assembly',
+export { StructureAssemblyFromModel }
+namespace StructureAssemblyFromModel { export interface Params { /** if not specified, use the 1st */ id?: string } }
+const StructureAssemblyFromModel = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, StructureAssemblyFromModel.Params>({
+    name: 'structure-assembly-from-model',
     display: {
         name: 'Structure Assembly',
         description: 'Create a molecular structure assembly.'
@@ -119,10 +117,10 @@ const CreateStructureAssembly = PluginStateTransform.Create<SO.Molecule.Model, S
     }
 });
 
-export { CreateStructureSelection }
-namespace CreateStructureSelection { export interface Params { query: Expression, label?: string } }
-const CreateStructureSelection = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Structure, CreateStructureSelection.Params>({
-    name: 'create-structure-selection',
+export { StructureSelection }
+namespace StructureSelection { export interface Params { query: Expression, label?: string } }
+const StructureSelection = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Structure, StructureSelection.Params>({
+    name: 'structure-selection',
     display: {
         name: 'Structure Selection',
         description: 'Create a molecular structure from the specified model.'
@@ -130,14 +128,14 @@ const CreateStructureSelection = PluginStateTransform.Create<SO.Molecule.Structu
     from: [SO.Molecule.Structure],
     to: [SO.Molecule.Structure],
     params: () => ({
-        query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all),
-        label: PD.Text('', { isOptional: true })
+        query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
+        label: PD.Text('', { isOptional: true, isHidden: true })
     }),
     apply({ a, params }) {
         // TODO: use cache, add "update"
-        const compiled = compile<StructureSelection>(params.query);
+        const compiled = compile<Sel>(params.query);
         const result = compiled(new QueryContext(a.data));
-        const s = StructureSelection.unionStructure(result);
+        const s = Sel.unionStructure(result);
         const label = { label: `${params.label || 'Selection'}`, description: structureDesc(s) };
         return new SO.Molecule.Structure(s, label);
     }

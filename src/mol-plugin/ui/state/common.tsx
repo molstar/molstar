@@ -53,6 +53,14 @@ namespace StateTransformParameters {
 
     export type Class = React.ComponentClass<Props>
 
+    function areParamsEmpty(params: PD.Params) {
+        const keys = Object.keys(params);
+        for (const k of keys) {
+            if (!params[k].isHidden) return false;
+        }
+        return true;
+    }
+
     export function infoFromAction(plugin: PluginContext, state: State, action: StateAction, nodeRef: Transform.Ref): Props['info'] {
         const source = state.cells.get(nodeRef)!.obj!;
         const params = action.definition.params ? action.definition.params(source, plugin) : { };
@@ -60,7 +68,7 @@ namespace StateTransformParameters {
         return {
             initialValues,
             params,
-            isEmpty: Object.keys(params).length === 0
+            isEmpty: areParamsEmpty(params)
         };
     }
 
@@ -72,7 +80,7 @@ namespace StateTransformParameters {
         return {
             initialValues: transform.params,
             params,
-            isEmpty: Object.keys(params).length === 0
+            isEmpty: areParamsEmpty(params)
         }
     }
 }

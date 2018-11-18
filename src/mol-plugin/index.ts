@@ -25,10 +25,10 @@ const DefaultSpec: PluginSpec = {
         PluginSpec.Action(CreateStructureFromPDBe),
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
-        PluginSpec.Action(StateTransforms.Model.CreateStructureAssembly),
-        PluginSpec.Action(StateTransforms.Model.CreateStructure),
-        PluginSpec.Action(StateTransforms.Model.CreateModelFromTrajectory),
-        PluginSpec.Action(StateTransforms.Visuals.CreateStructureRepresentation)
+        PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),
+        PluginSpec.Action(StateTransforms.Model.StructureFromModel),
+        PluginSpec.Action(StateTransforms.Model.ModelFromTrajectory),
+        PluginSpec.Action(StateTransforms.Representation.StructureRepresentation3D)
     ],
     behaviors: [
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),

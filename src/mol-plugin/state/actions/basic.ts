@@ -36,11 +36,11 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
         const newTree = b.toRoot()
             .apply(StateTransforms.Data.Download, { url })
             .apply(StateTransforms.Data.ParseCif)
-            .apply(StateTransforms.Model.ParseTrajectoryFromMmCif, {})
-            .apply(StateTransforms.Model.CreateModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.CreateStructureAssembly)
+            .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
+            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+            .apply(StateTransforms.Model.StructureAssemblyFromModel)
             // .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
-            .apply(StateTransforms.Visuals.CreateStructureRepresentation, {
+            .apply(StateTransforms.Representation.StructureRepresentation3D, {
                 type: {
                     name: 'cartoon',
                     params: PD.getDefaultValues(CartoonParams)
@@ -62,13 +62,14 @@ export const UpdateTrajectory = StateAction.create<PluginStateObject.Root, void,
         by: PD.Numeric(1, { min: -1, max: 1, step: 1 }, { isOptional: true })
     }),
     apply({ params, state }) {
-        const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model).filter(c => c.transform.transformer === StateTransforms.Model.CreateModelFromTrajectory));
+        const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model)
+            .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
 
         const update = state.build();
 
         if (params.action === 'reset') {
             for (const m of models) {
-                update.to(m.transform.ref).update(StateTransforms.Model.CreateModelFromTrajectory,
+                update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
                     () => ({ modelIndex: 0}));
             }
         } else {
@@ -76,7 +77,7 @@ export const UpdateTrajectory = StateAction.create<PluginStateObject.Root, void,
                 const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
                 if (!parent || !parent.obj) continue;
                 const traj = parent.obj as PluginStateObject.Molecule.Trajectory;
-                update.to(m.transform.ref).update(StateTransforms.Model.CreateModelFromTrajectory,
+                update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
                     old => {
                         let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
                         if (modelIndex < 0) modelIndex += traj.data.length;

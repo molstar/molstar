@@ -27,6 +27,7 @@ export class ParameterControls<P extends PD.Params> extends React.PureComponent<
         return <div style={{ width: '100%' }}>
             {Object.keys(params).map(key => {
                 const param = params[key];
+                if (param.isHidden) return null;
                 const Control = controlFor(param);
                 if (!Control) return null;
                 return <Control param={param} key={key} onChange={this.props.onChange} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} name={key} value={values[key]} />
