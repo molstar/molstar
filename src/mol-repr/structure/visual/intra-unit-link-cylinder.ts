@@ -12,7 +12,7 @@ import { createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { UnitsMeshVisual, UnitsMeshParams, StructureGroup } from '../units-visual';
-import { Interval } from 'mol-data/int';
+import { Interval, OrderedSet } from 'mol-data/int';
 import { BitFlags } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -101,6 +101,10 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
                 Link.Location(
                     unit, unit.links.a[groupId] as StructureElement.UnitIndex,
                     unit, unit.links.b[groupId] as StructureElement.UnitIndex
+                ),
+                Link.Location(
+                    unit, unit.links.b[groupId] as StructureElement.UnitIndex,
+                    unit, unit.links.a[groupId] as StructureElement.UnitIndex
                 )
             ])
         }
@@ -110,18 +114,36 @@ function getLinkLoci(pickingId: PickingId, structureGroup: StructureGroup, id: n
 
 function markLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (!Link.isLoci(loci)) return false
-    const { structure, group } = structureGroup
-    if (loci.structure !== structure) return false
-    const unit = group.units[0]
-    if (!Unit.isAtomic(unit)) return false
-    const groupCount = unit.links.edgeCount * 2
-    for (const b of loci.links) {
-        const unitIdx = group.unitIndexMap.get(b.aUnit.id)
-        if (unitIdx !== undefined) {
-            const idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
-            if (idx !== -1) {
-                if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+    if (Link.isLoci(loci)) {
+        const { structure, group } = structureGroup
+        if (loci.structure !== structure) return false
+        const unit = group.units[0]
+        if (!Unit.isAtomic(unit)) return false
+        const groupCount = unit.links.edgeCount * 2
+        for (const b of loci.links) {
+            const unitIdx = group.unitIndexMap.get(b.aUnit.id)
+            if (unitIdx !== undefined) {
+                const idx = unit.links.getDirectedEdgeIndex(b.aIndex, b.bIndex)
+                if (idx !== -1) {
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
+                }
+            }
+        }
+    } else if (StructureElement.isLoci(loci)) {
+        const { structure, group } = structureGroup
+        if (loci.structure !== structure) return false
+        const unit = group.units[0]
+        if (!Unit.isAtomic(unit)) return false
+        const groupCount = unit.links.edgeCount * 2
+        for (const e of loci.elements) {
+            const unitIdx = group.unitIndexMap.get(e.unit.id)
+            if (unitIdx !== undefined) {
+                const { offset } = unit.links
+                OrderedSet.forEach(e.indices, v => {
+                    for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
+                        if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true
+                    }
+                })
             }
         }
     }

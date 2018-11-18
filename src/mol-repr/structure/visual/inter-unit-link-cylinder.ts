@@ -11,7 +11,7 @@ import { createLinkCylinderMesh, LinkIterator, LinkCylinderParams } from './util
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
-import { Interval } from 'mol-data/int';
+import { Interval, OrderedSet } from 'mol-data/int';
 import { BitFlags } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
@@ -22,7 +22,7 @@ import { Theme } from 'mol-theme/theme';
 async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
     const links = structure.links
     const { bondCount, bonds } = links
-    const { sizeFactor } = props
+    const { sizeFactor, sizeAspectRatio } = props
 
     if (!bondCount) return Mesh.createEmpty(mesh)
 
@@ -43,7 +43,7 @@ async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: St
             const b = bonds[edgeIndex]
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
-            return theme.size.size(location) * sizeFactor
+            return theme.size.size(location) * sizeFactor * sizeAspectRatio
         }
     }
 
@@ -85,6 +85,10 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
             Link.Location(
                 bond.unitA, bond.indexA as StructureElement.UnitIndex,
                 bond.unitB, bond.indexB as StructureElement.UnitIndex
+            ),
+            Link.Location(
+                bond.unitB, bond.indexB as StructureElement.UnitIndex,
+                bond.unitA, bond.indexA as StructureElement.UnitIndex
             )
         ])
     }
@@ -93,11 +97,23 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
 
 function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     let changed = false
-    if (!Link.isLoci(loci)) return false
-    for (const b of loci.links) {
-        const idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
-        if (idx !== -1) {
-            if (apply(Interval.ofSingleton(idx))) changed = true
+    if (Link.isLoci(loci)) {
+        if (loci.structure !== structure) return false
+        for (const b of loci.links) {
+            const idx = structure.links.getBondIndex(b.aIndex, b.aUnit, b.bIndex, b.bUnit)
+            if (idx !== -1) {
+                if (apply(Interval.ofSingleton(idx))) changed = true
+            }
+        }
+    } else if (StructureElement.isLoci(loci)) {
+        if (loci.structure !== structure) return false
+        for (const e of loci.elements) {
+            OrderedSet.forEach(e.indices, v => {
+                const indices = structure.links.getBondIndices(v, e.unit)
+                for (let i = 0, il = indices.length; i < il; ++i) {
+                    if (apply(Interval.ofSingleton(indices[i]))) changed = true
+                }
+            })
         }
     }
     return changed
