@@ -7,7 +7,7 @@
 import { Link, Structure, StructureElement } from 'mol-model/structure';
 import { ComplexVisual } from '../representation';
 import { VisualUpdateState } from '../../util';
-import { LinkCylinderProps, createLinkCylinderMesh, LinkCylinderParams } from './util/link';
+import { createLinkCylinderMesh, LinkCylinderParams } from './util/link';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { Loci, EmptyLoci } from 'mol-model/loci';
 import { ComplexMeshVisual, ComplexMeshParams } from '../complex-visual';
@@ -21,10 +21,11 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: LinkCylinderProps, mesh?: Mesh) {
+async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CrossLinkRestraintParams>, mesh?: Mesh) {
 
     const crossLinks = structure.crossLinkRestraints
     if (!crossLinks.count) return Mesh.createEmpty(mesh)
+    const { sizeFactor } = props
 
     const location = StructureElement.create()
 
@@ -43,7 +44,7 @@ async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structur
             const b = crossLinks.pairs[edgeIndex]
             location.unit = b.unitA
             location.element = b.unitA.elements[b.indexA]
-            return theme.size.size(location)
+            return theme.size.size(location) * sizeFactor
         }
     }
 
@@ -53,6 +54,7 @@ async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structur
 export const CrossLinkRestraintParams = {
     ...ComplexMeshParams,
     ...LinkCylinderParams,
+    sizeFactor: PD.Numeric(1, { min: 0, max: 10, step: 0.1 }),
 }
 export type CrossLinkRestraintParams = typeof CrossLinkRestraintParams
 
@@ -64,7 +66,10 @@ export function CrossLinkRestraintVisual(): ComplexVisual<CrossLinkRestraintPara
         getLoci: getLinkLoci,
         mark: markLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CrossLinkRestraintParams>, currentProps: PD.Values<CrossLinkRestraintParams>) => {
-            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.radialSegments !== currentProps.radialSegments
+            )
         }
     })
 }

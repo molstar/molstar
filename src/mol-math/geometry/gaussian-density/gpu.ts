@@ -233,7 +233,6 @@ function getGaussianDensityRenderObject(webgl: WebGLContext, drawCount: number, 
     const state: RenderableState = {
         visible: true,
         pickable: false,
-        depthMask: false
     }
 
     const renderObject = createGaussianDensityRenderObject(values, state)

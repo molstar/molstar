@@ -19,6 +19,7 @@ import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
+import { VisualUpdateState } from 'mol-repr/util';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -132,6 +133,10 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
         createLocationIterator: NucleotideLocationIterator.fromGroup,
         getLoci: getNucleotideElementLoci,
         mark: markNucleotideElement,
-        setUpdateState: () => {}
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideBlockParams>, currentProps: PD.Values<NucleotideBlockParams>) => {
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor
+            )
+        }
     })
 }

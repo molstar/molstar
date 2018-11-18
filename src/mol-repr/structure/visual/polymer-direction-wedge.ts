@@ -16,6 +16,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { MeshBuilder } from 'mol-geo/geometry/mesh/mesh-builder';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
+import { VisualUpdateState } from 'mol-repr/util';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -101,6 +102,10 @@ export function PolymerDirectionVisual(): UnitsVisual<PolymerDirectionParams> {
         createLocationIterator: PolymerLocationIterator.fromGroup,
         getLoci: getPolymerElementLoci,
         mark: markPolymerElement,
-        setUpdateState: () => {}
+        setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerDirectionParams>, currentProps: PD.Values<PolymerDirectionParams>) => {
+            state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor
+            )
+        }
     })
 }

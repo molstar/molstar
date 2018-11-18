@@ -51,7 +51,6 @@ async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure:
 export const CarbohydrateLinkParams = {
     ...UnitsMeshParams,
     ...LinkCylinderParams,
-    detail: PD.Numeric(0, { min: 0, max: 3, step: 1 }),
     linkSizeFactor: PD.Numeric(0.3, { min: 0, max: 3, step: 0.01 }),
 }
 export type CarbohydrateLinkParams = typeof CarbohydrateLinkParams
@@ -64,7 +63,10 @@ export function CarbohydrateLinkVisual(): ComplexVisual<CarbohydrateLinkParams> 
         getLoci: getLinkLoci,
         mark: markLink,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<CarbohydrateLinkParams>, currentProps: PD.Values<CarbohydrateLinkParams>) => {
-            state.createGeometry = newProps.radialSegments !== currentProps.radialSegments
+            state.createGeometry = (
+                newProps.linkSizeFactor !== currentProps.linkSizeFactor ||
+                newProps.radialSegments !== currentProps.radialSegments
+            )
         }
     })
 }

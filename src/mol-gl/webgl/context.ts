@@ -55,37 +55,40 @@ function unbindFramebuffer(gl: GLRenderingContext) {
 
 const tmpPixel = new Uint8Array(1 * 4);
 
-function fence(gl: WebGL2RenderingContext) {
-    return new Promise(resolve => {
-        gl.finish()
-        const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
-        if (!sync) {
-            console.warn('could not create a WebGL2 sync object')
-            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
-            resolve()
-        } else {
-            gl.flush(); // Ensure the fence is submitted.
-            const check = () => {
-                const status = gl.getSyncParameter(sync, gl.SYNC_STATUS)
-                if (status === gl.SIGNALED) {
-                    gl.deleteSync(sync)
-                    resolve()
-                } else {
-                    Scheduler.setImmediate(check, 0)
-                }
-            }
-            Scheduler.setImmediate(check, 0)
-        }
-    })
+function checkSync(gl: WebGL2RenderingContext, sync: WebGLSync, resolve: () => void) {
+    if (gl.getSyncParameter(sync, gl.SYNC_STATUS) === gl.SIGNALED) {
+        gl.deleteSync(sync)
+        resolve()
+    } else {
+        Scheduler.setImmediate(checkSync, gl, sync, resolve)
+    }
 }
 
-async function waitForGpuCommandsComplete(gl: GLRenderingContext) {
-    if (isWebGL2(gl)) {
-        await fence(gl)
-    } else {
-        console.info('webgl sync object not supported in webgl 1')
+function fence(gl: WebGL2RenderingContext, resolve: () => void) {
+    const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0)
+    if (!sync) {
+        console.warn('Could not create a WebGLSync object')
         gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+        resolve()
+    } else {
+        Scheduler.setImmediate(checkSync, gl, sync, resolve)
     }
+}
+
+let SentWebglSyncObjectNotSupportedInWebglMessage = false
+function waitForGpuCommandsComplete(gl: GLRenderingContext): Promise<void> {
+    return new Promise(resolve => {
+        if (isWebGL2(gl)) {
+            fence(gl, resolve)
+        } else {
+            if (!SentWebglSyncObjectNotSupportedInWebglMessage) {
+                console.info('Sync object not supported in WebGL')
+                SentWebglSyncObjectNotSupportedInWebglMessage = true
+            }
+            gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, tmpPixel)
+            resolve()
+        }
+    })
 }
 
 export function createImageData(buffer: ArrayLike<number>, width: number, height: number) {
@@ -198,17 +201,34 @@ export function createContext(gl: GLRenderingContext): WebGLContext {
     let readPixelsAsync: (x: number, y: number, width: number, height: number, buffer: Uint8Array) => Promise<void>
     if (isWebGL2(gl)) {
         const pbo = gl.createBuffer()
-        readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
+        let _buffer: Uint8Array | undefined = void 0
+        let _resolve: (() => void) | undefined = void 0
+        let _reading = false
+
+        const bindPBO = () => {
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
+            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, _buffer!)
+            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
+            _reading = false
+            _resolve!()
+            _resolve = void 0
+            _buffer = void 0
+        }
+        readPixelsAsync = (x: number, y: number, width: number, height: number, buffer: Uint8Array): Promise<void> => new Promise<void>((resolve, reject) => {
+            if (_reading) {
+                reject('Can not call multiple readPixelsAsync at the same time')
+                return
+            }
+            _reading = true;
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
             gl.bufferData(gl.PIXEL_PACK_BUFFER, width * height * 4, gl.STREAM_READ)
             gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, 0)
             gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
             // need to unbind/bind PBO before/after async awaiting the fence
-            await fence(gl)
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, pbo)
-            gl.getBufferSubData(gl.PIXEL_PACK_BUFFER, 0, buffer)
-            gl.bindBuffer(gl.PIXEL_PACK_BUFFER, null)
-        }
+            _resolve = resolve
+            _buffer = buffer
+            fence(gl, bindPBO)
+        })
     } else {
         readPixelsAsync = async (x: number, y: number, width: number, height: number, buffer: Uint8Array) => {
             gl.readPixels(x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE, buffer)

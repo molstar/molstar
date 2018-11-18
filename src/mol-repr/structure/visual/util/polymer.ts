@@ -6,11 +6,12 @@
 
 import { Unit, ElementIndex, StructureElement, Link } from 'mol-model/structure';
 import SortedRanges from 'mol-data/int/sorted-ranges';
-import { OrderedSet, Interval } from 'mol-data/int';
+import { OrderedSet, Interval, SortedArray } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
+import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 
 export * from './polymer/backbone-iterator'
 export * from './polymer/gap-iterator'
@@ -65,17 +66,22 @@ export namespace PolymerGapLocationIterator {
     }
 }
 
+/** Return a Loci for the elements of a whole residue. */
 export function getPolymerElementLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const { structure, group } = structureGroup
         const unit = group.units[instanceId]
-        if (unit === undefined) {
-            console.log(id, { objectId, instanceId, groupId }, group.units)
-        }
-        const unitIndex = OrderedSet.indexOf(unit.elements, unit.polymerElements[groupId]) as StructureElement.UnitIndex
-        if (unitIndex !== -1) {
-            const indices = OrderedSet.ofSingleton(unitIndex)
+        const { elements, polymerElements, model } = unit
+        if (OrderedSet.indexOf(elements, polymerElements[groupId]) !== -1) {
+            const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+            const rI = index[polymerElements[groupId]]
+            const _indices: number[] = []
+            for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
+                const unitIndex = OrderedSet.indexOf(elements, i)
+                if (unitIndex !== -1) _indices.push(unitIndex)
+            }
+            const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices))
             return StructureElement.Loci(structure, [{ unit, indices }])
         }
     }
@@ -87,24 +93,25 @@ export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, a
     if (!StructureElement.isLoci(loci)) return false
     const { structure, group } = structureGroup
     if (loci.structure !== structure) return false
-    const groupCount = group.units[0].polymerElements.length
+    const { polymerElements, model, elements } = group.units[0]
+    const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+    const groupCount = polymerElements.length
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)
         if (unitIdx !== undefined) {
-            if (Interval.is(e.indices)) {
-                const min = OrderedSet.indexOf(e.unit.polymerElements, e.unit.elements[Interval.min(e.indices)])
-                const max = OrderedSet.indexOf(e.unit.polymerElements, e.unit.elements[Interval.max(e.indices)])
-                if (min !== -1 && max !== -1) {
-                    if (apply(Interval.ofRange(unitIdx * groupCount + min, unitIdx * groupCount + max))) changed = true
+            // TODO optimized implementation for intervals
+            OrderedSet.forEach(e.indices, v => {
+                const rI = index[elements[v]]
+                const unitIndexBeg = OrderedSet.indexOf(elements, offsets[rI])
+                const unitIndexEnd = OrderedSet.indexOf(elements, offsets[rI + 1])
+                const unitIndexInterval = Interval.ofBounds(unitIndexBeg, unitIndexEnd)
+                if(!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                const eI = getElementIndexForAtomRole(model, rI, 'trace')
+                const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
+                if (idx !== -1) {
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
-            } else {
-                for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                    const idx = OrderedSet.indexOf(e.unit.polymerElements, e.unit.elements[e.indices[i]])
-                    if (idx !== -1) {
-                        if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
-                    }
-                }
-            }
+            })
         }
     }
     return changed

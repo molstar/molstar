@@ -101,6 +101,7 @@ export function PolymerTraceVisual(): UnitsVisual<PolymerTraceParams> {
         mark: markPolymerElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<PolymerTraceParams>, currentProps: PD.Values<PolymerTraceParams>) => {
             state.createGeometry = (
+                newProps.sizeFactor !== currentProps.sizeFactor ||
                 newProps.linearSegments !== currentProps.linearSegments ||
                 newProps.radialSegments !== currentProps.radialSegments ||
                 newProps.aspectRatio !== currentProps.aspectRatio ||

@@ -68,6 +68,9 @@ export function createProgram(ctx: WebGLContext, props: ProgramProps): Program {
     vertShaderRef.value.attach(program)
     fragShaderRef.value.attach(program)
     gl.linkProgram(program)
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)){
+        throw new Error(`Could not compile WebGL program. \n\n${gl.getProgramInfoLog(program)}`);
+    }
 
     const uniformUpdaters = getUniformUpdaters(ctx, program, schema)
     const attributeLocations = getAttributeLocations(ctx, program, schema)

@@ -23,6 +23,7 @@ class InterUnitBonds {
     /** Array of inter-unit bonds */
     readonly bonds: ReadonlyArray<InterUnitBonds.Bond>
     private readonly bondKeyIndex: Map<string, number>
+    private readonly elementKeyIndex: Map<string, number[]>
 
     /** Get an array of unit-pair-bonds that are linked to the given unit */
     getLinkedUnits(unit: Unit): ReadonlyArray<InterUnitBonds.UnitPairBonds> {
@@ -32,8 +33,8 @@ class InterUnitBonds {
 
     /** Index into this.bonds */
     getBondIndex(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit): number {
-        const key = InterUnitBonds.getBondKey(indexA, unitA, indexB, unitB)
-        const index = this.bondKeyIndex.get(key)
+        const bondKey = InterUnitBonds.getBondKey(indexA, unitA, indexB, unitB)
+        const index = this.bondKeyIndex.get(bondKey)
         return index !== undefined ? index : -1
     }
 
@@ -48,26 +49,44 @@ class InterUnitBonds {
         return this.getBond(l.aIndex, l.aUnit, l.bIndex, l.bUnit);
     }
 
+    /** Indices into this.bonds */
+    getBondIndices(index: StructureElement.UnitIndex, unit: Unit): ReadonlyArray<number> {
+        const elementKey = InterUnitBonds.getElementKey(index, unit)
+        const indices = this.elementKeyIndex.get(elementKey)
+        return indices !== undefined ? indices : []
+    }
+
     constructor(private map: Map<number, InterUnitBonds.UnitPairBonds[]>) {
         let count = 0
         const bonds: (InterUnitBonds.Bond)[] = []
         const bondKeyIndex = new Map<string, number>()
+        const elementKeyIndex = new Map<string, number[]>()
+
         this.map.forEach(pairBondsArray => {
             pairBondsArray.forEach(pairBonds => {
                 count += pairBonds.bondCount
                 pairBonds.linkedElementIndices.forEach(indexA => {
                     pairBonds.getBonds(indexA).forEach(bondInfo => {
                         const { unitA, unitB } = pairBonds
-                        const key = InterUnitBonds.getBondKey(indexA, unitA, bondInfo.indexB, unitB)
-                        bondKeyIndex.set(key, bonds.length)
+                        
+                        const bondKey = InterUnitBonds.getBondKey(indexA, unitA, bondInfo.indexB, unitB)
+                        bondKeyIndex.set(bondKey, bonds.length)
+                        
+                        const elementKey = InterUnitBonds.getElementKey(indexA, unitA)
+                        const e = elementKeyIndex.get(elementKey)
+                        if (e === undefined) elementKeyIndex.set(elementKey, [bonds.length])
+                        else e.push(bonds.length)
+
                         bonds.push({ ...bondInfo, indexA, unitA, unitB })
                     })
                 })
             })
         })
+
         this.bondCount = count
         this.bonds = bonds
         this.bondKeyIndex = bondKeyIndex
+        this.elementKeyIndex = elementKeyIndex
     }
 }
 
@@ -102,14 +121,18 @@ namespace InterUnitBonds {
     export interface Bond {
         readonly unitA: Unit.Atomic,
         readonly unitB: Unit.Atomic,
-        readonly indexA: number,
-        readonly indexB: number,
+        readonly indexA: StructureElement.UnitIndex,
+        readonly indexB: StructureElement.UnitIndex,
         readonly order: number,
         readonly flag: LinkType.Flag
     }
 
-    export function getBondKey(indexA: number, unitA: Unit, indexB: number, unitB: Unit) {
+    export function getBondKey(indexA: StructureElement.UnitIndex, unitA: Unit, indexB: StructureElement.UnitIndex, unitB: Unit) {
         return `${indexA}|${unitA.id}|${indexB}|${unitB.id}`
+    }
+
+    export function getElementKey(index: StructureElement.UnitIndex, unit: Unit) {
+        return `${index}|${unit.id}`
     }
 }
 
