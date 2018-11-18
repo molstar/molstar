@@ -62,20 +62,20 @@ export function residueLabel(model: Model, rI: number) {
     return `${label_asym_id.value(cI)} ${label_comp_id.value(rI)} ${label_seq_id.value(rI)}`
 }
 
-const centerPos = Vec3.zero()
-const centerMin = Vec3.zero()
-export function getCenterAndRadius(centroid: Vec3, unit: Unit, indices: ArrayLike<number>) {
-    const pos = unit.conformation.position
-    const { elements } = unit
-    Vec3.set(centroid, 0, 0, 0)
-    for (let i = 0, il = indices.length; i < il; ++i) {
-        pos(elements[indices[i]], centerPos)
-        Vec3.add(centroid, centroid, centerPos)
-        Vec3.min(centerMin, centerMin, centerPos)
-    }
-    Vec3.scale(centroid, centroid, 1/indices.length)
-    return Vec3.distance(centerMin, centroid)
-}
+// const centerPos = Vec3.zero()
+// const centerMin = Vec3.zero()
+// export function getCenterAndRadius(centroid: Vec3, unit: Unit, indices: ArrayLike<number>) {
+//     const pos = unit.conformation.position
+//     const { elements } = unit
+//     Vec3.set(centroid, 0, 0, 0)
+//     for (let i = 0, il = indices.length; i < il; ++i) {
+//         pos(elements[indices[i]], centerPos)
+//         Vec3.add(centroid, centroid, centerPos)
+//         Vec3.min(centerMin, centerMin, centerPos)
+//     }
+//     Vec3.scale(centroid, centroid, 1/indices.length)
+//     return Vec3.distance(centerMin, centroid)
+// }
 
 const matrixPos = Vec3.zero()
 export function getPositionMatrix(unit: Unit, indices: ArrayLike<number>) {

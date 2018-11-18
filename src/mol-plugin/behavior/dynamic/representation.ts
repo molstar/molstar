@@ -34,9 +34,18 @@ export const SelectLoci = PluginBehavior.create({
     name: 'representation-select-loci',
     ctor: class extends PluginBehavior.Handler {
         register(): void {
-            this.subscribeObservable(this.ctx.behaviors.canvas.selectLoci, ({ loci }) => {
+            let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
+            this.subscribeObservable(this.ctx.behaviors.canvas.selectLoci, current => {
                 if (!this.ctx.canvas3d) return;
-                this.ctx.canvas3d.mark(loci, MarkerAction.Toggle);
+                if (current.repr !== prevRepr || !areLociEqual(current.loci, prevLoci)) {
+                    this.ctx.canvas3d.mark(prevLoci, MarkerAction.Deselect);
+                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Select);
+                    prevLoci = current.loci;
+                    prevRepr = current.repr;
+                } else {
+                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Toggle);
+                }
+                // this.ctx.canvas3d.mark(loci, MarkerAction.Toggle);
             });
         }
     },
