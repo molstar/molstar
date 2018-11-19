@@ -105,6 +105,10 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
                 Link.Location(
                     carbA.unit, indexA as StructureElement.UnitIndex,
                     carbB.unit, indexB as StructureElement.UnitIndex
+                ),
+                Link.Location(
+                    carbB.unit, indexB as StructureElement.UnitIndex,
+                    carbA.unit, indexA as StructureElement.UnitIndex
                 )
             ])
         }

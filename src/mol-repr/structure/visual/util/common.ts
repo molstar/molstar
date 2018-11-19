@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
+import { Unit, Structure, ElementIndex, StructureElement } from 'mol-model/structure';
 import { createMeshRenderObject, createPointsRenderObject, createLinesRenderObject, createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { Mat4 } from 'mol-math/linear-algebra';
 import { TransformData, createTransform, createIdentityTransform } from 'mol-geo/geometry/transform-data';
@@ -18,6 +18,27 @@ import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from 'mol-repr/structure/representation';
+import { OrderedSet, SortedArray } from 'mol-data/int';
+import { EmptyLoci, Loci } from 'mol-model/loci';
+
+/** Return a Loci for the elements of a whole residue the elementIndex belongs to. */
+export function getResidueLoci(structure: Structure, unit: Unit, elementIndex: ElementIndex): Loci {
+    const { elements, model } = unit
+    if (OrderedSet.indexOf(elements, elementIndex) !== -1) {
+        const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+        const rI = index[elementIndex]
+        const _indices: number[] = []
+        for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
+            const unitIndex = OrderedSet.indexOf(elements, i)
+            if (unitIndex !== -1) _indices.push(unitIndex)
+        }
+        const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices))
+        return StructureElement.Loci(structure, [{ unit, indices }])
+    }
+    return EmptyLoci
+}
+
+//
 
 export function createUnitsTransform({ units }: Unit.SymmetryGroup, transformData?: TransformData) {
     const unitCount = units.length

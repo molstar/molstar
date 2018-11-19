@@ -25,6 +25,7 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
+import { getResidueLoci } from './util/common';
 
 const t = Mat4.identity()
 const sVec = Vec3.zero()
@@ -184,30 +185,36 @@ function CarbohydrateElementIterator(structure: Structure): LocationIterator {
     return LocationIterator(groupCount, instanceCount, getLocation, true, isSecondary)
 }
 
+/** Return a Loci for the elements of the whole residue of a carbohydrate. */
 function getCarbohydrateLoci(pickingId: PickingId, structure: Structure, id: number) {
     const { objectId, groupId } = pickingId
     if (id === objectId) {
         const carb = structure.carbohydrates.elements[Math.floor(groupId / 2)]
-        const { unit } = carb
-        const index = OrderedSet.indexOf(unit.elements, carb.anomericCarbon)
-        if (index !== -1) {
-            const indices = OrderedSet.ofSingleton(index as StructureElement.UnitIndex)
-            return StructureElement.Loci(structure, [{ unit, indices }])
-        }
+        return getResidueLoci(structure, carb.unit, carb.anomericCarbon)
     }
     return EmptyLoci
 }
 
+/** Mark a carbohydrate (usually a monosaccharide) when all its residue's elements are in a loci. */
 function markCarbohydrate(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    const { getElementIndex } = structure.carbohydrates
-
+    const { getElementIndex, getAnomericCarbon } = structure.carbohydrates
     let changed = false
     if (StructureElement.isLoci(loci)) {
         for (const e of loci.elements) {
-            OrderedSet.forEach(e.indices, index => {
-                const idx = getElementIndex(e.unit, e.unit.elements[index])
-                if (idx !== undefined) {
-                    if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true
+            OrderedSet.forEach(e.indices, v => {
+                const { model, elements } = e.unit
+                const { index, offsets } = model.atomicHierarchy.residueAtomSegments        
+                const rI = index[elements[v]]
+                const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
+                const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
+                const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
+                if(!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                const eI = getAnomericCarbon(e.unit, rI)
+                if (eI !== undefined) {
+                    const idx = getElementIndex(e.unit, eI)
+                    if (idx !== undefined) {
+                        if (apply(Interval.ofBounds(idx * 2, idx * 2 + 2))) changed = true
+                    }
                 }
             })
         }

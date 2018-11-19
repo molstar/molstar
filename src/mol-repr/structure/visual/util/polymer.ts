@@ -6,12 +6,13 @@
 
 import { Unit, ElementIndex, StructureElement, Link } from 'mol-model/structure';
 import SortedRanges from 'mol-data/int/sorted-ranges';
-import { OrderedSet, Interval, SortedArray } from 'mol-data/int';
+import { OrderedSet, Interval } from 'mol-data/int';
 import { EmptyLoci, Loci } from 'mol-model/loci';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
 import { getElementIndexForAtomRole } from 'mol-model/structure/util';
+import { getResidueLoci } from './common';
 
 export * from './polymer/backbone-iterator'
 export * from './polymer/gap-iterator'
@@ -66,28 +67,18 @@ export namespace PolymerGapLocationIterator {
     }
 }
 
-/** Return a Loci for the elements of a whole residue. */
+/** Return a Loci for the elements of the whole residue of a polymer element. */
 export function getPolymerElementLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
         const { structure, group } = structureGroup
         const unit = group.units[instanceId]
-        const { elements, polymerElements, model } = unit
-        if (OrderedSet.indexOf(elements, polymerElements[groupId]) !== -1) {
-            const { index, offsets } = model.atomicHierarchy.residueAtomSegments
-            const rI = index[polymerElements[groupId]]
-            const _indices: number[] = []
-            for (let i = offsets[rI], il = offsets[rI + 1]; i < il; ++i) {
-                const unitIndex = OrderedSet.indexOf(elements, i)
-                if (unitIndex !== -1) _indices.push(unitIndex)
-            }
-            const indices = OrderedSet.ofSortedArray<StructureElement.UnitIndex>(SortedArray.ofSortedArray(_indices))
-            return StructureElement.Loci(structure, [{ unit, indices }])
-        }
+        return getResidueLoci(structure, unit, unit.polymerElements[groupId])
     }
     return EmptyLoci
 }
 
+/** Mark a polymer element (e.g. part of a cartoon trace) when all its residue's elements are in a loci. */
 export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {
     let changed = false
     if (!StructureElement.isLoci(loci)) return false
@@ -102,9 +93,9 @@ export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, a
             // TODO optimized implementation for intervals
             OrderedSet.forEach(e.indices, v => {
                 const rI = index[elements[v]]
-                const unitIndexBeg = OrderedSet.indexOf(elements, offsets[rI])
-                const unitIndexEnd = OrderedSet.indexOf(elements, offsets[rI + 1])
-                const unitIndexInterval = Interval.ofBounds(unitIndexBeg, unitIndexEnd)
+                const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
+                const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
+                const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
                 if(!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
                 const eI = getElementIndexForAtomRole(model, rI, 'trace')
                 const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
@@ -117,6 +108,7 @@ export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, a
     return changed
 }
 
+/** Return a Loci for both directions of the polymer gap element. */
 export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number) {
     const { objectId, instanceId, groupId } = pickingId
     if (id === objectId) {
@@ -125,7 +117,10 @@ export function getPolymerGapElementLoci(pickingId: PickingId, structureGroup: S
         const unitIndexA = OrderedSet.indexOf(unit.elements, unit.gapElements[groupId]) as StructureElement.UnitIndex
         const unitIndexB = OrderedSet.indexOf(unit.elements, unit.gapElements[groupId % 2 ? groupId - 1 : groupId + 1]) as StructureElement.UnitIndex
         if (unitIndexA !== -1 && unitIndexB !== -1) {
-            return Link.Loci(structure, [ Link.Location(unit, unitIndexA, unit, unitIndexB) ])
+            return Link.Loci(structure, [
+                Link.Location(unit, unitIndexA, unit, unitIndexB),
+                Link.Location(unit, unitIndexB, unit, unitIndexA)
+            ])
         }
     }
     return EmptyLoci

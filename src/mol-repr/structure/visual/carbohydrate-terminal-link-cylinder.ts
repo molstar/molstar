@@ -114,25 +114,21 @@ function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: num
         const carb = elements[l.carbohydrateIndex]
         const carbIndex = OrderedSet.indexOf(carb.unit.elements, carb.anomericCarbon)
 
-        if (l.fromCarbohydrate) {
-            return Link.Loci(structure, [
-                Link.Location(
-                    carb.unit, carbIndex as StructureElement.UnitIndex,
-                    l.elementUnit, l.elementIndex
-                )
-            ])
-        } else {
-            return Link.Loci(structure, [
-                Link.Location(
-                    l.elementUnit, l.elementIndex,
-                    carb.unit, carbIndex as StructureElement.UnitIndex
-                )
-            ])
-        }
+        return Link.Loci(structure, [
+            Link.Location(
+                carb.unit, carbIndex as StructureElement.UnitIndex,
+                l.elementUnit, l.elementIndex
+            ),
+            Link.Location(
+                l.elementUnit, l.elementIndex,
+                carb.unit, carbIndex as StructureElement.UnitIndex
+            )
+        ])    
     }
     return EmptyLoci
 }
 
+// TODO mark link when both (or one) of the link elements are in a StructureElement.Loci
 function markTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getTerminalLinkIndex } = structure.carbohydrates
 
