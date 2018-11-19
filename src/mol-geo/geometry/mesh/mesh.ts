@@ -11,14 +11,16 @@ import { Sphere3D } from 'mol-math/geometry'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
 import { Geometry } from '../geometry';
 import { createMarkers } from '../marker-data';
-import { TransformData } from '../transform-data';
+import { TransformData, createIdentityTransform } from '../transform-data';
 import { LocationIterator } from '../../util/location-iterator';
-import { createColors } from '../color-data';
+import { createColors, createValueColor } from '../color-data';
 import { ChunkedArray } from 'mol-data/util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Theme } from 'mol-theme/theme';
 import { MeshValues } from 'mol-gl/renderable/mesh';
+import { ColorTheme } from 'mol-theme/color';
+import { NullLocation } from 'mol-model/location';
 
 export interface Mesh {
     readonly kind: 'mesh',
@@ -373,6 +375,36 @@ export namespace Mesh {
             dDoubleSided: ValueCell.create(props.doubleSided),
             dFlatShaded: ValueCell.create(props.flatShaded),
             dFlipSided: ValueCell.create(props.flipSided),
+        }
+    }
+
+    export function createValuesSimple(mesh: Mesh, props: Partial<PD.Values<Params>>): MeshValues {
+        const p = { ...PD.getDefaultValues(Params), ...props }
+        const transform = createIdentityTransform()
+        const color = createValueColor(ColorTheme.Empty.color(NullLocation, false))
+        const marker = createMarkers(1)
+
+        const counts = { drawCount: mesh.triangleCount * 3, groupCount: 1, instanceCount: 1 }
+
+        const boundingSphere = calculateBoundingSphere(
+            mesh.vertexBuffer.ref.value, mesh.vertexCount,
+            transform.aTransform.ref.value, transform.instanceCount.ref.value
+        )
+
+        return {
+            aPosition: mesh.vertexBuffer,
+            aNormal: mesh.normalBuffer,
+            aGroup: mesh.groupBuffer,
+            elements: mesh.indexBuffer,
+            boundingSphere: ValueCell.create(boundingSphere),
+            ...color,
+            ...marker,
+            ...transform,
+
+            ...Geometry.createValues(p, counts),
+            dDoubleSided: ValueCell.create(p.doubleSided),
+            dFlatShaded: ValueCell.create(p.flatShaded),
+            dFlipSided: ValueCell.create(p.flipSided),
         }
     }
 

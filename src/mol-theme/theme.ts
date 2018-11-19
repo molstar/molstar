@@ -30,10 +30,7 @@ export interface Theme {
 type Props = { [k: string]: any }
 
 export function createTheme(ctx: ThemeRegistryContext, data: ThemeDataContext, props: Props, theme?: Theme) {
-    theme = theme || {
-        color: ColorTheme.Empty,
-        size: SizeTheme.Empty
-    }
+    theme = theme || createEmptyTheme()
 
     const colorProps = props.colorTheme as PD.NamedParams
     const sizeProps = props.sizeTheme as PD.NamedParams
@@ -42,4 +39,8 @@ export function createTheme(ctx: ThemeRegistryContext, data: ThemeDataContext, p
     theme.size = ctx.sizeThemeRegistry.create(sizeProps.name, data, sizeProps.params)
 
     return theme
+}
+
+export function createEmptyTheme() {
+    return { color: ColorTheme.Empty, size: SizeTheme.Empty }
 }

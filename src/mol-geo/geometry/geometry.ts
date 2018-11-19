@@ -108,7 +108,7 @@ export function createRenderableState(props: PD.Values<Geometry.Params>): Render
 }
 
 export function updateRenderableState(state: RenderableState, props: PD.Values<Geometry.Params>) {
-    
+
 }
 
 //

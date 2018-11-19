@@ -27,6 +27,7 @@ import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { Color } from 'mol-util/color';
 import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { BoundingSphereHelper } from './helper/bounding-sphere-helper';
 
 export const Canvas3DParams = {
     // TODO: FPS cap?
@@ -35,6 +36,9 @@ export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     backgroundColor: PD.Color(Color(0x000000)),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
+    debug: PD.Group({
+        showBoundingSpheres: PD.Boolean(true, { description: 'Show bounding spheres of render objects.' }),
+    })
 }
 export type Canvas3DParams = typeof Canvas3DParams
 
@@ -121,6 +125,8 @@ namespace Canvas3D {
         let isPicking = false
         let drawPending = false
         let lastRenderTime = -1
+
+        const boundingSphereHelper = new BoundingSphereHelper(scene, p.debug.showBoundingSpheres)
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -292,6 +298,7 @@ namespace Canvas3D {
             }
             reprRenderObjects.set(repr, newRO)
             reprCount.next(reprRenderObjects.size)
+            boundingSphereHelper.update()
             scene.update()
             requestDraw(true)
         }
@@ -324,6 +331,7 @@ namespace Canvas3D {
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
                     reprCount.next(reprRenderObjects.size)
+                    boundingSphereHelper.update()
                     scene.update()
                 }
             },
@@ -369,6 +377,9 @@ namespace Canvas3D {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
                     renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
                 }
+                if (props.debug && props.debug.showBoundingSpheres) {
+                    boundingSphereHelper.visible = props.debug.showBoundingSpheres
+                }
                 requestDraw(true)
             },
 
@@ -378,6 +389,9 @@ namespace Canvas3D {
                     cameraMode: camera.state.mode,
                     backgroundColor: renderer.props.clearColor,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
+                    debug: {
+                        showBoundingSpheres: boundingSphereHelper.visible
+                    }
                 }
             },
             get input() {
