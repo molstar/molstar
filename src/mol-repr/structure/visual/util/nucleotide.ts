@@ -11,6 +11,8 @@ import { OrderedSet, Interval } from 'mol-data/int';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
+import { getResidueLoci } from './common';
+import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 
 export namespace NucleotideLocationIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
@@ -34,13 +36,7 @@ export function getNucleotideElementLoci(pickingId: PickingId, structureGroup: S
     if (id === objectId) {
         const { structure, group } = structureGroup
         const unit = group.units[instanceId]
-        if (Unit.isAtomic(unit)) {
-            const unitIndex = OrderedSet.indexOf(unit.elements, unit.nucleotideElements[groupId]) as StructureElement.UnitIndex
-            if (unitIndex !== -1) {
-                const indices = OrderedSet.ofSingleton(unitIndex)
-                return StructureElement.Loci(structure, [{ unit, indices }])
-            }
-        }
+        return getResidueLoci(structure, unit, unit.polymerElements[groupId])
     }
     return EmptyLoci
 }
@@ -52,24 +48,26 @@ export function markNucleotideElement(loci: Loci, structureGroup: StructureGroup
     if (loci.structure !== structure) return false
     const unit = group.units[0]
     if (!Unit.isAtomic(unit)) return false
-    const groupCount = unit.nucleotideElements.length
+    const { nucleotideElements, model, elements } = unit
+    const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+    const groupCount = nucleotideElements.length
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)
-        if (unitIdx !== undefined && Unit.isAtomic(e.unit)) {
-            if (Interval.is(e.indices)) {
-                const min = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.min(e.indices)])
-                const max = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[Interval.max(e.indices)])
-                if (min !== -1 && max !== -1) {
-                    if (apply(Interval.ofRange(unitIdx * groupCount + min, unitIdx * groupCount + max))) changed = true
+        const eUnit = e.unit
+        if (unitIdx !== undefined && Unit.isAtomic(eUnit)) {
+            // TODO optimized implementation for intervals
+            OrderedSet.forEach(e.indices, v => {
+                const rI = index[elements[v]]
+                const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
+                const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
+                const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
+                if(!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                const eI = getElementIndexForAtomRole(model, rI, 'trace')
+                const idx = OrderedSet.indexOf(eUnit.nucleotideElements, eI)
+                if (idx !== -1) {
+                    if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
                 }
-            } else {
-                for (let i = 0, _i = e.indices.length; i < _i; i++) {
-                    const idx = OrderedSet.indexOf(e.unit.nucleotideElements, e.unit.elements[e.indices[i]])
-                    if (idx !== -1) {
-                        if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
-                    }
-                }
-            }
+            })
         }
     }
     return changed
