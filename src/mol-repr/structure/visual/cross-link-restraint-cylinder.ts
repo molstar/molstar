@@ -95,7 +95,10 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
     if (id === objectId) {
         const pair = structure.crossLinkRestraints.pairs[groupId]
         if (pair) {
-            return Link.Loci(structure, [ Link.Location(pair.unitA, pair.indexA, pair.unitB, pair.indexB) ])
+            return Link.Loci(structure, [
+                Link.Location(pair.unitA, pair.indexA, pair.unitB, pair.indexB),
+                Link.Location(pair.unitB, pair.indexB, pair.unitA, pair.indexA)
+            ])
         }
     }
     return EmptyLoci

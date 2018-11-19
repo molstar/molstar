@@ -117,15 +117,31 @@ function getLinkLoci(pickingId: PickingId, structure: Structure, id: number) {
 }
 
 function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
-    const { getLinkIndex } = structure.carbohydrates
-
     let changed = false
     if (Link.isLoci(loci)) {
+        if (loci.structure !== structure) return false
+        const { getLinkIndex } = structure.carbohydrates
         for (const l of loci.links) {
             const idx = getLinkIndex(l.aUnit, l.aUnit.elements[l.aIndex], l.bUnit, l.bUnit.elements[l.bIndex])
             if (idx !== undefined) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
+        }
+    } else if (StructureElement.isLoci(loci)) {
+        if (loci.structure !== structure) return false
+        // TODO mark link only when both of the link elements are in a StructureElement.Loci
+        const { getElementIndex, getLinkIndices, elements } = structure.carbohydrates
+        for (const e of loci.elements) {
+            OrderedSet.forEach(e.indices, v => {
+                const carbI = getElementIndex(e.unit, e.unit.elements[v])
+                if (carbI !== undefined) {
+                    const carb = elements[carbI]
+                    const indices = getLinkIndices(carb.unit, carb.anomericCarbon)
+                    for (let i = 0, il = indices.length; i < il; ++i) {
+                        if (apply(Interval.ofSingleton(indices[i]))) changed = true
+                    }
+                }
+            })
         }
     }
     return changed

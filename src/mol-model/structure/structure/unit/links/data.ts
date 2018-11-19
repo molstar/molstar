@@ -51,9 +51,7 @@ class InterUnitBonds {
 
     /** Indices into this.bonds */
     getBondIndices(index: StructureElement.UnitIndex, unit: Unit): ReadonlyArray<number> {
-        const elementKey = InterUnitBonds.getElementKey(index, unit)
-        const indices = this.elementKeyIndex.get(elementKey)
-        return indices !== undefined ? indices : []
+        return this.elementKeyIndex.get(InterUnitBonds.getElementKey(index, unit)) || []
     }
 
     constructor(private map: Map<number, InterUnitBonds.UnitPairBonds[]>) {

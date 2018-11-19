@@ -128,7 +128,7 @@ function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: num
     return EmptyLoci
 }
 
-// TODO mark link when both (or one) of the link elements are in a StructureElement.Loci
+// TODO mark link when both of the link elements are in a StructureElement.Loci
 function markTerminalLink(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
     const { getTerminalLinkIndex } = structure.carbohydrates
 
@@ -139,6 +139,22 @@ function markTerminalLink(loci: Loci, structure: Structure, apply: (interval: In
             if (idx !== undefined) {
                 if (apply(Interval.ofSingleton(idx))) changed = true
             }
+        }
+    } else if (StructureElement.isLoci(loci)) {
+        if (loci.structure !== structure) return false
+        // TODO mark link only when both of the link elements are in a StructureElement.Loci
+        const { getElementIndex, getTerminalLinkIndices, elements } = structure.carbohydrates
+        for (const e of loci.elements) {
+            OrderedSet.forEach(e.indices, v => {
+                const carbI = getElementIndex(e.unit, e.unit.elements[v])
+                if (carbI !== undefined) {
+                    const carb = elements[carbI]
+                    const indices = getTerminalLinkIndices(carb.unit, carb.anomericCarbon)
+                    for (let i = 0, il = indices.length; i < il; ++i) {
+                        if (apply(Interval.ofSingleton(indices[i]))) changed = true
+                    }
+                }
+            })
         }
     }
     return changed

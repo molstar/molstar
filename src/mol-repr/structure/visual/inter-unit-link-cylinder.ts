@@ -107,6 +107,7 @@ function markLink(loci: Loci, structure: Structure, apply: (interval: Interval) 
         }
     } else if (StructureElement.isLoci(loci)) {
         if (loci.structure !== structure) return false
+        // TODO mark link only when both of the link elements are in a StructureElement.Loci
         for (const e of loci.elements) {
             OrderedSet.forEach(e.indices, v => {
                 const indices = structure.links.getBondIndices(v, e.unit)

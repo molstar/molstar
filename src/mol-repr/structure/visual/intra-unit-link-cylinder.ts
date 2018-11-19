@@ -138,10 +138,12 @@ function markLink(loci: Loci, structureGroup: StructureGroup, apply: (interval: 
         for (const e of loci.elements) {
             const unitIdx = group.unitIndexMap.get(e.unit.id)
             if (unitIdx !== undefined) {
-                const { offset } = unit.links
+                const { offset, b } = unit.links
                 OrderedSet.forEach(e.indices, v => {
                     for (let t = offset[v], _t = offset[v + 1]; t < _t; t++) {
-                        if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true
+                        if (OrderedSet.has(e.indices, b[t])) {
+                            if (apply(Interval.ofSingleton(unitIdx * groupCount + t))) changed = true
+                        }
                     }
                 })
             }

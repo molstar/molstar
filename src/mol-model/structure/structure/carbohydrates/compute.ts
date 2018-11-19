@@ -348,6 +348,26 @@ function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[
         return linkMap.get(linkKey(unitA, anomericCarbonA, unitB, anomericCarbonB))
     }
 
+    // links lookup
+
+    function linksKey(unit: Unit, anomericCarbon: ElementIndex) {
+        return `${unit.id}|${anomericCarbon}`
+    }
+
+    const linksMap = new Map<string, number[]>()
+    for (let i = 0, il = links.length; i < il; ++i) {
+        const l = links[i]
+        const { unit, anomericCarbon } = elements[l.carbohydrateIndexA]
+        const k = linksKey(unit, anomericCarbon)
+        const e = linksMap.get(k)
+        if (e === undefined) linksMap.set(k, [i])
+        else e.push(i)
+    }
+
+    function getLinkIndices(unit: Unit, anomericCarbon: ElementIndex): ReadonlyArray<number> {
+        return linksMap.get(linksKey(unit, anomericCarbon)) || []
+    }
+
     // terminal link lookup
 
     function terminalLinkKey(unitA: Unit, elementA: ElementIndex, unitB: Unit, elementB: ElementIndex) {
@@ -369,6 +389,31 @@ function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[
         return terminalLinkMap.get(terminalLinkKey(unitA, elementA, unitB, elementB))
     }
 
+    // terminal links lookup
+
+    function terminalLinksKey(unit: Unit, element: ElementIndex) {
+        return `${unit.id}|${element}`
+    }
+
+    const terminalLinksMap = new Map<string, number[]>()
+    for (let i = 0, il = terminalLinks.length; i < il; ++i) {
+        const { fromCarbohydrate, carbohydrateIndex, elementUnit, elementIndex } = terminalLinks[i]
+        const { unit, anomericCarbon } = elements[carbohydrateIndex]
+        let k: string
+        if (fromCarbohydrate) {
+            k = terminalLinksKey(unit, anomericCarbon)
+        } else{
+            k = terminalLinksKey(elementUnit, elementUnit.elements[elementIndex])
+        }
+        const e = terminalLinksMap.get(k)
+        if (e === undefined) terminalLinksMap.set(k, [i])
+        else e.push(i)
+    }
+
+    function getTerminalLinkIndices(unit: Unit, element: ElementIndex): ReadonlyArray<number> {
+        return terminalLinksMap.get(terminalLinksKey(unit, element)) || []
+    }
+
     // anomeric carbon lookup
 
     function anomericCarbonKey(unit: Unit, residueIndex: ResidueIndex) {
@@ -386,5 +431,5 @@ function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[
         return anomericCarbonMap.get(anomericCarbonKey(unit, residueIndex))
     }
 
-    return { getElementIndex, getLinkIndex, getTerminalLinkIndex, getAnomericCarbon }
+    return { getElementIndex, getLinkIndex, getLinkIndices, getTerminalLinkIndex, getTerminalLinkIndices, getAnomericCarbon }
 }
