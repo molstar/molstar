@@ -5,11 +5,11 @@
     right: 0;
     bottom: 0;
     background: black;
-    
+
     .msp-btn-link {
         background: rgba(0,0,0,0.2);
     }
-    
+
 }
 
 .msp-viewport-expanded {
@@ -31,30 +31,31 @@
 .msp-viewport-controls {
     position: absolute;
     right: $control-spacing;
-    top: $control-spacing;   
+    top: $control-spacing;
+    width: 290px;
 }
 
 .msp-viewport-controls-buttons {
     text-align: right;
-    
+
     > button {
         padding: 0;
         text-align: center;
         width: $row-height;
     }
-    
+
     > button:last-child {
         margin-left: $control-spacing;
-    }    
-    
+    }
+
     .msp-btn-link, .msp-btn-link-toggle-on {
         color: #eee;
     }
-    
+
     .msp-btn-link-toggle-off {
         color: $msp-btn-link-toggle-off-font-color;
     }
-    
+
     .msp-btn-link:hover {
         color: $hover-font-color;
     }
@@ -68,18 +69,18 @@
 /* highlight */
 
 .msp-highlight-info {
-    
+
     color: $highlight-info-font-color;
     padding: $info-vertical-padding $control-spacing;
     background: $default-background; //$highlight-info-background;
-    
+
     position: absolute;
     top: $control-spacing;
     left: $control-spacing;
     text-align: left;
     min-height: $row-height;
     max-width: 95%;
-    
+
     //border-bottom-right-radius: 6px;
     z-index: 10000;
     @include non-selectable;
@@ -90,4 +91,3 @@
     display: inline-block;
     color: $highlight-info-additional-font-color;
 }
-

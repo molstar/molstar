@@ -10,19 +10,45 @@ import { ButtonsType } from 'mol-util/input/input-observer';
 import { Canvas3dIdentifyHelper } from 'mol-plugin/util/canvas3d-identify';
 import { PluginComponent } from './base';
 import { PluginCommands } from 'mol-plugin/command';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { ParameterControls } from './controls/parameters';
+import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
 
 interface ViewportState {
     noWebGl: boolean
 }
 
 export class ViewportControls extends PluginComponent {
+    state = {
+        isSettingsExpanded: false,
+        settings: PD.getDefaultValues(Canvas3DParams)
+    }
+
     resetCamera = () => {
         PluginCommands.Camera.Reset.dispatch(this.plugin, {});
     }
 
+    toggleSettingsExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isSettingsExpanded: !this.state.isSettingsExpanded });
+        e.currentTarget.blur();
+    }
+
+    setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
+        this.plugin.canvas3d.setProps({ [p.name]: p.value })
+        this.setState({ settings: this.plugin.canvas3d.props })
+    }
+
     render() {
-        return <div style={{ position: 'absolute', right: '10px', top: '10px', height: '100%', color: 'white' }}>
-            <button className='msp-btn msp-btn-link' onClick={this.resetCamera}>↻ Camera</button>
+        return <div className={'msp-viewport-controls'}>
+            <div className={'msp-row'}>
+                <button className='msp-btn msp-btn-link' onClick={this.resetCamera}>↻ Camera</button>
+                <div>
+                    <button className='msp-btn msp-btn-link'onClick={this.toggleSettingsExpanded}>Settings</button>
+                    <div className='msp-control-offset' style={{ display: this.state.isSettingsExpanded ? 'block' : 'none' }}>
+                        <ParameterControls params={Canvas3DParams} values={this.state.settings} onChange={this.setSettings} />
+                    </div>
+                </div>
+            </div>
         </div>
     }
 }
