@@ -12,9 +12,9 @@ import { Object3D } from './object3d';
 import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 
-function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<RenderableValues & BaseValues>>): Sphere3D {
+function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<RenderableValues & BaseValues>>, boundingSphere: Sphere3D): Sphere3D {
     let count = 0
-    const center = Vec3.zero()
+    const center = Vec3.set(boundingSphere.center, 0, 0, 0)
     renderableMap.forEach(r => {
         if (r.boundingSphere.radius) {
             Vec3.add(center, center, r.boundingSphere.center)
@@ -31,8 +31,9 @@ function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<Ren
             radius = Math.max(radius, Vec3.distance(center, r.boundingSphere.center) + r.boundingSphere.radius)
         }
     })
+    boundingSphere.radius = radius
 
-    return { center, radius };
+    return boundingSphere;
 }
 
 interface Scene extends Object3D {
@@ -51,7 +52,8 @@ interface Scene extends Object3D {
 namespace Scene {
     export function create(ctx: WebGLContext): Scene {
         const renderableMap = new Map<RenderObject, Renderable<RenderableValues & BaseValues>>()
-        let boundingSphere: Sphere3D | undefined
+        const boundingSphere = Sphere3D.zero()
+        let boundingSphereDirty = true
 
         const object3d = Object3D.create()
 
@@ -64,13 +66,13 @@ namespace Scene {
             update: () => {
                 Object3D.update(object3d)
                 renderableMap.forEach(r => r.update())
-                boundingSphere = undefined
+                boundingSphereDirty = true
             },
 
             add: (o: RenderObject) => {
                 if (!renderableMap.has(o)) {
                     renderableMap.set(o, createRenderable(ctx, o))
-                    boundingSphere = undefined
+                    boundingSphereDirty = true
                 } else {
                     console.warn(`RenderObject with id '${o.id}' already present`)
                 }
@@ -80,13 +82,13 @@ namespace Scene {
                 if (renderable) {
                     renderable.dispose()
                     renderableMap.delete(o)
-                    boundingSphere = undefined
+                    boundingSphereDirty = true
                 }
             },
             clear: () => {
                 renderableMap.forEach(renderable => renderable.dispose())
                 renderableMap.clear()
-                boundingSphere = undefined
+                boundingSphereDirty = true
             },
             forEach: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach(callbackFn)
@@ -105,9 +107,8 @@ namespace Scene {
                 return renderableMap.size
             },
             get boundingSphere() {
-                if (boundingSphere) return boundingSphere
-                // TODO avoid object creation
-                boundingSphere = calculateBoundingSphere(renderableMap)
+                if (boundingSphereDirty) calculateBoundingSphere(renderableMap, boundingSphere)
+                boundingSphereDirty = false
                 return boundingSphere
             }
         }

@@ -42,7 +42,7 @@ export namespace Viewport {
 
 const tmpVec3 = Vec3.zero()
 
-/** Modifies the direction & up vectors in place */
+/** Modifies the direction & up vectors in place, both are normalized */
 export function cameraLookAt(position: Vec3, up: Vec3, direction: Vec3, target: Vec3) {
     Vec3.sub(tmpVec3, target, position)
     Vec3.normalize(tmpVec3, tmpVec3)

@@ -42,6 +42,8 @@ class Camera implements Object3D {
 
     private prevProjection = Mat4.identity();
     private prevView = Mat4.identity();
+    private deltaDirection = Vec3.zero();
+    private newPosition = Vec3.zero();
 
     updateMatrices() {
         const snapshot = this.state as Camera.Snapshot;
@@ -83,10 +85,19 @@ class Camera implements Object3D {
     }
 
     focus(target: Vec3, radius: number) {
-        const position = Vec3.zero();
-        Vec3.scale(position, this.state.direction, -radius);
-        Vec3.add(position, position, target);
-        this.setState({ target, position });
+        const fov = this.state.fov
+        const { width, height } = this.viewport
+        const aspect = width / height
+        const aspectFactor = (height < width ? 1 : aspect)
+        const currentDistance = Vec3.distance(this.state.position, target)
+        const targetDistance = Math.abs((radius / aspectFactor) / Math.sin(fov / 2))
+        const deltaDistance = Math.abs(currentDistance - targetDistance)
+
+        Vec3.sub(this.deltaDirection, this.state.position, target)
+        Vec3.setMagnitude(this.deltaDirection, this.state.direction, deltaDistance)
+        if (currentDistance < targetDistance) Vec3.negate(this.deltaDirection, this.deltaDirection)
+        Vec3.add(this.newPosition, this.state.position, this.deltaDirection)
+        this.setState({ target, position: this.newPosition })
     }
 
     // lookAt(target: Vec3) {

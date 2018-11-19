@@ -15,6 +15,13 @@ namespace Box3D {
     export function create(min: Vec3, max: Vec3): Box3D { return { min, max }; }
     export function empty(): Box3D { return { min: Vec3.zero(), max: Vec3.zero() }; }
 
+    export function clone(a: Box3D): Box3D {
+        const out = empty();
+        Vec3.copy(out.min, a.min);
+        Vec3.copy(out.max, a.max);
+        return out;
+    }
+
     export function computeBounding(data: PositionData): Box3D {
         const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
         const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);

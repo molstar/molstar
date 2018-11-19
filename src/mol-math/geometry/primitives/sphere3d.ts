@@ -15,6 +15,13 @@ namespace Sphere3D {
     export function create(center: Vec3, radius: number): Sphere3D { return { center, radius }; }
     export function zero(): Sphere3D { return { center: Vec3.zero(), radius: 0 }; }
 
+    export function clone(a: Sphere3D): Sphere3D {
+        const out = zero();
+        Vec3.copy(out.center, a.center);
+        out.radius = a.radius
+        return out;
+    }
+
     export function copy(out: Sphere3D, a: Sphere3D) {
         Vec3.copy(out.center, a.center)
         out.radius = a.radius

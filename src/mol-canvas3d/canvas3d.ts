@@ -62,6 +62,7 @@ interface Canvas3D {
     readonly didDraw: BehaviorSubject<now.Timestamp>
 
     handleResize: () => void
+    /** Focuses camera on scene's bounding sphere, centered and zoomed. */
     resetCamera: () => void
     readonly camera: Camera
     downloadScreenshot: () => void
@@ -220,8 +221,6 @@ namespace Canvas3D {
             if (drawPending) return
             drawPending = true
             forceNextDraw = !!force;
-            // The animation frame is being requested by animate already.
-            // window.requestAnimationFrame(() => draw(force))
         }
 
         function animate() {
@@ -344,7 +343,8 @@ namespace Canvas3D {
 
             handleResize,
             resetCamera: () => {
-                // TODO
+                camera.focus(scene.boundingSphere.center, scene.boundingSphere.radius)
+                requestDraw(true);
             },
             camera,
             downloadScreenshot: () => {
