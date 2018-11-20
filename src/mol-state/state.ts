@@ -441,6 +441,7 @@ type UpdateNodeResult =
 async function updateSubtree(ctx: UpdateContext, root: Ref) {
     setCellStatus(ctx, root, 'processing');
 
+    let isNull = false;
     try {
         const start = now();
         const update = await updateNode(ctx, root);
@@ -451,10 +452,13 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         setCellStatus(ctx, root, 'ok');
         ctx.results.push(update);
         if (update.action === 'created') {
+            isNull = update.obj === StateObject.Null;
             ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'updated') {
+            isNull = update.obj === StateObject.Null;
             ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
+            isNull = update.obj === StateObject.Null;
             ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
@@ -463,6 +467,10 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         doError(ctx, root, '' + e);
         return;
     }
+
+    // Do not continue the updates if the object is null
+    // TODO: set the states to something "nicer"?
+    if (isNull) return;
 
     const children = ctx.tree.children.get(root).values();
     while (true) {
@@ -497,7 +505,7 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     } else {
         const oldParams = oldTree.transforms.get(currentRef)!.params;
 
-        const updateKind = !!current.obj
+        const updateKind = !!current.obj && current.obj !== StateObject.Null
             ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)
             : Transformer.UpdateResult.Recreate;
 

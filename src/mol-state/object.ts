@@ -9,7 +9,7 @@ import { Transform } from './transform';
 
 export { StateObject, StateObjectCell }
 
-interface StateObject<D = any, T extends StateObject.Type = { name: string, typeClass: any }> {
+interface StateObject<D = any, T extends StateObject.Type = StateObject.Type<any>> {
     readonly id: UUID,
     readonly type: T,
     readonly data: D,
@@ -39,6 +39,14 @@ namespace StateObject {
             }
         }
     }
+
+    /** A special object indicating a transformer result has no value. */
+    export const Null: StateObject<any, any> = {
+        id: UUID.create22(),
+        type: { name: 'Null', typeClass: 'Null' },
+        data: void 0,
+        label: 'Null'
+    };
 }
 
 interface StateObjectCell {

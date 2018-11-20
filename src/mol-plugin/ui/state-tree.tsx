@@ -6,7 +6,7 @@
 
 import * as React from 'react';
 import { PluginStateObject } from 'mol-plugin/state/objects';
-import { State } from 'mol-state'
+import { State, StateObject } from 'mol-state'
 import { PluginCommands } from 'mol-plugin/command';
 import { PluginComponent } from './base';
 
@@ -60,6 +60,8 @@ class StateTreeNode extends PluginComponent<{ nodeRef: string, state: State }, {
     }
 
     render() {
+        if (this.props.state.cells.get(this.props.nodeRef)!.obj === StateObject.Null) return null;
+
         const cellState = this.cellState;
 
         const children = this.props.state.tree.children.get(this.props.nodeRef);
