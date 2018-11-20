@@ -21,8 +21,9 @@ varying float vRadius;
     varying float vGroup;
 #endif
 
+#pragma glslify: import('./chunks/common.glsl')
 #pragma glslify: encodeIdRGB = require(./utils/encode-id-rgb.glsl)
-#pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl)
+#pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 
 uniform vec3 uBboxSize;
 uniform vec3 uBboxMin;

@@ -4,9 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-float intDiv(float a, float b) { return float(int(a) / int(b)); }
-float intMod(float a, float b) { return a - b * float(int(a) / int(b)); }
-
 vec4 readFromTexture (const in sampler2D tex, const in float i, const in vec2 dim) {
     float x = intMod(i, dim.x);
     float y = floor(intDiv(i, dim.x));

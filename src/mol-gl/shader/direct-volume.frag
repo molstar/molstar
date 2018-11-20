@@ -45,11 +45,12 @@ uniform int uPickable;
     uniform sampler2D tColor;
 #endif
 
-#pragma glslify: readFromTexture = require(./utils/read-from-texture.glsl)
+#pragma glslify: import('./chunks/common.glsl')
+#pragma glslify: readFromTexture = require(./utils/read-from-texture.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 #pragma glslify: encodeIdRGB = require(./utils/encode-id-rgb.glsl)
 #pragma glslify: decodeIdRGB = require(./utils/decode-id-rgb.glsl)
-#pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl)
-#pragma glslify: texture3dFrom2dLinear = require(./utils/texture3d-from-2d-linear.glsl)
+#pragma glslify: texture3dFrom2dNearest = require(./utils/texture3d-from-2d-nearest.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
+#pragma glslify: texture3dFrom2dLinear = require(./utils/texture3d-from-2d-linear.glsl, intMod=intMod, intDiv=intDiv, foo=foo) // foo=foo is a workaround for a bug in glslify
 
 // uniform vec3 uLightPosition;
 uniform vec3 uLightColor;

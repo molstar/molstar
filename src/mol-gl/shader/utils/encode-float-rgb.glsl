@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-// TODO use myMod and myDiv to fix issues with picking?
-
 vec3 encodeFloatRGB(in float value) {
     value = clamp(value, 0.0, 16777216.0);
     vec3 c = vec3(0.0);
