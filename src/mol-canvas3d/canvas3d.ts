@@ -46,7 +46,7 @@ export const Canvas3DParams = {
     //     showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
     // })
 }
-export type Canvas3DParams = typeof Canvas3DParams
+export type Canvas3DParams = PD.Values<typeof Canvas3DParams>
 
 export { Canvas3D }
 
@@ -77,17 +77,17 @@ interface Canvas3D {
     readonly camera: Camera
     downloadScreenshot: () => void
     getImageData: (variant: RenderVariant) => ImageData
-    setProps: (props: Partial<PD.Values<Canvas3DParams>>) => void
+    setProps: (props: Partial<Canvas3DParams>) => void
 
     /** Returns a copy of the current Canvas3D instance props */
-    readonly props: PD.Values<Canvas3DParams>
+    readonly props: Canvas3DParams
     readonly input: InputObserver
     readonly stats: RendererStats
     dispose: () => void
 }
 
 namespace Canvas3D {
-    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<PD.Values<Canvas3DParams>> = {}): Canvas3D {
+    export function create(canvas: HTMLCanvasElement, container: Element, props: Partial<Canvas3DParams> = {}): Canvas3D {
         const p = { ...PD.getDefaultValues(Canvas3DParams), ...props }
 
         const reprRenderObjects = new Map<Representation.Any, Set<RenderObject>>()
@@ -370,7 +370,7 @@ namespace Canvas3D {
                 }
             },
             didDraw,
-            setProps: (props: Partial<PD.Values<Canvas3DParams>>) => {
+            setProps: (props: Partial<Canvas3DParams>) => {
                 if (props.cameraMode !== undefined && props.cameraMode !== camera.state.mode) {
                     camera.setState({ mode: props.cameraMode })
                 }

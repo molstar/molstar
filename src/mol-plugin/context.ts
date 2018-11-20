@@ -51,6 +51,9 @@ export class PluginContext {
         task: this.tasks.events,
         labels: {
             highlight: this.ev<{ entries: ReadonlyArray<LociLabelEntry> }>()
+        },
+        canvad3d: {
+            settingsUpdated: this.ev()
         }
     };
 
@@ -75,7 +78,7 @@ export class PluginContext {
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
             (this.canvas3d as Canvas3D) = Canvas3D.create(canvas, container);
-            this.canvas3d.setProps({ backgroundColor: Color(0xFCFBF9) });
+            PluginCommands.Canvas3D.SetSettings.dispatch(this, { settings: { backgroundColor: Color(0xFCFBF9) } });
             this.canvas3d.animate();
             return true;
         } catch (e) {
@@ -116,6 +119,7 @@ export class PluginContext {
         BuiltInPluginBehaviors.State.registerDefault(this);
         BuiltInPluginBehaviors.Representation.registerDefault(this);
         BuiltInPluginBehaviors.Camera.registerDefault(this);
+        BuiltInPluginBehaviors.Misc.registerDefault(this);
 
         merge(this.state.dataState.events.log, this.state.behaviorState.events.log).subscribe(e => this.events.log.next(e));
     }

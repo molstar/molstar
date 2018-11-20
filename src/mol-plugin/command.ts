@@ -8,6 +8,7 @@ import { Camera } from 'mol-canvas3d/camera';
 import { PluginCommand } from './command/base';
 import { Transform, State } from 'mol-state';
 import { StateAction } from 'mol-state/action';
+import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
 
 export * from './command/base';
 
@@ -41,5 +42,8 @@ export const PluginCommands = {
             Apply: PluginCommand<{ id: string }>({ isImmediate: true }),
             Clear: PluginCommand<{}>({ isImmediate: true }),
         }
+    },
+    Canvas3D: {
+        SetSettings: PluginCommand<{ settings: Partial<Canvas3DParams> }>({ isImmediate: true })
     }
 }
