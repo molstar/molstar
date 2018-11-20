@@ -10,6 +10,7 @@ import { StateTransforms } from '../transforms';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateSelection } from 'mol-state/state/selection';
 import { CartoonParams } from 'mol-repr/structure/representation/cartoon';
+import { BallAndStickParams } from 'mol-repr/structure/representation/ball-and-stick';
 
 export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root, void, { id: string }>({
     from: [PluginStateObject.Root],
@@ -33,22 +34,21 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
         //     ])
         // });
 
-        const newTree = b.toRoot()
+        const root = b.toRoot()
             .apply(StateTransforms.Data.Download, { url })
             .apply(StateTransforms.Data.ParseCif)
             .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.StructureAssemblyFromModel)
-            // .apply(StateTransforms.Model.CreateStructureSelection, { query, label: 'ALA residues' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D, {
-                type: {
-                    name: 'cartoon',
-                    params: PD.getDefaultValues(CartoonParams)
-                }
-            })
-            .getTree();
+            .apply(StateTransforms.Model.StructureAssemblyFromModel);
 
-        return state.update(newTree);
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'sequence' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligands' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } });
+
+        return state.update(root.getTree());
     }
 });
 

@@ -7,11 +7,12 @@
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
 import { Task } from 'mol-task';
-import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel } from 'mol-model/structure';
+import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel, StructureQuery, Queries } from 'mol-model/structure';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
 import { MolScriptBuilder } from 'mol-script/language/builder';
+import { StateObject } from 'mol-state';
 
 export { TrajectoryFromMmCif }
 namespace TrajectoryFromMmCif { export interface Params { blockHeader?: string } }
@@ -140,3 +141,34 @@ const StructureSelection = PluginStateTransform.Create<SO.Molecule.Structure, SO
         return new SO.Molecule.Structure(s, label);
     }
 });
+
+export { StructureComplexElement }
+namespace StructureComplexElement { export interface Params { type: 'sequence' | 'water' | 'ligands' } }
+const StructureComplexElement = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Structure, StructureComplexElement.Params>({
+    name: 'structure-complex-element',
+    display: {
+        name: 'Complex Element',
+        description: 'Create a molecular structure from the specified model.'
+    },
+    from: [SO.Molecule.Structure],
+    to: [SO.Molecule.Structure],
+    params: () => ({ type: PD.Text('sequence', { isHidden: true }) }),
+    apply({ a, params }) {
+        // TODO: update function.
+
+        let query: StructureQuery, label: string;
+        switch (params.type) {
+            case 'sequence': query = Queries.internal.sequence(); label = 'Sequence'; break;
+            case 'water': query = Queries.internal.water(); label = 'Water'; break;
+            case 'ligands': query = Queries.internal.lidangs(); label = 'Ligands'; break;
+            default: throw new Error(`${params.type} is a valid complex element.`);
+        }
+
+        const result = query(new QueryContext(a.data));
+        const s = Sel.unionStructure(result);
+
+        if (s.elementCount === 0) return StateObject.Null;
+        return new SO.Molecule.Structure(s, { label, description: structureDesc(s) });
+    }
+});
+

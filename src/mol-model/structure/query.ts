@@ -10,13 +10,15 @@ export * from './query/context'
 import * as generators from './query/queries/generators'
 import * as modifiers from './query/queries/modifiers'
 import * as combinators from './query/queries/combinators'
+import * as internal from './query/queries/internal'
 import pred from './query/predicates'
 
 export const Queries = {
     generators,
     modifiers,
     combinators,
-    pred
+    pred,
+    internal
 }
 
 export { StructureSelection, StructureQuery }
