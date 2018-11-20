@@ -17,6 +17,7 @@ import { CrossLinkColorThemeProvider } from './color/cross-link';
 import { ElementIndexColorThemeProvider } from './color/element-index';
 import { ElementSymbolColorThemeProvider } from './color/element-symbol';
 import { MoleculeTypeColorThemeProvider } from './color/molecule-type';
+import { PolymerIdColorThemeProvider } from './color/polymer-id';
 import { PolymerIndexColorThemeProvider } from './color/polymer-index';
 import { ResidueNameColorThemeProvider } from './color/residue-name';
 import { SecondaryStructureColorThemeProvider } from './color/secondary-structure';
@@ -96,6 +97,7 @@ export const BuiltInColorThemes = {
     'element-index': ElementIndexColorThemeProvider,
     'element-symbol': ElementSymbolColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,
+    'polymer-id': PolymerIdColorThemeProvider,
     'polymer-index': PolymerIndexColorThemeProvider,
     'residue-name': ResidueNameColorThemeProvider,
     'secondary-structure': SecondaryStructureColorThemeProvider,

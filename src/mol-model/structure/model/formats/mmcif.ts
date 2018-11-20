@@ -88,24 +88,6 @@ function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['m
     return { parentId, details };
 }
 
-function getAsymIdSerialMap(format: mmCIF_Format): ReadonlyMap<string, number> {
-    const data = format.data.struct_asym;
-    const map = new Map<string, number>();
-    let serial = 0
-
-    const id = data.id
-    const count = data._rowCount
-    for (let i = 0; i < count; ++i) {
-        const _id = id.value(i)
-        if (!map.has(_id)) {
-            map.set(_id, serial)
-            serial += 1
-        }
-    }
-
-    return map;
-}
-
 function getChemicalComponentMap(format: mmCIF_Format): ChemicalComponentMap {
     const map = new Map<string, ChemicalComponent>();
     const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
@@ -150,7 +132,6 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
 
 export interface FormatData {
     modifiedResidues: Model['properties']['modifiedResidues']
-    asymIdSerialMap: Model['properties']['asymIdSerialMap']
     chemicalComponentMap: Model['properties']['chemicalComponentMap']
     saccharideComponentMap: Model['properties']['saccharideComponentMap']
 }
@@ -158,7 +139,6 @@ export interface FormatData {
 function getFormatData(format: mmCIF_Format): FormatData {
     return {
         modifiedResidues: getModifiedResidueNameMap(format),
-        asymIdSerialMap: getAsymIdSerialMap(format),
         chemicalComponentMap: getChemicalComponentMap(format),
         saccharideComponentMap: getSaccharideComponentMap(format)
     }

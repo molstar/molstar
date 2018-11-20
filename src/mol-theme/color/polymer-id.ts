@@ -13,17 +13,18 @@ import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from 'mol-theme/theme';
 import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
 import { Column } from 'mol-data/db';
+import { Entities } from 'mol-model/structure/model/properties/common';
 
 const DefaultColor = Color(0xCCCCCC)
-const Description = 'Gives every chain a color based on its `asym_id` value.'
+const Description = 'Gives every polymer chain a color based on its `asym_id` value.'
 
-export const ChainIdColorThemeParams = {
+export const PolymerIdColorThemeParams = {
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
-export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
-    return ChainIdColorThemeParams // TODO return copy
+export function getPolymerIdColorThemeParams(ctx: ThemeDataContext) {
+    return PolymerIdColorThemeParams // TODO return copy
 }
-export type ChainIdColorThemeProps = PD.Values<typeof ChainIdColorThemeParams>
+export type PolymerIdColorThemeProps = PD.Values<typeof PolymerIdColorThemeParams>
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -35,45 +36,51 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-function addAsymIds(map: Map<string, number>, data: Column<string>) {
+function addPolymerAsymIds(map: Map<string, number>, asymId: Column<string>, entityId: Column<string>, entities: Entities) {
     let j = map.size
-    for (let o = 0, ol = data.rowCount; o < ol; ++o) {
-        const k = data.value(o)
-        if (!map.has(k)) {
-            map.set(k, j)
-            j += 1
+    for (let o = 0, ol = asymId.rowCount; o < ol; ++o) {
+        const e = entityId.value(o)
+        const eI = entities.getEntityIndex(e)
+        if (entities.data.type.value(eI) === 'polymer') {
+            const k = asymId.value(o)
+            if (!map.has(k)) {
+                map.set(k, j)
+                j += 1
+            }
         }
     }
 }
 
-export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThemeProps): ColorTheme<ChainIdColorThemeProps> {
+export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PolymerIdColorThemeProps): ColorTheme<PolymerIdColorThemeProps> {
     let color: LocationColor
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
     if (ctx.structure) {
         const l = StructureElement.create()
         const { models } = ctx.structure
-        const asymIdSerialMap = new Map<string, number>()
+        const polymerAsymIdSerialMap = new Map<string, number>()
         for (let i = 0, il = models.length; i <il; ++i) {
-            const m = models[i]
-            addAsymIds(asymIdSerialMap, m.atomicHierarchy.chains.label_asym_id)
-            if (m.coarseHierarchy.isDefined) {
-                addAsymIds(asymIdSerialMap, m.coarseHierarchy.spheres.asym_id)
-                addAsymIds(asymIdSerialMap, m.coarseHierarchy.gaussians.asym_id)
+            for (let i = 0, il = models.length; i <il; ++i) {
+                const m = models[i]
+                addPolymerAsymIds(polymerAsymIdSerialMap, m.atomicHierarchy.chains.label_asym_id, m.atomicHierarchy.chains.label_entity_id, m.entities)
+                if (m.coarseHierarchy.isDefined) {
+                    addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.spheres.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
+                    addPolymerAsymIds(polymerAsymIdSerialMap, m.coarseHierarchy.gaussians.asym_id, m.coarseHierarchy.spheres.entity_id, m.entities)
+                }
             }
         }
-        scale.setDomain(0, asymIdSerialMap.size - 1)
+        scale.setDomain(0, polymerAsymIdSerialMap.size - 1)
         const scaleColor = scale.color
 
         color = (location: Location): Color => {
             if (StructureElement.isLocation(location)) {
                 const asym_id = getAsymId(location.unit)
-                return scaleColor(asymIdSerialMap.get(asym_id(location)) || 0)
+                return scaleColor(polymerAsymIdSerialMap.get(asym_id(location)) || 0)
             } else if (Link.isLocation(location)) {
                 const asym_id = getAsymId(location.aUnit)
                 l.unit = location.aUnit
                 l.element = location.aUnit.elements[location.aIndex]
-                return scaleColor(asymIdSerialMap.get(asym_id(l)) || 0)
+                return scaleColor(polymerAsymIdSerialMap.get(asym_id(l)) || 0)
             }
             return DefaultColor
         }
@@ -90,8 +97,8 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThem
     }
 }
 
-export const ChainIdColorThemeProvider: ColorTheme.Provider<typeof ChainIdColorThemeParams> = {
-    label: 'Chain Id',
-    factory: ChainIdColorTheme,
-    getParams: getChainIdColorThemeParams
+export const PolymerIdColorThemeProvider: ColorTheme.Provider<typeof PolymerIdColorThemeParams> = {
+    label: 'Polymer Id',
+    factory: PolymerIdColorTheme,
+    getParams: getPolymerIdColorThemeParams
 }
