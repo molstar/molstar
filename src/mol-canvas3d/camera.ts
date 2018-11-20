@@ -131,6 +131,13 @@ class Camera implements Object3D {
 namespace Camera {
     export type Mode = 'perspective' | 'orthographic'
 
+    export interface ClippingInfo {
+        near: number,
+        far: number,
+        fogNear: number,
+        fogFar: number
+    }
+
     export function createDefaultSnapshot(): Snapshot {
         return {
             mode: 'perspective',

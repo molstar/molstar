@@ -189,7 +189,8 @@ namespace Canvas3D {
 
             let didRender = false
             controls.update()
-            setClipping()
+            // TODO: is this a good fix? Also, setClipping does not work if the user has manually set a clipping plane.
+            if (!camera.transition.inTransition) setClipping();
             const cameraChanged = camera.updateMatrices();
 
             if (force || cameraChanged) {

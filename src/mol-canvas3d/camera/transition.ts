@@ -15,7 +15,7 @@ class CameraTransitionManager {
 
     private func: CameraTransitionManager.TransitionFunc = CameraTransitionManager.defaultTransition;
     private start = 0;
-    private inTransition = false;
+    inTransition = false;
     private durationMs = 0;
     private source: Camera.Snapshot = Camera.createDefaultSnapshot();
     private target: Camera.Snapshot = Camera.createDefaultSnapshot();
