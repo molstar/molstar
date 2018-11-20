@@ -33,6 +33,10 @@ export class ViewportControls extends PluginComponent {
         e.currentTarget.blur();
     }
 
+    hideSettings = () => {
+        this.setState({ isSettingsExpanded: false });
+    }
+
     setSettings = (p: { param: PD.Base<any>, name: string, value: any }) => {
         this.plugin.canvas3d.setProps({ [p.name]: p.value })
         this.setState({ settings: this.plugin.canvas3d.props })
@@ -40,14 +44,12 @@ export class ViewportControls extends PluginComponent {
 
     render() {
         return <div className={'msp-viewport-controls'}>
-            <div className={'msp-row'}>
-                <button className='msp-btn msp-btn-link' onClick={this.resetCamera}>↻ Camera</button>
-                <div>
-                    <button className='msp-btn msp-btn-link'onClick={this.toggleSettingsExpanded}>Settings</button>
-                    <div className='msp-control-offset' style={{ display: this.state.isSettingsExpanded ? 'block' : 'none' }}>
-                        <ParameterControls params={Canvas3DParams} values={this.state.settings} onChange={this.setSettings} />
-                    </div>
-                </div>
+            <div className='msp-viewport-controls-buttons'>
+                <button className='msp-btn msp-btn-link' title='Reset Camera' onClick={this.toggleSettingsExpanded}><span className='msp-icon msp-icon-settings'/></button>
+                <button className='msp-btn msp-btn-link' onClick={this.resetCamera}><span className='msp-icon msp-icon-reset-scene'/></button>
+            </div>
+            <div onMouseLeave={this.hideSettings} className='msp-viewport-controls-scene-options' style={{ display: this.state.isSettingsExpanded ? 'block' : 'none' }}>
+                <ParameterControls params={Canvas3DParams} values={this.state.settings} onChange={this.setSettings} />
             </div>
         </div>
     }

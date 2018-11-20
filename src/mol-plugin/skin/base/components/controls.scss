@@ -28,6 +28,9 @@
         text-align: right;
         padding: 0 $control-spacing; 
         color: color-lower-contrast($font-color, 15%);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         
         @include non-selectable;        
     }

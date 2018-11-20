@@ -11,6 +11,8 @@ import { PluginBehavior } from './behavior';
 import { CameraSnapshotManager } from './state/camera';
 import { PluginStateSnapshotManager } from './state/snapshots';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
+import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
+import { ParamDefinition } from 'mol-util/param-definition';
 export { PluginState }
 
 class PluginState {
@@ -43,14 +45,16 @@ class PluginState {
             behaviour: this.behaviorState.getSnapshot(),
             cameraSnapshots: this.cameraSnapshots.getStateSnapshot(),
             canvas3d: {
-                camera: this.plugin.canvas3d.camera.getSnapshot()
+                camera: this.plugin.canvas3d.camera.getSnapshot(),
+                viewport: this.plugin.canvas3d.props
             }
         };
     }
 
     async setSnapshot(snapshot: PluginState.Snapshot) {
-        // await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
+        await this.plugin.runTask(this.behaviorState.setSnapshot(snapshot.behaviour));
         await this.plugin.runTask(this.dataState.setSnapshot(snapshot.data));
+        this.plugin.canvas3d.setProps(snapshot.canvas3d.viewport || { })
         this.cameraSnapshots.setStateSnapshot(snapshot.cameraSnapshots);
         this.plugin.canvas3d.camera.setState(snapshot.canvas3d.camera);
         this.plugin.canvas3d.requestDraw(true);
@@ -86,7 +90,8 @@ namespace PluginState {
         behaviour: State.Snapshot,
         cameraSnapshots: CameraSnapshotManager.StateSnapshot,
         canvas3d: {
-            camera: Camera.Snapshot
+            camera: Camera.Snapshot,
+            viewport: ParamDefinition.Values<Canvas3DParams>
         }
     }
 }

@@ -34,8 +34,10 @@ export const Canvas3DParams = {
     // maxFps: PD.Numeric(30),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     backgroundColor: PD.Color(Color(0x000000)),
+    // TODO: make this an interval?
     clipNear: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
     clipFar: PD.Numeric(100, { min: 1, max: 100, step: 1 }),
+    // TODO: make this an interval?
     fogNear: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
     fogFar: PD.Numeric(100, { min: 1, max: 100, step: 1 }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),

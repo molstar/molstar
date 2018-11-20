@@ -48,9 +48,9 @@
         margin-left: $control-spacing;
     }
 
-    .msp-btn-link, .msp-btn-link-toggle-on {
-        color: #eee;
-    }
+    // .msp-btn-link, .msp-btn-link-toggle-on {
+    //     color: #eee;
+    // }
 
     .msp-btn-link-toggle-off {
         color: $msp-btn-link-toggle-off-font-color;
@@ -91,3 +91,4 @@
     display: inline-block;
     color: $highlight-info-additional-font-color;
 }
+

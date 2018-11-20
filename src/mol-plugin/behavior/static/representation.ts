@@ -20,6 +20,8 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
         if (!SO.isRepresentation3D(e.obj)) return;
         updateVisibility(e, e.obj.data);
         ctx.canvas3d.add(e.obj.data);
+        // TODO: only do this if there were no representations previously
+        ctx.canvas3d.resetCamera();
         ctx.canvas3d.requestDraw(true);
     });
     events.object.updated.subscribe(e => {
