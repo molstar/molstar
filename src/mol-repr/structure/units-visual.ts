@@ -55,7 +55,7 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<UnitsRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, geometry: Geometry, newProps: PD.Values<P>): void
 }
 
 export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
@@ -138,7 +138,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 
-        updateValues(renderObject.values, newProps)
+        updateValues(renderObject.values, geometry, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps

@@ -13,26 +13,6 @@ import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
 
 function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<RenderableValues & BaseValues>>, boundingSphere: Sphere3D): Sphere3D {
-    // let count = 0
-    // const center = Vec3.set(boundingSphere.center, 0, 0, 0)
-    // renderableMap.forEach(r => {
-    //     if (r.boundingSphere.radius) {
-    //         Vec3.add(center, center, r.boundingSphere.center)
-    //         ++count
-    //     }
-    // })
-    // if (count > 0) {
-    //     Vec3.scale(center, center, 1 / count)
-    // }
-
-    // let radius = 0
-    // renderableMap.forEach(r => {
-    //     if (r.boundingSphere.radius) {
-    //         radius = Math.max(radius, Vec3.distance(center, r.boundingSphere.center) + r.boundingSphere.radius)
-    //     }
-    // })
-    // boundingSphere.radius = radius
-
     const spheres: Sphere3D[] = [];
     renderableMap.forEach(r => {
         if (!r.state.visible || !r.boundingSphere.radius) return;

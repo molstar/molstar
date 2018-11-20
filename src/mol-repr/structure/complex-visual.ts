@@ -48,7 +48,7 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
 interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<ComplexRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, geometry: Geometry, newProps: PD.Values<P>): void
 }
 
 export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
@@ -113,7 +113,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
             await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 
-        updateValues(renderObject.values, newProps)
+        updateValues(renderObject.values, geometry, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps

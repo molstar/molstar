@@ -92,9 +92,9 @@ export namespace Points {
         }
     }
 
-    export function updateValues(values: PointsValues, props: PD.Values<Params>) {
+    export function updateValues(values: PointsValues, points: Points, props: PD.Values<Params>) {
         const boundingSphere = calculateBoundingSphere(
-            values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
+            values.aPosition.ref.value, points.pointCount,
             values.aTransform.ref.value, values.instanceCount.ref.value
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {

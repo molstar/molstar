@@ -124,7 +124,7 @@ export namespace DirectVolume {
         }
     }
 
-    export function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
+    export function updateValues(values: DirectVolumeValues, directVolume: DirectVolume, props: PD.Values<Params>) {
         const vertices = new Float32Array(values.aPosition.ref.value)
         transformPositionArray(values.uTransform.ref.value, vertices, 0, vertices.length / 3)
         const boundingSphere = calculateBoundingSphere(
