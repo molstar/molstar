@@ -19,7 +19,7 @@ export class BoundingSphereHelper {
     constructor(private scene: Scene, visible: boolean) {
         const builder = MeshBuilder.create(1024, 512)
         this.mesh = builder.getMesh()
-        const values = Mesh.createValuesSimple(this.mesh, { alpha: 0.1 })
+        const values = Mesh.createValuesSimple(this.mesh, { alpha: 0.1, doubleSided: false })
         this.renderObject = createMeshRenderObject(values, { visible, pickable: false })
         scene.add(this.renderObject)
     }

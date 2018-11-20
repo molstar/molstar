@@ -29,16 +29,19 @@ import { Camera } from './camera';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { BoundingSphereHelper } from './helper/bounding-sphere-helper';
 
-export const Canvas3DParams: PD.Params = {
+export const Canvas3DParams = {
     // TODO: FPS cap?
     // maxFps: PD.Numeric(30),
-    cameraPosition: PD.Vec3(Vec3.create(0, 0, 50)), // TODO or should it be in a seperate 'state' property?
-    pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
-    backgroundColor: PD.Color(Color(0x000000)),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
-    showBoundingSpheres: PD.Boolean(true, { description: 'Show bounding spheres of render objects.' }),
+    backgroundColor: PD.Color(Color(0x000000)),
+    clipNear: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
+    clipFar: PD.Numeric(100, { min: 1, max: 100, step: 1 }),
+    fogNear: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
+    fogFar: PD.Numeric(100, { min: 1, max: 100, step: 1 }),
+    pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
+    showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
     // debug: PD.Group({
-    //     showBoundingSpheres: PD.Boolean(true, { description: 'Show bounding spheres of render objects.' }),
+    //     showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
     // })
 }
 export type Canvas3DParams = typeof Canvas3DParams
@@ -96,7 +99,7 @@ namespace Canvas3D {
         const camera = new Camera({
             near: 0.1,
             far: 10000,
-            position: Vec3.clone(p.cameraPosition),
+            position: Vec3.create(0, 0, 10),
             mode: p.cameraMode
         })
 
@@ -158,38 +161,33 @@ namespace Canvas3D {
             }
         }
 
-        // let nearPlaneDelta = 0
-        // function computeNearDistance() {
-        //     const focusRadius = scene.boundingSphere.radius
-        //     let dist = Vec3.distance(controls.target, camera.position)
-        //     if (dist > focusRadius) return dist - focusRadius
-        //     return 0
-        // }
+        let currentNear = -1, currentFar = -1, currentFogNear = -1, currentFogFar = -1
+        function setClipping() {
+            const cDist = Vec3.distance(camera.state.position, camera.state.target)
+            const bRadius = Math.max(10, scene.boundingSphere.radius)
+
+            const nearFactor = (50 - p.clipNear) / 50
+            const farFactor = -(50 - p.clipFar) / 50
+            const near = cDist - (bRadius * nearFactor)
+            const far = cDist + (bRadius * farFactor)
+
+            const fogNearFactor = (50 - p.fogNear) / 50
+            const fogFarFactor = -(50 - p.fogFar) / 50
+            const fogNear = cDist - (bRadius * fogNearFactor)
+            const fogFar = cDist + (bRadius * fogFarFactor)
+
+            if (near !== currentNear || far !== currentFar || fogNear !== currentFogNear || fogFar !== currentFogFar) {
+                camera.setState({ near, far, fogNear, fogFar })
+                currentNear = near, currentFar = far, currentFogNear = fogNear, currentFogFar = fogFar
+            }
+        }
 
         function render(variant: RenderVariant, force: boolean) {
             if (isPicking) return false
-            // const p = scene.boundingSphere.center
-            // console.log(p[0], p[1], p[2])
-            // Vec3.set(controls.target, p[0], p[1], p[2])
-
-            // TODO update near/far
-            // const focusRadius = scene.boundingSphere.radius
-            // const targetDistance = Vec3.distance(controls.target, camera.position)
-            // console.log(targetDistance, controls.target, camera.position)
-            // let near = computeNearDistance() + nearPlaneDelta
-            // camera.near = Math.max(0.01, Math.min(near, targetDistance - 0.5))
-
-            // let fogNear = targetDistance - camera.near + 1 * focusRadius - nearPlaneDelta;
-            // let fogFar = targetDistance - camera.near + 2 * focusRadius - nearPlaneDelta;
-
-            // // console.log(fogNear, fogFar);
-            // camera.fogNear = Math.max(fogNear, 0.1);
-            // camera.fogFar = Math.max(fogFar, 0.2);
-
-            // console.log(camera.fogNear, camera.fogFar, targetDistance)
 
             let didRender = false
             controls.update()
+            setClipping()
             const cameraChanged = camera.updateMatrices();
 
             if (force || cameraChanged) {
@@ -334,6 +332,7 @@ namespace Canvas3D {
                     reprCount.next(reprRenderObjects.size)
                     boundingSphereHelper.update()
                     scene.update()
+                    requestDraw(true)
                 }
             },
             update: () => scene.update(),
@@ -375,6 +374,12 @@ namespace Canvas3D {
                 if (props.backgroundColor !== undefined && props.backgroundColor !== renderer.props.clearColor) {
                     renderer.setClearColor(props.backgroundColor)
                 }
+
+                if (props.clipNear !== undefined) p.clipNear = props.clipNear
+                if (props.clipFar !== undefined) p.clipFar = props.clipFar
+                if (props.fogNear !== undefined) p.fogNear = props.fogNear
+                if (props.fogFar !== undefined) p.fogFar = props.fogFar
+
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
                     renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
                 }
@@ -386,9 +391,12 @@ namespace Canvas3D {
 
             get props() {
                 return {
-                    cameraPosition: Vec3.clone(camera.position),
                     cameraMode: camera.state.mode,
                     backgroundColor: renderer.props.clearColor,
+                    clipNear: p.clipNear,
+                    clipFar: p.clipFar,
+                    fogNear: p.fogNear,
+                    fogFar: p.fogFar,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
                     showBoundingSpheres: boundingSphereHelper.visible
                 }

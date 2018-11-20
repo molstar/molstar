@@ -62,7 +62,7 @@ export namespace Geometry {
 
     export const Params = {
         alpha: PD.Numeric(1, { min: 0, max: 1, step: 0.01 }, { label: 'Opacity' }),
-        useFog: PD.Boolean(false),
+        useFog: PD.Boolean(true),
         highlightColor: PD.Color(Color.fromNormalizedRgb(1.0, 0.4, 0.6)),
         selectColor: PD.Color(Color.fromNormalizedRgb(0.2, 1.0, 0.1)),
 

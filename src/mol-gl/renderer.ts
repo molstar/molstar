@@ -68,6 +68,7 @@ namespace Renderer {
             clearColor = color
             const [ r, g, b ] = Color.toRgbNormalized(color)
             gl.clearColor(r, g, b, 1.0)
+            Vec3.set(fogColor, r, g, b)
         }
         setClearColor(clearColor)
 
@@ -94,12 +95,12 @@ namespace Renderer {
             uViewportHeight: ValueCell.create(viewport.height),
             uViewport: ValueCell.create(viewportVec4),
 
-            uLightColor: ValueCell.create(Vec3.clone(lightColor)),
-            uLightAmbient: ValueCell.create(Vec3.clone(lightAmbient)),
+            uLightColor: ValueCell.create(lightColor),
+            uLightAmbient: ValueCell.create(lightAmbient),
 
-            uFogNear: ValueCell.create(camera.state.near),
-            uFogFar: ValueCell.create(camera.state.far / 50),
-            uFogColor: ValueCell.create(Vec3.clone(fogColor)),
+            uFogNear: ValueCell.create(camera.state.fogNear),
+            uFogFar: ValueCell.create(camera.state.fogFar),
+            uFogColor: ValueCell.create(fogColor),
 
             uPickingAlphaThreshold: ValueCell.create(pickingAlphaThreshold),
         }
