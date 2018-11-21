@@ -17,32 +17,30 @@ import { StateTreeBuilder } from 'mol-state/tree/builder';
 
 // TODO: "structure parser provider"
 
-export { DownloadAtomicStructure }
-namespace DownloadAtomicStructure {
-    export type Sources = 'pdbe-updated' | 'rcsb' | 'bcif-static' | 'url'
-    export type Source = ObtainStructureHelpers.MapParams<Sources, typeof ObtainStructureHelpers.ControlMap>
+export { DownloadStructure }
+namespace DownloadStructure {
+    export type Source = PD.NamedParamUnion<ObtainStructureHelpers.ControlMap>
     export interface Params {
         source: Source
     }
 }
 namespace ObtainStructureHelpers {
-    export const SourceOptions: [DownloadAtomicStructure.Sources, string][] = [
-        ['pdbe-updated', 'PDBe Updated'],
-        ['rcsb', 'RCSB'],
-        ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
-        ['url', 'URL']
-    ];
     export const ControlMap = {
         'pdbe-updated': PD.Text('1cbs', { label: 'Id' }),
         'rcsb': PD.Text('1tqn', { label: 'Id' }),
         'bcif-static': PD.Text('1tqn', { label: 'Id' }),
         'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }, { isExpanded: true })
     }
+    export type ControlMap = typeof ControlMap
+    export const SourceOptions: [keyof ControlMap, string][] = [
+        ['pdbe-updated', 'PDBe Updated'],
+        ['rcsb', 'RCSB'],
+        ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
+        ['url', 'URL']
+    ];
+
     export function getControls(key: string) { return (ControlMap as any)[key]; }
-
-    export type MapParams<P extends DownloadAtomicStructure.Sources, Map extends { [K in P]: PD.Any }> = P extends DownloadAtomicStructure.Sources ? PD.NamedParams<Map[P]['defaultValue'], P> : never
-
-    export function getUrl(src: DownloadAtomicStructure.Source): Download.Params {
+    export function getUrl(src: DownloadStructure.Source): Download.Params {
         switch (src.name) {
             case 'url': return src.params;
             case 'pdbe-updated': return { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params}` };
@@ -52,7 +50,7 @@ namespace ObtainStructureHelpers {
         }
     }
 }
-const DownloadAtomicStructure = StateAction.create<PluginStateObject.Root, void, DownloadAtomicStructure.Params>({
+const DownloadStructure = StateAction.create<PluginStateObject.Root, void, DownloadStructure.Params>({
     from: [PluginStateObject.Root],
     display: {
         name: 'Download Structure',
@@ -76,11 +74,11 @@ const DownloadAtomicStructure = StateAction.create<PluginStateObject.Root, void,
         const url = ObtainStructureHelpers.getUrl(params.source);
 
         const data = b.toRoot().apply(StateTransforms.Data.Download, url);
-        return state.update(atomicStructureTree(data));
+        return state.update(createStructureTree(data));
     }
 });
 
-export const OpenAtomicStructure = StateAction.create<PluginStateObject.Root, void, { file: File }>({
+export const OpenStructure = StateAction.create<PluginStateObject.Root, void, { file: File }>({
     from: [PluginStateObject.Root],
     display: {
         name: 'Open Structure',
@@ -90,11 +88,11 @@ export const OpenAtomicStructure = StateAction.create<PluginStateObject.Root, vo
     apply({ params, state }) {
         const b = state.build();
         const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-        return state.update(atomicStructureTree(data));
+        return state.update(createStructureTree(data));
     }
 });
 
-function atomicStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
+function createStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
     const root = b
         .apply(StateTransforms.Data.ParseCif)
         .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
