@@ -106,7 +106,3 @@ export const BuiltInColorThemes = {
     'unit-index': UnitIndexColorThemeProvider,
     'uniform': UniformColorThemeProvider,
 }
-export type BuiltInColorThemeName = keyof typeof BuiltInColorThemes
-export const BuiltInColorThemeNames = Object.keys(BuiltInColorThemes)
-export const BuiltInColorThemeOptions = BuiltInColorThemeNames.map(n => [n, n] as [BuiltInColorThemeName, string])
-export const getBuiltInColorThemeParams = (name: string, ctx: ThemeDataContext = {}) => PD.Group((BuiltInColorThemes as { [k: string]: ColorTheme.Provider<any> })[name].getParams(ctx))

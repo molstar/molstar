@@ -14,7 +14,6 @@ import { StructureRepresentation, StructureRepresentationProvider } from '../rep
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
-import { BuiltInColorThemeOptions, BuiltInColorThemes, ColorTheme } from 'mol-theme/color';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const BallAndStickVisuals = {
@@ -32,7 +31,6 @@ export const BallAndStickParams = {
     unitKinds: PD.MultiSelect<UnitKind>(['atomic'], UnitKindOptions),
     sizeFactor: PD.Numeric(0.3, { min: 0.01, max: 10, step: 0.01 }),
     sizeAspectRatio: PD.Numeric(2/3, { min: 0.01, max: 3, step: 0.01 }),
-    colorTheme: PD.Mapped('element-symbol', BuiltInColorThemeOptions, name => PD.Group((BuiltInColorThemes as { [k: string]: ColorTheme.Provider<any> })[name].getParams({}))),
     visuals: PD.MultiSelect<BallAndStickVisualName>(['element-sphere', 'intra-link', 'inter-link'], BallAndStickVisualOptions),
 }
 export type BallAndStickParams = typeof BallAndStickParams

@@ -18,7 +18,7 @@ import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { createTheme } from 'mol-theme/theme';
+import { createEmptyTheme, Theme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 
 export interface ShapeRepresentation<P extends ShapeParams> extends Representation<Shape, P> { }
@@ -37,6 +37,7 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
+    let _theme = createEmptyTheme()
     let currentProps: PD.Values<P> = PD.getDefaultValues(ShapeParams) as PD.Values<P>
     let currentParams: P
     let locationIt: LocationIterator
@@ -52,10 +53,9 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
 
             const mesh = _shape.mesh
             locationIt = ShapeGroupIterator.fromShape(_shape)
-            const theme = createTheme(ctx, currentProps, {})
             const transform = createIdentityTransform()
 
-            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, theme, currentProps)
+            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, _theme, currentProps)
             const state = createRenderableState(currentProps)
 
             _renderObject = createMeshRenderObject(values, state)
@@ -71,6 +71,7 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
         get props () { return currentProps },
         get params () { return currentParams },
         get state() { return _state },
+        get theme() { return _theme },
         updated,
         createOrUpdate,
         getLoci(pickingId: PickingId) {
@@ -110,6 +111,9 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
             if (state.pickable !== undefined) renderObjects.forEach(ro => ro.state.pickable = state.pickable!)
 
             Representation.updateState(_state, state)
+        },
+        setTheme(theme: Theme) {
+            _theme = theme
         },
         destroy() {
             // TODO

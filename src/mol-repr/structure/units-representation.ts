@@ -14,7 +14,7 @@ import { StructureGroup } from './units-visual';
 import { StructureRepresentation, StructureParams } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { Theme, createTheme } from 'mol-theme/theme';
+import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { Subject } from 'rxjs';
@@ -37,7 +37,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
     let _params: P
     let _props: PD.Values<P>
-    let _theme: Theme
+    let _theme = createEmptyTheme()
 
     function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
@@ -45,7 +45,6 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
             if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
-        _theme = createTheme(ctx, { structure: structure || _structure }, props, _theme)
 
         return Task.create('Creating or updating UnitsRepresentation', async runtime => {
             if (!_structure && !structure) {
@@ -159,6 +158,10 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         Representation.updateState(_state, state)
     }
 
+    function setTheme(theme: Theme) {
+        _theme = theme
+    }
+
     function destroy() {
         visuals.forEach(({ visual }) => visual.destroy())
         visuals.clear()
@@ -183,9 +186,11 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         get props() { return _props },
         get params() { return _params },
         get state() { return _state },
+        get theme() { return _theme },
         updated,
         createOrUpdate,
         setState,
+        setTheme,
         getLoci,
         mark,
         destroy

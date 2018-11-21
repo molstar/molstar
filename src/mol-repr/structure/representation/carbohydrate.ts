@@ -13,7 +13,6 @@ import { StructureRepresentation, StructureRepresentationProvider } from '../rep
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
-import { BuiltInColorThemeOptions, getBuiltInColorThemeParams } from 'mol-theme/color';
 
 const CarbohydrateVisuals = {
     'carbohydrate-symbol': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateSymbolParams>) => ComplexRepresentation('Carbohydrate symbol mesh', ctx, getParams, CarbohydrateSymbolVisual),
@@ -27,10 +26,8 @@ export const CarbohydrateParams = {
     ...CarbohydrateSymbolParams,
     ...CarbohydrateLinkParams,
     ...CarbohydrateTerminalLinkParams,
-    colorTheme: PD.Mapped('carbohydrate-symbol', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
     visuals: PD.MultiSelect<CarbohydrateVisualName>(['carbohydrate-symbol', 'carbohydrate-link', 'carbohydrate-terminal-link'], CarbohydrateVisualOptions),
 }
-PD.getDefaultValues(CarbohydrateParams).colorTheme.name
 export type CarbohydrateParams = typeof CarbohydrateParams
 export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Structure) {
     return PD.clone(CarbohydrateParams)

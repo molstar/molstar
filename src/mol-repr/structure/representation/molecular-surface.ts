@@ -13,7 +13,6 @@ import { StructureRepresentation, StructureRepresentationProvider } from '../rep
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
-import { BuiltInColorThemeOptions, getBuiltInColorThemeParams } from 'mol-theme/color';
 
 const MolecularSurfaceVisuals = {
     'gaussian-surface': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, GaussianSurfaceParams>) => UnitsRepresentation('Gaussian surface', ctx, getParams, GaussianSurfaceVisual),
@@ -27,10 +26,8 @@ export const MolecularSurfaceParams = {
     ...GaussianSurfaceParams,
     ...GaussianWireframeParams,
     ...GaussianDensityVolumeParams,
-    colorTheme: PD.Mapped('polymer-id', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
     visuals: PD.MultiSelect<MolecularSurfaceVisualName>(['gaussian-surface'], MolecularSurfaceVisualOptions),
 }
-PD.getDefaultValues(MolecularSurfaceParams).colorTheme.name
 export type MolecularSurfaceParams = typeof MolecularSurfaceParams
 export function getMolecularSurfaceParams(ctx: ThemeRegistryContext, structure: Structure) {
     return PD.clone(MolecularSurfaceParams)

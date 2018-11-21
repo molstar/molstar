@@ -14,7 +14,6 @@ import { Representation, RepresentationParamsGetter, RepresentationContext } fro
 import { PolymerDirectionVisual, PolymerDirectionParams } from '../visual/polymer-direction-wedge';
 import { Structure } from 'mol-model/structure';
 import { ThemeRegistryContext } from 'mol-theme/theme';
-import { BuiltInColorThemeOptions, getBuiltInColorThemeParams } from 'mol-theme/color';
 
 const CartoonVisuals = {
     'polymer-trace': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', ctx, getParams, PolymerTraceVisual),
@@ -31,10 +30,8 @@ export const CartoonParams = {
     ...NucleotideBlockParams,
     ...PolymerDirectionParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    colorTheme: PD.Mapped('polymer-id', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
     visuals: PD.MultiSelect<CartoonVisualName>(['polymer-trace', 'polymer-gap', 'nucleotide-block'], CartoonVisualOptions),
 }
-PD.getDefaultValues(CartoonParams).colorTheme.name
 export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {
     return PD.clone(CartoonParams)

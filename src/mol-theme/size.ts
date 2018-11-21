@@ -31,6 +31,7 @@ namespace SizeTheme {
         readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => SizeTheme<PD.Values<P>>
         readonly getParams: (ctx: ThemeDataContext) => P
     }
+    export const EmptyProvider: Provider<{}> = { label: '', factory: () => Empty, getParams: () => ({}) }
 
     export class Registry {
         private _list: { name: string, provider: Provider<any> }[] = []
@@ -53,8 +54,8 @@ namespace SizeTheme {
             this._map.set(name, provider)
         }
 
-        get(id: string) {
-            return this._map.get(id)
+        get<P extends PD.Params>(id: string) {
+            return this._map.get(id) || EmptyProvider as unknown as Provider<P>
         }
 
         create(id: string, ctx: ThemeDataContext, props = {}) {
@@ -72,7 +73,3 @@ export const BuiltInSizeThemes = {
     'physical': PhysicalSizeThemeProvider,
     'uniform': UniformSizeThemeProvider
 }
-export type BuiltInSizeThemeName = keyof typeof BuiltInSizeThemes
-export const BuiltInSizeThemeNames = Object.keys(BuiltInSizeThemes)
-export const BuiltInSizeThemeOptions = BuiltInSizeThemeNames.map(n => [n, n] as [BuiltInSizeThemeName, string])
-export const getBuiltInSizeThemeParams = (name: string, ctx: ThemeDataContext = {}) => PD.Group((BuiltInSizeThemes as { [k: string]: SizeTheme.Provider<any> })[name].getParams(ctx))

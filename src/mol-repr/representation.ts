@@ -14,7 +14,7 @@ import { WebGLContext } from 'mol-gl/webgl/context';
 import { getQualityProps } from './util';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
-import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
+import { Theme, ThemeRegistryContext, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 import { Mat4 } from 'mol-math/linear-algebra';
 
@@ -89,8 +89,10 @@ interface Representation<D, P extends PD.Params = {}> {
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
     readonly state: Readonly<Representation.State>
+    readonly theme: Readonly<Theme>
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
     setState: (state: Partial<Representation.State>) => void
+    setTheme: (theme: Theme) => void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
     destroy: () => void
@@ -114,9 +116,10 @@ namespace Representation {
 
     export type Any = Representation<any>
     export const Empty: Any = {
-        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(),
+        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(), theme: createEmptyTheme(),
         createOrUpdate: () => Task.constant('', undefined),
         setState: () => {},
+        setTheme: () => {},
         getLoci: () => EmptyLoci,
         mark: () => false,
         destroy: () => {}
@@ -128,6 +131,7 @@ namespace Representation {
         let version = 0
         const updated = new Subject<number>()
         const currentState = Representation.createState()
+        let currentTheme = createEmptyTheme()
 
         let currentParams: P
         let currentProps: PD.Values<P>
@@ -192,6 +196,7 @@ namespace Representation {
                 })
             },
             get state() { return currentState },
+            get theme() { return currentTheme },
             getLoci: (pickingId: PickingId) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     const loci = reprList[i].getLoci(pickingId)
@@ -211,6 +216,11 @@ namespace Representation {
                     reprList[i].setState(state)
                 }
                 Representation.updateState(currentState, state)
+            },
+            setTheme: (theme: Theme) => {
+                for (let i = 0, il = reprList.length; i < il; ++i) {
+                    reprList[i].setTheme(theme)
+                }
             },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {

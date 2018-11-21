@@ -14,6 +14,9 @@ import { BallAndStickParams } from 'mol-repr/structure/representation/ball-and-s
 import { Download } from '../transforms/data';
 import { StateTree } from 'mol-state';
 import { StateTreeBuilder } from 'mol-state/tree/builder';
+import { PolymerIdColorThemeParams } from 'mol-theme/color/polymer-id';
+import { UniformSizeThemeParams } from 'mol-theme/size/uniform';
+import { ElementSymbolColorThemeParams } from 'mol-theme/color/element-symbol';
 
 // TODO: "structure parser provider"
 
@@ -106,11 +109,23 @@ function createStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binar
 
 function complexRepresentation(root: StateTreeBuilder.To<PluginStateObject.Molecule.Structure>) {
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
+        .apply(StateTransforms.Representation.StructureRepresentation3D, {
+            type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) },
+            colorTheme: { name: 'polymer-id', params: PD.getDefaultValues(PolymerIdColorThemeParams) },
+            sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
+        });
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
+        .apply(StateTransforms.Representation.StructureRepresentation3D, {
+            type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) },
+            colorTheme: { name: 'element-symbol', params: PD.getDefaultValues(ElementSymbolColorThemeParams) },
+            sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
+        });
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, {
+            type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } },
+            colorTheme: { name: 'element-symbol', params: PD.getDefaultValues(ElementSymbolColorThemeParams) },
+            sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
+        })
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' });
         // TODO: create spheres visual
 }
