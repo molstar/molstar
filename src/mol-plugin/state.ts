@@ -12,7 +12,6 @@ import { CameraSnapshotManager } from './state/camera';
 import { PluginStateSnapshotManager } from './state/snapshots';
 import { RxEventHelper } from 'mol-util/rx-event-helper';
 import { Canvas3DParams } from 'mol-canvas3d/canvas3d';
-import { ParamDefinition } from 'mol-util/param-definition';
 import { PluginCommands } from './command';
 export { PluginState }
 

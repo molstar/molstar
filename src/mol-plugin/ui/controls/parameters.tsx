@@ -226,19 +226,17 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
 export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>, { isExpanded: boolean }> {
     state = { isExpanded: false }
 
-    change(value: PD.Mapped<any>['defaultValue'] ) {
+    change(value: any ) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
     }
 
     onChangeParam: ParamOnChange = e => {
-        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
-        this.change({ ...value.params, [e.name]: e.value });
+        this.change({ ...this.props.value, [e.name]: e.value });
     }
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
     render() {
-        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
         const params = this.props.param.params;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 
@@ -250,7 +248,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
                 </button>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                <ParameterControls params={params} onChange={this.onChangeParam} values={value.params} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+                <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
             </div>
             }
         </div>
@@ -268,8 +266,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
     }
 
     onChangeParam: ParamOnChange = e => {
-        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
-        this.change({ name: value.name, params: e.value });
+        this.change({ name: this.props.value.name, params: e.value });
     }
 
     render() {
@@ -288,7 +285,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 
         return <div>
             {select}
-            <Mapped param={param} value={value} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+            <Mapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
         </div>
     }
 }

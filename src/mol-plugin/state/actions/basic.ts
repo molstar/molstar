@@ -11,16 +11,53 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateSelection } from 'mol-state/state/selection';
 import { CartoonParams } from 'mol-repr/structure/representation/cartoon';
 import { BallAndStickParams } from 'mol-repr/structure/representation/ball-and-stick';
+import { Download } from '../transforms/data';
 
-export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root, void, { id: string }>({
+export { ObtainAtomicStructure }
+namespace ObtainAtomicStructure {
+    export type Sources = 'pdbe-updated' | 'rcsb' | 'bcif-static' | 'url' | 'file'
+    export type Source = ObtainStructureHelpers.MapParams<Sources, typeof ObtainStructureHelpers.ControlMap>
+    export interface Params {
+        source: Source
+    }
+}
+namespace ObtainStructureHelpers {
+    export const SourceOptions: [ObtainAtomicStructure.Sources, string][] = [
+        ['pdbe-updated', 'PDBe Updated'],
+        ['rcsb', 'RCSB'],
+        ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
+        ['url', 'URL'],
+        // ['file', 'File']
+    ];
+    export const ControlMap = {
+        'pdbe-updated': PD.Text('1cbs', { label: 'Id' }),
+        'rcsb': PD.Text('1tqn', { label: 'Id' }),
+        'bcif-static': PD.Text('1tqn', { label: 'Id' }),
+        'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }),
+        'file': PD.Group({ })
+    }
+    export function getControls(key: string) { return (ControlMap as any)[key]; }
+
+    export type MapParams<P extends ObtainAtomicStructure.Sources, Map extends { [K in P]: PD.Any }> = P extends ObtainAtomicStructure.Sources ? PD.NamedParams<Map[P]['defaultValue'], P> : never
+
+    export function getUrl(src: ObtainAtomicStructure.Source): Download.Params {
+        switch (src.name) {
+            case 'url': return src.params;
+            case 'pdbe-updated': return { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params}` };
+            case 'rcsb': return { url: `https://files.rcsb.org/download/${src.params.toUpperCase()}.cif`, isBinary: false, label: `RCSB: ${src.params}` };
+            case 'bcif-static': return { url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${src.params.toLowerCase()}`, isBinary: true, label: `BinaryCIF: ${src.params}` };
+            default: throw new Error(`${src.name} not supported.`);
+        }
+    }
+}
+const ObtainAtomicStructure = StateAction.create<PluginStateObject.Root, void, ObtainAtomicStructure.Params>({
     from: [PluginStateObject.Root],
     display: {
-        name: 'Entry from PDBe',
-        description: 'Download a structure from PDBe and create its default Assembly and visual'
+        name: 'Obtain Structure',
+        description: 'Load a structure from PDBe and create its default Assembly and visual'
     },
-    params: () => ({ id: PD.Text('1grm', { label: 'PDB id' }) }),
+    params: () => ({ source: PD.Mapped('bcif-static', ObtainStructureHelpers.SourceOptions, ObtainStructureHelpers.getControls) }),
     apply({ params, state }) {
-        const url = `http://www.ebi.ac.uk/pdbe/static/entry/${params.id.toLowerCase()}_updated.cif`;
         const b = state.build();
 
         // const query = MolScriptBuilder.struct.generator.atomGroups({
@@ -34,8 +71,10 @@ export const CreateStructureFromPDBe = StateAction.create<PluginStateObject.Root
         //     ])
         // });
 
+        const url = ObtainStructureHelpers.getUrl(params.source);
+
         const root = b.toRoot()
-            .apply(StateTransforms.Data.Download, { url })
+            .apply(StateTransforms.Data.Download, url)
             .apply(StateTransforms.Data.ParseCif)
             .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })

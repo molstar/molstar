@@ -10,7 +10,7 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginCommands } from './command';
 import { PluginSpec } from './spec';
-import { CreateStructureFromPDBe } from './state/actions/basic';
+import { ObtainAtomicStructure } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
 import { LogEntry } from 'mol-util/log-entry';
@@ -22,7 +22,7 @@ function getParam(name: string, regex: string): string {
 
 const DefaultSpec: PluginSpec = {
     actions: [
-        PluginSpec.Action(CreateStructureFromPDBe),
+        PluginSpec.Action(ObtainAtomicStructure),
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
         PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),

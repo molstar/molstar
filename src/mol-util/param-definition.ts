@@ -132,7 +132,7 @@ export namespace ParamDefinition {
         return setInfo<Group<Values<P>>>({ type: 'group', defaultValue: getDefaultValues(params) as any, params }, info);
     }
 
-    export interface NamedParams<T = any> { name: string, params: T }
+    export interface NamedParams<T = any, K = string> { name: K, params: T }
     export interface Mapped<T> extends Base<NamedParams<T>> {
         type: 'mapped',
         select: Select<string>,
