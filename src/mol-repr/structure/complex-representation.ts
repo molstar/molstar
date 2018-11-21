@@ -17,7 +17,7 @@ import { Theme, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
 
-export function ComplexRepresentation<P extends StructureParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
     let visual: ComplexVisual<P> | undefined
@@ -27,7 +27,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
     let _props: PD.Values<P>
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
             _structure = structure
@@ -38,7 +38,7 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
-            await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, structure)
+            await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, structure)
             updated.next(version++)
         });
     }

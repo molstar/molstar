@@ -6,7 +6,7 @@
 
 import { VolumeData } from 'mol-model/volume'
 import { RuntimeContext } from 'mol-task'
-import { VolumeVisual, VolumeRepresentation } from './representation';
+import { VolumeVisual, VolumeRepresentation, VolumeRepresentationProvider } from './representation';
 import { createDirectVolumeRenderObject } from 'mol-gl/render-object';
 import { EmptyLoci } from 'mol-model/loci';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -19,7 +19,7 @@ import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { Geometry, createRenderableState } from 'mol-geo/geometry/geometry';
 import { VisualUpdateState } from 'mol-repr/util';
-import { VisualContext } from 'mol-repr/representation';
+import { VisualContext, RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
 
 function getBoundingBox(gridDimension: Vec3, transform: Mat4) {
@@ -182,6 +182,14 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
     })
 }
 
-export function DirectVolumeRepresentation(): VolumeRepresentation<DirectVolumeParams> {
-    return VolumeRepresentation('Direct Volume', getDirectVolumeParams, DirectVolumeVisual)
+export function DirectVolumeRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, DirectVolumeParams>): VolumeRepresentation<DirectVolumeParams> {
+    return VolumeRepresentation('Direct Volume', ctx, getParams, DirectVolumeVisual)
+}
+
+export const DirectVolumeRepresentationProvider: VolumeRepresentationProvider<DirectVolumeParams> = {
+    label: 'Direct Volume',
+    description: 'Direct volume rendering of volumetric data.',
+    factory: DirectVolumeRepresentation,
+    getParams: getDirectVolumeParams,
+    defaultValues: PD.getDefaultValues(DirectVolumeParams)
 }

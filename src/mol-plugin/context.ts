@@ -60,7 +60,7 @@ export class PluginContext {
 
     readonly lociLabels: LociLabelManager;
 
-    readonly structureReprensentation = {
+    readonly structureRepresentation = {
         registry: new StructureRepresentationRegistry(),
         themeCtx: { colorThemeRegistry: new ColorTheme.Registry(), sizeThemeRegistry: new SizeTheme.Registry() } as ThemeRegistryContext
     }
@@ -103,7 +103,7 @@ export class PluginContext {
      */
     fetch(url: string, type: 'string' | 'binary' = 'string'): Task<string | Uint8Array> {
         return ajaxGet({ url, type });
-        //const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
+        // const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
         // return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
     }
 

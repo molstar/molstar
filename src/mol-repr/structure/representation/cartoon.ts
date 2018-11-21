@@ -10,17 +10,17 @@ import { NucleotideBlockVisual, NucleotideBlockParams } from '../visual/nucleoti
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
-import { Representation, RepresentationParamsGetter } from 'mol-repr/representation';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { PolymerDirectionVisual, PolymerDirectionParams } from '../visual/polymer-direction-wedge';
 import { Structure } from 'mol-model/structure';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { BuiltInColorThemeOptions, getBuiltInColorThemeParams } from 'mol-theme/color';
 
 const CartoonVisuals = {
-    'polymer-trace': (getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', getParams, PolymerTraceVisual),
-    'polymer-gap': (getParams: RepresentationParamsGetter<Structure, PolymerGapParams>) => UnitsRepresentation('Polymer gap cylinder', getParams, PolymerGapVisual),
-    'nucleotide-block': (getParams: RepresentationParamsGetter<Structure, NucleotideBlockParams>) => UnitsRepresentation('Nucleotide block mesh', getParams, NucleotideBlockVisual),
-    'direction-wedge': (getParams: RepresentationParamsGetter<Structure, PolymerDirectionParams>) => UnitsRepresentation('Polymer direction wedge', getParams, PolymerDirectionVisual)
+    'polymer-trace': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerTraceParams>) => UnitsRepresentation('Polymer trace mesh', ctx, getParams, PolymerTraceVisual),
+    'polymer-gap': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerGapParams>) => UnitsRepresentation('Polymer gap cylinder', ctx, getParams, PolymerGapVisual),
+    'nucleotide-block': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, NucleotideBlockParams>) => UnitsRepresentation('Nucleotide block mesh', ctx, getParams, NucleotideBlockVisual),
+    'direction-wedge': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, PolymerDirectionParams>) => UnitsRepresentation('Polymer direction wedge', ctx, getParams, PolymerDirectionVisual)
 }
 type CartoonVisualName = keyof typeof CartoonVisuals
 const CartoonVisualOptions = Object.keys(CartoonVisuals).map(name => [name, name] as [CartoonVisualName, string])
@@ -41,13 +41,13 @@ export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure
 }
 
 export type CartoonRepresentation = StructureRepresentation<CartoonParams>
-export function CartoonRepresentation(getParams: RepresentationParamsGetter<Structure, CartoonParams>): CartoonRepresentation {
-    return Representation.createMulti('Cartoon', getParams, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>)
+export function CartoonRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CartoonParams>): CartoonRepresentation {
+    return Representation.createMulti('Cartoon', ctx, getParams, CartoonVisuals as unknown as Representation.Def<Structure, CartoonParams>)
 }
 
 export const CartoonRepresentationProvider: StructureRepresentationProvider<CartoonParams> = {
     label: 'Cartoon',
-    description: 'Displays a ribbon smoothly following the trace atom of polymers.',
+    description: 'Displays a ribbon smoothly following the trace atoms of polymers.',
     factory: CartoonRepresentation,
     getParams: getCartoonParams,
     defaultValues: PD.getDefaultValues(CartoonParams)

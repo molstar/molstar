@@ -27,7 +27,7 @@ export type UnitsParams = typeof UnitsParams
 
 export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGroup, P> { }
 
-export function UnitsRepresentation<P extends UnitsParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
@@ -38,7 +38,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
     let _props: PD.Values<P>
     let _theme: Theme
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
             if (!_props) _props = PD.getDefaultValues(_params)
@@ -56,7 +56,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = visualCtor()
-                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                    await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                     visuals.set(group.hashCode, { visual, group })
                 }
             } else if (structure && !Structure.areEquivalent(structure, _structure)) {
@@ -75,14 +75,14 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                         // console.log('old', visualGroup.group)
                         // console.log('new', group)
                         const { visual } = visualGroup
-                        await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                        await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
                     } else {
                         // console.log(label, 'not found visualGroup to reuse, creating new')
                         // newGroups.push(group)
                         const visual = visualCtor()
-                        await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                        await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                     }
                 }
@@ -113,7 +113,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                     const group = _groups[i];
                     const visualGroup = visuals.get(group.hashCode)
                     if (visualGroup) {
-                        await visualGroup.visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                        await visualGroup.visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         visualGroup.group = group
                     } else {
                         throw new Error(`expected to find visual for hashCode ${group.hashCode}`)
@@ -126,7 +126,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                 visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]))
                 for (let i = 0, il = visualsList.length; i < il; ++i) {
                     const [ visual ] = visualsList[i]
-                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props)
+                    await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props)
                 }
             }
             if (structure) _structure = structure

@@ -10,15 +10,15 @@ import { CarbohydrateTerminalLinkParams, CarbohydrateTerminalLinkVisual } from '
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ComplexRepresentation } from '../complex-representation';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
-import { Representation, RepresentationParamsGetter } from 'mol-repr/representation';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
 import { BuiltInColorThemeOptions, getBuiltInColorThemeParams } from 'mol-theme/color';
 
 const CarbohydrateVisuals = {
-    'carbohydrate-symbol': (getParams: RepresentationParamsGetter<Structure, CarbohydrateSymbolParams>) => ComplexRepresentation('Carbohydrate symbol mesh', getParams, CarbohydrateSymbolVisual),
-    'carbohydrate-link': (getParams: RepresentationParamsGetter<Structure, CarbohydrateLinkParams>) => ComplexRepresentation('Carbohydrate link cylinder', getParams, CarbohydrateLinkVisual),
-    'carbohydrate-terminal-link': (getParams: RepresentationParamsGetter<Structure, CarbohydrateTerminalLinkParams>) => ComplexRepresentation('Carbohydrate terminal link cylinder', getParams, CarbohydrateTerminalLinkVisual),
+    'carbohydrate-symbol': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateSymbolParams>) => ComplexRepresentation('Carbohydrate symbol mesh', ctx, getParams, CarbohydrateSymbolVisual),
+    'carbohydrate-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateLinkParams>) => ComplexRepresentation('Carbohydrate link cylinder', ctx, getParams, CarbohydrateLinkVisual),
+    'carbohydrate-terminal-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateTerminalLinkParams>) => ComplexRepresentation('Carbohydrate terminal link cylinder', ctx, getParams, CarbohydrateTerminalLinkVisual),
 }
 type CarbohydrateVisualName = keyof typeof CarbohydrateVisuals
 const CarbohydrateVisualOptions = Object.keys(CarbohydrateVisuals).map(name => [name, name] as [CarbohydrateVisualName, string])
@@ -37,8 +37,8 @@ export function getCarbohydrateParams(ctx: ThemeRegistryContext, structure: Stru
 }
 
 export type CarbohydrateRepresentation = StructureRepresentation<CarbohydrateParams>
-export function CarbohydrateRepresentation(getParams: RepresentationParamsGetter<Structure, CarbohydrateParams>): CarbohydrateRepresentation {
-    return Representation.createMulti('Carbohydrate', getParams, CarbohydrateVisuals as unknown as Representation.Def<Structure, CarbohydrateParams>)
+export function CarbohydrateRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, CarbohydrateParams>): CarbohydrateRepresentation {
+    return Representation.createMulti('Carbohydrate', ctx, getParams, CarbohydrateVisuals as unknown as Representation.Def<Structure, CarbohydrateParams>)
 }
 
 export const CarbohydrateRepresentationProvider: StructureRepresentationProvider<CarbohydrateParams> = {

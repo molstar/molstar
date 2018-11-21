@@ -11,16 +11,16 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitsRepresentation } from '../units-representation';
 import { ComplexRepresentation } from '../complex-representation';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
-import { Representation, RepresentationParamsGetter } from 'mol-repr/representation';
+import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 import { Structure } from 'mol-model/structure';
 import { BuiltInColorThemeOptions, BuiltInColorThemes, ColorTheme } from 'mol-theme/color';
 import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
 const BallAndStickVisuals = {
-    'element-sphere': (getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Element sphere mesh', getParams, ElementSphereVisual),
-    'intra-link': (getParams: RepresentationParamsGetter<Structure, IntraUnitLinkParams>) => UnitsRepresentation('Intra-unit link cylinder', getParams, IntraUnitLinkVisual),
-    'inter-link': (getParams: RepresentationParamsGetter<Structure, InterUnitLinkParams>) => ComplexRepresentation('Inter-unit link cylinder', getParams, InterUnitLinkVisual),
+    'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Element sphere mesh', ctx, getParams, ElementSphereVisual),
+    'intra-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, IntraUnitLinkParams>) => UnitsRepresentation('Intra-unit link cylinder', ctx, getParams, IntraUnitLinkVisual),
+    'inter-link': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, InterUnitLinkParams>) => ComplexRepresentation('Inter-unit link cylinder', ctx, getParams, InterUnitLinkVisual),
 }
 type BallAndStickVisualName = keyof typeof BallAndStickVisuals
 const BallAndStickVisualOptions = Object.keys(BallAndStickVisuals).map(name => [name, name] as [BallAndStickVisualName, string])
@@ -41,8 +41,8 @@ export function getBallAndStickParams(ctx: ThemeRegistryContext, structure: Stru
 }
 
 export type BallAndStickRepresentation = StructureRepresentation<BallAndStickParams>
-export function BallAndStickRepresentation(getParams: RepresentationParamsGetter<Structure, BallAndStickParams>): BallAndStickRepresentation {
-    return Representation.createMulti('Ball & Stick', getParams, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>)
+export function BallAndStickRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, BallAndStickParams>): BallAndStickRepresentation {
+    return Representation.createMulti('Ball & Stick', ctx, getParams, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>)
 }
 
 export const BallAndStickRepresentationProvider: StructureRepresentationProvider<typeof BallAndStickParams> = {

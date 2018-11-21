@@ -30,7 +30,7 @@ export const ShapeParams = {
 }
 export type ShapeParams = typeof ShapeParams
 
-export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentation<P> {
+export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationContext): ShapeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
     const renderObjects: RenderObject[] = []
@@ -40,7 +40,7 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
     let currentParams: P
     let locationIt: LocationIterator
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, shape?: Shape) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, shape?: Shape) {
         currentProps = Object.assign({}, currentProps, props)
         if (shape) _shape = shape
 

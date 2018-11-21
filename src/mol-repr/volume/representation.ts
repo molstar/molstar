@@ -143,7 +143,7 @@ export const VolumeParams = {
 }
 export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeParams>(label: string, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
+export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
     let visual: VolumeVisual<P>
@@ -154,7 +154,7 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
     let _theme: Theme
     let busy = false
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
         if (volume && volume !== _volume) {
             _params = getParams(ctx, volume)
             _volume = volume
@@ -172,11 +172,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
             } else if (volume && !visual) {
                 busy = true
                 visual = visualCtor(volume)
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
+                await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume)
                 busy = false
             } else {
                 busy = true
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
+                await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume)
                 busy = false
             }
             updated.next(version++)

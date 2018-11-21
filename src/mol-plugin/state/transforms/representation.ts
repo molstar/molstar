@@ -24,15 +24,15 @@ const StructureRepresentation3D = PluginStateTransform.Create<SO.Molecule.Struct
     to: [SO.Molecule.Representation3D],
     params: (a, ctx: PluginContext) => ({
         type: PD.Mapped(
-            ctx.structureReprensentation.registry.default.name,
-            ctx.structureReprensentation.registry.types,
-            name => PD.Group<any>(ctx.structureReprensentation.registry.get(name).getParams(ctx.structureReprensentation.themeCtx, a.data)))
+            ctx.structureRepresentation.registry.default.name,
+            ctx.structureRepresentation.registry.types,
+            name => PD.Group<any>(ctx.structureRepresentation.registry.get(name).getParams(ctx.structureRepresentation.themeCtx, a.data)))
     }),
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
-            const provider = plugin.structureReprensentation.registry.get(params.type.name)
-            const repr = provider.factory(provider.getParams)
-            await repr.createOrUpdate({ webgl: plugin.canvas3d.webgl, ...plugin.structureReprensentation.themeCtx }, params.type.params || {}, a.data).runInContext(ctx);
+            const provider = plugin.structureRepresentation.registry.get(params.type.name)
+            const repr = provider.factory({ webgl: plugin.canvas3d.webgl, ...plugin.structureRepresentation.themeCtx }, provider.getParams)
+            await repr.createOrUpdate(params.type.params || {}, a.data).runInContext(ctx);
             return new SO.Molecule.Representation3D(repr, { label: provider.label });
         });
     },
@@ -40,7 +40,7 @@ const StructureRepresentation3D = PluginStateTransform.Create<SO.Molecule.Struct
         return Task.create('Structure Representation', async ctx => {
             if (newParams.type.name !== oldParams.type.name) return Transformer.UpdateResult.Recreate;
 
-            await b.data.createOrUpdate({ webgl: plugin.canvas3d.webgl, ...plugin.structureReprensentation.themeCtx }, { ...b.data.props, ...newParams.type.params }, a.data).runInContext(ctx);
+            await b.data.createOrUpdate({ ...b.data.props, ...newParams.type.params }, a.data).runInContext(ctx);
             return Transformer.UpdateResult.Updated;
         });
     }
