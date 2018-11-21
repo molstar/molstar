@@ -101,14 +101,20 @@ function atomicStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binar
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
         .apply(StateTransforms.Model.StructureAssemblyFromModel);
 
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'sequence' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligands' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } });
+    complexRepresentation(root);
 
     return root.getTree();
+}
+
+function complexRepresentation(root: StateTreeBuilder.To<PluginStateObject.Molecule.Structure>) {
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } })
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' });
+        // TODO: create spheres visual
 }
 
 export const CreateComplexRepresentation = StateAction.create<PluginStateObject.Molecule.Structure, void, {}>({
@@ -119,13 +125,7 @@ export const CreateComplexRepresentation = StateAction.create<PluginStateObject.
     },
     apply({ ref, state }) {
         const root = state.build().to(ref);
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'sequence' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligands' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } });
-
+        complexRepresentation(root);
         return state.update(root.getTree());
     }
 });

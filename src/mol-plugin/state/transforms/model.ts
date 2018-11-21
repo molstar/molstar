@@ -13,6 +13,7 @@ import Expression from 'mol-script/language/expression';
 import { compile } from 'mol-script/runtime/query/compiler';
 import { MolScriptBuilder } from 'mol-script/language/builder';
 import { StateObject } from 'mol-state';
+import { PluginContext } from 'mol-plugin/context';
 
 export { TrajectoryFromMmCif }
 namespace TrajectoryFromMmCif { export interface Params { blockHeader?: string } }
@@ -102,15 +103,21 @@ const StructureAssemblyFromModel = PluginStateTransform.Create<SO.Molecule.Model
         const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
         return { id: PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' }) };
     },
-    apply({ a, params }) {
+    apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
-            let id = params.id;
+            let id = (params.id || '').trim();
             const model = a.data;
             if (!id && model.symmetry.assemblies.length) id = model.symmetry.assemblies[0].id;
-            const asm = ModelSymmetry.findAssembly(model, id || '');
-            if (!asm) throw new Error(`Assembly '${id}' not found`);
+            const asm = ModelSymmetry.findAssembly(model, id);
+            if (id && !asm) throw new Error(`Assembly '${id}' not found`);
 
             const base = Structure.ofModel(model);
+            if (!asm) {
+                plugin.log.warn(`Model '${a.label}' has no assembly, returning default structure.`);
+                const label = { label: a.data.label, description: structureDesc(base) };
+                return new SO.Molecule.Structure(base, label);
+            }
+
             const s = await StructureSymmetry.buildAssembly(base, id!).runInContext(ctx);
             const label = { label: `Assembly ${id}`, description: structureDesc(s) };
             return new SO.Molecule.Structure(s, label);
@@ -143,7 +150,7 @@ const StructureSelection = PluginStateTransform.Create<SO.Molecule.Structure, SO
 });
 
 export { StructureComplexElement }
-namespace StructureComplexElement { export interface Params { type: 'sequence' | 'water' | 'ligands' } }
+namespace StructureComplexElement { export interface Params { type: 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres' } }
 const StructureComplexElement = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Structure, StructureComplexElement.Params>({
     name: 'structure-complex-element',
     display: {
@@ -158,9 +165,10 @@ const StructureComplexElement = PluginStateTransform.Create<SO.Molecule.Structur
 
         let query: StructureQuery, label: string;
         switch (params.type) {
-            case 'sequence': query = Queries.internal.sequence(); label = 'Sequence'; break;
+            case 'atomic-sequence': query = Queries.internal.atomicSequence(); label = 'Sequence'; break;
             case 'water': query = Queries.internal.water(); label = 'Water'; break;
-            case 'ligands': query = Queries.internal.lidangs(); label = 'Ligands'; break;
+            case 'atomic-het': query = Queries.internal.atomicHet(); label = 'HET Groups/Ligands'; break;
+            case 'spheres': query = Queries.internal.spheres(); label = 'Coarse Spheres'; break;
             default: throw new Error(`${params.type} is a valid complex element.`);
         }
 

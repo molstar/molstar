@@ -83,15 +83,19 @@ export class PluginContext {
             this.canvas3d.animate();
             return true;
         } catch (e) {
-            this.log(LogEntry.error('' + e));
+            this.log.error('' + e);
             console.error(e);
             return false;
         }
     }
 
-    log(e: LogEntry) {
-        this.events.log.next(e);
-    }
+    readonly log = {
+        entry: (e: LogEntry) => this.events.log.next(e),
+        error: (msg: string) => this.events.log.next(LogEntry.error(msg)),
+        message: (msg: string) => this.events.log.next(LogEntry.message(msg)),
+        info: (msg: string) => this.events.log.next(LogEntry.info(msg)),
+        warn: (msg: string) => this.events.log.next(LogEntry.warning(msg)),
+    };
 
     /**
      * This should be used in all transform related request so that it could be "spoofed" to allow

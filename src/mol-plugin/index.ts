@@ -13,7 +13,6 @@ import { PluginSpec } from './spec';
 import { DownloadAtomicStructure, CreateComplexRepresentation, OpenAtomicStructure } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
-import { LogEntry } from 'mol-util/log-entry';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -55,7 +54,7 @@ async function trySetSnapshot(ctx: PluginContext) {
         if (!snapshotUrl) return;
         await PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url: snapshotUrl })
     } catch (e) {
-        ctx.log(LogEntry.error('Failed to load snapshot.'));
+        ctx.log.error('Failed to load snapshot.');
         console.warn('Failed to load snapshot', e);
     }
 }
