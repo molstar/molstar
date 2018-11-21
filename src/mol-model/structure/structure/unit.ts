@@ -15,7 +15,7 @@ import { UnitRings } from './unit/rings';
 import StructureElement from './element'
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray } from 'mol-data/int';
-import { hash2 } from 'mol-data/util';
+import { hash2, hashFnv32a } from 'mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
 import { getNucleotideElements } from './util/nucleotide';
 import { GaussianDensityProps, computeUnitGaussianDensityCached } from './unit/gaussian-density';
@@ -48,7 +48,10 @@ namespace Unit {
         readonly units: ReadonlyArray<Unit>
         /** Maps unit.id to index of unit in units array */
         readonly unitIndexMap: IntMap<number>
+        /** Hash based on unit.invariantId which is the same for all units in the group */
         readonly hashCode: number
+        /** Hash based on all unit.id values in the group, reflecting the units transformation*/
+        readonly transformHash: number
     }
 
     function getUnitIndexMap(units: Unit[]) {
@@ -72,7 +75,8 @@ namespace Unit {
                 props.unitIndexMap = getUnitIndexMap(units)
                 return props.unitIndexMap
             },
-            hashCode: hashUnit(units[0])
+            hashCode: hashUnit(units[0]),
+            transformHash: hashFnv32a(units.map(u => u.id))
         }
     }
 
@@ -90,7 +94,7 @@ namespace Unit {
         readonly invariantId: number,
         readonly elements: StructureElement.Set,
         readonly model: Model,
-        readonly conformation: SymmetryOperator.ArrayMapping,
+        readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>,
 
         getChild(elements: StructureElement.Set): Unit,
         applyOperator(id: number, operator: SymmetryOperator, dontCompose?: boolean /* = false */): Unit,
@@ -124,7 +128,7 @@ namespace Unit {
         readonly invariantId: number;
         readonly elements: StructureElement.Set;
         readonly model: Model;
-        readonly conformation: SymmetryOperator.ArrayMapping;
+        readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
 
         // Reference some commonly accessed things for faster access.
         readonly residueIndex: ArrayLike<ResidueIndex>;
@@ -187,7 +191,7 @@ namespace Unit {
             return computeUnitGaussianDensityCached(this, props, this.props.gaussianDensities, ctx, webgl);
         }
 
-        constructor(id: number, invariantId: number, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: AtomicProperties) {
+        constructor(id: number, invariantId: number, model: Model, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: AtomicProperties) {
             this.id = id;
             this.invariantId = invariantId;
             this.model = model;
@@ -229,7 +233,7 @@ namespace Unit {
         readonly invariantId: number;
         readonly elements: StructureElement.Set;
         readonly model: Model;
-        readonly conformation: SymmetryOperator.ArrayMapping;
+        readonly conformation: SymmetryOperator.ArrayMapping<ElementIndex>;
 
         readonly coarseElements: CoarseElements;
         readonly coarseConformation: C;
@@ -276,7 +280,7 @@ namespace Unit {
             return computeUnitGaussianDensityCached(this as Unit.Spheres | Unit.Gaussians, props, this.props.gaussianDensities, ctx, webgl); // TODO get rid of casting
         }
 
-        constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: CoarseProperties) {
+        constructor(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties) {
             this.kind = kind;
             this.id = id;
             this.invariantId = invariantId;
@@ -305,7 +309,7 @@ namespace Unit {
         };
     }
 
-    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping, props: CoarseProperties): Unit {
+    function createCoarse<K extends Kind.Gaussians | Kind.Spheres>(id: number, invariantId: number, model: Model, kind: K, elements: StructureElement.Set, conformation: SymmetryOperator.ArrayMapping<ElementIndex>, props: CoarseProperties): Unit {
         return new Coarse(id, invariantId, model, kind, elements, conformation, props) as any as Unit /** lets call this an ugly temporary hack */;
     }
 

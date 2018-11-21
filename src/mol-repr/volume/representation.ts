@@ -36,7 +36,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
     createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<VolumeRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, geometry: G, newProps: PD.Values<P>): void
 }
 
 export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>): VolumeVisual<P> {
@@ -69,7 +69,7 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
         }
 
-        updateValues(renderObject.values, newProps)
+        updateValues(renderObject.values, geometry, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps

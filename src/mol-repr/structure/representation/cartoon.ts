@@ -31,7 +31,7 @@ export const CartoonParams = {
     ...NucleotideBlockParams,
     ...PolymerDirectionParams,
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
-    colorTheme: PD.Mapped('polymer-index', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
+    colorTheme: PD.Mapped('polymer-id', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
     visuals: PD.MultiSelect<CartoonVisualName>(['polymer-trace', 'polymer-gap', 'nucleotide-block'], CartoonVisualOptions),
 }
 PD.getDefaultValues(CartoonParams).colorTheme.name

@@ -27,7 +27,7 @@ export const MolecularSurfaceParams = {
     ...GaussianSurfaceParams,
     ...GaussianWireframeParams,
     ...GaussianDensityVolumeParams,
-    colorTheme: PD.Mapped('polymer-index', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
+    colorTheme: PD.Mapped('polymer-id', BuiltInColorThemeOptions, getBuiltInColorThemeParams),
     visuals: PD.MultiSelect<MolecularSurfaceVisualName>(['gaussian-surface'], MolecularSurfaceVisualOptions),
 }
 PD.getDefaultValues(MolecularSurfaceParams).colorTheme.name

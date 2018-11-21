@@ -34,13 +34,6 @@ export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
-function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.SymmetryGroup) {
-    return (
-        groupA.units.length === groupB.units.length &&
-        Unit.conformationId(groupA.units[0]) === Unit.conformationId(groupB.units[0])
-    )
-}
-
 type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
@@ -55,7 +48,7 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<UnitsRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, geometry: Geometry, newProps: PD.Values<P>): void
 }
 
 export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
@@ -88,35 +81,46 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         renderObject = await createRenderObject(ctx, group, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}) {
+    async function update(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
-        const unit = currentGroup.units[0]
+        const unit = group.units[0]
 
         locationIt.reset()
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
+        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
+
+        if (group.transformHash !== currentGroup.transformHash) {
+            if (group.units.length !== currentGroup.units.length || updateState.updateColor) {
+                updateState.updateTransform = true
+            } else {
+                updateState.updateMatrix = true
+            }
+        }
+
+        // check if the conformation of unit.model has changed
         const newConformationId = Unit.conformationId(unit)
         if (newConformationId !== currentConformationId) {
             currentConformationId = newConformationId
             updateState.createGeometry = true
         }
 
-        if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
-
-        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
-        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
-
         //
 
         if (updateState.updateTransform) {
-            locationIt = createLocationIterator(currentGroup)
+            locationIt = createLocationIterator(group)
             const { instanceCount, groupCount } = locationIt
-            createUnitsTransform(currentGroup, renderObject.values)
             createMarkers(instanceCount * groupCount, renderObject.values)
             updateState.updateColor = true
+            updateState.updateMatrix = true
+        }
+
+        if (updateState.updateMatrix) {
+            createUnitsTransform(group, renderObject.values)
         }
 
         if (updateState.createGeometry) {
@@ -138,11 +142,12 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 
-        updateValues(renderObject.values, newProps)
+        updateValues(renderObject.values, geometry, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
         currentTheme = theme
+        currentGroup = group
     }
 
     return {
@@ -161,11 +166,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
                 await create(ctx, group, theme, props)
             } else {
                 // console.log('unit-visual update')
-                if (group && !sameGroupConformation(group, currentGroup)) {
-                    // console.log('unit-visual new conformation')
-                    currentGroup = group
-                }
-                await update(ctx, theme, props)
+                await update(ctx, group || currentGroup, theme, props)
             }
         },
         getLoci(pickingId: PickingId) {

@@ -50,7 +50,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
             if (!_structure && !structure) {
                 throw new Error('missing structure')
             } else if (structure && !_structure) {
-                // console.log('initial structure')
+                // console.log(label, 'initial structure')
                 // First call with a structure, create visuals for each group.
                 _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
@@ -59,8 +59,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                     await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
                     visuals.set(group.hashCode, { visual, group })
                 }
-            } else if (structure && _structure.hashCode !== structure.hashCode) {
-                // console.log('_structure.hashCode !== structure.hashCode')
+            } else if (structure && !Structure.areEquivalent(structure, _structure)) {
+                // console.log(label, 'structure not equivalent')
                 // Tries to re-use existing visuals for the groups of the new structure.
                 // Creates additional visuals if needed, destroys left-over visuals.
                 _groups = structure.unitSymmetryGroups;
@@ -71,18 +71,25 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                     const group = _groups[i];
                     const visualGroup = oldVisuals.get(group.hashCode)
                     if (visualGroup) {
+                        // console.log(label, 'found visualGroup to reuse')
+                        // console.log('old', visualGroup.group)
+                        // console.log('new', group)
                         const { visual } = visualGroup
                         await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
                     } else {
+                        // console.log(label, 'not found visualGroup to reuse, creating new')
                         // newGroups.push(group)
                         const visual = visualCtor()
                         await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                     }
                 }
-                oldVisuals.forEach(({ visual }) => visual.destroy())
+                oldVisuals.forEach(({ visual }) => {
+                    // console.log(label, 'removed unused visual')
+                    visual.destroy()
+                })
 
                 // TODO review logic
                 // For new groups, re-use left-over visuals
@@ -94,12 +101,14 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                 //     visuals.set(group.hashCode, { visual, group })
                 // })
                 // unusedVisuals.forEach(visual => visual.destroy())
-            } else if (structure && structure !== _structure && _structure.hashCode === structure.hashCode) {
-                // console.log('_structure.hashCode === structure.hashCode')
+            } else if (structure && structure !== _structure && Structure.areEquivalent(structure, _structure)) {
+                console.log(label, 'structures equivalent but not identical')
                 // Expects that for structures with the same hashCode,
                 // the unitSymmetryGroups are the same as well.
                 // Re-uses existing visuals for the groups of the new structure.
                 _groups = structure.unitSymmetryGroups;
+                // console.log('new', structure.unitSymmetryGroups)
+                // console.log('old', _structure.unitSymmetryGroups)
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visualGroup = visuals.get(group.hashCode)
@@ -111,7 +120,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                     }
                 }
             } else {
-                // console.log('no new structure')
+                // console.log(label, 'no new structure')
                 // No new structure given, just update all visuals with new props.
                 const visualsList: [ UnitsVisual<P>, Unit.SymmetryGroup ][] = [] // TODO avoid allocation
                 visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]))

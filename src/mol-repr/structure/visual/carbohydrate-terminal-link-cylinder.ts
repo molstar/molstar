@@ -34,9 +34,9 @@ async function createCarbohydrateTerminalLinkCylinderMesh(ctx: VisualContext, st
             const l = terminalLinks[edgeIndex]
             if (l.fromCarbohydrate) {
                 Vec3.copy(posA, elements[l.carbohydrateIndex].geometry.center)
-                l.elementUnit.conformation.position(l.elementIndex, posB)
+                l.elementUnit.conformation.position(l.elementUnit.elements[l.elementIndex], posB)
             } else {
-                l.elementUnit.conformation.position(l.elementIndex, posA)
+                l.elementUnit.conformation.position(l.elementUnit.elements[l.elementIndex], posA)
                 Vec3.copy(posB, elements[l.carbohydrateIndex].geometry.center)
             }
         },
@@ -123,7 +123,7 @@ function getTerminalLinkLoci(pickingId: PickingId, structure: Structure, id: num
                 l.elementUnit, l.elementIndex,
                 carb.unit, carbIndex as StructureElement.UnitIndex
             )
-        ])    
+        ])
     }
     return EmptyLoci
 }

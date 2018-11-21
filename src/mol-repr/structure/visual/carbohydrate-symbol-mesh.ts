@@ -203,12 +203,12 @@ function markCarbohydrate(loci: Loci, structure: Structure, apply: (interval: In
         for (const e of loci.elements) {
             OrderedSet.forEach(e.indices, v => {
                 const { model, elements } = e.unit
-                const { index, offsets } = model.atomicHierarchy.residueAtomSegments        
+                const { index, offsets } = model.atomicHierarchy.residueAtomSegments
                 const rI = index[elements[v]]
                 const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
                 const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
                 const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                if(!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
                 const eI = getAnomericCarbon(e.unit, rI)
                 if (eI !== undefined) {
                     const idx = getElementIndex(e.unit, eI)
