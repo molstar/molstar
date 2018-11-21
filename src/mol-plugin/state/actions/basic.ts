@@ -161,7 +161,7 @@ export const UpdateTrajectory = StateAction.create<PluginStateObject.Root, void,
         if (params.action === 'reset') {
             for (const m of models) {
                 update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                    () => ({ modelIndex: 0}));
+                    () => ({ modelIndex: 0 }));
             }
         } else {
             for (const m of models) {

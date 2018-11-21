@@ -318,7 +318,9 @@ namespace Canvas3D {
 
             add: (repr: Representation.Any) => {
                 add(repr)
-                reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => add(repr)))
+                reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => {
+                    if (!repr.state.syncManually) add(repr)
+                }))
             },
             remove: (repr: Representation.Any) => {
                 const updatedSubscription = reprUpdatedSubscriptions.get(repr)

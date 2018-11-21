@@ -102,7 +102,7 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                 // })
                 // unusedVisuals.forEach(visual => visual.destroy())
             } else if (structure && structure !== _structure && Structure.areEquivalent(structure, _structure)) {
-                console.log(label, 'structures equivalent but not identical')
+                // console.log(label, 'structures equivalent but not identical')
                 // Expects that for structures with the same hashCode,
                 // the unitSymmetryGroups are the same as well.
                 // Re-uses existing visuals for the groups of the new structure.
