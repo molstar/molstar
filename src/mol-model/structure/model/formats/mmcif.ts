@@ -24,10 +24,10 @@ import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
 import { StructConn } from './mmcif/bonds/struct_conn';
 import { ChemicalComponent, ChemicalComponentMap } from '../properties/chemical-component';
-import { ComponentType, getMoleculeType } from '../types';
+import { ComponentType, getMoleculeType, MoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
-import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap } from 'mol-model/structure/structure/carbohydrates/constants';
+import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from 'mol-model/structure/structure/carbohydrates/constants';
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -124,10 +124,18 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
                 }
             }
         }
-        return map
     } else {
-        return SaccharideCompIdMap
+        SaccharideCompIdMap.forEach((v, k) => map.set(k, v))
+        const { id, type  } = format.data.chem_comp
+        for (let i = 0, il = id.rowCount; i < il; ++i) {
+            const _id = id.value(i)
+            const _type = type.value(i)
+            if (!map.has(_id) && getMoleculeType(_type, _id) === MoleculeType.saccharide) {
+                map.set(_id, UnknownSaccharideComponent)
+            }
+        }
     }
+    return map
 }
 
 export interface FormatData {
