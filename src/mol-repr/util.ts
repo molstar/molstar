@@ -10,6 +10,7 @@ import { VisualQuality } from 'mol-geo/geometry/geometry';
 
 export interface VisualUpdateState {
     updateTransform: boolean
+    updateMatrix: boolean
     updateColor: boolean
     updateSize: boolean
     createGeometry: boolean
@@ -18,6 +19,7 @@ export namespace VisualUpdateState {
     export function create(): VisualUpdateState {
         return {
             updateTransform: false,
+            updateMatrix: false,
             updateColor: false,
             updateSize: false,
             createGeometry: false
@@ -25,6 +27,7 @@ export namespace VisualUpdateState {
     }
     export function reset(state: VisualUpdateState) {
         state.updateTransform = false
+        state.updateMatrix = false
         state.updateColor = false
         state.updateSize = false
         state.createGeometry = false

@@ -85,14 +85,14 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
+        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
+
         const newConformationHash = Structure.conformationHash(currentStructure)
         if (newConformationHash !== conformationHash) {
             conformationHash = newConformationHash
             updateState.createGeometry = true
         }
-
-        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
-        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         //
 
@@ -129,7 +129,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
                 throw new Error('missing structure')
             } else if (structure && (!currentStructure || !renderObject)) {
                 await create(ctx, structure, theme, props)
-            } else if (structure && structure.hashCode !== currentStructure.hashCode) {
+            } else if (structure && !Structure.areEquivalent(structure, currentStructure)) {
                 await create(ctx, structure, theme, props)
             } else {
                 if (structure && Structure.conformationHash(structure) !== Structure.conformationHash(currentStructure)) {

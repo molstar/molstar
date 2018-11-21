@@ -8,7 +8,7 @@ import { IntMap, SortedArray, Iterator, Segmentation } from 'mol-data/int'
 import { UniqueArray } from 'mol-data/generic'
 import { SymmetryOperator } from 'mol-math/geometry/symmetry-operator'
 import { Model, ElementIndex } from '../model'
-import { sort, arraySwap, hash1, sortArray, hashString } from 'mol-data/util';
+import { sort, arraySwap, hash1, sortArray, hashString, hashFnv32a } from 'mol-data/util';
 import StructureElement from './element'
 import Unit from './unit'
 import { StructureLookup3D } from './util/lookup3d';
@@ -44,9 +44,11 @@ class Structure {
         entityIndices?: ReadonlyArray<EntityIndex>,
         uniqueAtomicResidueIndices?: ReadonlyMap<UUID, ReadonlyArray<ResidueIndex>>,
         hashCode: number,
+        /** Hash based on all unit.id values in the structure, reflecting the units transformation */
+        transformHash: number,
         elementCount: number,
         polymerResidueCount: number,
-    } = { hashCode: -1, elementCount: 0, polymerResidueCount: 0 };
+    } = { hashCode: -1, transformHash: -1, elementCount: 0, polymerResidueCount: 0 };
 
     subsetBuilder(isSorted: boolean) {
         return new StructureSubsetBuilder(this, isSorted);
@@ -72,6 +74,12 @@ class Structure {
     get hashCode() {
         if (this._props.hashCode !== -1) return this._props.hashCode;
         return this.computeHash();
+    }
+
+    get transformHash() {
+        if (this._props.transformHash !== -1) return this._props.transformHash;
+        this._props.transformHash = hashFnv32a(this.units.map(u => u.id))
+        return this._props.transformHash;
     }
 
     private computeHash() {
@@ -389,6 +397,7 @@ namespace Structure {
         return s.hashCode;
     }
 
+    /** Hash based on all unit.model conformation values in the structure */
     export function conformationHash(s: Structure) {
         return hashString(s.units.map(u => Unit.conformationId(u)).join('|'))
     }
@@ -407,6 +416,13 @@ namespace Structure {
         }
 
         return true;
+    }
+
+    export function areEquivalent(a: Structure, b: Structure) {
+        return a === b || (
+            a.hashCode === b.hashCode &&
+            StructureSymmetry.areTransformGroupsEquivalent(a.unitSymmetryGroups, b.unitSymmetryGroups)
+        )
     }
 
     export class ElementLocationIterator implements Iterator<StructureElement> {

@@ -15,7 +15,7 @@ import { UnitRings } from './unit/rings';
 import StructureElement from './element'
 import { ChainIndex, ResidueIndex, ElementIndex } from '../model/indexing';
 import { IntMap, SortedArray } from 'mol-data/int';
-import { hash2 } from 'mol-data/util';
+import { hash2, hashFnv32a } from 'mol-data/util';
 import { getAtomicPolymerElements, getCoarsePolymerElements, getAtomicGapElements, getCoarseGapElements } from './util/polymer';
 import { getNucleotideElements } from './util/nucleotide';
 import { GaussianDensityProps, computeUnitGaussianDensityCached } from './unit/gaussian-density';
@@ -48,7 +48,10 @@ namespace Unit {
         readonly units: ReadonlyArray<Unit>
         /** Maps unit.id to index of unit in units array */
         readonly unitIndexMap: IntMap<number>
+        /** Hash based on unit.invariantId which is the same for all units in the group */
         readonly hashCode: number
+        /** Hash based on all unit.id values in the group, reflecting the units transformation*/
+        readonly transformHash: number
     }
 
     function getUnitIndexMap(units: Unit[]) {
@@ -72,7 +75,8 @@ namespace Unit {
                 props.unitIndexMap = getUnitIndexMap(units)
                 return props.unitIndexMap
             },
-            hashCode: hashUnit(units[0])
+            hashCode: hashUnit(units[0]),
+            transformHash: hashFnv32a(units.map(u => u.id))
         }
     }
 
