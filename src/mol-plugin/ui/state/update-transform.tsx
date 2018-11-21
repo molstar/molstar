@@ -32,6 +32,7 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
     getHeaderFallback() { return this.props.transform.transformer.definition.name; }
     canApply() { return !this.state.error && !this.state.busy && !this.state.isInitial; }
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }
+    isUpdate() { return true; }
 
     private _getInfo = memoizeOne((t: Transform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, this.props.transform));
 

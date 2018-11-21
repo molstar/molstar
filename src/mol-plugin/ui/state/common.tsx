@@ -102,6 +102,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
     abstract getHeaderFallback(): string;
     abstract canApply(): boolean;
     abstract applyText(): string;
+    abstract isUpdate(): boolean;
     abstract state: S;
 
     private busy: Subject<boolean>;
@@ -146,7 +147,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
 
     render() {
         const info = this.getInfo();
-        if (info.isEmpty) return null;
+        if (info.isEmpty && this.isUpdate()) return null;
 
         const display = this.getHeader();
 
