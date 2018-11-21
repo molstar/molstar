@@ -16,6 +16,7 @@ import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
+import { Mat4 } from 'mol-math/linear-algebra';
 
 // export interface RepresentationProps {
 //     visuals?: string[]
@@ -87,22 +88,37 @@ interface Representation<D, P extends PD.Params = {}> {
     readonly renderObjects: ReadonlyArray<RenderObject>
     readonly props: Readonly<PD.Values<P>>
     readonly params: Readonly<P>
+    readonly state: Readonly<Representation.State>
     createOrUpdate: (props?: Partial<PD.Values<P>>, data?: D) => Task<void>
+    setState: (state: Partial<Representation.State>) => void
     getLoci: (pickingId: PickingId) => Loci
     mark: (loci: Loci, action: MarkerAction) => boolean
-    setVisibility: (value: boolean) => void
-    setPickable: (value: boolean) => void
     destroy: () => void
 }
 namespace Representation {
+    export interface State {
+        visible: boolean
+        pickable: boolean
+        syncManually: boolean
+        transform: Mat4
+    }
+    export function createState() {
+        return { visible: false, pickable: false, syncManually: false, transform: Mat4.identity() }
+    }
+    export function updateState(state: State, update: Partial<State>) {
+        if (update.visible !== undefined) state.visible = update.visible
+        if (update.pickable !== undefined) state.pickable = update.pickable
+        if (update.syncManually !== undefined) state.syncManually = update.syncManually
+        if (update.transform !== undefined) Mat4.copy(state.transform, update.transform)
+    }
+
     export type Any = Representation<any>
     export const Empty: Any = {
-        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(),
+        label: '', groupCount: 0, renderObjects: [], props: {}, params: {}, updated: new Subject(), state: createState(),
         createOrUpdate: () => Task.constant('', undefined),
+        setState: () => {},
         getLoci: () => EmptyLoci,
         mark: () => false,
-        setVisibility: () => {},
-        setPickable: () => {},
         destroy: () => {}
     }
 
@@ -111,6 +127,7 @@ namespace Representation {
     export function createMulti<D, P extends PD.Params = {}>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<D, P>, reprDefs: Def<D, P>): Representation<D, P> {
         let version = 0
         const updated = new Subject<number>()
+        const currentState = Representation.createState()
 
         let currentParams: P
         let currentProps: PD.Values<P>
@@ -174,6 +191,7 @@ namespace Representation {
                     updated.next(version++)
                 })
             },
+            get state() { return currentState },
             getLoci: (pickingId: PickingId) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
                     const loci = reprList[i].getLoci(pickingId)
@@ -188,15 +206,11 @@ namespace Representation {
                 }
                 return marked
             },
-            setVisibility: (value: boolean) => {
+            setState: (state: Partial<State>) => {
                 for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setVisibility(value)
+                    reprList[i].setState(state)
                 }
-            },
-            setPickable: (value: boolean) => {
-                for (let i = 0, il = reprList.length; i < il; ++i) {
-                    reprList[i].setPickable(value)
-                }
+                Representation.updateState(currentState, state)
             },
             destroy() {
                 for (let i = 0, il = reprList.length; i < il; ++i) {

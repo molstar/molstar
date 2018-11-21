@@ -8,7 +8,7 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { Visual, RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Visual, RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
 import { StructureRepresentation, StructureParams } from './representation';
@@ -30,6 +30,7 @@ export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGrou
 export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure
@@ -151,16 +152,11 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         return changed
     }
 
-    function setVisibility(value: boolean) {
-        visuals.forEach(({ visual }) => {
-            visual.setVisibility(value)
-        })
-    }
+    function setState(state: Partial<Representation.State>) {
+        if (state.visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(state.visible!))
+        if (state.pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(state.pickable!))
 
-    function setPickable(value: boolean) {
-        visuals.forEach(({ visual }) => {
-            visual.setPickable(value)
-        })
+        Representation.updateState(_state, state)
     }
 
     function destroy() {
@@ -186,12 +182,12 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
         },
         get props() { return _props },
         get params() { return _params },
+        get state() { return _state },
         updated,
         createOrUpdate,
+        setState,
         getLoci,
         mark,
-        setVisibility,
-        setPickable,
         destroy
     }
 }

@@ -12,7 +12,7 @@ import { StructureRepresentation, StructureParams } from './representation';
 import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
+import { RepresentationContext, RepresentationParamsGetter, Representation } from 'mol-repr/representation';
 import { Theme, createTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
@@ -20,6 +20,7 @@ import { Subject } from 'rxjs';
 export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     let visual: ComplexVisual<P> | undefined
 
     let _structure: Structure
@@ -51,12 +52,11 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return visual ? visual.mark(loci, action) : false
     }
 
-    function setVisibility(value: boolean) {
-        if (visual) visual.setVisibility(value)
-    }
+    function setState(state: Partial<Representation.State>) {
+        if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
+        if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
 
-    function setPickable(value: boolean) {
-        if (visual) visual.setPickable(value)
+        Representation.updateState(_state, state)
     }
 
     function destroy() {
@@ -73,12 +73,12 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         },
         get props() { return _props },
         get params() { return _params },
-        get updated() { return updated },
+        get state() { return _state },
+        updated,
         createOrUpdate,
+        setState,
         getLoci,
         mark,
-        setVisibility,
-        setPickable,
         destroy
     }
 }

@@ -33,6 +33,7 @@ export type ShapeParams = typeof ShapeParams
 export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationContext): ShapeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
@@ -65,11 +66,12 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
 
     return {
         label: 'Shape mesh',
-        updated,
         get groupCount () { return locationIt ? locationIt.count : 0 },
         get renderObjects () { return renderObjects },
-        get params () { return currentParams },
         get props () { return currentProps },
+        get params () { return currentParams },
+        get state() { return _state },
+        updated,
         createOrUpdate,
         getLoci(pickingId: PickingId) {
             const { objectId, groupId } = pickingId
@@ -103,11 +105,11 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
             }
             return changed
         },
-        setVisibility(value: boolean) {
-            renderObjects.forEach(ro => ro.state.visible = value)
-        },
-        setPickable(value: boolean) {
-            renderObjects.forEach(ro => ro.state.pickable = value)
+        setState(state: Partial<Representation.State>) {
+            if (state.visible !== undefined) renderObjects.forEach(ro => ro.state.visible = state.visible!)
+            if (state.pickable !== undefined) renderObjects.forEach(ro => ro.state.pickable = state.pickable!)
+
+            Representation.updateState(_state, state)
         },
         destroy() {
             // TODO

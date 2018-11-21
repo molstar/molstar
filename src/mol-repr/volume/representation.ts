@@ -146,6 +146,7 @@ export type VolumeParams = typeof VolumeParams
 export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     let visual: VolumeVisual<P>
 
     let _volume: VolumeData
@@ -191,16 +192,15 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         return visual ? visual.mark(loci, action) : false
     }
 
+    function setState(state: Partial<Representation.State>) {
+        if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
+        if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
+
+        Representation.updateState(_state, state)
+    }
+
     function destroy() {
         if (visual) visual.destroy()
-    }
-
-    function setVisibility(value: boolean) {
-        if (visual) visual.setVisibility(value)
-    }
-
-    function setPickable(value: boolean) {
-        if (visual) visual.setPickable(value)
     }
 
     return {
@@ -213,12 +213,12 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx:
         },
         get props () { return _props },
         get params() { return _params },
-        get updated() { return updated },
+        get state() { return _state },
+        updated,
         createOrUpdate,
+        setState,
         getLoci,
         mark,
-        setVisibility,
-        setPickable,
         destroy
     }
 }
