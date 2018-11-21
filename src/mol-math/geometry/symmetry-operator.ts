@@ -63,15 +63,15 @@ namespace SymmetryOperator {
         readonly operator: SymmetryOperator,
         readonly invariantPosition: CoordinateMapper<T>,
         readonly position: CoordinateMapper<T>,
-        x(index: number): number,
-        y(index: number): number,
-        z(index: number): number,
-        r(index: number): number
+        x(index: T): number,
+        y(index: T): number,
+        z(index: T): number,
+        r(index: T): number
     }
 
     export interface Coordinates { x: ArrayLike<number>, y: ArrayLike<number>, z: ArrayLike<number> }
 
-    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: number) => number) | undefined): ArrayMapping<T> {
+    export function createMapping<T extends number>(operator: SymmetryOperator, coords: Coordinates, radius: ((index: T) => number) | undefined): ArrayMapping<T> {
         const invariantPosition = SymmetryOperator.createCoordinateMapper(SymmetryOperator.Default, coords);
         const position = operator.isIdentity ? invariantPosition : SymmetryOperator.createCoordinateMapper(operator, coords);
         const { x, y, z } = createProjections(operator, coords);
