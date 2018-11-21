@@ -5,102 +5,60 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import Structure from '../structure'
-import Unit from '../unit';
-import { Box3D, Sphere3D, SymmetryOperator } from 'mol-math/geometry';
+import { Box3D, Sphere3D } from 'mol-math/geometry';
+import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
 import { Vec3 } from 'mol-math/linear-algebra';
-import { SortedArray } from 'mol-data/int';
-import { ElementIndex } from '../../model/indexing';
+import Structure from '../structure';
 
 export type Boundary = { box: Box3D, sphere: Sphere3D }
-
-function computeElementsPositionBoundary(elements: SortedArray<ElementIndex>, position: SymmetryOperator.CoordinateMapper): Boundary {
-    const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
-    const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
-    const center = Vec3.zero()
-
-    let radiusSq = 0
-    let size = 0
-
-    const p = Vec3.zero()
-
-    size += elements.length
-    for (let j = 0, _j = elements.length; j < _j; j++) {
-        position(elements[j], p)
-        Vec3.min(min, min, p)
-        Vec3.max(max, max, p)
-        Vec3.add(center, center, p)
-    }
-
-    if (size > 0) Vec3.scale(center, center, 1/size)
-
-    for (let j = 0, _j = elements.length; j < _j; j++) {
-        position(elements[j], p)
-        const d = Vec3.squaredDistance(p, center)
-        if (d > radiusSq) radiusSq = d
-    }
-
-    return {
-        box: { min, max },
-        sphere: { center, radius: Math.sqrt(radiusSq) }
-    }
-}
-
-function computeInvariantUnitBoundary(u: Unit): Boundary {
-    return computeElementsPositionBoundary(u.elements, u.conformation.invariantPosition)
-}
-
-export function computeUnitBoundary(u: Unit): Boundary {
-    return computeElementsPositionBoundary(u.elements, u.conformation.position)
-}
 
 const tmpBox = Box3D.empty()
 const tmpSphere = Sphere3D.zero()
 
+const boundaryHelper = new BoundaryHelper();
+
 export function computeStructureBoundary(s: Structure): Boundary {
     const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
     const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
-    const center = Vec3.zero()
 
-    const { units } = s
+    const { units } = s;
 
-    const boundaryMap: Map<number, Boundary> = new Map()
-    function getInvariantBoundary(u: Unit) {
-        let boundary: Boundary
-        if (boundaryMap.has(u.invariantId)) {
-            boundary = boundaryMap.get(u.invariantId)!
+    boundaryHelper.reset(0);
+
+    for (let i = 0, _i = units.length; i < _i; i++) {
+        const u = units[i];
+        const invariantBoundary = u.lookup3d.boundary;
+        const o = u.conformation.operator;
+
+        if (o.isIdentity) {
+            Vec3.min(min, min, invariantBoundary.box.min);
+            Vec3.max(max, max, invariantBoundary.box.max);
+
+            boundaryHelper.boundaryStep(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
         } else {
-            boundary = computeInvariantUnitBoundary(u)
-            boundaryMap.set(u.invariantId, boundary)
+            Box3D.transform(tmpBox, invariantBoundary.box, o.matrix);
+            Vec3.min(min, min, tmpBox.min);
+            Vec3.max(max, max, tmpBox.max);
+
+            Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
+            boundaryHelper.boundaryStep(tmpSphere.center, tmpSphere.radius);
         }
-        return boundary
     }
 
-    let radius = 0
-    let size = 0
+    boundaryHelper.finishBoundaryStep();
 
     for (let i = 0, _i = units.length; i < _i; i++) {
-        const u = units[i]
-        const invariantBoundary = getInvariantBoundary(u)
-        const m = u.conformation.operator.matrix
-        size += u.elements.length
-        Box3D.transform(tmpBox, invariantBoundary.box, m)
-        Vec3.min(min, min, tmpBox.min)
-        Vec3.max(max, max, tmpBox.max)
-        Sphere3D.transform(tmpSphere, invariantBoundary.sphere, m)
-        Vec3.scaleAndAdd(center, center, tmpSphere.center, u.elements.length)
+        const u = units[i];
+        const invariantBoundary = u.lookup3d.boundary;
+        const o = u.conformation.operator;
+
+        if (o.isIdentity) {
+            boundaryHelper.extendStep(invariantBoundary.sphere.center, invariantBoundary.sphere.radius);
+        } else {
+            Sphere3D.transform(tmpSphere, invariantBoundary.sphere, o.matrix);
+            boundaryHelper.extendStep(tmpSphere.center, tmpSphere.radius);
+        }
     }
 
-    if (size > 0) Vec3.scale(center, center, 1/size)
-
-    for (let i = 0, _i = units.length; i < _i; i++) {
-        const u = units[i]
-        const invariantBoundary = getInvariantBoundary(u)
-        const m = u.conformation.operator.matrix
-        Sphere3D.transform(tmpSphere, invariantBoundary.sphere, m)
-        const d = Vec3.distance(tmpSphere.center, center) + tmpSphere.radius
-        if (d > radius) radius = d
-    }
-
-    return { box: { min, max }, sphere: { center, radius } }
+    return { box: { min, max }, sphere: boundaryHelper.getSphere() };
 }

@@ -41,7 +41,7 @@ function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<Ren
         if (!r.state.visible || !r.boundingSphere.radius) return;
         boundaryHelper.boundaryStep(r.boundingSphere.center, r.boundingSphere.radius);
     });
-    boundaryHelper.finishIncludeStep();
+    boundaryHelper.finishBoundaryStep();
     renderableMap.forEach(r => {
         if (!r.state.visible || !r.boundingSphere.radius) return;
         boundaryHelper.extendStep(r.boundingSphere.center, r.boundingSphere.radius);

@@ -8,6 +8,15 @@ import { Vec3 } from 'mol-math/linear-algebra/3d';
 import { Box3D } from './primitives/box3d';
 import { Sphere3D } from './primitives/sphere3d';
 
+/**
+ * Usage:
+ *
+ * 1. .reset(tolerance); tolerance plays part in the "extend" step
+ * 2. for each point/sphere call boundaryStep()
+ * 3. .finishBoundaryStep
+ * 4. for each point/sphere call extendStep
+ * 5. use .center/.radius or call getSphere/getBox
+ */
 export class BoundaryHelper {
     private count = 0;
     private extremes = [Vec3.zero(), Vec3.zero(), Vec3.zero(), Vec3.zero(), Vec3.zero(), Vec3.zero()];
@@ -41,7 +50,7 @@ export class BoundaryHelper {
         this.count++;
     }
 
-    finishIncludeStep() {
+    finishBoundaryStep() {
         if (this.count === 0) return;
 
         let maxSpan = 0, mI = 0, mJ = 0;
