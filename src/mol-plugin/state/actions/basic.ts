@@ -12,10 +12,14 @@ import { StateSelection } from 'mol-state/state/selection';
 import { CartoonParams } from 'mol-repr/structure/representation/cartoon';
 import { BallAndStickParams } from 'mol-repr/structure/representation/ball-and-stick';
 import { Download } from '../transforms/data';
+import { StateTree } from 'mol-state';
+import { StateTreeBuilder } from 'mol-state/tree/builder';
+
+// TODO: "structure parser provider"
 
 export { DownloadAtomicStructure }
 namespace DownloadAtomicStructure {
-    export type Sources = 'pdbe-updated' | 'rcsb' | 'bcif-static' | 'url' | 'file'
+    export type Sources = 'pdbe-updated' | 'rcsb' | 'bcif-static' | 'url'
     export type Source = ObtainStructureHelpers.MapParams<Sources, typeof ObtainStructureHelpers.ControlMap>
     export interface Params {
         source: Source
@@ -26,15 +30,13 @@ namespace ObtainStructureHelpers {
         ['pdbe-updated', 'PDBe Updated'],
         ['rcsb', 'RCSB'],
         ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
-        ['url', 'URL'],
-        ['file', 'File']
+        ['url', 'URL']
     ];
     export const ControlMap = {
         'pdbe-updated': PD.Text('1cbs', { label: 'Id' }),
         'rcsb': PD.Text('1tqn', { label: 'Id' }),
         'bcif-static': PD.Text('1tqn', { label: 'Id' }),
-        'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }, { isExpanded: true }),
-        'file': PD.File({ accept: '.cif,.bcif' })
+        'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }, { isExpanded: true })
     }
     export function getControls(key: string) { return (ControlMap as any)[key]; }
 
@@ -46,7 +48,7 @@ namespace ObtainStructureHelpers {
             case 'pdbe-updated': return { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params}` };
             case 'rcsb': return { url: `https://files.rcsb.org/download/${src.params.toUpperCase()}.cif`, isBinary: false, label: `RCSB: ${src.params}` };
             case 'bcif-static': return { url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${src.params.toLowerCase()}`, isBinary: true, label: `BinaryCIF: ${src.params}` };
-            default: throw new Error(`${src.name} not supported.`);
+            default: throw new Error(`${(src as any).name} not supported.`);
         }
     }
 }
@@ -73,23 +75,41 @@ const DownloadAtomicStructure = StateAction.create<PluginStateObject.Root, void,
 
         const url = ObtainStructureHelpers.getUrl(params.source);
 
-        const root = b.toRoot()
-            .apply(StateTransforms.Data.Download, url)
-            .apply(StateTransforms.Data.ParseCif)
-            .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
-            .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-            .apply(StateTransforms.Model.StructureAssemblyFromModel);
-
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'sequence' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligands' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
-        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } });
-
-        return state.update(root.getTree());
+        const data = b.toRoot().apply(StateTransforms.Data.Download, url);
+        return state.update(atomicStructureTree(data));
     }
 });
+
+export const OpenAtomicStructure = StateAction.create<PluginStateObject.Root, void, { file: File }>({
+    from: [PluginStateObject.Root],
+    display: {
+        name: 'Open Structure',
+        description: 'Load a structure from file and create its default Assembly and visual'
+    },
+    params: () => ({ file: PD.File({ accept: '.cif,.bcif' }) }),
+    apply({ params, state }) {
+        const b = state.build();
+        const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
+        return state.update(atomicStructureTree(data));
+    }
+});
+
+function atomicStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
+    const root = b
+        .apply(StateTransforms.Data.ParseCif)
+        .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
+        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+        .apply(StateTransforms.Model.StructureAssemblyFromModel);
+
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'sequence' })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligands' })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } });
+
+    return root.getTree();
+}
 
 export const CreateComplexRepresentation = StateAction.create<PluginStateObject.Molecule.Structure, void, {}>({
     from: [PluginStateObject.Molecule.Structure],

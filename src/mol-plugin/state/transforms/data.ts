@@ -11,6 +11,7 @@ import CIF from 'mol-io/reader/cif'
 import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Transformer } from 'mol-state';
+import { readFromFile } from 'mol-util/data-source';
 
 export { Download }
 namespace Download { export interface Params { url: string, isBinary?: boolean, label?: string } }
@@ -43,6 +44,39 @@ const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
         }
         return Transformer.UpdateResult.Unchanged;
     }
+});
+
+export { ReadFile }
+namespace ReadFile { export interface Params { file: File, isBinary?: boolean, label?: string } }
+const ReadFile = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.Binary, ReadFile.Params>({
+    name: 'read-file',
+    display: {
+        name: 'Read File',
+        description: 'Read string or binary data from the specified file'
+    },
+    from: [SO.Root],
+    to: [SO.Data.String, SO.Data.Binary],
+    params: () => ({
+        file: PD.File(),
+        label: PD.Text('', { isOptional: true }),
+        isBinary: PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)', isOptional: true })
+    }),
+    apply({ params: p }, globalCtx: PluginContext) {
+        return Task.create('Open File', async ctx => {
+            const data = await readFromFile(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            return p.isBinary
+                ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.file.name })
+                : new SO.Data.String(data as string, { label: p.label ? p.label : p.file.name });
+        });
+    },
+    update({ oldParams, newParams, b }) {
+        if (oldParams.label !== newParams.label) {
+            (b.label as string) = newParams.label || oldParams.file.name;
+            return Transformer.UpdateResult.Updated;
+        }
+        return Transformer.UpdateResult.Unchanged;
+    },
+    isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user loaded files.' })
 });
 
 export { ParseCif }
