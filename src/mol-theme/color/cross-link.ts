@@ -28,8 +28,8 @@ export type CrossLinkColorThemeProps = PD.Values<typeof CrossLinkColorThemeParam
 
 const distVecA = Vec3.zero(), distVecB = Vec3.zero()
 function linkDistance(link: Link.Location) {
-    link.aUnit.conformation.position(link.aIndex, distVecA)
-    link.bUnit.conformation.position(link.bIndex, distVecB)
+    link.aUnit.conformation.position(link.aUnit.elements[link.aIndex], distVecA)
+    link.bUnit.conformation.position(link.bUnit.elements[link.bIndex], distVecB)
     return Vec3.distance(distVecA, distVecB)
 }
 

@@ -14,7 +14,7 @@ import { ElementIndex } from '../../model/indexing';
 
 export type Boundary = { box: Box3D, sphere: Sphere3D }
 
-function computeElementsPositionBoundary(elements: SortedArray<ElementIndex>, position: SymmetryOperator.CoordinateMapper): Boundary {
+function computeElementsPositionBoundary(elements: SortedArray<ElementIndex>, position: SymmetryOperator.CoordinateMapper<ElementIndex>): Boundary {
     const min = Vec3.create(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
     const max = Vec3.create(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE)
     const center = Vec3.zero()

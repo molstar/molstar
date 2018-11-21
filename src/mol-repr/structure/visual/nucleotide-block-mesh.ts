@@ -4,7 +4,7 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { Unit, Structure } from 'mol-model/structure';
+import { Unit, Structure, ElementIndex } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
@@ -71,7 +71,7 @@ async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structu
             if (isNucleic(moleculeType)) {
                 const parentId = modifiedResidues.parentId.get(compId)
                 if (parentId !== undefined) compId = parentId
-                let idx1 = -1, idx2 = -1, idx3 = -1, idx4 = -1, idx5 = -1, idx6 = -1
+                let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1, idx6: ElementIndex | -1 = -1
                 let width = 4.5, height = 4.5, depth = 2.5 * sizeFactor
 
                 if (isPurinBase(compId)) {
