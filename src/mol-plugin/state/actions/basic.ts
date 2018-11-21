@@ -27,15 +27,14 @@ namespace ObtainStructureHelpers {
         ['rcsb', 'RCSB'],
         ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
         ['url', 'URL'],
-        // TODO
-        // ['file', 'File']
+        ['file', 'File']
     ];
     export const ControlMap = {
         'pdbe-updated': PD.Text('1cbs', { label: 'Id' }),
         'rcsb': PD.Text('1tqn', { label: 'Id' }),
         'bcif-static': PD.Text('1tqn', { label: 'Id' }),
         'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }, { isExpanded: true }),
-        'file': PD.Group({ })
+        'file': PD.File({ accept: '.cif,.bcif' })
     }
     export function getControls(key: string) { return (ControlMap as any)[key]; }
 

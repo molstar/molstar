@@ -46,6 +46,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
         case 'vec3': return Vec3Control;
+        case 'file': return FileControl;
         case 'select': return SelectControl;
         case 'text': return TextControl;
         case 'interval': return IntervalControl;
@@ -53,7 +54,8 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'mapped': return MappedControl;
         case 'line-graph': return void 0;
     }
-    throw new Error('not supported');
+    console.warn(`${(param as any).type} has no associated UI component.`);
+    return void 0;
 }
 
 // type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, onChange: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
@@ -176,6 +178,25 @@ export class Vec3Control extends SimpleParam<PD.Vec3> {
 
     renderControl() {
         return <span>vec3 TODO</span>;
+    }
+}
+
+export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
+    change(value: File) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.change(e.target.files![0]);
+    }
+
+    render() {
+        const value = this.props.value;
+
+        // return <input disabled={this.props.isDisabled} value={void 0} type='file' multiple={false} />
+        return <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
+            {value ? value.name : 'Select a file...'} <input disabled={this.props.isDisabled} onChange={this.onChangeFile} type='file' multiple={false} accept={this.props.param.accept} />
+        </div>
     }
 }
 

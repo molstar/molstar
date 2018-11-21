@@ -84,6 +84,16 @@ export namespace ParamDefinition {
         return setInfo<Vec3>({ type: 'vec3', defaultValue }, info)
     }
 
+    export interface FileParam extends Base<File> {
+        type: 'file',
+        accept?: string
+    }
+    export function File(info?: Info & { accept?: string }): FileParam {
+        const ret = setInfo<FileParam>({ type: 'file', defaultValue: void 0 as any }, info);
+        if (info && info.accept) ret.accept = info.accept;
+        return ret;
+    }
+
     export interface Range {
         /** If given treat as a range. */
         min?: number
@@ -161,7 +171,7 @@ export namespace ParamDefinition {
         return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
+    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
