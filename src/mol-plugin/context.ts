@@ -23,6 +23,7 @@ import { PluginState } from './state';
 import { TaskManager } from './util/task-manager';
 import { Color } from 'mol-util/color';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
+import { ajaxGet } from 'mol-util/data-source';
 
 export class PluginContext {
     private disposed = false;
@@ -96,9 +97,10 @@ export class PluginContext {
      * This should be used in all transform related request so that it could be "spoofed" to allow
      * "static" access to resources.
      */
-    async fetch(url: string, type: 'string' | 'binary' = 'string'): Promise<string | Uint8Array> {
-        const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
-        return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
+    fetch(url: string, type: 'string' | 'binary' = 'string'): Task<string | Uint8Array> {
+        return ajaxGet({ url, type });
+        //const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
+        // return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
     }
 
     runTask<T>(task: Task<T>) {

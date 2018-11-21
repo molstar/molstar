@@ -29,8 +29,7 @@ const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
     }),
     apply({ params: p }, globalCtx: PluginContext) {
         return Task.create('Download', async ctx => {
-            // TODO: track progress
-            const data = await globalCtx.fetch(p.url, p.isBinary ? 'binary' : 'string');
+            const data = await globalCtx.fetch(p.url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             return p.isBinary
                 ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.url })
                 : new SO.Data.String(data as string, { label: p.label ? p.label : p.url });
