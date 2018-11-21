@@ -31,6 +31,7 @@ namespace StateAction {
     }
 
     export interface ApplyParams<A extends StateObject = StateObject, P extends {} = {}> {
+        ref: string,
         cell: StateObjectCell,
         a: A,
         state: State,

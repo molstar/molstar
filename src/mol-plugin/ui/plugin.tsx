@@ -19,6 +19,7 @@ import { BackgroundTaskProgress } from './task';
 import { ApplyActionContol } from './state/apply-action';
 import { PluginState } from 'mol-plugin/state';
 import { UpdateTransformContol } from './state/update-transform';
+import { StateObjectCell } from 'mol-state';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -141,22 +142,20 @@ export class CurrentObject extends PluginComponent {
         const current = this.current;
 
         const ref = current.ref;
-        // const n = this.props.plugin.state.data.tree.nodes.get(ref)!;
-        const obj = current.state.cells.get(ref)!;
+        const cell = current.state.cells.get(ref)!;
+        const parent: StateObjectCell | undefined = (cell.sourceRef && current.state.cells.get(cell.sourceRef)!) || void 0;
 
-        const type = obj && obj.obj ? obj.obj.type : void 0;
+        const type = cell && cell.obj ? cell.obj.type : void 0;
+        const transform = cell.transform;
+        const def = transform.transformer.definition;
 
-        const transform = current.state.transforms.get(ref);
-
-        const actions = type
-            ? current.state.actions.fromType(type)
-            : []
+        const actions = type ? current.state.actions.fromType(type) : [];
         return <>
             <div className='msp-section-header'>
-                {obj.obj ? obj.obj.label : ref}
+                {cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name}
             </div>
-            <UpdateTransformContol state={current.state} transform={transform} />
-            {
+            { (parent && parent.status === 'ok') && <UpdateTransformContol state={current.state} transform={transform} /> }
+            {cell.status === 'ok' &&
                 actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)
             }
         </>;

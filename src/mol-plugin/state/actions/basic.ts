@@ -13,8 +13,8 @@ import { CartoonParams } from 'mol-repr/structure/representation/cartoon';
 import { BallAndStickParams } from 'mol-repr/structure/representation/ball-and-stick';
 import { Download } from '../transforms/data';
 
-export { ObtainAtomicStructure }
-namespace ObtainAtomicStructure {
+export { DownloadAtomicStructure }
+namespace DownloadAtomicStructure {
     export type Sources = 'pdbe-updated' | 'rcsb' | 'bcif-static' | 'url' | 'file'
     export type Source = ObtainStructureHelpers.MapParams<Sources, typeof ObtainStructureHelpers.ControlMap>
     export interface Params {
@@ -22,25 +22,26 @@ namespace ObtainAtomicStructure {
     }
 }
 namespace ObtainStructureHelpers {
-    export const SourceOptions: [ObtainAtomicStructure.Sources, string][] = [
+    export const SourceOptions: [DownloadAtomicStructure.Sources, string][] = [
         ['pdbe-updated', 'PDBe Updated'],
         ['rcsb', 'RCSB'],
         ['bcif-static', 'BinaryCIF (static PDBe Updated)'],
         ['url', 'URL'],
+        // TODO
         // ['file', 'File']
     ];
     export const ControlMap = {
         'pdbe-updated': PD.Text('1cbs', { label: 'Id' }),
         'rcsb': PD.Text('1tqn', { label: 'Id' }),
         'bcif-static': PD.Text('1tqn', { label: 'Id' }),
-        'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }),
+        'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }, { isExpanded: true }),
         'file': PD.Group({ })
     }
     export function getControls(key: string) { return (ControlMap as any)[key]; }
 
-    export type MapParams<P extends ObtainAtomicStructure.Sources, Map extends { [K in P]: PD.Any }> = P extends ObtainAtomicStructure.Sources ? PD.NamedParams<Map[P]['defaultValue'], P> : never
+    export type MapParams<P extends DownloadAtomicStructure.Sources, Map extends { [K in P]: PD.Any }> = P extends DownloadAtomicStructure.Sources ? PD.NamedParams<Map[P]['defaultValue'], P> : never
 
-    export function getUrl(src: ObtainAtomicStructure.Source): Download.Params {
+    export function getUrl(src: DownloadAtomicStructure.Source): Download.Params {
         switch (src.name) {
             case 'url': return src.params;
             case 'pdbe-updated': return { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params}` };
@@ -50,10 +51,10 @@ namespace ObtainStructureHelpers {
         }
     }
 }
-const ObtainAtomicStructure = StateAction.create<PluginStateObject.Root, void, ObtainAtomicStructure.Params>({
+const DownloadAtomicStructure = StateAction.create<PluginStateObject.Root, void, DownloadAtomicStructure.Params>({
     from: [PluginStateObject.Root],
     display: {
-        name: 'Obtain Structure',
+        name: 'Download Structure',
         description: 'Load a structure from PDBe and create its default Assembly and visual'
     },
     params: () => ({ source: PD.Mapped('bcif-static', ObtainStructureHelpers.SourceOptions, ObtainStructureHelpers.getControls) }),
@@ -80,6 +81,25 @@ const ObtainAtomicStructure = StateAction.create<PluginStateObject.Root, void, O
             .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
             .apply(StateTransforms.Model.StructureAssemblyFromModel);
 
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'sequence' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligands' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) } });
+        root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
+            .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } } });
+
+        return state.update(root.getTree());
+    }
+});
+
+export const CreateComplexRepresentation = StateAction.create<PluginStateObject.Molecule.Structure, void, {}>({
+    from: [PluginStateObject.Molecule.Structure],
+    display: {
+        name: 'Create Complex',
+        description: 'Split the structure into Sequence/Water/Ligands/... '
+    },
+    apply({ ref, state }) {
+        const root = state.build().to(ref);
         root.apply(StateTransforms.Model.StructureComplexElement, { type: 'sequence' })
             .apply(StateTransforms.Representation.StructureRepresentation3D, { type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) } });
         root.apply(StateTransforms.Model.StructureComplexElement, { type: 'ligands' })

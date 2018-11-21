@@ -224,7 +224,7 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
 }
 
 export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: !!this.props.param.isExpanded }
 
     change(value: any ) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
