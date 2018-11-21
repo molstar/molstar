@@ -406,9 +406,11 @@ function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
 }
 
 /** Set status and error text of the cell. Remove all existing objects in the subtree. */
-function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
-    ctx.hadError = true;
-    (ctx.parent as any as { errorFree: boolean }).errorFree = false;
+function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined, silent: boolean) {
+    if (!silent) {
+        ctx.hadError = true;
+        (ctx.parent as any as { errorFree: boolean }).errorFree = false;
+    }
 
     if (errorText) {
         setCellStatus(ctx, ref, 'error', errorText);
@@ -428,7 +430,7 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined) {
     while (true) {
         const next = children.next();
         if (next.done) return;
-        doError(ctx, next.value, void 0);
+        doError(ctx, next.value, void 0, silent);
     }
 }
 
@@ -464,19 +466,16 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
     } catch (e) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
-        doError(ctx, root, '' + e);
+        doError(ctx, root, '' + e, false);
         return;
     }
-
-    // Do not continue the updates if the object is null
-    // TODO: set the states to something "nicer"?
-    if (isNull) return;
 
     const children = ctx.tree.children.get(root).values();
     while (true) {
         const next = children.next();
         if (next.done) return;
-        await updateSubtree(ctx, next.value);
+        if (isNull) doError(ctx, next.value, 'Parent is null', true);
+        else await updateSubtree(ctx, next.value);
     }
 }
 
