@@ -224,7 +224,7 @@ async function update(ctx: UpdateContext) {
         }
 
         if (hasCurrent) {
-            const newCurrent = findNewCurrent(ctx, current, deletes);
+            const newCurrent = findNewCurrent(ctx.oldTree, current, deletes);
             ctx.parent.setCurrent(newCurrent);
         }
 
@@ -275,9 +275,9 @@ async function update(ctx: UpdateContext) {
     for (const update of ctx.results) {
         if (update.action === 'created') {
             ctx.parent.events.object.created.next({ state: ctx.parent, ref: update.ref, obj: update.obj! });
-            if (!ctx.hadError) {
+            if (!ctx.newCurrent) {
                 const transform = ctx.tree.transforms.get(update.ref);
-                if (!transform.props || !transform.props.isGhost) newCurrent = update.ref;
+                if (!(transform.props && transform.props.isGhost) && update.obj !== StateObject.Null) newCurrent = update.ref;
             }
         } else if (update.action === 'updated') {
             ctx.parent.events.object.updated.next({ state: ctx.parent, ref: update.ref, action: 'in-place', obj: update.obj });
@@ -369,9 +369,9 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
     return initCtx.added;
 }
 
-function findNewCurrent(ctx: UpdateContext, start: Ref, deletes: Ref[]) {
+function findNewCurrent(tree: StateTree, start: Ref, deletes: Ref[]) {
     const deleteSet = new Set(deletes);
-    return _findNewCurrent(ctx.oldTree, start, deleteSet);
+    return _findNewCurrent(tree, start, deleteSet);
 }
 
 function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
@@ -462,6 +462,11 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         } else if (update.action === 'replaced') {
             isNull = update.obj === StateObject.Null;
             ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+        }
+
+        if (isNull && !ctx.newCurrent) {
+            // TODO: is this ok?
+            ctx.newCurrent = findNewCurrent(ctx.tree, root, [root]);
         }
     } catch (e) {
         ctx.changed = true;
