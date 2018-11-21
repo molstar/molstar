@@ -38,15 +38,63 @@ export class Slider extends React.Component<{
     render() {
         let step = this.props.step;
         if (step === void 0) step = 1;
-        return  <div className='msp-slider'>
-        <div>
+        return <div className='msp-slider'>
             <div>
-            <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
-                onBeforeChange={this.begin}
-                onChange={this.updateCurrent as any} onAfterChange={this.end as any} />
+                <div>
+                    <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
+                        onBeforeChange={this.begin}
+                        onChange={this.updateCurrent as any} onAfterChange={this.end as any} />
                 </div></div>
             <div>
                 {`${Math.round(100 * this.state.current) / 100}`}
+            </div>
+        </div>;
+    }
+}
+
+export class Slider2 extends React.Component<{
+    min: number,
+    max: number,
+    value: [number, number],
+    step?: number,
+    onChange: (v: [number, number]) => void,
+    disabled?: boolean
+}, { isChanging: boolean, current: [number, number] }> {
+
+    state = { isChanging: false, current: [0, 1] as [number, number] }
+
+    static getDerivedStateFromProps(props: { value: [number, number] }, state: { isChanging: boolean, current: [number, number] }) {
+        if (state.isChanging || (props.value[0] === state.current[0]) && (props.value[1] === state.current[1])) return null;
+        return { current: props.value };
+    }
+
+    begin = () => {
+        this.setState({ isChanging: true });
+    }
+
+    end = (v: [number, number]) => {
+        this.setState({ isChanging: false });
+        this.props.onChange(v);
+    }
+
+    updateCurrent = (current: [number, number]) => {
+        this.setState({ current });
+    }
+
+    render() {
+        let step = this.props.step;
+        if (step === void 0) step = 1;
+        return <div className='msp-slider2'>
+            <div>
+                {`${Math.round(100 * this.state.current[0]) / 100}`}
+            </div>
+            <div>
+                <div>
+                    <SliderBase min={this.props.min} max={this.props.max} step={step} value={this.state.current} disabled={this.props.disabled}
+                        onBeforeChange={this.begin} onChange={this.updateCurrent as any} onAfterChange={this.end as any} range={true} pushable={true} />
+                </div></div>
+            <div>
+                {`${Math.round(100 * this.state.current[1]) / 100}`}
             </div>
         </div>;
     }

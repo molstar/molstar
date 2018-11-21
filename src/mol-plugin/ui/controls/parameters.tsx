@@ -10,7 +10,7 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
 import { ColorNames } from 'mol-util/color/tables';
 import { Color } from 'mol-util/color';
-import { Slider } from './slider';
+import { Slider, Slider2 } from './slider';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -49,7 +49,8 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'file': return FileControl;
         case 'select': return SelectControl;
         case 'text': return TextControl;
-        case 'interval': return IntervalControl;
+        case 'interval': return typeof param.min !== 'undefined' && typeof param.max !== 'undefined'
+        ? BoundedIntervalControl : IntervalControl;
         case 'group': return GroupControl;
         case 'mapped': return MappedControl;
         case 'line-graph': return void 0;
@@ -146,13 +147,17 @@ export class SelectControl extends SimpleParam<PD.Select<any>> {
 }
 
 export class IntervalControl extends SimpleParam<PD.Interval> {
-    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    //     this.setState({ value: e.target.value });
-    //     this.props.onChange(e.target.value);
-    // }
-
+    onChange = (v: [number, number]) => { this.update(v); }
     renderControl() {
         return <span>interval TODO</span>;
+    }
+}
+
+export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
+    onChange = (v: [number, number]) => { this.update(v); }
+    renderControl() {
+        return <Slider2 value={this.props.value} min={this.props.param.min!} max={this.props.param.max!}
+            step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} />;
     }
 }
 
