@@ -20,10 +20,10 @@ const Description = 'Gives every chain a color based on its `asym_id` value.'
 export const ChainIdColorThemeParams = {
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
+export type ChainIdColorThemeParams = typeof ChainIdColorThemeParams
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
     return ChainIdColorThemeParams // TODO return copy
 }
-export type ChainIdColorThemeProps = PD.Values<typeof ChainIdColorThemeParams>
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -46,7 +46,7 @@ function addAsymIds(map: Map<string, number>, data: Column<string>) {
     }
 }
 
-export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThemeProps): ColorTheme<ChainIdColorThemeProps> {
+export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainIdColorThemeParams>): ColorTheme<ChainIdColorThemeParams> {
     let color: LocationColor
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
@@ -82,6 +82,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThem
     }
 
     return {
+        factory: ChainIdColorTheme,
         granularity: 'group',
         color,
         props,
@@ -90,7 +91,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThem
     }
 }
 
-export const ChainIdColorThemeProvider: ColorTheme.Provider<typeof ChainIdColorThemeParams> = {
+export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemeParams> = {
     label: 'Chain Id',
     factory: ChainIdColorTheme,
     getParams: getChainIdColorThemeParams

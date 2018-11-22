@@ -21,10 +21,10 @@ export const CrossLinkColorThemeParams = {
     domain: PD.Interval([-10, 10]),
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
+export type CrossLinkColorThemeParams = typeof CrossLinkColorThemeParams
 export function getCrossLinkColorThemeParams(ctx: ThemeDataContext) {
     return CrossLinkColorThemeParams // TODO return copy
 }
-export type CrossLinkColorThemeProps = PD.Values<typeof CrossLinkColorThemeParams>
 
 const distVecA = Vec3.zero(), distVecB = Vec3.zero()
 function linkDistance(link: Link.Location) {
@@ -33,7 +33,7 @@ function linkDistance(link: Link.Location) {
     return Vec3.distance(distVecA, distVecB)
 }
 
-export function CrossLinkColorTheme(ctx: ThemeDataContext, props: CrossLinkColorThemeProps): ColorTheme<CrossLinkColorThemeProps> {
+export function CrossLinkColorTheme(ctx: ThemeDataContext, props: PD.Values<CrossLinkColorThemeParams>): ColorTheme<CrossLinkColorThemeParams> {
     let color: LocationColor
     let scale: ColorScale | undefined = undefined
 
@@ -59,6 +59,7 @@ export function CrossLinkColorTheme(ctx: ThemeDataContext, props: CrossLinkColor
     }
 
     return {
+        factory: CrossLinkColorTheme,
         granularity: 'group',
         color,
         props,
@@ -67,7 +68,7 @@ export function CrossLinkColorTheme(ctx: ThemeDataContext, props: CrossLinkColor
     }
 }
 
-export const CrossLinkColorThemeProvider: ColorTheme.Provider<typeof CrossLinkColorThemeParams> = {
+export const CrossLinkColorThemeProvider: ColorTheme.Provider<CrossLinkColorThemeParams> = {
     label: 'Cross Link',
     factory: CrossLinkColorTheme,
     getParams: getCrossLinkColorThemeParams

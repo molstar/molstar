@@ -18,12 +18,12 @@ const Description = 'Gives every unit (single chain or collection of single elem
 export const UnitIndexColorThemeParams = {
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
+export type UnitIndexColorThemeParams = typeof UnitIndexColorThemeParams
 export function getUnitIndexColorThemeParams(ctx: ThemeDataContext) {
     return UnitIndexColorThemeParams // TODO return copy
 }
-export type UnitIndexColorThemeProps = PD.Values<typeof UnitIndexColorThemeParams>
 
-export function UnitIndexColorTheme(ctx: ThemeDataContext, props: UnitIndexColorThemeProps): ColorTheme<UnitIndexColorThemeProps> {
+export function UnitIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<UnitIndexColorThemeParams>): ColorTheme<UnitIndexColorThemeParams> {
     let color: LocationColor
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
@@ -48,6 +48,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: UnitIndexColor
     }
 
     return {
+        factory: UnitIndexColorTheme,
         granularity: 'instance',
         color,
         props,
@@ -56,7 +57,7 @@ export function UnitIndexColorTheme(ctx: ThemeDataContext, props: UnitIndexColor
     }
 }
 
-export const UnitIndexColorThemeProvider: ColorTheme.Provider<typeof UnitIndexColorThemeParams> = {
+export const UnitIndexColorThemeProvider: ColorTheme.Provider<UnitIndexColorThemeParams> = {
     label: 'Unit Index',
     factory: UnitIndexColorTheme,
     getParams: getUnitIndexColorThemeParams

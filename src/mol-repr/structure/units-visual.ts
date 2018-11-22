@@ -91,10 +91,17 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
-        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
-        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
+        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) {
+            // console.log('new colorTheme')
+            updateState.updateColor = true
+        }
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
+            // console.log('new unitKinds')
+            updateState.createGeometry = true
+        }
 
         if (group.transformHash !== currentGroup.transformHash) {
+            // console.log('new transformHash')
             if (group.units.length !== currentGroup.units.length || updateState.updateColor) {
                 updateState.updateTransform = true
             } else {
@@ -105,6 +112,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         // check if the conformation of unit.model has changed
         const newConformationId = Unit.conformationId(unit)
         if (newConformationId !== currentConformationId) {
+            // console.log('new conformation')
             currentConformationId = newConformationId
             updateState.createGeometry = true
         }
@@ -112,6 +120,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         //
 
         if (updateState.updateTransform) {
+            // console.log('update transform')
             locationIt = createLocationIterator(group)
             const { instanceCount, groupCount } = locationIt
             createMarkers(instanceCount * groupCount, renderObject.values)
@@ -120,10 +129,12 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         }
 
         if (updateState.updateMatrix) {
+            // console.log('update matrix')
             createUnitsTransform(group, renderObject.values)
         }
 
         if (updateState.createGeometry) {
+            // console.log('update geometry')
             geometry = includesUnitKind(newProps.unitKinds, unit)
                 ? await createGeometry(ctx, unit, currentStructure, theme, newProps, geometry)
                 : createEmptyGeometry(geometry)
@@ -134,11 +145,13 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         if (updateState.updateSize) {
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
+                // console.log('update size')
                 await createSizes(ctx.runtime, locationIt, theme.size, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
+            // console.log('update color')
             await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 

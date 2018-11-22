@@ -15,10 +15,10 @@ const DefaultSize = 1
 const Description = 'Assigns a physical size.'
 
 export const PhysicalSizeThemeParams = {}
+export type PhysicalSizeThemeParams = typeof PhysicalSizeThemeParams
 export function getPhysicalSizeThemeParams(ctx: ThemeDataContext) {
     return PhysicalSizeThemeParams // TODO return copy
 }
-export type PhysicalSizeThemeProps = PD.Values<typeof PhysicalSizeThemeParams>
 
 export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
     if (Unit.isAtomic(unit)) {
@@ -34,7 +34,7 @@ export function getPhysicalRadius(unit: Unit, element: ElementIndex): number {
  * Create attribute data with the physical size of an element,
  * i.e. vdw for atoms and radius for coarse spheres
  */
-export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PhysicalSizeThemeProps): SizeTheme<PhysicalSizeThemeProps> {
+export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PD.Values<PhysicalSizeThemeParams>): SizeTheme<PhysicalSizeThemeParams> {
     function size(location: Location): number {
         let size: number
         if (StructureElement.isLocation(location)) {
@@ -48,6 +48,7 @@ export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PhysicalSizeThem
     }
 
     return {
+        factory: PhysicalSizeTheme,
         granularity: 'group',
         size,
         props,
@@ -55,7 +56,7 @@ export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PhysicalSizeThem
     }
 }
 
-export const PhysicalSizeThemeProvider: SizeTheme.Provider<typeof PhysicalSizeThemeParams> = {
+export const PhysicalSizeThemeProvider: SizeTheme.Provider<PhysicalSizeThemeParams> = {
     label: 'Physical',
     factory: PhysicalSizeTheme,
     getParams: getPhysicalSizeThemeParams

@@ -21,10 +21,10 @@ const Description = 'Gives every polymer chain a color based on its `asym_id` va
 export const PolymerIdColorThemeParams = {
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
+export type PolymerIdColorThemeParams = typeof PolymerIdColorThemeParams
 export function getPolymerIdColorThemeParams(ctx: ThemeDataContext) {
     return PolymerIdColorThemeParams // TODO return copy
 }
-export type PolymerIdColorThemeProps = PD.Values<typeof PolymerIdColorThemeParams>
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -51,7 +51,7 @@ function addPolymerAsymIds(map: Map<string, number>, asymId: Column<string>, ent
     }
 }
 
-export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PolymerIdColorThemeProps): ColorTheme<PolymerIdColorThemeProps> {
+export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PD.Values<PolymerIdColorThemeParams>): ColorTheme<PolymerIdColorThemeParams> {
     let color: LocationColor
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
@@ -89,6 +89,7 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PolymerIdColor
     }
 
     return {
+        factory: PolymerIdColorTheme,
         granularity: 'group',
         color,
         props,
@@ -97,7 +98,7 @@ export function PolymerIdColorTheme(ctx: ThemeDataContext, props: PolymerIdColor
     }
 }
 
-export const PolymerIdColorThemeProvider: ColorTheme.Provider<typeof PolymerIdColorThemeParams> = {
+export const PolymerIdColorThemeProvider: ColorTheme.Provider<PolymerIdColorThemeParams> = {
     label: 'Polymer Id',
     factory: PolymerIdColorTheme,
     getParams: getPolymerIdColorThemeParams

@@ -19,12 +19,12 @@ const Description = 'Gives every element (atom or coarse sphere/gaussian) a uniq
 export const ElementIndexColorThemeParams = {
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
+export type ElementIndexColorThemeParams = typeof ElementIndexColorThemeParams
 export function getElementIndexColorThemeParams(ctx: ThemeDataContext) {
     return ElementIndexColorThemeParams // TODO return copy
 }
-export type ElementIndexColorThemeProps = PD.Values<typeof ElementIndexColorThemeParams>
 
-export function ElementIndexColorTheme(ctx: ThemeDataContext, props: ElementIndexColorThemeProps): ColorTheme<ElementIndexColorThemeProps> {
+export function ElementIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<ElementIndexColorThemeParams>): ColorTheme<ElementIndexColorThemeParams> {
     let color: LocationColor
     let scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
@@ -59,6 +59,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: ElementInde
     }
 
     return {
+        factory: ElementIndexColorTheme,
         granularity: 'groupInstance',
         color,
         props,
@@ -67,7 +68,7 @@ export function ElementIndexColorTheme(ctx: ThemeDataContext, props: ElementInde
     }
 }
 
-export const ElementIndexColorThemeProvider: ColorTheme.Provider<typeof ElementIndexColorThemeParams> = {
+export const ElementIndexColorThemeProvider: ColorTheme.Provider<ElementIndexColorThemeParams> = {
     label: 'Element Index',
     factory: ElementIndexColorTheme,
     getParams: getElementIndexColorThemeParams

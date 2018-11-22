@@ -85,7 +85,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
-        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
+        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
 
         const newConformationHash = Structure.conformationHash(currentStructure)
