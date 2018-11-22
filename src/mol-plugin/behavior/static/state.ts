@@ -9,6 +9,8 @@ import { PluginContext } from '../../context';
 import { StateTree, Transform, State } from 'mol-state';
 import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
 import { PluginStateObject as SO } from '../../state/objects';
+import { EmptyLoci, EveryLoci } from 'mol-model/loci';
+import { MarkerAction } from 'mol-geo/geometry/marker-data';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -18,6 +20,8 @@ export function registerDefault(ctx: PluginContext) {
     RemoveObject(ctx);
     ToggleExpanded(ctx);
     ToggleVisibility(ctx);
+    Highlight(ctx);
+    ClearHighlight(ctx);
     Snapshots(ctx);
 }
 
@@ -73,6 +77,35 @@ function setVisibility(state: State, root: Transform.Ref, value: boolean) {
 
 function setVisibilityVisitor(t: Transform, tree: StateTree, ctx: { state: State, value: boolean }) {
     ctx.state.updateCellState(t.ref, { isHidden: ctx.value });
+}
+
+export function Highlight(ctx: PluginContext) {
+    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
+        setHighlight(state, ref)
+        ctx.canvas3d.update()
+        ctx.canvas3d.requestDraw(true);
+    });
+}
+
+function setHighlight(state: State, root: Transform.Ref) {
+    StateTree.doPreOrder(state.tree, state.transforms.get(root), { state }, setHighlightVisitor);
+}
+
+function setHighlightVisitor(t: Transform, tree: StateTree, ctx: { state: State }) {
+    const cell = ctx.state.select(t.ref)[0]
+    if (!cell) return
+    if (!SO.isRepresentation3D(cell.obj)) return;
+    cell.obj.data.mark(EveryLoci, MarkerAction.Highlight)
+
+}
+
+export function ClearHighlight(ctx: PluginContext) {
+    PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
+        ctx.behaviors.canvas.highlightLoci.next({ loci: EmptyLoci })
+        ctx.canvas3d.mark(EveryLoci, MarkerAction.RemoveHighlight);
+        ctx.canvas3d.update()
+        ctx.canvas3d.requestDraw(true);
+    });
 }
 
 export function Snapshots(ctx: PluginContext) {
