@@ -153,7 +153,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
             }
 
             let changed = false
-            if (isEveryLoci(loci)) {
+            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = mark(loci, currentStructure, apply)

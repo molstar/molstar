@@ -8,9 +8,9 @@ import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
 import { StateTree, Transform, State } from 'mol-state';
 import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
-import { PluginStateObject as SO } from '../../state/objects';
+import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
 import { EmptyLoci, EveryLoci } from 'mol-model/loci';
-import { MarkerAction } from 'mol-geo/geometry/marker-data';
+import { Structure } from 'mol-model/structure';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -79,32 +79,24 @@ function setVisibilityVisitor(t: Transform, tree: StateTree, ctx: { state: State
     ctx.state.updateCellState(t.ref, { isHidden: ctx.value });
 }
 
+// TODO make isHighlighted and isSelect part of StateObjectCell.State and subscribe from there???
+// TODO select structures of subtree
+// TODO should also work for volumes and shapes
 export function Highlight(ctx: PluginContext) {
     PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
-        setHighlight(state, ref)
-        ctx.canvas3d.update()
-        ctx.canvas3d.requestDraw(true);
+        const cell = state.select(ref)[0]
+        const repr = cell && SO.isRepresentation3D(cell.obj) ? cell.obj.data : undefined
+        if (cell && cell.obj && cell.obj.type === PluginStateObject.Molecule.Structure.type) {
+            ctx.behaviors.canvas.highlightLoci.next({ loci: Structure.Loci(cell.obj.data) })
+        } else if (repr) {
+            ctx.behaviors.canvas.highlightLoci.next({ loci: EveryLoci, repr })
+        }
     });
-}
-
-function setHighlight(state: State, root: Transform.Ref) {
-    StateTree.doPreOrder(state.tree, state.transforms.get(root), { state }, setHighlightVisitor);
-}
-
-function setHighlightVisitor(t: Transform, tree: StateTree, ctx: { state: State }) {
-    const cell = ctx.state.select(t.ref)[0]
-    if (!cell) return
-    if (!SO.isRepresentation3D(cell.obj)) return;
-    cell.obj.data.mark(EveryLoci, MarkerAction.Highlight)
-
 }
 
 export function ClearHighlight(ctx: PluginContext) {
     PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
         ctx.behaviors.canvas.highlightLoci.next({ loci: EmptyLoci })
-        ctx.canvas3d.mark(EveryLoci, MarkerAction.RemoveHighlight);
-        ctx.canvas3d.update()
-        ctx.canvas3d.requestDraw(true);
     });
 }
 
