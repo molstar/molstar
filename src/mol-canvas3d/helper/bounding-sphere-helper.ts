@@ -27,11 +27,11 @@ export class BoundingSphereHelper {
     update() {
         const builder = MeshBuilder.create(1024, 512, this.mesh)
         if (this.scene.boundingSphere.radius) {
-            addSphere(builder, this.scene.boundingSphere.center, this.scene.boundingSphere.radius, 3)
+            addSphere(builder, this.scene.boundingSphere.center, this.scene.boundingSphere.radius, 2)
         }
         this.scene.forEach(r => {
             if (r.boundingSphere.radius) {
-                addSphere(builder, r.boundingSphere.center, r.boundingSphere.radius, 3)
+                addSphere(builder, r.boundingSphere.center, r.boundingSphere.radius, 2)
             }
         })
         this.mesh = builder.getMesh()
