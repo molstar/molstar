@@ -20,6 +20,8 @@ function setElementLocation(loc: StructureElement, unit: Unit, index: StructureE
 
 export function labelFirst(loci: Loci): string {
     switch (loci.kind) {
+        case 'structure-loci':
+            return loci.structure.models.map(m => m.label).join(', ')
         case 'element-loci':
             const e = loci.elements[0]
             if (e) {

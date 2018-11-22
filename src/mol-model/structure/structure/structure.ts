@@ -280,6 +280,23 @@ function getUniqueAtomicResidueIndices(structure: Structure): ReadonlyMap<UUID, 
 namespace Structure {
     export const Empty = new Structure([]);
 
+    /** Represents a single structure */
+    export interface Loci {
+        readonly kind: 'structure-loci',
+        readonly structure: Structure,
+    }
+    export function Loci(structure: Structure): Loci {
+        return { kind: 'structure-loci', structure };
+    }
+
+    export function isLoci(x: any): x is Loci {
+        return !!x && x.kind === 'structure-loci';
+    }
+
+    export function areLociEqual(a: Loci, b: Loci) {
+        return a.structure === b.structure
+    }
+
     export function create(units: ReadonlyArray<Unit>): Structure { return new Structure(units); }
 
     /**
