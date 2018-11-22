@@ -137,7 +137,12 @@ export namespace Lines {
         }
     }
 
-    export function updateValues(values: LinesValues, lines: Lines, props: PD.Values<Params>) {
+    export function updateValues(values: LinesValues, props: PD.Values<Params>) {
+        Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.dLineSizeAttenuation, props.lineSizeAttenuation)
+    }
+
+    export function updateBoundingSphere(values: LinesValues, lines: Lines) {
         const boundingSphere = Sphere3D.addSphere(
             calculateBoundingSphere(
                 values.aStart.ref.value, lines.lineCount,
@@ -151,8 +156,5 @@ export namespace Lines {
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
-
-        Geometry.updateValues(values, props)
-        ValueCell.updateIfChanged(values.dLineSizeAttenuation, props.lineSizeAttenuation)
     }
 }

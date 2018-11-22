@@ -63,7 +63,8 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceParams> {
             const state = createRenderableState(props)
             return createMeshRenderObject(values, state)
         },
-        updateValues: Mesh.updateValues
+        updateValues: Mesh.updateValues,
+        updateBoundingSphere: Mesh.updateBoundingSphere
     })
 }
 

@@ -48,12 +48,13 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<UnitsRenderObject>
-    updateValues(values: RenderableValues, geometry: Geometry, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
 }
 
 export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createEmptyGeometry, createRenderObject, updateValues } = builder
+    const { createEmptyGeometry, createRenderObject, updateValues, updateBoundingSphere } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: UnitsRenderObject | undefined
@@ -139,6 +140,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
                 ? await createGeometry(ctx, unit, currentStructure, theme, newProps, geometry)
                 : createEmptyGeometry(geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
+            updateBoundingSphere(renderObject.values, geometry)
             updateState.updateColor = true
         }
 
@@ -155,7 +157,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 
-        updateValues(renderObject.values, geometry, newProps)
+        updateValues(renderObject.values, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
@@ -238,7 +240,8 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVis
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createUnitsMeshRenderObject,
-        updateValues: Mesh.updateValues
+        updateValues: Mesh.updateValues,
+        updateBoundingSphere: Mesh.updateBoundingSphere
     })
 }
 
@@ -260,7 +263,8 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPoi
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
-        updateValues: Points.updateValues
+        updateValues: Points.updateValues,
+        updateBoundingSphere: Points.updateBoundingSphere
     })
 }
 
@@ -282,7 +286,8 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
-        updateValues: Lines.updateValues
+        updateValues: Lines.updateValues,
+        updateBoundingSphere: Lines.updateBoundingSphere
     })
 }
 
@@ -304,6 +309,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(build
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
-        updateValues: DirectVolume.updateValues
+        updateValues: DirectVolume.updateValues,
+        updateBoundingSphere: DirectVolume.updateBoundingSphere
     })
 }

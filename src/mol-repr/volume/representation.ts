@@ -36,12 +36,13 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
     createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<VolumeRenderObject>
-    updateValues(values: RenderableValues, geometry: G, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
+    updateBoundingSphere(values: RenderableValues, geometry: G): void
 }
 
 export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>): VolumeVisual<P> {
     const { defaultProps, createGeometry, getLoci, mark, setUpdateState } = builder
-    const { createRenderObject, updateValues } = builder
+    const { createRenderObject, updateValues, updateBoundingSphere } = builder
     const updateState = VisualUpdateState.create()
 
     let currentProps: PD.Values<P>
@@ -67,9 +68,10 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
         if (updateState.createGeometry) {
             geometry = await createGeometry(ctx, currentVolume, currentProps, geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
+            updateBoundingSphere(renderObject.values, geometry)
         }
 
-        updateValues(renderObject.values, geometry, newProps)
+        updateValues(renderObject.values, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps

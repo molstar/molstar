@@ -48,12 +48,13 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
 interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<ComplexRenderObject>
-    updateValues(values: RenderableValues, geometry: Geometry, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
+    updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
 }
 
 export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createRenderObject, updateValues } = builder
+    const { createRenderObject, updateValues, updateBoundingSphere } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: ComplexRenderObject | undefined
@@ -99,6 +100,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         if (updateState.createGeometry) {
             geometry = await createGeometry(ctx, currentStructure, theme, newProps, geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
+            updateBoundingSphere(renderObject.values, geometry)
             updateState.updateColor = true
         }
 
@@ -113,7 +115,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
             await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 
-        updateValues(renderObject.values, geometry, newProps)
+        updateValues(renderObject.values, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
@@ -195,6 +197,7 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createComplexMeshRenderObject,
-        updateValues: Mesh.updateValues
+        updateValues: Mesh.updateValues,
+        updateBoundingSphere: Mesh.updateBoundingSphere
     })
 }

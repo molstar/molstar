@@ -178,7 +178,8 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
             const state = createRenderableState(props)
             return createDirectVolumeRenderObject(values, state)
         },
-        updateValues: DirectVolume.updateValues
+        updateValues: DirectVolume.updateValues,
+        updateBoundingSphere: DirectVolume.updateBoundingSphere
     })
 }
 
