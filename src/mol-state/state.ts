@@ -414,7 +414,7 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined, si
 
     if (errorText) {
         setCellStatus(ctx, ref, 'error', errorText);
-        ctx.parent.events.log.next({ type: 'error', timestamp: new Date(), message: errorText });
+        if (!silent) ctx.parent.events.log.next({ type: 'error', timestamp: new Date(), message: errorText });
     }
 
     const cell = ctx.cells.get(ref)!;
