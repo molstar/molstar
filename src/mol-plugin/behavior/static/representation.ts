@@ -19,10 +19,10 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
     events.object.created.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
         updateVisibility(e, e.obj.data);
+        e.obj.data.setState({ syncManually: true });
         ctx.canvas3d.add(e.obj.data);
         // TODO: only do this if there were no representations previously
         ctx.canvas3d.resetCamera();
-        ctx.canvas3d.requestDraw(true);
     });
     events.object.updated.subscribe(e => {
         if (e.oldObj && SO.isRepresentation3D(e.oldObj)) {
@@ -34,11 +34,10 @@ export function SyncRepresentationToCanvas(ctx: PluginContext) {
         if (!SO.isRepresentation3D(e.obj)) return;
 
         updateVisibility(e, e.obj.data);
-
         if (e.action === 'recreate') {
-            ctx.canvas3d.add(e.obj.data);
-            ctx.canvas3d.requestDraw(true);
+            e.obj.data.setState({ syncManually: true });
         }
+        ctx.canvas3d.add(e.obj.data);
     });
     events.object.removed.subscribe(e => {
         if (!SO.isRepresentation3D(e.obj)) return;
