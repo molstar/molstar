@@ -114,13 +114,20 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
     }
 
     private autoApplyHandle: number | undefined = void 0;
+    private clearAutoApply() {
+        if (this.autoApplyHandle !== void 0) {
+            clearTimeout(this.autoApplyHandle);
+            this.autoApplyHandle = void 0;
+        }
+    }
 
     events: StateTransformParameters.Props['events'] = {
         onEnter: this.onEnter,
         onChange: (params, isInitial, errors) => {
+            this.clearAutoApply();
             this.setState({ params, isInitial, error: errors && errors[0] }, () => {
                 if (!isInitial && !this.state.error && this.canAutoApply(params)) {
-                    if (this.autoApplyHandle) clearTimeout(this.autoApplyHandle);
+                    this.clearAutoApply();
                     this.autoApplyHandle = setTimeout(this.apply, 50) as any as number;
                 }
             });
@@ -128,10 +135,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
     }
 
     apply = async () => {
-        if (this.autoApplyHandle !== void 0) {
-            clearTimeout(this.autoApplyHandle);
-            this.autoApplyHandle = void 0;
-        }
+        this.clearAutoApply();
         this.setState({ busy: true });
         try {
             await this.applyAction();
