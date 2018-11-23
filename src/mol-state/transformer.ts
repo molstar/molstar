@@ -44,6 +44,13 @@ export namespace Transformer {
         cache: unknown
     }
 
+    export interface AutoUpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
+        a: A,
+        b: B,
+        oldParams: P,
+        newParams: P
+    }
+
     export enum UpdateResult { Unchanged, Updated, Recreate }
 
     /** Specify default control descriptors for the parameters */
@@ -67,6 +74,9 @@ export namespace Transformer {
          * Return/resolve to undefined if the update is not possible.
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
+
+        /** Determine if the transformer can be applied automatically on UI change. Default is false. */
+        canAutoUpdate?(params: AutoUpdateParams<A, B, P>, globalCtx: unknown): boolean,
 
         params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
 

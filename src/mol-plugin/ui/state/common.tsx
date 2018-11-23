@@ -101,6 +101,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
     abstract getHeader(): Transformer.Definition['display'];
     abstract getHeaderFallback(): string;
     abstract canApply(): boolean;
+    abstract canAutoApply(newParams: any): boolean;
     abstract applyText(): string;
     abstract isUpdate(): boolean;
     abstract state: S;
@@ -112,12 +113,25 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
         this.apply();
     }
 
+    private autoApplyHandle: number | undefined = void 0;
+
     events: StateTransformParameters.Props['events'] = {
         onEnter: this.onEnter,
-        onChange: (params, isInitial, errors) => this.setState({ params, isInitial, error: errors && errors[0] })
+        onChange: (params, isInitial, errors) => {
+            this.setState({ params, isInitial, error: errors && errors[0] }, () => {
+                if (!isInitial && !this.state.error && this.canAutoApply(params)) {
+                    if (this.autoApplyHandle) clearTimeout(this.autoApplyHandle);
+                    this.autoApplyHandle = setTimeout(this.apply, 50) as any as number;
+                }
+            });
+        }
     }
 
     apply = async () => {
+        if (this.autoApplyHandle !== void 0) {
+            clearTimeout(this.autoApplyHandle);
+            this.autoApplyHandle = void 0;
+        }
         this.setState({ busy: true });
         try {
             await this.applyAction();

@@ -34,6 +34,18 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }
     isUpdate() { return true; }
 
+    canAutoApply(newParams: any) {
+        const autoUpdate = this.props.transform.transformer.definition.canAutoUpdate
+        if (!autoUpdate) return false;
+
+        const { state } = this.props;
+        const cell = state.cells.get(this.props.transform.ref);
+        if (!cell || !cell.sourceRef || cell.status !== 'ok') return false;
+        const parentCell = state.cells.get(cell.sourceRef)!;
+
+        return autoUpdate({ a: cell.obj!, b: parentCell.obj!, oldParams: this.props.transform.params, newParams }, this.plugin);
+    }
+
     private _getInfo = memoizeOne((t: Transform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, this.props.transform));
 
     state: UpdateTransformContol.ComponentState = { transform: this.props.transform, error: void 0, isInitial: true, params: this.getInfo().initialValues, busy: false };

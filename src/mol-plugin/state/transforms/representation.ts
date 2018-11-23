@@ -44,6 +44,10 @@ const StructureRepresentation3D = PluginStateTransform.Create<SO.Molecule.Struct
             name => PD.Group<any>(ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(name).getParams({ structure: a.data }))
         ),
     }),
+    canAutoUpdate({ oldParams, newParams }) {
+        // TODO: allow for small molecules
+        return oldParams.type.name === newParams.type.name;
+    },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Structure Representation', async ctx => {
             const provider = plugin.structureRepresentation.registry.get(params.type.name)
