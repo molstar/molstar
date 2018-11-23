@@ -148,7 +148,7 @@ class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { e
 
     render() {
         return <div>
-            <button title='Click to Refresh' style={{fontWeight: 'bold'}} className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isFetching}>↻ Remote Snapshots</button>
+            <button title='Click to Refresh' style={{fontWeight: 'bold'}} className='msp-btn msp-btn-block msp-form-control msp-section-header' onClick={this.refresh} disabled={this.state.isFetching}>↻ Remote Snapshots</button>
 
             <ul style={{ listStyle: 'none' }} className='msp-state-list'>
                 {this.state.entries.valueSeq().map(e =><li key={e!.id}>
