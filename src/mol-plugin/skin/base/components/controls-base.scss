@@ -83,14 +83,14 @@
     width: 100%;
     background: $msp-form-control-background;
     color: $font-color;
-    border: none !important;
+    border: none; // !important;
     padding: 0 $control-spacing;   
     line-height: $row-height - 2px;  
     height: $row-height;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;    
-    box-shadow: none !important;
+    box-shadow: none; //  !important;
     
     &:hover {
         color: $hover-font-color;

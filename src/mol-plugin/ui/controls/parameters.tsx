@@ -161,16 +161,25 @@ export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
     }
 }
 
+let _colors: React.ReactFragment | undefined = void 0;
+function ColorOptions() {
+    if (_colors) return _colors;
+    _colors = <>{Object.keys(ColorNames).map(name =>
+        <option key={name} value={(ColorNames as { [k: string]: Color})[name]} style={{ background: `${Color.toStyle((ColorNames as { [k: string]: Color})[name])}` }} >
+            {name}
+        </option>
+    )}</>;
+    return _colors;
+}
+
 export class ColorControl extends SimpleParam<PD.Color> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         this.update(Color(parseInt(e.target.value)));
     }
 
     renderControl() {
-        return <select value={this.props.value} onChange={this.onChange}>
-            {Object.keys(ColorNames).map(name => {
-                return <option key={name} value={(ColorNames as { [k: string]: Color})[name]}>{name}</option>
-            })}
+        return <select value={this.props.value} onChange={this.onChange} style={{ borderLeft: `16px solid ${Color.toStyle(this.props.value)}` }}>
+            {ColorOptions()}
         </select>;
     }
 }
