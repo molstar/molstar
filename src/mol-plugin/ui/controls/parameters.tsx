@@ -247,12 +247,13 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
                 </div>
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                {this.props.param.options.map(([value, label]) =>
-                    <div key={value} className='msp-row'>
+                {this.props.param.options.map(([value, label]) => {
+                    const sel = current.indexOf(value) >= 0;
+                    return <div key={value} className='msp-row'>
                         <button onClick={this.toggle(value)} disabled={this.props.isDisabled}>
-                            {current.indexOf(value) >= 0 ? `✓ ${label}` : `✗ ${label}`}
+                            <span style={{ float: sel ? 'left' : 'right' }}>{sel ? `✓ ${label}` : `${label} ✗`}</span>
                         </button>
-                    </div>)}
+                </div> })}
             </div>
         </>;
     }
