@@ -62,8 +62,8 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
 
         if (isSheet) {
             const height = width * aspectRatio
-            const arrowHeight = v.secStrucChange ? height * arrowFactor : 0
-            addSheet(builder, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
+            const arrowHeight = v.secStrucLast ? height * arrowFactor : 0
+            addSheet(builder, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, v.secStrucFirst, v.secStrucLast)
         } else {
             let height: number
             if (isHelix) {
@@ -74,7 +74,7 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
             } else {
                 height = width
             }
-            addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
+            addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, v.secStrucFirst, v.secStrucLast)
         }
 
         if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {

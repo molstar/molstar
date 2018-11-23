@@ -13,6 +13,7 @@ import SortedRanges from 'mol-data/int/sorted-ranges';
 import { CoarseSphereConformation, CoarseGaussianConformation } from 'mol-model/structure/model/properties/coarse';
 import { getAtomicMoleculeType, getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { getPolymerRanges } from '../polymer';
+import { AtomicConformation } from 'mol-model/structure/model/properties/atomic';
 
 /**
  * Iterates over individual residues/coarse elements in polymers of a unit while
@@ -30,20 +31,22 @@ export function PolymerTraceIterator(unit: Unit): Iterator<PolymerTraceElement> 
 interface PolymerTraceElement {
     center: StructureElement
     first: boolean, last: boolean
+    secStrucFirst: boolean, secStrucLast: boolean
     secStrucType: SecondaryStructureType
-    secStrucChange: boolean
     moleculeType: MoleculeType
 
     p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, p4: Vec3
     d12: Vec3, d23: Vec3
 }
 
+const SecStrucTypeNA = SecondaryStructureType.create(SecondaryStructureType.Flag.NA)
+
 function createPolymerTraceElement (unit: Unit): PolymerTraceElement {
     return {
         center: StructureElement.create(unit),
         first: false, last: false,
-        secStrucType: SecondaryStructureType.create(SecondaryStructureType.Flag.NA),
-        secStrucChange: false,
+        secStrucFirst: false, secStrucLast: false,
+        secStrucType: SecStrucTypeNA,
         moleculeType: MoleculeType.unknown,
         p0: Vec3.zero(), p1: Vec3.zero(), p2: Vec3.zero(), p3: Vec3.zero(), p4: Vec3.zero(),
         d12: Vec3.create(1, 0, 0), d23: Vec3.create(1, 0, 0),
@@ -57,10 +60,15 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     private polymerIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>
     private residueIt: Segmentation.SegmentIterator<ResidueIndex>
     private polymerSegment: Segmentation.Segment<ResidueIndex>
+    private secondaryStructureType: ArrayLike<SecondaryStructureType>
     private residueSegmentMin: ResidueIndex
     private residueSegmentMax: ResidueIndex
+    private prevSecStrucType: SecondaryStructureType
+    private currSecStrucType: SecondaryStructureType
+    private nextSecStrucType: SecondaryStructureType
     private state: AtomicPolymerTraceIteratorState = AtomicPolymerTraceIteratorState.nextPolymer
     private residueAtomSegments: Segmentation<ElementIndex, ResidueIndex>
+    private atomicConformation: AtomicConformation
 
     private p0 = Vec3.zero();
     private p1 = Vec3.zero();
@@ -78,13 +86,13 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     hasNext: boolean = false;
 
     private pos(target: Vec3, index: number) {
-        target[0] = this.unit.model.atomicConformation.x[index]
-        target[1] = this.unit.model.atomicConformation.y[index]
-        target[2] = this.unit.model.atomicConformation.z[index]
+        target[0] = this.atomicConformation.x[index]
+        target[1] = this.atomicConformation.y[index]
+        target[2] = this.atomicConformation.z[index]
     }
 
     private updateResidueSegmentRange(polymerSegment: Segmentation.Segment<ResidueIndex>) {
-        const { index } = this.unit.model.atomicHierarchy.residueAtomSegments
+        const { index } = this.residueAtomSegments
         this.residueSegmentMin = index[this.unit.elements[polymerSegment.start]]
         this.residueSegmentMax = index[this.unit.elements[polymerSegment.end - 1]]
     }
@@ -151,7 +159,11 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.pos(this.v23, this.getElementIndex(residueIndex, 'direction'))
             // this.pos(this.v34, this.getAtomIndex(residueIndex + 1 as ResidueIndex, 'direction'))
 
-            this.value.secStrucType = this.unit.model.properties.secondaryStructure.type[residueIndex]
+            this.prevSecStrucType = this.currSecStrucType
+            this.currSecStrucType = this.nextSecStrucType
+            this.nextSecStrucType = residueIt.hasNext ? this.secondaryStructureType[residueIndex + 1] : SecStrucTypeNA
+
+            this.value.secStrucType = this.currSecStrucType
 
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndex - 2 as ResidueIndex)
             this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndex - 1 as ResidueIndex)
@@ -164,7 +176,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
             value.first = residueIndex === this.residueSegmentMin
             value.last = residueIndex === this.residueSegmentMax
-            value.secStrucChange = this.unit.model.properties.secondaryStructure.key[residueIndex] !== this.unit.model.properties.secondaryStructure.key[residueIndex + 1]
+            value.secStrucFirst = this.prevSecStrucType !== this.currSecStrucType
+            value.secStrucLast = this.currSecStrucType !== this.nextSecStrucType
             value.moleculeType = getAtomicMoleculeType(this.unit.model, residueIndex)
 
             if (!residueIt.hasNext) {
@@ -178,7 +191,9 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     }
 
     constructor(private unit: Unit.Atomic) {
+        this.atomicConformation = unit.model.atomicConformation
         this.residueAtomSegments = unit.model.atomicHierarchy.residueAtomSegments
+        this.secondaryStructureType = unit.model.properties.secondaryStructure.type
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
         this.residueIt = Segmentation.transientSegments(this.residueAtomSegments, unit.elements);
         this.value = createPolymerTraceElement(unit)
