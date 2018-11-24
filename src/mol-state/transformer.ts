@@ -142,31 +142,22 @@ export namespace Transformer {
         return <A extends StateObject, B extends StateObject, P extends {} = {}>(definition: Definition<A, B, P>) => create(namespace, definition);
     }
 
-    export function factory1(namespace: string) {
+    export function builderFactory(namespace: string) {
         return Builder.build(namespace);
     }
 
     export namespace Builder {
         type ParamDefinition<P> = { [K in keyof P]-?: PD.Base<P[K]> }
 
-        export interface Type<A extends StateObject.Ctor, B extends StateObject.Ctor> {
+        export interface Type<A extends StateObject.Ctor, B extends StateObject.Ctor, P extends { }> {
             name: string,
             from: A | A[],
-            to: B | B[]
-        }
-
-        export interface TypeAndParams<A extends StateObject.Ctor, B extends StateObject.Ctor, P> extends Type<A, B> {
-            params: ParamDefinition<P>
-        }
-
-        export interface TypeAndParamProvider<A extends StateObject.Ctor, B extends StateObject.Ctor, P> extends Type<A, B> {
-            paramProvider(a: A, globalCtx: unknown): ParamDefinition<P>
+            to: B | B[],
+            params?: ParamDefinition<P> | ((a: StateObject.From<A>, globalCtx: any) => ParamDefinition<P>)
         }
 
         export interface Root {
-            <A extends StateObject.Ctor, B extends StateObject.Ctor>(info: Type<A, B>): Define<StateObject.From<A>, StateObject.From<B>, {}>,
-            <A extends StateObject.Ctor, B extends StateObject.Ctor, P>(info: TypeAndParams<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, Params<P>>,
-            <A extends StateObject.Ctor, B extends StateObject.Ctor, P>(info: TypeAndParamProvider<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, Params<P>>        
+            <A extends StateObject.Ctor, B extends StateObject.Ctor, P extends { }>(info: Type<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, Params<P>>
         }
 
         type Optionals<P> = { [K in keyof P]-?: undefined extends P[K] ? K : never }[keyof P]
@@ -177,15 +168,15 @@ export namespace Transformer {
             (def: DefinitionBase<A, B, P>): Transformer<A, B, P>
         }
 
-        function root(namespace: string, info: Type<any, any> & TypeAndParams<any, any, any> & TypeAndParamProvider<any, any, any>): Define<any, any, any> {
+        function root(namespace: string, info: Type<any, any, any>): Define<any, any, any> {
             return def => create(namespace, {
                 name: info.name,
                 from: info.from instanceof Array ? info.from : [info.from],
                 to: info.to instanceof Array ? info.to : [info.to],
-                params: info.paramProvider
-                    ? info.paramProvider as any
-                    : info.params
-                    ? () => info.params
+                params: typeof info.params === 'object'
+                    ? () => info.params as any
+                    : !!info.params
+                    ? info.params as any
                     : void 0,
                 ...def
             });

@@ -68,11 +68,11 @@ export namespace ParamDefinition {
         return setInfo<Boolean>({ type: 'boolean', defaultValue }, info)
     }
 
-    export interface Text extends Base<string> {
+    export interface Text<T extends string = string> extends Base<T> {
         type: 'text'
     }
-    export function Text(defaultValue: string = '', info?: Info): Text {
-        return setInfo<Text>({ type: 'text', defaultValue }, info)
+    export function Text<T extends string = string>(defaultValue: string = '', info?: Info): Text<T> {
+        return setInfo<Text<T>>({ type: 'text', defaultValue: defaultValue as any }, info)
     }
 
     export interface Color extends Base<ColorData> {

@@ -46,13 +46,16 @@ export namespace PluginStateObject {
     export namespace Data {
         export class String extends Create<string>({ name: 'String Data', typeClass: 'Data', }) { }
         export class Binary extends Create<Uint8Array>({ name: 'Binary Data', typeClass: 'Data' }) { }
-        export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
-        export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
 
         // TODO
         // export class MultipleRaw extends Create<{
         //     [key: string]: { type: 'String' | 'Binary', data: string | Uint8Array }
         // }>({ name: 'Data', typeClass: 'Data', shortName: 'MD', description: 'Multiple Keyed Data.' }) { }
+    }
+
+    export namespace Format {
+        export class Json extends Create<any>({ name: 'JSON Data', typeClass: 'Data' }) { }
+        export class Cif extends Create<CifFile>({ name: 'CIF File', typeClass: 'Data' }) { }
     }
 
     export namespace Molecule {
@@ -69,6 +72,6 @@ export namespace PluginStateObject {
 }
 
 export namespace PluginStateTransform {
-    export const Create = Transformer.factory('ms-plugin');
-    export const BuiltIn = Transformer.factory1('ms-plugin');
+    export const CreateBuiltIn = Transformer.factory('ms-plugin');
+    export const BuiltIn = Transformer.builderFactory('ms-plugin');
 }

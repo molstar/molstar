@@ -14,36 +14,31 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createTheme } from 'mol-theme/theme';
 
 export { StructureRepresentation3D }
-namespace StructureRepresentation3D {
-    export interface Params {
-        type: { name: string, params: any /** TODO is there "common type" */ },
-        colorTheme: { name: string, params: any /** TODO is there "common type" */ },
-        sizeTheme: { name: string, params: any /** TODO is there "common type" */ },
-    }
-}
-const StructureRepresentation3D = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Representation3D, StructureRepresentation3D.Params>({
+type StructureRepresentation3D = typeof StructureRepresentation3D
+const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'structure-representation-3d',
-    display: { name: '3D Representation' },
-    from: [SO.Molecule.Structure],
-    to: [SO.Molecule.Representation3D],
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Representation3D,
     params: (a, ctx: PluginContext) => ({
-        type: PD.Mapped(
+        type: PD.Mapped<any>(
             ctx.structureRepresentation.registry.default.name,
             ctx.structureRepresentation.registry.types,
             name => PD.Group<any>(ctx.structureRepresentation.registry.get(name).getParams(ctx.structureRepresentation.themeCtx, a.data))),
-        colorTheme: PD.Mapped(
+        colorTheme: PD.Mapped<any>(
             // TODO how to get a default color theme dependent on the repr type?
             ctx.structureRepresentation.themeCtx.colorThemeRegistry.default.name,
             ctx.structureRepresentation.themeCtx.colorThemeRegistry.types,
             name => PD.Group<any>(ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(name).getParams({ structure: a.data }))
         ),
-        sizeTheme: PD.Mapped(
+        sizeTheme: PD.Mapped<any>(
             // TODO how to get a default size theme dependent on the repr type?
             ctx.structureRepresentation.themeCtx.sizeThemeRegistry.default.name,
             ctx.structureRepresentation.themeCtx.sizeThemeRegistry.types,
             name => PD.Group<any>(ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(name).getParams({ structure: a.data }))
-        ),
-    }),
+        )
+    })
+})({
+    display: { name: '3D Representation' },
     canAutoUpdate({ oldParams, newParams }) {
         // TODO: allow for small molecules
         return oldParams.type.name === newParams.type.name;

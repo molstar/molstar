@@ -56,7 +56,7 @@ namespace ColorTheme {
         readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
         readonly getParams: (ctx: ThemeDataContext) => P
     }
-    export const EmptyProvider: Provider<{}> = { label: '', factory:EmptyFactory, getParams: () => ({}) }
+    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}) }
 
     export class Registry {
         private _list: { name: string, provider: Provider<any> }[] = []

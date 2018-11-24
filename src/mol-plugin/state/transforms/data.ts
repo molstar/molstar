@@ -57,7 +57,7 @@ const ReadFile = PluginStateTransform.BuiltIn({
         file: PD.File(),
         label: PD.makeOptional(PD.Text('')),
         isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' }))
-    }
+    },
 })({
     display: {
         name: 'Read File',
@@ -86,7 +86,7 @@ type ParseCif = typeof ParseCif
 const ParseCif = PluginStateTransform.BuiltIn({
     name: 'parse-cif',
     from: [SO.Data.String, SO.Data.Binary],
-    to: SO.Data.Cif
+    to: SO.Format.Cif
 })({
     display: {
         name: 'Parse CIF',
@@ -96,7 +96,7 @@ const ParseCif = PluginStateTransform.BuiltIn({
         return Task.create('Parse CIF', async ctx => {
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            return new SO.Data.Cif(parsed.result);
+            return new SO.Format.Cif(parsed.result);
         });
     }
 });

@@ -43,7 +43,7 @@ namespace PluginBehavior {
 
     export function create<P>(params: CreateParams<P>) {
         // TODO: cache groups etc
-        return PluginStateTransform.Create<Root, Behavior, P>({
+        return PluginStateTransform.CreateBuiltIn<Root, Behavior, P>({
             name: params.name,
             display: params.display,
             from: [Root],
