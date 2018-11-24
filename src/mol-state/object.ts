@@ -27,9 +27,9 @@ namespace StateObject {
     export type From<C extends Ctor> = C extends Ctor<infer T> ? T : never
 
     export function create<Data, T extends Type>(type: T) {
-        return class implements StateObject<Data, T> {
+        return class O implements StateObject<Data, T> {
             static type = type;
-            static is(obj?: StateObject): obj is StateObject<Data, T> { return !!obj && type === obj.type; }
+            static is(obj?: StateObject): obj is O { return !!obj && type === obj.type; }
             id = UUID.create22();
             type = type;
             label: string;
