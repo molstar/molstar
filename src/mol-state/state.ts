@@ -474,13 +474,13 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.results.push(update);
         if (update.action === 'created') {
             isNull = update.obj === StateObject.Null;
-            ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'updated') {
             isNull = update.obj === StateObject.Null;
-            ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
             isNull = update.obj === StateObject.Null;
-            ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
         ctx.changed = true;

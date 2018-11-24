@@ -231,6 +231,23 @@ export namespace ParamDefinition {
             if (u.name !== v.name) return false;
             const map = p.map(u.name);
             return isParamEqual(map, u.params, v.params);
+        } else if (p.type === 'multi-select') {
+            const u = a as MultiSelect<any>['defaultValue'], v = b as MultiSelect<any>['defaultValue'];
+            if (u.length !== v.length) return false;
+            if (u.length < 10) {
+                for (let i = 0, _i = u.length; i < _i; i++) {
+                    if (u[i] === v[i]) continue;
+                    if (v.indexOf(u[i]) < 0) return false;
+                }
+            } else {
+                // TODO: should the value of multiselect be a set?
+                const vSet = new Set(v);
+                for (let i = 0, _i = u.length; i < _i; i++) {
+                    if (u[i] === v[i]) continue;
+                    if (!vSet.has(u[i])) return false;
+                }
+            }
+            return true;
         } else if (p.type === 'interval') {
             return a[0] === b[0] && a[1] === b[1];
         } else if (p.type === 'line-graph') {
