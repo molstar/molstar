@@ -70,4 +70,5 @@ export namespace PluginStateObject {
 
 export namespace PluginStateTransform {
     export const Create = Transformer.factory('ms-plugin');
+    export const BuiltIn = Transformer.factory1('ms-plugin');
 }

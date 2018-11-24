@@ -56,10 +56,7 @@ export namespace Transformer {
     /** Specify default control descriptors for the parameters */
     // export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
 
-    export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
-        readonly name: string,
-        readonly from: StateObject.Ctor[],
-        readonly to: StateObject.Ctor[],
+    export interface DefinitionBase<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
         readonly display?: { readonly name: string, readonly description?: string },
 
         /**
@@ -78,8 +75,6 @@ export namespace Transformer {
         /** Determine if the transformer can be applied automatically on UI change. Default is false. */
         canAutoUpdate?(params: AutoUpdateParams<A, B, P>, globalCtx: unknown): boolean,
 
-        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
-
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,
 
@@ -88,6 +83,13 @@ export namespace Transformer {
 
         /** Custom conversion to and from JSON */
         readonly customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }
+    }
+
+    export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> extends DefinitionBase<A, B, P> {
+        readonly name: string,
+        readonly from: StateObject.Ctor[],
+        readonly to: StateObject.Ctor[],
+        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
     }
 
     const registry = new Map<Id, Transformer<any, any>>();
@@ -138,6 +140,64 @@ export namespace Transformer {
 
     export function factory(namespace: string) {
         return <A extends StateObject, B extends StateObject, P extends {} = {}>(definition: Definition<A, B, P>) => create(namespace, definition);
+    }
+
+    export function factory1(namespace: string) {
+        return Builder.build(namespace);
+    }
+
+    export namespace Builder {
+        type ParamDefinition<P> = { [K in keyof P]-?: PD.Base<P[K]> }
+
+        export interface Type<A extends StateObject.Ctor, B extends StateObject.Ctor> {
+            name: string,
+            from: A | A[],
+            to: B | B[]
+        }
+
+        export interface TypeAndParams<A extends StateObject.Ctor, B extends StateObject.Ctor, P> extends Type<A, B> {
+            params: ParamDefinition<P>
+        }
+
+        export interface TypeAndParamProvider<A extends StateObject.Ctor, B extends StateObject.Ctor, P> extends Type<A, B> {
+            paramProvider(a: A, globalCtx: unknown): ParamDefinition<P>
+        }
+
+        export interface Root {
+            <A extends StateObject.Ctor, B extends StateObject.Ctor>(info: Type<A, B>): Define<StateObject.From<A>, StateObject.From<B>, {}>,
+            <A extends StateObject.Ctor, B extends StateObject.Ctor, P>(info: TypeAndParams<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, Params<P>>,
+            <A extends StateObject.Ctor, B extends StateObject.Ctor, P>(info: TypeAndParamProvider<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, Params<P>>        
+        }
+
+        type Optionals<P> = { [K in keyof P]-?: undefined extends P[K] ? K : never }[keyof P]
+        type NonOptionals<P> = { [K in keyof P]-?: undefined extends P[K] ? never: K }[keyof P]
+        type Params<P> = Pick<P, NonOptionals<P>> & Partial<Pick<P, Optionals<P>>>
+
+        export interface Define<A extends StateObject, B extends StateObject, P> {
+            (def: DefinitionBase<A, B, P>): Transformer<A, B, P>
+        }
+
+        function root(namespace: string, info: Type<any, any> & TypeAndParams<any, any, any> & TypeAndParamProvider<any, any, any>): Define<any, any, any> {
+            return def => create(namespace, {
+                name: info.name,
+                from: info.from instanceof Array ? info.from : [info.from],
+                to: info.to instanceof Array ? info.to : [info.to],
+                params: info.paramProvider
+                    ? info.paramProvider as any
+                    : info.params
+                    ? () => info.params
+                    : void 0,
+                ...def
+            });
+        }
+
+        export function build(namespace: string): Root {
+            return (info: any) => root(namespace, info);
+        }
+    }
+
+    export function build(namespace: string): Builder.Root {
+        return Builder.build(namespace);
     }
 
     export const ROOT = create<any, any, {}>('build-in', {

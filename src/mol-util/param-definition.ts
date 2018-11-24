@@ -14,8 +14,8 @@ export namespace ParamDefinition {
     export interface Info {
         label?: string,
         description?: string,
+        isHidden?: boolean,
         isOptional?: boolean,
-        isHidden?: boolean
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
@@ -29,6 +29,11 @@ export namespace ParamDefinition {
 
     export interface Base<T> extends Info {
         defaultValue: T
+    }
+
+    export function makeOptional<T>(p: Base<T>): Base<T | undefined> {
+        p.isOptional = true;
+        return p;
     }
 
     export interface Value<T> extends Base<T> {

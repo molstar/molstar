@@ -23,7 +23,8 @@ namespace StateObject {
     }
 
     export type Type<Cls extends string = string> = { name: string, typeClass: Cls }
-    export type Ctor = { new(...args: any[]): StateObject, type: any }
+    export type Ctor<T extends StateObject = StateObject> = { new(...args: any[]): T, type: any }
+    export type From<C extends Ctor> = C extends Ctor<infer T> ? T : never
 
     export function create<Data, T extends Type>(type: T) {
         return class implements StateObject<Data, T> {

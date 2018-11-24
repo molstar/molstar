@@ -12,7 +12,7 @@ import { StateSelection } from 'mol-state/state/selection';
 import { CartoonParams } from 'mol-repr/structure/representation/cartoon';
 import { BallAndStickParams } from 'mol-repr/structure/representation/ball-and-stick';
 import { Download } from '../transforms/data';
-import { StateTree } from 'mol-state';
+import { StateTree, Transformer } from 'mol-state';
 import { StateTreeBuilder } from 'mol-state/tree/builder';
 import { PolymerIdColorThemeParams } from 'mol-theme/color/polymer-id';
 import { UniformSizeThemeParams } from 'mol-theme/size/uniform';
@@ -43,7 +43,7 @@ namespace ObtainStructureHelpers {
     ];
 
     export function getControls(key: string) { return (ControlMap as any)[key]; }
-    export function getUrl(src: DownloadStructure.Source): Download.Params {
+    export function getUrl(src: DownloadStructure.Source): Transformer.Params<Download> {
         switch (src.name) {
             case 'url': return src.params;
             case 'pdbe-updated': return { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params}` };
