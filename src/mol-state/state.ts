@@ -311,11 +311,12 @@ function findUpdateRoots(cells: Map<Transform.Ref, StateObjectCell>, tree: State
 
 function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
     const cell = s.cells.get(n.ref);
-    if (cell && cell.obj === StateObject.Null) return false;
     if (!cell || cell.version !== n.version || cell.status === 'error') {
         s.roots.push(n.ref);
         return false;
     }
+    // nothing below a Null object can be an update root
+    if (cell && cell.obj === StateObject.Null) return false;
     return true;
 }
 
