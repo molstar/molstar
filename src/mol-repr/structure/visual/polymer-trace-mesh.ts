@@ -52,7 +52,7 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
         const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
         const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
-        const tension = (isNucleicType || isSheet) ? 0.5 : 0.9
+        const tension = isNucleicType ? 0.5 : 0.9
         const shift = isNucleicType ? 0.3 : 0.5
 
         interpolateCurveSegment(state, v, tension, shift)
