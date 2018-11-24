@@ -224,7 +224,7 @@ async function update(ctx: UpdateContext) {
         }
 
         if (hasCurrent) {
-            const newCurrent = findNewCurrent(ctx.oldTree, current, deletes);
+            const newCurrent = findNewCurrent(ctx.oldTree, current, deletes, ctx.cells);
             ctx.parent.setCurrent(newCurrent);
         }
 
@@ -270,7 +270,7 @@ async function update(ctx: UpdateContext) {
         await updateSubtree(ctx, root);
     }
 
-    let newCurrent: Transform.Ref | undefined;
+    let newCurrent: Transform.Ref | undefined = ctx.newCurrent;
     // Raise object updated events
     for (const update of ctx.results) {
         if (update.action === 'created') {
@@ -286,8 +286,19 @@ async function update(ctx: UpdateContext) {
         }
     }
 
-    if (ctx.newCurrent) ctx.parent.setCurrent(ctx.newCurrent);
-    else if (newCurrent) ctx.parent.setCurrent(newCurrent);
+    if (newCurrent) ctx.parent.setCurrent(newCurrent);
+    else {
+        // check if old current or its parent hasn't become null
+        const current = ctx.parent.current;
+        const currentCell = ctx.cells.get(current);
+        if (currentCell && (
+                currentCell.obj === StateObject.Null
+            || (currentCell.status === 'error' && currentCell.errorText === ParentNullErrorText))) {
+            newCurrent = findNewCurrent(ctx.oldTree, current, [], ctx.cells);
+            ctx.parent.setCurrent(newCurrent);
+        }
+    }
+
 
     return deletes.length > 0 || roots.length > 0 || ctx.changed;
 }
@@ -300,6 +311,7 @@ function findUpdateRoots(cells: Map<Transform.Ref, StateObjectCell>, tree: State
 
 function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
     const cell = s.cells.get(n.ref);
+    if (cell && cell.obj === StateObject.Null) return false;
     if (!cell || cell.version !== n.version || cell.status === 'error') {
         s.roots.push(n.ref);
         return false;
@@ -369,12 +381,12 @@ function initCells(ctx: UpdateContext, roots: Ref[]) {
     return initCtx.added;
 }
 
-function findNewCurrent(tree: StateTree, start: Ref, deletes: Ref[]) {
+function findNewCurrent(tree: StateTree, start: Ref, deletes: Ref[], cells: Map<Ref, StateObjectCell>) {
     const deleteSet = new Set(deletes);
-    return _findNewCurrent(tree, start, deleteSet);
+    return _findNewCurrent(tree, start, deleteSet, cells);
 }
 
-function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
+function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>, cells: Map<Ref, StateObjectCell>): Ref {
     if (ref === Transform.RootRef) return ref;
 
     const node = tree.transforms.get(ref)!;
@@ -387,6 +399,10 @@ function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
         if (s.done) break;
 
         if (deletes.has(s.value)) continue;
+        const cell = cells.get(s.value);
+        if (!cell || cell.status === 'error' || cell.obj === StateObject.Null) {
+            continue;
+        }
 
         const t = tree.transforms.get(s.value);
         if (t.props && t.props.isGhost) continue;
@@ -402,7 +418,7 @@ function _findNewCurrent(tree: StateTree, ref: Ref, deletes: Set<Ref>): Ref {
     }
 
     if (prevCandidate) return prevCandidate;
-    return _findNewCurrent(tree, node.parent, deletes);
+    return _findNewCurrent(tree, node.parent, deletes, cells);
 }
 
 /** Set status and error text of the cell. Remove all existing objects in the subtree. */
@@ -440,6 +456,8 @@ type UpdateNodeResult =
     | { ref: Ref, action: 'replaced', oldObj?: StateObject, obj: StateObject }
     | { action: 'none' }
 
+const ParentNullErrorText = 'Parent is null';
+
 async function updateSubtree(ctx: UpdateContext, root: Ref) {
     setCellStatus(ctx, root, 'processing');
 
@@ -463,11 +481,6 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
             isNull = update.obj === StateObject.Null;
             ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
-
-        if (isNull && !ctx.newCurrent) {
-            // TODO: is this ok?
-            ctx.newCurrent = findNewCurrent(ctx.tree, root, [root]);
-        }
     } catch (e) {
         ctx.changed = true;
         if (!ctx.hadError) ctx.newCurrent = root;
@@ -479,7 +492,7 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
     while (true) {
         const next = children.next();
         if (next.done) return;
-        if (isNull) doError(ctx, next.value, 'Parent is null', true);
+        if (isNull) doError(ctx, next.value, ParentNullErrorText, true);
         else await updateSubtree(ctx, next.value);
     }
 }
