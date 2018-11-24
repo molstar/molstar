@@ -15,6 +15,8 @@ const tV = Vec3.zero()
 
 const horizontalVector = Vec3.zero()
 const verticalVector = Vec3.zero()
+const verticalRightVector = Vec3.zero()
+const verticalLeftVector = Vec3.zero()
 const normalOffset = Vec3.zero()
 const positionVector = Vec3.zero()
 const normalVector = Vec3.zero()
@@ -25,6 +27,41 @@ const p2 = Vec3.zero()
 const p3 = Vec3.zero()
 const p4 = Vec3.zero()
 
+function addCap(offset: number, builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, width: number, leftHeight: number, rightHeight: number) {
+    const { vertices, normals, indices } = builder.state
+    const vertexCount = vertices.elementCount
+
+    Vec3.fromArray(verticalLeftVector, normalVectors, offset)
+    Vec3.scale(verticalLeftVector, verticalLeftVector, leftHeight)
+
+    Vec3.fromArray(verticalRightVector, normalVectors, offset)
+    Vec3.scale(verticalRightVector, verticalRightVector, rightHeight)
+
+    Vec3.fromArray(horizontalVector, binormalVectors, offset)
+    Vec3.scale(horizontalVector, horizontalVector, width)
+
+    Vec3.fromArray(positionVector, controlPoints, offset)
+
+    Vec3.add(p1, Vec3.add(p1, positionVector, horizontalVector), verticalRightVector)
+    Vec3.sub(p2, Vec3.add(p2, positionVector, horizontalVector), verticalLeftVector)
+    Vec3.sub(p3, Vec3.sub(p3, positionVector, horizontalVector), verticalLeftVector)
+    Vec3.add(p4, Vec3.sub(p4, positionVector, horizontalVector), verticalRightVector)
+
+    ChunkedArray.add3(vertices, p1[0], p1[1], p1[2])
+    ChunkedArray.add3(vertices, p2[0], p2[1], p2[2])
+    ChunkedArray.add3(vertices, p3[0], p3[1], p3[2])
+    ChunkedArray.add3(vertices, p4[0], p4[1], p4[2])
+
+    Vec3.cross(normalVector, horizontalVector, verticalLeftVector)
+
+    for (let i = 0; i < 4; ++i) {
+        ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2])
+    }
+    ChunkedArray.add3(indices, vertexCount + 2, vertexCount + 1, vertexCount)
+    ChunkedArray.add3(indices, vertexCount, vertexCount + 3, vertexCount + 2)
+}
+
+/** set arrowHeight = 0 for no arrow */
 export function addSheet(builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) {
     const { currentGroup, vertices, normals, indices, groups } = builder.state
 
@@ -112,67 +149,19 @@ export function addSheet(builder: MeshBuilder, controlPoints: ArrayLike<number>,
     }
 
     if (startCap) {
-        const offset = 0
-        vertexCount = vertices.elementCount
-
-        Vec3.fromArray(verticalVector, normalVectors, offset)
-        Vec3.scale(verticalVector, verticalVector, arrowHeight === 0 ? height : arrowHeight);
-
-        Vec3.fromArray(horizontalVector, binormalVectors, offset)
-        Vec3.scale(horizontalVector, horizontalVector, width);
-
-        Vec3.fromArray(positionVector, controlPoints, offset)
-
-        Vec3.add(p1, Vec3.add(p1, positionVector, horizontalVector), verticalVector)
-        Vec3.sub(p2, Vec3.add(p2, positionVector, horizontalVector), verticalVector)
-        Vec3.sub(p3, Vec3.sub(p3, positionVector, horizontalVector), verticalVector)
-        Vec3.add(p4, Vec3.sub(p4, positionVector, horizontalVector), verticalVector)
-
-        ChunkedArray.add3(vertices, p1[0], p1[1], p1[2])
-        ChunkedArray.add3(vertices, p2[0], p2[1], p2[2])
-        ChunkedArray.add3(vertices, p3[0], p3[1], p3[2])
-        ChunkedArray.add3(vertices, p4[0], p4[1], p4[2])
-
-        Vec3.cross(normalVector, horizontalVector, verticalVector)
-
-        for (let i = 0; i < 4; ++i) {
-            ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2])
-        }
-        ChunkedArray.add3(indices, vertexCount + 2, vertexCount + 1, vertexCount);
-        ChunkedArray.add3(indices, vertexCount, vertexCount + 3, vertexCount + 2);
+        const h = arrowHeight === 0 ? height : arrowHeight
+        addCap(0, builder, controlPoints, normalVectors, binormalVectors, width, h, h)
+    } else if (arrowHeight > 0) {
+        addCap(0, builder, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height)
+        addCap(0, builder, controlPoints, normalVectors, binormalVectors, width, arrowHeight, -height)
     }
 
     if (endCap && arrowHeight === 0) {
-        const offset = linearSegments * 3
-        vertexCount = vertices.elementCount
-
-        Vec3.fromArray(verticalVector, normalVectors, offset)
-        Vec3.scale(verticalVector, verticalVector, height);
-
-        Vec3.fromArray(horizontalVector, binormalVectors, offset)
-        Vec3.scale(horizontalVector, horizontalVector, width);
-
-        Vec3.fromArray(positionVector, controlPoints, offset)
-
-        Vec3.add(p1, Vec3.add(p1, positionVector, horizontalVector), verticalVector)
-        Vec3.sub(p2, Vec3.add(p2, positionVector, horizontalVector), verticalVector)
-        Vec3.sub(p3, Vec3.sub(p3, positionVector, horizontalVector), verticalVector)
-        Vec3.add(p4, Vec3.sub(p4, positionVector, horizontalVector), verticalVector)
-
-        ChunkedArray.add3(vertices, p1[0], p1[1], p1[2])
-        ChunkedArray.add3(vertices, p2[0], p2[1], p2[2])
-        ChunkedArray.add3(vertices, p3[0], p3[1], p3[2])
-        ChunkedArray.add3(vertices, p4[0], p4[1], p4[2])
-
-        Vec3.cross(normalVector, horizontalVector, verticalVector)
-
-        for (let i = 0; i < 4; ++i) {
-            ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2])
-        }
-        ChunkedArray.add3(indices, vertexCount + 2, vertexCount + 1, vertexCount);
-        ChunkedArray.add3(indices, vertexCount, vertexCount + 3, vertexCount + 2);
+        addCap(linearSegments * 3, builder, controlPoints, normalVectors, binormalVectors, width, height, height)
     }
 
-    const addedVertexCount = (linearSegments + 1) * 8 + (startCap ? 4 : 0) + (endCap && arrowHeight === 0 ? 4 : 0)
+    const addedVertexCount = (linearSegments + 1) * 8 + 
+        (startCap ? 4 : (arrowHeight > 0 ? 8 : 0)) + 
+        (endCap && arrowHeight === 0 ? 4 : 0)
     for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup)
 }

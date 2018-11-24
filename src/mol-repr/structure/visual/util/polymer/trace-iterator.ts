@@ -119,8 +119,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
     }
 
     private setControlPoint(out: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, residueIndex: ResidueIndex) {
-        const ss = this.unit.model.properties.secondaryStructure.type[residueIndex]
-        if (SecondaryStructureType.is(ss, SecondaryStructureType.Flag.Beta)) {
+        if (SecondaryStructureType.is(this.currSecStrucType, SecondaryStructureType.Flag.Beta)) {
             Vec3.scale(out, Vec3.add(out, p1, Vec3.add(out, p3, Vec3.add(out, p2, p2))), 1/4)
         } else {
             Vec3.copy(out, p2)
@@ -137,6 +136,8 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 this.updateResidueSegmentRange(this.polymerSegment)
                 if (residueIt.hasNext) {
                     this.state = AtomicPolymerTraceIteratorState.nextResidue
+                    this.currSecStrucType = SecStrucTypeNA
+                    this.nextSecStrucType = this.secondaryStructureType[this.residueSegmentMin]
                     break
                 }
             }
@@ -144,7 +145,17 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
         if (this.state === AtomicPolymerTraceIteratorState.nextResidue) {
             const { index: residueIndex } = residueIt.move();
+            this.prevSecStrucType = this.currSecStrucType
+            this.currSecStrucType = this.nextSecStrucType
+            this.nextSecStrucType = residueIt.hasNext ? this.secondaryStructureType[residueIndex + 1] : SecStrucTypeNA
+
+            value.secStrucType = this.currSecStrucType
             value.center.element = this.getElementIndex(residueIndex, 'trace')
+            value.first = residueIndex === this.residueSegmentMin
+            value.last = residueIndex === this.residueSegmentMax
+            value.secStrucFirst = this.prevSecStrucType !== this.currSecStrucType
+            value.secStrucLast = this.currSecStrucType !== this.nextSecStrucType
+            value.moleculeType = getAtomicMoleculeType(this.unit.model, residueIndex)
 
             this.pos(this.p0, this.getElementIndex(residueIndex - 3 as ResidueIndex, 'trace'))
             this.pos(this.p1, this.getElementIndex(residueIndex - 2 as ResidueIndex, 'trace'))
@@ -159,12 +170,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             this.pos(this.v23, this.getElementIndex(residueIndex, 'direction'))
             // this.pos(this.v34, this.getAtomIndex(residueIndex + 1 as ResidueIndex, 'direction'))
 
-            this.prevSecStrucType = this.currSecStrucType
-            this.currSecStrucType = this.nextSecStrucType
-            this.nextSecStrucType = residueIt.hasNext ? this.secondaryStructureType[residueIndex + 1] : SecStrucTypeNA
-
-            this.value.secStrucType = this.currSecStrucType
-
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndex - 2 as ResidueIndex)
             this.setControlPoint(value.p1, this.p1, this.p2, this.p3, residueIndex - 1 as ResidueIndex)
             this.setControlPoint(value.p2, this.p2, this.p3, this.p4, residueIndex)
@@ -173,12 +178,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
             Vec3.copy(value.d12, this.v12)
             Vec3.copy(value.d23, this.v23)
-
-            value.first = residueIndex === this.residueSegmentMin
-            value.last = residueIndex === this.residueSegmentMax
-            value.secStrucFirst = this.prevSecStrucType !== this.currSecStrucType
-            value.secStrucLast = this.currSecStrucType !== this.nextSecStrucType
-            value.moleculeType = getAtomicMoleculeType(this.unit.model, residueIndex)
 
             if (!residueIt.hasNext) {
                 this.state = AtomicPolymerTraceIteratorState.nextPolymer
