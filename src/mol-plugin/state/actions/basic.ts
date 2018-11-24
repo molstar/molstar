@@ -81,13 +81,14 @@ const DownloadStructure = StateAction.create<PluginStateObject.Root, void, Downl
     }
 });
 
-export const OpenStructure = StateAction.create<PluginStateObject.Root, void, { file: File }>({
-    from: [PluginStateObject.Root],
+export const OpenStructure = StateAction.build({
+    from: PluginStateObject.Root,
+    params: { file: PD.File({ accept: '.cif,.bcif' }) }
+})({
     display: {
         name: 'Open Structure',
         description: 'Load a structure from file and create its default Assembly and visual'
     },
-    params: () => ({ file: PD.File({ accept: '.cif,.bcif' }) }),
     apply({ params, state }) {
         const b = state.build();
         const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
@@ -130,8 +131,9 @@ function complexRepresentation(root: StateTreeBuilder.To<PluginStateObject.Molec
         // TODO: create spheres visual
 }
 
-export const CreateComplexRepresentation = StateAction.create<PluginStateObject.Molecule.Structure, void, {}>({
-    from: [PluginStateObject.Molecule.Structure],
+export const CreateComplexRepresentation = StateAction.build({
+    from: PluginStateObject.Molecule.Structure
+})({
     display: {
         name: 'Create Complex',
         description: 'Split the structure into Sequence/Water/Ligands/... '
@@ -143,15 +145,15 @@ export const CreateComplexRepresentation = StateAction.create<PluginStateObject.
     }
 });
 
-export const UpdateTrajectory = StateAction.create<PluginStateObject.Root, void, { action: 'advance' | 'reset', by?: number }>({
-    from: [],
+export const UpdateTrajectory = StateAction.build({
+    params: () => ({
+        action: PD.Select<'advance' | 'reset'>('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
+        by: PD.makeOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
+    })
+})({
     display: {
         name: 'Update Trajectory'
     },
-    params: () => ({
-        action: PD.Select('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
-        by: PD.Numeric(1, { min: -1, max: 1, step: 1 }, { isOptional: true })
-    }),
     apply({ params, state }) {
         const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model)
             .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));

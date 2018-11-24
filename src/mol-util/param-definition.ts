@@ -15,19 +15,18 @@ export namespace ParamDefinition {
         label?: string,
         description?: string,
         isHidden?: boolean,
-        isOptional?: boolean,
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
         if (info.description) param.description = info.description;
         if (info.label) param.label = info.label;
-        if (info.isOptional) param.isOptional = info.isOptional;
         if (info.isHidden) param.isHidden = info.isHidden;
         return param;
     }
 
     export interface Base<T> extends Info {
+        isOptional?: boolean,
         defaultValue: T
     }
 
