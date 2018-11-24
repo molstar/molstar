@@ -147,22 +147,16 @@ export namespace Transformer {
     }
 
     export namespace Builder {
-        type ParamDefinition<P> = { [K in keyof P]-?: PD.Base<P[K]> }
-
         export interface Type<A extends StateObject.Ctor, B extends StateObject.Ctor, P extends { }> {
             name: string,
             from: A | A[],
             to: B | B[],
-            params?: ParamDefinition<P> | ((a: StateObject.From<A>, globalCtx: any) => ParamDefinition<P>)
+            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>)
         }
 
         export interface Root {
-            <A extends StateObject.Ctor, B extends StateObject.Ctor, P extends { }>(info: Type<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, Params<P>>
+            <A extends StateObject.Ctor, B extends StateObject.Ctor, P extends { }>(info: Type<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, PD.Normalize<P>>
         }
-
-        type Optionals<P> = { [K in keyof P]-?: undefined extends P[K] ? K : never }[keyof P]
-        type NonOptionals<P> = { [K in keyof P]-?: undefined extends P[K] ? never: K }[keyof P]
-        type Params<P> = Pick<P, NonOptionals<P>> & Partial<Pick<P, Optionals<P>>>
 
         export interface Define<A extends StateObject, B extends StateObject, P> {
             (def: DefinitionBase<A, B, P>): Transformer<A, B, P>
