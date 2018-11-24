@@ -8,7 +8,7 @@
 import * as React from 'react'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
-import { ColorNames } from 'mol-util/color/tables';
+import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
 import { Color } from 'mol-util/color';
 import { Slider, Slider2 } from './slider';
 
@@ -172,6 +172,13 @@ function ColorOptions() {
     return _colors;
 }
 
+function ColorValueOption(color: Color) {
+    return !ColorNamesValueMap.has(color) ? <option key={Color.toHexString(color)} value={color} style={{ background: `${Color.toStyle(color)}` }} >
+        {Color.toHexString(color)}
+    </option> : null
+}
+
+
 export class ColorControl extends SimpleParam<PD.Color> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         this.update(Color(parseInt(e.target.value)));
@@ -179,6 +186,7 @@ export class ColorControl extends SimpleParam<PD.Color> {
 
     renderControl() {
         return <select value={this.props.value} onChange={this.onChange} style={{ borderLeft: `16px solid ${Color.toStyle(this.props.value)}` }}>
+            {ColorValueOption(this.props.value)}
             {ColorOptions()}
         </select>;
     }
