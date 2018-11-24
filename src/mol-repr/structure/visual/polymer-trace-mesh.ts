@@ -52,7 +52,7 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
         const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
         const isHelix = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Helix)
-        const tension = (isNucleicType || isSheet) ? 0.5 : 0.9
+        const tension = isNucleicType ? 0.5 : 0.9
         const shift = isNucleicType ? 0.3 : 0.5
 
         interpolateCurveSegment(state, v, tension, shift)
@@ -62,8 +62,8 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
 
         if (isSheet) {
             const height = width * aspectRatio
-            const arrowHeight = v.secStrucChange ? height * arrowFactor : 0
-            addSheet(builder, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, true, true)
+            const arrowHeight = v.secStrucLast ? height * arrowFactor : 0
+            addSheet(builder, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, v.secStrucFirst, v.secStrucLast)
         } else {
             let height: number
             if (isHelix) {
@@ -74,7 +74,7 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
             } else {
                 height = width
             }
-            addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, true, true)
+            addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, v.secStrucFirst, v.secStrucLast)
         }
 
         if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
