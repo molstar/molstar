@@ -14,7 +14,6 @@ import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StructureMeshParams, StructurePointsParams, StructureLinesParams, StructureDirectVolumeParams } from 'mol-repr/structure/representation';
@@ -70,43 +69,43 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
 
 // mesh
 
-export async function createComplexMeshRenderObject(ctx: VisualContext, structure: Structure, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
+export function createComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
     const transform = createIdentityTransform()
-    const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, theme, props)
+    const values = Mesh.createValues(mesh, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
-export async function createUnitsMeshRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
+export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
     const transform = createUnitsTransform(group)
-    const values = await Mesh.createValues(ctx.runtime, mesh, transform, locationIt, theme, props)
+    const values = Mesh.createValues(mesh, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
 // points
 
-export async function createUnitsPointsRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructurePointsParams>) {
+export function createUnitsPointsRenderObject(group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructurePointsParams>) {
     const transform = createUnitsTransform(group)
-    const values = await Points.createValues(ctx.runtime, points, transform, locationIt, theme, props)
+    const values = Points.createValues(points, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createPointsRenderObject(values, state)
 }
 
 // lines
 
-export async function createUnitsLinesRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureLinesParams>) {
+export function createUnitsLinesRenderObject(group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureLinesParams>) {
     const transform = createUnitsTransform(group)
-    const values = await Lines.createValues(ctx.runtime, lines, transform, locationIt, theme, props)
+    const values = Lines.createValues(lines, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createLinesRenderObject(values, state)
 }
 
 // direct-volume
 
-export async function createUnitsDirectVolumeRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
+export function createUnitsDirectVolumeRenderObject(group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
     const transform = createUnitsTransform(group)
-    const values = await DirectVolume.createValues(ctx.runtime, directVolume, transform, locationIt, theme, props)
+    const values = DirectVolume.createValues(directVolume, transform, locationIt, theme, props)
     const state = createRenderableState(props)
     return createDirectVolumeRenderObject(values, state)
 }

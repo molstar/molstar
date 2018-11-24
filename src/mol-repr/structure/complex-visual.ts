@@ -47,7 +47,7 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
 
 interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<ComplexRenderObject>
+    createRenderObject(structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): ComplexRenderObject
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
     updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
 }
@@ -74,7 +74,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         geometry = await createGeometry(ctx, currentStructure, theme, currentProps, geometry)
 
         locationIt = createLocationIterator(structure)
-        renderObject = await createRenderObject(ctx, structure, geometry, locationIt, theme, currentProps)
+        renderObject = createRenderObject(structure, geometry, locationIt, theme, currentProps)
     }
 
     async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>>) {
@@ -107,12 +107,12 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         if (updateState.updateSize) {
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
-                await createSizes(ctx.runtime, locationIt, theme.size, renderObject.values)
+                createSizes(locationIt, theme.size, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
-            await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
+            createColors(locationIt, theme.color, renderObject.values)
         }
 
         updateValues(renderObject.values, newProps)

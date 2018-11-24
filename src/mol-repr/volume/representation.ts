@@ -35,7 +35,7 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
 }
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
-    createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<VolumeRenderObject>
+    createRenderObject(geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): VolumeRenderObject
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
     updateBoundingSphere(values: RenderableValues, geometry: G): void
 }
@@ -55,7 +55,7 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
         currentProps = Object.assign({}, defaultProps, props)
         geometry = await createGeometry(ctx, volume, currentProps, geometry)
         locationIt = LocationIterator(1, 1, () => NullLocation)
-        renderObject = await createRenderObject(ctx, geometry, locationIt, theme, currentProps)
+        renderObject = createRenderObject(geometry, locationIt, theme, currentProps)
     }
 
     async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}) {

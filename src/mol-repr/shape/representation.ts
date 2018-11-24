@@ -55,7 +55,7 @@ export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationCo
             locationIt = ShapeGroupIterator.fromShape(_shape)
             const transform = createIdentityTransform()
 
-            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, _theme, currentProps)
+            const values = Mesh.createValues(mesh, transform, locationIt, _theme, currentProps)
             const state = createRenderableState(currentProps)
 
             _renderObject = createMeshRenderObject(values, state)

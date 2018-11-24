@@ -8,7 +8,6 @@ import { ValueCell } from 'mol-util'
 import { Mat4 } from 'mol-math/linear-algebra'
 import { transformPositionArray/* , transformDirectionArray, getNormalMatrix */ } from '../../util';
 import { Geometry } from '../geometry';
-import { RuntimeContext } from 'mol-task';
 import { createColors } from '../color-data';
 import { createMarkers } from '../marker-data';
 import { createSizes } from '../size-data';
@@ -99,10 +98,10 @@ export namespace Lines {
     }
     export type Params = typeof Params
 
-    export async function createValues(ctx: RuntimeContext, lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): Promise<LinesValues> {
+    export function createValues(lines: Lines, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): LinesValues {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, theme.color)
-        const size = await createSizes(ctx, locationIt, theme.size)
+        const color = createColors(locationIt, theme.color)
+        const size = createSizes(locationIt, theme.size)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: lines.lineCount * 2 * 3, groupCount, instanceCount }

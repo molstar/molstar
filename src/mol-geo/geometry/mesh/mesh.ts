@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { Task, RuntimeContext } from 'mol-task'
+import { Task } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Vec3, Mat4 } from 'mol-math/linear-algebra'
 import { Sphere3D } from 'mol-math/geometry'
@@ -349,9 +349,9 @@ export namespace Mesh {
     }
     export type Params = typeof Params
 
-    export async function createValues(ctx: RuntimeContext, mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): Promise<MeshValues> {
+    export function createValues(mesh: Mesh, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): MeshValues {
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, theme.color)
+        const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: mesh.triangleCount * 3, groupCount, instanceCount }

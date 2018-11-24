@@ -172,9 +172,9 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
         mark: () => false,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<DirectVolumeParams>, currentProps: PD.Values<DirectVolumeParams>) => {
         },
-        createRenderObject: async (ctx: VisualContext, geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<DirectVolumeParams>) => {
+        createRenderObject: (geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<DirectVolumeParams>) => {
             const transform = createIdentityTransform()
-            const values = await DirectVolume.createValues(ctx.runtime, geometry, transform, locationIt, theme, props)
+            const values = DirectVolume.createValues(geometry, transform, locationIt, theme, props)
             const state = createRenderableState(props)
             return createDirectVolumeRenderObject(values, state)
         },

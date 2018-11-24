@@ -47,7 +47,7 @@ interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
 
 interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> extends UnitsVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
-    createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<UnitsRenderObject>
+    createRenderObject(group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): UnitsRenderObject
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void
     updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
 }
@@ -79,7 +79,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
 
         // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
-        renderObject = await createRenderObject(ctx, group, geometry, locationIt, theme, currentProps)
+        renderObject = createRenderObject(group, geometry, locationIt, theme, currentProps)
     }
 
     async function update(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
@@ -148,13 +148,13 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
                 // console.log('update size')
-                await createSizes(ctx.runtime, locationIt, theme.size, renderObject.values)
+                createSizes(locationIt, theme.size, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
             // console.log('update color')
-            await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
+            createColors(locationIt, theme.color, renderObject.values)
         }
 
         updateValues(renderObject.values, newProps)

@@ -4,7 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { RuntimeContext } from 'mol-task'
 import { ValueCell } from 'mol-util'
 import { Sphere3D, Box3D } from 'mol-math/geometry'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -76,12 +75,12 @@ export namespace DirectVolume {
     }
     export type Params = typeof Params
 
-    export async function createValues(ctx: RuntimeContext, directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): Promise<DirectVolumeValues> {
+    export function createValues(directVolume: DirectVolume, transform: TransformData, locationIt: LocationIterator, theme: Theme, props: PD.Values<Params>): DirectVolumeValues {
         const { gridTexture, gridTextureDim } = directVolume
         const { bboxSize, bboxMin, bboxMax, gridDimension, transform: gridTransform } = directVolume
 
         const { instanceCount, groupCount } = locationIt
-        const color = await createColors(ctx, locationIt, theme.color)
+        const color = createColors(locationIt, theme.color)
         const marker = createMarkers(instanceCount * groupCount)
 
         const counts = { drawCount: VolumeBox.indices.length, groupCount, instanceCount }
