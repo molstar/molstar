@@ -100,10 +100,7 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
     }
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
-    console.time('derived')
     const derived = getAtomicDerivedData(hierarchyData, index, formatData.chemicalComponentMap);
-    console.timeEnd('derived')
-    console.log(derived)
     const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, formatData.chemicalComponentMap);
     const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, ...hierarchyRanges, index, derived };
     return { sameAsPrevious: false, hierarchy, conformation };

@@ -10,13 +10,22 @@ import { ChunkedArray } from 'mol-data/util';
 import { MeshBuilder } from '../mesh-builder';
 
 const normalVector = Vec3.zero()
-const binormalVector = Vec3.zero()
+const surfacePoint = Vec3.zero()
 const controlPoint = Vec3.zero()
-const tempPos = Vec3.zero()
-const a = Vec3.zero()
-const b = Vec3.zero()
 const u = Vec3.zero()
 const v = Vec3.zero()
+
+function add2AndScale2(out: Vec3, a: Vec3, b: Vec3, sa: number, sb: number) {
+    out[0] = (a[0] * sa) + (b[0] * sb);
+    out[1] = (a[1] * sa) + (b[1] * sb);
+    out[2] = (a[2] * sa) + (b[2] * sb);
+}
+
+function add3AndScale2(out: Vec3, a: Vec3, b: Vec3, c: Vec3, sa: number, sb: number) {
+    out[0] = (a[0] * sa) + (b[0] * sb) + c[0];
+    out[1] = (a[1] * sa) + (b[1] * sb) + c[1];
+    out[2] = (a[2] * sa) + (b[2] * sb) + c[2];
+}
 
 export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) {
     const { currentGroup, vertices, normals, indices, groups } = builder.state
@@ -28,6 +37,7 @@ export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, 
         const i3 = i * 3
         Vec3.fromArray(u, normalVectors, i3)
         Vec3.fromArray(v, binormalVectors, i3)
+        Vec3.fromArray(controlPoint, controlPoints, i3)
 
         const tt = di * i - 0.5;
         const ff = 1 + (waveFactor - 1) * (Math.cos(2 * Math.PI * tt) + 1);
@@ -36,27 +46,11 @@ export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, 
         for (let j = 0; j < radialSegments; ++j) {
             const t = 2 * Math.PI * j / radialSegments;
 
-            Vec3.copy(a, u)
-            Vec3.copy(b, v)
-            Vec3.add(
-                normalVector,
-                Vec3.scale(a, a, w * Math.cos(t)),
-                Vec3.scale(b, b, h * Math.sin(t))
-            )
-
-            Vec3.copy(a, u)
-            Vec3.copy(b, v)
-            Vec3.add(
-                binormalVector,
-                Vec3.scale(a, a, h * Math.cos(t)),
-                Vec3.scale(b, b, w * Math.sin(t))
-            )
+            add3AndScale2(surfacePoint, u, v, controlPoint, h * Math.cos(t), w * Math.sin(t))
+            add2AndScale2(normalVector, u, v, w * Math.cos(t), h * Math.sin(t))
             Vec3.normalize(normalVector, normalVector)
 
-            Vec3.fromArray(tempPos, controlPoints, i3)
-            Vec3.add(tempPos, tempPos, binormalVector)
-
-            ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
+            ChunkedArray.add3(vertices, surfacePoint[0], surfacePoint[1], surfacePoint[2]);
             ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
         }
     }
@@ -93,16 +87,9 @@ export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, 
         for (let i = 0; i < radialSegments; ++i) {
             const t = 2 * Math.PI * i / radialSegments;
 
-            Vec3.copy(a, u)
-            Vec3.copy(b, v)
-            Vec3.add(
-                tempPos,
-                Vec3.scale(a, a, height * Math.cos(t)),
-                Vec3.scale(b, b, width * Math.sin(t))
-            )
-            Vec3.add(tempPos, controlPoint, tempPos)
+            add3AndScale2(surfacePoint, u, v, controlPoint, height * Math.cos(t), width * Math.sin(t))
 
-            ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
+            ChunkedArray.add3(vertices, surfacePoint[0], surfacePoint[1], surfacePoint[2]);
             ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
             ChunkedArray.add3(
@@ -129,16 +116,9 @@ export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, 
         for (let i = 0; i < radialSegments; ++i) {
             const t = 2 * Math.PI * i / radialSegments
 
-            Vec3.copy(a, u)
-            Vec3.copy(b, v)
-            Vec3.add(
-                tempPos,
-                Vec3.scale(a, a, height * Math.cos(t)),
-                Vec3.scale(b, b, width * Math.sin(t))
-            )
-            Vec3.add(tempPos, controlPoint, tempPos)
+            add3AndScale2(surfacePoint, u, v, controlPoint, height * Math.cos(t), width * Math.sin(t))
 
-            ChunkedArray.add3(vertices, tempPos[0], tempPos[1], tempPos[2]);
+            ChunkedArray.add3(vertices, surfacePoint[0], surfacePoint[1], surfacePoint[2]);
             ChunkedArray.add3(normals, normalVector[0], normalVector[1], normalVector[2]);
 
             ChunkedArray.add3(

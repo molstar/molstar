@@ -453,12 +453,9 @@ namespace Vec3 {
         return add(out, scale(out, copy(out, vector), scalar), origin);
     }
 
-    const orthogonalizeTmp = zero();
     /** Get a vector that is similar to `b` but orthogonal to `a` */
     export function orthogonalize(out: Vec3, a: Vec3, b: Vec3) {
-        normalize(orthogonalizeTmp, cross(orthogonalizeTmp, a, b));
-        normalize(out, cross(out, orthogonalizeTmp, a));
-        return out;
+        return normalize(out, cross(out, cross(out, a, b), a));
     }
 
     const triangleNormalTmpAB = zero();

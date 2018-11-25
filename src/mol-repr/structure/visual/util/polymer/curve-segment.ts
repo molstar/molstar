@@ -37,7 +37,7 @@ export function interpolateCurveSegment(state: CurveSegmentState, controls: Curv
 
 const tanA = Vec3.zero()
 const tanB = Vec3.zero()
-const tB = Vec3.zero()
+const curvePoint = Vec3.zero()
 
 export function interpolatePointsAndTangents(state: CurveSegmentState, controls: CurveSegmentControls, tension: number, shift: number) {
     const { curvePoints, tangentVectors, linearSegments } = state
@@ -48,15 +48,15 @@ export function interpolatePointsAndTangents(state: CurveSegmentState, controls:
     for (let j = 0; j <= linearSegments; ++j) {
         const t = j * 1.0 / linearSegments;
         if (t < shift1) {
-            Vec3.spline(tB, p0, p1, p2, p3, t + shift, tension)
+            Vec3.spline(curvePoint, p0, p1, p2, p3, t + shift, tension)
             Vec3.spline(tanA, p0, p1, p2, p3, t + shift + 0.01, tension)
             Vec3.spline(tanB, p0, p1, p2, p3, t + shift - 0.01, tension)
         } else {
-            Vec3.spline(tB, p1, p2, p3, p4, t - shift1, tension)
+            Vec3.spline(curvePoint, p1, p2, p3, p4, t - shift1, tension)
             Vec3.spline(tanA, p1, p2, p3, p4, t - shift1 + 0.01, tension)
             Vec3.spline(tanB, p1, p2, p3, p4, t - shift1 - 0.01, tension)
         }
-        Vec3.toArray(tB, curvePoints, j * 3)
+        Vec3.toArray(curvePoint, curvePoints, j * 3)
         Vec3.normalize(tangentVec, Vec3.sub(tangentVec, tanA, tanB))
         Vec3.toArray(tangentVec, tangentVectors, j * 3)
     }
@@ -89,11 +89,8 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
     Vec3.fromArray(firstTangentVec, tangentVectors, 0)
     Vec3.fromArray(lastTangentVec, tangentVectors,  (n - 1) * 3)
 
-    Vec3.normalize(tmpNormal, Vec3.sub(tmpNormal, firstControlPoint, firstDirection))
-    Vec3.orthogonalize(firstNormalVec, firstTangentVec, tmpNormal)
-
-    Vec3.normalize(tmpNormal, Vec3.sub(tmpNormal, lastControlPoint, lastDirection))
-    Vec3.orthogonalize(lastNormalVec, lastTangentVec, tmpNormal)
+    Vec3.orthogonalize(firstNormalVec, firstTangentVec, Vec3.sub(tmpNormal, firstControlPoint, firstDirection))
+    Vec3.orthogonalize(lastNormalVec, lastTangentVec, Vec3.sub(tmpNormal, lastControlPoint, lastDirection))
 
     if (Vec3.dot(firstNormalVec, lastNormalVec) < 0) {
         Vec3.scale(lastNormalVec, lastNormalVec, -1)
@@ -103,11 +100,10 @@ export function interpolateNormals(state: CurveSegmentState, controls: CurveSegm
 
     for (let i = 0; i < n; ++i) {
         const t = i === 0 ? 0 : 1 / (n - i)
-        Vec3.normalize(tmpNormal, Vec3.slerp(tmpNormal, prevNormal, lastNormalVec, t))
 
         Vec3.fromArray(tangentVec, tangentVectors, i * 3)
 
-        Vec3.orthogonalize(normalVec, tangentVec, tmpNormal)
+        Vec3.orthogonalize(normalVec, tangentVec, Vec3.slerp(tmpNormal, prevNormal, lastNormalVec, t))
         Vec3.toArray(normalVec, normalVectors, i * 3)
 
         Vec3.copy(prevNormal, normalVec)
