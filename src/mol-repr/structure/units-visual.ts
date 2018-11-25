@@ -38,7 +38,7 @@ type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObje
 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     defaultProps: PD.Values<P>
-    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G>
+    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): G
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     mark(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
@@ -66,7 +66,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     let locationIt: LocationIterator
     let currentConformationId: UUID
 
-    async function create(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
+    function create(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentTheme = theme
         currentGroup = group
@@ -74,7 +74,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         const unit = group.units[0]
         currentConformationId = Unit.conformationId(unit)
         geometry = includesUnitKind(currentProps.unitKinds, unit)
-            ? await createGeometry(ctx, unit, currentStructure, theme, currentProps, geometry)
+            ? createGeometry(ctx, unit, currentStructure, theme, currentProps, geometry)
             : createEmptyGeometry(geometry)
 
         // TODO create empty location iterator when not in unitKinds
@@ -82,7 +82,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         renderObject = createRenderObject(group, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
+    function update(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
@@ -137,7 +137,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         if (updateState.createGeometry) {
             // console.log('update geometry')
             geometry = includesUnitKind(newProps.unitKinds, unit)
-                ? await createGeometry(ctx, unit, currentStructure, theme, newProps, geometry)
+                ? createGeometry(ctx, unit, currentStructure, theme, newProps, geometry)
                 : createEmptyGeometry(geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
             updateBoundingSphere(renderObject.values, geometry)
@@ -168,20 +168,20 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     return {
         get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structureGroup?: StructureGroup) {
+        createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structureGroup?: StructureGroup) {
             if (structureGroup) currentStructure = structureGroup.structure
             const group = structureGroup ? structureGroup.group : undefined
             if (!group && !currentGroup) {
                 throw new Error('missing group')
             } else if (group && (!currentGroup || !renderObject)) {
                 // console.log('unit-visual first create')
-                await create(ctx, group, theme, props)
+                create(ctx, group, theme, props)
             } else if (group && group.hashCode !== currentGroup.hashCode) {
                 // console.log('unit-visual group.hashCode !== currentGroup.hashCode')
-                await create(ctx, group, theme, props)
+                create(ctx, group, theme, props)
             } else {
                 // console.log('unit-visual update')
-                await update(ctx, group || currentGroup, theme, props)
+                update(ctx, group || currentGroup, theme, props)
             }
         },
         getLoci(pickingId: PickingId) {

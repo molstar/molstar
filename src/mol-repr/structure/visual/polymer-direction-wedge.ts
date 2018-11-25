@@ -36,7 +36,7 @@ export const PolymerDirectionWedgeParams = {
 export const DefaultPolymerDirectionWedgeProps = PD.getDefaultValues(PolymerDirectionWedgeParams)
 export type PolymerDirectionWedgeProps = typeof DefaultPolymerDirectionWedgeProps
 
-async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
+function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerDirectionWedgeProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
@@ -80,9 +80,6 @@ async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, s
             builder.add(t, wedge)
         }
 
-        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Polymer direction mesh', current: i, max: polymerElementCount });
-        }
         ++i
     }
 

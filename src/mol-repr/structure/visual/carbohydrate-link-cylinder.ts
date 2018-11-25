@@ -21,7 +21,7 @@ import { VisualUpdateState } from '../../util';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-async function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateLinkParams>, mesh?: Mesh) {
+function createCarbohydrateLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateLinkParams>, mesh?: Mesh) {
     const { links, elements } = structure.carbohydrates
     const { linkSizeFactor } = props
 

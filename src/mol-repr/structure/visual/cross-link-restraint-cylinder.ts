@@ -21,7 +21,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-async function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CrossLinkRestraintParams>, mesh?: Mesh) {
+function createCrossLinkRestraintCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CrossLinkRestraintParams>, mesh?: Mesh) {
 
     const crossLinks = structure.crossLinkRestraints
     if (!crossLinks.count) return Mesh.createEmpty(mesh)

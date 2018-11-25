@@ -24,7 +24,7 @@ export type ElementPointParams = typeof ElementPointParams
 
 // TODO size
 
-export async function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
+export function createElementPoint(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<ElementPointParams>, points: Points) {
     const elements = unit.elements
     const n = elements.length
     const builder = PointsBuilder.create(n, n / 10, points)
@@ -35,10 +35,6 @@ export async function createElementPoint(ctx: VisualContext, unit: Unit, structu
     for (let i = 0; i < n; ++i) {
         pos(elements[i], p)
         builder.add(p[0], p[1], p[2], i)
-
-        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Creating points', current: i, max: n });
-        }
     }
     return builder.getPoints()
 }

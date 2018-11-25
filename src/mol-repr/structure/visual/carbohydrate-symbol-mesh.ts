@@ -44,7 +44,7 @@ const diamondPrism = DiamondPrism()
 const pentagonalPrism = PentagonalPrism()
 const hexagonalPrism = HexagonalPrism()
 
-async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateSymbolParams>, mesh?: Mesh) {
+function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateSymbolParams>, mesh?: Mesh) {
     const builder = MeshBuilder.create(256, 128, mesh)
 
     const { detail, sizeFactor } = props
@@ -135,10 +135,6 @@ async function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Struc
                 Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side , side / 2))
                 builder.add(t, hexagonalPrism)
                 break
-        }
-
-        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Carbohydrate symbols', current: i, max: n });
         }
     }
 

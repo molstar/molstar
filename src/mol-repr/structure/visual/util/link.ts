@@ -66,7 +66,7 @@ export interface LinkCylinderMeshBuilderProps {
  * Each edge is included twice to allow for coloring/picking
  * the half closer to the first vertex, i.e. vertex a.
  */
-export async function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCylinderMeshBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
+export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCylinderMeshBuilderProps, props: LinkCylinderProps, mesh?: Mesh) {
     const { linkCount, referencePosition, position, order, flags, radius } = linkBuilder
 
     if (!linkCount) return Mesh.createEmpty(mesh)
@@ -108,10 +108,6 @@ export async function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: Li
         } else {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
             addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
-        }
-
-        if (edgeIndex % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Cylinder mesh', current: edgeIndex, max: linkCount });
         }
     }
 

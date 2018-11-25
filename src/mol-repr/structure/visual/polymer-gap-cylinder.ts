@@ -29,7 +29,7 @@ export const PolymerGapCylinderParams = {
 export const DefaultPolymerGapCylinderProps = PD.getDefaultValues(PolymerGapCylinderParams)
 export type PolymerGapCylinderProps = typeof DefaultPolymerGapCylinderProps
 
-async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerGapCylinderProps, mesh?: Mesh) {
+function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerGapCylinderProps, mesh?: Mesh) {
     const polymerGapCount = unit.gapElements.length
     if (!polymerGapCount) return Mesh.createEmpty(mesh)
 
@@ -66,9 +66,6 @@ async function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, stru
             addFixedCountDashedCylinder(builder, pB, pA, 0.5, segmentCount, cylinderProps)
         }
 
-        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Gap mesh', current: i, max: polymerGapCount });
-        }
         i += 2
     }
 

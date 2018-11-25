@@ -23,7 +23,7 @@ export interface ElementSphereMeshProps {
     sizeFactor: number
 }
 
-export async function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh) {
+export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: ElementSphereMeshProps, mesh?: Mesh) {
     const { detail, sizeFactor } = props
 
     const { elements } = unit;
@@ -42,10 +42,6 @@ export async function createElementSphereMesh(ctx: VisualContext, unit: Unit, st
 
         meshBuilder.setGroup(i)
         addSphere(meshBuilder, v, theme.size.size(l) * sizeFactor, detail)
-
-        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Sphere mesh', current: i, max: elementCount });
-        }
     }
 
     return meshBuilder.getMesh()

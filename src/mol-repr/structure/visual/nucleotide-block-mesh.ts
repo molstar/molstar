@@ -41,7 +41,7 @@ export const NucleotideBlockMeshParams = {
 export const DefaultNucleotideBlockMeshProps = PD.getDefaultValues(NucleotideBlockMeshParams)
 export type NucleotideBlockMeshProps = typeof DefaultNucleotideBlockMeshProps
 
-async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideBlockMeshProps, mesh?: Mesh) {
+function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideBlockMeshProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
     const { sizeFactor } = props
@@ -109,9 +109,6 @@ async function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structu
                     }
                 }
 
-                if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-                    await ctx.runtime.update({ message: 'Nucleotide block mesh', current: i });
-                }
                 ++i
             }
         }

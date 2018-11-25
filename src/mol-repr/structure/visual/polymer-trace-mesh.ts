@@ -30,7 +30,7 @@ export type PolymerTraceMeshProps = typeof DefaultPolymerTraceMeshProps
 
 // TODO handle polymer ends properly
 
-async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerTraceMeshProps, mesh?: Mesh) {
+function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerTraceMeshProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
 
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
@@ -77,9 +77,6 @@ async function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure:
             addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, v.secStrucFirst, v.secStrucLast)
         }
 
-        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Polymer trace mesh', current: i, max: polymerElementCount });
-        }
         ++i
     }
 

@@ -38,7 +38,7 @@ type ComplexRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderOb
 
 interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
     defaultProps: PD.Values<P>
-    createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G>
+    createGeometry(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): G
     createLocationIterator(structure: Structure): LocationIterator
     getLoci(pickingId: PickingId, structure: Structure, id: number): Loci
     mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean): boolean,
@@ -65,19 +65,19 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
     let locationIt: LocationIterator
     let conformationHash: number
 
-    async function create(ctx: VisualContext, structure: Structure, theme: Theme, props: Partial<PD.Values<P>> = {}) {
+    function create(ctx: VisualContext, structure: Structure, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props)
         currentTheme = theme
         currentStructure = structure
 
         conformationHash = Structure.conformationHash(currentStructure)
-        geometry = await createGeometry(ctx, currentStructure, theme, currentProps, geometry)
+        geometry = createGeometry(ctx, currentStructure, theme, currentProps, geometry)
 
         locationIt = createLocationIterator(structure)
         renderObject = createRenderObject(structure, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>>) {
+    function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>>) {
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
 
         if (!renderObject) return false
@@ -98,7 +98,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         //
 
         if (updateState.createGeometry) {
-            geometry = await createGeometry(ctx, currentStructure, theme, newProps, geometry)
+            geometry = createGeometry(ctx, currentStructure, theme, newProps, geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
             updateBoundingSphere(renderObject.values, geometry)
             updateState.updateColor = true
@@ -126,18 +126,18 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
     return {
         get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
-        async createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
+        createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
             if (!structure && !currentStructure) {
                 throw new Error('missing structure')
             } else if (structure && (!currentStructure || !renderObject)) {
-                await create(ctx, structure, theme, props)
+                create(ctx, structure, theme, props)
             } else if (structure && !Structure.areEquivalent(structure, currentStructure)) {
-                await create(ctx, structure, theme, props)
+                create(ctx, structure, theme, props)
             } else {
                 if (structure && Structure.conformationHash(structure) !== Structure.conformationHash(currentStructure)) {
                     currentStructure = structure
                 }
-                await update(ctx, theme, props)
+                update(ctx, theme, props)
             }
         },
         getLoci(pickingId: PickingId) {

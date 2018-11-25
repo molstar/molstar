@@ -27,7 +27,8 @@ export const PolymerBackboneCylinderParams = {
 export const DefaultPolymerBackboneCylinderProps = PD.getDefaultValues(PolymerBackboneCylinderParams)
 export type PolymerBackboneCylinderProps = typeof DefaultPolymerBackboneCylinderProps
 
-async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
+// TODO do group id based on polymer index not element index
+function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PolymerBackboneCylinderProps, mesh?: Mesh) {
     const polymerElementCount = unit.polymerElements.length
     if (!polymerElementCount) return Mesh.createEmpty(mesh)
 
@@ -42,7 +43,6 @@ async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit,
     const pB = Vec3.zero()
     const cylinderProps: CylinderProps = { radiusTop: 1, radiusBottom: 1, radialSegments }
 
-    let i = 0
     const polymerBackboneIt = PolymerBackboneIterator(unit)
     while (polymerBackboneIt.hasNext) {
         const { centerA, centerB } = polymerBackboneIt.move()
@@ -56,11 +56,6 @@ async function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit,
         cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB) * sizeFactor
         builder.setGroup(OrderedSet.indexOf(elements, centerB.element))
         addCylinder(builder, pB, pA, 0.5, cylinderProps)
-
-        if (i % 10000 === 0 && ctx.runtime.shouldUpdate) {
-            await ctx.runtime.update({ message: 'Backbone mesh', current: i, max: polymerElementCount });
-        }
-        ++i
     }
 
     return builder.getMesh()

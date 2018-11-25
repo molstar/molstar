@@ -19,7 +19,7 @@ import { PickingId } from 'mol-geo/geometry/picking';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 
-async function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
+function createInterUnitLinkCylinderMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<InterUnitLinkParams>, mesh?: Mesh) {
     const links = structure.links
     const { bondCount, bonds } = links
     const { sizeFactor, sizeAspectRatio } = props
