@@ -151,17 +151,29 @@ export namespace ParamDefinition {
 
     export interface NamedParams<T = any, K = string> { name: K, params: T }
     export type NamedParamUnion<P extends Params, K = keyof P> = K extends any ? NamedParams<P[K]['defaultValue'], K> : never
-    export interface Mapped<T> extends Base<NamedParams<T>> {
+    export interface Mapped<T extends NamedParams<any, any>> extends Base<T> {
         type: 'mapped',
         select: Select<string>,
         map(name: string): Any
     }
-    export function Mapped<T>(defaultKey: string, names: [string, string][], map: Mapped<T>['map'], info?: Info): Mapped<T> {
-        return setInfo<Mapped<T>>({
+    export function Mapped<T>(defaultKey: string, names: [string, string][], map: (name: string) => Any, info?: Info): Mapped<NamedParams<T>> {
+        return setInfo<Mapped<NamedParams<T>>>({
             type: 'mapped',
             defaultValue: { name: defaultKey, params: map(defaultKey).defaultValue as any },
             select: Select<string>(defaultKey, names, info),
-            map }, info);
+            map
+        }, info);
+    }
+    export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][] }): Mapped<NamedParamUnion<C>> {
+        const options: [string, string][] = info && info.options
+            ? info.options as [string, string][]
+            : Object.keys(map).map(k => [k, k]) as [string, string][];
+        return setInfo<Mapped<NamedParamUnion<C>>>({
+            type: 'mapped',
+            defaultValue: { name: defaultKey, params: map[defaultKey].defaultValue } as any,
+            select: Select<string>(defaultKey as string, options, info),
+            map: key => map[key]
+        }, info);
     }
 
     export interface Converted<T, C> extends Base<T> {

@@ -42,7 +42,6 @@ class ApplyActionContol extends TransformContolBase<ApplyActionContol.Props, App
     }
     getInfo() { return this._getInfo(this.props.nodeRef, this.props.state.transforms.get(this.props.nodeRef).version); }
     getHeader() { return this.props.action.definition.display; }
-    getHeaderFallback() { return this.props.action.id; }
     canApply() { return !this.state.error && !this.state.busy; }
     canAutoApply() { return false; }
     applyText() { return 'Apply'; }

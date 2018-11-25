@@ -162,7 +162,7 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
 
         let label: any;
         if (cell.status !== 'ok' || !cell.obj) {
-            const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
+            const name = n.transformer.definition.display.name;
             const title = `${cell.errorText}`
             label = <><b>{cell.status}</b> <a title={title} href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {

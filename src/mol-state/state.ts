@@ -104,7 +104,7 @@ class State {
             if (!cell) throw new Error(`'${ref}' does not exist.`);
             if (cell.status !== 'ok') throw new Error(`Action cannot be applied to a cell with status '${cell.status}'`);
 
-            return runTask(action.definition.apply({ ref, cell, a: cell.obj!, params, state: this }, this.globalContext), ctx);
+            return runTask(action.definition.run({ ref, cell, a: cell.obj!, params, state: this }, this.globalContext), ctx);
         });
     }
 
