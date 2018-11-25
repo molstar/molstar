@@ -98,7 +98,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
         this.residueSegmentMax = index[this.unit.elements[polymerSegment.end - 1]]
     }
 
-    private getResidueIndex(residueIndex: ResidueIndex) {
+    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
         if (residueIndex < this.residueSegmentMin) {
             const cyclicIndex = this.cyclicPolymerMap.get(this.residueSegmentMin)
             if (cyclicIndex !== undefined) {
@@ -114,10 +114,6 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
                 residueIndex = this.residueSegmentMax
             }
         }
-        return residueIndex
-    }
-
-    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
         const elementIndex = getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
         return elementIndex === -1 ? this.residueAtomSegments.offsets[residueIndex] : elementIndex
     }
@@ -163,12 +159,12 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
             value.moleculeType = getAtomicMoleculeType(this.unit.model, residueIndex)
 
             if (value.first) {
-                this.pos(this.p0, this.getElementIndex(this.getResidueIndex(residueIndex - 3 as ResidueIndex), 'trace'))
-                this.pos(this.p1, this.getElementIndex(this.getResidueIndex(residueIndex - 2 as ResidueIndex), 'trace'))
-                this.pos(this.p2, this.getElementIndex(this.getResidueIndex(residueIndex - 1 as ResidueIndex), 'trace'))
+                this.pos(this.p0, this.getElementIndex(residueIndex - 3 as ResidueIndex, 'trace'))
+                this.pos(this.p1, this.getElementIndex(residueIndex - 2 as ResidueIndex, 'trace'))
+                this.pos(this.p2, this.getElementIndex(residueIndex - 1 as ResidueIndex, 'trace'))
                 this.pos(this.p3, value.center.element)
-                this.pos(this.p4, this.getElementIndex(this.getResidueIndex(residueIndex + 1 as ResidueIndex), 'trace'))
-                this.pos(this.p5, this.getElementIndex(this.getResidueIndex(residueIndex + 2 as ResidueIndex), 'trace'))
+                this.pos(this.p4, this.getElementIndex(residueIndex + 1 as ResidueIndex, 'trace'))
+                this.pos(this.p5, this.getElementIndex(residueIndex + 2 as ResidueIndex, 'trace'))
 
                 this.pos(this.v12, this.getElementIndex(residueIndex - 1 as ResidueIndex, 'direction'))
             } else {
@@ -181,7 +177,7 @@ export class AtomicPolymerTraceIterator implements Iterator<PolymerTraceElement>
 
                 Vec3.copy(this.v12, this.v23)
             }
-            this.pos(this.p6, this.getElementIndex(this.getResidueIndex(residueIndex + 3 as ResidueIndex), 'trace'))
+            this.pos(this.p6, this.getElementIndex(residueIndex + 3 as ResidueIndex, 'trace'))
             this.pos(this.v23, this.getElementIndex(residueIndex, 'direction'))
 
             this.setControlPoint(value.p0, this.p0, this.p1, this.p2, residueIndex - 2 as ResidueIndex)
