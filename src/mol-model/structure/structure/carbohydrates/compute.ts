@@ -17,7 +17,7 @@ import { getPositionMatrix } from '../../util';
 import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
-import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink, PartialCarbohydrateElement } from './data';
+import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink, PartialCarbohydrateElement, EmptyCarbohydrates } from './data';
 import { UnitRings, UnitRing } from '../unit/rings';
 import { ElementIndex } from '../../model/indexing';
 
@@ -122,6 +122,10 @@ function getSaccharideComp(compId: string, model: Model) {
 }
 
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
+    // skip computation if there are no saccharide components in any model
+    if (structure.models.reduce((a, v) => a + v.properties.saccharideComponentMap.size, 0) === 0)
+        return EmptyCarbohydrates
+
     const links: CarbohydrateLink[] = []
     const terminalLinks: CarbohydrateTerminalLink[] = []
     const elements: CarbohydrateElement[] = []

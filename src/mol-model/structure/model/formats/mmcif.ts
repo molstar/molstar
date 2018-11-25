@@ -1,7 +1,8 @@
 /**
- * Copyright (c) 2017 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ * Copyright (c) 2017-2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
  *
  * @author David Sehnal <david.sehnal@gmail.com>
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
 import { Column, Table } from 'mol-data/db';
@@ -112,7 +113,7 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
     const map = new Map<string, SaccharideComponent>();
     const { pdbx_chem_comp_identifier } = format.data
     if (pdbx_chem_comp_identifier._rowCount > 0) {
-        const { type, comp_id, identifier } = pdbx_chem_comp_identifier
+        const { comp_id, type, identifier } = pdbx_chem_comp_identifier
         for (let i = 0, il = pdbx_chem_comp_identifier._rowCount; i < il; ++i) {
             if (type.value(i) === 'SNFG CARB SYMBOL') {
                 const snfgName = identifier.value(i)
@@ -124,16 +125,20 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
                 }
             }
         }
-    } else {
-        SaccharideCompIdMap.forEach((v, k) => map.set(k, v))
+    } else if (format.data.chem_comp._rowCount > 0) {
         const { id, type  } = format.data.chem_comp
         for (let i = 0, il = id.rowCount; i < il; ++i) {
             const _id = id.value(i)
             const _type = type.value(i)
-            if (!map.has(_id) && getMoleculeType(_type, _id) === MoleculeType.saccharide) {
+            if (SaccharideCompIdMap.has(_id)) {
+                map.set(_id, SaccharideCompIdMap.get(_id)!)
+            } else if (!map.has(_id) && getMoleculeType(_type, _id) === MoleculeType.saccharide) {
                 map.set(_id, UnknownSaccharideComponent)
             }
         }
+    } else {
+        // TODO check if present in format.data.atom_site.label_comp_id
+        SaccharideCompIdMap.forEach((v, k) => map.set(k, v))
     }
     return map
 }
