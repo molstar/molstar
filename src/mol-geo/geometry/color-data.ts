@@ -17,7 +17,6 @@ export type ColorType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
 export type ColorData = {
     uColor: ValueCell<Vec3>,
-    aColor: ValueCell<Float32Array>,
     tColor: ValueCell<TextureImage<Uint8Array>>,
     uColorTexDim: ValueCell<Vec2>,
     dColorType: ValueCell<string>,
@@ -42,8 +41,7 @@ export function createValueColor(value: Color, colorData?: ColorData): ColorData
     } else {
         return {
             uColor: ValueCell.create(Color.toRgbNormalized(value) as Vec3),
-            aColor: ValueCell.create(new Float32Array(0)),
-            tColor: ValueCell.create({ array: new Uint8Array(3), width: 1, height: 1 }),
+            tColor: ValueCell.create({ disabled: true, array: new Uint8Array(3), width: 1, height: 1 }),
             uColorTexDim: ValueCell.create(Vec2.create(1, 1)),
             dColorType: ValueCell.create('uniform'),
         }
@@ -66,7 +64,6 @@ export function createTextureColor(colors: TextureImage<Uint8Array>, type: Color
     } else {
         return {
             uColor: ValueCell.create(Vec3.zero()),
-            aColor: ValueCell.create(new Float32Array(0)),
             tColor: ValueCell.create(colors),
             uColorTexDim: ValueCell.create(Vec2.create(colors.width, colors.height)),
             dColorType: ValueCell.create(type),

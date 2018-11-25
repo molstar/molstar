@@ -12,7 +12,6 @@ import { DirectVolumeShaderCode } from '../shader-code';
 import { ValueCell } from 'mol-util';
 
 export const DirectVolumeSchema = {
-    aColor: AttributeSpec('float32', 3, 0), // TODO not used, just for type checking
     uColor: UniformSpec('v3'),
     uColorTexDim: UniformSpec('v2'),
     tColor: TextureSpec('image-uint8', 'rgb', 'ubyte', 'nearest'),

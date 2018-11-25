@@ -16,7 +16,6 @@ export type SizeType = 'uniform' | 'instance' | 'group' | 'groupInstance'
 
 export type SizeData = {
     uSize: ValueCell<number>,
-    aSize: ValueCell<Float32Array>,
     tSize: ValueCell<TextureImage<Uint8Array>>,
     uSizeTexDim: ValueCell<Vec2>,
     dSizeType: ValueCell<string>,
@@ -51,7 +50,6 @@ export function createValueSize(value: number, sizeData?: SizeData): SizeData {
     } else {
         return {
             uSize: ValueCell.create(value),
-            aSize: ValueCell.create(new Float32Array(0)),
             ...createEmptySizeTexture(),
             dSizeType: ValueCell.create('uniform'),
         }
@@ -74,7 +72,6 @@ export function createTextureSize(sizes: TextureImage<Uint8Array>, type: SizeTyp
     } else {
         return {
             uSize: ValueCell.create(0),
-            aSize: ValueCell.create(new Float32Array(0)),
             tSize: ValueCell.create(sizes),
             uSizeTexDim: ValueCell.create(Vec2.create(sizes.width, sizes.height)),
             dSizeType: ValueCell.create(type),
