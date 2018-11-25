@@ -102,14 +102,14 @@ export function getQualityProps(props: Partial<QualityProps>, data?: any) {
             break
         case 'lower':
             detail = 0
-            radialSegments = 8
-            linearSegments = 3
+            radialSegments = 4
+            linearSegments = 2
             resolution = 5
             break
         case 'lowest':
             detail = 0
-            radialSegments = 4
-            linearSegments = 2
+            radialSegments = 2
+            linearSegments = 1
             resolution = 8
             break
         case 'custom':
