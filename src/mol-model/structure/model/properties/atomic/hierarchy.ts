@@ -8,7 +8,7 @@
 import { Column, Table } from 'mol-data/db'
 import { Segmentation } from 'mol-data/int'
 import { mmCIF_Schema as mmCIF } from 'mol-io/reader/cif/schema/mmcif'
-import { ElementSymbol } from '../../types'
+import { ElementSymbol, MoleculeType } from '../../types'
 import { ChainIndex, EntityIndex, ResidueIndex, ElementIndex } from '../../indexing';
 import SortedRanges from 'mol-data/int/sorted-ranges';
 
@@ -101,6 +101,14 @@ export interface AtomicData {
     atoms: Atoms,
     residues: Residues,
     chains: Chains
+}
+
+export interface AtomicDerivedData {
+    readonly residue: {
+        readonly traceElementIndex: ArrayLike<ElementIndex>
+        readonly directionElementIndex: ArrayLike<ElementIndex>
+        readonly moleculeType: ArrayLike<MoleculeType>
+    }
 }
 
 export interface AtomicSegments {
@@ -204,6 +212,7 @@ export interface AtomicRanges {
 type _Hierarchy = AtomicData & AtomicSegments & AtomicRanges
 export interface AtomicHierarchy extends _Hierarchy {
     index: AtomicIndex
+    derived: AtomicDerivedData
 }
 
 export namespace AtomicHierarchy {

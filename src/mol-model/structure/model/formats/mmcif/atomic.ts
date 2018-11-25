@@ -19,6 +19,7 @@ import { Entities } from '../../properties/common';
 import mmCIF_Format = Format.mmCIF
 import { getAtomicRanges } from '../../properties/utils/atomic-ranges';
 import { FormatData } from '../mmcif';
+import { getAtomicDerivedData } from '../../properties/utils/atomic-derived';
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -99,7 +100,11 @@ export function getAtomicHierarchyAndConformation(format: mmCIF_Format, atom_sit
     }
 
     const index = getAtomicIndex(hierarchyData, entities, hierarchySegments);
+    console.time('derived')
+    const derived = getAtomicDerivedData(hierarchyData, index, formatData.chemicalComponentMap);
+    console.timeEnd('derived')
+    console.log(derived)
     const hierarchyRanges = getAtomicRanges(hierarchyData, hierarchySegments, conformation, formatData.chemicalComponentMap);
-    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, ...hierarchyRanges, index };
+    const hierarchy: AtomicHierarchy = { ...hierarchyData, ...hierarchySegments, ...hierarchyRanges, index, derived };
     return { sameAsPrevious: false, hierarchy, conformation };
 }
