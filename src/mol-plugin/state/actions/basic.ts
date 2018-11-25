@@ -60,7 +60,7 @@ const DownloadStructure = StateAction.create<PluginStateObject.Root, void, Downl
         description: 'Load a structure from PDBe and create its default Assembly and visual'
     },
     params: () => ({ source: PD.Mapped('bcif-static', ObtainStructureHelpers.SourceOptions, ObtainStructureHelpers.getControls) }),
-    apply({ params, state }) {
+    run({ params, state }) {
         const b = state.build();
 
         // const query = MolScriptBuilder.struct.generator.atomGroups({
@@ -85,12 +85,10 @@ export const OpenStructure = StateAction.build({
     display: { name: 'Open Structure', description: 'Load a structure from file and create its default Assembly and visual' },
     from: PluginStateObject.Root,
     params: { file: PD.File({ accept: '.cif,.bcif' }) }
-})({
-    apply({ params, state }) {
-        const b = state.build();
-        const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-        return state.update(createStructureTree(data));
-    }
+})(({ params, state }) => {
+    const b = state.build();
+    const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
+    return state.update(createStructureTree(data));
 });
 
 function createStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
@@ -125,18 +123,16 @@ function complexRepresentation(root: StateTreeBuilder.To<PluginStateObject.Molec
             sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
         })
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' });
-        // TODO: create spheres visual
+    // TODO: create spheres visual
 }
 
 export const CreateComplexRepresentation = StateAction.build({
     display: { name: 'Create Complex', description: 'Split the structure into Sequence/Water/Ligands/... ' },
     from: PluginStateObject.Molecule.Structure
-})({
-    apply({ ref, state }) {
-        const root = state.build().to(ref);
-        complexRepresentation(root);
-        return state.update(root.getTree());
-    }
+})(({ ref, state }) => {
+    const root = state.build().to(ref);
+    complexRepresentation(root);
+    return state.update(root.getTree());
 });
 
 export const UpdateTrajectory = StateAction.build({
@@ -145,32 +141,30 @@ export const UpdateTrajectory = StateAction.build({
         action: PD.Select<'advance' | 'reset'>('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
         by: PD.makeOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
     }
-})({
-    apply({ params, state }) {
-        const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model)
-            .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
+})(({ params, state }) => {
+    const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model)
+        .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));
 
-        const update = state.build();
+    const update = state.build();
 
-        if (params.action === 'reset') {
-            for (const m of models) {
-                update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                    () => ({ modelIndex: 0 }));
-            }
-        } else {
-            for (const m of models) {
-                const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
-                if (!parent || !parent.obj) continue;
-                const traj = parent.obj as PluginStateObject.Molecule.Trajectory;
-                update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
-                    old => {
-                        let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
-                        if (modelIndex < 0) modelIndex += traj.data.length;
-                        return { modelIndex };
-                    });
-            }
+    if (params.action === 'reset') {
+        for (const m of models) {
+            update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
+                () => ({ modelIndex: 0 }));
         }
-
-        return state.update(update);
+    } else {
+        for (const m of models) {
+            const parent = StateSelection.findAncestorOfType(state.tree, state.cells, m.transform.ref, [PluginStateObject.Molecule.Trajectory]);
+            if (!parent || !parent.obj) continue;
+            const traj = parent.obj as PluginStateObject.Molecule.Trajectory;
+            update.to(m.transform.ref).update(StateTransforms.Model.ModelFromTrajectory,
+                old => {
+                    let modelIndex = (old.modelIndex + params.by!) % traj.data.length;
+                    if (modelIndex < 0) modelIndex += traj.data.length;
+                    return { modelIndex };
+                });
+        }
     }
+
+    return state.update(update);
 });

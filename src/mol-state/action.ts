@@ -42,7 +42,7 @@ namespace StateAction {
         /**
          * Apply an action that modifies the State specified in Params.
          */
-        apply(params: ApplyParams<A, P>, globalCtx: unknown): T | Task<T>,
+        run(params: ApplyParams<A, P>, globalCtx: unknown): T | Task<T>,
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean
@@ -69,7 +69,7 @@ namespace StateAction {
             from: def.from,
             display: def.display,
             params: def.params as Transformer.Definition<Transformer.From<T>, any, Transformer.Params<T>>['params'],
-            apply({ cell, state, params }) {
+            run({ cell, state, params }) {
                 const tree = state.build().to(cell.transform.ref).apply(transformer, params);
                 return state.update(tree);
             }
@@ -88,7 +88,7 @@ namespace StateAction {
         }
 
         export interface Define<A extends StateObject, P> {
-            <T>(def: DefinitionBase<A, T, P>): StateAction<A, T, P>,
+            <T>(def: DefinitionBase<A, T, P> | DefinitionBase<A, T, P>['run']): StateAction<A, T, P>,
         }
 
         function root(info: Type<any, any>): Define<any, any> {
@@ -106,7 +106,9 @@ namespace StateAction {
                     : !!info.params
                     ? info.params as any
                     : void 0,
-                ...def
+                ...(typeof def === 'function'
+                    ? { run: def }
+                    : def)
             });
         }
 
