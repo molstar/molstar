@@ -311,11 +311,12 @@ function findUpdateRoots(cells: Map<Transform.Ref, StateObjectCell>, tree: State
 
 function findUpdateRootsVisitor(n: Transform, _: any, s: { roots: Ref[], cells: Map<Ref, StateObjectCell> }) {
     const cell = s.cells.get(n.ref);
-    if (cell && cell.obj === StateObject.Null) return false;
     if (!cell || cell.version !== n.version || cell.status === 'error') {
         s.roots.push(n.ref);
         return false;
     }
+    // nothing below a Null object can be an update root
+    if (cell && cell.obj === StateObject.Null) return false;
     return true;
 }
 
@@ -473,13 +474,13 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
         ctx.results.push(update);
         if (update.action === 'created') {
             isNull = update.obj === StateObject.Null;
-            ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Created ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'updated') {
             isNull = update.obj === StateObject.Null;
-            ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         } else if (update.action === 'replaced') {
             isNull = update.obj === StateObject.Null;
-            ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
+            if (!isNull) ctx.parent.events.log.next(LogEntry.info(`Updated ${update.obj.label} in ${formatTimespan(time)}.`));
         }
     } catch (e) {
         ctx.changed = true;

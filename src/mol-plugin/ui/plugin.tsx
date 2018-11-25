@@ -82,13 +82,13 @@ export class State extends PluginComponent {
 
     render() {
         const kind = this.plugin.state.behavior.kind.value;
-        return <>
+        return <div className='msp-scrollable-container'>
             <div className='msp-btn-row-group msp-data-beh'>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal'}}>Data</button>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal'}}>Behavior</button>
             </div>
             <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
-        </>
+        </div>
     }
 }
 

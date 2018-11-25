@@ -38,8 +38,7 @@ namespace StateAction {
         params: P
     }
 
-    export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}> {
-        readonly from: StateObject.Ctor[],
+    export interface DefinitionBase<A extends StateObject = StateObject, T = any, P extends {} = {}> {
         readonly display?: { readonly name: string, readonly description?: string },
 
         /**
@@ -47,10 +46,13 @@ namespace StateAction {
          */
         apply(params: ApplyParams<A, P>, globalCtx: unknown): T | Task<T>,
 
-        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
-
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean
+    }
+
+    export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}> extends DefinitionBase<A, T, P> {
+        readonly from: StateObject.Ctor[],
+        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any }
     }
 
     export function create<A extends StateObject, T, P extends {} = {}>(definition: Definition<A, T, P>): StateAction<A, T, P> {
@@ -74,4 +76,37 @@ namespace StateAction {
             }
         })
     }
+
+    export namespace Builder {
+        export interface Type<A extends StateObject.Ctor, P extends { }> {
+            from?: A | A[],
+            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>)
+        }
+
+        export interface Root {
+            <A extends StateObject.Ctor, P extends { }>(info: Type<A, P>): Define<StateObject.From<A>, PD.Normalize<P>>
+        }
+
+        export interface Define<A extends StateObject, P> {
+            <T>(def: DefinitionBase<A, T, P>): StateAction<A, T, P>
+        }
+
+        function root(info: Type<any, any>): Define<any, any> {
+            return def => create({
+                from: info.from instanceof Array
+                    ? info.from
+                    : !!info.from ? [info.from] : [],
+                params: typeof info.params === 'object'
+                    ? () => info.params as any
+                    : !!info.params
+                    ? info.params as any
+                    : void 0,
+                ...def
+            });
+        }
+
+        export const build: Root = (info: any) => root(info);
+    }
+
+    export const build = Builder.build;
 }

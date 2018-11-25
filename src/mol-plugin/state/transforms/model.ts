@@ -16,21 +16,21 @@ import { StateObject } from 'mol-state';
 import { PluginContext } from 'mol-plugin/context';
 
 export { TrajectoryFromMmCif }
-namespace TrajectoryFromMmCif { export interface Params { blockHeader?: string } }
-const TrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Molecule.Trajectory, TrajectoryFromMmCif.Params>({
+type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
+const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-mmcif',
+    from: SO.Format.Cif,
+    to: SO.Molecule.Trajectory,
+    params(a) {
+        const { blocks } = a.data;
+        return {
+            blockHeader: PD.makeOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
+        };
+    },
+})({
     display: {
         name: 'Models from mmCIF',
         description: 'Identify and create all separate models in the specified CIF data block'
-    },
-    from: [SO.Data.Cif],
-    to: [SO.Molecule.Trajectory],
-    params(a) {
-        const { blocks } = a.data;
-        if (blocks.length === 0) return { };
-        return {
-            blockHeader: PD.Select(blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' })
-        };
     },
     isApplicable: a => a.data.blocks.length > 0,
     apply({ a, params }) {
@@ -48,16 +48,17 @@ const TrajectoryFromMmCif = PluginStateTransform.Create<SO.Data.Cif, SO.Molecule
 
 export { ModelFromTrajectory }
 const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
-namespace ModelFromTrajectory { export interface Params { modelIndex: number } }
-const ModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajectory, SO.Molecule.Model, ModelFromTrajectory.Params>({
+type ModelFromTrajectory = typeof ModelFromTrajectory
+const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     name: 'model-from-trajectory',
+    from: SO.Molecule.Trajectory,
+    to: SO.Molecule.Model,
+    params: a => ({ modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) })
+})({
     display: {
         name: 'Model from Trajectory',
         description: 'Create a molecular structure from the specified model.'
     },
-    from: [SO.Molecule.Trajectory],
-    to: [SO.Molecule.Model],
-    params: a => ({ modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) }),
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
@@ -68,15 +69,16 @@ const ModelFromTrajectory = PluginStateTransform.Create<SO.Molecule.Trajectory, 
 });
 
 export { StructureFromModel }
-namespace StructureFromModel { export interface Params { } }
-const StructureFromModel = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, StructureFromModel.Params>({
+type StructureFromModel = typeof StructureFromModel
+const StructureFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-from-model',
+    from: SO.Molecule.Model,
+    to: SO.Molecule.Structure,
+})({
     display: {
         name: 'Structure from Model',
         description: 'Create a molecular structure from the specified model.'
     },
-    from: [SO.Molecule.Model],
-    to: [SO.Molecule.Structure],
     apply({ a }) {
         let s = Structure.ofModel(a.data);
         const label = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
@@ -89,19 +91,20 @@ function structureDesc(s: Structure) {
 }
 
 export { StructureAssemblyFromModel }
-namespace StructureAssemblyFromModel { export interface Params { /** if not specified, use the 1st */ id?: string } }
-const StructureAssemblyFromModel = PluginStateTransform.Create<SO.Molecule.Model, SO.Molecule.Structure, StructureAssemblyFromModel.Params>({
+type StructureAssemblyFromModel = typeof StructureAssemblyFromModel
+const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-assembly-from-model',
-    display: {
-        name: 'Structure Assembly',
-        description: 'Create a molecular structure assembly.'
-    },
-    from: [SO.Molecule.Model],
-    to: [SO.Molecule.Structure],
+    from: SO.Molecule.Model,
+    to: SO.Molecule.Structure,
     params(a) {
         const model = a.data;
         const ids = model.symmetry.assemblies.map(a => [a.id, a.id] as [string, string]);
-        return { id: PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' }) };
+        return { id: PD.makeOptional(PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' })) };
+    }
+})({
+    display: {
+        name: 'Structure Assembly',
+        description: 'Create a molecular structure assembly.'
     },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
@@ -126,19 +129,20 @@ const StructureAssemblyFromModel = PluginStateTransform.Create<SO.Molecule.Model
 });
 
 export { StructureSelection }
-namespace StructureSelection { export interface Params { query: Expression, label?: string } }
-const StructureSelection = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Structure, StructureSelection.Params>({
+type StructureSelection = typeof StructureSelection
+const StructureSelection = PluginStateTransform.BuiltIn({
     name: 'structure-selection',
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: () => ({
+        query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
+        label: PD.makeOptional(PD.Text('', { isHidden: true }))
+    })
+})({
     display: {
         name: 'Structure Selection',
         description: 'Create a molecular structure from the specified model.'
     },
-    from: [SO.Molecule.Structure],
-    to: [SO.Molecule.Structure],
-    params: () => ({
-        query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
-        label: PD.Text('', { isOptional: true, isHidden: true })
-    }),
     apply({ a, params }) {
         // TODO: use cache, add "update"
         const compiled = compile<Sel>(params.query);
@@ -150,16 +154,18 @@ const StructureSelection = PluginStateTransform.Create<SO.Molecule.Structure, SO
 });
 
 export { StructureComplexElement }
-namespace StructureComplexElement { export interface Params { type: 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres' } }
-const StructureComplexElement = PluginStateTransform.Create<SO.Molecule.Structure, SO.Molecule.Structure, StructureComplexElement.Params>({
+namespace StructureComplexElement { export type Types = 'atomic-sequence' | 'water' | 'atomic-het' | 'spheres' }
+type StructureComplexElement = typeof StructureComplexElement
+const StructureComplexElement = PluginStateTransform.BuiltIn({
     name: 'structure-complex-element',
+    from: SO.Molecule.Structure,
+    to: SO.Molecule.Structure,
+    params: () => ({ type: PD.Text<StructureComplexElement.Types>('atomic-sequence', { isHidden: true }) }),
+})({
     display: {
         name: 'Complex Element',
         description: 'Create a molecular structure from the specified model.'
     },
-    from: [SO.Molecule.Structure],
-    to: [SO.Molecule.Structure],
-    params: () => ({ type: PD.Text('sequence', { isHidden: true }) }),
     apply({ a, params }) {
         // TODO: update function.
 
@@ -169,7 +175,7 @@ const StructureComplexElement = PluginStateTransform.Create<SO.Molecule.Structur
             case 'water': query = Queries.internal.water(); label = 'Water'; break;
             case 'atomic-het': query = Queries.internal.atomicHet(); label = 'HET Groups/Ligands'; break;
             case 'spheres': query = Queries.internal.spheres(); label = 'Coarse Spheres'; break;
-            default: throw new Error(`${params.type} is a valid complex element.`);
+            default: throw new Error(`${params.type} is a not valid complex element.`);
         }
 
         const result = query(new QueryContext(a.data));

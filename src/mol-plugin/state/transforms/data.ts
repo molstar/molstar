@@ -14,20 +14,21 @@ import { Transformer } from 'mol-state';
 import { readFromFile } from 'mol-util/data-source';
 
 export { Download }
-namespace Download { export interface Params { url: string, isBinary?: boolean, label?: string } }
-const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.Binary, Download.Params>({
+type Download = typeof Download
+const Download = PluginStateTransform.BuiltIn({
     name: 'download',
+    from: [SO.Root],
+    to: [SO.Data.String, SO.Data.Binary],
+    params: {
+        url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
+        label: PD.makeOptional(PD.Text('')),
+        isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' }))
+    }
+})({
     display: {
         name: 'Download',
         description: 'Download string or binary data from the specified URL'
     },
-    from: [SO.Root],
-    to: [SO.Data.String, SO.Data.Binary],
-    params: () => ({
-        url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
-        label: PD.Text('', { isOptional: true }),
-        isBinary: PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)', isOptional: true })
-    }),
     apply({ params: p }, globalCtx: PluginContext) {
         return Task.create('Download', async ctx => {
             const data = await globalCtx.fetch(p.url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
@@ -47,21 +48,22 @@ const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
 });
 
 export { ReadFile }
-namespace ReadFile { export interface Params { file: File, isBinary?: boolean, label?: string } }
-const ReadFile = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.Binary, ReadFile.Params>({
+type ReadFile = typeof ReadFile
+const ReadFile = PluginStateTransform.BuiltIn({
     name: 'read-file',
+    from: SO.Root,
+    to: [SO.Data.String, SO.Data.Binary],
+    params: {
+        file: PD.File(),
+        label: PD.makeOptional(PD.Text('')),
+        isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' }))
+    },
+})({
     display: {
         name: 'Read File',
         description: 'Read string or binary data from the specified file'
     },
-    from: [SO.Root],
-    to: [SO.Data.String, SO.Data.Binary],
-    params: () => ({
-        file: PD.File(),
-        label: PD.Text('', { isOptional: true }),
-        isBinary: PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)', isOptional: true })
-    }),
-    apply({ params: p }, globalCtx: PluginContext) {
+    apply({ params: p }) {
         return Task.create('Open File', async ctx => {
             const data = await readFromFile(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             return p.isBinary
@@ -80,20 +82,21 @@ const ReadFile = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
 });
 
 export { ParseCif }
-namespace ParseCif { export interface Params { } }
-const ParseCif = PluginStateTransform.Create<SO.Data.String | SO.Data.Binary, SO.Data.Cif, ParseCif.Params>({
+type ParseCif = typeof ParseCif
+const ParseCif = PluginStateTransform.BuiltIn({
     name: 'parse-cif',
+    from: [SO.Data.String, SO.Data.Binary],
+    to: SO.Format.Cif
+})({
     display: {
         name: 'Parse CIF',
         description: 'Parse CIF from String or Binary data'
     },
-    from: [SO.Data.String, SO.Data.Binary],
-    to: [SO.Data.Cif],
     apply({ a }) {
         return Task.create('Parse CIF', async ctx => {
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            return new SO.Data.Cif(parsed.result);
+            return new SO.Format.Cif(parsed.result);
         });
     }
 });

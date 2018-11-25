@@ -59,9 +59,9 @@ namespace StateTreeBuilder {
             return new To(this.state, t.ref, this.root);
         }
 
-        update<T extends Transformer<A, any, any>>(transformer: T, params: (old: Transformer.Params<T>) => Transformer.Params<T>): Root
+        update<T extends Transformer<any, A, any>>(transformer: T, params: (old: Transformer.Params<T>) => Transformer.Params<T>): Root
         update(params: any): Root
-        update<T extends Transformer<A, any, any>>(paramsOrTransformer: T, provider?: (old: Transformer.Params<T>) => Transformer.Params<T>) {
+        update<T extends Transformer<any, A, any>>(paramsOrTransformer: T, provider?: (old: Transformer.Params<T>) => Transformer.Params<T>) {
             let params: any;
             if (provider) {
                 const old = this.state.tree.transforms.get(this.ref)!;

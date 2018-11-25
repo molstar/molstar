@@ -14,21 +14,25 @@ export namespace ParamDefinition {
     export interface Info {
         label?: string,
         description?: string,
-        isOptional?: boolean,
-        isHidden?: boolean
+        isHidden?: boolean,
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
         if (info.description) param.description = info.description;
         if (info.label) param.label = info.label;
-        if (info.isOptional) param.isOptional = info.isOptional;
         if (info.isHidden) param.isHidden = info.isHidden;
         return param;
     }
 
     export interface Base<T> extends Info {
+        isOptional?: boolean,
         defaultValue: T
+    }
+
+    export function makeOptional<T>(p: Base<T>): Base<T | undefined> {
+        p.isOptional = true;
+        return p;
     }
 
     export interface Value<T> extends Base<T> {
@@ -63,11 +67,11 @@ export namespace ParamDefinition {
         return setInfo<Boolean>({ type: 'boolean', defaultValue }, info)
     }
 
-    export interface Text extends Base<string> {
+    export interface Text<T extends string = string> extends Base<T> {
         type: 'text'
     }
-    export function Text(defaultValue: string = '', info?: Info): Text {
-        return setInfo<Text>({ type: 'text', defaultValue }, info)
+    export function Text<T extends string = string>(defaultValue: string = '', info?: Info): Text<T> {
+        return setInfo<Text<T>>({ type: 'text', defaultValue: defaultValue as any }, info)
     }
 
     export interface Color extends Base<ColorData> {
@@ -177,6 +181,11 @@ export namespace ParamDefinition {
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
 
+    type Optionals<P> = { [K in keyof P]-?: undefined extends P[K] ? K : never }[keyof P]
+    type NonOptionals<P> = { [K in keyof P]-?: undefined extends P[K] ? never: K }[keyof P]
+    export type Normalize<P> = Pick<P, NonOptionals<P>> & Partial<Pick<P, Optionals<P>>>
+    export type For<P> = { [K in keyof P]-?: Base<P[K]> }
+
     export function getDefaultValues<T extends Params>(params: T) {
         const d: { [k: string]: any } = {}
         for (const k of Object.keys(params)) {
@@ -227,6 +236,23 @@ export namespace ParamDefinition {
             if (u.name !== v.name) return false;
             const map = p.map(u.name);
             return isParamEqual(map, u.params, v.params);
+        } else if (p.type === 'multi-select') {
+            const u = a as MultiSelect<any>['defaultValue'], v = b as MultiSelect<any>['defaultValue'];
+            if (u.length !== v.length) return false;
+            if (u.length < 10) {
+                for (let i = 0, _i = u.length; i < _i; i++) {
+                    if (u[i] === v[i]) continue;
+                    if (v.indexOf(u[i]) < 0) return false;
+                }
+            } else {
+                // TODO: should the value of multiselect be a set?
+                const vSet = new Set(v);
+                for (let i = 0, _i = u.length; i < _i; i++) {
+                    if (u[i] === v[i]) continue;
+                    if (!vSet.has(u[i])) return false;
+                }
+            }
+            return true;
         } else if (p.type === 'interval') {
             return a[0] === b[0] && a[1] === b[1];
         } else if (p.type === 'line-graph') {
