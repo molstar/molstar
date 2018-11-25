@@ -9,6 +9,7 @@ import { StateObject } from './object';
 import { Transform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateAction } from './action';
+import { capitalize } from 'mol-util/string';
 
 export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
     apply(parent: Transform.Ref, params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
@@ -57,8 +58,6 @@ export namespace Transformer {
     // export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
 
     export interface DefinitionBase<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
-        readonly display?: { readonly name: string, readonly description?: string },
-
         /**
          * Apply the actual transformation. It must be pure (i.e. with no side effects).
          * Returns a task that produces the result of the result directly.
@@ -89,6 +88,7 @@ export namespace Transformer {
         readonly name: string,
         readonly from: StateObject.Ctor[],
         readonly to: StateObject.Ctor[],
+        readonly display: { readonly name: string, readonly description?: string },
         params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
     }
 
@@ -151,7 +151,8 @@ export namespace Transformer {
             name: string,
             from: A | A[],
             to: B | B[],
-            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>)
+            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>),
+            display?: string | { name: string, description?: string }
         }
 
         export interface Root {
@@ -167,6 +168,11 @@ export namespace Transformer {
                 name: info.name,
                 from: info.from instanceof Array ? info.from : [info.from],
                 to: info.to instanceof Array ? info.to : [info.to],
+                display: typeof info.display === 'string'
+                    ? { name: info.display }
+                    : !!info.display
+                    ? info.display
+                    : { name: capitalize(info.name.replace(/[-]/g, ' ')) },
                 params: typeof info.params === 'object'
                     ? () => info.params as any
                     : !!info.params
@@ -189,6 +195,7 @@ export namespace Transformer {
         name: 'root',
         from: [],
         to: [],
+        display: { name: 'Root' },
         apply() { throw new Error('should never be applied'); },
         update() { return UpdateResult.Unchanged; }
     })

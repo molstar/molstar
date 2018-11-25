@@ -82,13 +82,10 @@ const DownloadStructure = StateAction.create<PluginStateObject.Root, void, Downl
 });
 
 export const OpenStructure = StateAction.build({
+    display: { name: 'Open Structure', description: 'Load a structure from file and create its default Assembly and visual' },
     from: PluginStateObject.Root,
     params: { file: PD.File({ accept: '.cif,.bcif' }) }
 })({
-    display: {
-        name: 'Open Structure',
-        description: 'Load a structure from file and create its default Assembly and visual'
-    },
     apply({ params, state }) {
         const b = state.build();
         const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
@@ -132,12 +129,9 @@ function complexRepresentation(root: StateTreeBuilder.To<PluginStateObject.Molec
 }
 
 export const CreateComplexRepresentation = StateAction.build({
+    display: { name: 'Create Complex', description: 'Split the structure into Sequence/Water/Ligands/... ' },
     from: PluginStateObject.Molecule.Structure
 })({
-    display: {
-        name: 'Create Complex',
-        description: 'Split the structure into Sequence/Water/Ligands/... '
-    },
     apply({ ref, state }) {
         const root = state.build().to(ref);
         complexRepresentation(root);
@@ -146,14 +140,12 @@ export const CreateComplexRepresentation = StateAction.build({
 });
 
 export const UpdateTrajectory = StateAction.build({
-    params: () => ({
+    display: { name: 'Update Trajectory' },
+    params: {
         action: PD.Select<'advance' | 'reset'>('advance', [['advance', 'Advance'], ['reset', 'Reset']]),
         by: PD.makeOptional(PD.Numeric(1, { min: -1, max: 1, step: 1 }))
-    })
+    }
 })({
-    display: {
-        name: 'Update Trajectory'
-    },
     apply({ params, state }) {
         const models = state.select(q => q.rootsOfType(PluginStateObject.Molecule.Model)
             .filter(c => c.transform.transformer === StateTransforms.Model.ModelFromTrajectory));

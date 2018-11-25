@@ -19,6 +19,7 @@ export { TrajectoryFromMmCif }
 type TrajectoryFromMmCif = typeof TrajectoryFromMmCif
 const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
     name: 'trajectory-from-mmcif',
+    display: { name: 'Trajectory from mmCIF', description: 'Identify and create all separate models in the specified CIF data block' },
     from: SO.Format.Cif,
     to: SO.Molecule.Trajectory,
     params(a) {
@@ -26,12 +27,8 @@ const TrajectoryFromMmCif = PluginStateTransform.BuiltIn({
         return {
             blockHeader: PD.makeOptional(PD.Select(blocks[0] && blocks[0].header, blocks.map(b => [b.header, b.header] as [string, string]), { description: 'Header of the block to parse' }))
         };
-    },
+    }
 })({
-    display: {
-        name: 'Models from mmCIF',
-        description: 'Identify and create all separate models in the specified CIF data block'
-    },
     isApplicable: a => a.data.blocks.length > 0,
     apply({ a, params }) {
         return Task.create('Parse mmCIF', async ctx => {
@@ -51,14 +48,11 @@ const plus1 = (v: number) => v + 1, minus1 = (v: number) => v - 1;
 type ModelFromTrajectory = typeof ModelFromTrajectory
 const ModelFromTrajectory = PluginStateTransform.BuiltIn({
     name: 'model-from-trajectory',
+    display: { name: 'Model from Trajectory', description: 'Create a molecular structure from the specified model.' },
     from: SO.Molecule.Trajectory,
     to: SO.Molecule.Model,
     params: a => ({ modelIndex: PD.Converted(plus1, minus1, PD.Numeric(1, { min: 1, max: a.data.length, step: 1 }, { description: 'Model Index' })) })
 })({
-    display: {
-        name: 'Model from Trajectory',
-        description: 'Create a molecular structure from the specified model.'
-    },
     isApplicable: a => a.data.length > 0,
     apply({ a, params }) {
         if (params.modelIndex < 0 || params.modelIndex >= a.data.length) throw new Error(`Invalid modelIndex ${params.modelIndex}`);
@@ -72,13 +66,10 @@ export { StructureFromModel }
 type StructureFromModel = typeof StructureFromModel
 const StructureFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-from-model',
+    display: { name: 'Structure from Model', description: 'Create a molecular structure from the specified model.' },
     from: SO.Molecule.Model,
-    to: SO.Molecule.Structure,
+    to: SO.Molecule.Structure
 })({
-    display: {
-        name: 'Structure from Model',
-        description: 'Create a molecular structure from the specified model.'
-    },
     apply({ a }) {
         let s = Structure.ofModel(a.data);
         const label = { label: a.data.label, description: s.elementCount === 1 ? '1 element' : `${s.elementCount} elements` };
@@ -94,6 +85,7 @@ export { StructureAssemblyFromModel }
 type StructureAssemblyFromModel = typeof StructureAssemblyFromModel
 const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
     name: 'structure-assembly-from-model',
+    display: { name: 'Structure Assembly', description: 'Create a molecular structure assembly.' },
     from: SO.Molecule.Model,
     to: SO.Molecule.Structure,
     params(a) {
@@ -102,10 +94,6 @@ const StructureAssemblyFromModel = PluginStateTransform.BuiltIn({
         return { id: PD.makeOptional(PD.Select(ids.length ? ids[0][0] : '', ids, { label: 'Asm Id', description: 'Assembly Id' })) };
     }
 })({
-    display: {
-        name: 'Structure Assembly',
-        description: 'Create a molecular structure assembly.'
-    },
     apply({ a, params }, plugin: PluginContext) {
         return Task.create('Build Assembly', async ctx => {
             let id = (params.id || '').trim();
@@ -132,17 +120,14 @@ export { StructureSelection }
 type StructureSelection = typeof StructureSelection
 const StructureSelection = PluginStateTransform.BuiltIn({
     name: 'structure-selection',
+    display: { name: 'Structure Selection', description: 'Create a molecular structure from the specified model.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: () => ({
+    params: {
         query: PD.Value<Expression>(MolScriptBuilder.struct.generator.all, { isHidden: true }),
         label: PD.makeOptional(PD.Text('', { isHidden: true }))
-    })
+    }
 })({
-    display: {
-        name: 'Structure Selection',
-        description: 'Create a molecular structure from the specified model.'
-    },
     apply({ a, params }) {
         // TODO: use cache, add "update"
         const compiled = compile<Sel>(params.query);
@@ -158,14 +143,11 @@ namespace StructureComplexElement { export type Types = 'atomic-sequence' | 'wat
 type StructureComplexElement = typeof StructureComplexElement
 const StructureComplexElement = PluginStateTransform.BuiltIn({
     name: 'structure-complex-element',
+    display: { name: 'Complex Element', description: 'Create a molecular structure from the specified model.' },
     from: SO.Molecule.Structure,
     to: SO.Molecule.Structure,
-    params: () => ({ type: PD.Text<StructureComplexElement.Types>('atomic-sequence', { isHidden: true }) }),
+    params: { type: PD.Text<StructureComplexElement.Types>('atomic-sequence', { isHidden: true }) }
 })({
-    display: {
-        name: 'Complex Element',
-        description: 'Create a molecular structure from the specified model.'
-    },
     apply({ a, params }) {
         // TODO: update function.
 

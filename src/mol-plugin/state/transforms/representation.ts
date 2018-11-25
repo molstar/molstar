@@ -17,6 +17,7 @@ export { StructureRepresentation3D }
 type StructureRepresentation3D = typeof StructureRepresentation3D
 const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     name: 'structure-representation-3d',
+    display: '3D Representation',
     from: SO.Molecule.Structure,
     to: SO.Molecule.Representation3D,
     params: (a, ctx: PluginContext) => ({
@@ -38,7 +39,6 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
         )
     })
 })({
-    display: { name: '3D Representation' },
     canAutoUpdate({ oldParams, newParams }) {
         // TODO: allow for small molecules
         return oldParams.type.name === newParams.type.name;

@@ -99,7 +99,6 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): Transformer.Definition['display'];
-    abstract getHeaderFallback(): string;
     abstract canApply(): boolean;
     abstract canAutoApply(newParams: any): boolean;
     abstract applyText(): string;
@@ -171,7 +170,7 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
 
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{(display && display.name) || this.getHeaderFallback()}</button>
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{display.name}</button>
                 {!this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
             </div>
             {!this.state.isCollapsed && <>

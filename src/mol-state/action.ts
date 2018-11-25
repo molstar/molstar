@@ -39,8 +39,6 @@ namespace StateAction {
     }
 
     export interface DefinitionBase<A extends StateObject = StateObject, T = any, P extends {} = {}> {
-        readonly display?: { readonly name: string, readonly description?: string },
-
         /**
          * Apply an action that modifies the State specified in Params.
          */
@@ -52,6 +50,7 @@ namespace StateAction {
 
     export interface Definition<A extends StateObject = StateObject, T = any, P extends {} = {}> extends DefinitionBase<A, T, P> {
         readonly from: StateObject.Ctor[],
+        readonly display: { readonly name: string, readonly description?: string },
         params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any }
     }
 
@@ -80,7 +79,8 @@ namespace StateAction {
     export namespace Builder {
         export interface Type<A extends StateObject.Ctor, P extends { }> {
             from?: A | A[],
-            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>)
+            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>),
+            display?: string | { name: string, description?: string }
         }
 
         export interface Root {
@@ -88,7 +88,7 @@ namespace StateAction {
         }
 
         export interface Define<A extends StateObject, P> {
-            <T>(def: DefinitionBase<A, T, P>): StateAction<A, T, P>
+            <T>(def: DefinitionBase<A, T, P>): StateAction<A, T, P>,
         }
 
         function root(info: Type<any, any>): Define<any, any> {
@@ -96,6 +96,11 @@ namespace StateAction {
                 from: info.from instanceof Array
                     ? info.from
                     : !!info.from ? [info.from] : [],
+                display: typeof info.display === 'string'
+                    ? { name: info.display }
+                    : !!info.display
+                    ? info.display
+                    : { name: 'Unnamed State Action' },
                 params: typeof info.params === 'object'
                     ? () => info.params as any
                     : !!info.params
