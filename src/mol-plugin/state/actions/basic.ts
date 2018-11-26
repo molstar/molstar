@@ -80,6 +80,7 @@ function createStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binar
         .apply(StateTransforms.Data.ParseCif)
         .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
+        .apply(StateTransforms.Model.CustomModelProperties, { properties: [] })
         .apply(StateTransforms.Model.StructureAssemblyFromModel);
 
     complexRepresentation(root);

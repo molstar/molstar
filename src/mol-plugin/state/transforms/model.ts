@@ -6,7 +6,7 @@
 
 import { PluginStateTransform } from '../objects';
 import { PluginStateObject as SO } from '../objects';
-import { Task } from 'mol-task';
+import { Task, RuntimeContext } from 'mol-task';
 import { Model, Format, Structure, ModelSymmetry, StructureSymmetry, QueryContext, StructureSelection as Sel, StructureQuery, Queries } from 'mol-model/structure';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import Expression from 'mol-script/language/expression';
@@ -168,3 +168,25 @@ const StructureComplexElement = PluginStateTransform.BuiltIn({
     }
 });
 
+export { CustomModelProperties }
+type CustomModelProperties = typeof CustomModelProperties
+const CustomModelProperties = PluginStateTransform.BuiltIn({
+    name: 'custom-model-properties',
+    display: { name: 'Custom Model Properties' },
+    from: SO.Molecule.Model,
+    to: SO.Molecule.Model,
+    params: (a, ctx: PluginContext) => ({ properties: ctx.customModelProperties.getSelect(a.data) })
+})({
+    apply({ a, params }, ctx: PluginContext) {
+        return Task.create('Custom Props', async taskCtx => {
+            await attachProps(a.data, ctx, taskCtx, params.properties);
+            return new SO.Molecule.Model(a.data, { label: a.label, description: 'Custom Props' });
+        });
+    }
+});
+async function attachProps(model: Model, ctx: PluginContext, taskCtx: RuntimeContext, names: string[]) {
+    for (const name of names) {
+        const p = ctx.customModelProperties.get(name);
+        await p.attach(model).runInContext(taskCtx);
+    }
+}
