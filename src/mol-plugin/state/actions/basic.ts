@@ -27,10 +27,23 @@ const DownloadStructure = StateAction.build({
     display: { name: 'Download Structure', description: 'Load a structure from the provided source and create its default Assembly and visual.' },
     params: {
         source: PD.MappedStatic('bcif-static', {
-            'pdbe-updated': PD.Text('1cbs', { label: 'Id' }),
-            'rcsb': PD.Text('1tqn', { label: 'Id' }),
-            'bcif-static': PD.Text('1tqn', { label: 'Id' }),
-            'url': PD.Group({ url: PD.Text(''), isBinary: PD.Boolean(false) }, { isExpanded: true })
+            'pdbe-updated': PD.Group({
+                id: PD.Text('1cbs', { label: 'Id' }),
+                supportProps: PD.Boolean(false)
+            }, { isExpanded: true }),
+            'rcsb': PD.Group({
+                id: PD.Text('1tqn', { label: 'Id' }),
+                supportProps: PD.Boolean(false)
+            }, { isExpanded: true }),
+            'bcif-static': PD.Group({
+                id: PD.Text('1tqn', { label: 'Id' }),
+                supportProps: PD.Boolean(false)
+            }, { isExpanded: true }),
+            'url': PD.Group({
+                url: PD.Text(''),
+                isBinary: PD.Boolean(false),
+                supportProps: PD.Boolean(false)
+            }, { isExpanded: true })
         }, {
             options: [
                 ['pdbe-updated', 'PDBe Updated'],
@@ -50,19 +63,19 @@ const DownloadStructure = StateAction.build({
             url = src.params;
             break;
         case 'pdbe-updated':
-            url = { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params}` };
+            url = { url: `https://www.ebi.ac.uk/pdbe/static/entry/${src.params.id.toLowerCase()}_updated.cif`, isBinary: false, label: `PDBe: ${src.params}` };
             break;
         case 'rcsb':
-            url = { url: `https://files.rcsb.org/download/${src.params.toUpperCase()}.cif`, isBinary: false, label: `RCSB: ${src.params}` };
+            url = { url: `https://files.rcsb.org/download/${src.params.id.toUpperCase()}.cif`, isBinary: false, label: `RCSB: ${src.params}` };
             break;
         case 'bcif-static':
-            url = { url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${src.params.toLowerCase()}`, isBinary: true, label: `BinaryCIF: ${src.params}` };
+            url = { url: `https://webchem.ncbr.muni.cz/ModelServer/static/bcif/${src.params.id.toLowerCase()}`, isBinary: true, label: `BinaryCIF: ${src.params}` };
             break;
         default: throw new Error(`${(src as any).name} not supported.`);
     }
 
     const data = b.toRoot().apply(StateTransforms.Data.Download, url);
-    return state.update(createStructureTree(data));
+    return state.update(createStructureTree(data, params.source.params.supportProps));
 });
 
 export const OpenStructure = StateAction.build({
@@ -72,16 +85,20 @@ export const OpenStructure = StateAction.build({
 })(({ params, state }) => {
     const b = state.build();
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-    return state.update(createStructureTree(data));
+    return state.update(createStructureTree(data, false));
 });
 
-function createStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>): StateTree {
-    const root = b
+function createStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
+    let root = b
         .apply(StateTransforms.Data.ParseCif)
         .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
-        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 })
-        .apply(StateTransforms.Model.CustomModelProperties, { properties: [] })
-        .apply(StateTransforms.Model.StructureAssemblyFromModel);
+        .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
+
+    if (supportProps) {
+        // TODO: implement automatic default property assigment in State.update
+        root = root.apply(StateTransforms.Model.CustomModelProperties, { properties: [] });
+    }
+    root = root.apply(StateTransforms.Model.StructureAssemblyFromModel);
 
     complexRepresentation(root);
 

@@ -180,7 +180,7 @@ const CustomModelProperties = PluginStateTransform.BuiltIn({
     apply({ a, params }, ctx: PluginContext) {
         return Task.create('Custom Props', async taskCtx => {
             await attachProps(a.data, ctx, taskCtx, params.properties);
-            return new SO.Molecule.Model(a.data, { label: a.label, description: 'Custom Props' });
+            return new SO.Molecule.Model(a.data, { label: 'Props', description: `${params.properties.length} Selected` });
         });
     }
 });

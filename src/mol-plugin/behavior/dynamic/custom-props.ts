@@ -4,15 +4,14 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { ParamDefinition } from 'mol-util/param-definition';
-import { PluginBehavior } from '../behavior';
+import { OrderedSet } from 'mol-data/int';
 import { StructureQualityReport } from 'mol-model-props/pdbe/structure-quality-report';
-import { CustomPropertyRegistry } from 'mol-plugin/util/custom-prop-registry';
+import { StructureQualityReportColorTheme } from 'mol-model-props/pdbe/themes/structure-quality-report';
 import { Loci } from 'mol-model/loci';
 import { StructureElement } from 'mol-model/structure';
-import { OrderedSet } from 'mol-data/int';
-
-// TODO: make auto attach working better for "initial state" by supporting default props in state updates
+import { CustomPropertyRegistry } from 'mol-plugin/util/custom-prop-registry';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { PluginBehavior } from '../behavior';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
@@ -33,6 +32,15 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         register(): void {
             this.ctx.customModelProperties.register(this.provider);
             this.ctx.lociLabels.addProvider(labelPDBeValidation);
+
+            // TODO: support filtering of themes based on the input structure
+            // in this case, it would check structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
+            // TODO: add remove functionality
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('pdbe-structure-quality-report', {
+                label: 'PDBe Structure Quality Report',
+                factory: StructureQualityReportColorTheme,
+                getParams: () => ({})
+            })
         }
 
         update(p: { autoAttach: boolean }) {
@@ -45,10 +53,13 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         unregister() {
             this.ctx.customModelProperties.unregister(StructureQualityReport.Descriptor.name);
             this.ctx.lociLabels.removeProvider(labelPDBeValidation);
+
+            // TODO: add remove functionality to registry
+            // this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('pdbe-structure-quality-report')
         }
     },
     params: () => ({
-        autoAttach: ParamDefinition.Boolean(false)
+        autoAttach: PD.Boolean(false)
     }),
     display: { name: 'Focus Loci on Select', group: 'Camera' }
 });
