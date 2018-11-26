@@ -38,7 +38,7 @@ type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObje
 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
     defaultProps: PD.Values<P>
-    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): G
+    createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: G): Promise<G> | G
     createLocationIterator(group: Unit.SymmetryGroup): LocationIterator
     getLoci(pickingId: PickingId, structureGroup: StructureGroup, id: number): Loci
     mark(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean): boolean
@@ -58,6 +58,8 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     const updateState = VisualUpdateState.create()
 
     let renderObject: UnitsRenderObject | undefined
+    let newProps: PD.Values<P>
+    let newTheme: Theme
     let currentProps: PD.Values<P>
     let currentTheme: Theme
     let geometry: Geometry
@@ -66,29 +68,24 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     let locationIt: LocationIterator
     let currentConformationId: UUID
 
-    function create(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
+    function create(newGeometry: Geometry, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
         currentTheme = theme
         currentGroup = group
 
-        const unit = group.units[0]
-        currentConformationId = Unit.conformationId(unit)
-        geometry = includesUnitKind(currentProps.unitKinds, unit)
-            ? createGeometry(ctx, unit, currentStructure, theme, currentProps, geometry)
-            : createEmptyGeometry(geometry)
+        currentConformationId = Unit.conformationId(group.units[0])
 
         // TODO create empty location iterator when not in unitKinds
         locationIt = createLocationIterator(group)
-        renderObject = createRenderObject(group, geometry, locationIt, theme, currentProps)
+        renderObject = createRenderObject(group, newGeometry, locationIt, theme, currentProps)
     }
 
-    function update(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
+    function getUpdateState(group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         if (!renderObject) return
 
-        const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
-        const unit = group.units[0]
+        newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
+        newTheme = theme
 
-        locationIt.reset()
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
@@ -111,22 +108,33 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         }
 
         // check if the conformation of unit.model has changed
-        const newConformationId = Unit.conformationId(unit)
+        const newConformationId = Unit.conformationId(group.units[0])
         if (newConformationId !== currentConformationId) {
             // console.log('new conformation')
             currentConformationId = newConformationId
             updateState.createGeometry = true
         }
 
-        //
+        if (updateState.updateTransform) {
+            updateState.updateColor = true
+            updateState.updateMatrix = true
+        }
+
+        if (updateState.createGeometry) {
+            updateState.updateColor = true
+        }
+    }
+
+    function update(group: Unit.SymmetryGroup, newGeometry?: Geometry) {
+        if (!renderObject) return
+
+        locationIt.reset()
 
         if (updateState.updateTransform) {
             // console.log('update transform')
             locationIt = createLocationIterator(group)
             const { instanceCount, groupCount } = locationIt
             createMarkers(instanceCount * groupCount, renderObject.values)
-            updateState.updateColor = true
-            updateState.updateMatrix = true
         }
 
         if (updateState.updateMatrix) {
@@ -136,33 +144,39 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
 
         if (updateState.createGeometry) {
             // console.log('update geometry')
-            geometry = includesUnitKind(newProps.unitKinds, unit)
-                ? createGeometry(ctx, unit, currentStructure, theme, newProps, geometry)
-                : createEmptyGeometry(geometry)
-            ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
-            updateBoundingSphere(renderObject.values, geometry)
-            updateState.updateColor = true
+            if (newGeometry) {
+                ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
+                updateBoundingSphere(renderObject.values, newGeometry)
+            } else {
+                throw new Error('expected geometry to be given')
+            }
         }
 
         if (updateState.updateSize) {
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
                 // console.log('update size')
-                createSizes(locationIt, theme.size, renderObject.values)
+                createSizes(locationIt, newTheme.size, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
             // console.log('update color')
-            createColors(locationIt, theme.color, renderObject.values)
+            createColors(locationIt, newTheme.color, renderObject.values)
         }
 
         updateValues(renderObject.values, newProps)
         updateRenderableState(renderObject.state, newProps)
 
         currentProps = newProps
-        currentTheme = theme
+        currentTheme = newTheme
         currentGroup = group
+    }
+
+    function _createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: Geometry) {
+        return includesUnitKind(props.unitKinds, unit)
+                ? createGeometry(ctx, unit, structure, theme, props, geometry)
+                : createEmptyGeometry(geometry)
     }
 
     return {
@@ -175,13 +189,35 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
                 throw new Error('missing group')
             } else if (group && (!currentGroup || !renderObject)) {
                 // console.log('unit-visual first create')
-                create(ctx, group, theme, props)
+                const newGeometry = _createGeometry(ctx, group.units[0], currentStructure, theme, Object.assign({}, defaultProps, props), geometry)
+                if (newGeometry instanceof Promise) {
+                    return newGeometry.then(geo => create(geo, group, theme, props))
+                } else {
+                    create(newGeometry, group, theme, props)
+                }
             } else if (group && group.hashCode !== currentGroup.hashCode) {
                 // console.log('unit-visual group.hashCode !== currentGroup.hashCode')
-                create(ctx, group, theme, props)
+                const newGeometry = _createGeometry(ctx, group.units[0], currentStructure, theme, Object.assign({}, defaultProps, props), geometry)
+                if (newGeometry instanceof Promise) {
+                    return newGeometry.then(geo => create(geo, group, theme, props))
+                } else {
+                    create(newGeometry, group, theme, props)
+                }
             } else {
                 // console.log('unit-visual update')
-                update(ctx, group || currentGroup, theme, props)
+                // update(ctx, group || currentGroup, theme, props)
+
+                getUpdateState(group || currentGroup, theme, props)
+                if (updateState.createGeometry) {
+                    const newGeometry = _createGeometry(ctx, (group || currentGroup).units[0], currentStructure, newTheme, newProps, geometry)
+                    if (newGeometry instanceof Promise) {
+                        return newGeometry.then(geo => update(group || currentGroup, geo))
+                    } else {
+                        update(group || currentGroup, newGeometry)
+                    }
+                } else {
+                    update(group || currentGroup)
+                }
             }
         },
         getLoci(pickingId: PickingId) {

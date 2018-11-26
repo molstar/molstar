@@ -56,7 +56,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = visualCtor()
-                    visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                    const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                    if (promise) await promise
                     visuals.set(group.hashCode, { visual, group })
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length })
                 }
@@ -76,14 +77,16 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                         // console.log('old', visualGroup.group)
                         // console.log('new', group)
                         const { visual } = visualGroup
-                        visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                        const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                        if (promise) await promise
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
                     } else {
                         // console.log(label, 'not found visualGroup to reuse, creating new')
                         // newGroups.push(group)
                         const visual = visualCtor()
-                        visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                        const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                        if (promise) await promise
                         visuals.set(group.hashCode, { visual, group })
                     }
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: _groups.length })
@@ -115,7 +118,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                     const group = _groups[i];
                     const visualGroup = visuals.get(group.hashCode)
                     if (visualGroup) {
-                        visualGroup.visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                        const promise = visualGroup.visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
+                        if (promise) await promise
                         visualGroup.group = group
 
                     } else {
@@ -130,7 +134,8 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: R
                 visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]))
                 for (let i = 0, il = visualsList.length; i < il; ++i) {
                     const [ visual ] = visualsList[i]
-                    visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props)
+                    const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props)
+                    if (promise) await promise
                     if (runtime.shouldUpdate) await runtime.update({ message: 'Creating or updating UnitsVisual', current: i, max: il })
                 }
             }

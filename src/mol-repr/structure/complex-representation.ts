@@ -38,7 +38,8 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
-            visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, structure)
+            const promise = visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, structure)
+            if (promise) await promise
             updated.next(version++)
         });
     }
