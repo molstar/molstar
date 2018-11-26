@@ -15,6 +15,7 @@ import { PluginBehavior } from '../behavior';
 
 export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'pdbe-structure-quality-report-prop',
+    display: { name: 'PDBe Structure Quality Report', group: 'Custom Props' },
     ctor: class extends PluginBehavior.Handler<{ autoAttach: boolean }> {
         private attach = StructureQualityReport.createAttachTask(
             m => `https://www.ebi.ac.uk/pdbe/api/validation/residuewise_outlier_summary/entry/${m.label.toLowerCase()}`,
@@ -60,8 +61,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
     },
     params: () => ({
         autoAttach: PD.Boolean(false)
-    }),
-    display: { name: 'Focus Loci on Select', group: 'Camera' }
+    })
 });
 
 function labelPDBeValidation(loci: Loci): string | undefined {
