@@ -30,20 +30,20 @@ const DownloadStructure = StateAction.build({
             'pdbe-updated': PD.Group({
                 id: PD.Text('1cbs', { label: 'Id' }),
                 supportProps: PD.Boolean(false)
-            }, { isExpanded: true }),
+            }, { isFlat: true }),
             'rcsb': PD.Group({
                 id: PD.Text('1tqn', { label: 'Id' }),
                 supportProps: PD.Boolean(false)
-            }, { isExpanded: true }),
+            }, { isFlat: true }),
             'bcif-static': PD.Group({
                 id: PD.Text('1tqn', { label: 'Id' }),
                 supportProps: PD.Boolean(false)
-            }, { isExpanded: true }),
+            }, { isFlat: true }),
             'url': PD.Group({
                 url: PD.Text(''),
                 isBinary: PD.Boolean(false),
                 supportProps: PD.Boolean(false)
-            }, { isExpanded: true })
+            }, { isFlat: true })
         }, {
             options: [
                 ['pdbe-updated', 'PDBe Updated'],

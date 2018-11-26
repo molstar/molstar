@@ -141,11 +141,13 @@ export namespace ParamDefinition {
     export interface Group<T> extends Base<T> {
         type: 'group',
         params: Params,
-        isExpanded?: boolean
+        isExpanded?: boolean,
+        isFlat?: boolean
     }
-    export function Group<P extends Params>(params: P, info?: Info & { isExpanded?: boolean }): Group<Values<P>> {
+    export function Group<P extends Params>(params: P, info?: Info & { isExpanded?: boolean, isFlat?: boolean }): Group<Values<P>> {
         const ret = setInfo<Group<Values<P>>>({ type: 'group', defaultValue: getDefaultValues(params) as any, params }, info);
         if (info && info.isExpanded) ret.isExpanded = info.isExpanded;
+        if (info && info.isFlat) ret.isFlat = info.isFlat;
         return ret;
     }
 
