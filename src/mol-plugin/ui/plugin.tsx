@@ -96,6 +96,7 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     private wrapper = React.createRef<HTMLDivElement>();
 
     componentDidMount() {
+        // TODO: only show last 100 entries.
         this.subscribe(this.plugin.events.log, e => this.setState({ entries: this.state.entries.push(e) }));
     }
 
@@ -111,10 +112,12 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     }
 
     render() {
-        return <div ref={this.wrapper} style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'auto' }}>
-            <ul style={{ listStyle: 'none' }} className='msp-log-list'>
+        return <div ref={this.wrapper} className='msp-log' style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'auto' }}>
+            <ul className='msp-list-unstyled'>
                 {this.state.entries.map((e, i) => <li key={i}>
-                    <b>[{formatTime(e!.timestamp)} | {e!.type}]</b> {e!.message}
+                    <div className={'msp-log-entry-badge msp-log-entry-' + e!.type} />
+                    <div className='msp-log-timestamp'>{formatTime(e!.timestamp)}</div>
+                    <div className='msp-log-entry'>{e!.message}</div>
                 </li>)}
             </ul>
         </div>;

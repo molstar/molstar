@@ -24,6 +24,7 @@ import { TaskManager } from './util/task-manager';
 import { Color } from 'mol-util/color';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
 import { ajaxGet } from 'mol-util/data-source';
+import { CustomPropertyRegistry } from './util/custom-prop-registry';
 
 export class PluginContext {
     private disposed = false;
@@ -58,13 +59,6 @@ export class PluginContext {
         }
     };
 
-    readonly lociLabels: LociLabelManager;
-
-    readonly structureRepresentation = {
-        registry: new StructureRepresentationRegistry(),
-        themeCtx: { colorThemeRegistry: new ColorTheme.Registry(), sizeThemeRegistry: new SizeTheme.Registry() } as ThemeRegistryContext
-    }
-
     readonly behaviors = {
         canvas: {
             highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
@@ -75,6 +69,14 @@ export class PluginContext {
 
     readonly canvas3d: Canvas3D;
 
+    readonly lociLabels: LociLabelManager;
+
+    readonly structureRepresentation = {
+        registry: new StructureRepresentationRegistry(),
+        themeCtx: { colorThemeRegistry: new ColorTheme.Registry(), sizeThemeRegistry: new SizeTheme.Registry() } as ThemeRegistryContext
+    }
+
+    readonly customModelProperties = new CustomPropertyRegistry();
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {

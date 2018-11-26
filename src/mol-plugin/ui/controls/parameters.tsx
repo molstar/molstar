@@ -284,6 +284,12 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
         const params = this.props.param.params;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
 
+        const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;
+
+        if (this.props.param.isFlat) {
+            return controls;
+        }
+
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
                 <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>
@@ -292,7 +298,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
                 </button>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+                {controls}
             </div>
             }
         </div>

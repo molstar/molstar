@@ -45,7 +45,7 @@ export class LociLabelControl extends PluginComponent<{}, { entries: ReadonlyArr
     }
 
     render() {
-        return <div>
+        return <div style={{ textAlign: 'right' }}>
             {this.state.entries.map((e, i) => <div key={'' + i}>{e}</div>)}
         </div>
     }
