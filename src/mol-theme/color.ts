@@ -89,9 +89,9 @@ namespace ColorTheme {
             return this._map.get(name) || EmptyProvider as unknown as Provider<P>
         }
 
-        create(id: string, ctx: ThemeDataContext, props = {}) {
-            const provider = this.get(id)
-            return provider ? provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props }) : Empty
+        create(name: string, ctx: ThemeDataContext, props = {}) {
+            const provider = this.get(name)
+            return provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props })
         }
 
         get list() {

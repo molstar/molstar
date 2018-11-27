@@ -14,31 +14,31 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createTheme } from 'mol-theme/theme';
 import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
 import { Structure } from 'mol-model/structure';
-import { UnitsMeshParams } from 'mol-repr/structure/units-visual';
+import { StructureParams } from 'mol-repr/structure/representation';
 
 export namespace StructureRepresentation3DHelpers {
-    export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, meshParams?: Partial<PD.Values<UnitsMeshParams>>): Transformer.Params<StructureRepresentation3D> {
+    export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure, structureParams?: Partial<PD.Values<StructureParams>>): Transformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
 
         const themeDataCtx = { structure };
         const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).getParams(themeDataCtx);
         const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).getParams(themeDataCtx)
+        const structureDefaultParams = PD.getDefaultValues(type.getParams(ctx.structureRepresentation.themeCtx, structure))
         return ({
-            type: { name, params: meshParams ? { ...type.defaultValues, ...meshParams } : type.defaultValues },
+            type: { name, params: structureParams ? { ...structureDefaultParams, ...structureParams } : structureDefaultParams },
             colorTheme: { name: type.defaultColorTheme, params: PD.getDefaultValues(colorParams) },
             sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
         })
     }
 
-    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, meshParams?: Partial<PD.Values<UnitsMeshParams>>): Transformer.Params<StructureRepresentation3D> {
+    export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structureParams?: Partial<PD.Values<StructureParams>>): Transformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
-
         const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).defaultValues;
         const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).defaultValues
         return ({
-            type: { name, params: meshParams ? { ...type.defaultValues, ...meshParams } : type.defaultValues },
-            colorTheme: { name: type.defaultColorTheme, params: PD.getDefaultValues(colorParams) },
-            sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
+            type: { name, params: structureParams ? { ...type.defaultValues, ...structureParams } : type.defaultValues },
+            colorTheme: { name: type.defaultColorTheme, params: colorParams },
+            sizeTheme: { name: type.defaultSizeTheme, params: sizeParams }
         })
     }
 }
