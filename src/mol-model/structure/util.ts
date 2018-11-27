@@ -49,11 +49,6 @@ export function getAtomIdForAtomRole(moleculeType: MoleculeType, atomRole: AtomR
     return ''
 }
 
-export function getElementIndexForAtomRole(model: Model, rI: ResidueIndex, atomRole: AtomRole) {
-    const atomId = getAtomIdForAtomRole(getAtomicMoleculeType(model, rI), atomRole)
-    return model.atomicHierarchy.index.findAtomOnResidue(rI, atomId)
-}
-
 export function residueLabel(model: Model, rI: number) {
     const { residues, chains, residueAtomSegments, chainAtomSegments } = model.atomicHierarchy
     const { label_comp_id, label_seq_id } = residues

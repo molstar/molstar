@@ -12,7 +12,6 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
 import { getResidueLoci } from './common';
-import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 
 export namespace NucleotideLocationIterator {
     export function fromGroup(group: Unit.SymmetryGroup): LocationIterator {
@@ -50,6 +49,7 @@ export function markNucleotideElement(loci: Loci, structureGroup: StructureGroup
     if (!Unit.isAtomic(unit)) return false
     const { nucleotideElements, model, elements } = unit
     const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+    const { traceElementIndex } = model.atomicHierarchy.derived.residue
     const groupCount = nucleotideElements.length
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)
@@ -61,8 +61,8 @@ export function markNucleotideElement(loci: Loci, structureGroup: StructureGroup
                 const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
                 const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
                 const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                if(!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
-                const eI = getElementIndexForAtomRole(model, rI, 'trace')
+                if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                const eI = traceElementIndex[rI]
                 const idx = OrderedSet.indexOf(eUnit.nucleotideElements, eI)
                 if (idx !== -1) {
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true

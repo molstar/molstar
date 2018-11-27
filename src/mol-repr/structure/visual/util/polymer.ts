@@ -11,7 +11,6 @@ import { EmptyLoci, Loci } from 'mol-model/loci';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { StructureGroup } from 'mol-repr/structure/units-visual';
-import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { getResidueLoci } from './common';
 
 export * from './polymer/backbone-iterator'
@@ -86,6 +85,7 @@ export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, a
     if (loci.structure !== structure) return false
     const { polymerElements, model, elements } = group.units[0]
     const { index, offsets } = model.atomicHierarchy.residueAtomSegments
+    const { traceElementIndex } = model.atomicHierarchy.derived.residue
     const groupCount = polymerElements.length
     for (const e of loci.elements) {
         const unitIdx = group.unitIndexMap.get(e.unit.id)
@@ -97,7 +97,7 @@ export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, a
                 const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
                 const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
                 if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
-                const eI = getElementIndexForAtomRole(model, rI, 'trace')
+                const eI = traceElementIndex[rI]
                 const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
                 if (idx !== -1) {
                     if (apply(Interval.ofSingleton(unitIdx * groupCount + idx))) changed = true
