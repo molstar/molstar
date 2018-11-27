@@ -35,7 +35,7 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
     const { radialSegments, sizeFactor } = props
 
     const vertexCountEstimate = radialSegments * 2 * polymerElementCount * 2
-    const builder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 10, mesh)
+    const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh)
 
     const { elements } = unit
     const pos = unit.conformation.invariantPosition
@@ -50,15 +50,15 @@ function createPolymerBackboneCylinderMesh(ctx: VisualContext, unit: Unit, struc
         pos(centerB.element, pB)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor
-        builder.setGroup(OrderedSet.indexOf(elements, centerA.element))
-        addCylinder(builder, pA, pB, 0.5, cylinderProps)
+        builderState.currentGroup = OrderedSet.indexOf(elements, centerA.element)
+        addCylinder(builderState, pA, pB, 0.5, cylinderProps)
 
         cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB) * sizeFactor
-        builder.setGroup(OrderedSet.indexOf(elements, centerB.element))
-        addCylinder(builder, pB, pA, 0.5, cylinderProps)
+        builderState.currentGroup = OrderedSet.indexOf(elements, centerB.element)
+        addCylinder(builderState, pB, pA, 0.5, cylinderProps)
     }
 
-    return builder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export const PolymerBackboneParams = {

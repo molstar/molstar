@@ -17,24 +17,23 @@ export class BoundingSphereHelper {
     private renderObject: MeshRenderObject
 
     constructor(private scene: Scene, visible: boolean) {
-        const builder = MeshBuilder.create(1024, 512)
-        this.mesh = builder.getMesh()
+        this.mesh = MeshBuilder.getMesh(MeshBuilder.createState(1024, 512))
         const values = Mesh.createValuesSimple(this.mesh, { alpha: 0.1, doubleSided: false })
         this.renderObject = createMeshRenderObject(values, { visible, pickable: false, opaque: false })
         scene.add(this.renderObject)
     }
 
     update() {
-        const builder = MeshBuilder.create(1024, 512, this.mesh)
+        const builderState = MeshBuilder.createState(1024, 512, this.mesh)
         if (this.scene.boundingSphere.radius) {
-            addSphere(builder, this.scene.boundingSphere.center, this.scene.boundingSphere.radius, 2)
+            addSphere(builderState, this.scene.boundingSphere.center, this.scene.boundingSphere.radius, 2)
         }
         this.scene.forEach(r => {
             if (r.boundingSphere.radius) {
-                addSphere(builder, r.boundingSphere.center, r.boundingSphere.radius, 2)
+                addSphere(builderState, r.boundingSphere.center, r.boundingSphere.radius, 2)
             }
         })
-        this.mesh = builder.getMesh()
+        this.mesh = MeshBuilder.getMesh(builderState)
         ValueCell.update(this.renderObject.values.drawCount, Geometry.getDrawCount(this.mesh))
     }
 

@@ -45,7 +45,7 @@ const pentagonalPrism = PentagonalPrism()
 const hexagonalPrism = HexagonalPrism()
 
 function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<CarbohydrateSymbolParams>, mesh?: Mesh) {
-    const builder = MeshBuilder.create(256, 128, mesh)
+    const builderState = MeshBuilder.createState(256, 128, mesh)
 
     const { detail, sizeFactor } = props
 
@@ -68,77 +68,77 @@ function createCarbohydrateSymbolMesh(ctx: VisualContext, structure: Structure, 
         Mat4.targetTo(t, center, pd, normal)
         Mat4.setTranslation(t, center)
 
-        builder.setGroup(i * 2)
+        builderState.currentGroup = i * 2
 
         switch (shapeType) {
             case SaccharideShapes.FilledSphere:
-                addSphere(builder, center, radius, detail)
+                addSphere(builderState, center, radius, detail)
                 break;
             case SaccharideShapes.FilledCube:
                 Mat4.scaleUniformly(t, t, side)
-                builder.add(t, box)
+                MeshBuilder.addPrimitive(builderState, t, box)
                 break;
             case SaccharideShapes.CrossedCube:
                 Mat4.scaleUniformly(t, t, side)
-                builder.add(t, perforatedBox)
+                MeshBuilder.addPrimitive(builderState, t, perforatedBox)
                 Mat4.mul(t, t, Mat4.rotZ90X180)
-                builder.setGroup(i * 2 + 1)
-                builder.add(t, perforatedBox)
+                builderState.currentGroup = i * 2 + 1
+                MeshBuilder.addPrimitive(builderState, t, perforatedBox)
                 break;
             case SaccharideShapes.FilledCone:
                 Mat4.scaleUniformly(t, t, side * 1.2)
-                builder.add(t, octagonalPyramid)
+                MeshBuilder.addPrimitive(builderState, t, octagonalPyramid)
                 break
             case SaccharideShapes.DevidedCone:
                 Mat4.scaleUniformly(t, t, side * 1.2)
-                builder.add(t, perforatedOctagonalPyramid)
+                MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid)
                 Mat4.mul(t, t, Mat4.rotZ90)
-                builder.setGroup(i * 2 + 1)
-                builder.add(t, perforatedOctagonalPyramid)
+                builderState.currentGroup = i * 2 + 1
+                MeshBuilder.addPrimitive(builderState, t, perforatedOctagonalPyramid)
                 break
             case SaccharideShapes.FlatBox:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
-                builder.add(t, box)
+                MeshBuilder.addPrimitive(builderState, t, box)
                 break
             case SaccharideShapes.FilledStar:
                 Mat4.scaleUniformly(t, t, side)
                 Mat4.mul(t, t, Mat4.rotZY90)
-                builder.add(t, star)
+                MeshBuilder.addPrimitive(builderState, t, star)
                 break
             case SaccharideShapes.FilledDiamond:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                builder.add(t, octahedron)
+                MeshBuilder.addPrimitive(builderState, t, octahedron)
                 break
             case SaccharideShapes.DividedDiamond:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side * 1.4, side * 1.4, side * 1.4))
-                builder.add(t, perforatedOctahedron)
+                MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron)
                 Mat4.mul(t, t, Mat4.rotY90)
-                builder.setGroup(i * 2 + 1)
-                builder.add(t, perforatedOctahedron)
+                builderState.currentGroup = i * 2 + 1
+                MeshBuilder.addPrimitive(builderState, t, perforatedOctahedron)
                 break
             case SaccharideShapes.FlatDiamond:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side / 2, side / 2))
-                builder.add(t, diamondPrism)
+                MeshBuilder.addPrimitive(builderState, t, diamondPrism)
                 break
             case SaccharideShapes.Pentagon:
                 Mat4.mul(t, t, Mat4.rotZY90)
                 Mat4.scale(t, t, Vec3.set(sVec, side, side, side / 2))
-                builder.add(t, pentagonalPrism)
+                MeshBuilder.addPrimitive(builderState, t, pentagonalPrism)
                 break
             case SaccharideShapes.FlatHexagon:
             default:
                 Mat4.mul(t, t, Mat4.rotZYZ90)
                 Mat4.scale(t, t, Vec3.set(sVec, side / 1.5, side , side / 2))
-                builder.add(t, hexagonalPrism)
+                MeshBuilder.addPrimitive(builderState, t, hexagonalPrism)
                 break
         }
     }
 
-    return builder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export const CarbohydrateSymbolParams = {

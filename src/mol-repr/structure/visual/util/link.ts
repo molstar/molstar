@@ -74,7 +74,7 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
     const { linkScale, linkSpacing, radialSegments } = props
 
     const vertexCountEstimate = radialSegments * 2 * linkCount * 2
-    const meshBuilder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 4, mesh)
+    const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 4, mesh)
 
     const va = Vec3.zero()
     const vb = Vec3.zero()
@@ -87,12 +87,12 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
         const linkRadius = radius(edgeIndex)
         const o = order(edgeIndex)
         const f = flags(edgeIndex)
-        meshBuilder.setGroup(edgeIndex)
+        builderState.currentGroup = edgeIndex
 
         if (LinkType.is(f, LinkType.Flag.MetallicCoordination) || LinkType.is(f, LinkType.Flag.Hydrogen)) {
             // show metall coordinations and hydrogen bonds with dashed cylinders
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius / 3
-            addFixedCountDashedCylinder(meshBuilder, va, vb, 0.5, 7, cylinderProps)
+            addFixedCountDashedCylinder(builderState, va, vb, 0.5, 7, cylinderProps)
         } else if (o === 2 || o === 3) {
             // show bonds with order 2 or 3 using 2 or 3 parallel cylinders
             const multiRadius = linkRadius * (linkScale / (0.5 * o))
@@ -103,15 +103,15 @@ export function createLinkCylinderMesh(ctx: VisualContext, linkBuilder: LinkCyli
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = multiRadius
 
-            if (o === 3) addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
-            addDoubleCylinder(meshBuilder, va, vb, 0.5, vShift, cylinderProps)
+            if (o === 3) addCylinder(builderState, va, vb, 0.5, cylinderProps)
+            addDoubleCylinder(builderState, va, vb, 0.5, vShift, cylinderProps)
         } else {
             cylinderProps.radiusTop = cylinderProps.radiusBottom = linkRadius
-            addCylinder(meshBuilder, va, vb, 0.5, cylinderProps)
+            addCylinder(builderState, va, vb, 0.5, cylinderProps)
         }
     }
 
-    return meshBuilder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export namespace LinkIterator {

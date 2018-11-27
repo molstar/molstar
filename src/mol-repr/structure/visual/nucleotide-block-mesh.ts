@@ -51,7 +51,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
     const { sizeFactor, radialSegments } = props
 
     const vertexCount = nucleotideElementCount * (box.vertices.length / 3 + radialSegments * 2)
-    const builder = MeshBuilder.create(vertexCount, vertexCount / 4, mesh)
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh)
 
     const { elements, model } = unit
     const { modifiedResidues } = model.properties
@@ -99,8 +99,8 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
 
                 if (idx5 !== -1 && idx6 !== -1) {
                     pos(idx5, p5); pos(idx6, p6)
-                    builder.setGroup(i)
-                    addCylinder(builder, p5, p6, 1, cylinderProps)
+                    builderState.currentGroup = i
+                    addCylinder(builderState, p5, p6, 1, cylinderProps)
                     if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1) {
                         pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4);
                         Vec3.normalize(v12, Vec3.sub(v12, p2, p1))
@@ -110,7 +110,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                         Vec3.scaleAndAdd(center, p1, v12, height / 2 - 0.2)
                         Mat4.scale(t, t, Vec3.set(sVec, width, depth, height))
                         Mat4.setTranslation(t, center)
-                        builder.add(t, box)
+                        MeshBuilder.addPrimitive(builderState, t, box)
                     }
                 }
 
@@ -119,7 +119,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
         }
     }
 
-    return builder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export const NucleotideBlockParams = {
@@ -137,7 +137,8 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
         mark: markNucleotideElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideBlockParams>, currentProps: PD.Values<NucleotideBlockParams>) => {
             state.createGeometry = (
-                newProps.sizeFactor !== currentProps.sizeFactor
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.radialSegments !== currentProps.radialSegments
             )
         }
     })
