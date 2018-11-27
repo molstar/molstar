@@ -43,5 +43,7 @@ export const CarbohydrateRepresentationProvider: StructureRepresentationProvider
     description: 'Displays carbohydrate symbols (3D SNFG).',
     factory: CarbohydrateRepresentation,
     getParams: getCarbohydrateParams,
-    defaultValues: PD.getDefaultValues(CarbohydrateParams)
+    defaultValues: PD.getDefaultValues(CarbohydrateParams),
+    defaultColorTheme: 'carbohydrate-symbol',
+    defaultSizeTheme: 'uniform'
 }

@@ -192,5 +192,7 @@ export const DirectVolumeRepresentationProvider: VolumeRepresentationProvider<Di
     description: 'Direct volume rendering of volumetric data.',
     factory: DirectVolumeRepresentation,
     getParams: getDirectVolumeParams,
-    defaultValues: PD.getDefaultValues(DirectVolumeParams)
+    defaultValues: PD.getDefaultValues(DirectVolumeParams),
+    defaultColorTheme: 'uniform',
+    defaultSizeTheme: 'uniform'
 }

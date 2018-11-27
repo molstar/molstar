@@ -43,5 +43,7 @@ export const MolecularSurfaceRepresentationProvider: StructureRepresentationProv
     description: 'Displays a gaussian molecular surface.',
     factory: MolecularSurfaceRepresentation,
     getParams: getMolecularSurfaceParams,
-    defaultValues: PD.getDefaultValues(MolecularSurfaceParams)
+    defaultValues: PD.getDefaultValues(MolecularSurfaceParams),
+    defaultColorTheme: 'polymer-id',
+    defaultSizeTheme: 'uniform'
 }

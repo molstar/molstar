@@ -40,6 +40,8 @@ export interface RepresentationProvider<D, P extends PD.Params> {
     readonly factory: RepresentationFactory<D, P>
     readonly getParams: RepresentationParamsGetter<D, P>
     readonly defaultValues: PD.Values<P>
+    readonly defaultColorTheme: string
+    readonly defaultSizeTheme: string
 }
 
 export type AnyRepresentationProvider = RepresentationProvider<any, {}>

@@ -77,5 +77,7 @@ export const IsosurfaceRepresentationProvider: VolumeRepresentationProvider<Isos
     description: 'Displays an isosurface of volumetric data.',
     factory: IsosurfaceRepresentation,
     getParams: getIsosurfaceParams,
-    defaultValues: PD.getDefaultValues(IsosurfaceParams)
+    defaultValues: PD.getDefaultValues(IsosurfaceParams),
+    defaultColorTheme: 'uniform',
+    defaultSizeTheme: 'uniform'
 }

@@ -48,5 +48,7 @@ export const BallAndStickRepresentationProvider: StructureRepresentationProvider
     description: 'Displays atoms as spheres and bonds as cylinders.',
     factory: BallAndStickRepresentation,
     getParams: getBallAndStickParams,
-    defaultValues: PD.getDefaultValues(BallAndStickParams)
+    defaultValues: PD.getDefaultValues(BallAndStickParams),
+    defaultColorTheme: 'element-symbol',
+    defaultSizeTheme: 'uniform'
 }

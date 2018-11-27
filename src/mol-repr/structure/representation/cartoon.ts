@@ -47,5 +47,7 @@ export const CartoonRepresentationProvider: StructureRepresentationProvider<Cart
     description: 'Displays a ribbon smoothly following the trace atoms of polymers.',
     factory: CartoonRepresentation,
     getParams: getCartoonParams,
-    defaultValues: PD.getDefaultValues(CartoonParams)
+    defaultValues: PD.getDefaultValues(CartoonParams),
+    defaultColorTheme: 'polymer-id',
+    defaultSizeTheme: 'uniform'
 }
