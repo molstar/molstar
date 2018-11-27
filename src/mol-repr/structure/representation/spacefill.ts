@@ -1,29 +1,42 @@
-// /**
-//  * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
-//  *
-//  * @author Alexander Rose <alexander.rose@weirdbyte.de>
-//  */
+/**
+ * Copyright (c) 2018 mol* contributors, licensed under MIT, See LICENSE file for more info.
+ *
+ * @author Alexander Rose <alexander.rose@weirdbyte.de>
+ */
 
-// import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
-// import { UnitsRepresentation } from '../units-representation';
-// import { ParamDefinition as PD } from 'mol-util/param-definition';
-// import { StructureRepresentation } from '../representation';
-// import { Representation } from 'mol-repr/representation';
-// import { ThemeRegistryContext } from 'mol-theme/theme';
-// import { Structure } from 'mol-model/structure';
+import { ElementSphereVisual, ElementSphereParams } from '../visual/element-sphere';
+import { UnitsRepresentation } from '../units-representation';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
+import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
+import { RepresentationParamsGetter, RepresentationContext, Representation } from 'mol-repr/representation';
+import { ThemeRegistryContext } from 'mol-theme/theme';
+import { Structure } from 'mol-model/structure';
+import { UnitKind, UnitKindOptions } from '../visual/util/common';
 
-// export const SpacefillParams = {
-//     ...ElementSphereParams,
-// }
-// export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
-//     return SpacefillParams // TODO return copy
-// }
-// export type SpacefillProps = PD.DefaultValues<typeof SpacefillParams>
+const SpacefillVisuals = {
+    'element-sphere': (ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, ElementSphereParams>) => UnitsRepresentation('Sphere mesh', ctx, getParams, ElementSphereVisual),
+}
 
-// export type SpacefillRepresentation = StructureRepresentation<SpacefillProps>
+export const SpacefillParams = {
+    ...ElementSphereParams,
+    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'gaussians'], UnitKindOptions),
+}
+export type SpacefillParams = typeof SpacefillParams
+export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {
+    return PD.clone(SpacefillParams)
+}
 
-// export function SpacefillRepresentation(defaultProps: SpacefillProps): SpacefillRepresentation {
-//     return Representation.createMulti('Spacefill', defaultProps, [
-//         UnitsRepresentation('Sphere mesh', defaultProps, ElementSphereVisual)
-//     ])
-// }
+export type SpacefillRepresentation = StructureRepresentation<SpacefillParams>
+export function SpacefillRepresentation(ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, SpacefillParams>): SpacefillRepresentation {
+    return Representation.createMulti('Spacefill', ctx, getParams, SpacefillVisuals as unknown as Representation.Def<Structure, SpacefillParams>)
+}
+
+export const SpacefillRepresentationProvider: StructureRepresentationProvider<typeof SpacefillParams> = {
+    label: 'Spacefill',
+    description: 'Displays atoms as spheres.',
+    factory: SpacefillRepresentation,
+    getParams: getSpacefillParams,
+    defaultValues: PD.getDefaultValues(SpacefillParams),
+    defaultColorTheme: 'element-symbol',
+    defaultSizeTheme: 'physical'
+}
