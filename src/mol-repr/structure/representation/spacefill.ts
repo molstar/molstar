@@ -19,7 +19,7 @@ const SpacefillVisuals = {
 
 export const SpacefillParams = {
     ...ElementSphereParams,
-    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'gaussians'], UnitKindOptions),
+    unitKinds: PD.MultiSelect<UnitKind>(['atomic', 'spheres'], UnitKindOptions),
 }
 export type SpacefillParams = typeof SpacefillParams
 export function getSpacefillParams(ctx: ThemeRegistryContext, structure: Structure) {

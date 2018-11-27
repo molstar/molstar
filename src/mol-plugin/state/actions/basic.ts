@@ -17,6 +17,8 @@ import { StateTreeBuilder } from 'mol-state/tree/builder';
 import { PolymerIdColorThemeParams } from 'mol-theme/color/polymer-id';
 import { UniformSizeThemeParams } from 'mol-theme/size/uniform';
 import { ElementSymbolColorThemeParams } from 'mol-theme/color/element-symbol';
+import { PhysicalSizeThemeParams } from 'mol-theme/size/physical';
+import { SpacefillParams } from 'mol-repr/structure/representation/spacefill';
 
 // TODO: "structure parser provider"
 
@@ -124,8 +126,12 @@ function complexRepresentation(root: StateTreeBuilder.To<PluginStateObject.Molec
             colorTheme: { name: 'element-symbol', params: PD.getDefaultValues(ElementSymbolColorThemeParams) },
             sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
         })
-    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' });
-    // TODO: create spheres visual
+    root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
+        .apply(StateTransforms.Representation.StructureRepresentation3D, {
+            type: { name: 'spacefill', params: { ...PD.getDefaultValues(SpacefillParams) } },
+            colorTheme: { name: 'polymer-id', params: PD.getDefaultValues(PolymerIdColorThemeParams) },
+            sizeTheme: { name: 'physical', params: PD.getDefaultValues(PhysicalSizeThemeParams) },
+        })
 }
 
 export const CreateComplexRepresentation = StateAction.build({

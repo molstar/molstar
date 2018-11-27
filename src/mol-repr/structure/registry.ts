@@ -11,6 +11,7 @@ import { BallAndStickRepresentationProvider } from './representation/ball-and-st
 import { MolecularSurfaceRepresentationProvider } from './representation/molecular-surface';
 import { CarbohydrateRepresentationProvider } from './representation/carbohydrate';
 import { SpacefillRepresentationProvider } from './representation/spacefill';
+import { DistanceRestraintRepresentationProvider } from './representation/distance-restraint';
 
 export class StructureRepresentationRegistry extends RepresentationRegistry<Structure> {
     constructor() {
@@ -26,6 +27,7 @@ export const BuiltInStructureRepresentations = {
     'cartoon': CartoonRepresentationProvider,
     'ball-and-stick': BallAndStickRepresentationProvider,
     'carbohydrate': CarbohydrateRepresentationProvider,
+    'distance-restraint': DistanceRestraintRepresentationProvider,
     'molecular-surface': MolecularSurfaceRepresentationProvider,
     'spacefill': SpacefillRepresentationProvider,
 }
