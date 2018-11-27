@@ -9,8 +9,8 @@ import * as React from 'react';
 import { PluginComponent } from './base';
 import { shallowEqual } from 'mol-util';
 import { List } from 'immutable';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ParameterControls } from './controls/parameters';
+import { ParamDefinition as PD} from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
 
 export class StateSnapshots extends PluginComponent<{ }, { serverUrl: string }> {

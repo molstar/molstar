@@ -8,9 +8,9 @@ import { ValueCell } from 'mol-util'
 import { Sphere3D, Box3D } from 'mol-math/geometry'
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { DirectVolumeValues } from 'mol-gl/renderable/direct-volume';
-import { Vec3, Mat4 } from 'mol-math/linear-algebra';
+import { Vec3, Mat4, Vec2 } from 'mol-math/linear-algebra';
 import { Box } from '../../primitive/box';
-import { getControlPointsFromString, createTransferFunctionTexture } from './transfer-function';
+import { createTransferFunctionTexture, getControlPointsFromVec2Array } from './transfer-function';
 import { Texture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { TransformData } from '../transform-data';
@@ -72,7 +72,7 @@ export namespace DirectVolume {
         ...Geometry.Params,
         isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
         renderMode: PD.Select('isosurface', RenderModeOptions),
-        controlPoints: PD.Text('0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
+        controlPoints: PD.LineGraph([Vec2.create(0.19, 0.1), Vec2.create(0.2, 0.5), Vec2.create(0.21, 0.1), Vec2.create(0.4, 0.3)]),
     }
     export type Params = typeof Params
 
@@ -93,7 +93,7 @@ export namespace DirectVolume {
             transform.aTransform.ref.value, transform.instanceCount.ref.value
         )
 
-        const controlPoints = getControlPointsFromString(props.controlPoints)
+        const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
         const transferTex = createTransferFunctionTexture(controlPoints)
 
         const maxSteps = Math.ceil(Vec3.magnitude(gridDimension.ref.value)) * 2
@@ -130,7 +130,7 @@ export namespace DirectVolume {
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
 
-        const controlPoints = getControlPointsFromString(props.controlPoints)
+        const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
         createTransferFunctionTexture(controlPoints, values.tTransferTex)
     }
 
