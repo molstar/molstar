@@ -11,7 +11,6 @@ import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
 import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
 import { Color } from 'mol-util/color';
-import { Slider } from './slider';
 import { Vec2 } from 'mol-math/linear-algebra';
 import LineGraphComponent from './LineGraph/LineGraphComponent';
 

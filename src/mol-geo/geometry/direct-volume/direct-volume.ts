@@ -130,7 +130,7 @@ export namespace DirectVolume {
         ValueCell.updateIfChanged(values.dUseFog, props.useFog)
         ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
 
-        const controlPoints = getControlPointsFromString(props.controlPoints)
+        const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
         createTransferFunctionTexture(controlPoints, values.tTransferTex)
     }
 
