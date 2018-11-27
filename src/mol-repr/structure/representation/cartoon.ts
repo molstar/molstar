@@ -12,7 +12,7 @@ import { UnitsRepresentation } from '../units-representation';
 import { StructureRepresentation, StructureRepresentationProvider } from '../representation';
 import { Representation, RepresentationParamsGetter, RepresentationContext } from 'mol-repr/representation';
 import { PolymerDirectionVisual, PolymerDirectionParams } from '../visual/polymer-direction-wedge';
-import { Structure } from 'mol-model/structure';
+import { Structure, Unit } from 'mol-model/structure';
 import { ThemeRegistryContext } from 'mol-theme/theme';
 
 const CartoonVisuals = {
@@ -34,7 +34,17 @@ export const CartoonParams = {
 }
 export type CartoonParams = typeof CartoonParams
 export function getCartoonParams(ctx: ThemeRegistryContext, structure: Structure) {
-    return PD.clone(CartoonParams)
+    const params = PD.clone(CartoonParams)
+    let hasNucleotides = false
+    let hasGaps = false
+    structure.units.forEach(u => {
+        if (!hasNucleotides && Unit.isAtomic(u) && u.nucleotideElements.length) hasNucleotides = true
+        if (!hasGaps && u.gapElements.length) hasGaps = true
+    })
+    params.visuals.defaultValue = ['polymer-trace']
+    if (hasNucleotides) params.visuals.defaultValue.push('nucleotide-block')
+    if (hasGaps) params.visuals.defaultValue.push('polymer-gap')
+    return params
 }
 
 export type CartoonRepresentation = StructureRepresentation<CartoonParams>
