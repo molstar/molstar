@@ -8,79 +8,19 @@ import PointComponent from './PointComponent';
 import * as React from 'react';
 import { Vec2 } from 'mol-math/linear-algebra';
 
-// interface Line {
-//     x1: number;
-//     x2: number;
-//     y1: number;
-//     y2: number;
-// };
-
-// interface Rect {
-//     x: number;
-//     y: number;
-// }
-
-// interface TextLabel {
-//     x: number;
-//     y: number;
-// }
-
-interface CanvasComponentState {
+interface LineGraphComponentState {
     points: Vec2[],
-    selectedPoint: any,
-    selected: number | undefined,
+    selected?: number,
     copyPoint: any,
     updatedX: number, 
     updatedY: number,
 }
 
-export default class CanvasComponent extends React.Component<any, CanvasComponentState> {
+export default class LineGraphComponent extends React.Component<any, LineGraphComponentState> {
     private myRef:any;
     private height: number;
     private width: number;
     private padding: number;
-    // private topLine: Line;
-    // private bottomLine: Line;
-    // private rightLine: Line;
-    // private leftLine: Line;
-    // private normalizedXLabels: Point[];
-    // private normalizedYLabels: Point[];
-    // private normalizedRect: Rect;
-    // private normalizedLabel: TextLabel;
-    // private normalizedInfoPoint: Point;
-    // private normalizedInfoLabel: Point;
-    // private label: TextLabel = {x: 0, y: 0.1};
-    // private infoPoint = {x: 0.95, y: 0.5};
-    // private infoLabel = {x: 0.945, y: 0.2};
-    // private rainbowRect: Rect = {x: 0.0, y: 0.5};
-    // private xLabel: Point[] = [
-    //     {x: 0, y: 0.65},
-    //     {x: 0.07, y: 0.65},
-    //     {x: 0.17, y: 0.65},
-    //     {x: 0.27, y: 0.65},
-    //     {x: 0.37, y: 0.65},
-    //     {x: 0.47, y: 0.65},
-    //     {x: 0.57, y: 0.65},
-    //     {x: 0.67, y: 0.65},
-    //     {x: 0.77, y: 0.65},
-    //     {x: 0.87, y: 0.65},
-    //     {x: 0.97, y: 0.65},
-    // ];
-
-    // private yLabel: Point[] = [
-    //     {x: 0.45, y: 0},
-    //     {x: 0.45, y: 0.1},
-    //     {x: 0.45, y: 0.2},
-    //     {x: 0.45, y: 0.3},
-    //     {x: 0.45, y: 0.4},
-    //     {x: 0.45, y: 0.5},
-    //     {x: 0.45, y: 0.6},
-    //     {x: 0.45, y: 0.7},
-    //     {x: 0.45, y: 0.8},
-    //     {x: 0.45, y: 0.9},
-    //     {x: 0.45, y: 1},       
-    // ];
-
     
     constructor(props: any) {
         super(props);
@@ -90,7 +30,6 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
                 Vec2.create(0, 0),
                 Vec2.create(1, 0)
             ],
-            selectedPoint: undefined,
             selected: undefined,
             copyPoint: undefined,
             updatedX: 0,
@@ -99,60 +38,6 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
         this.height = 400;
         this.width = 600;
         this.padding = 70;
-        // this.normalizedXLabels = this.normalizeXLabel(this.xLabel);
-        // this.normalizedYLabels = this.normalizeYLabel(this.yLabel);
-        // this.topLine = {
-        //     x1: this.padding/2,
-        //     x2: this.width+this.padding/2,  
-        //     y1: this.padding/2,
-        //     y2: this.padding/2
-        // };
-        // this.rightLine = {
-        //     x1: this.width+this.padding/2,
-        //     x2: this.width+this.padding/2,
-        //     y1: this.padding/2,
-        //     y2: this.height+this.padding/2
-        // };
-        // this.bottomLine = {
-        //     x1: this.padding/2,
-        //     x2: this.width+this.padding/2,
-        //     y1: this.height+this.padding/2,
-        //     y2: this.height+this.padding/2
-        // };
-        // this.leftLine = {
-        //     x1: this.padding/2,
-        //     x2: this.padding/2, 
-        //     y1: this.padding/2,
-        //     y2: this.height+this.padding/2
-        // };
-        // this.normalizedLabel = this.normalizeGraphLabel(
-        //     this.label, 
-        //     this.padding/2, 
-        //     this.height+this.padding/2, 
-        //     this.width+this.padding/2, 
-        //     this.height+this.padding
-        // );
-        // this.normalizedInfoPoint = this.normalizeGraphLabel(
-        //     this.infoPoint, 
-        //     this.padding/2, 
-        //     this.height+this.padding/2, 
-        //     this.width+this.padding/2, 
-        //     this.height+this.padding
-        // );
-        // this.normalizedInfoLabel = this.normalizeGraphLabel(
-        //     this.infoLabel, 
-        //     this.padding/2, 
-        //     this.height+this.padding/2, 
-        //     this.width+this.padding/2, 
-        //     this.height+this.padding
-        // );
-        // this.normalizedRect = this.normalizeGraphLabel(
-        //     this.rainbowRect,
-        //     this.padding/2,
-        //     0,
-        //     this.width+this.padding/2,
-        //     this.padding/2
-        // );
         
         for (const point of this.props.data){
             this.state.points.push(point);
@@ -172,7 +57,6 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
         });
 
         this.handleDrag = this.handleDrag.bind(this);
-        this.handleClickCanvas = this.handleClickCanvas.bind(this);
         this.handleDoubleClick = this.handleDoubleClick.bind(this);
         this.refCallBack = this.refCallBack.bind(this);
         this.handlePointUpdate = this.handlePointUpdate.bind(this);
@@ -182,29 +66,16 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
     public render() {
         const points = this.renderPoints();
         const ghostPoint = this.state.copyPoint;
-        const selectedPoint = this.state.selectedPoint;
         return ([
-            <div key="canvas" id="canvas">                
-                <svg 
-                    id="svg"
+            <div key="LineGraph">                
+                <svg
                     className="msp-canvas"
                     ref={this.refCallBack} 
                     viewBox={`0 0 ${this.width+this.padding} ${this.height+this.padding}`}
                     onMouseMove={this.handleDrag} 
                     onMouseUp={this.handlePointUpdate}
-                    onClick={this.handleClickCanvas}
                     onDoubleClick={this.handleDoubleClick}>  
-                    {/* <text x={this.normalizedLabel.x} y={this.normalizedLabel.y} fontSize="250%">YOUR LABEL HERE</text> */}
-                    {/* <InfoComponent 
-                        key="rootInfo" 
-                        cx={this.normalizedInfoPoint.x} 
-                        cy={this.normalizedInfoPoint.y} 
-                        x={this.normalizedInfoLabel.x} 
-                        y={this.normalizedInfoLabel.y} 
-                        fill="white" 
-                        stroke="black" 
-                        strokeWidth="5" 
-                    /> */}
+            
                     <g stroke="black" fill="black">
                         <Poly 
                             data={this.state.points} 
@@ -214,39 +85,7 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
                             padding={this.padding}/>
                         {points}
                         {ghostPoint}
-                        {selectedPoint}
-
-                        {/* <line x1={this.topLine.x1} x2={this.topLine.x2} y1={this.topLine.y1} y2={this.topLine.y2} stroke="black" strokeWidth="5" strokeLinecap="square"/>
-                        <line x1={this.bottomLine.x1} x2={this.bottomLine.x2} y1={this.bottomLine.y1} y2={this.bottomLine.y2} stroke="black" strokeWidth="5" strokeLinecap="square"/>
-                        <line x1={this.rightLine.x1} x2={this.rightLine.x2} y1={this.rightLine.y1} y2={this.rightLine.y2} stroke="black" strokeWidth="5" strokeLinecap="square"/>
-                        <line x1={this.leftLine.x1} x2={this.leftLine.x2} y1={this.leftLine.y1} y2={this.leftLine.y2} stroke="black" strokeWidth="5" strokeLinecap="square"/> */}
                     </g>
-                    {/* <g className="x-labels">
-                        <text x={this.normalizedXLabels[0].x} y={this.normalizedXLabels[0].y} fontSize="250%">0</text>
-                        <text x={this.normalizedXLabels[1].x} y={this.normalizedXLabels[1].y} fontSize="250%">0.1</text>
-                        <text x={this.normalizedXLabels[2].x} y={this.normalizedXLabels[2].y} fontSize="250%">0.2</text>
-                        <text x={this.normalizedXLabels[3].x} y={this.normalizedXLabels[3].y} fontSize="250%">0.3</text>
-                        <text x={this.normalizedXLabels[4].x} y={this.normalizedXLabels[4].y} fontSize="250%">0.4</text>
-                        <text x={this.normalizedXLabels[5].x} y={this.normalizedXLabels[5].y} fontSize="250%">0.5</text>
-                        <text x={this.normalizedXLabels[6].x} y={this.normalizedXLabels[6].y} fontSize="250%">0.6</text>
-                        <text x={this.normalizedXLabels[7].x} y={this.normalizedXLabels[7].y} fontSize="250%">0.7</text>
-                        <text x={this.normalizedXLabels[8].x} y={this.normalizedXLabels[8].y} fontSize="250%">0.8</text>
-                        <text x={this.normalizedXLabels[9].x} y={this.normalizedXLabels[9].y} fontSize="250%">0.9</text>
-                        <text x={this.normalizedXLabels[10].x} y={this.normalizedXLabels[10].y} fontSize="250%">1</text>
-                    </g>
-                    <g className="y-labels">
-                        <text x={this.normalizedYLabels[0].x} y={this.normalizedYLabels[0].y} fontSize="250%">0</text>
-                        <text x={this.normalizedYLabels[1].x} y={this.normalizedYLabels[1].y} fontSize="250%">0.1</text>
-                        <text x={this.normalizedYLabels[2].x} y={this.normalizedYLabels[2].y} fontSize="250%">0.2</text>
-                        <text x={this.normalizedYLabels[3].x} y={this.normalizedYLabels[3].y} fontSize="250%">0.3</text>
-                        <text x={this.normalizedYLabels[4].x} y={this.normalizedYLabels[4].y} fontSize="250%">0.4</text>
-                        <text x={this.normalizedYLabels[5].x} y={this.normalizedYLabels[5].y} fontSize="250%">0.5</text>
-                        <text x={this.normalizedYLabels[6].x} y={this.normalizedYLabels[6].y} fontSize="250%">0.6</text>
-                        <text x={this.normalizedYLabels[7].x} y={this.normalizedYLabels[7].y} fontSize="250%">0.7</text>
-                        <text x={this.normalizedYLabels[8].x} y={this.normalizedYLabels[8].y} fontSize="250%">0.8</text>
-                        <text x={this.normalizedYLabels[9].x} y={this.normalizedYLabels[9].y} fontSize="250%">0.9</text>
-                        <text x={this.normalizedYLabels[9].x} y={this.normalizedYLabels[10].y} fontSize="250%">1</text>
-                    </g> */}
 
                      <defs>
                         <linearGradient id="Gradient">
@@ -257,8 +96,6 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
                             <stop offset="100%" stopColor="#041ae0"/>
                         </linearGradient>
                     </defs>
- 
-                    {/* <rect id="rect1" x={this.normalizedRect.x} y={this.normalizedRect.y} rx="15" ry="15" width={this.width} height="30" fill="url(#Gradient)"/> */}
                     
                 </svg>
             </div>,
@@ -359,31 +196,6 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
         event.preventDefault();
     }
 
-    // private handleClickPoint = (id:number) => (event: any) => {
-    //     const selectedPointX = this.state.points[id][0];
-    //     const selectedPointY = this.state.points[id][1];
-    //     const normalizePoint = this.normalizePoint(Vec2.create(selectedPointX, selectedPointY));
-    //     const selectedPoint = <PointComponent
-    //                         key={id} 
-    //                         id={id}
-    //                         x={normalizePoint[0]} 
-    //                         y={normalizePoint[1]}
-    //                         nX={selectedPointX}
-    //                         nY={selectedPointY}
-    //                         selected={true}
-    //                         delete={this.deletePoint}
-    //                         onMouseDown={this.handleMouseDown(id)}
-    //                     />
-
-    //     this.setState({selectedPoint});
-
-    //     event.stopPropagation();
-    // }
-    
-    private handleClickCanvas() {
-        this.setState({selectedPoint: undefined});
-    }
-
     private handleDoubleClick(event: any) {
         let newPoint;
         const pt = this.myRef.createSVGPoint();
@@ -448,39 +260,6 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
         return newPoint;
     }
 
-    // private normalizeGraphLabel(point: Point, minX: number, minY: number, maxX: number, maxY: number) {
-    //     const normalizedX = (point.x*(maxX-minX))+minX;
-    //     const normalizedY = (point.y*(maxY-minY))+minY;
-    //     const reverseY = (this.height+this.padding)-normalizedY;
-
-    //     return {x: normalizedX, y: reverseY};
-    // } 
-
-    // private normalizeXLabel(points: Point[]) {
-    //     const minX = this.padding/2;
-    //     const minY = 0;
-    //     const maxX = this.width+this.padding/2;
-    //     const maxY = this.padding/2;
-    //     const normalizedPoints: Point[] = [];
-    //     for(const point of points){
-    //         normalizedPoints.push(this.normalizeGraphLabel(point, minX, minY, maxX, maxY));
-    //     }
-
-    //     return normalizedPoints;
-    // }
-
-    // private normalizeYLabel(points: Point[]) {
-    //     const minX = 0;
-    //     const minY = this.padding/2;
-    //     const maxX = this.padding/2;
-    //     const maxY = this.height+this.padding/2;
-    //     const normalizedPoints: Point[] = [];
-    //     for(const point of points) {
-    //         normalizedPoints.push(this.normalizeGraphLabel(point, minX, minY, maxX, maxY));
-    //     }
-    //     return normalizedPoints;
-    // }
-
     private unNormalizePoint(point: Vec2) {
         const min = this.padding/2;
         const maxX = this.width+min; 
@@ -516,7 +295,6 @@ export default class CanvasComponent extends React.Component<any, CanvasComponen
                         delete={this.deletePoint}
                         onmouseover={this.props.onHover}
                         onMouseDown={this.handleMouseDown(i)}
-                        // onClick={this.handleClickPoint(i)}
                     />);
             }
         }

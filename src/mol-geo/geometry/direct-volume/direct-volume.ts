@@ -72,7 +72,6 @@ export namespace DirectVolume {
         ...Geometry.Params,
         isoValue: PD.Numeric(0.22, { min: -1, max: 1, step: 0.01 }),
         renderMode: PD.Select('isosurface', RenderModeOptions),
-        // controlPoints: PD.Text('0.19:0.1, 0.2:0.5, 0.21:0.1, 0.4:0.3'),
         controlPoints: PD.LineGraph([Vec2.create(0.19, 0.1), Vec2.create(0.2, 0.5), Vec2.create(0.21, 0.1), Vec2.create(0.4, 0.3)]),
     }
     export type Params = typeof Params

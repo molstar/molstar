@@ -3,19 +3,7 @@ import * as React from 'react';
 
 import { Vec2 } from 'mol-math/linear-algebra';
 
-// interface PointComponentProps {
-//     id: number;
-//     x: number;
-//     y: number;
-//     nX: number;
-//     nY: number;
-//     selected: boolean;
-//     delete: any; 
-//     onMouseDown: any;
-//     onClick: any; 
-// }
-
-export default class PointComponent extends React.Component<any, any> {
+export default class PointComponent extends React.Component<any, {show: boolean}> {
     constructor(props: any){
         super(props);
         this.state = {show: false}

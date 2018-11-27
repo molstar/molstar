@@ -7,14 +7,13 @@
 
 import * as React from 'react'
 
-import CanvasComponent from './Canvas/CanvasComponent';
-
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
 import { ColorNames } from 'mol-util/color/tables';
 import { Color } from 'mol-util/color';
 import { Slider } from './slider';
 import { Vec2 } from 'mol-math/linear-algebra';
+import LineGraphComponent from './LineGraph/LineGraphComponent';
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -135,7 +134,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
                 </div>
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                <CanvasComponent 
+                <LineGraphComponent
                     data={this.props.param.defaultValue} 
                     onChange={this.onChange} 
                     onHover={this.onHover}
