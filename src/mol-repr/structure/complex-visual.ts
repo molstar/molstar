@@ -155,7 +155,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
 
     return {
         get groupCount() { return locationIt ? locationIt.count : 0 },
-        get renderObject () { return renderObject },
+        get renderObject () { return locationIt && locationIt.count ? renderObject : undefined },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
             prepareUpdate(theme, props, structure || currentStructure)
             if (updateState.createGeometry) {
