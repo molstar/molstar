@@ -22,7 +22,7 @@ import { createColors } from 'mol-geo/geometry/color-data';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { VisualUpdateState } from 'mol-repr/util';
-import { Theme } from 'mol-theme/theme';
+import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 
@@ -58,44 +58,48 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
     const updateState = VisualUpdateState.create()
 
     let renderObject: ComplexRenderObject | undefined
+
     let newProps: PD.Values<P>
     let newTheme: Theme
-    let currentProps: PD.Values<P>
-    let currentTheme: Theme
-    let geometry: Geometry
+    let newStructure: Structure
+
+    let currentProps: PD.Values<P> = Object.assign({}, defaultProps)
+    let currentTheme: Theme = createEmptyTheme()
     let currentStructure: Structure
+
+    let geometry: Geometry
     let locationIt: LocationIterator
-    let conformationHash: number
 
-    function create(newGeometry: Geometry, structure: Structure, theme: Theme, props: Partial<PD.Values<P>> = {}) {
-        currentProps = Object.assign({}, defaultProps, props)
-        currentTheme = theme
-        currentStructure = structure
+    function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>>, structure: Structure) {
+        if (!structure && !currentStructure) {
+            throw new Error('missing structure')
+        }
 
-        conformationHash = Structure.conformationHash(currentStructure)
-        // geometry = createGeometry(ctx, currentStructure, theme, currentProps, geometry)
-
-        locationIt = createLocationIterator(structure)
-        renderObject = createRenderObject(structure, newGeometry, locationIt, theme, currentProps)
-    }
-
-    function getUpdateState(theme: Theme, props: Partial<PD.Values<P>>) {
-        if (!renderObject) return
-        
-        newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
+        newProps = Object.assign({}, currentProps, props)
         newTheme = theme
+        newStructure = structure
 
         VisualUpdateState.reset(updateState)
-        setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
+
+        if (!renderObject) {
+            updateState.createNew = true
+        } else if (!currentStructure || !Structure.areEquivalent(newStructure, currentStructure)) {
+            updateState.createNew = true
+        }
+
+        if (updateState.createNew) {
+            updateState.createGeometry = true
+            return
+        }
+
+        setUpdateState(updateState, newProps, currentProps, newTheme, currentTheme)
+
+        if (Structure.conformationHash(newStructure) !== Structure.conformationHash(currentStructure)) {
+            updateState.createGeometry = true
+        }
 
         if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
         if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
-
-        const newConformationHash = Structure.conformationHash(currentStructure)
-        if (newConformationHash !== conformationHash) {
-            conformationHash = newConformationHash
-            updateState.createGeometry = true
-        }
 
         if (updateState.createGeometry) {
             updateState.updateColor = true
@@ -103,72 +107,60 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
     }
 
     function update(newGeometry?: Geometry) {
-        if (!renderObject) return
-
-        locationIt.reset()
-
-        if (updateState.createGeometry) {
+        if (updateState.createNew) {
+            locationIt = createLocationIterator(newStructure)
             if (newGeometry) {
-                ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                updateBoundingSphere(renderObject.values, newGeometry)
+                renderObject = createRenderObject(newStructure, newGeometry, locationIt, newTheme, newProps)
             } else {
                 throw new Error('expected geometry to be given')
             }
-        }
-
-        if (updateState.updateSize) {
-            // not all geometries have size data, so check here
-            if ('uSize' in renderObject.values) {
-                createSizes(locationIt, newTheme.size, renderObject.values)
+        } else {
+            if (!renderObject) {
+                throw new Error('expected renderObject to be available')
             }
-        }
 
-        if (updateState.updateColor) {
-            createColors(locationIt, newTheme.color, renderObject.values)
-        }
+            locationIt.reset()
 
-        updateValues(renderObject.values, newProps)
-        updateRenderableState(renderObject.state, newProps)
+            if (updateState.createGeometry) {
+                if (newGeometry) {
+                    ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
+                    updateBoundingSphere(renderObject.values, newGeometry)
+                } else {
+                    throw new Error('expected geometry to be given')
+                }
+            }
+
+            if (updateState.updateSize) {
+                // not all geometries have size data, so check here
+                if ('uSize' in renderObject.values) {
+                    createSizes(locationIt, newTheme.size, renderObject.values)
+                }
+            }
+
+            if (updateState.updateColor) {
+                createColors(locationIt, newTheme.color, renderObject.values)
+            }
+
+            updateValues(renderObject.values, newProps)
+            updateRenderableState(renderObject.state, newProps)
+        }
 
         currentProps = newProps
         currentTheme = newTheme
+        currentStructure = newStructure
+        if (newGeometry) geometry = newGeometry
     }
 
     return {
         get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
-            if (!structure && !currentStructure) {
-                throw new Error('missing structure')
-            } else if (structure && (!currentStructure || !renderObject)) {
-                const newGeometry = createGeometry(ctx, structure, theme, Object.assign({}, defaultProps, props), geometry)
-                if (newGeometry instanceof Promise) {
-                    return newGeometry.then(geo => create(geo, structure, theme, props))
-                } else {
-                    create(newGeometry, structure, theme, props)
-                }
-            } else if (structure && !Structure.areEquivalent(structure, currentStructure)) {
-                const newGeometry = createGeometry(ctx, structure, theme, Object.assign({}, defaultProps, props), geometry)
-                if (newGeometry instanceof Promise) {
-                    return newGeometry.then(geo => create(geo, structure, theme, props))
-                } else {
-                    create(newGeometry, structure, theme, props)
-                }
+            prepareUpdate(theme, props, structure || currentStructure)
+            if (updateState.createGeometry) {
+                const newGeometry = createGeometry(ctx, newStructure, newTheme, newProps, geometry)
+                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry)
             } else {
-                if (structure && Structure.conformationHash(structure) !== Structure.conformationHash(currentStructure)) {
-                    currentStructure = structure
-                }
-                getUpdateState(theme, props)
-                if (updateState.createGeometry) {
-                    const newGeometry = createGeometry(ctx, currentStructure, newTheme, newProps, geometry)
-                    if (newGeometry instanceof Promise) {
-                        return newGeometry.then(update)
-                    } else {
-                        update(newGeometry)
-                    }
-                } else {
-                    update()
-                }
+                update()
             }
         },
         getLoci(pickingId: PickingId) {

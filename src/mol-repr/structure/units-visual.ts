@@ -10,7 +10,7 @@ import { StructureMeshParams, StructurePointsParams, StructureLinesParams, Struc
 import { Loci, isEveryLoci, EmptyLoci } from 'mol-model/loci';
 import { MeshRenderObject, PointsRenderObject, LinesRenderObject, DirectVolumeRenderObject } from 'mol-gl/render-object';
 import { createUnitsMeshRenderObject, createUnitsPointsRenderObject, createUnitsTransform, createUnitsLinesRenderObject, createUnitsDirectVolumeRenderObject, includesUnitKind } from './visual/util/common';
-import { deepEqual, ValueCell, UUID } from 'mol-util';
+import { deepEqual, ValueCell } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { RenderableValues } from 'mol-gl/renderable/schema';
@@ -25,7 +25,7 @@ import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
 import { VisualUpdateState } from 'mol-repr/util';
-import { Theme } from 'mol-theme/theme';
+import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { UnitsParams } from './units-representation';
@@ -58,35 +58,40 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
     const updateState = VisualUpdateState.create()
 
     let renderObject: UnitsRenderObject | undefined
-    let newProps: PD.Values<P>
-    let newTheme: Theme
+
+    let newProps: PD.Values<P> = Object.assign({}, defaultProps)
+    let newTheme: Theme = createEmptyTheme()
+    let newStructureGroup: StructureGroup
+
     let currentProps: PD.Values<P>
     let currentTheme: Theme
+    let currentStructureGroup: StructureGroup
+
     let geometry: Geometry
-    let currentGroup: Unit.SymmetryGroup
-    let currentStructure: Structure
     let locationIt: LocationIterator
-    let currentConformationId: UUID
 
-    function create(newGeometry: Geometry, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
-        currentProps = Object.assign({}, defaultProps, props, { structure: currentStructure })
-        currentTheme = theme
-        currentGroup = group
+    function prepareUpdate(theme: Theme, props: Partial<PD.Values<P>> = {}, structureGroup: StructureGroup) {
+        if (!structureGroup && !currentStructureGroup) {
+            throw new Error('missing structureGroup')
+        }
 
-        currentConformationId = Unit.conformationId(group.units[0])
-
-        // TODO create empty location iterator when not in unitKinds
-        locationIt = createLocationIterator(group)
-        renderObject = createRenderObject(group, newGeometry, locationIt, theme, currentProps)
-    }
-
-    function getUpdateState(group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
-        if (!renderObject) return
-
-        newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
+        newProps = Object.assign({}, currentProps, props)
         newTheme = theme
+        newStructureGroup = structureGroup
 
         VisualUpdateState.reset(updateState)
+
+        if (!renderObject) {
+            updateState.createNew = true
+        } else if (!currentStructureGroup || newStructureGroup.group.hashCode !== currentStructureGroup.group.hashCode) {
+            updateState.createNew = true
+        }
+
+        if (updateState.createNew) {
+            updateState.createGeometry = true
+            return
+        }
+
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
         if (!ColorTheme.areEqual(theme.color, currentTheme.color)) {
@@ -98,9 +103,9 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             updateState.createGeometry = true
         }
 
-        if (group.transformHash !== currentGroup.transformHash) {
+        if (newStructureGroup.group.transformHash !== currentStructureGroup.group.transformHash) {
             // console.log('new transformHash')
-            if (group.units.length !== currentGroup.units.length || updateState.updateColor) {
+            if (newStructureGroup.group.units.length !== currentStructureGroup.group.units.length || updateState.updateColor) {
                 updateState.updateTransform = true
             } else {
                 updateState.updateMatrix = true
@@ -108,10 +113,8 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         }
 
         // check if the conformation of unit.model has changed
-        const newConformationId = Unit.conformationId(group.units[0])
-        if (newConformationId !== currentConformationId) {
+        if (Unit.conformationId(newStructureGroup.group.units[0]) !== Unit.conformationId(currentStructureGroup.group.units[0])) {
             // console.log('new conformation')
-            currentConformationId = newConformationId
             updateState.createGeometry = true
         }
 
@@ -125,52 +128,64 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         }
     }
 
-    function update(group: Unit.SymmetryGroup, newGeometry?: Geometry) {
-        if (!renderObject) return
-
-        locationIt.reset()
-
-        if (updateState.updateTransform) {
-            // console.log('update transform')
-            locationIt = createLocationIterator(group)
-            const { instanceCount, groupCount } = locationIt
-            createMarkers(instanceCount * groupCount, renderObject.values)
-        }
-
-        if (updateState.updateMatrix) {
-            // console.log('update matrix')
-            createUnitsTransform(group, renderObject.values)
-        }
-
-        if (updateState.createGeometry) {
-            // console.log('update geometry')
+    function update(newGeometry?: Geometry) {
+        if (updateState.createNew) {
+            locationIt = createLocationIterator(newStructureGroup.group)
             if (newGeometry) {
-                ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
-                updateBoundingSphere(renderObject.values, newGeometry)
+                renderObject = createRenderObject(newStructureGroup.group, newGeometry, locationIt, newTheme, newProps)
             } else {
                 throw new Error('expected geometry to be given')
             }
-        }
-
-        if (updateState.updateSize) {
-            // not all geometries have size data, so check here
-            if ('uSize' in renderObject.values) {
-                // console.log('update size')
-                createSizes(locationIt, newTheme.size, renderObject.values)
+        } else {
+            if (!renderObject) {
+                throw new Error('expected renderObject to be available')
             }
-        }
 
-        if (updateState.updateColor) {
-            // console.log('update color')
-            createColors(locationIt, newTheme.color, renderObject.values)
-        }
+            locationIt.reset()
 
-        updateValues(renderObject.values, newProps)
-        updateRenderableState(renderObject.state, newProps)
+            if (updateState.updateTransform) {
+                // console.log('update transform')
+                locationIt = createLocationIterator(newStructureGroup.group)
+                const { instanceCount, groupCount } = locationIt
+                createMarkers(instanceCount * groupCount, renderObject.values)
+            }
+
+            if (updateState.updateMatrix) {
+                // console.log('update matrix')
+                createUnitsTransform(newStructureGroup.group, renderObject.values)
+            }
+
+            if (updateState.createGeometry) {
+                // console.log('update geometry')
+                if (newGeometry) {
+                    ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(newGeometry))
+                    updateBoundingSphere(renderObject.values, newGeometry)
+                } else {
+                    throw new Error('expected geometry to be given')
+                }
+            }
+
+            if (updateState.updateSize) {
+                // not all geometries have size data, so check here
+                if ('uSize' in renderObject.values) {
+                    // console.log('update size')
+                    createSizes(locationIt, newTheme.size, renderObject.values)
+                }
+            }
+
+            if (updateState.updateColor) {
+                // console.log('update color')
+                createColors(locationIt, newTheme.color, renderObject.values)
+            }
+
+            updateValues(renderObject.values, newProps)
+            updateRenderableState(renderObject.state, newProps)
+        }
 
         currentProps = newProps
         currentTheme = newTheme
-        currentGroup = group
+        currentStructureGroup = newStructureGroup
+        if (newGeometry) geometry = newGeometry
     }
 
     function _createGeometry(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: PD.Values<P>, geometry?: Geometry) {
@@ -183,45 +198,16 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         get groupCount() { return locationIt ? locationIt.count : 0 },
         get renderObject () { return renderObject },
         createOrUpdate(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}, structureGroup?: StructureGroup) {
-            if (structureGroup) currentStructure = structureGroup.structure
-            const group = structureGroup ? structureGroup.group : undefined
-            if (!group && !currentGroup) {
-                throw new Error('missing group')
-            } else if (group && (!currentGroup || !renderObject)) {
-                // console.log('unit-visual first create')
-                const newGeometry = _createGeometry(ctx, group.units[0], currentStructure, theme, Object.assign({}, defaultProps, props), geometry)
-                if (newGeometry instanceof Promise) {
-                    return newGeometry.then(geo => create(geo, group, theme, props))
-                } else {
-                    create(newGeometry, group, theme, props)
-                }
-            } else if (group && group.hashCode !== currentGroup.hashCode) {
-                // console.log('unit-visual group.hashCode !== currentGroup.hashCode')
-                const newGeometry = _createGeometry(ctx, group.units[0], currentStructure, theme, Object.assign({}, defaultProps, props), geometry)
-                if (newGeometry instanceof Promise) {
-                    return newGeometry.then(geo => create(geo, group, theme, props))
-                } else {
-                    create(newGeometry, group, theme, props)
-                }
+            prepareUpdate(theme, props, structureGroup || currentStructureGroup)
+            if (updateState.createGeometry) {
+                const newGeometry = _createGeometry(ctx, newStructureGroup.group.units[0], newStructureGroup.structure, newTheme, newProps, geometry)
+                return newGeometry instanceof Promise ? newGeometry.then(update) : update(newGeometry)
             } else {
-                // console.log('unit-visual update')
-                // update(ctx, group || currentGroup, theme, props)
-
-                getUpdateState(group || currentGroup, theme, props)
-                if (updateState.createGeometry) {
-                    const newGeometry = _createGeometry(ctx, (group || currentGroup).units[0], currentStructure, newTheme, newProps, geometry)
-                    if (newGeometry instanceof Promise) {
-                        return newGeometry.then(geo => update(group || currentGroup, geo))
-                    } else {
-                        update(group || currentGroup, newGeometry)
-                    }
-                } else {
-                    update(group || currentGroup)
-                }
+                update()
             }
         },
         getLoci(pickingId: PickingId) {
-            return renderObject ? getLoci(pickingId, { structure: currentStructure, group: currentGroup }, renderObject.id) : EmptyLoci
+            return renderObject ? getLoci(pickingId, currentStructureGroup, renderObject.id) : EmptyLoci
         },
         mark(loci: Loci, action: MarkerAction) {
             if (!renderObject) return false
@@ -235,10 +221,10 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             }
 
             let changed = false
-            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
+            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructureGroup.structure)) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
-                changed = mark(loci, { structure: currentStructure, group: currentGroup }, apply)
+                changed = mark(loci, currentStructureGroup, apply)
             }
             if (changed) {
                 ValueCell.update(tMarker, tMarker.ref.value)

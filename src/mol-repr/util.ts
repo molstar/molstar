@@ -14,6 +14,7 @@ export interface VisualUpdateState {
     updateColor: boolean
     updateSize: boolean
     createGeometry: boolean
+    createNew: boolean
 }
 export namespace VisualUpdateState {
     export function create(): VisualUpdateState {
@@ -22,7 +23,8 @@ export namespace VisualUpdateState {
             updateMatrix: false,
             updateColor: false,
             updateSize: false,
-            createGeometry: false
+            createGeometry: false,
+            createNew: false,
         }
     }
     export function reset(state: VisualUpdateState) {
@@ -31,6 +33,7 @@ export namespace VisualUpdateState {
         state.updateColor = false
         state.updateSize = false
         state.createGeometry = false
+        state.createNew = false
     }
 }
 
