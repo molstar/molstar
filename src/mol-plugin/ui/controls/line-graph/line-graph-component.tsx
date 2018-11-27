@@ -3,7 +3,7 @@
  *
  * @author Paul Luna <paulluna0215@gmail.com>
  */
-import PointComponent from './PointComponent';
+import PointComponent from './point-component';
 
 import * as React from 'react';
 import { Vec2 } from 'mol-math/linear-algebra';

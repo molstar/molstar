@@ -12,7 +12,7 @@ import { camelCaseToWords } from 'mol-util/string';
 import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
 import { Color } from 'mol-util/color';
 import { Vec2 } from 'mol-math/linear-algebra';
-import LineGraphComponent from './LineGraph/LineGraphComponent';
+import LineGraphComponent from './line-graph/line-graph-component';
 
 import { Slider, Slider2 } from './slider';
 
