@@ -12,7 +12,23 @@ import { PluginStateObject as SO } from '../objects';
 import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { createTheme } from 'mol-theme/theme';
+import { BuiltInStructureRepresentationsName } from 'mol-repr/structure/registry';
+import { Structure } from 'mol-model/structure';
 
+export namespace StructureRepresentation3DHelpers {
+    export function getDefaultParams(ctx: PluginContext, name: BuiltInStructureRepresentationsName, structure: Structure): Transformer.Params<StructureRepresentation3D> {
+        const type = ctx.structureRepresentation.registry.get(name);
+
+        const themeDataCtx = { structure };
+        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).getParams(themeDataCtx);
+        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).getParams(themeDataCtx)
+        return ({
+            type: { name, params: type.defaultValues },
+            colorTheme: { name: type.defaultColorTheme, params: PD.getDefaultValues(colorParams) },
+            sizeTheme: { name: type.defaultSizeTheme, params: PD.getDefaultValues(sizeParams) }
+        })
+    }
+}
 export { StructureRepresentation3D }
 type StructureRepresentation3D = typeof StructureRepresentation3D
 const StructureRepresentation3D = PluginStateTransform.BuiltIn({
@@ -20,24 +36,25 @@ const StructureRepresentation3D = PluginStateTransform.BuiltIn({
     display: '3D Representation',
     from: SO.Molecule.Structure,
     to: SO.Molecule.Representation3D,
-    params: (a, ctx: PluginContext) => ({
-        type: PD.Mapped<any>(
-            ctx.structureRepresentation.registry.default.name,
-            ctx.structureRepresentation.registry.types,
-            name => PD.Group<any>(ctx.structureRepresentation.registry.get(name).getParams(ctx.structureRepresentation.themeCtx, a.data))),
-        colorTheme: PD.Mapped<any>(
-            // TODO how to get a default color theme dependent on the repr type?
-            ctx.structureRepresentation.themeCtx.colorThemeRegistry.default.name,
-            ctx.structureRepresentation.themeCtx.colorThemeRegistry.types,
-            name => PD.Group<any>(ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(name).getParams({ structure: a.data }))
-        ),
-        sizeTheme: PD.Mapped<any>(
-            // TODO how to get a default size theme dependent on the repr type?
-            ctx.structureRepresentation.themeCtx.sizeThemeRegistry.default.name,
-            ctx.structureRepresentation.themeCtx.sizeThemeRegistry.types,
-            name => PD.Group<any>(ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(name).getParams({ structure: a.data }))
-        )
-    })
+    params: (a, ctx: PluginContext) => {
+        const type = ctx.structureRepresentation.registry.get(ctx.structureRepresentation.registry.default.name);
+        return ({
+            type: PD.Mapped<any>(
+                ctx.structureRepresentation.registry.default.name,
+                ctx.structureRepresentation.registry.types,
+                name => PD.Group<any>(ctx.structureRepresentation.registry.get(name).getParams(ctx.structureRepresentation.themeCtx, a.data))),
+            colorTheme: PD.Mapped<any>(
+                type.defaultColorTheme,
+                ctx.structureRepresentation.themeCtx.colorThemeRegistry.types,
+                name => PD.Group<any>(ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(name).getParams({ structure: a.data }))
+            ),
+            sizeTheme: PD.Mapped<any>(
+                type.defaultSizeTheme,
+                ctx.structureRepresentation.themeCtx.sizeThemeRegistry.types,
+                name => PD.Group<any>(ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(name).getParams({ structure: a.data }))
+            )
+        })
+    }
 })({
     canAutoUpdate({ oldParams, newParams }) {
         // TODO: allow for small molecules
