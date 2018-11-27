@@ -4,25 +4,20 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
+import { PluginContext } from 'mol-plugin/context';
+import { StateTree, Transformer } from 'mol-state';
 import { StateAction } from 'mol-state/action';
+import { StateSelection } from 'mol-state/state/selection';
+import { StateTreeBuilder } from 'mol-state/tree/builder';
+import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PluginStateObject } from '../objects';
 import { StateTransforms } from '../transforms';
-import { ParamDefinition as PD } from 'mol-util/param-definition';
-import { StateSelection } from 'mol-state/state/selection';
-import { CartoonParams } from 'mol-repr/structure/representation/cartoon';
-import { BallAndStickParams } from 'mol-repr/structure/representation/ball-and-stick';
 import { Download } from '../transforms/data';
-import { StateTree, Transformer } from 'mol-state';
-import { StateTreeBuilder } from 'mol-state/tree/builder';
-import { PolymerIdColorThemeParams } from 'mol-theme/color/polymer-id';
-import { UniformSizeThemeParams } from 'mol-theme/size/uniform';
-import { ElementSymbolColorThemeParams } from 'mol-theme/color/element-symbol';
-import { PhysicalSizeThemeParams } from 'mol-theme/size/physical';
-import { SpacefillParams } from 'mol-repr/structure/representation/spacefill';
+import { StructureRepresentation3DHelpers } from '../transforms/representation';
 
 // TODO: "structure parser provider"
 
-export { DownloadStructure }
+export { DownloadStructure };
 type DownloadStructure = typeof DownloadStructure
 const DownloadStructure = StateAction.build({
     from: PluginStateObject.Root,
@@ -55,7 +50,7 @@ const DownloadStructure = StateAction.build({
             ]
         })
     }
-})(({ params, state }) => {
+})(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const src = params.source;
     let url: Transformer.Params<Download>;
@@ -77,69 +72,55 @@ const DownloadStructure = StateAction.build({
     }
 
     const data = b.toRoot().apply(StateTransforms.Data.Download, url);
-    return state.update(createStructureTree(data, params.source.params.supportProps));
+    return state.update(createStructureTree(ctx, data, params.source.params.supportProps));
 });
 
 export const OpenStructure = StateAction.build({
     display: { name: 'Open Structure', description: 'Load a structure from file and create its default Assembly and visual' },
     from: PluginStateObject.Root,
     params: { file: PD.File({ accept: '.cif,.bcif' }) }
-})(({ params, state }) => {
+})(({ params, state }, ctx: PluginContext) => {
     const b = state.build();
     const data = b.toRoot().apply(StateTransforms.Data.ReadFile, { file: params.file, isBinary: /\.bcif$/i.test(params.file.name) });
-    return state.update(createStructureTree(data, false));
+    return state.update(createStructureTree(ctx, data, false));
 });
 
-function createStructureTree(b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
+function createStructureTree(ctx: PluginContext, b: StateTreeBuilder.To<PluginStateObject.Data.Binary | PluginStateObject.Data.String>, supportProps: boolean): StateTree {
     let root = b
         .apply(StateTransforms.Data.ParseCif)
-        .apply(StateTransforms.Model.TrajectoryFromMmCif, {})
+        .apply(StateTransforms.Model.TrajectoryFromMmCif)
         .apply(StateTransforms.Model.ModelFromTrajectory, { modelIndex: 0 });
 
     if (supportProps) {
-        // TODO: implement automatic default property assigment in State.update
-        root = root.apply(StateTransforms.Model.CustomModelProperties, { properties: [] });
+        root = root.apply(StateTransforms.Model.CustomModelProperties);
     }
-    root = root.apply(StateTransforms.Model.StructureAssemblyFromModel);
-
-    complexRepresentation(root);
+    const structure = root.apply(StateTransforms.Model.StructureAssemblyFromModel);
+    complexRepresentation(ctx, structure);
 
     return root.getTree();
 }
 
-function complexRepresentation(root: StateTreeBuilder.To<PluginStateObject.Molecule.Structure>) {
+function complexRepresentation(ctx: PluginContext, root: StateTreeBuilder.To<PluginStateObject.Molecule.Structure>) {
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-sequence' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, {
-            type: { name: 'cartoon', params: PD.getDefaultValues(CartoonParams) },
-            colorTheme: { name: 'polymer-id', params: PD.getDefaultValues(PolymerIdColorThemeParams) },
-            sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
-        });
+        .apply(StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'cartoon'));
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'atomic-het' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, {
-            type: { name: 'ball-and-stick', params: PD.getDefaultValues(BallAndStickParams) },
-            colorTheme: { name: 'element-symbol', params: PD.getDefaultValues(ElementSymbolColorThemeParams) },
-            sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
-        });
+        .apply(StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick'));
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'water' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, {
-            type: { name: 'ball-and-stick', params: { ...PD.getDefaultValues(BallAndStickParams), alpha: 0.51 } },
-            colorTheme: { name: 'element-symbol', params: PD.getDefaultValues(ElementSymbolColorThemeParams) },
-            sizeTheme: { name: 'uniform', params: PD.getDefaultValues(UniformSizeThemeParams) },
-        })
+        .apply(StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'ball-and-stick', { alpha: 0.51 }));
     root.apply(StateTransforms.Model.StructureComplexElement, { type: 'spheres' })
-        .apply(StateTransforms.Representation.StructureRepresentation3D, {
-            type: { name: 'spacefill', params: { ...PD.getDefaultValues(SpacefillParams) } },
-            colorTheme: { name: 'polymer-id', params: PD.getDefaultValues(PolymerIdColorThemeParams) },
-            sizeTheme: { name: 'physical', params: PD.getDefaultValues(PhysicalSizeThemeParams) },
-        })
+        .apply(StateTransforms.Representation.StructureRepresentation3D,
+            StructureRepresentation3DHelpers.getDefaultParamsStatic(ctx, 'spacefill'));
 }
 
 export const CreateComplexRepresentation = StateAction.build({
     display: { name: 'Create Complex', description: 'Split the structure into Sequence/Water/Ligands/... ' },
     from: PluginStateObject.Molecule.Structure
-})(({ ref, state }) => {
+})(({ ref, state }, ctx: PluginContext) => {
     const root = state.build().to(ref);
-    complexRepresentation(root);
+    complexRepresentation(ctx, root);
     return state.update(root.getTree());
 });
 

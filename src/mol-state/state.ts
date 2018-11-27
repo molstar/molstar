@@ -18,6 +18,7 @@ import { StateActionManager } from './action/manager';
 import { TransientTree } from './tree/transient';
 import { LogEntry } from 'mol-util/log-entry';
 import { now, formatTimespan } from 'mol-util/now';
+import { ParamDefinition } from 'mol-util/param-definition';
 
 export { State }
 
@@ -498,6 +499,16 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
     }
 }
 
+function resolveDefaultParams(ctx: UpdateContext, transform: Transform, src: StateObject) {
+    const prms = transform.transformer.definition.params;
+    const defaults = prms
+        ? ParamDefinition.getDefaultValues(prms(src, ctx.parent.globalContext))
+        : { };
+    // TODO: this should probably be resolved each time separately the transform is applied.
+    // the params should be cached in the cell?
+    (transform.params as any) = defaults;
+}
+
 async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNodeResult> {
     const { oldTree, tree } = ctx;
     const current = ctx.cells.get(currentRef)!;
@@ -513,6 +524,10 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
 
     const parent = parentCell.obj!;
     current.sourceRef = parentCell.transform.ref;
+
+    if (!transform.params) {
+        resolveDefaultParams(ctx, transform, parent);
+    }
 
     if (!oldTree.transforms.has(currentRef)) {
         const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);

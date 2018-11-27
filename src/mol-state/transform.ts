@@ -40,7 +40,7 @@ export namespace Transform {
             transformer,
             props: (options && options.props) || { },
             ref,
-            params: params || {} as any,
+            params: params as any,
             version: UUID.create22()
         }
     }

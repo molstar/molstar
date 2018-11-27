@@ -51,6 +51,12 @@ namespace StateTreeBuilder {
     export class To<A extends StateObject> implements StateTreeBuilder {
         get editInfo() { return this.state.editInfo; }
 
+        readonly ref: Transform.Ref;
+
+        /**
+         * Apply the transformed to the parent node
+         * If no params are specified (params <- undefined), default params are lazily resolved.
+         */
         apply<T extends Transformer<A, any, any>>(tr: T, params?: Transformer.Params<T>, options?: Partial<Transform.Options>, initialCellState?: Partial<StateObjectCell.State>): To<Transformer.To<T>> {
             const t = tr.apply(this.ref, params, options);
             this.state.tree.add(t, initialCellState);
@@ -84,7 +90,8 @@ namespace StateTreeBuilder {
 
         getTree(): StateTree { return this.state.tree.asImmutable(); }
 
-        constructor(private state: State, private ref: Transform.Ref, private root: Root) {
+        constructor(private state: State, ref: Transform.Ref, private root: Root) {
+            this.ref = ref;
             if (!this.state.tree.transforms.has(ref)) {
                 throw new Error(`Could not find node '${ref}'.`);
             }

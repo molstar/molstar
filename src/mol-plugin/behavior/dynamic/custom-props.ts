@@ -25,7 +25,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         private provider: CustomPropertyRegistry.Provider = {
             option: [StructureQualityReport.Descriptor.name, 'PDBe Structure Quality Report'],
             descriptor: StructureQualityReport.Descriptor,
-            defaultSelected: false,
+            defaultSelected: this.params.autoAttach,
             attachableTo: () => true,
             attach: this.attach
         }
