@@ -6,6 +6,7 @@
 
 import { UUID } from 'mol-util';
 import { Transform } from './transform';
+import { ParamDefinition } from 'mol-util/param-definition';
 
 export { StateObject, StateObjectCell }
 
@@ -58,6 +59,11 @@ interface StateObjectCell {
 
     version: string
     status: StateObjectCell.Status,
+
+    params: {
+        definition: ParamDefinition.Params,
+        values: any
+    } | undefined;
 
     errorText?: string,
     obj?: StateObject

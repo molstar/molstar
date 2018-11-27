@@ -13,7 +13,7 @@ export interface Transform<A extends StateObject = StateObject, B extends StateO
     readonly transformer: Transformer<A, B, P>,
     readonly props: Transform.Props,
     readonly ref: Transform.Ref,
-    readonly params: P,
+    readonly params?: P,
     readonly version: string
 }
 
@@ -40,7 +40,7 @@ export namespace Transform {
             transformer,
             props: (options && options.props) || { },
             ref,
-            params: params as any,
+            params,
             version: UUID.create22()
         }
     }
@@ -70,7 +70,7 @@ export namespace Transform {
         return {
             parent: t.parent,
             transformer: t.transformer.id,
-            params: pToJson(t.params),
+            params: t.params ? pToJson(t.params) : void 0,
             props: t.props,
             ref: t.ref,
             version: t.version
@@ -85,7 +85,7 @@ export namespace Transform {
         return {
             parent: t.parent as Ref,
             transformer,
-            params: pFromJson(t.params),
+            params: t.params ? pFromJson(t.params) : void 0,
             props: t.props,
             ref: t.ref as Ref,
             version: t.version

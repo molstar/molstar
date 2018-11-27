@@ -4,7 +4,7 @@
  * @author David Sehnal <david.sehnal@gmail.com>
  */
 
-import { State, Transform, StateObjectCell, Transformer } from 'mol-state';
+import { State, Transform, Transformer } from 'mol-state';
 import * as React from 'react';
 import { PurePluginComponent } from '../base';
 import { ParameterControls, ParamOnChange } from '../controls/parameters';
@@ -74,11 +74,13 @@ namespace StateTransformParameters {
 
     export function infoFromTransform(plugin: PluginContext, state: State, transform: Transform): Props['info'] {
         const cell = state.cells.get(transform.ref)!;
-        const source: StateObjectCell | undefined = (cell.sourceRef && state.cells.get(cell.sourceRef)!) || void 0;
-        const create = transform.transformer.definition.params;
-        const params = create ? create((source && source.obj) as any, plugin) : { };
+        // const source: StateObjectCell | undefined = (cell.sourceRef && state.cells.get(cell.sourceRef)!) || void 0;
+        // const create = transform.transformer.definition.params;
+        // const params = create ? create((source && source.obj) as any, plugin) : { };
+        const params = (cell.params && cell.params.definition) || { };
+        const initialValues = (cell.params && cell.params.values) || { };
         return {
-            initialValues: transform.params,
+            initialValues,
             params,
             isEmpty: areParamsEmpty(params)
         }

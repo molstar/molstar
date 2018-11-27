@@ -154,7 +154,11 @@ class State {
             obj: rootObject,
             status: 'ok',
             version: root.version,
-            errorText: void 0
+            errorText: void 0,
+            params: {
+                definition: { },
+                values: { }
+            }
         });
 
         this.globalContext = params && params.globalContext;
@@ -369,7 +373,8 @@ function initCellsVisitor(transform: Transform, _: any, { ctx, added }: InitCell
         sourceRef: void 0,
         status: 'pending',
         version: UUID.create22(),
-        errorText: void 0
+        errorText: void 0,
+        params: void 0
     };
     ctx.cells.set(transform.ref, cell);
     added.push(cell);
@@ -430,12 +435,15 @@ function doError(ctx: UpdateContext, ref: Ref, errorText: string | undefined, si
         (ctx.parent as any as { errorFree: boolean }).errorFree = false;
     }
 
+    const cell = ctx.cells.get(ref)!;
+
     if (errorText) {
         setCellStatus(ctx, ref, 'error', errorText);
         if (!silent) ctx.parent.events.log.next({ type: 'error', timestamp: new Date(), message: errorText });
+    } else {
+        cell.params = void 0;
     }
 
-    const cell = ctx.cells.get(ref)!;
     if (cell.obj) {
         const obj = cell.obj;
         cell.obj = void 0;
@@ -494,19 +502,16 @@ async function updateSubtree(ctx: UpdateContext, root: Ref) {
     while (true) {
         const next = children.next();
         if (next.done) return;
-        if (isNull) doError(ctx, next.value, ParentNullErrorText, true);
+        if (isNull) doError(ctx, next.value, void 0, true);
         else await updateSubtree(ctx, next.value);
     }
 }
 
-function resolveDefaultParams(ctx: UpdateContext, transform: Transform, src: StateObject) {
+function resolveParams(ctx: UpdateContext, transform: Transform, src: StateObject) {
     const prms = transform.transformer.definition.params;
-    const defaults = prms
-        ? ParamDefinition.getDefaultValues(prms(src, ctx.parent.globalContext))
-        : { };
-    // TODO: this should probably be resolved each time separately the transform is applied.
-    // the params should be cached in the cell?
-    (transform.params as any) = defaults;
+    const definition = prms ? prms(src, ctx.parent.globalContext) : { };
+    const values = transform.params ? transform.params : ParamDefinition.getDefaultValues(definition);
+    return { definition, values };
 }
 
 async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNodeResult> {
@@ -525,27 +530,28 @@ async function updateNode(ctx: UpdateContext, currentRef: Ref): Promise<UpdateNo
     const parent = parentCell.obj!;
     current.sourceRef = parentCell.transform.ref;
 
-    if (!transform.params) {
-        resolveDefaultParams(ctx, transform, parent);
-    }
+    const params = resolveParams(ctx, transform, parent);
 
-    if (!oldTree.transforms.has(currentRef)) {
-        const obj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
+    if (!oldTree.transforms.has(currentRef) || !current.params) {
+        current.params = params;
+        const obj = await createObject(ctx, currentRef, transform.transformer, parent, params.values);
         current.obj = obj;
         current.version = transform.version;
 
         return { ref: currentRef, action: 'created', obj };
     } else {
-        const oldParams = oldTree.transforms.get(currentRef)!.params;
+        const oldParams = current.params.values;
+        const newParams = params.values;
+        current.params = params;
 
         const updateKind = !!current.obj && current.obj !== StateObject.Null
-            ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, transform.params)
+            ? await updateObject(ctx, currentRef, transform.transformer, parent, current.obj!, oldParams, newParams)
             : Transformer.UpdateResult.Recreate;
 
         switch (updateKind) {
             case Transformer.UpdateResult.Recreate: {
                 const oldObj = current.obj;
-                const newObj = await createObject(ctx, currentRef, transform.transformer, parent, transform.params);
+                const newObj = await createObject(ctx, currentRef, transform.transformer, parent, newParams);
                 current.obj = newObj;
                 current.version = transform.version;
                 return { ref: currentRef, action: 'replaced', oldObj, obj: newObj };
