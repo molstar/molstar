@@ -174,7 +174,7 @@ function ColorOptions() {
 
 function ColorValueOption(color: Color) {
     return !ColorNamesValueMap.has(color) ? <option key={Color.toHexString(color)} value={color} style={{ background: `${Color.toStyle(color)}` }} >
-        {Color.toHexString(color)}
+        {Color.toRgbString(color)}
     </option> : null
 }
 

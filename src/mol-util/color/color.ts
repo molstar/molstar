@@ -18,6 +18,10 @@ export namespace Color {
         return '0x' + ('000000' + hexColor.toString(16)).slice(-6)
     }
 
+    export function toRgbString(hexColor: Color) {
+        return `RGB: ${Color.toRgb(hexColor).join(', ')}`
+    }
+
     export function toRgb(hexColor: Color) {
         return [ hexColor >> 16 & 255, hexColor >> 8 & 255, hexColor & 255 ]
     }
