@@ -15,7 +15,7 @@ import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { RenderableValues } from 'mol-gl/renderable/schema';
 import { createSizes } from 'mol-geo/geometry/size-data';
-import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createColors } from 'mol-geo/geometry/color-data';
@@ -25,6 +25,7 @@ import { VisualUpdateState } from 'mol-repr/util';
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
+import { RenderableState } from 'mol-gl/renderable';
 
 export interface  ComplexVisual<P extends StructureParams> extends Visual<Structure, P> { }
 
@@ -50,11 +51,12 @@ interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geomet
     createRenderObject(structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): ComplexRenderObject
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
     updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
+    updateRenderableState(state: RenderableState, props: PD.Values<P>): void
 }
 
 export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createRenderObject, updateValues, updateBoundingSphere } = builder
+    const { createRenderObject, updateValues, updateBoundingSphere, updateRenderableState } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: ComplexRenderObject | undefined
@@ -221,6 +223,7 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createComplexMeshRenderObject,
         updateValues: Mesh.updateValues,
-        updateBoundingSphere: Mesh.updateBoundingSphere
+        updateBoundingSphere: Mesh.updateBoundingSphere,
+        updateRenderableState: Geometry.updateRenderableState
     })
 }

@@ -14,7 +14,7 @@ import { deepEqual, ValueCell } from 'mol-util';
 import { Interval } from 'mol-data/int';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { RenderableValues } from 'mol-gl/renderable/schema';
-import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry } from 'mol-geo/geometry/geometry';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { createMarkers, MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -29,6 +29,7 @@ import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ColorTheme } from 'mol-theme/color';
 import { SizeTheme } from 'mol-theme/size';
 import { UnitsParams } from './units-representation';
+import { RenderableState } from 'mol-gl/renderable';
 
 export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
@@ -50,11 +51,12 @@ interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> 
     createRenderObject(group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): UnitsRenderObject
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void
     updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
+    updateRenderableState(state: RenderableState, props: PD.Values<P>): void
 }
 
 export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createEmptyGeometry, createRenderObject, updateValues, updateBoundingSphere } = builder
+    const { createEmptyGeometry, createRenderObject, updateValues, updateBoundingSphere, updateRenderableState } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: UnitsRenderObject | undefined
@@ -263,7 +265,8 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVis
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createUnitsMeshRenderObject,
         updateValues: Mesh.updateValues,
-        updateBoundingSphere: Mesh.updateBoundingSphere
+        updateBoundingSphere: Mesh.updateBoundingSphere,
+        updateRenderableState: Geometry.updateRenderableState
     })
 }
 
@@ -286,7 +289,8 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPoi
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         updateValues: Points.updateValues,
-        updateBoundingSphere: Points.updateBoundingSphere
+        updateBoundingSphere: Points.updateBoundingSphere,
+        updateRenderableState: Points.updateRenderableState
     })
 }
 
@@ -309,7 +313,8 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
         updateValues: Lines.updateValues,
-        updateBoundingSphere: Lines.updateBoundingSphere
+        updateBoundingSphere: Lines.updateBoundingSphere,
+        updateRenderableState: Geometry.updateRenderableState
     })
 }
 
@@ -332,6 +337,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(build
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
         updateValues: DirectVolume.updateValues,
-        updateBoundingSphere: DirectVolume.updateBoundingSphere
+        updateBoundingSphere: DirectVolume.updateBoundingSphere,
+        updateRenderableState: DirectVolume.updateRenderableState
     })
 }

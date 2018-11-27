@@ -34,14 +34,12 @@ export const Canvas3DParams = {
     // maxFps: PD.Numeric(30),
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     backgroundColor: PD.Color(Color(0x000000)),
-    // TODO: make this an interval?
     clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
     fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
-    showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
-    // debug: PD.Group({
-    //     showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
-    // })
+    debug: PD.Group({
+        showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
+    })
 }
 export type Canvas3DParams = PD.Values<typeof Canvas3DParams>
 
@@ -130,7 +128,7 @@ namespace Canvas3D {
         let drawPending = false
         let lastRenderTime = -1
 
-        const boundingSphereHelper = new BoundingSphereHelper(scene, p.showBoundingSpheres)
+        const boundingSphereHelper = new BoundingSphereHelper(scene, p.debug.showBoundingSpheres)
 
         function getLoci(pickingId: PickingId) {
             let loci: Loci = EmptyLoci
@@ -154,8 +152,7 @@ namespace Canvas3D {
                 }
             })
             if (changed) {
-                // console.log('changed')
-                scene.update()
+                scene.update(true)
                 draw(true)
                 pickDirty = false // picking buffers should not have changed
             }
@@ -388,8 +385,8 @@ namespace Canvas3D {
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
                     renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
                 }
-                if (props.showBoundingSpheres !== undefined) {
-                    boundingSphereHelper.visible = props.showBoundingSpheres
+                if (props.debug && props.debug.showBoundingSpheres !== undefined) {
+                    boundingSphereHelper.visible = props.debug.showBoundingSpheres
                 }
                 requestDraw(true)
             },
@@ -401,7 +398,9 @@ namespace Canvas3D {
                     clip: p.clip,
                     fog: p.fog,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
-                    showBoundingSpheres: boundingSphereHelper.visible
+                    debug: {
+                        showBoundingSpheres: boundingSphereHelper.visible
+                    }
                 }
             },
             get input() {

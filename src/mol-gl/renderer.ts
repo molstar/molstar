@@ -140,7 +140,7 @@ namespace Renderer {
                     gl.cullFace(gl.BACK)
                 }
 
-                gl.depthMask(r.opaque)
+                gl.depthMask(r.state.opaque)
 
                 r.render(variant)
             }

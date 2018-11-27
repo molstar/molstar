@@ -14,7 +14,7 @@ import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { computeMarchingCubesMesh } from 'mol-geo/util/marching-cubes/algorithm';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
-import { createRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry } from 'mol-geo/geometry/geometry';
 import { VisualUpdateState } from 'mol-repr/util';
 import { VisualContext, RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
@@ -60,11 +60,12 @@ export function IsosurfaceVisual(): VolumeVisual<IsosurfaceParams> {
         createRenderObject: (geometry: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<IsosurfaceParams>) => {
             const transform = createIdentityTransform()
             const values = Mesh.createValues(geometry, transform, locationIt, theme, props)
-            const state = createRenderableState(props)
+            const state = Geometry.createRenderableState(props)
             return createMeshRenderObject(values, state)
         },
         updateValues: Mesh.updateValues,
-        updateBoundingSphere: Mesh.updateBoundingSphere
+        updateBoundingSphere: Mesh.updateBoundingSphere,
+        updateRenderableState: Geometry.updateRenderableState
     })
 }
 

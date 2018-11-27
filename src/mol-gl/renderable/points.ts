@@ -32,10 +32,5 @@ export function PointsRenderable(ctx: WebGLContext, id: number, values: PointsVa
     const renderItem = createRenderItem(ctx, 'points', shaderCode, schema, { ...values, ...internalValues })
     const renderable = createRenderable(renderItem, values, state);
 
-    const isOpaque = Object.getOwnPropertyDescriptor(renderable, 'opaque')!.get as () => boolean
-    Object.defineProperty(renderable, 'opaque', {
-        get: () => isOpaque() && !values.dPointFilledCircle.ref.value && values.uPointEdgeBleach.ref.value === 0
-    });
-
     return renderable
 }

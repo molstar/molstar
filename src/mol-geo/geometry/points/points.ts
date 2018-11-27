@@ -18,6 +18,7 @@ import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Sphere3D } from 'mol-math/geometry';
 import { Theme } from 'mol-theme/theme';
 import { PointsValues } from 'mol-gl/renderable/points';
+import { RenderableState } from 'mol-gl/renderable';
 
 /** Point cloud */
 export interface Points {
@@ -106,5 +107,16 @@ export namespace Points {
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
+    }
+
+    export function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = Geometry.createRenderableState(props)
+        updateRenderableState(state, props)
+        return state
+    }
+
+    export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        Geometry.updateRenderableState(state, props)
+        state.opaque = state.opaque && !props.pointFilledCircle && props.pointEdgeBleach === 0
     }
 }

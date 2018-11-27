@@ -86,6 +86,7 @@ function createPoints() {
     const state: RenderableState = {
         visible: true,
         pickable: true,
+        opaque: true
     }
 
     return createPointsRenderObject(values, state)

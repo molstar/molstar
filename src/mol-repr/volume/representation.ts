@@ -8,7 +8,7 @@ import { Task } from 'mol-task'
 import { Representation, Visual, RepresentationContext, VisualContext, RepresentationProvider, RepresentationParamsGetter } from '../representation';
 import { VolumeData } from 'mol-model/volume';
 import { Loci, EmptyLoci, isEveryLoci } from 'mol-model/loci';
-import { Geometry, updateRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry } from 'mol-geo/geometry/geometry';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
@@ -21,6 +21,7 @@ import { VisualUpdateState } from 'mol-repr/util';
 import { ValueCell } from 'mol-util';
 import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
+import { RenderableState } from 'mol-gl/renderable';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
 
@@ -38,11 +39,12 @@ interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry
     createRenderObject(geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): VolumeRenderObject
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
     updateBoundingSphere(values: RenderableValues, geometry: G): void
+    updateRenderableState(state: RenderableState, props: PD.Values<P>): void
 }
 
 export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>): VolumeVisual<P> {
     const { defaultProps, createGeometry, getLoci, mark, setUpdateState } = builder
-    const { createRenderObject, updateValues, updateBoundingSphere } = builder
+    const { createRenderObject, updateValues, updateBoundingSphere, updateRenderableState } = builder
     const updateState = VisualUpdateState.create()
 
     let currentProps: PD.Values<P>

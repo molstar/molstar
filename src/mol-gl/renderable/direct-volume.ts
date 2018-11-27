@@ -65,7 +65,5 @@ export function DirectVolumeRenderable(ctx: WebGLContext, id: number, values: Di
     const renderItem = createRenderItem(ctx, 'triangles', shaderCode, schema, { ...values, ...internalValues })
     const renderable = createRenderable(renderItem, values, state);
 
-    Object.defineProperty(renderable, 'opaque', { get: () => false });
-
     return renderable
 }

@@ -20,6 +20,7 @@ import { Geometry } from '../geometry';
 import { transformPositionArray } from 'mol-geo/util';
 import { calculateBoundingSphere } from 'mol-gl/renderable/util';
 import { Theme } from 'mol-theme/theme';
+import { RenderableState } from 'mol-gl/renderable';
 
 const VolumeBox = Box()
 const RenderModeOptions = [['isosurface', 'Isosurface'], ['volume', 'Volume']] as [string, string][]
@@ -143,5 +144,16 @@ export namespace DirectVolume {
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
+    }
+
+    export function createRenderableState(props: PD.Values<Params>): RenderableState {
+        const state = Geometry.createRenderableState(props)
+        updateRenderableState(state, props)
+        return state
+    }
+
+    export function updateRenderableState(state: RenderableState, props: PD.Values<Params>) {
+        Geometry.updateRenderableState(state, props)
+        state.opaque = false
     }
 }

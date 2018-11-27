@@ -17,7 +17,7 @@ import { createTexture } from 'mol-gl/webgl/texture';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
-import { Geometry, createRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry } from 'mol-geo/geometry/geometry';
 import { VisualUpdateState } from 'mol-repr/util';
 import { VisualContext, RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
 import { Theme, ThemeRegistryContext } from 'mol-theme/theme';
@@ -175,11 +175,12 @@ export function DirectVolumeVisual(): VolumeVisual<DirectVolumeParams> {
         createRenderObject: (geometry: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<DirectVolumeParams>) => {
             const transform = createIdentityTransform()
             const values = DirectVolume.createValues(geometry, transform, locationIt, theme, props)
-            const state = createRenderableState(props)
+            const state = DirectVolume.createRenderableState(props)
             return createDirectVolumeRenderObject(values, state)
         },
         updateValues: DirectVolume.updateValues,
-        updateBoundingSphere: DirectVolume.updateBoundingSphere
+        updateBoundingSphere: DirectVolume.updateBoundingSphere,
+        updateRenderableState: DirectVolume.updateRenderableState
     })
 }
 

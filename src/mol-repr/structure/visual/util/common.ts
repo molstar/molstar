@@ -10,7 +10,7 @@ import { Mat4 } from 'mol-math/linear-algebra';
 import { TransformData, createTransform, createIdentityTransform } from 'mol-geo/geometry/transform-data';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { createRenderableState } from 'mol-geo/geometry/geometry';
+import { Geometry } from 'mol-geo/geometry/geometry';
 import { Points } from 'mol-geo/geometry/points/points';
 import { Lines } from 'mol-geo/geometry/lines/lines';
 import { DirectVolume } from 'mol-geo/geometry/direct-volume/direct-volume';
@@ -72,14 +72,14 @@ export function includesUnitKind(unitKinds: UnitKind[], unit: Unit) {
 export function createComplexMeshRenderObject(structure: Structure, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
     const transform = createIdentityTransform()
     const values = Mesh.createValues(mesh, transform, locationIt, theme, props)
-    const state = createRenderableState(props)
+    const state = Geometry.createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
 export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mesh, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureMeshParams>) {
     const transform = createUnitsTransform(group)
     const values = Mesh.createValues(mesh, transform, locationIt, theme, props)
-    const state = createRenderableState(props)
+    const state = Geometry.createRenderableState(props)
     return createMeshRenderObject(values, state)
 }
 
@@ -88,7 +88,7 @@ export function createUnitsMeshRenderObject(group: Unit.SymmetryGroup, mesh: Mes
 export function createUnitsPointsRenderObject(group: Unit.SymmetryGroup, points: Points, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructurePointsParams>) {
     const transform = createUnitsTransform(group)
     const values = Points.createValues(points, transform, locationIt, theme, props)
-    const state = createRenderableState(props)
+    const state = Points.createRenderableState(props)
     return createPointsRenderObject(values, state)
 }
 
@@ -97,7 +97,7 @@ export function createUnitsPointsRenderObject(group: Unit.SymmetryGroup, points:
 export function createUnitsLinesRenderObject(group: Unit.SymmetryGroup, lines: Lines, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureLinesParams>) {
     const transform = createUnitsTransform(group)
     const values = Lines.createValues(lines, transform, locationIt, theme, props)
-    const state = createRenderableState(props)
+    const state = Geometry.createRenderableState(props)
     return createLinesRenderObject(values, state)
 }
 
@@ -106,6 +106,6 @@ export function createUnitsLinesRenderObject(group: Unit.SymmetryGroup, lines: L
 export function createUnitsDirectVolumeRenderObject(group: Unit.SymmetryGroup, directVolume: DirectVolume, locationIt: LocationIterator, theme: Theme, props: PD.Values<StructureDirectVolumeParams>) {
     const transform = createUnitsTransform(group)
     const values = DirectVolume.createValues(directVolume, transform, locationIt, theme, props)
-    const state = createRenderableState(props)
+    const state = DirectVolume.createRenderableState(props)
     return createDirectVolumeRenderObject(values, state)
 }

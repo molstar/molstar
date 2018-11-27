@@ -57,7 +57,7 @@ interface Scene extends Object3D {
     readonly count: number
     readonly boundingSphere: Sphere3D
 
-    update: () => void
+    update: (keepBoundingSphere?: boolean) => void
     add: (o: RenderObject) => void
     remove: (o: RenderObject) => void
     clear: () => void
@@ -80,10 +80,10 @@ namespace Scene {
             get direction () { return object3d.direction },
             get up () { return object3d.up },
 
-            update: () => {
+            update: (keepBoundingSphere?: boolean) => {
                 Object3D.update(object3d)
                 renderableMap.forEach(r => r.update())
-                boundingSphereDirty = true
+                if (!keepBoundingSphere) boundingSphereDirty = true
             },
 
             add: (o: RenderObject) => {
@@ -112,12 +112,12 @@ namespace Scene {
             },
             eachOpaque: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach((r, o) => {
-                    if (r.opaque) callbackFn(r, o)
+                    if (r.state.opaque) callbackFn(r, o)
                 })
             },
             eachTransparent: (callbackFn: (value: Renderable<any>, key: RenderObject) => void) => {
                 renderableMap.forEach((r, o) => {
-                    if (!r.opaque) callbackFn(r, o)
+                    if (!r.state.opaque) callbackFn(r, o)
                 })
             },
             get count() {

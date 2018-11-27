@@ -14,13 +14,13 @@ import { ValueCell } from 'mol-util';
 export type RenderableState = {
     visible: boolean
     pickable: boolean
+    opaque: boolean
 }
 
 export interface Renderable<T extends RenderableValues> {
     readonly values: T
     readonly state: RenderableState
     readonly boundingSphere: Sphere3D
-    readonly opaque: boolean
 
     render: (variant: RenderVariant) => void
     getProgram: (variant: RenderVariant) => Program
@@ -32,15 +32,14 @@ export function createRenderable<T extends Values<RenderableSchema>>(renderItem:
     let boundingSphere: Sphere3D = Sphere3D.create(Vec3.zero(), 50)
 
     return {
-        get values () { return values },
-        get state () { return state },
+        values,
+        state,
         get boundingSphere () {
             if (values.boundingSphere) {
                 Sphere3D.copy(boundingSphere, values.boundingSphere.ref.value)
             }
             return boundingSphere
         },
-        get opaque () { return values.uAlpha && values.uAlpha.ref.value === 1 },
 
         render: (variant: RenderVariant) => {
             if (values.uPickable) {
