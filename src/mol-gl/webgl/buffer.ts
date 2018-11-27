@@ -142,9 +142,6 @@ export function createBuffer(ctx: WebGLContext, array: ArrayType, itemSize: Buff
 
         destroy: () => {
             if (destroyed) return
-            gl.bindBuffer(_bufferType, _buffer);
-            // set size to 1 before deleting
-            (gl as WebGLRenderingContext).bufferData(_bufferType, 1, _usageHint) // TODO remove cast when webgl2 types are fixed
             gl.deleteBuffer(_buffer)
             destroyed = true
             ctx.bufferCount -= 1

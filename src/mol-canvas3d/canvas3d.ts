@@ -126,6 +126,7 @@ namespace Canvas3D {
 
         let pickDirty = true
         let isPicking = false
+        let isUpdating = false
         let drawPending = false
         let lastRenderTime = -1
 
@@ -182,7 +183,7 @@ namespace Canvas3D {
         }
 
         function render(variant: RenderVariant, force: boolean) {
-            if (isPicking) return false
+            if (isPicking || isUpdating) return false
 
             let didRender = false
             controls.update()
@@ -285,6 +286,7 @@ namespace Canvas3D {
         }
 
         function add(repr: Representation.Any) {
+            isUpdating = true
             const oldRO = reprRenderObjects.get(repr)
             const newRO = new Set<RenderObject>()
             repr.renderObjects.forEach(o => newRO.add(o))
@@ -299,6 +301,7 @@ namespace Canvas3D {
             reprCount.next(reprRenderObjects.size)
             boundingSphereHelper.update()
             scene.update()
+            isUpdating = false
             requestDraw(true)
         }
 
@@ -329,11 +332,13 @@ namespace Canvas3D {
                 }
                 const renderObjects = reprRenderObjects.get(repr)
                 if (renderObjects) {
+                    isUpdating = true
                     renderObjects.forEach(o => scene.remove(o))
                     reprRenderObjects.delete(repr)
                     reprCount.next(reprRenderObjects.size)
                     boundingSphereHelper.update()
                     scene.update()
+                    isUpdating = false
                     requestDraw(true)
                 }
             },
