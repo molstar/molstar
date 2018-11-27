@@ -120,7 +120,7 @@ describe('renderer', () => {
         const points = createPoints()
 
         scene.add(points)
-        expect(ctx.bufferCount).toBe(6);
+        expect(ctx.bufferCount).toBe(4);
         expect(ctx.textureCount).toBe(3);
         expect(ctx.vaoCount).toBe(4);
         expect(ctx.programCache.count).toBe(4);
