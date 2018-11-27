@@ -39,7 +39,8 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('pdbe-structure-quality-report', {
                 label: 'PDBe Structure Quality Report',
                 factory: StructureQualityReportColorTheme,
-                getParams: () => ({})
+                getParams: () => ({}),
+                defaultValues: {}
             })
         }
 

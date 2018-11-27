@@ -72,5 +72,6 @@ export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<M
 export const MoleculeTypeColorThemeProvider: ColorTheme.Provider<MoleculeTypeColorThemeParams> = {
     label: 'Molecule Type',
     factory: MoleculeTypeColorTheme,
-    getParams: getMoleculeTypeColorThemeParams
+    getParams: getMoleculeTypeColorThemeParams,
+    defaultValues: PD.getDefaultValues(MoleculeTypeColorThemeParams)
 }

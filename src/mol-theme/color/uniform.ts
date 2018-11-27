@@ -37,5 +37,6 @@ export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<Unifor
 export const UniformColorThemeProvider: ColorTheme.Provider<UniformColorThemeParams> = {
     label: 'Uniform',
     factory: UniformColorTheme,
-    getParams: getUniformColorThemeParams
+    getParams: getUniformColorThemeParams,
+    defaultValues: PD.getDefaultValues(UniformColorThemeParams)
 }

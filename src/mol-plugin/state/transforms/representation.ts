@@ -33,10 +33,8 @@ export namespace StructureRepresentation3DHelpers {
     export function getDefaultParamsStatic(ctx: PluginContext, name: BuiltInStructureRepresentationsName, meshParams?: Partial<PD.Values<UnitsMeshParams>>): Transformer.Params<StructureRepresentation3D> {
         const type = ctx.structureRepresentation.registry.get(name);
 
-        // TODO: there should be "static default properties" for the themes.
-        const themeDataCtx = { };
-        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).getParams(themeDataCtx);
-        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).getParams(themeDataCtx)
+        const colorParams = ctx.structureRepresentation.themeCtx.colorThemeRegistry.get(type.defaultColorTheme).defaultValues;
+        const sizeParams = ctx.structureRepresentation.themeCtx.sizeThemeRegistry.get(type.defaultSizeTheme).defaultValues
         return ({
             type: { name, params: meshParams ? { ...type.defaultValues, ...meshParams } : type.defaultValues },
             colorTheme: { name: type.defaultColorTheme, params: PD.getDefaultValues(colorParams) },

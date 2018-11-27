@@ -59,5 +59,6 @@ export function PhysicalSizeTheme(ctx: ThemeDataContext, props: PD.Values<Physic
 export const PhysicalSizeThemeProvider: SizeTheme.Provider<PhysicalSizeThemeParams> = {
     label: 'Physical',
     factory: PhysicalSizeTheme,
-    getParams: getPhysicalSizeThemeParams
+    getParams: getPhysicalSizeThemeParams,
+    defaultValues: PD.getDefaultValues(PhysicalSizeThemeParams)
 }

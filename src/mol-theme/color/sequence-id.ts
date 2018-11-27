@@ -102,5 +102,6 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<Seq
 export const SequenceIdColorThemeProvider: ColorTheme.Provider<SequenceIdColorThemeParams> = {
     label: 'Sequence Id',
     factory: SequenceIdColorTheme,
-    getParams: getSequenceIdColorThemeParams
+    getParams: getSequenceIdColorThemeParams,
+    defaultValues: PD.getDefaultValues(SequenceIdColorThemeParams)
 }
