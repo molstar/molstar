@@ -205,7 +205,10 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
         'MLR', // via GlyFinder, tri-saccharide but homomer
     ],
     Man: ['MAN', 'BMA'],
-    Gal: ['GAL', 'GLA'],
+    Gal: [
+        'GAL', 'GLA',
+        'GXL' // via PubChem
+    ],
     Gul: ['GUP', 'GL0'],
     Alt: ['ALT'],
     All: ['ALL', 'AFD'],
@@ -296,6 +299,10 @@ const CommonSaccharideNames: { [k: string]: string[] } = {
     Psi: [],
 }
 
+const UnknownSaccharideNames = [
+    'NGZ', // via CCD
+]
+
 export const SaccharideCompIdMap = (function () {
     const map = new Map<string, SaccharideComponent>()
     for (let i = 0, il = Monosaccharides.length; i < il; ++i) {
@@ -306,6 +313,9 @@ export const SaccharideCompIdMap = (function () {
                 map.set(names[j], saccharide)
             }
         }
+    }
+    for (let i = 0, il = UnknownSaccharideNames.length; i < il; ++i) {
+        map.set(UnknownSaccharideNames[i], UnknownSaccharideComponent)
     }
     return map
 })()

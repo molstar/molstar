@@ -22,6 +22,8 @@ export const PluginCommands = {
 
         ToggleExpanded: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
         ToggleVisibility: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
+        Highlight: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
+        ClearHighlight: PluginCommand<{ state: State, ref: Transform.Ref }>({ isImmediate: true }),
 
         Snapshots: {
             Add: PluginCommand<{ name?: string, description?: string }>({ isImmediate: true }),

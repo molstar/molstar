@@ -23,12 +23,13 @@ namespace StateObject {
     }
 
     export type Type<Cls extends string = string> = { name: string, typeClass: Cls }
-    export type Ctor = { new(...args: any[]): StateObject, type: any }
+    export type Ctor<T extends StateObject = StateObject> = { new(...args: any[]): T, type: any }
+    export type From<C extends Ctor> = C extends Ctor<infer T> ? T : never
 
     export function create<Data, T extends Type>(type: T) {
-        return class implements StateObject<Data, T> {
+        return class O implements StateObject<Data, T> {
             static type = type;
-            static is(obj?: StateObject): obj is StateObject<Data, T> { return !!obj && type === obj.type; }
+            static is(obj?: StateObject): obj is O { return !!obj && type === obj.type; }
             id = UUID.create22();
             type = type;
             label: string;

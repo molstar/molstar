@@ -93,17 +93,19 @@ export namespace Points {
     }
 
     export function updateValues(values: PointsValues, props: PD.Values<Params>) {
+        Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
+        ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle)
+        ValueCell.updateIfChanged(values.uPointEdgeBleach, props.pointEdgeBleach)
+    }
+
+    export function updateBoundingSphere(values: PointsValues, points: Points) {
         const boundingSphere = calculateBoundingSphere(
-            values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
+            values.aPosition.ref.value, points.pointCount,
             values.aTransform.ref.value, values.instanceCount.ref.value
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
-
-        Geometry.updateValues(values, props)
-        ValueCell.updateIfChanged(values.dPointSizeAttenuation, props.pointSizeAttenuation)
-        ValueCell.updateIfChanged(values.dPointFilledCircle, props.pointFilledCircle)
-        ValueCell.updateIfChanged(values.uPointEdgeBleach, props.pointEdgeBleach)
     }
 }

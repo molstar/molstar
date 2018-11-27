@@ -99,9 +99,10 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
     abstract applyAction(): Promise<void>;
     abstract getInfo(): StateTransformParameters.Props['info'];
     abstract getHeader(): Transformer.Definition['display'];
-    abstract getHeaderFallback(): string;
     abstract canApply(): boolean;
+    abstract canAutoApply(newParams: any): boolean;
     abstract applyText(): string;
+    abstract isUpdate(): boolean;
     abstract state: S;
 
     private busy: Subject<boolean>;
@@ -111,12 +112,29 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
         this.apply();
     }
 
+    private autoApplyHandle: number | undefined = void 0;
+    private clearAutoApply() {
+        if (this.autoApplyHandle !== void 0) {
+            clearTimeout(this.autoApplyHandle);
+            this.autoApplyHandle = void 0;
+        }
+    }
+
     events: StateTransformParameters.Props['events'] = {
         onEnter: this.onEnter,
-        onChange: (params, isInitial, errors) => this.setState({ params, isInitial, error: errors && errors[0] })
+        onChange: (params, isInitial, errors) => {
+            this.clearAutoApply();
+            this.setState({ params, isInitial, error: errors && errors[0] }, () => {
+                if (!isInitial && !this.state.error && this.canAutoApply(params)) {
+                    this.clearAutoApply();
+                    this.autoApplyHandle = setTimeout(this.apply, 50) as any as number;
+                }
+            });
+        }
     }
 
     apply = async () => {
+        this.clearAutoApply();
         this.setState({ busy: true });
         try {
             await this.applyAction();
@@ -146,13 +164,13 @@ abstract class TransformContolBase<P, S extends TransformContolBase.ControlState
 
     render() {
         const info = this.getInfo();
-        if (info.isEmpty) return null;
+        if (info.isEmpty && this.isUpdate()) return null;
 
         const display = this.getHeader();
 
         return <div className='msp-transform-wrapper'>
             <div className='msp-transform-header'>
-                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{(display && display.name) || this.getHeaderFallback()}</button>
+                <button className='msp-btn msp-btn-block' onClick={this.toggleExpanded}>{display.name}</button>
                 {!this.state.isCollapsed && <button className='msp-btn msp-btn-link msp-transform-default-params' onClick={this.setDefault} disabled={this.state.busy} style={{ float: 'right'}} title='Set default params'>↻</button>}
             </div>
             {!this.state.isCollapsed && <>

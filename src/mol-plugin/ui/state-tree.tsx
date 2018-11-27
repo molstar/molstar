@@ -141,6 +141,18 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
         e.currentTarget.blur();
     }
 
+    highlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.Highlight.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        e.currentTarget.blur();
+    }
+
+    clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.preventDefault();
+        PluginCommands.State.ClearHighlight.dispatch(this.plugin, { state: this.props.state, ref: this.props.nodeRef });
+        e.currentTarget.blur();
+    }
+
     render() {
         const n = this.props.state.transforms.get(this.props.nodeRef)!;
         const cell = this.props.state.cells.get(this.props.nodeRef)!;
@@ -150,7 +162,7 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
 
         let label: any;
         if (cell.status !== 'ok' || !cell.obj) {
-            const name = (n.transformer.definition.display && n.transformer.definition.display.name) || n.transformer.definition.name;
+            const name = n.transformer.definition.display.name;
             const title = `${cell.errorText}`
             label = <><b>{cell.status}</b> <a title={title} href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
@@ -170,7 +182,7 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
             <span className='msp-icon msp-icon-visual-visibility' />
         </button>;
 
-        return <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`}>
+        return <div className={`msp-tree-row${isCurrent ? ' msp-tree-row-current' : ''}`} onMouseEnter={this.highlight} onMouseLeave={this.clearHighlight}>
             {isCurrent ? <b>{label}</b> : label}
             {children.size > 0 &&  <button onClick={this.toggleExpanded} className='msp-btn msp-btn-link msp-tree-toggle-exp-button'>
                 <span className={`msp-icon msp-icon-${cellState.isCollapsed ? 'expand' : 'collapse'}`} />

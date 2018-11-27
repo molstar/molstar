@@ -409,18 +409,20 @@ export namespace Mesh {
     }
 
     export function updateValues(values: MeshValues, props: PD.Values<Params>) {
+        Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
+        ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
+        ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
+    }
+
+    export function updateBoundingSphere(values: MeshValues, mesh: Mesh) {
         const boundingSphere = calculateBoundingSphere(
-            values.aPosition.ref.value, Math.floor(values.aPosition.ref.value.length / 3),
+            values.aPosition.ref.value, mesh.vertexCount,
             values.aTransform.ref.value, values.instanceCount.ref.value
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
-
-        Geometry.updateValues(values, props)
-        ValueCell.updateIfChanged(values.dDoubleSided, props.doubleSided)
-        ValueCell.updateIfChanged(values.dFlatShaded, props.flatShaded)
-        ValueCell.updateIfChanged(values.dFlipSided, props.flipSided)
     }
 }
 

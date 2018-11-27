@@ -15,6 +15,7 @@ import { CustomPropSymbol } from 'mol-script/language/symbol';
 import Type from 'mol-script/language/type';
 import { QuerySymbolRuntime } from 'mol-script/runtime/query/compiler';
 import { PropertyWrapper } from '../common/wrapper';
+import { Task } from 'mol-task';
 
 export namespace StructureQualityReport {
     export type IssueMap = IndexedCustomProperty.Residue<string[]>
@@ -80,6 +81,33 @@ export namespace StructureQualityReport {
             residues: toTable(Schema.pdbe_structure_quality_report_issues, model.sourceData.frame.categories.pdbe_structure_quality_report_issues),
             groups: toTable(Schema.pdbe_structure_quality_report_issue_types, model.sourceData.frame.categories.pdbe_structure_quality_report_issue_types),
         }
+    }
+
+    export function createAttachTask(mapUrl: (model: Model) => string, fetch: (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>) {
+        return (model: Model) => Task.create('PDBe Structure Quality Report', async ctx => {
+            if (get(model)) return true;
+
+            let issueMap: IssueMap | undefined;
+            let info;
+            // TODO: return from CIF support once the data is recomputed
+            //  = PropertyWrapper.tryGetInfoFromCif('pdbe_structure_quality_report', model);
+            // if (info) {
+            //     const data = getCifData(model);
+            //     issueMap = createIssueMapFromCif(model, data.residues, data.groups);
+            // } else
+            {
+                const url = mapUrl(model);
+                const dataStr = await fetch(url, 'string').runInContext(ctx) as string;
+                const data = JSON.parse(dataStr)[model.label.toLowerCase()];
+                if (!data) return false;
+                info = PropertyWrapper.createInfo();
+                issueMap = createIssueMapFromJson(model, data);
+            }
+
+            model.customProperties.add(Descriptor);
+            set(model, { info, data: issueMap });
+            return false;
+        });
     }
 
     export async function attachFromCifOrApi(model: Model, params: {

@@ -12,33 +12,33 @@ import { StructureRepresentation, StructureParams } from './representation';
 import { ComplexVisual } from './complex-visual';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { RepresentationContext, RepresentationParamsGetter } from 'mol-repr/representation';
-import { Theme, createTheme } from 'mol-theme/theme';
+import { RepresentationContext, RepresentationParamsGetter, Representation } from 'mol-repr/representation';
+import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
 
-export function ComplexRepresentation<P extends StructureParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
+export function ComplexRepresentation<P extends StructureParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => ComplexVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     let visual: ComplexVisual<P> | undefined
 
     let _structure: Structure
     let _params: P
     let _props: PD.Values<P>
-    let _theme: Theme
+    let _theme = createEmptyTheme()
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
             _structure = structure
             if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
-        _theme = createTheme(ctx, { structure: _structure }, props, _theme)
 
         return Task.create('Creating or updating ComplexRepresentation', async runtime => {
             if (!visual) visual = visualCtor()
-            await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, structure)
+            await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, structure)
             updated.next(version++)
         });
     }
@@ -51,12 +51,15 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         return visual ? visual.mark(loci, action) : false
     }
 
-    function setVisibility(value: boolean) {
-        if (visual) visual.setVisibility(value)
+    function setState(state: Partial<Representation.State>) {
+        if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
+        if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
+
+        Representation.updateState(_state, state)
     }
 
-    function setPickable(value: boolean) {
-        if (visual) visual.setPickable(value)
+    function setTheme(theme: Theme) {
+        _theme = theme
     }
 
     function destroy() {
@@ -73,12 +76,14 @@ export function ComplexRepresentation<P extends StructureParams>(label: string, 
         },
         get props() { return _props },
         get params() { return _params },
-        get updated() { return updated },
+        get state() { return _state },
+        get theme() { return _theme },
+        updated,
         createOrUpdate,
+        setState,
+        setTheme,
         getLoci,
         mark,
-        setVisibility,
-        setPickable,
         destroy
     }
 }

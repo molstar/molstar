@@ -11,7 +11,9 @@ import { RenderObject, createRenderable } from './render-object';
 import { Object3D } from './object3d';
 import { Sphere3D } from 'mol-math/geometry';
 import { Vec3 } from 'mol-math/linear-algebra';
+import { BoundaryHelper } from 'mol-math/geometry/boundary-helper';
 
+const boundaryHelper = new BoundaryHelper();
 function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<RenderableValues & BaseValues>>, boundingSphere: Sphere3D): Sphere3D {
     // let count = 0
     // const center = Vec3.set(boundingSphere.center, 0, 0, 0)
@@ -33,15 +35,20 @@ function calculateBoundingSphere(renderableMap: Map<RenderObject, Renderable<Ren
     // })
     // boundingSphere.radius = radius
 
-    const spheres: Sphere3D[] = [];
+    boundaryHelper.reset(0.1);
+
     renderableMap.forEach(r => {
         if (!r.state.visible || !r.boundingSphere.radius) return;
-        spheres.push(r.boundingSphere)
+        boundaryHelper.boundaryStep(r.boundingSphere.center, r.boundingSphere.radius);
     });
-    const bs = Sphere3D.getBoundingSphereFromSpheres(spheres, 0.1);
+    boundaryHelper.finishBoundaryStep();
+    renderableMap.forEach(r => {
+        if (!r.state.visible || !r.boundingSphere.radius) return;
+        boundaryHelper.extendStep(r.boundingSphere.center, r.boundingSphere.radius);
+    });
 
-    Vec3.copy(boundingSphere.center, bs.center);
-    boundingSphere.radius = bs.radius;
+    Vec3.copy(boundingSphere.center, boundaryHelper.center);
+    boundingSphere.radius = boundaryHelper.radius;
 
     return boundingSphere;
 }

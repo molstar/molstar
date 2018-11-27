@@ -33,10 +33,10 @@ const DefaultSecondaryStructureColor = Color(0x808080)
 const Description = 'Assigns a color based on the type of secondary structure and basic molecule type.'
 
 export const SecondaryStructureColorThemeParams = {}
+export type SecondaryStructureColorThemeParams = typeof SecondaryStructureColorThemeParams
 export function getSecondaryStructureColorThemeParams(ctx: ThemeDataContext) {
     return SecondaryStructureColorThemeParams // TODO return copy
 }
-export type SecondaryStructureColorThemeProps = PD.Values<typeof SecondaryStructureColorThemeParams>
 
 export function secondaryStructureColor(unit: Unit, element: ElementIndex): Color {
     let secStrucType = SecondaryStructureType.create(SecondaryStructureType.Flag.None)
@@ -70,7 +70,7 @@ export function secondaryStructureColor(unit: Unit, element: ElementIndex): Colo
     return DefaultSecondaryStructureColor
 }
 
-export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: SecondaryStructureColorThemeProps): ColorTheme<SecondaryStructureColorThemeProps> {
+export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: PD.Values<SecondaryStructureColorThemeParams>): ColorTheme<SecondaryStructureColorThemeParams> {
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             return secondaryStructureColor(location.unit, location.element)
@@ -81,6 +81,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: Secon
     }
 
     return {
+        factory: SecondaryStructureColorTheme,
         granularity: 'group',
         color,
         props,
@@ -91,7 +92,7 @@ export function SecondaryStructureColorTheme(ctx: ThemeDataContext, props: Secon
     }
 }
 
-export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<typeof SecondaryStructureColorThemeParams> = {
+export const SecondaryStructureColorThemeProvider: ColorTheme.Provider<SecondaryStructureColorThemeParams> = {
     label: 'Secondary Structure',
     factory: SecondaryStructureColorTheme,
     getParams: getSecondaryStructureColorThemeParams

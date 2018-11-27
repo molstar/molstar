@@ -11,10 +11,13 @@ import CanvasComponent from './Canvas/CanvasComponent';
 
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
-import { ColorNames } from 'mol-util/color/tables';
+import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
 import { Color } from 'mol-util/color';
 import { Slider } from './slider';
 import { Vec2 } from 'mol-math/linear-algebra';
+
+import { Slider, Slider2 } from './slider';
+
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -50,14 +53,17 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         case 'multi-select': return MultiSelectControl;
         case 'color': return ColorControl;
         case 'vec3': return Vec3Control;
+        case 'file': return FileControl;
         case 'select': return SelectControl;
         case 'text': return TextControl;
-        case 'interval': return IntervalControl;
+        case 'interval': return typeof param.min !== 'undefined' && typeof param.max !== 'undefined'
+        ? BoundedIntervalControl : IntervalControl;
         case 'group': return GroupControl;
         case 'mapped': return MappedControl;
         case 'line-graph': return LineGraphControl;
     }
-    throw new Error('not supported');
+    console.warn(`${(param as any).type} has no associated UI component.`);
+    return void 0;
 }
 
 // type ParamWrapperProps = { name: string, value: any, param: PD.Base<any>, onChange: ParamOnChange, control: ValueControl, onEnter?: () => void, isEnabled?: boolean }
@@ -199,15 +205,37 @@ export class SelectControl extends SimpleParam<PD.Select<any>> {
 }
 
 export class IntervalControl extends SimpleParam<PD.Interval> {
-    // onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    //     this.setState({ value: e.target.value });
-    //     this.props.onChange(e.target.value);
-    // }
-
+    onChange = (v: [number, number]) => { this.update(v); }
     renderControl() {
         return <span>interval TODO</span>;
     }
 }
+
+export class BoundedIntervalControl extends SimpleParam<PD.Interval> {
+    onChange = (v: [number, number]) => { this.update(v); }
+    renderControl() {
+        return <Slider2 value={this.props.value} min={this.props.param.min!} max={this.props.param.max!}
+            step={this.props.param.step} onChange={this.onChange} disabled={this.props.isDisabled} />;
+    }
+}
+
+let _colors: React.ReactFragment | undefined = void 0;
+function ColorOptions() {
+    if (_colors) return _colors;
+    _colors = <>{Object.keys(ColorNames).map(name =>
+        <option key={name} value={(ColorNames as { [k: string]: Color})[name]} style={{ background: `${Color.toStyle((ColorNames as { [k: string]: Color})[name])}` }} >
+            {name}
+        </option>
+    )}</>;
+    return _colors;
+}
+
+function ColorValueOption(color: Color) {
+    return !ColorNamesValueMap.has(color) ? <option key={Color.toHexString(color)} value={color} style={{ background: `${Color.toStyle(color)}` }} >
+        {Color.toHexString(color)}
+    </option> : null
+}
+
 
 export class ColorControl extends SimpleParam<PD.Color> {
     onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -215,10 +243,9 @@ export class ColorControl extends SimpleParam<PD.Color> {
     }
 
     renderControl() {
-        return <select value={this.props.value} onChange={this.onChange}>
-            {Object.keys(ColorNames).map(name => {
-                return <option key={name} value={(ColorNames as { [k: string]: Color})[name]}>{name}</option>
-            })}
+        return <select value={this.props.value} onChange={this.onChange} style={{ borderLeft: `16px solid ${Color.toStyle(this.props.value)}` }}>
+            {ColorValueOption(this.props.value)}
+            {ColorOptions()}
         </select>;
     }
 }
@@ -231,6 +258,25 @@ export class Vec3Control extends SimpleParam<PD.Vec3> {
 
     renderControl() {
         return <span>vec3 TODO</span>;
+    }
+}
+
+export class FileControl extends React.PureComponent<ParamProps<PD.FileParam>> {
+    change(value: File) {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value });
+    }
+
+    onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+        this.change(e.target.files![0]);
+    }
+
+    render() {
+        const value = this.props.value;
+
+        // return <input disabled={this.props.isDisabled} value={void 0} type='file' multiple={false} />
+        return <div className='msp-btn msp-btn-block msp-btn-action msp-loader-msp-btn-file' style={{ marginTop: '1px' }}>
+            {value ? value.name : 'Select a file...'} <input disabled={this.props.isDisabled} onChange={this.onChangeFile} type='file' multiple={false} accept={this.props.param.accept} />
+        </div>
     }
 }
 
@@ -267,35 +313,40 @@ export class MultiSelectControl extends React.PureComponent<ParamProps<PD.MultiS
                 </div>
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                {this.props.param.options.map(([value, label]) =>
-                    <div key={value} className='msp-row'>
+                {this.props.param.options.map(([value, label]) => {
+                    const sel = current.indexOf(value) >= 0;
+                    return <div key={value} className='msp-row'>
                         <button onClick={this.toggle(value)} disabled={this.props.isDisabled}>
-                            {current.indexOf(value) >= 0 ? `✓ ${label}` : `✗ ${label}`}
+                            <span style={{ float: sel ? 'left' : 'right' }}>{sel ? `✓ ${label}` : `${label} ✗`}</span>
                         </button>
-                    </div>)}
+                </div> })}
             </div>
         </>;
     }
 }
 
 export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>, { isExpanded: boolean }> {
-    state = { isExpanded: false }
+    state = { isExpanded: !!this.props.param.isExpanded }
 
-    change(value: PD.Mapped<any>['defaultValue'] ) {
+    change(value: any ) {
         this.props.onChange({ name: this.props.name, param: this.props.param, value });
     }
 
     onChangeParam: ParamOnChange = e => {
-        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
-        this.change({ ...value.params, [e.name]: e.value });
+        this.change({ ...this.props.value, [e.name]: e.value });
     }
 
     toggleExpanded = () => this.setState({ isExpanded: !this.state.isExpanded });
 
     render() {
-        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
         const params = this.props.param.params;
         const label = this.props.param.label || camelCaseToWords(this.props.name);
+
+        const controls = <ParameterControls params={params} onChange={this.onChangeParam} values={this.props.value} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />;
+
+        if (this.props.param.isFlat) {
+            return controls;
+        }
 
         return <div className='msp-control-group-wrapper'>
             <div className='msp-control-group-header'>
@@ -305,7 +356,7 @@ export class GroupControl extends React.PureComponent<ParamProps<PD.Group<any>>,
                 </button>
             </div>
             {this.state.isExpanded && <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
-                <ParameterControls params={params} onChange={this.onChangeParam} values={value.params} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+                {controls}
             </div>
             }
         </div>
@@ -323,8 +374,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
     }
 
     onChangeParam: ParamOnChange = e => {
-        const value: PD.Mapped<any>['defaultValue'] = this.props.value;
-        this.change({ name: value.name, params: e.value });
+        this.change({ name: this.props.value.name, params: e.value });
     }
 
     render() {
@@ -343,7 +393,7 @@ export class MappedControl extends React.PureComponent<ParamProps<PD.Mapped<any>
 
         return <div>
             {select}
-            <Mapped param={param} value={value} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
+            <Mapped param={param} value={value.params} name={`${label} Properties`} onChange={this.onChangeParam} onEnter={this.props.onEnter} isDisabled={this.props.isDisabled} />
         </div>
     }
 }

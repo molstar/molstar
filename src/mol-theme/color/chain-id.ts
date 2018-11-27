@@ -12,6 +12,7 @@ import { ColorTheme, LocationColor } from '../color';
 import { ParamDefinition as PD } from 'mol-util/param-definition'
 import { ThemeDataContext } from 'mol-theme/theme';
 import { ColorListOptions, ColorListName } from 'mol-util/color/scale';
+import { Column } from 'mol-data/db';
 
 const DefaultColor = Color(0xCCCCCC)
 const Description = 'Gives every chain a color based on its `asym_id` value.'
@@ -19,10 +20,10 @@ const Description = 'Gives every chain a color based on its `asym_id` value.'
 export const ChainIdColorThemeParams = {
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
+export type ChainIdColorThemeParams = typeof ChainIdColorThemeParams
 export function getChainIdColorThemeParams(ctx: ThemeDataContext) {
     return ChainIdColorThemeParams // TODO return copy
 }
-export type ChainIdColorThemeProps = PD.Values<typeof ChainIdColorThemeParams>
 
 function getAsymId(unit: Unit): StructureElement.Property<string> {
     switch (unit.kind) {
@@ -34,7 +35,18 @@ function getAsymId(unit: Unit): StructureElement.Property<string> {
     }
 }
 
-export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThemeProps): ColorTheme<ChainIdColorThemeProps> {
+function addAsymIds(map: Map<string, number>, data: Column<string>) {
+    let j = map.size
+    for (let o = 0, ol = data.rowCount; o < ol; ++o) {
+        const k = data.value(o)
+        if (!map.has(k)) {
+            map.set(k, j)
+            j += 1
+        }
+    }
+}
+
+export function ChainIdColorTheme(ctx: ThemeDataContext, props: PD.Values<ChainIdColorThemeParams>): ColorTheme<ChainIdColorThemeParams> {
     let color: LocationColor
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
@@ -42,14 +54,13 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThem
         const l = StructureElement.create()
         const { models } = ctx.structure
         const asymIdSerialMap = new Map<string, number>()
-        let j = 0
         for (let i = 0, il = models.length; i <il; ++i) {
-            models[i].properties.asymIdSerialMap.forEach((v, k) => {
-                if (!asymIdSerialMap.has(k)) {
-                    asymIdSerialMap.set(k, j)
-                    j += 1
-                }
-            })
+            const m = models[i]
+            addAsymIds(asymIdSerialMap, m.atomicHierarchy.chains.label_asym_id)
+            if (m.coarseHierarchy.isDefined) {
+                addAsymIds(asymIdSerialMap, m.coarseHierarchy.spheres.asym_id)
+                addAsymIds(asymIdSerialMap, m.coarseHierarchy.gaussians.asym_id)
+            }
         }
         scale.setDomain(0, asymIdSerialMap.size - 1)
         const scaleColor = scale.color
@@ -71,6 +82,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThem
     }
 
     return {
+        factory: ChainIdColorTheme,
         granularity: 'group',
         color,
         props,
@@ -79,7 +91,7 @@ export function ChainIdColorTheme(ctx: ThemeDataContext, props: ChainIdColorThem
     }
 }
 
-export const ChainIdColorThemeProvider: ColorTheme.Provider<typeof ChainIdColorThemeParams> = {
+export const ChainIdColorThemeProvider: ColorTheme.Provider<ChainIdColorThemeParams> = {
     label: 'Chain Id',
     factory: ChainIdColorTheme,
     getParams: getChainIdColorThemeParams

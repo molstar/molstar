@@ -6,6 +6,8 @@
 
 import { RepresentationProvider, RepresentationRegistry } from '../representation';
 import { VolumeData } from 'mol-model/volume';
+import { IsosurfaceRepresentationProvider } from './isosurface-mesh';
+import { DirectVolumeRepresentationProvider } from './direct-volume';
 
 export class VolumeRepresentationRegistry extends RepresentationRegistry<VolumeData> {
     constructor() {
@@ -18,7 +20,8 @@ export class VolumeRepresentationRegistry extends RepresentationRegistry<VolumeD
 }
 
 export const BuiltInVolumeRepresentations = {
-    // TODO
+    'isosurface': IsosurfaceRepresentationProvider,
+    'direct-volume': DirectVolumeRepresentationProvider,
 }
 export type BuiltInVolumeRepresentationsName = keyof typeof BuiltInVolumeRepresentations
 export const BuiltInVolumeRepresentationsNames = Object.keys(BuiltInVolumeRepresentations)

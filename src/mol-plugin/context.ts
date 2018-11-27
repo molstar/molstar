@@ -23,6 +23,8 @@ import { PluginState } from './state';
 import { TaskManager } from './util/task-manager';
 import { Color } from 'mol-util/color';
 import { LociLabelEntry, LociLabelManager } from './util/loci-label-manager';
+import { ajaxGet } from 'mol-util/data-source';
+import { CustomPropertyRegistry } from './util/custom-prop-registry';
 
 export class PluginContext {
     private disposed = false;
@@ -57,13 +59,6 @@ export class PluginContext {
         }
     };
 
-    readonly lociLabels: LociLabelManager;
-
-    readonly structureReprensentation = {
-        registry: new StructureRepresentationRegistry(),
-        themeCtx: { colorThemeRegistry: new ColorTheme.Registry(), sizeThemeRegistry: new SizeTheme.Registry() } as ThemeRegistryContext
-    }
-
     readonly behaviors = {
         canvas: {
             highlightLoci: this.ev.behavior<{ loci: Loci, repr?: Representation.Any }>({ loci: EmptyLoci }),
@@ -74,6 +69,14 @@ export class PluginContext {
 
     readonly canvas3d: Canvas3D;
 
+    readonly lociLabels: LociLabelManager;
+
+    readonly structureRepresentation = {
+        registry: new StructureRepresentationRegistry(),
+        themeCtx: { colorThemeRegistry: new ColorTheme.Registry(), sizeThemeRegistry: new SizeTheme.Registry() } as ThemeRegistryContext
+    }
+
+    readonly customModelProperties = new CustomPropertyRegistry();
 
     initViewer(canvas: HTMLCanvasElement, container: HTMLDivElement) {
         try {
@@ -82,23 +85,28 @@ export class PluginContext {
             this.canvas3d.animate();
             return true;
         } catch (e) {
-            this.log(LogEntry.error('' + e));
+            this.log.error('' + e);
             console.error(e);
             return false;
         }
     }
 
-    log(e: LogEntry) {
-        this.events.log.next(e);
-    }
+    readonly log = {
+        entry: (e: LogEntry) => this.events.log.next(e),
+        error: (msg: string) => this.events.log.next(LogEntry.error(msg)),
+        message: (msg: string) => this.events.log.next(LogEntry.message(msg)),
+        info: (msg: string) => this.events.log.next(LogEntry.info(msg)),
+        warn: (msg: string) => this.events.log.next(LogEntry.warning(msg)),
+    };
 
     /**
      * This should be used in all transform related request so that it could be "spoofed" to allow
      * "static" access to resources.
      */
-    async fetch(url: string, type: 'string' | 'binary' = 'string'): Promise<string | Uint8Array> {
-        const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
-        return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
+    fetch(url: string, type: 'string' | 'binary' = 'string'): Task<string | Uint8Array> {
+        return ajaxGet({ url, type });
+        // const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
+        // return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
     }
 
     runTask<T>(task: Task<T>) {

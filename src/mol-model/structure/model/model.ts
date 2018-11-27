@@ -47,8 +47,6 @@ export interface Model extends Readonly<{
             parentId: ReadonlyMap<string, string>,
             details: ReadonlyMap<string, string>
         }>,
-        /** maps asym id to unique serial number */
-        readonly asymIdSerialMap: ReadonlyMap<string, number>
         /** maps residue name to `ChemicalComponent` data */
         readonly chemicalComponentMap: ChemicalComponentMap
         /** maps residue name to `SaccharideComponent` data */

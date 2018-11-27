@@ -15,13 +15,14 @@ const DefaultColor = Color(0xCCCCCC)
 const Description = 'Assigns colors as defined by the shape object.'
 
 export const ShapeGroupColorThemeParams = {}
+export type ShapeGroupColorThemeParams = typeof ShapeGroupColorThemeParams
 export function getShapeGroupColorThemeParams(ctx: ThemeDataContext) {
     return ShapeGroupColorThemeParams // TODO return copy
 }
-export type ShapeGroupColorThemeProps = PD.Values<typeof ShapeGroupColorThemeParams>
 
-export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: ShapeGroupColorThemeProps): ColorTheme<ShapeGroupColorThemeProps> {
+export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: PD.Values<ShapeGroupColorThemeParams>): ColorTheme<ShapeGroupColorThemeParams> {
     return {
+        factory: ShapeGroupColorTheme,
         granularity: 'group',
         color: (location: Location): Color => {
             if (Shape.isLocation(location)) {
@@ -34,7 +35,7 @@ export function ShapeGroupColorTheme(ctx: ThemeDataContext, props: ShapeGroupCol
     }
 }
 
-export const ShapeGroupColorThemeProvider: ColorTheme.Provider<typeof ShapeGroupColorThemeParams> = {
+export const ShapeGroupColorThemeProvider: ColorTheme.Provider<ShapeGroupColorThemeParams> = {
     label: 'Shape Group',
     factory: ShapeGroupColorTheme,
     getParams: getShapeGroupColorThemeParams

@@ -27,12 +27,12 @@ export const CarbohydrateSymbolColorThemeParams = {
     // domain: PD.Interval('Color Domain', '', [0, 1]),
     // value: PD.Color('Color Value', '', DefaultColor),
 }
+export type CarbohydrateSymbolColorThemeParams = typeof CarbohydrateSymbolColorThemeParams
 export function getCarbohydrateSymbolColorThemeParams(ctx: ThemeDataContext) {
     return CarbohydrateSymbolColorThemeParams // TODO return copy
 }
-export type CarbohydrateSymbolColorThemeProps = PD.Values<typeof CarbohydrateSymbolColorThemeParams>
 
-export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: CarbohydrateSymbolColorThemeProps): ColorTheme<CarbohydrateSymbolColorThemeProps> {
+export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<CarbohydrateSymbolColorThemeParams>): ColorTheme<CarbohydrateSymbolColorThemeParams> {
     let color: LocationColor
 
     if (ctx.structure) {
@@ -65,6 +65,7 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: Carbo
     }
 
     return {
+        factory: CarbohydrateSymbolColorTheme,
         granularity: 'group',
         color: color,
         props: props,
@@ -73,7 +74,7 @@ export function CarbohydrateSymbolColorTheme(ctx: ThemeDataContext, props: Carbo
     }
 }
 
-export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<typeof CarbohydrateSymbolColorThemeParams> = {
+export const CarbohydrateSymbolColorThemeProvider: ColorTheme.Provider<CarbohydrateSymbolColorThemeParams> = {
     label: 'Carbohydrate Symbol',
     factory: CarbohydrateSymbolColorTheme,
     getParams: getCarbohydrateSymbolColorThemeParams

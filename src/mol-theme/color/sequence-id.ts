@@ -19,10 +19,10 @@ const Description = 'Gives every polymer residue a color based on its `seq_id` v
 export const SequenceIdColorThemeParams = {
     list: PD.Select<ColorListName>('rainbow', ColorListOptions),
 }
+export type SequenceIdColorThemeParams = typeof SequenceIdColorThemeParams
 export function getSequenceIdColorThemeParams(ctx: ThemeDataContext) {
     return SequenceIdColorThemeParams // TODO return copy
 }
-export type SequenceIdColorThemeProps = PD.Values<typeof SequenceIdColorThemeParams>
 
 function getSeqId(unit: Unit, element: ElementIndex): number {
     const { model } = unit
@@ -64,7 +64,7 @@ function getSequenceLength(unit: Unit, element: ElementIndex) {
     return model.sequence.byEntityKey[entityIndex].sequence.sequence.length
 }
 
-export function SequenceIdColorTheme(ctx: ThemeDataContext, props: SequenceIdColorThemeProps): ColorTheme<SequenceIdColorThemeProps> {
+export function SequenceIdColorTheme(ctx: ThemeDataContext, props: PD.Values<SequenceIdColorThemeParams>): ColorTheme<SequenceIdColorThemeParams> {
     const scale = ColorScale.create({
         listOrName: props.list,
         minLabel: 'Start',
@@ -90,6 +90,7 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: SequenceIdCol
     }
 
     return {
+        factory: SequenceIdColorTheme,
         granularity: 'group',
         color,
         props,
@@ -98,7 +99,7 @@ export function SequenceIdColorTheme(ctx: ThemeDataContext, props: SequenceIdCol
     }
 }
 
-export const SequenceIdColorThemeProvider: ColorTheme.Provider<typeof SequenceIdColorThemeParams> = {
+export const SequenceIdColorThemeProvider: ColorTheme.Provider<SequenceIdColorThemeParams> = {
     label: 'Sequence Id',
     factory: SequenceIdColorTheme,
     getParams: getSequenceIdColorThemeParams

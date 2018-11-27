@@ -110,6 +110,57 @@
     // }
 }
 
+.msp-slider2 {
+    > div:first-child {
+        position: absolute;
+        height: $row-height;
+        line-height: $row-height;
+        text-align: center;
+        left: 0;
+        width: 25px;
+        top: 0;
+        bottom: 0;
+        font-size: 80%;
+    }
+    > div:nth-child(2) {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 25px;
+        width: 100%;
+        padding-left: 20px;
+        padding-right: 25px;
+        display: table;
+        
+        > div {
+            height: $row-height;
+            display: table-cell;
+            vertical-align: middle;
+            padding: 0 ($control-spacing + 4px);
+        }
+    }
+    > div:last-child {
+        position: absolute;
+        height: $row-height;
+        line-height: $row-height;
+        text-align: center;
+        right: 0;
+        width: 25px;
+        top: 0;
+        bottom: 0;
+        font-size: 80%;
+    }
+    
+    // input[type=text] {
+    //     text-align: right;
+    // }
+    
+    // input[type=range] {
+    //     width: 100%;
+    // }
+}
+
 .msp-toggle-color-picker {
     button {
         border: $control-spacing solid $msp-form-control-background !important;

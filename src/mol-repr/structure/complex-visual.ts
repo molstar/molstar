@@ -48,12 +48,13 @@ interface ComplexVisualBuilder<P extends ComplexParams, G extends Geometry> {
 interface ComplexVisualGeometryBuilder<P extends ComplexParams, G extends Geometry> extends ComplexVisualBuilder<P, G> {
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: VisualContext, structure: Structure, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<ComplexRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
+    updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
 }
 
 export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeometryBuilder<P, Geometry>): ComplexVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createRenderObject, updateValues } = builder
+    const { createRenderObject, updateValues, updateBoundingSphere } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: ComplexRenderObject | undefined
@@ -85,20 +86,21 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
+        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
+
         const newConformationHash = Structure.conformationHash(currentStructure)
         if (newConformationHash !== conformationHash) {
             conformationHash = newConformationHash
             updateState.createGeometry = true
         }
 
-        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
-        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
-
         //
 
         if (updateState.createGeometry) {
             geometry = await createGeometry(ctx, currentStructure, theme, newProps, geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
+            updateBoundingSphere(renderObject.values, geometry)
             updateState.updateColor = true
         }
 
@@ -129,7 +131,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
                 throw new Error('missing structure')
             } else if (structure && (!currentStructure || !renderObject)) {
                 await create(ctx, structure, theme, props)
-            } else if (structure && structure.hashCode !== currentStructure.hashCode) {
+            } else if (structure && !Structure.areEquivalent(structure, currentStructure)) {
                 await create(ctx, structure, theme, props)
             } else {
                 if (structure && Structure.conformationHash(structure) !== Structure.conformationHash(currentStructure)) {
@@ -153,7 +155,7 @@ export function ComplexVisual<P extends ComplexParams>(builder: ComplexVisualGeo
             }
 
             let changed = false
-            if (isEveryLoci(loci)) {
+            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = mark(loci, currentStructure, apply)
@@ -195,6 +197,7 @@ export function ComplexMeshVisual<P extends ComplexMeshParams>(builder: ComplexM
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createComplexMeshRenderObject,
-        updateValues: Mesh.updateValues
+        updateValues: Mesh.updateValues,
+        updateBoundingSphere: Mesh.updateBoundingSphere
     })
 }

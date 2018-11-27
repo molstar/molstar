@@ -17,9 +17,19 @@ export function createVertexArray(ctx: WebGLContext, program: Program, attribute
         if (elementsBuffer) elementsBuffer.bind()
         program.bindAttributes(attributeBuffers)
         ctx.vaoCount += 1
-        vertexArrayObject.bindVertexArray(null!)
+        vertexArrayObject.bindVertexArray(null)
     }
     return vertexArray
+}
+
+export function updateVertexArray(ctx: WebGLContext, vertexArray: WebGLVertexArrayObject | null, program: Program, attributeBuffers: AttributeBuffers, elementsBuffer?: ElementsBuffer) {
+    const { vertexArrayObject } = ctx.extensions
+    if (vertexArrayObject && vertexArray) {
+        vertexArrayObject.bindVertexArray(vertexArray)
+        if (elementsBuffer) elementsBuffer.bind()
+        program.bindAttributes(attributeBuffers)
+        vertexArrayObject.bindVertexArray(null)
+    }
 }
 
 export function deleteVertexArray(ctx: WebGLContext, vertexArray: WebGLVertexArrayObject | null) {

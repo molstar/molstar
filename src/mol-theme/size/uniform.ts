@@ -13,15 +13,16 @@ const Description = 'Gives everything the same, uniform size.'
 export const UniformSizeThemeParams = {
     value: PD.Numeric(1, { min: 0, max: 20, step: 0.1 }),
 }
+export type UniformSizeThemeParams = typeof UniformSizeThemeParams
 export function getUniformSizeThemeParams(ctx: ThemeDataContext) {
     return UniformSizeThemeParams // TODO return copy
 }
-export type UniformSizeThemeProps = PD.Values<typeof UniformSizeThemeParams>
 
-export function UniformSizeTheme(ctx: ThemeDataContext, props: UniformSizeThemeProps): SizeTheme<UniformSizeThemeProps> {
+export function UniformSizeTheme(ctx: ThemeDataContext, props: PD.Values<UniformSizeThemeParams>): SizeTheme<UniformSizeThemeParams> {
     const size = props.value
 
     return {
+        factory: UniformSizeTheme,
         granularity: 'uniform',
         size: () => size,
         props,
@@ -29,7 +30,7 @@ export function UniformSizeTheme(ctx: ThemeDataContext, props: UniformSizeThemeP
     }
 }
 
-export const UniformSizeThemeProvider: SizeTheme.Provider<typeof UniformSizeThemeParams> = {
+export const UniformSizeThemeProvider: SizeTheme.Provider<UniformSizeThemeParams> = {
     label: 'Uniform',
     factory: UniformSizeTheme,
     getParams: getUniformSizeThemeParams

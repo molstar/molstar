@@ -5,32 +5,36 @@
  */
 
 import { SizeType, LocationSize } from 'mol-geo/geometry/size-data';
-import { UniformSizeTheme, UniformSizeThemeProvider } from './size/uniform';
+import { UniformSizeThemeProvider } from './size/uniform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ThemeDataContext } from 'mol-theme/theme';
 import { PhysicalSizeThemeProvider } from './size/physical';
 import { deepEqual } from 'mol-util';
 
 export { SizeTheme }
-interface SizeTheme<P extends SizeTheme.Props = {}> {
+interface SizeTheme<P extends PD.Params = {}> {
+    readonly factory: SizeTheme.Factory<P>
     readonly granularity: SizeType
     readonly size: LocationSize
-    readonly props: Readonly<P>
+    readonly props: Readonly<PD.Values<P>>
     readonly description?: string
 }
 namespace SizeTheme {
     export type Props = { [k: string]: any }
-    export const Empty = UniformSizeTheme({}, { value: 1 })
+    export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => SizeTheme<P>
+    export const EmptyFactory = () => Empty
+    export const Empty: SizeTheme<{}> = { factory: EmptyFactory, granularity: 'uniform', size: () => 1, props: {} }
 
     export function areEqual(themeA: SizeTheme, themeB: SizeTheme) {
-        return themeA === themeB && deepEqual(themeA.props, themeB.props)
+        return themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
     }
 
     export interface Provider<P extends PD.Params> {
         readonly label: string
-        readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => SizeTheme<PD.Values<P>>
+        readonly factory: Factory<P>
         readonly getParams: (ctx: ThemeDataContext) => P
     }
+    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}) }
 
     export class Registry {
         private _list: { name: string, provider: Provider<any> }[] = []
@@ -53,8 +57,8 @@ namespace SizeTheme {
             this._map.set(name, provider)
         }
 
-        get(id: string) {
-            return this._map.get(id)
+        get<P extends PD.Params>(id: string) {
+            return this._map.get(id) || EmptyProvider as unknown as Provider<P>
         }
 
         create(id: string, ctx: ThemeDataContext, props = {}) {
@@ -72,7 +76,3 @@ export const BuiltInSizeThemes = {
     'physical': PhysicalSizeThemeProvider,
     'uniform': UniformSizeThemeProvider
 }
-export type BuiltInSizeThemeName = keyof typeof BuiltInSizeThemes
-export const BuiltInSizeThemeNames = Object.keys(BuiltInSizeThemes)
-export const BuiltInSizeThemeOptions = BuiltInSizeThemeNames.map(n => [n, n] as [BuiltInSizeThemeName, string])
-export const getBuiltInSizeThemeParams = (name: string, ctx: ThemeDataContext = {}) => PD.Group((BuiltInSizeThemes as { [k: string]: SizeTheme.Provider<any> })[name].getParams(ctx))

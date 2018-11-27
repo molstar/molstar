@@ -19,6 +19,7 @@ import { BackgroundTaskProgress } from './task';
 import { ApplyActionContol } from './state/apply-action';
 import { PluginState } from 'mol-plugin/state';
 import { UpdateTransformContol } from './state/update-transform';
+import { StateObjectCell } from 'mol-state';
 
 export class Plugin extends React.Component<{ plugin: PluginContext }, {}> {
 
@@ -81,13 +82,13 @@ export class State extends PluginComponent {
 
     render() {
         const kind = this.plugin.state.behavior.kind.value;
-        return <>
+        return <div className='msp-scrollable-container'>
             <div className='msp-btn-row-group msp-data-beh'>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('data')} style={{ fontWeight: kind === 'data' ? 'bold' : 'normal'}}>Data</button>
                 <button className='msp-btn msp-btn-block msp-form-control' onClick={() => this.set('behavior')} style={{ fontWeight: kind === 'behavior' ? 'bold' : 'normal'}}>Behavior</button>
             </div>
             <StateTree state={kind === 'data' ? this.plugin.state.dataState : this.plugin.state.behaviorState} />
-        </>
+        </div>
     }
 }
 
@@ -95,6 +96,7 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     private wrapper = React.createRef<HTMLDivElement>();
 
     componentDidMount() {
+        // TODO: only show last 100 entries.
         this.subscribe(this.plugin.events.log, e => this.setState({ entries: this.state.entries.push(e) }));
     }
 
@@ -110,10 +112,12 @@ export class Log extends PluginComponent<{}, { entries: List<LogEntry> }> {
     }
 
     render() {
-        return <div ref={this.wrapper} style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'auto' }}>
-            <ul style={{ listStyle: 'none' }} className='msp-log-list'>
+        return <div ref={this.wrapper} className='msp-log' style={{ position: 'absolute', top: '0', right: '0', bottom: '0', left: '0', overflowY: 'auto' }}>
+            <ul className='msp-list-unstyled'>
                 {this.state.entries.map((e, i) => <li key={i}>
-                    <b>[{formatTime(e!.timestamp)} | {e!.type}]</b> {e!.message}
+                    <div className={'msp-log-entry-badge msp-log-entry-' + e!.type} />
+                    <div className='msp-log-timestamp'>{formatTime(e!.timestamp)}</div>
+                    <div className='msp-log-entry'>{e!.message}</div>
                 </li>)}
             </ul>
         </div>;
@@ -141,22 +145,20 @@ export class CurrentObject extends PluginComponent {
         const current = this.current;
 
         const ref = current.ref;
-        // const n = this.props.plugin.state.data.tree.nodes.get(ref)!;
-        const obj = current.state.cells.get(ref)!;
+        const cell = current.state.cells.get(ref)!;
+        const parent: StateObjectCell | undefined = (cell.sourceRef && current.state.cells.get(cell.sourceRef)!) || void 0;
 
-        const type = obj && obj.obj ? obj.obj.type : void 0;
+        const type = cell && cell.obj ? cell.obj.type : void 0;
+        const transform = cell.transform;
+        const def = transform.transformer.definition;
 
-        const transform = current.state.transforms.get(ref);
-
-        const actions = type
-            ? current.state.actions.fromType(type)
-            : []
+        const actions = type ? current.state.actions.fromType(type) : [];
         return <>
             <div className='msp-section-header'>
-                {obj.obj ? obj.obj.label : ref}
+                {cell.obj ? cell.obj.label : (def.display && def.display.name) || def.name}
             </div>
-            <UpdateTransformContol state={current.state} transform={transform} />
-            {
+            { (parent && parent.status === 'ok') && <UpdateTransformContol state={current.state} transform={transform} /> }
+            {cell.status === 'ok' &&
                 actions.map((act, i) => <ApplyActionContol plugin={this.plugin} key={`${act.id}`} state={current.state} action={act} nodeRef={ref} />)
             }
         </>;

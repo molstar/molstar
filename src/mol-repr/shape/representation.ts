@@ -18,7 +18,7 @@ import { createRenderableState } from 'mol-geo/geometry/geometry';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction, applyMarkerAction } from 'mol-geo/geometry/marker-data';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
-import { createTheme } from 'mol-theme/theme';
+import { createEmptyTheme, Theme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 
 export interface ShapeRepresentation<P extends ShapeParams> extends Representation<Shape, P> { }
@@ -30,17 +30,19 @@ export const ShapeParams = {
 }
 export type ShapeParams = typeof ShapeParams
 
-export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentation<P> {
+export function ShapeRepresentation<P extends ShapeParams>(ctx: RepresentationContext): ShapeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     const renderObjects: RenderObject[] = []
     let _renderObject: MeshRenderObject | undefined
     let _shape: Shape
+    let _theme = createEmptyTheme()
     let currentProps: PD.Values<P> = PD.getDefaultValues(ShapeParams) as PD.Values<P>
     let currentParams: P
     let locationIt: LocationIterator
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, shape?: Shape) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, shape?: Shape) {
         currentProps = Object.assign({}, currentProps, props)
         if (shape) _shape = shape
 
@@ -51,10 +53,9 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
 
             const mesh = _shape.mesh
             locationIt = ShapeGroupIterator.fromShape(_shape)
-            const theme = createTheme(ctx, currentProps, {})
             const transform = createIdentityTransform()
 
-            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, theme, currentProps)
+            const values = await Mesh.createValues(runtime, mesh, transform, locationIt, _theme, currentProps)
             const state = createRenderableState(currentProps)
 
             _renderObject = createMeshRenderObject(values, state)
@@ -65,11 +66,13 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
 
     return {
         label: 'Shape mesh',
-        updated,
         get groupCount () { return locationIt ? locationIt.count : 0 },
         get renderObjects () { return renderObjects },
-        get params () { return currentParams },
         get props () { return currentProps },
+        get params () { return currentParams },
+        get state() { return _state },
+        get theme() { return _theme },
+        updated,
         createOrUpdate,
         getLoci(pickingId: PickingId) {
             const { objectId, groupId } = pickingId
@@ -103,11 +106,14 @@ export function ShapeRepresentation<P extends ShapeParams>(): ShapeRepresentatio
             }
             return changed
         },
-        setVisibility(value: boolean) {
-            renderObjects.forEach(ro => ro.state.visible = value)
+        setState(state: Partial<Representation.State>) {
+            if (state.visible !== undefined) renderObjects.forEach(ro => ro.state.visible = state.visible!)
+            if (state.pickable !== undefined) renderObjects.forEach(ro => ro.state.pickable = state.pickable!)
+
+            Representation.updateState(_state, state)
         },
-        setPickable(value: boolean) {
-            renderObjects.forEach(ro => ro.state.pickable = value)
+        setTheme(theme: Theme) {
+            _theme = theme
         },
         destroy() {
             // TODO
