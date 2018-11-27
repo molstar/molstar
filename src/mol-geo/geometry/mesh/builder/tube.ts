@@ -131,5 +131,5 @@ export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, 
     }
 
     const addedVertexCount = (linearSegments + 1) * radialSegments + (startCap ? radialSegments + 1 : 0) + (endCap ? radialSegments + 1 : 0)
-    for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup)
+    ChunkedArray.addRepeat(groups, addedVertexCount, currentGroup)
 }

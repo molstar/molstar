@@ -77,6 +77,15 @@ namespace ChunkedArray {
         return array.elementCount++;
     }
 
+    export function addRepeat<T>(array: ChunkedArray<T, 1>, n: number, x: T) {
+        for (let i = 0; i < n; i++) {
+            if (array.currentIndex >= array.currentSize) allocateNext(array);
+            array.currentChunk[array.currentIndex++] = x;
+            array.elementCount++;
+        }
+        return array.elementCount;
+    }
+
     export function addMany<T>(array: ChunkedArray<T, any>, data: ArrayLike<T>) {
         const { elementSize } = array;
         for (let i = 0, _i = data.length; i < _i; i += elementSize) {
