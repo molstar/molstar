@@ -161,10 +161,13 @@ class StateTreeNodeLabel extends PluginComponent<{ nodeRef: string, state: State
 
 
         let label: any;
-        if (cell.status !== 'ok' || !cell.obj) {
+        if (cell.status === 'pending' || cell.status === 'processing') {
+            const name = n.transformer.definition.display.name;
+            label = <><b>[{cell.status}]</b> <span title={name}>{name}</span></>;
+        } else if (cell.status !== 'ok' || !cell.obj) {
             const name = n.transformer.definition.display.name;
             const title = `${cell.errorText}`
-            label = <><b>{cell.status}</b> <a title={title} href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
+            label = <><b>[{cell.status}]</b> <a title={title} href='#' onClick={this.setCurrent}>{name}</a>: <i>{cell.errorText}</i></>;
         } else {
             const obj = cell.obj as PluginStateObject.Any;
             const title = `${obj.label} ${obj.description ? obj.description : ''}`
