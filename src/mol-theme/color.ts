@@ -79,6 +79,11 @@ namespace ColorTheme {
             this._map.set(name, provider)
         }
 
+        remove(name: string) {
+            this._list.splice(this._list.findIndex(e => e.name === name))
+            this._map.delete(name)
+        }
+
         get<P extends PD.Params>(name: string): Provider<P> {
             return this._map.get(name) || EmptyProvider as unknown as Provider<P>
         }

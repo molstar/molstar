@@ -70,6 +70,11 @@ export class RepresentationRegistry<D> {
         this._map.set(name, provider)
     }
 
+    remove(name: string) {
+        this._list.splice(this._list.findIndex(e => e.name === name))
+        this._map.delete(name)
+    }
+
     get<P extends PD.Params>(name: string): RepresentationProvider<D, P> {
         return this._map.get(name) || EmptyRepresentationProvider as unknown as RepresentationProvider<D, P>
     }

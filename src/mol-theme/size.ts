@@ -57,6 +57,11 @@ namespace SizeTheme {
             this._map.set(name, provider)
         }
 
+        remove(name: string) {
+            this._list.splice(this._list.findIndex(e => e.name === name))
+            this._map.delete(name)
+        }
+
         get<P extends PD.Params>(id: string) {
             return this._map.get(id) || EmptyProvider as unknown as Provider<P>
         }

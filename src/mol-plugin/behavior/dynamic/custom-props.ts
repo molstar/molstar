@@ -36,7 +36,6 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
 
             // TODO: support filtering of themes based on the input structure
             // in this case, it would check structure.models[0].customProperties.has(StructureQualityReport.Descriptor)
-            // TODO: add remove functionality
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.add('pdbe-structure-quality-report', {
                 label: 'PDBe Structure Quality Report',
                 factory: StructureQualityReportColorTheme,
@@ -54,9 +53,7 @@ export const PDBeStructureQualityReport = PluginBehavior.create<{ autoAttach: bo
         unregister() {
             this.ctx.customModelProperties.unregister(StructureQualityReport.Descriptor.name);
             this.ctx.lociLabels.removeProvider(labelPDBeValidation);
-
-            // TODO: add remove functionality to registry
-            // this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('pdbe-structure-quality-report')
+            this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('pdbe-structure-quality-report')
         }
     },
     params: () => ({
