@@ -96,7 +96,7 @@ export function markPolymerElement(loci: Loci, structureGroup: StructureGroup, a
                 const unitIndexMin = OrderedSet.findPredecessorIndex(elements, offsets[rI])
                 const unitIndexMax = OrderedSet.findPredecessorIndex(elements, offsets[rI + 1] - 1)
                 const unitIndexInterval = Interval.ofRange(unitIndexMin, unitIndexMax)
-                if(!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
+                if (!OrderedSet.isSubset(e.indices, unitIndexInterval)) return
                 const eI = getElementIndexForAtomRole(model, rI, 'trace')
                 const idx = OrderedSet.indexOf(e.unit.polymerElements, eI)
                 if (idx !== -1) {
