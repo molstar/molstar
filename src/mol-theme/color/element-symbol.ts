@@ -22,17 +22,17 @@ const DefaultElementSymbolColor = Color(0xFFFFFF)
 const Description = 'Assigns a color to every atom according to its chemical element.'
 
 export const ElementSymbolColorThemeParams = {}
+export type ElementSymbolColorThemeParams = typeof ElementSymbolColorThemeParams
 export function getElementSymbolColorThemeParams(ctx: ThemeDataContext) {
     return ElementSymbolColorThemeParams // TODO return copy
 }
-export type ElementSymbolColorThemeProps = PD.Values<typeof ElementSymbolColorThemeParams>
 
 export function elementSymbolColor(element: ElementSymbol): Color {
     const c = (ElementSymbolColors as { [k: string]: Color })[element];
     return c === undefined ? DefaultElementSymbolColor : c
 }
 
-export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: ElementSymbolColorThemeProps): ColorTheme<ElementSymbolColorThemeProps> {
+export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: PD.Values<ElementSymbolColorThemeParams>): ColorTheme<ElementSymbolColorThemeParams> {
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
@@ -49,6 +49,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: ElementSym
     }
 
     return {
+        factory: ElementSymbolColorTheme,
         granularity: 'group',
         color,
         props,
@@ -59,7 +60,7 @@ export function ElementSymbolColorTheme(ctx: ThemeDataContext, props: ElementSym
     }
 }
 
-export const ElementSymbolColorThemeProvider: ColorTheme.Provider<typeof ElementSymbolColorThemeParams> = {
+export const ElementSymbolColorThemeProvider: ColorTheme.Provider<ElementSymbolColorThemeParams> = {
     label: 'Element Symbol',
     factory: ElementSymbolColorTheme,
     getParams: getElementSymbolColorThemeParams

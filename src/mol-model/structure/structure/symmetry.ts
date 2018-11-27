@@ -78,6 +78,15 @@ namespace StructureSymmetry {
 
         return ret;
     }
+
+    /** Checks if transform groups are equal up to their unit's transformations */
+    export function areTransformGroupsEquivalent(a: ReadonlyArray<Unit.SymmetryGroup>, b: ReadonlyArray<Unit.SymmetryGroup>) {
+        if (a.length !== b.length) return false
+        for (let i = 0, il = a.length; i < il; ++i) {
+            if (a[i].hashCode !== b[i].hashCode) return false
+        }
+        return true
+    }
 }
 
 function getOperators(symmetry: ModelSymmetry, ijkMin: Vec3, ijkMax: Vec3) {

@@ -29,9 +29,21 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
     applyAction() { return this.plugin.updateTransform(this.props.state, this.props.transform.ref, this.state.params); }
     getInfo() { return this._getInfo(this.props.transform); }
     getHeader() { return this.props.transform.transformer.definition.display; }
-    getHeaderFallback() { return this.props.transform.transformer.definition.name; }
     canApply() { return !this.state.error && !this.state.busy && !this.state.isInitial; }
     applyText() { return this.canApply() ? 'Update' : 'Nothing to Update'; }
+    isUpdate() { return true; }
+
+    canAutoApply(newParams: any) {
+        const autoUpdate = this.props.transform.transformer.definition.canAutoUpdate
+        if (!autoUpdate) return false;
+
+        const { state } = this.props;
+        const cell = state.cells.get(this.props.transform.ref);
+        if (!cell || !cell.sourceRef || cell.status !== 'ok') return false;
+        const parentCell = state.cells.get(cell.sourceRef)!;
+
+        return autoUpdate({ a: cell.obj!, b: parentCell.obj!, oldParams: this.props.transform.params, newParams }, this.plugin);
+    }
 
     private _getInfo = memoizeOne((t: Transform) => StateTransformParameters.infoFromTransform(this.plugin, this.props.state, this.props.transform));
 

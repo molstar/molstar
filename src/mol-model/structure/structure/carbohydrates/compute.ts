@@ -12,12 +12,11 @@ import { Vec3 } from 'mol-math/linear-algebra';
 import PrincipalAxes from 'mol-math/linear-algebra/matrix/principal-axes';
 import { fillSerial } from 'mol-util/array';
 import { ResidueIndex, Model } from '../../model';
-import { ElementSymbol, MoleculeType } from '../../model/types';
-import { getAtomicMoleculeType, getPositionMatrix } from '../../util';
+import { ElementSymbol } from '../../model/types';
+import { getPositionMatrix } from '../../util';
 import StructureElement from '../element';
 import Structure from '../structure';
 import Unit from '../unit';
-import { UnknownSaccharideComponent, SaccharideComponent } from './constants';
 import { CarbohydrateElement, CarbohydrateLink, Carbohydrates, CarbohydrateTerminalLink, PartialCarbohydrateElement } from './data';
 import { UnitRings, UnitRing } from '../unit/rings';
 import { ElementIndex } from '../../model/indexing';
@@ -118,8 +117,8 @@ function filterFusedRings(unitRings: UnitRings, rings: UnitRings.Index[] | undef
     }
 }
 
-function getSaccharideComp(compId: string, model: Model): SaccharideComponent {
-    return model.properties.saccharideComponentMap.get(compId) || UnknownSaccharideComponent
+function getSaccharideComp(compId: string, model: Model) {
+    return model.properties.saccharideComponentMap.get(compId)
 }
 
 export function computeCarbohydrates(structure: Structure): Carbohydrates {
@@ -167,9 +166,7 @@ export function computeCarbohydrates(structure: Structure): Carbohydrates {
                 const { index: residueIndex } = residueIt.move();
 
                 const saccharideComp = getSaccharideComp(label_comp_id.value(residueIndex), model)
-                if (saccharideComp === UnknownSaccharideComponent) {
-                    if (getAtomicMoleculeType(unit.model, residueIndex) !== MoleculeType.saccharide) continue
-                }
+                if (!saccharideComp) continue
 
                 if (!sugarResidueMap) {
                     sugarResidueMap = UnitRings.byFingerprintAndResidue(unit.rings, SugarRingFps);
@@ -402,7 +399,7 @@ function buildLookups (elements: CarbohydrateElement[], links: CarbohydrateLink[
         let k: string
         if (fromCarbohydrate) {
             k = terminalLinksKey(unit, anomericCarbon)
-        } else{
+        } else {
             k = terminalLinksKey(elementUnit, elementUnit.elements[elementIndex])
         }
         const e = terminalLinksMap.get(k)

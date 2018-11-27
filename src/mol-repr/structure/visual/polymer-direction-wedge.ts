@@ -62,7 +62,7 @@ async function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, s
 
         interpolateCurveSegment(state, v, tension, shift)
 
-        if ((isSheet && !v.secStrucChange) || !isSheet) {
+        if ((isSheet && !v.secStrucLast) || !isSheet) {
             const size = theme.size.size(v.center) * sizeFactor
             const depth = depthFactor * size
             const width = widthFactor * size

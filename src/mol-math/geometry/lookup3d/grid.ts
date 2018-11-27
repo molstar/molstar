@@ -11,6 +11,7 @@ import { Sphere3D } from '../primitives/sphere3d';
 import { PositionData } from '../common';
 import { Vec3 } from '../../linear-algebra';
 import { OrderedSet } from 'mol-data/int';
+import { BoundaryHelper } from '../boundary-helper';
 
 interface GridLookup3D<T = number> extends Lookup3D<T> {
     readonly buckets: { readonly offset: ArrayLike<number>, readonly count: ArrayLike<number>, readonly array: ArrayLike<number> }
@@ -163,11 +164,30 @@ function _build(state: BuildState): Grid3D {
     }
 }
 
+const boundaryHelper = new BoundaryHelper();
+function getBoundary(data: PositionData) {
+    const { x, y, z, radius, indices } = data;
+    const p = Vec3.zero();
+    boundaryHelper.reset(0);
+    for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
+        const i = OrderedSet.getAt(indices, t);
+        Vec3.set(p, x[i], y[i], z[i]);
+        boundaryHelper.boundaryStep(p, (radius && radius[i]) || 0);
+    }
+    boundaryHelper.finishBoundaryStep();
+    for (let t = 0, _t = OrderedSet.size(indices); t < _t; t++) {
+        const i = OrderedSet.getAt(indices, t);
+        Vec3.set(p, x[i], y[i], z[i]);
+        boundaryHelper.extendStep(p, (radius && radius[i]) || 0);
+    }
+
+    return { boundingBox: boundaryHelper.getBox(), boundingSphere: boundaryHelper.getSphere() };
+}
+
 function build(data: PositionData, cellSize?: Vec3) {
-    const boundingBox = Box3D.computeBounding(data);
+    const { boundingBox, boundingSphere } = getBoundary(data);
     // need to expand the grid bounds to avoid rounding errors
     const expandedBox = Box3D.expand(Box3D.empty(), boundingBox, Vec3.create(0.5, 0.5, 0.5));
-    const boundingSphere = Sphere3D.computeBounding(data);
     const { indices } = data;
 
     const S = Vec3.sub(Vec3.zero(), expandedBox.max, expandedBox.min);

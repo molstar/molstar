@@ -138,21 +138,23 @@ export namespace Lines {
     }
 
     export function updateValues(values: LinesValues, props: PD.Values<Params>) {
+        Geometry.updateValues(values, props)
+        ValueCell.updateIfChanged(values.dLineSizeAttenuation, props.lineSizeAttenuation)
+    }
+
+    export function updateBoundingSphere(values: LinesValues, lines: Lines) {
         const boundingSphere = Sphere3D.addSphere(
             calculateBoundingSphere(
-                values.aStart.ref.value, Math.floor(values.aStart.ref.value.length / 3),
+                values.aStart.ref.value, lines.lineCount,
                 values.aTransform.ref.value, values.instanceCount.ref.value
             ),
             calculateBoundingSphere(
-                values.aEnd.ref.value, Math.floor(values.aEnd.ref.value.length / 3),
+                values.aEnd.ref.value, lines.lineCount,
                 values.aTransform.ref.value, values.instanceCount.ref.value
             ),
         )
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
-
-        Geometry.updateValues(values, props)
-        ValueCell.updateIfChanged(values.dLineSizeAttenuation, props.lineSizeAttenuation)
     }
 }

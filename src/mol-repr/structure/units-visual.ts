@@ -34,13 +34,6 @@ export type StructureGroup = { structure: Structure, group: Unit.SymmetryGroup }
 
 export interface UnitsVisual<P extends RepresentationProps = {}> extends Visual<StructureGroup, P> { }
 
-function sameGroupConformation(groupA: Unit.SymmetryGroup, groupB: Unit.SymmetryGroup) {
-    return (
-        groupA.units.length === groupB.units.length &&
-        Unit.conformationId(groupA.units[0]) === Unit.conformationId(groupB.units[0])
-    )
-}
-
 type UnitsRenderObject = MeshRenderObject | LinesRenderObject | PointsRenderObject | DirectVolumeRenderObject
 
 interface UnitsVisualBuilder<P extends UnitsParams, G extends Geometry> {
@@ -56,11 +49,12 @@ interface UnitsVisualGeometryBuilder<P extends UnitsParams, G extends Geometry> 
     createEmptyGeometry(geometry?: G): G
     createRenderObject(ctx: VisualContext, group: Unit.SymmetryGroup, geometry: Geometry, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<UnitsRenderObject>
     updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateBoundingSphere(values: RenderableValues, geometry: Geometry): void
 }
 
 export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryBuilder<P, Geometry>): UnitsVisual<P> {
     const { defaultProps, createGeometry, createLocationIterator, getLoci, mark, setUpdateState } = builder
-    const { createEmptyGeometry, createRenderObject, updateValues } = builder
+    const { createEmptyGeometry, createRenderObject, updateValues, updateBoundingSphere } = builder
     const updateState = VisualUpdateState.create()
 
     let renderObject: UnitsRenderObject | undefined
@@ -88,53 +82,78 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
         renderObject = await createRenderObject(ctx, group, geometry, locationIt, theme, currentProps)
     }
 
-    async function update(ctx: VisualContext, theme: Theme, props: Partial<PD.Values<P>> = {}) {
+    async function update(ctx: VisualContext, group: Unit.SymmetryGroup, theme: Theme, props: Partial<PD.Values<P>> = {}) {
         if (!renderObject) return
 
         const newProps = Object.assign({}, currentProps, props, { structure: currentStructure })
-        const unit = currentGroup.units[0]
+        const unit = group.units[0]
 
         locationIt.reset()
         VisualUpdateState.reset(updateState)
         setUpdateState(updateState, newProps, currentProps, theme, currentTheme)
 
+        if (!ColorTheme.areEqual(theme.color, currentTheme.color)) {
+            // console.log('new colorTheme')
+            updateState.updateColor = true
+        }
+        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) {
+            // console.log('new unitKinds')
+            updateState.createGeometry = true
+        }
+
+        if (group.transformHash !== currentGroup.transformHash) {
+            // console.log('new transformHash')
+            if (group.units.length !== currentGroup.units.length || updateState.updateColor) {
+                updateState.updateTransform = true
+            } else {
+                updateState.updateMatrix = true
+            }
+        }
+
+        // check if the conformation of unit.model has changed
         const newConformationId = Unit.conformationId(unit)
         if (newConformationId !== currentConformationId) {
+            // console.log('new conformation')
             currentConformationId = newConformationId
             updateState.createGeometry = true
         }
 
-        if (currentGroup.units.length !== locationIt.instanceCount) updateState.updateTransform = true
-
-        if (ColorTheme.areEqual(theme.color, currentTheme.color)) updateState.updateColor = true
-        if (!deepEqual(newProps.unitKinds, currentProps.unitKinds)) updateState.createGeometry = true
-
         //
 
         if (updateState.updateTransform) {
-            locationIt = createLocationIterator(currentGroup)
+            // console.log('update transform')
+            locationIt = createLocationIterator(group)
             const { instanceCount, groupCount } = locationIt
-            createUnitsTransform(currentGroup, renderObject.values)
             createMarkers(instanceCount * groupCount, renderObject.values)
             updateState.updateColor = true
+            updateState.updateMatrix = true
+        }
+
+        if (updateState.updateMatrix) {
+            // console.log('update matrix')
+            createUnitsTransform(group, renderObject.values)
         }
 
         if (updateState.createGeometry) {
+            // console.log('update geometry')
             geometry = includesUnitKind(newProps.unitKinds, unit)
                 ? await createGeometry(ctx, unit, currentStructure, theme, newProps, geometry)
                 : createEmptyGeometry(geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
+            updateBoundingSphere(renderObject.values, geometry)
             updateState.updateColor = true
         }
 
         if (updateState.updateSize) {
             // not all geometries have size data, so check here
             if ('uSize' in renderObject.values) {
+                // console.log('update size')
                 await createSizes(ctx.runtime, locationIt, theme.size, renderObject.values)
             }
         }
 
         if (updateState.updateColor) {
+            // console.log('update color')
             await createColors(ctx.runtime, locationIt, theme.color, renderObject.values)
         }
 
@@ -143,6 +162,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
 
         currentProps = newProps
         currentTheme = theme
+        currentGroup = group
     }
 
     return {
@@ -161,11 +181,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
                 await create(ctx, group, theme, props)
             } else {
                 // console.log('unit-visual update')
-                if (group && !sameGroupConformation(group, currentGroup)) {
-                    // console.log('unit-visual new conformation')
-                    currentGroup = group
-                }
-                await update(ctx, theme, props)
+                await update(ctx, group || currentGroup, theme, props)
             }
         },
         getLoci(pickingId: PickingId) {
@@ -183,7 +199,7 @@ export function UnitsVisual<P extends UnitsParams>(builder: UnitsVisualGeometryB
             }
 
             let changed = false
-            if (isEveryLoci(loci)) {
+            if (isEveryLoci(loci) || (Structure.isLoci(loci) && loci.structure === currentStructure)) {
                 changed = apply(Interval.ofBounds(0, groupCount * instanceCount))
             } else {
                 changed = mark(loci, { structure: currentStructure, group: currentGroup }, apply)
@@ -224,7 +240,8 @@ export function UnitsMeshVisual<P extends UnitsMeshParams>(builder: UnitsMeshVis
         },
         createEmptyGeometry: Mesh.createEmpty,
         createRenderObject: createUnitsMeshRenderObject,
-        updateValues: Mesh.updateValues
+        updateValues: Mesh.updateValues,
+        updateBoundingSphere: Mesh.updateBoundingSphere
     })
 }
 
@@ -246,7 +263,8 @@ export function UnitsPointsVisual<P extends UnitsPointsParams>(builder: UnitsPoi
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
-        updateValues: Points.updateValues
+        updateValues: Points.updateValues,
+        updateBoundingSphere: Points.updateBoundingSphere
     })
 }
 
@@ -268,7 +286,8 @@ export function UnitsLinesVisual<P extends UnitsLinesParams>(builder: UnitsLines
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.updateSize = true
         },
-        updateValues: Lines.updateValues
+        updateValues: Lines.updateValues,
+        updateBoundingSphere: Lines.updateBoundingSphere
     })
 }
 
@@ -290,6 +309,7 @@ export function UnitsDirectVolumeVisual<P extends UnitsDirectVolumeParams>(build
             builder.setUpdateState(state, newProps, currentProps, newTheme, currentTheme)
             if (!SizeTheme.areEqual(newTheme.size, currentTheme.size)) state.createGeometry = true
         },
-        updateValues: DirectVolume.updateValues
+        updateValues: DirectVolume.updateValues,
+        updateBoundingSphere: DirectVolume.updateBoundingSphere
     })
 }

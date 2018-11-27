@@ -11,13 +11,14 @@ import Structure from '../../structure/structure';
 import { StructureQuery } from '../query';
 import { StructureSelection } from '../selection';
 
-export function sequence(): StructureQuery {
+export function atomicSequence(): StructureQuery {
     return ctx => {
         const { inputStructure } = ctx;
         const l = StructureElement.create();
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {
+            if (unit.kind !== Unit.Kind.Atomic) continue;
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
@@ -45,6 +46,8 @@ export function water(): StructureQuery {
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
@@ -55,13 +58,15 @@ export function water(): StructureQuery {
     };
 }
 
-export function lidangs(): StructureQuery {
+export function atomicHet(): StructureQuery {
     return ctx => {
         const { inputStructure } = ctx;
         const l = StructureElement.create();
 
         const units: Unit[] = [];
         for (const unit of inputStructure.units) {
+            if (unit.kind !== Unit.Kind.Atomic) continue;
+
             l.unit = unit;
             const elements = unit.elements;
             l.element = elements[0];
@@ -77,6 +82,19 @@ export function lidangs(): StructureQuery {
                 if (residueCount >= 8) continue;
             }
 
+            units.push(unit);
+        }
+        return StructureSelection.Singletons(inputStructure, new Structure(units));
+    };
+}
+
+export function spheres(): StructureQuery {
+    return ctx => {
+        const { inputStructure } = ctx;
+
+        const units: Unit[] = [];
+        for (const unit of inputStructure.units) {
+            if (unit.kind !== Unit.Kind.Spheres) continue;
             units.push(unit);
         }
         return StructureSelection.Singletons(inputStructure, new Structure(units));

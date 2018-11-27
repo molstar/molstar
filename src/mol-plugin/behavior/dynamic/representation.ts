@@ -19,8 +19,8 @@ export const HighlightLoci = PluginBehavior.create({
                 if (!this.ctx.canvas3d) return;
 
                 if (current.repr !== prevRepr || !areLociEqual(current.loci, prevLoci)) {
-                    this.ctx.canvas3d.mark(prevLoci, MarkerAction.RemoveHighlight);
-                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Highlight);
+                    this.ctx.canvas3d.mark(prevLoci, MarkerAction.RemoveHighlight, prevRepr);
+                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Highlight, current.repr);
                     prevLoci = current.loci;
                     prevRepr = current.repr;
                 }
@@ -38,8 +38,8 @@ export const SelectLoci = PluginBehavior.create({
             this.subscribeObservable(this.ctx.behaviors.canvas.selectLoci, current => {
                 if (!this.ctx.canvas3d) return;
                 if (current.repr !== prevRepr || !areLociEqual(current.loci, prevLoci)) {
-                    this.ctx.canvas3d.mark(prevLoci, MarkerAction.Deselect);
-                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Select);
+                    this.ctx.canvas3d.mark(prevLoci, MarkerAction.Deselect, prevRepr);
+                    this.ctx.canvas3d.mark(current.loci, MarkerAction.Select, current.repr);
                     prevLoci = current.loci;
                     prevRepr = current.repr;
                 } else {

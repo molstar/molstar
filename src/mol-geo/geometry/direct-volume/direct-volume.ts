@@ -125,6 +125,16 @@ export namespace DirectVolume {
     }
 
     export function updateValues(values: DirectVolumeValues, props: PD.Values<Params>) {
+        ValueCell.updateIfChanged(values.uIsoValue, props.isoValue)
+        ValueCell.updateIfChanged(values.uAlpha, props.alpha)
+        ValueCell.updateIfChanged(values.dUseFog, props.useFog)
+        ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
+
+        const controlPoints = getControlPointsFromString(props.controlPoints)
+        createTransferFunctionTexture(controlPoints, values.tTransferTex)
+    }
+
+    export function updateBoundingSphere(values: DirectVolumeValues, directVolume: DirectVolume) {
         const vertices = new Float32Array(values.aPosition.ref.value)
         transformPositionArray(values.uTransform.ref.value, vertices, 0, vertices.length / 3)
         const boundingSphere = calculateBoundingSphere(
@@ -134,13 +144,5 @@ export namespace DirectVolume {
         if (!Sphere3D.equals(boundingSphere, values.boundingSphere.ref.value)) {
             ValueCell.update(values.boundingSphere, boundingSphere)
         }
-
-        ValueCell.updateIfChanged(values.uIsoValue, props.isoValue)
-        ValueCell.updateIfChanged(values.uAlpha, props.alpha)
-        ValueCell.updateIfChanged(values.dUseFog, props.useFog)
-        ValueCell.updateIfChanged(values.dRenderMode, props.renderMode)
-
-        const controlPoints = getControlPointsFromVec2Array(props.controlPoints)
-        createTransferFunctionTexture(controlPoints, values.tTransferTex)
     }
 }

@@ -8,13 +8,13 @@
 import { Structure, Unit } from 'mol-model/structure';
 import { Task } from 'mol-task'
 import { RenderObject } from 'mol-gl/render-object';
-import { Visual, RepresentationContext, RepresentationParamsGetter } from '../representation';
+import { Visual, RepresentationContext, RepresentationParamsGetter, Representation } from '../representation';
 import { Loci, EmptyLoci, isEmptyLoci } from 'mol-model/loci';
 import { StructureGroup } from './units-visual';
 import { StructureRepresentation, StructureParams } from './representation';
 import { PickingId } from 'mol-geo/geometry/picking';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
-import { Theme, createTheme } from 'mol-theme/theme';
+import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { UnitKind, UnitKindOptions } from './visual/util/common';
 import { Subject } from 'rxjs';
@@ -27,40 +27,40 @@ export type UnitsParams = typeof UnitsParams
 
 export interface UnitsVisual<P extends UnitsParams> extends Visual<StructureGroup, P> { }
 
-export function UnitsRepresentation<P extends UnitsParams>(label: string, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
+export function UnitsRepresentation<P extends UnitsParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<Structure, P>, visualCtor: () => UnitsVisual<P>): StructureRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     let visuals = new Map<number, { group: Unit.SymmetryGroup, visual: UnitsVisual<P> }>()
 
     let _structure: Structure
     let _groups: ReadonlyArray<Unit.SymmetryGroup>
     let _params: P
     let _props: PD.Values<P>
-    let _theme: Theme
+    let _theme = createEmptyTheme()
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, structure?: Structure) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, structure?: Structure) {
         if (structure && structure !== _structure) {
             _params = getParams(ctx, structure)
             if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
-        _theme = createTheme(ctx, { structure: structure || _structure }, props, _theme)
 
         return Task.create('Creating or updating UnitsRepresentation', async runtime => {
             if (!_structure && !structure) {
                 throw new Error('missing structure')
             } else if (structure && !_structure) {
-                // console.log('initial structure')
+                // console.log(label, 'initial structure')
                 // First call with a structure, create visuals for each group.
                 _groups = structure.unitSymmetryGroups;
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visual = visualCtor()
-                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                    await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                     visuals.set(group.hashCode, { visual, group })
                 }
-            } else if (structure && _structure.hashCode !== structure.hashCode) {
-                // console.log('_structure.hashCode !== structure.hashCode')
+            } else if (structure && !Structure.areEquivalent(structure, _structure)) {
+                // console.log(label, 'structure not equivalent')
                 // Tries to re-use existing visuals for the groups of the new structure.
                 // Creates additional visuals if needed, destroys left-over visuals.
                 _groups = structure.unitSymmetryGroups;
@@ -71,18 +71,25 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                     const group = _groups[i];
                     const visualGroup = oldVisuals.get(group.hashCode)
                     if (visualGroup) {
+                        // console.log(label, 'found visualGroup to reuse')
+                        // console.log('old', visualGroup.group)
+                        // console.log('new', group)
                         const { visual } = visualGroup
-                        await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                        await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                         oldVisuals.delete(group.hashCode)
                     } else {
+                        // console.log(label, 'not found visualGroup to reuse, creating new')
                         // newGroups.push(group)
                         const visual = visualCtor()
-                        await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                        await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         visuals.set(group.hashCode, { visual, group })
                     }
                 }
-                oldVisuals.forEach(({ visual }) => visual.destroy())
+                oldVisuals.forEach(({ visual }) => {
+                    // console.log(label, 'removed unused visual')
+                    visual.destroy()
+                })
 
                 // TODO review logic
                 // For new groups, re-use left-over visuals
@@ -94,30 +101,32 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
                 //     visuals.set(group.hashCode, { visual, group })
                 // })
                 // unusedVisuals.forEach(visual => visual.destroy())
-            } else if (structure && structure !== _structure && _structure.hashCode === structure.hashCode) {
-                // console.log('_structure.hashCode === structure.hashCode')
+            } else if (structure && structure !== _structure && Structure.areEquivalent(structure, _structure)) {
+                // console.log(label, 'structures equivalent but not identical')
                 // Expects that for structures with the same hashCode,
                 // the unitSymmetryGroups are the same as well.
                 // Re-uses existing visuals for the groups of the new structure.
                 _groups = structure.unitSymmetryGroups;
+                // console.log('new', structure.unitSymmetryGroups)
+                // console.log('old', _structure.unitSymmetryGroups)
                 for (let i = 0; i < _groups.length; i++) {
                     const group = _groups[i];
                     const visualGroup = visuals.get(group.hashCode)
                     if (visualGroup) {
-                        await visualGroup.visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, { group, structure })
+                        await visualGroup.visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, { group, structure })
                         visualGroup.group = group
                     } else {
                         throw new Error(`expected to find visual for hashCode ${group.hashCode}`)
                     }
                 }
             } else {
-                // console.log('no new structure')
+                // console.log(label, 'no new structure')
                 // No new structure given, just update all visuals with new props.
                 const visualsList: [ UnitsVisual<P>, Unit.SymmetryGroup ][] = [] // TODO avoid allocation
                 visuals.forEach(({ visual, group }) => visualsList.push([ visual, group ]))
                 for (let i = 0, il = visualsList.length; i < il; ++i) {
                     const [ visual ] = visualsList[i]
-                    await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props)
+                    await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props)
                 }
             }
             if (structure) _structure = structure
@@ -142,16 +151,15 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         return changed
     }
 
-    function setVisibility(value: boolean) {
-        visuals.forEach(({ visual }) => {
-            visual.setVisibility(value)
-        })
+    function setState(state: Partial<Representation.State>) {
+        if (state.visible !== undefined) visuals.forEach(({ visual }) => visual.setVisibility(state.visible!))
+        if (state.pickable !== undefined) visuals.forEach(({ visual }) => visual.setPickable(state.pickable!))
+
+        Representation.updateState(_state, state)
     }
 
-    function setPickable(value: boolean) {
-        visuals.forEach(({ visual }) => {
-            visual.setPickable(value)
-        })
+    function setTheme(theme: Theme) {
+        _theme = theme
     }
 
     function destroy() {
@@ -177,12 +185,14 @@ export function UnitsRepresentation<P extends UnitsParams>(label: string, getPar
         },
         get props() { return _props },
         get params() { return _params },
+        get state() { return _state },
+        get theme() { return _theme },
         updated,
         createOrUpdate,
+        setState,
+        setTheme,
         getLoci,
         mark,
-        setVisibility,
-        setPickable,
         destroy
     }
 }

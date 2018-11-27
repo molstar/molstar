@@ -18,7 +18,7 @@ export const GaussianDensityParams = {
     resolution: PD.Numeric(1, { min: 0.1, max: 10, step: 0.1 }),
     radiusOffset: PD.Numeric(0, { min: 0, max: 10, step: 0.1 }),
     smoothness: PD.Numeric(1.5, { min: 0.5, max: 2.5, step: 0.1 }),
-    useGpu: PD.Boolean(true),
+    useGpu: PD.Boolean(false),
     ignoreCache: PD.Boolean(false),
 }
 export const DefaultGaussianDensityProps = PD.getDefaultValues(GaussianDensityParams)

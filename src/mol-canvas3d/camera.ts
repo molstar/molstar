@@ -97,6 +97,7 @@ class Camera implements Object3D {
         Vec3.setMagnitude(this.deltaDirection, this.state.direction, deltaDistance)
         if (currentDistance < targetDistance) Vec3.negate(this.deltaDirection, this.deltaDirection)
         Vec3.add(this.newPosition, this.state.position, this.deltaDirection)
+        
         this.setState({ target, position: this.newPosition })
     }
 

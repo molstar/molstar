@@ -11,6 +11,7 @@ import { Sphere3D } from 'mol-math/geometry';
 import { CentroidHelper } from 'mol-math/geometry/centroid-helper';
 import { Vec3 } from 'mol-math/linear-algebra';
 import { OrderedSet } from 'mol-data/int';
+import { Structure } from './structure/structure';
 
 /** A Loci that includes every loci */
 export const EveryLoci = { kind: 'every-loci' as 'every-loci' }
@@ -29,6 +30,9 @@ export function isEmptyLoci(x: any): x is EmptyLoci {
 export function areLociEqual(lociA: Loci, lociB: Loci) {
     if (isEveryLoci(lociA) && isEveryLoci(lociB)) return true
     if (isEmptyLoci(lociA) && isEmptyLoci(lociB)) return true
+    if (Structure.isLoci(lociA) && Structure.isLoci(lociB)) {
+        return Structure.areLociEqual(lociA, lociB)
+    }
     if (StructureElement.isLoci(lociA) && StructureElement.isLoci(lociB)) {
         return StructureElement.areLociEqual(lociA, lociB)
     }
@@ -44,7 +48,7 @@ export function areLociEqual(lociA: Loci, lociB: Loci) {
 
 export { Loci }
 
-type Loci = StructureElement.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci
 
 namespace Loci {
 
@@ -54,7 +58,9 @@ namespace Loci {
         if (loci.kind === 'every-loci' || loci.kind === 'empty-loci') return void 0;
 
         sphereHelper.reset();
-        if (loci.kind === 'element-loci') {
+        if (loci.kind === 'structure-loci') {
+            return Sphere3D.clone(loci.structure.boundary.sphere)
+        } else if (loci.kind === 'element-loci') {
             for (const e of loci.elements) {
                 const { indices } = e;
                 const pos = e.unit.conformation.position;

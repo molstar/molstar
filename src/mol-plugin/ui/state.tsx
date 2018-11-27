@@ -9,7 +9,6 @@ import * as React from 'react';
 import { PluginComponent } from './base';
 import { shallowEqual } from 'mol-util';
 import { List } from 'immutable';
-import { LogEntry } from 'mol-util/log-entry';
 import { ParameterControls } from './controls/parameters';
 import { ParamDefinition as PD} from 'mol-util/param-definition';
 import { Subject } from 'rxjs';
@@ -58,7 +57,7 @@ class StateSnapshotControls extends PluginComponent<{ serverUrl: string, serverC
         this.setState({ isUploading: true });
         await PluginCommands.State.Snapshots.Upload.dispatch(this.plugin, { name: this.state.name, description: this.state.description, serverUrl: this.state.serverUrl });
         this.setState({ isUploading: false });
-        this.plugin.log(LogEntry.message('Snapshot uploaded.'));
+        this.plugin.log.message('Snapshot uploaded.');
         UploadedEvent.next();
     }
 
@@ -128,7 +127,7 @@ class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { e
                 }))),
                 isFetching: false })
         } catch (e) {
-            this.plugin.log(LogEntry.error('Fetching Remote Snapshots: ' + e));
+            this.plugin.log.error('Fetching Remote Snapshots: ' + e);
             this.setState({ entries: List<RemoteEntry>(), isFetching: false })
         }
     }
@@ -149,7 +148,7 @@ class RemoteStateSnapshotList extends PluginComponent<{ serverUrl: string }, { e
 
     render() {
         return <div>
-            <button title='Click to Refresh' style={{fontWeight: 'bold'}} className='msp-btn msp-btn-block msp-form-control' onClick={this.refresh} disabled={this.state.isFetching}>↻ Remote Snapshots</button>
+            <button title='Click to Refresh' style={{fontWeight: 'bold'}} className='msp-btn msp-btn-block msp-form-control msp-section-header' onClick={this.refresh} disabled={this.state.isFetching}>↻ Remote Snapshots</button>
 
             <ul style={{ listStyle: 'none' }} className='msp-state-list'>
                 {this.state.entries.valueSeq().map(e =><li key={e!.id}>

@@ -18,12 +18,13 @@ const Description = 'Gives every polymer a unique color based on the position (i
 export const PolymerIndexColorThemeParams = {
     list: PD.Select<ColorListName>('RdYlBu', ColorListOptions),
 }
+export type PolymerIndexColorThemeParams = typeof PolymerIndexColorThemeParams
 export function getPolymerIndexColorThemeParams(ctx: ThemeDataContext) {
     return PolymerIndexColorThemeParams // TODO return copy
 }
 export type PolymerIndexColorThemeProps = PD.Values<typeof PolymerIndexColorThemeParams>
 
-export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PolymerIndexColorThemeProps): ColorTheme<PolymerIndexColorThemeProps> {
+export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PD.Values<PolymerIndexColorThemeParams>): ColorTheme<PolymerIndexColorThemeParams> {
     let color: LocationColor
     const scale = ColorScale.create({ listOrName: props.list, minLabel: 'Start', maxLabel: 'End' })
 
@@ -56,6 +57,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PolymerInde
     }
 
     return {
+        factory: PolymerIndexColorTheme,
         granularity: 'instance',
         color,
         props,
@@ -64,7 +66,7 @@ export function PolymerIndexColorTheme(ctx: ThemeDataContext, props: PolymerInde
     }
 }
 
-export const PolymerIndexColorThemeProvider: ColorTheme.Provider<typeof PolymerIndexColorThemeParams> = {
+export const PolymerIndexColorThemeProvider: ColorTheme.Provider<PolymerIndexColorThemeParams> = {
     label: 'Polymer Index',
     factory: PolymerIndexColorTheme,
     getParams: getPolymerIndexColorThemeParams

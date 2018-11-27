@@ -14,21 +14,25 @@ export namespace ParamDefinition {
     export interface Info {
         label?: string,
         description?: string,
-        isOptional?: boolean,
-        isHidden?: boolean
+        isHidden?: boolean,
     }
 
     function setInfo<T extends Info>(param: T, info?: Info): T {
         if (!info) return param;
         if (info.description) param.description = info.description;
         if (info.label) param.label = info.label;
-        if (info.isOptional) param.isOptional = info.isOptional;
         if (info.isHidden) param.isHidden = info.isHidden;
         return param;
     }
 
     export interface Base<T> extends Info {
+        isOptional?: boolean,
         defaultValue: T
+    }
+
+    export function makeOptional<T>(p: Base<T>): Base<T | undefined> {
+        p.isOptional = true;
+        return p;
     }
 
     export interface Value<T> extends Base<T> {
@@ -63,11 +67,11 @@ export namespace ParamDefinition {
         return setInfo<Boolean>({ type: 'boolean', defaultValue }, info)
     }
 
-    export interface Text extends Base<string> {
+    export interface Text<T extends string = string> extends Base<T> {
         type: 'text'
     }
-    export function Text(defaultValue: string = '', info?: Info): Text {
-        return setInfo<Text>({ type: 'text', defaultValue }, info)
+    export function Text<T extends string = string>(defaultValue: string = '', info?: Info): Text<T> {
+        return setInfo<Text<T>>({ type: 'text', defaultValue: defaultValue as any }, info)
     }
 
     export interface Color extends Base<ColorData> {
@@ -82,6 +86,16 @@ export namespace ParamDefinition {
     }
     export function Vec3(defaultValue: Vec3Data, info?: Info): Vec3 {
         return setInfo<Vec3>({ type: 'vec3', defaultValue }, info)
+    }
+
+    export interface FileParam extends Base<File> {
+        type: 'file',
+        accept?: string
+    }
+    export function File(info?: Info & { accept?: string }): FileParam {
+        const ret = setInfo<FileParam>({ type: 'file', defaultValue: void 0 as any }, info);
+        if (info && info.accept) ret.accept = info.accept;
+        return ret;
     }
 
     export interface Range {
@@ -126,24 +140,42 @@ export namespace ParamDefinition {
 
     export interface Group<T> extends Base<T> {
         type: 'group',
-        params: Params
+        params: Params,
+        isExpanded?: boolean,
+        isFlat?: boolean
     }
-    export function Group<P extends Params>(params: P, info?: Info): Group<Values<P>> {
-        return setInfo<Group<Values<P>>>({ type: 'group', defaultValue: getDefaultValues(params) as any, params }, info);
+    export function Group<P extends Params>(params: P, info?: Info & { isExpanded?: boolean, isFlat?: boolean }): Group<Values<P>> {
+        const ret = setInfo<Group<Values<P>>>({ type: 'group', defaultValue: getDefaultValues(params) as any, params }, info);
+        if (info && info.isExpanded) ret.isExpanded = info.isExpanded;
+        if (info && info.isFlat) ret.isFlat = info.isFlat;
+        return ret;
     }
 
-    export interface NamedParams<T = any> { name: string, params: T }
-    export interface Mapped<T> extends Base<NamedParams<T>> {
+    export interface NamedParams<T = any, K = string> { name: K, params: T }
+    export type NamedParamUnion<P extends Params, K = keyof P> = K extends any ? NamedParams<P[K]['defaultValue'], K> : never
+    export interface Mapped<T extends NamedParams<any, any>> extends Base<T> {
         type: 'mapped',
         select: Select<string>,
         map(name: string): Any
     }
-    export function Mapped<T>(defaultKey: string, names: [string, string][], map: Mapped<T>['map'], info?: Info): Mapped<T> {
-        return setInfo<Mapped<T>>({
+    export function Mapped<T>(defaultKey: string, names: [string, string][], map: (name: string) => Any, info?: Info): Mapped<NamedParams<T>> {
+        return setInfo<Mapped<NamedParams<T>>>({
             type: 'mapped',
             defaultValue: { name: defaultKey, params: map(defaultKey).defaultValue as any },
             select: Select<string>(defaultKey, names, info),
-            map }, info);
+            map
+        }, info);
+    }
+    export function MappedStatic<C extends Params>(defaultKey: keyof C, map: C, info?: Info & { options?: [keyof C, string][] }): Mapped<NamedParamUnion<C>> {
+        const options: [string, string][] = info && info.options
+            ? info.options as [string, string][]
+            : Object.keys(map).map(k => [k, k]) as [string, string][];
+        return setInfo<Mapped<NamedParamUnion<C>>>({
+            type: 'mapped',
+            defaultValue: { name: defaultKey, params: map[defaultKey].defaultValue } as any,
+            select: Select<string>(defaultKey as string, options, info),
+            map: key => map[key]
+        }, info);
     }
 
     export interface Converted<T, C> extends Base<T> {
@@ -158,10 +190,15 @@ export namespace ParamDefinition {
         return { type: 'converted', defaultValue: toValue(converted.defaultValue), converted, fromValue, toValue };
     }
 
-    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
+    export type Any = Value<any> | Select<any> | MultiSelect<any> | Boolean | Text | Color | Vec3 | Numeric | FileParam | Interval | LineGraph | Group<any> | Mapped<any> | Converted<any, any>
 
     export type Params = { [k: string]: Any }
     export type Values<T extends Params> = { [k in keyof T]: T[k]['defaultValue'] }
+
+    type Optionals<P> = { [K in keyof P]-?: undefined extends P[K] ? K : never }[keyof P]
+    type NonOptionals<P> = { [K in keyof P]-?: undefined extends P[K] ? never: K }[keyof P]
+    export type Normalize<P> = Pick<P, NonOptionals<P>> & Partial<Pick<P, Optionals<P>>>
+    export type For<P> = { [K in keyof P]-?: Base<P[K]> }
 
     export function getDefaultValues<T extends Params>(params: T) {
         const d: { [k: string]: any } = {}
@@ -213,6 +250,23 @@ export namespace ParamDefinition {
             if (u.name !== v.name) return false;
             const map = p.map(u.name);
             return isParamEqual(map, u.params, v.params);
+        } else if (p.type === 'multi-select') {
+            const u = a as MultiSelect<any>['defaultValue'], v = b as MultiSelect<any>['defaultValue'];
+            if (u.length !== v.length) return false;
+            if (u.length < 10) {
+                for (let i = 0, _i = u.length; i < _i; i++) {
+                    if (u[i] === v[i]) continue;
+                    if (v.indexOf(u[i]) < 0) return false;
+                }
+            } else {
+                // TODO: should the value of multiselect be a set?
+                const vSet = new Set(v);
+                for (let i = 0, _i = u.length; i < _i; i++) {
+                    if (u[i] === v[i]) continue;
+                    if (!vSet.has(u[i])) return false;
+                }
+            }
+            return true;
         } else if (p.type === 'interval') {
             return a[0] === b[0] && a[1] === b[1];
         } else if (p.type === 'line-graph') {

@@ -8,7 +8,9 @@ import { PluginCommands } from '../../command';
 import { PluginContext } from '../../context';
 import { StateTree, Transform, State } from 'mol-state';
 import { PluginStateSnapshotManager } from 'mol-plugin/state/snapshots';
-import { PluginStateObject as SO } from '../../state/objects';
+import { PluginStateObject as SO, PluginStateObject } from '../../state/objects';
+import { EmptyLoci, EveryLoci } from 'mol-model/loci';
+import { Structure } from 'mol-model/structure';
 
 export function registerDefault(ctx: PluginContext) {
     SyncBehaviors(ctx);
@@ -18,6 +20,8 @@ export function registerDefault(ctx: PluginContext) {
     RemoveObject(ctx);
     ToggleExpanded(ctx);
     ToggleVisibility(ctx);
+    Highlight(ctx);
+    ClearHighlight(ctx);
     Snapshots(ctx);
 }
 
@@ -73,6 +77,27 @@ function setVisibility(state: State, root: Transform.Ref, value: boolean) {
 
 function setVisibilityVisitor(t: Transform, tree: StateTree, ctx: { state: State, value: boolean }) {
     ctx.state.updateCellState(t.ref, { isHidden: ctx.value });
+}
+
+// TODO make isHighlighted and isSelect part of StateObjectCell.State and subscribe from there???
+// TODO select structures of subtree
+// TODO should also work for volumes and shapes
+export function Highlight(ctx: PluginContext) {
+    PluginCommands.State.Highlight.subscribe(ctx, ({ state, ref }) => {
+        const cell = state.select(ref)[0]
+        const repr = cell && SO.isRepresentation3D(cell.obj) ? cell.obj.data : undefined
+        if (cell && cell.obj && cell.obj.type === PluginStateObject.Molecule.Structure.type) {
+            ctx.behaviors.canvas.highlightLoci.next({ loci: Structure.Loci(cell.obj.data) })
+        } else if (repr) {
+            ctx.behaviors.canvas.highlightLoci.next({ loci: EveryLoci, repr })
+        }
+    });
+}
+
+export function ClearHighlight(ctx: PluginContext) {
+    PluginCommands.State.ClearHighlight.subscribe(ctx, ({ state, ref }) => {
+        ctx.behaviors.canvas.highlightLoci.next({ loci: EmptyLoci })
+    });
 }
 
 export function Snapshots(ctx: PluginContext) {

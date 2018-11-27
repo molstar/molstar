@@ -9,6 +9,7 @@ import { StateObject } from './object';
 import { Transform } from './transform';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { StateAction } from './action';
+import { capitalize } from 'mol-util/string';
 
 export interface Transformer<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
     apply(parent: Transform.Ref, params?: P, props?: Partial<Transform.Options>): Transform<A, B, P>,
@@ -44,17 +45,19 @@ export namespace Transformer {
         cache: unknown
     }
 
+    export interface AutoUpdateParams<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
+        a: A,
+        b: B,
+        oldParams: P,
+        newParams: P
+    }
+
     export enum UpdateResult { Unchanged, Updated, Recreate }
 
     /** Specify default control descriptors for the parameters */
     // export type ParamsDefinition<A extends StateObject = StateObject, P = any> = (a: A, globalCtx: unknown) => { [K in keyof P]: PD.Any }
 
-    export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
-        readonly name: string,
-        readonly from: StateObject.Ctor[],
-        readonly to: StateObject.Ctor[],
-        readonly display?: { readonly name: string, readonly description?: string },
-
+    export interface DefinitionBase<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> {
         /**
          * Apply the actual transformation. It must be pure (i.e. with no side effects).
          * Returns a task that produces the result of the result directly.
@@ -68,7 +71,8 @@ export namespace Transformer {
          */
         update?(params: UpdateParams<A, B, P>, globalCtx: unknown): Task<UpdateResult> | UpdateResult,
 
-        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
+        /** Determine if the transformer can be applied automatically on UI change. Default is false. */
+        canAutoUpdate?(params: AutoUpdateParams<A, B, P>, globalCtx: unknown): boolean,
 
         /** Test if the transform can be applied to a given node */
         isApplicable?(a: A, globalCtx: unknown): boolean,
@@ -78,6 +82,14 @@ export namespace Transformer {
 
         /** Custom conversion to and from JSON */
         readonly customSerialization?: { toJSON(params: P, obj?: B): any, fromJSON(data: any): P }
+    }
+
+    export interface Definition<A extends StateObject = StateObject, B extends StateObject = StateObject, P extends {} = {}> extends DefinitionBase<A, B, P> {
+        readonly name: string,
+        readonly from: StateObject.Ctor[],
+        readonly to: StateObject.Ctor[],
+        readonly display: { readonly name: string, readonly description?: string },
+        params?(a: A, globalCtx: unknown): { [K in keyof P]: PD.Any },
     }
 
     const registry = new Map<Id, Transformer<any, any>>();
@@ -130,10 +142,60 @@ export namespace Transformer {
         return <A extends StateObject, B extends StateObject, P extends {} = {}>(definition: Definition<A, B, P>) => create(namespace, definition);
     }
 
+    export function builderFactory(namespace: string) {
+        return Builder.build(namespace);
+    }
+
+    export namespace Builder {
+        export interface Type<A extends StateObject.Ctor, B extends StateObject.Ctor, P extends { }> {
+            name: string,
+            from: A | A[],
+            to: B | B[],
+            params?: PD.For<P> | ((a: StateObject.From<A>, globalCtx: any) => PD.For<P>),
+            display?: string | { name: string, description?: string }
+        }
+
+        export interface Root {
+            <A extends StateObject.Ctor, B extends StateObject.Ctor, P extends { }>(info: Type<A, B, P>): Define<StateObject.From<A>, StateObject.From<B>, PD.Normalize<P>>
+        }
+
+        export interface Define<A extends StateObject, B extends StateObject, P> {
+            (def: DefinitionBase<A, B, P>): Transformer<A, B, P>
+        }
+
+        function root(namespace: string, info: Type<any, any, any>): Define<any, any, any> {
+            return def => create(namespace, {
+                name: info.name,
+                from: info.from instanceof Array ? info.from : [info.from],
+                to: info.to instanceof Array ? info.to : [info.to],
+                display: typeof info.display === 'string'
+                    ? { name: info.display }
+                    : !!info.display
+                    ? info.display
+                    : { name: capitalize(info.name.replace(/[-]/g, ' ')) },
+                params: typeof info.params === 'object'
+                    ? () => info.params as any
+                    : !!info.params
+                    ? info.params as any
+                    : void 0,
+                ...def
+            });
+        }
+
+        export function build(namespace: string): Root {
+            return (info: any) => root(namespace, info);
+        }
+    }
+
+    export function build(namespace: string): Builder.Root {
+        return Builder.build(namespace);
+    }
+
     export const ROOT = create<any, any, {}>('build-in', {
         name: 'root',
         from: [],
         to: [],
+        display: { name: 'Root' },
         apply() { throw new Error('should never be applied'); },
         update() { return UpdateResult.Unchanged; }
     })

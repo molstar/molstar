@@ -63,10 +63,10 @@ const DefaultResidueNameColor = Color(0xFF00FF)
 const Description = 'Assigns a color to every residue according to its name.'
 
 export const ResidueNameColorThemeParams = {}
+export type ResidueNameColorThemeParams = typeof ResidueNameColorThemeParams
 export function getResidueNameColorThemeParams(ctx: ThemeDataContext) {
     return ResidueNameColorThemeParams // TODO return copy
 }
-export type ResidueNameColorThemeProps = PD.Values<typeof ResidueNameColorThemeParams>
 
 export function residueNameColor(residueName: string): Color {
     const c = (ResidueNameColors as { [k: string]: Color })[residueName];
@@ -93,7 +93,7 @@ function getCoarseCompId(unit: Unit.Spheres | Unit.Gaussians, element: ElementIn
     }
 }
 
-export function ResidueNameColorTheme(ctx: ThemeDataContext, props: ResidueNameColorThemeProps): ColorTheme<ResidueNameColorThemeProps> {
+export function ResidueNameColorTheme(ctx: ThemeDataContext, props: PD.Values<ResidueNameColorThemeParams>): ColorTheme<ResidueNameColorThemeParams> {
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             if (Unit.isAtomic(location.unit)) {
@@ -114,6 +114,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: ResidueNameC
     }
 
     return {
+        factory: ResidueNameColorTheme,
         granularity: 'group',
         color,
         props,
@@ -124,7 +125,7 @@ export function ResidueNameColorTheme(ctx: ThemeDataContext, props: ResidueNameC
     }
 }
 
-export const ResidueNameColorThemeProvider: ColorTheme.Provider<typeof ResidueNameColorThemeParams> = {
+export const ResidueNameColorThemeProvider: ColorTheme.Provider<ResidueNameColorThemeParams> = {
     label: 'Residue Name',
     factory: ResidueNameColorTheme,
     getParams: getResidueNameColorThemeParams

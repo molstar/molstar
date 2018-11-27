@@ -216,11 +216,20 @@ export function createRenderItem(ctx: WebGLContext, drawMode: DrawMode, shaderCo
             }
 
             if (valueChanges.attributes || valueChanges.defines || valueChanges.elements) {
-                // console.log('program/defines or buffers changed, rebuild vaos')
-                Object.keys(RenderVariantDefines).forEach(k => {
-                    deleteVertexArray(ctx, vertexArrays[k])
-                    vertexArrays[k] = createVertexArray(ctx, programs[k].value, attributeBuffers, elementsBuffer)
-                })
+                // console.log('program/defines or buffers changed, update vaos')
+                const { vertexArrayObject } = ctx.extensions
+                if (vertexArrayObject) {
+                    Object.keys(RenderVariantDefines).forEach(k => {
+                        vertexArrayObject.bindVertexArray(vertexArrays[k])
+                        if (elementsBuffer && (valueChanges.defines || valueChanges.elements)) {
+                            elementsBuffer.bind()
+                        }
+                        if (valueChanges.attributes || valueChanges.defines) {
+                            programs[k].value.bindAttributes(attributeBuffers)
+                        }
+                        vertexArrayObject.bindVertexArray(null)
+                    })
+                }
             }
 
             valueChanges.textures = false

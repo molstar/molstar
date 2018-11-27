@@ -11,26 +11,24 @@ import CIF from 'mol-io/reader/cif'
 import { PluginContext } from 'mol-plugin/context';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { Transformer } from 'mol-state';
+import { readFromFile } from 'mol-util/data-source';
 
 export { Download }
-namespace Download { export interface Params { url: string, isBinary?: boolean, label?: string } }
-const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.Binary, Download.Params>({
+type Download = typeof Download
+const Download = PluginStateTransform.BuiltIn({
     name: 'download',
-    display: {
-        name: 'Download',
-        description: 'Download string or binary data from the specified URL'
-    },
+    display: { name: 'Download', description: 'Download string or binary data from the specified URL' },
     from: [SO.Root],
     to: [SO.Data.String, SO.Data.Binary],
-    params: () => ({
+    params: {
         url: PD.Text('https://www.ebi.ac.uk/pdbe/static/entry/1cbs_updated.cif', { description: 'Resource URL. Must be the same domain or support CORS.' }),
-        label: PD.Text('', { isOptional: true }),
-        isBinary: PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)', isOptional: true })
-    }),
+        label: PD.makeOptional(PD.Text('')),
+        isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, download data as binary (string otherwise)' }))
+    }
+})({
     apply({ params: p }, globalCtx: PluginContext) {
         return Task.create('Download', async ctx => {
-            // TODO: track progress
-            const data = await globalCtx.fetch(p.url, p.isBinary ? 'binary' : 'string');
+            const data = await globalCtx.fetch(p.url, p.isBinary ? 'binary' : 'string').runInContext(ctx);
             return p.isBinary
                 ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.url })
                 : new SO.Data.String(data as string, { label: p.label ? p.label : p.url });
@@ -46,21 +44,50 @@ const Download = PluginStateTransform.Create<SO.Root, SO.Data.String | SO.Data.B
     }
 });
 
-export { ParseCif }
-namespace ParseCif { export interface Params { } }
-const ParseCif = PluginStateTransform.Create<SO.Data.String | SO.Data.Binary, SO.Data.Cif, ParseCif.Params>({
-    name: 'parse-cif',
-    display: {
-        name: 'Parse CIF',
-        description: 'Parse CIF from String or Binary data'
+export { ReadFile }
+type ReadFile = typeof ReadFile
+const ReadFile = PluginStateTransform.BuiltIn({
+    name: 'read-file',
+    display: { name: 'Read File', description: 'Read string or binary data from the specified file' },
+    from: SO.Root,
+    to: [SO.Data.String, SO.Data.Binary],
+    params: {
+        file: PD.File(),
+        label: PD.makeOptional(PD.Text('')),
+        isBinary: PD.makeOptional(PD.Boolean(false, { description: 'If true, open file as as binary (string otherwise)' }))
+    }
+})({
+    apply({ params: p }) {
+        return Task.create('Open File', async ctx => {
+            const data = await readFromFile(p.file, p.isBinary ? 'binary' : 'string').runInContext(ctx);
+            return p.isBinary
+                ? new SO.Data.Binary(data as Uint8Array, { label: p.label ? p.label : p.file.name })
+                : new SO.Data.String(data as string, { label: p.label ? p.label : p.file.name });
+        });
     },
+    update({ oldParams, newParams, b }) {
+        if (oldParams.label !== newParams.label) {
+            (b.label as string) = newParams.label || oldParams.file.name;
+            return Transformer.UpdateResult.Updated;
+        }
+        return Transformer.UpdateResult.Unchanged;
+    },
+    isSerializable: () => ({ isSerializable: false, reason: 'Cannot serialize user loaded files.' })
+});
+
+export { ParseCif }
+type ParseCif = typeof ParseCif
+const ParseCif = PluginStateTransform.BuiltIn({
+    name: 'parse-cif',
+    display: { name: 'Parse CIF', description: 'Parse CIF from String or Binary data' },
     from: [SO.Data.String, SO.Data.Binary],
-    to: [SO.Data.Cif],
+    to: SO.Format.Cif
+})({
     apply({ a }) {
         return Task.create('Parse CIF', async ctx => {
             const parsed = await (SO.Data.String.is(a) ? CIF.parse(a.data) : CIF.parseBinary(a.data)).runInContext(ctx);
             if (parsed.isError) throw new Error(parsed.message);
-            return new SO.Data.Cif(parsed.result);
+            return new SO.Format.Cif(parsed.result);
         });
     }
 });

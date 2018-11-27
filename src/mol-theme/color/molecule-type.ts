@@ -28,10 +28,10 @@ const DefaultMoleculeTypeColor = Color(0xffff99)
 const Description = 'Assigns a color based on the molecule type of a residue.'
 
 export const MoleculeTypeColorThemeParams = {}
+export type MoleculeTypeColorThemeParams = typeof MoleculeTypeColorThemeParams
 export function getMoleculeTypeColorThemeParams(ctx: ThemeDataContext) {
     return MoleculeTypeColorThemeParams // TODO return copy
 }
-export type MoleculeTypeColorThemeProps = PD.Values<typeof MoleculeTypeColorThemeParams>
 
 export function moleculeTypeColor(unit: Unit, element: ElementIndex): Color {
     const moleculeType = getElementMoleculeType(unit, element)
@@ -47,7 +47,7 @@ export function moleculeTypeColor(unit: Unit, element: ElementIndex): Color {
     return DefaultMoleculeTypeColor
 }
 
-export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: MoleculeTypeColorThemeProps): ColorTheme<MoleculeTypeColorThemeProps> {
+export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: PD.Values<MoleculeTypeColorThemeParams>): ColorTheme<MoleculeTypeColorThemeParams> {
     function color(location: Location): Color {
         if (StructureElement.isLocation(location)) {
             return moleculeTypeColor(location.unit, location.element)
@@ -58,6 +58,7 @@ export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: MoleculeTyp
     }
 
     return {
+        factory: MoleculeTypeColorTheme,
         granularity: 'group',
         color,
         props,
@@ -68,7 +69,7 @@ export function MoleculeTypeColorTheme(ctx: ThemeDataContext, props: MoleculeTyp
     }
 }
 
-export const MoleculeTypeColorThemeProvider: ColorTheme.Provider<typeof MoleculeTypeColorThemeParams> = {
+export const MoleculeTypeColorThemeProvider: ColorTheme.Provider<MoleculeTypeColorThemeParams> = {
     label: 'Molecule Type',
     factory: MoleculeTypeColorTheme,
     getParams: getMoleculeTypeColorThemeParams

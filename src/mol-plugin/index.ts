@@ -10,10 +10,9 @@ import * as React from 'react';
 import * as ReactDOM from 'react-dom';
 import { PluginCommands } from './command';
 import { PluginSpec } from './spec';
-import { CreateStructureFromPDBe } from './state/actions/basic';
+import { DownloadStructure, CreateComplexRepresentation, OpenStructure } from './state/actions/basic';
 import { StateTransforms } from './state/transforms';
 import { PluginBehaviors } from './behavior';
-import { LogEntry } from 'mol-util/log-entry';
 
 function getParam(name: string, regex: string): string {
     let r = new RegExp(`${name}=(${regex})[&]?`, 'i');
@@ -22,7 +21,9 @@ function getParam(name: string, regex: string): string {
 
 const DefaultSpec: PluginSpec = {
     actions: [
-        PluginSpec.Action(CreateStructureFromPDBe),
+        PluginSpec.Action(DownloadStructure),
+        PluginSpec.Action(OpenStructure),
+        PluginSpec.Action(CreateComplexRepresentation),
         PluginSpec.Action(StateTransforms.Data.Download),
         PluginSpec.Action(StateTransforms.Data.ParseCif),
         PluginSpec.Action(StateTransforms.Model.StructureAssemblyFromModel),
@@ -34,7 +35,8 @@ const DefaultSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.HighlightLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
-        PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 20, extraRadius: 4 })
+        PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 20, extraRadius: 4 }),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: false })
     ]
 }
 
@@ -53,7 +55,7 @@ async function trySetSnapshot(ctx: PluginContext) {
         if (!snapshotUrl) return;
         await PluginCommands.State.Snapshots.Fetch.dispatch(ctx, { url: snapshotUrl })
     } catch (e) {
-        ctx.log(LogEntry.error('Failed to load snapshot.'));
+        ctx.log.error('Failed to load snapshot.');
         console.warn('Failed to load snapshot', e);
     }
 }

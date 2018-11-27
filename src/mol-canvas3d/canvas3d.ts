@@ -35,11 +35,8 @@ export const Canvas3DParams = {
     cameraMode: PD.Select('perspective', [['perspective', 'Perspective'], ['orthographic', 'Orthographic']]),
     backgroundColor: PD.Color(Color(0x000000)),
     // TODO: make this an interval?
-    clipNear: PD.Numeric(1, { min: 1, max: 100, step: 1 }),
-    clipFar: PD.Numeric(100, { min: 1, max: 100, step: 1 }),
-    // TODO: make this an interval?
-    fogNear: PD.Numeric(50, { min: 1, max: 100, step: 1 }),
-    fogFar: PD.Numeric(100, { min: 1, max: 100, step: 1 }),
+    clip: PD.Interval([1, 100], { min: 1, max: 100, step: 1 }),
+    fog: PD.Interval([50, 100], { min: 1, max: 100, step: 1 }),
     pickingAlphaThreshold: PD.Numeric(0.5, { min: 0.0, max: 1.0, step: 0.01 }, { description: 'The minimum opacity value needed for an object to be pickable.' }),
     showBoundingSpheres: PD.Boolean(false, { description: 'Show bounding spheres of render objects.' }),
     // debug: PD.Group({
@@ -168,13 +165,13 @@ namespace Canvas3D {
             const cDist = Vec3.distance(camera.state.position, camera.state.target)
             const bRadius = Math.max(10, scene.boundingSphere.radius)
 
-            const nearFactor = (50 - p.clipNear) / 50
-            const farFactor = -(50 - p.clipFar) / 50
+            const nearFactor = (50 - p.clip[0]) / 50
+            const farFactor = -(50 - p.clip[1]) / 50
             const near = cDist - (bRadius * nearFactor)
             const far = cDist + (bRadius * farFactor)
 
-            const fogNearFactor = (50 - p.fogNear) / 50
-            const fogFarFactor = -(50 - p.fogFar) / 50
+            const fogNearFactor = (50 - p.fog[0]) / 50
+            const fogFarFactor = -(50 - p.fog[1]) / 50
             const fogNear = cDist - (bRadius * fogNearFactor)
             const fogFar = cDist + (bRadius * fogFarFactor)
 
@@ -321,7 +318,9 @@ namespace Canvas3D {
 
             add: (repr: Representation.Any) => {
                 add(repr)
-                reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => add(repr)))
+                reprUpdatedSubscriptions.set(repr, repr.updated.subscribe(_ => {
+                    if (!repr.state.syncManually) add(repr)
+                }))
             },
             remove: (repr: Representation.Any) => {
                 const updatedSubscription = reprUpdatedSubscriptions.get(repr)
@@ -378,10 +377,8 @@ namespace Canvas3D {
                     renderer.setClearColor(props.backgroundColor)
                 }
 
-                if (props.clipNear !== undefined) p.clipNear = props.clipNear
-                if (props.clipFar !== undefined) p.clipFar = props.clipFar
-                if (props.fogNear !== undefined) p.fogNear = props.fogNear
-                if (props.fogFar !== undefined) p.fogFar = props.fogFar
+                if (props.clip !== undefined) p.clip = [props.clip[0], props.clip[1]]
+                if (props.fog !== undefined) p.fog = [props.fog[0], props.fog[1]]
 
                 if (props.pickingAlphaThreshold !== undefined && props.pickingAlphaThreshold !== renderer.props.pickingAlphaThreshold) {
                     renderer.setPickingAlphaThreshold(props.pickingAlphaThreshold)
@@ -396,10 +393,8 @@ namespace Canvas3D {
                 return {
                     cameraMode: camera.state.mode,
                     backgroundColor: renderer.props.clearColor,
-                    clipNear: p.clipNear,
-                    clipFar: p.clipFar,
-                    fogNear: p.fogNear,
-                    fogFar: p.fogFar,
+                    clip: p.clip,
+                    fog: p.fog,
                     pickingAlphaThreshold: renderer.props.pickingAlphaThreshold,
                     showBoundingSpheres: boundingSphereHelper.visible
                 }

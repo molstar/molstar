@@ -19,7 +19,7 @@ import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
 import { VisualUpdateState } from 'mol-repr/util';
 import { ValueCell } from 'mol-util';
-import { Theme, createTheme } from 'mol-theme/theme';
+import { Theme, createEmptyTheme } from 'mol-theme/theme';
 import { Subject } from 'rxjs';
 
 export interface VolumeVisual<P extends VolumeParams> extends Visual<VolumeData, P> { }
@@ -36,12 +36,13 @@ interface VolumeVisualBuilder<P extends VolumeParams, G extends Geometry> {
 
 interface VolumeVisualGeometryBuilder<P extends VolumeParams, G extends Geometry> extends VolumeVisualBuilder<P, G> {
     createRenderObject(ctx: VisualContext, geometry: G, locationIt: LocationIterator, theme: Theme, currentProps: PD.Values<P>): Promise<VolumeRenderObject>
-    updateValues(values: RenderableValues, newProps: PD.Values<P>): void
+    updateValues(values: RenderableValues, newProps: PD.Values<P>): void,
+    updateBoundingSphere(values: RenderableValues, geometry: G): void
 }
 
 export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeometryBuilder<P, Geometry>): VolumeVisual<P> {
     const { defaultProps, createGeometry, getLoci, mark, setUpdateState } = builder
-    const { createRenderObject, updateValues } = builder
+    const { createRenderObject, updateValues, updateBoundingSphere } = builder
     const updateState = VisualUpdateState.create()
 
     let currentProps: PD.Values<P>
@@ -67,6 +68,7 @@ export function VolumeVisual<P extends VolumeParams>(builder: VolumeVisualGeomet
         if (updateState.createGeometry) {
             geometry = await createGeometry(ctx, currentVolume, currentProps, geometry)
             ValueCell.update(renderObject.values.drawCount, Geometry.getDrawCount(geometry))
+            updateBoundingSphere(renderObject.values, geometry)
         }
 
         updateValues(renderObject.values, newProps)
@@ -143,25 +145,25 @@ export const VolumeParams = {
 }
 export type VolumeParams = typeof VolumeParams
 
-export function VolumeRepresentation<P extends VolumeParams>(label: string, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
+export function VolumeRepresentation<P extends VolumeParams>(label: string, ctx: RepresentationContext, getParams: RepresentationParamsGetter<VolumeData, P>, visualCtor: (volume: VolumeData) => VolumeVisual<P>): VolumeRepresentation<P> {
     let version = 0
     const updated = new Subject<number>()
+    const _state = Representation.createState()
     let visual: VolumeVisual<P>
 
     let _volume: VolumeData
     let _props: PD.Values<P>
     let _params: P
-    let _theme: Theme
+    let _theme = createEmptyTheme()
     let busy = false
 
-    function createOrUpdate(ctx: RepresentationContext, props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
+    function createOrUpdate(props: Partial<PD.Values<P>> = {}, volume?: VolumeData) {
         if (volume && volume !== _volume) {
             _params = getParams(ctx, volume)
             _volume = volume
             if (!_props) _props = PD.getDefaultValues(_params)
         }
         _props = Object.assign({}, _props, props)
-        _theme = createTheme(ctx, _props, {}, _theme)
 
         return Task.create('VolumeRepresentation.create', async runtime => {
             // TODO queue it somehow
@@ -172,11 +174,11 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
             } else if (volume && !visual) {
                 busy = true
                 visual = visualCtor(volume)
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
+                await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume)
                 busy = false
             } else {
                 busy = true
-                await visual.createOrUpdate({ ...ctx, runtime }, _theme, _props, volume)
+                await visual.createOrUpdate({ webgl: ctx.webgl, runtime }, _theme, _props, volume)
                 busy = false
             }
             updated.next(version++)
@@ -191,16 +193,19 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         return visual ? visual.mark(loci, action) : false
     }
 
+    function setState(state: Partial<Representation.State>) {
+        if (state.visible !== undefined && visual) visual.setVisibility(state.visible)
+        if (state.pickable !== undefined && visual) visual.setPickable(state.pickable)
+
+        Representation.updateState(_state, state)
+    }
+
+    function setTheme(theme: Theme) {
+        _theme = theme
+    }
+
     function destroy() {
         if (visual) visual.destroy()
-    }
-
-    function setVisibility(value: boolean) {
-        if (visual) visual.setVisibility(value)
-    }
-
-    function setPickable(value: boolean) {
-        if (visual) visual.setPickable(value)
     }
 
     return {
@@ -213,12 +218,14 @@ export function VolumeRepresentation<P extends VolumeParams>(label: string, getP
         },
         get props () { return _props },
         get params() { return _params },
-        get updated() { return updated },
+        get state() { return _state },
+        get theme() { return _theme },
+        updated,
         createOrUpdate,
+        setState,
+        setTheme,
         getLoci,
         mark,
-        setVisibility,
-        setPickable,
         destroy
     }
 }

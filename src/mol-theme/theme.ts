@@ -41,6 +41,6 @@ export function createTheme(ctx: ThemeRegistryContext, data: ThemeDataContext, p
     return theme
 }
 
-export function createEmptyTheme() {
+export function createEmptyTheme(): Theme {
     return { color: ColorTheme.Empty, size: SizeTheme.Empty }
 }

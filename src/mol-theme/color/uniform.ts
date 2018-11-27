@@ -16,15 +16,16 @@ const Description = 'Gives everything the same, uniform color.'
 export const UniformColorThemeParams = {
     value: PD.Color(DefaultColor),
 }
+export type UniformColorThemeParams = typeof UniformColorThemeParams
 export function getUniformColorThemeParams(ctx: ThemeDataContext) {
     return UniformColorThemeParams // TODO return copy
 }
-export type UniformColorThemeProps = PD.Values<typeof UniformColorThemeParams>
 
-export function UniformColorTheme(ctx: ThemeDataContext, props: UniformColorThemeProps): ColorTheme<UniformColorThemeProps> {
+export function UniformColorTheme(ctx: ThemeDataContext, props: PD.Values<UniformColorThemeParams>): ColorTheme<UniformColorThemeParams> {
     const color = props.value || DefaultColor
 
     return {
+        factory: UniformColorTheme,
         granularity: 'uniform',
         color: () => color,
         props: props,
@@ -33,7 +34,7 @@ export function UniformColorTheme(ctx: ThemeDataContext, props: UniformColorThem
     }
 }
 
-export const UniformColorThemeProvider: ColorTheme.Provider<typeof UniformColorThemeParams> = {
+export const UniformColorThemeProvider: ColorTheme.Provider<UniformColorThemeParams> = {
     label: 'Uniform',
     factory: UniformColorTheme,
     getParams: getUniformColorThemeParams

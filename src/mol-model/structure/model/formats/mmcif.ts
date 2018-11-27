@@ -24,10 +24,10 @@ import { getSequence } from './mmcif/sequence';
 import { sortAtomSite } from './mmcif/sort';
 import { StructConn } from './mmcif/bonds/struct_conn';
 import { ChemicalComponent, ChemicalComponentMap } from '../properties/chemical-component';
-import { ComponentType, getMoleculeType } from '../types';
+import { ComponentType, getMoleculeType, MoleculeType } from '../types';
 
 import mmCIF_Format = Format.mmCIF
-import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap } from 'mol-model/structure/structure/carbohydrates/constants';
+import { SaccharideComponentMap, SaccharideComponent, SaccharidesSnfgMap, SaccharideCompIdMap, UnknownSaccharideComponent } from 'mol-model/structure/structure/carbohydrates/constants';
 
 type AtomSite = mmCIF_Database['atom_site']
 
@@ -88,24 +88,6 @@ function getModifiedResidueNameMap(format: mmCIF_Format): Model['properties']['m
     return { parentId, details };
 }
 
-function getAsymIdSerialMap(format: mmCIF_Format): ReadonlyMap<string, number> {
-    const data = format.data.struct_asym;
-    const map = new Map<string, number>();
-    let serial = 0
-
-    const id = data.id
-    const count = data._rowCount
-    for (let i = 0; i < count; ++i) {
-        const _id = id.value(i)
-        if (!map.has(_id)) {
-            map.set(_id, serial)
-            serial += 1
-        }
-    }
-
-    return map;
-}
-
 function getChemicalComponentMap(format: mmCIF_Format): ChemicalComponentMap {
     const map = new Map<string, ChemicalComponent>();
     const { id, type, name, pdbx_synonyms, formula, formula_weight } = format.data.chem_comp
@@ -142,15 +124,22 @@ function getSaccharideComponentMap(format: mmCIF_Format): SaccharideComponentMap
                 }
             }
         }
-        return map
     } else {
-        return SaccharideCompIdMap
+        SaccharideCompIdMap.forEach((v, k) => map.set(k, v))
+        const { id, type  } = format.data.chem_comp
+        for (let i = 0, il = id.rowCount; i < il; ++i) {
+            const _id = id.value(i)
+            const _type = type.value(i)
+            if (!map.has(_id) && getMoleculeType(_type, _id) === MoleculeType.saccharide) {
+                map.set(_id, UnknownSaccharideComponent)
+            }
+        }
     }
+    return map
 }
 
 export interface FormatData {
     modifiedResidues: Model['properties']['modifiedResidues']
-    asymIdSerialMap: Model['properties']['asymIdSerialMap']
     chemicalComponentMap: Model['properties']['chemicalComponentMap']
     saccharideComponentMap: Model['properties']['saccharideComponentMap']
 }
@@ -158,7 +147,6 @@ export interface FormatData {
 function getFormatData(format: mmCIF_Format): FormatData {
     return {
         modifiedResidues: getModifiedResidueNameMap(format),
-        asymIdSerialMap: getAsymIdSerialMap(format),
         chemicalComponentMap: getChemicalComponentMap(format),
         saccharideComponentMap: getSaccharideComponentMap(format)
     }

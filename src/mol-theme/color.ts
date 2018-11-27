@@ -8,7 +8,7 @@ import { Color } from 'mol-util/color';
 import { Location } from 'mol-model/location';
 import { ColorType } from 'mol-geo/geometry/color-data';
 import { CarbohydrateSymbolColorThemeProvider } from './color/carbohydrate-symbol';
-import { UniformColorTheme, UniformColorThemeProvider } from './color/uniform';
+import { UniformColorThemeProvider } from './color/uniform';
 import { deepEqual } from 'mol-util';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { ThemeDataContext } from './theme';
@@ -17,6 +17,7 @@ import { CrossLinkColorThemeProvider } from './color/cross-link';
 import { ElementIndexColorThemeProvider } from './color/element-index';
 import { ElementSymbolColorThemeProvider } from './color/element-symbol';
 import { MoleculeTypeColorThemeProvider } from './color/molecule-type';
+import { PolymerIdColorThemeProvider } from './color/polymer-id';
 import { PolymerIndexColorThemeProvider } from './color/polymer-index';
 import { ResidueNameColorThemeProvider } from './color/residue-name';
 import { SecondaryStructureColorThemeProvider } from './color/secondary-structure';
@@ -31,27 +32,31 @@ export type LocationColor = (location: Location, isSecondary: boolean) => Color
 export type ColorThemeProps = { [k: string]: any }
 
 export { ColorTheme }
-interface ColorTheme<P extends ColorThemeProps = {}> {
+interface ColorTheme<P extends PD.Params = {}> {
+    readonly factory: ColorTheme.Factory<P>
     readonly granularity: ColorType
     readonly color: LocationColor
-    readonly props: Readonly<P>
+    readonly props: Readonly<PD.Values<P>>
     readonly description?: string
     readonly legend?: Readonly<ScaleLegend | TableLegend>
 }
 namespace ColorTheme {
     export type Props = { [k: string]: any }
-    export const Empty = UniformColorTheme({}, { value: Color(0xCCCCCC) })
+    export type Factory<P extends PD.Params> = (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
+    export const EmptyFactory = () => Empty
+    const EmptyColor = Color(0xCCCCCC)
+    export const Empty: ColorTheme<{}> = { factory: EmptyFactory, granularity: 'uniform', color: () => EmptyColor, props: {} }
 
     export function areEqual(themeA: ColorTheme, themeB: ColorTheme) {
-        return themeA === themeB && deepEqual(themeA.props, themeB.props)
+        return themeA.factory === themeB.factory && deepEqual(themeA.props, themeB.props)
     }
 
     export interface Provider<P extends PD.Params> {
         readonly label: string
-        readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<PD.Values<P>>
+        readonly factory: (ctx: ThemeDataContext, props: PD.Values<P>) => ColorTheme<P>
         readonly getParams: (ctx: ThemeDataContext) => P
     }
-    export const EmptyProvider: Provider<{}> = { label: '', factory: () => Empty, getParams: () => ({}) }
+    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}) }
 
     export class Registry {
         private _list: { name: string, provider: Provider<any> }[] = []
@@ -96,6 +101,7 @@ export const BuiltInColorThemes = {
     'element-index': ElementIndexColorThemeProvider,
     'element-symbol': ElementSymbolColorThemeProvider,
     'molecule-type': MoleculeTypeColorThemeProvider,
+    'polymer-id': PolymerIdColorThemeProvider,
     'polymer-index': PolymerIndexColorThemeProvider,
     'residue-name': ResidueNameColorThemeProvider,
     'secondary-structure': SecondaryStructureColorThemeProvider,
@@ -104,7 +110,3 @@ export const BuiltInColorThemes = {
     'unit-index': UnitIndexColorThemeProvider,
     'uniform': UniformColorThemeProvider,
 }
-export type BuiltInColorThemeName = keyof typeof BuiltInColorThemes
-export const BuiltInColorThemeNames = Object.keys(BuiltInColorThemes)
-export const BuiltInColorThemeOptions = BuiltInColorThemeNames.map(n => [n, n] as [BuiltInColorThemeName, string])
-export const getBuiltInColorThemeParams = (name: string, ctx: ThemeDataContext = {}) => PD.Group((BuiltInColorThemes as { [k: string]: ColorTheme.Provider<any> })[name].getParams(ctx))
