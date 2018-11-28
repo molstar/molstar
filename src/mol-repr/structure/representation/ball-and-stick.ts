@@ -43,7 +43,7 @@ export function BallAndStickRepresentation(ctx: RepresentationContext, getParams
     return Representation.createMulti('Ball & Stick', ctx, getParams, BallAndStickVisuals as unknown as Representation.Def<Structure, BallAndStickParams>)
 }
 
-export const BallAndStickRepresentationProvider: StructureRepresentationProvider<typeof BallAndStickParams> = {
+export const BallAndStickRepresentationProvider: StructureRepresentationProvider<BallAndStickParams> = {
     label: 'Ball & Stick',
     description: 'Displays atoms as spheres and bonds as cylinders.',
     factory: BallAndStickRepresentation,

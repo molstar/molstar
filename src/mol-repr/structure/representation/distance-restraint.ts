@@ -31,7 +31,7 @@ export function DistanceRestraintRepresentation(ctx: RepresentationContext, getP
     return Representation.createMulti('DistanceRestraint', ctx, getParams, DistanceRestraintVisuals as unknown as Representation.Def<Structure, DistanceRestraintParams>)
 }
 
-export const DistanceRestraintRepresentationProvider: StructureRepresentationProvider<typeof DistanceRestraintParams> = {
+export const DistanceRestraintRepresentationProvider: StructureRepresentationProvider<DistanceRestraintParams> = {
     label: 'Distance Restraint',
     description: 'Displays cross-link distance restraints.',
     factory: DistanceRestraintRepresentation,

@@ -31,7 +31,7 @@ export function SpacefillRepresentation(ctx: RepresentationContext, getParams: R
     return Representation.createMulti('Spacefill', ctx, getParams, SpacefillVisuals as unknown as Representation.Def<Structure, SpacefillParams>)
 }
 
-export const SpacefillRepresentationProvider: StructureRepresentationProvider<typeof SpacefillParams> = {
+export const SpacefillRepresentationProvider: StructureRepresentationProvider<SpacefillParams> = {
     label: 'Spacefill',
     description: 'Displays atoms as spheres.',
     factory: SpacefillRepresentation,

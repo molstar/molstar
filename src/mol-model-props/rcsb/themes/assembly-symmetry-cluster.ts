@@ -32,7 +32,7 @@ function clusterMemberKey (asym_id: string, oper_list_ids: string[]) {
 
 export const AssemblySymmetryClusterColorThemeParams = {
     list: PD.Select<ColorListName>('Viridis', ColorListOptions),
-    symmetryId: PD.Select<number>(0, []),
+    symmetryId: PD.Select<number>(-1, []),
 }
 export type AssemblySymmetryClusterColorThemeParams = typeof AssemblySymmetryClusterColorThemeParams
 export function getAssemblySymmetryClusterColorThemeParams(ctx: ThemeDataContext) {
@@ -51,7 +51,7 @@ export function getAssemblySymmetryClusterColorThemeParams(ctx: ThemeDataContext
                     ])
                 }
             }
-            params.symmetryId.defaultValue = s.id.value(0)
+            params.symmetryId.defaultValue = params.symmetryId.options[0][0]
         }
     }
 
