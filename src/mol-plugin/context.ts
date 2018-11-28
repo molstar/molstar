@@ -103,8 +103,8 @@ export class PluginContext {
      * This should be used in all transform related request so that it could be "spoofed" to allow
      * "static" access to resources.
      */
-    fetch(url: string, type: 'string' | 'binary' = 'string'): Task<string | Uint8Array> {
-        return ajaxGet({ url, type });
+    fetch(url: string, type: 'string' | 'binary' = 'string', body?: string): Task<string | Uint8Array> {
+        return ajaxGet({ url, type, body });
         // const req = await fetch(url, { referrerPolicy: 'origin-when-cross-origin' });
         // return type === 'string' ? await req.text() : new Uint8Array(await req.arrayBuffer());
     }
