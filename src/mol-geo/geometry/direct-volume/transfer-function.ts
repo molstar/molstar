@@ -9,6 +9,7 @@ import { spline } from 'mol-math/interpolate';
 import { ColorScale } from 'mol-util/color';
 import { ColorMatplotlib } from 'mol-util/color/tables';
 import { ValueCell } from 'mol-util';
+import { Vec2 } from 'mol-math/linear-algebra';
 
 export interface ControlPoint { x: number, alpha: number }
 
@@ -18,6 +19,11 @@ export function getControlPointsFromString(s: string): ControlPoint[] {
         return { x: parseFloat(ps[0]), alpha: parseFloat(ps[1]) }
     })
 }
+
+export function getControlPointsFromVec2Array(array: Vec2[]): ControlPoint[] {
+    return array.map(v => ({ x: v[0], alpha: v[1] }))
+}
+
 // TODO move core function to mol-canvas3d/color
 export function createTransferFunctionTexture(controlPoints: ControlPoint[], texture?: ValueCell<TextureImage<Uint8Array>>): ValueCell<TextureImage<Uint8Array>> {
     const cp = [

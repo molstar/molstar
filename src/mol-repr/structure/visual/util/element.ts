@@ -29,7 +29,7 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
     const { elements } = unit;
     const elementCount = elements.length;
     const vertexCount = elementCount * sphereVertexCount(detail)
-    const meshBuilder = MeshBuilder.create(vertexCount, vertexCount / 2, mesh)
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 2, mesh)
 
     const v = Vec3.zero()
     const pos = unit.conformation.invariantPosition
@@ -40,11 +40,11 @@ export function createElementSphereMesh(ctx: VisualContext, unit: Unit, structur
         l.element = elements[i]
         pos(elements[i], v)
 
-        meshBuilder.setGroup(i)
-        addSphere(meshBuilder, v, theme.size.size(l) * sizeFactor, detail)
+        builderState.currentGroup = i
+        addSphere(builderState, v, theme.size.size(l) * sizeFactor, detail)
     }
 
-    return meshBuilder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export function markElement(loci: Loci, structureGroup: StructureGroup, apply: (interval: Interval) => boolean) {

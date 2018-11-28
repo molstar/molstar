@@ -33,8 +33,9 @@ namespace SizeTheme {
         readonly label: string
         readonly factory: Factory<P>
         readonly getParams: (ctx: ThemeDataContext) => P
+        readonly defaultValues: PD.Values<P>
     }
-    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}) }
+    export const EmptyProvider: Provider<{}> = { label: '', factory: EmptyFactory, getParams: () => ({}), defaultValues: {} }
 
     export class Registry {
         private _list: { name: string, provider: Provider<any> }[] = []
@@ -57,13 +58,18 @@ namespace SizeTheme {
             this._map.set(name, provider)
         }
 
-        get<P extends PD.Params>(id: string) {
-            return this._map.get(id) || EmptyProvider as unknown as Provider<P>
+        remove(name: string) {
+            this._list.splice(this._list.findIndex(e => e.name === name))
+            this._map.delete(name)
         }
 
-        create(id: string, ctx: ThemeDataContext, props = {}) {
-            const provider = this.get(id)
-            return provider ? provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props }) : Empty
+        get<P extends PD.Params>(name: string): Provider<P> {
+            return this._map.get(name) || EmptyProvider as unknown as Provider<P>
+        }
+
+        create(name: string, ctx: ThemeDataContext, props = {}) {
+            const provider = this.get(name)
+            return provider.factory(ctx, { ...PD.getDefaultValues(provider.getParams(ctx)), ...props })
         }
 
         get list() {

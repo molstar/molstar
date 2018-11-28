@@ -4,8 +4,6 @@
  * @author Alexander Rose <alexander.rose@weirdbyte.de>
  */
 
-import { GraphQLClient } from 'graphql-request'
-
 import { AssemblySymmetry as AssemblySymmetryGraphQL } from './graphql/types';
 import query from './graphql/symmetry.gql';
 
@@ -18,6 +16,9 @@ import { CifExportContext } from 'mol-model/structure/export/mmcif';
 import { toTable } from 'mol-io/reader/cif/schema';
 import { CifCategory } from 'mol-io/reader/cif';
 import { PropertyWrapper } from 'mol-model-props/common/wrapper';
+import { Task, RuntimeContext } from 'mol-task';
+import { GraphQLClient } from 'mol-util/graphql-client';
+import { ajaxGet } from 'mol-util/data-source';
 
 const { str, int, float, Aliased, Vector, List } = Column.Schema;
 
@@ -152,8 +153,6 @@ const _Descriptor: ModelPropertyDescriptor = {
     }
 }
 
-const client = new GraphQLClient('http://rest-experimental.rcsb.org/graphql')
-
 export interface AssemblySymmetry {
     db: AssemblySymmetry.Database
     getSymmetries(assemblyId: string): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry']>
@@ -177,7 +176,10 @@ export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetr
     }
 }
 
+const Client = new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, (url: string, type: 'string' | 'binary', body?: string) => ajaxGet({ url, type, body }) )
+
 export namespace AssemblySymmetry {
+    export const GraphQLEndpointURL = 'http://rest-experimental.rcsb.org/graphql'
     export const Schema = {
         rcsb_assembly_symmetry_info: {
             updated_datetime_utc: Column.Schema.str
@@ -247,7 +249,7 @@ export namespace AssemblySymmetry {
 
     export const Descriptor = _Descriptor;
 
-    export async function attachFromCifOrAPI(model: Model) {
+    export async function attachFromCifOrAPI(model: Model, client: GraphQLClient = Client, ctx?: RuntimeContext) {
         if (model.customProperties.has(Descriptor)) return true;
 
         let db: Database
@@ -258,7 +260,7 @@ export namespace AssemblySymmetry {
             let result: AssemblySymmetryGraphQL.Query
             const variables: AssemblySymmetryGraphQL.Variables = { pdbId: model.label.toLowerCase() };
             try {
-                result = await client.request<AssemblySymmetryGraphQL.Query>(query, variables);
+                result = await client.request<AssemblySymmetryGraphQL.Query>(ctx || RuntimeContext.Synchronous, query, variables);
             } catch (e) {
                 console.error(e)
                 return false;
@@ -271,6 +273,14 @@ export namespace AssemblySymmetry {
         model.customProperties.add(Descriptor);
         model._staticPropertyData.__RCSBAssemblySymmetry__ = AssemblySymmetry(db);
         return true;
+    }
+
+    export function createAttachTask(fetch: (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>) {
+        return (model: Model) => Task.create('RCSB Assembly Symmetry', async ctx => {
+            if (get(model)) return true;
+
+            return await attachFromCifOrAPI(model, new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, fetch), ctx)
+        });
     }
 
     export function get(model: Model): AssemblySymmetry | undefined {

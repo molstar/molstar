@@ -37,7 +37,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
     const { sizeFactor, linearSegments, radialSegments, aspectRatio, arrowFactor } = props
 
     const vertexCount = linearSegments * radialSegments * polymerElementCount + (radialSegments + 1) * polymerElementCount * 2
-    const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh)
 
     const isCoarse = Unit.isCoarse(unit)
     const state = createCurveSegmentState(linearSegments)
@@ -47,7 +47,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setGroup(i)
+        builderState.currentGroup = i
 
         const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
@@ -63,7 +63,7 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
         if (isSheet) {
             const height = width * aspectRatio
             const arrowHeight = v.secStrucLast ? height * arrowFactor : 0
-            addSheet(builder, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, v.secStrucFirst, v.secStrucLast)
+            addSheet(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, width, height, arrowHeight, v.secStrucFirst, v.secStrucLast)
         } else {
             let height: number
             if (isHelix) {
@@ -74,13 +74,13 @@ function createPolymerTraceMesh(ctx: VisualContext, unit: Unit, structure: Struc
             } else {
                 height = width
             }
-            addTube(builder, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, v.secStrucFirst, v.secStrucLast)
+            addTube(builderState, curvePoints, normalVectors, binormalVectors, linearSegments, radialSegments, width, height, 1, v.secStrucFirst, v.secStrucLast)
         }
 
         ++i
     }
 
-    return builder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export const PolymerTraceParams = {

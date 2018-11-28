@@ -36,7 +36,7 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
     const { sizeFactor, radialSegments } = props
 
     const vertexCountEstimate = segmentCount * radialSegments * 2 * polymerGapCount * 2
-    const builder = MeshBuilder.create(vertexCountEstimate, vertexCountEstimate / 10, mesh)
+    const builderState = MeshBuilder.createState(vertexCountEstimate, vertexCountEstimate / 10, mesh)
 
     const pos = unit.conformation.invariantPosition
     const pA = Vec3.zero()
@@ -50,26 +50,26 @@ function createPolymerGapCylinderMesh(ctx: VisualContext, unit: Unit, structure:
     while (polymerGapIt.hasNext) {
         const { centerA, centerB } = polymerGapIt.move()
         if (centerA.element === centerB.element) {
-            builder.setGroup(i)
+            builderState.currentGroup = i
             pos(centerA.element, pA)
-            addSphere(builder, pA, 0.6, 0)
+            addSphere(builderState, pA, 0.6, 0)
         } else {
             pos(centerA.element, pA)
             pos(centerB.element, pB)
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerA) * sizeFactor
-            builder.setGroup(i)
-            addFixedCountDashedCylinder(builder, pA, pB, 0.5, segmentCount, cylinderProps)
+            builderState.currentGroup = i
+            addFixedCountDashedCylinder(builderState, pA, pB, 0.5, segmentCount, cylinderProps)
 
             cylinderProps.radiusTop = cylinderProps.radiusBottom = theme.size.size(centerB) * sizeFactor
-            builder.setGroup(i + 1)
-            addFixedCountDashedCylinder(builder, pB, pA, 0.5, segmentCount, cylinderProps)
+            builderState.currentGroup = i + 1
+            addFixedCountDashedCylinder(builderState, pB, pA, 0.5, segmentCount, cylinderProps)
         }
 
         i += 2
     }
 
-    return builder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export const InterUnitLinkParams = {

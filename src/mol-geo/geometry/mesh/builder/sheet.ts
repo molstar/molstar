@@ -27,8 +27,8 @@ const p2 = Vec3.zero()
 const p3 = Vec3.zero()
 const p4 = Vec3.zero()
 
-function addCap(offset: number, builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, width: number, leftHeight: number, rightHeight: number) {
-    const { vertices, normals, indices } = builder.state
+function addCap(offset: number, state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, width: number, leftHeight: number, rightHeight: number) {
+    const { vertices, normals, indices } = state
     const vertexCount = vertices.elementCount
 
     Vec3.fromArray(verticalLeftVector, normalVectors, offset)
@@ -62,8 +62,8 @@ function addCap(offset: number, builder: MeshBuilder, controlPoints: ArrayLike<n
 }
 
 /** set arrowHeight = 0 for no arrow */
-export function addSheet(builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) {
-    const { currentGroup, vertices, normals, indices, groups } = builder.state
+export function addSheet(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, width: number, height: number, arrowHeight: number, startCap: boolean, endCap: boolean) {
+    const { currentGroup, vertices, normals, indices, groups } = state
 
     let vertexCount = vertices.elementCount
     let offsetLength = 0
@@ -150,18 +150,18 @@ export function addSheet(builder: MeshBuilder, controlPoints: ArrayLike<number>,
 
     if (startCap) {
         const h = arrowHeight === 0 ? height : arrowHeight
-        addCap(0, builder, controlPoints, normalVectors, binormalVectors, width, h, h)
+        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, h, h)
     } else if (arrowHeight > 0) {
-        addCap(0, builder, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height)
-        addCap(0, builder, controlPoints, normalVectors, binormalVectors, width, arrowHeight, -height)
+        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, -arrowHeight, height)
+        addCap(0, state, controlPoints, normalVectors, binormalVectors, width, arrowHeight, -height)
     }
 
     if (endCap && arrowHeight === 0) {
-        addCap(linearSegments * 3, builder, controlPoints, normalVectors, binormalVectors, width, height, height)
+        addCap(linearSegments * 3, state, controlPoints, normalVectors, binormalVectors, width, height, height)
     }
 
-    const addedVertexCount = (linearSegments + 1) * 8 + 
-        (startCap ? 4 : (arrowHeight > 0 ? 8 : 0)) + 
+    const addedVertexCount = (linearSegments + 1) * 8 +
+        (startCap ? 4 : (arrowHeight > 0 ? 8 : 0)) +
         (endCap && arrowHeight === 0 ? 4 : 0)
     for (let i = 0, il = addedVertexCount; i < il; ++i) ChunkedArray.add(groups, currentGroup)
 }

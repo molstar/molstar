@@ -27,8 +27,8 @@ function add3AndScale2(out: Vec3, a: Vec3, b: Vec3, c: Vec3, sa: number, sb: num
     out[2] = (a[2] * sa) + (b[2] * sb) + c[2];
 }
 
-export function addTube(builder: MeshBuilder, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) {
-    const { currentGroup, vertices, normals, indices, groups } = builder.state
+export function addTube(state: MeshBuilder.State, controlPoints: ArrayLike<number>, normalVectors: ArrayLike<number>, binormalVectors: ArrayLike<number>, linearSegments: number, radialSegments: number, width: number, height: number, waveFactor: number, startCap: boolean, endCap: boolean) {
+    const { currentGroup, vertices, normals, indices, groups } = state
 
     let vertexCount = vertices.elementCount
     const di = 1 / linearSegments

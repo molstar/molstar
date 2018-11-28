@@ -8,9 +8,7 @@ import { Unit, StructureElement, ElementIndex, ResidueIndex } from 'mol-model/st
 import { Segmentation } from 'mol-data/int';
 import Iterator from 'mol-data/iterator';
 import SortedRanges from 'mol-data/int/sorted-ranges';
-import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 import { getPolymerRanges } from '../polymer';
-import { AtomRole } from 'mol-model/structure/model/types';
 
 /** Iterates over consecutive pairs of residues/coarse elements in polymers */
 export function PolymerBackboneIterator(unit: Unit): Iterator<PolymerBackbonePair> {
@@ -37,6 +35,7 @@ function createPolymerBackbonePair (unit: Unit) {
 const enum AtomicPolymerBackboneIteratorState { nextPolymer, firstResidue, nextResidue, cycle }
 
 export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePair> {
+    private traceElementIndex: ArrayLike<ElementIndex>
     private value: PolymerBackbonePair
     private polymerIt: SortedRanges.Iterator<ElementIndex, ResidueIndex>
     private residueIt: Segmentation.SegmentIterator<ResidueIndex>
@@ -44,19 +43,13 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
     private residueSegment: Segmentation.Segment<ResidueIndex>
     hasNext: boolean = false;
 
-    private getElementIndex(residueIndex: ResidueIndex, atomRole: AtomRole) {
-        const { atomicHierarchy } = this.unit.model
-        const elementIndex = getElementIndexForAtomRole(this.unit.model, residueIndex, atomRole)
-        return elementIndex === -1 ? atomicHierarchy.residueAtomSegments.offsets[residueIndex] : elementIndex
-    }
-
     move() {
         if (this.state === AtomicPolymerBackboneIteratorState.nextPolymer) {
             while (this.polymerIt.hasNext) {
                 this.residueIt.setSegment(this.polymerIt.move());
                 if (this.residueIt.hasNext) {
                     this.residueSegment = this.residueIt.move()
-                    this.value.centerB.element = this.getElementIndex(this.residueSegment.index, 'trace')
+                    this.value.centerB.element = this.traceElementIndex[this.residueSegment.index]
                     this.state = AtomicPolymerBackboneIteratorState.nextResidue
                     break
                 }
@@ -66,7 +59,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
         if (this.state === AtomicPolymerBackboneIteratorState.nextResidue) {
             this.residueSegment = this.residueIt.move()
             this.value.centerA.element = this.value.centerB.element
-            this.value.centerB.element = this.getElementIndex(this.residueSegment.index, 'trace')
+            this.value.centerB.element = this.traceElementIndex[this.residueSegment.index]
             if (!this.residueIt.hasNext) {
                 if (this.unit.model.atomicHierarchy.cyclicPolymerMap.has(this.residueSegment.index)) {
                     this.state = AtomicPolymerBackboneIteratorState.cycle
@@ -78,7 +71,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
         } else if (this.state === AtomicPolymerBackboneIteratorState.cycle) {
             const { cyclicPolymerMap } = this.unit.model.atomicHierarchy
             this.value.centerA.element = this.value.centerB.element
-            this.value.centerB.element = this.getElementIndex(cyclicPolymerMap.get(this.residueSegment.index)!, 'trace')
+            this.value.centerB.element = this.traceElementIndex[cyclicPolymerMap.get(this.residueSegment.index)!]
             // TODO need to advance to a polymer that has two or more residues (can't assume it has)
             this.state = AtomicPolymerBackboneIteratorState.nextPolymer
         }
@@ -88,6 +81,7 @@ export class AtomicPolymerBackboneIterator implements Iterator<PolymerBackbonePa
     }
 
     constructor(private unit: Unit.Atomic) {
+        this.traceElementIndex = unit.model.atomicHierarchy.derived.residue.traceElementIndex
         this.polymerIt = SortedRanges.transientSegments(getPolymerRanges(unit), unit.elements)
         this.residueIt = Segmentation.transientSegments(unit.model.atomicHierarchy.residueAtomSegments, unit.elements)
         this.value = createPolymerBackbonePair(unit)

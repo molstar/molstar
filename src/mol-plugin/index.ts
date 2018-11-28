@@ -36,7 +36,8 @@ const DefaultSpec: PluginSpec = {
         PluginSpec.Behavior(PluginBehaviors.Representation.SelectLoci),
         PluginSpec.Behavior(PluginBehaviors.Representation.DefaultLociLabelProvider),
         PluginSpec.Behavior(PluginBehaviors.Camera.FocusLociOnSelect, { minRadius: 20, extraRadius: 4 }),
-        PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true })
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.PDBeStructureQualityReport, { autoAttach: true }),
+        PluginSpec.Behavior(PluginBehaviors.CustomProps.RCSBAssemblySymmetry, { autoAttach: true }),
     ]
 }
 

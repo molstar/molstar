@@ -33,5 +33,6 @@ export function UniformSizeTheme(ctx: ThemeDataContext, props: PD.Values<Uniform
 export const UniformSizeThemeProvider: SizeTheme.Provider<UniformSizeThemeParams> = {
     label: 'Uniform',
     factory: UniformSizeTheme,
-    getParams: getUniformSizeThemeParams
+    getParams: getUniformSizeThemeParams,
+    defaultValues: PD.getDefaultValues(UniformSizeThemeParams)
 }

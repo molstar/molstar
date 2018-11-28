@@ -32,7 +32,7 @@ export function DistanceRestraintRepresentation(ctx: RepresentationContext, getP
 }
 
 export const DistanceRestraintRepresentationProvider: StructureRepresentationProvider<typeof DistanceRestraintParams> = {
-    label: 'DistanceRestraint',
+    label: 'Distance Restraint',
     description: 'Displays cross-link distance restraints.',
     factory: DistanceRestraintRepresentation,
     getParams: getDistanceRestraintParams,

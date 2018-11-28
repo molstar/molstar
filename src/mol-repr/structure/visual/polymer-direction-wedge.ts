@@ -43,7 +43,7 @@ function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structu
     const { sizeFactor } = props
 
     const vertexCount = polymerElementCount * 24
-    const builder = MeshBuilder.create(vertexCount, vertexCount / 10, mesh)
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 10, mesh)
     const linearSegments = 1
 
     const state = createCurveSegmentState(linearSegments)
@@ -53,7 +53,7 @@ function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structu
     const polymerTraceIt = PolymerTraceIterator(unit)
     while (polymerTraceIt.hasNext) {
         const v = polymerTraceIt.move()
-        builder.setGroup(i)
+        builderState.currentGroup = i
 
         const isNucleicType = isNucleic(v.moleculeType)
         const isSheet = SecondaryStructureType.is(v.secStrucType, SecondaryStructureType.Flag.Beta)
@@ -77,13 +77,13 @@ function createPolymerDirectionWedgeMesh(ctx: VisualContext, unit: Unit, structu
             Mat4.mul(t, t, Mat4.rotY90Z180)
             Mat4.scale(t, t, Vec3.set(sVec, height, width, depth))
             Mat4.setTranslation(t, v.p2)
-            builder.add(t, wedge)
+            MeshBuilder.addPrimitive(builderState, t, wedge)
         }
 
         ++i
     }
 
-    return builder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export const PolymerDirectionParams = {

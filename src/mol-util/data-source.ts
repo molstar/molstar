@@ -19,6 +19,7 @@ export interface AjaxGetParams {
     type: 'string' | 'binary',
     title?: string,
     compression?: DataCompressionMethod
+    body?: string
 }
 
 export function readStringFromFile(file: File) {
@@ -42,8 +43,10 @@ export function ajaxGetUint8Array(url: string, title?: string) {
 }
 
 export function ajaxGet(params: AjaxGetParams) {
-    return <Task<string | Uint8Array>>ajaxGetInternal(params.title, params.url, params.type === 'binary', params.compression === DataCompressionMethod.Gzip);
+    return <Task<string | Uint8Array>>ajaxGetInternal(params.title, params.url, params.type === 'binary', params.compression === DataCompressionMethod.Gzip, params.body);
 }
+
+export type AjaxTask = (url: string, type: 'string' | 'binary') => Task<string | Uint8Array>
 
 function decompress(buffer: Uint8Array): Uint8Array {
     // TODO
@@ -160,7 +163,7 @@ async function processAjax(ctx: RuntimeContext, asUint8Array: boolean, decompres
     }
 }
 
-function ajaxGetInternal(title: string | undefined, url: string, asUint8Array: boolean, decompressGzip: boolean): Task<string | Uint8Array> {
+function ajaxGetInternal(title: string | undefined, url: string, asUint8Array: boolean, decompressGzip: boolean, body?: string): Task<string | Uint8Array> {
     let xhttp: XMLHttpRequest | undefined = void 0;
     return Task.create(title ? title : 'Download', async ctx => {
         try {
@@ -170,9 +173,9 @@ function ajaxGetInternal(title: string | undefined, url: string, asUint8Array: b
 
             xhttp = RequestPool.get();
 
-            xhttp.open('get', url, true);
+            xhttp.open(body ? 'post' : 'get', url, true);
             xhttp.responseType = asUint8Array ? 'arraybuffer' : 'text';
-            xhttp.send();
+            xhttp.send(body);
 
             ctx.update({ message: 'Waiting for server...', canAbort: true });
             const e = await readData(ctx, 'Downloading...', xhttp, asUint8Array);

@@ -40,15 +40,15 @@ function getCylinder(props: CylinderProps) {
     return cylinder
 }
 
-export function addCylinder(builder: MeshBuilder, start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) {
+export function addCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, props: CylinderProps) {
     const d = Vec3.distance(start, end) * lengthScale
     props.height = d
     Vec3.sub(tmpCylinderDir, end, start)
     setCylinderMat(tmpCylinderMat, start, tmpCylinderDir, d)
-    builder.add(tmpCylinderMat, getCylinder(props))
+    MeshBuilder.addPrimitive(state, tmpCylinderMat, getCylinder(props))
 }
 
-export function addDoubleCylinder(builder: MeshBuilder, start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps) {
+export function addDoubleCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, shift: Vec3, props: CylinderProps) {
     const d = Vec3.distance(start, end) * lengthScale
     props.height = d
     const cylinder = getCylinder(props)
@@ -56,14 +56,14 @@ export function addDoubleCylinder(builder: MeshBuilder, start: Vec3, end: Vec3, 
     // positivly shifted cylinder
     Vec3.add(tmpCylinderStart, start, shift)
     setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d)
-    builder.add(tmpCylinderMat, cylinder)
+    MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder)
     // negativly shifted cylinder
     Vec3.sub(tmpCylinderStart, start, shift)
     setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d)
-    builder.add(tmpCylinderMat, cylinder)
+    MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder)
 }
 
-export function addFixedCountDashedCylinder(builder: MeshBuilder, start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps) {
+export function addFixedCountDashedCylinder(state: MeshBuilder.State, start: Vec3, end: Vec3, lengthScale: number, segmentCount: number, props: CylinderProps) {
     const s = Math.floor(segmentCount / 2)
     const step = 1 / segmentCount
 
@@ -84,6 +84,6 @@ export function addFixedCountDashedCylinder(builder: MeshBuilder, start: Vec3, e
         Vec3.setMagnitude(tmpCylinderDir, tmpCylinderDir, d * f)
         Vec3.add(tmpCylinderStart, start, tmpCylinderDir)
         setCylinderMat(tmpCylinderMat, tmpCylinderStart, tmpCylinderDir, d * step)
-        builder.add(tmpCylinderMat, cylinder)
+        MeshBuilder.addPrimitive(state, tmpCylinderMat, cylinder)
     }
 }

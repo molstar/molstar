@@ -7,12 +7,12 @@
 import { Unit, ElementIndex } from 'mol-model/structure';
 import { Segmentation, OrderedSet, Interval, SortedArray } from 'mol-data/int';
 import SortedRanges from 'mol-data/int/sorted-ranges';
-import { getElementIndexForAtomRole } from 'mol-model/structure/util';
 
 export function getAtomicPolymerElements(unit: Unit.Atomic) {
     const indices: ElementIndex[] = []
     const { elements, model } = unit
     const { residueAtomSegments } = unit.model.atomicHierarchy
+    const { traceElementIndex } = model.atomicHierarchy.derived.residue
     const polymerIt = SortedRanges.transientSegments(unit.model.atomicHierarchy.polymerRanges, elements)
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements)
     while (polymerIt.hasNext) {
@@ -22,7 +22,7 @@ export function getAtomicPolymerElements(unit: Unit.Atomic) {
             const residueSegment = residueIt.move()
             const { start, end, index } = residueSegment
             if (OrderedSet.areIntersecting(Interval.ofRange(elements[start], elements[end - 1]), elements)) {
-                const elementIndex = getElementIndexForAtomRole(model, index, 'trace')
+                const elementIndex = traceElementIndex[index]
                 indices.push(elementIndex === -1 ? residueAtomSegments.offsets[index] : elementIndex)
             }
         }
@@ -47,13 +47,14 @@ export function getAtomicGapElements(unit: Unit.Atomic) {
     const indices: ElementIndex[] = []
     const { elements, model, residueIndex } = unit
     const { residueAtomSegments } = unit.model.atomicHierarchy
+    const { traceElementIndex } = model.atomicHierarchy.derived.residue
     const gapIt = SortedRanges.transientSegments(unit.model.atomicHierarchy.gapRanges, unit.elements);
     while (gapIt.hasNext) {
         const gapSegment = gapIt.move();
         const indexStart = residueIndex[elements[gapSegment.start]]
         const indexEnd = residueIndex[elements[gapSegment.end - 1]]
-        const elementIndexStart = getElementIndexForAtomRole(model, indexStart, 'trace')
-        const elementIndexEnd = getElementIndexForAtomRole(model, indexEnd, 'trace')
+        const elementIndexStart = traceElementIndex[indexStart]
+        const elementIndexEnd = traceElementIndex[indexEnd]
         indices.push(elementIndexStart === -1 ? residueAtomSegments.offsets[indexStart] : elementIndexStart)
         indices.push(elementIndexEnd === -1 ? residueAtomSegments.offsets[indexEnd] : elementIndexEnd)
 

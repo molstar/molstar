@@ -8,8 +8,7 @@ import { Unit, Structure, ElementIndex } from 'mol-model/structure';
 import { UnitsVisual } from '../representation';
 import { Vec3, Mat4 } from 'mol-math/linear-algebra';
 import { Segmentation } from 'mol-data/int';
-import { MoleculeType, isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
-import { getElementIndexForAtomRole } from 'mol-model/structure/util';
+import { isNucleic, isPurinBase, isPyrimidineBase } from 'mol-model/structure/model/types';
 import { UnitsMeshVisual, UnitsMeshParams } from '../units-visual';
 import { NucleotideLocationIterator, markNucleotideElement, getNucleotideElementLoci } from './util/nucleotide';
 import { ParamDefinition as PD } from 'mol-util/param-definition';
@@ -20,6 +19,7 @@ import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { VisualContext } from 'mol-repr/representation';
 import { Theme } from 'mol-theme/theme';
 import { VisualUpdateState } from 'mol-repr/util';
+import { CylinderProps } from 'mol-geo/primitive/cylinder';
 
 const p1 = Vec3.zero()
 const p2 = Vec3.zero()
@@ -37,6 +37,7 @@ const box = Box()
 
 export const NucleotideBlockMeshParams = {
     sizeFactor: PD.Numeric(0.2, { min: 0, max: 10, step: 0.01 }),
+    radialSegments: PD.Numeric(16, { min: 3, max: 56, step: 1 }),
 }
 export const DefaultNucleotideBlockMeshProps = PD.getDefaultValues(NucleotideBlockMeshParams)
 export type NucleotideBlockMeshProps = typeof DefaultNucleotideBlockMeshProps
@@ -44,19 +45,25 @@ export type NucleotideBlockMeshProps = typeof DefaultNucleotideBlockMeshProps
 function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: Structure, theme: Theme, props: NucleotideBlockMeshProps, mesh?: Mesh) {
     if (!Unit.isAtomic(unit)) return Mesh.createEmpty(mesh)
 
-    const { sizeFactor } = props
+    const nucleotideElementCount = unit.nucleotideElements.length
+    if (!nucleotideElementCount) return Mesh.createEmpty(mesh)
 
-    // TODO better vertex count estimate
-    const builder = MeshBuilder.create(256, 128, mesh)
+    const { sizeFactor, radialSegments } = props
+
+    const vertexCount = nucleotideElementCount * (box.vertices.length / 3 + radialSegments * 2)
+    const builderState = MeshBuilder.createState(vertexCount, vertexCount / 4, mesh)
 
     const { elements, model } = unit
-    const { chemicalComponentMap, modifiedResidues } = model.properties
+    const { modifiedResidues } = model.properties
     const { chainAtomSegments, residueAtomSegments, residues, index: atomicIndex } = model.atomicHierarchy
+    const { moleculeType, traceElementIndex } = model.atomicHierarchy.derived.residue
     const { label_comp_id } = residues
     const pos = unit.conformation.invariantPosition
 
     const chainIt = Segmentation.transientSegments(chainAtomSegments, elements)
     const residueIt = Segmentation.transientSegments(residueAtomSegments, elements)
+
+    const cylinderProps: CylinderProps = { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor, radialSegments }
 
     let i = 0
     while (chainIt.hasNext) {
@@ -64,11 +71,9 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
 
         while (residueIt.hasNext) {
             const { index: residueIndex } = residueIt.move();
-            let compId = label_comp_id.value(residueIndex)
-            const cc = chemicalComponentMap.get(compId)
-            const moleculeType = cc ? cc.moleculeType : MoleculeType.unknown
 
-            if (isNucleic(moleculeType)) {
+            if (isNucleic(moleculeType[residueIndex])) {
+                let compId = label_comp_id.value(residueIndex)
                 const parentId = modifiedResidues.parentId.get(compId)
                 if (parentId !== undefined) compId = parentId
                 let idx1: ElementIndex | -1 = -1, idx2: ElementIndex | -1 = -1, idx3: ElementIndex | -1 = -1, idx4: ElementIndex | -1 = -1, idx5: ElementIndex | -1 = -1, idx6: ElementIndex | -1 = -1
@@ -81,7 +86,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                     idx3 = atomicIndex.findAtomOnResidue(residueIndex, 'C6')
                     idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
                     idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N9')
-                    idx6 = getElementIndexForAtomRole(model, residueIndex, 'trace')
+                    idx6 = traceElementIndex[residueIndex]
                 } else if (isPyrimidineBase(compId)) {
                     height = 3.0
                     idx1 = atomicIndex.findAtomOnResidue(residueIndex, 'N3')
@@ -89,13 +94,13 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                     idx3 = atomicIndex.findAtomOnResidue(residueIndex, 'C4')
                     idx4 = atomicIndex.findAtomOnResidue(residueIndex, 'C2')
                     idx5 = atomicIndex.findAtomOnResidue(residueIndex, 'N1')
-                    idx6 = getElementIndexForAtomRole(model, residueIndex, 'trace')
+                    idx6 = traceElementIndex[residueIndex]
                 }
 
                 if (idx5 !== -1 && idx6 !== -1) {
                     pos(idx5, p5); pos(idx6, p6)
-                    builder.setGroup(i)
-                    addCylinder(builder, p5, p6, 1, { radiusTop: 1 * sizeFactor, radiusBottom: 1 * sizeFactor })
+                    builderState.currentGroup = i
+                    addCylinder(builderState, p5, p6, 1, cylinderProps)
                     if (idx1 !== -1 && idx2 !== -1 && idx3 !== -1 && idx4 !== -1) {
                         pos(idx1, p1); pos(idx2, p2); pos(idx3, p3); pos(idx4, p4);
                         Vec3.normalize(v12, Vec3.sub(v12, p2, p1))
@@ -105,7 +110,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
                         Vec3.scaleAndAdd(center, p1, v12, height / 2 - 0.2)
                         Mat4.scale(t, t, Vec3.set(sVec, width, depth, height))
                         Mat4.setTranslation(t, center)
-                        builder.add(t, box)
+                        MeshBuilder.addPrimitive(builderState, t, box)
                     }
                 }
 
@@ -114,7 +119,7 @@ function createNucleotideBlockMesh(ctx: VisualContext, unit: Unit, structure: St
         }
     }
 
-    return builder.getMesh()
+    return MeshBuilder.getMesh(builderState)
 }
 
 export const NucleotideBlockParams = {
@@ -132,7 +137,8 @@ export function NucleotideBlockVisual(): UnitsVisual<NucleotideBlockParams> {
         mark: markNucleotideElement,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<NucleotideBlockParams>, currentProps: PD.Values<NucleotideBlockParams>) => {
             state.createGeometry = (
-                newProps.sizeFactor !== currentProps.sizeFactor
+                newProps.sizeFactor !== currentProps.sizeFactor ||
+                newProps.radialSegments !== currentProps.radialSegments
             )
         }
     })

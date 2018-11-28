@@ -15,7 +15,7 @@ const tmpStart = Vec3.zero()
 const tmpEnd = Vec3.zero()
 const cylinderProps: CylinderProps = {}
 
-export function addBoundingBox(builder: MeshBuilder, box: Box3D, radius: number, detail: number, radialSegments: number) {
+export function addBoundingBox(state: MeshBuilder.State, box: Box3D, radius: number, detail: number, radialSegments: number) {
     const { min, max } = box
 
     cylinderProps.radiusTop = radius
@@ -23,43 +23,43 @@ export function addBoundingBox(builder: MeshBuilder, box: Box3D, radius: number,
     cylinderProps.radialSegments = radialSegments
 
     Vec3.set(tmpStart, max[0], max[1], max[2])
-    addSphere(builder, tmpStart, radius, detail)
+    addSphere(state, tmpStart, radius, detail)
     Vec3.set(tmpEnd, max[0], max[1], min[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
     Vec3.set(tmpEnd, max[0], min[1], max[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
     Vec3.set(tmpEnd, min[0], max[1], max[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
 
     Vec3.set(tmpStart, min[0], min[1], min[2])
-    addSphere(builder, tmpStart, radius, detail)
+    addSphere(state, tmpStart, radius, detail)
     Vec3.set(tmpEnd, min[0], min[1], max[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
     Vec3.set(tmpEnd, min[0], max[1], min[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
     Vec3.set(tmpEnd, max[0], min[1], min[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
 
     Vec3.set(tmpStart, max[0], min[1], min[2])
-    addSphere(builder, tmpStart, radius, detail)
+    addSphere(state, tmpStart, radius, detail)
     Vec3.set(tmpEnd, max[0], min[1], max[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
     Vec3.set(tmpEnd, max[0], max[1], min[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
 
     Vec3.set(tmpStart, min[0], min[1], max[2])
-    addSphere(builder, tmpStart, radius, detail)
+    addSphere(state, tmpStart, radius, detail)
     Vec3.set(tmpEnd, min[0], max[1], max[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
     Vec3.set(tmpEnd, max[0], min[1], max[2])
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
 
     Vec3.set(tmpStart, min[0], max[1], min[2])
-    addSphere(builder, tmpStart, radius, detail)
+    addSphere(state, tmpStart, radius, detail)
     Vec3.set(tmpEnd, max[0], max[1], min[2])
-    addSphere(builder, tmpEnd, radius, detail)
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addSphere(state, tmpEnd, radius, detail)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
     Vec3.set(tmpEnd, min[0], max[1], max[2])
-    addSphere(builder, tmpEnd, radius, detail)
-    addCylinder(builder, tmpStart, tmpEnd, 1, cylinderProps)
+    addSphere(state, tmpEnd, radius, detail)
+    addCylinder(state, tmpStart, tmpEnd, 1, cylinderProps)
 }

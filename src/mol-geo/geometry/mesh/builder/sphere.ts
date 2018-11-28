@@ -25,6 +25,6 @@ function getSphere(detail: number) {
     return sphere
 }
 
-export function addSphere(builder: MeshBuilder, center: Vec3, radius: number, detail: number) {
-    builder.add(setSphereMat(tmpSphereMat, center, radius), getSphere(detail))
+export function addSphere(state: MeshBuilder.State, center: Vec3, radius: number, detail: number) {
+    MeshBuilder.addPrimitive(state, setSphereMat(tmpSphereMat, center, radius), getSphere(detail))
 }

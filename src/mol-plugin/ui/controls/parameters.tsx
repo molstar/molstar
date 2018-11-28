@@ -6,11 +6,16 @@
  */
 
 import * as React from 'react'
+
 import { ParamDefinition as PD } from 'mol-util/param-definition';
 import { camelCaseToWords } from 'mol-util/string';
 import { ColorNames, ColorNamesValueMap } from 'mol-util/color/tables';
 import { Color } from 'mol-util/color';
+import { Vec2 } from 'mol-math/linear-algebra';
+import LineGraphComponent from './line-graph/line-graph-component';
+
 import { Slider, Slider2 } from './slider';
+
 
 export interface ParameterControlsProps<P extends PD.Params = PD.Params> {
     params: P,
@@ -53,7 +58,7 @@ function controlFor(param: PD.Any): ParamControl | undefined {
         ? BoundedIntervalControl : IntervalControl;
         case 'group': return GroupControl;
         case 'mapped': return MappedControl;
-        case 'line-graph': return void 0;
+        case 'line-graph': return LineGraphControl;
     }
     console.warn(`${(param as any).type} has no associated UI component.`);
     return void 0;
@@ -90,6 +95,57 @@ export class BoolControl extends SimpleParam<PD.Boolean> {
             <span className={`msp-icon msp-icon-${this.props.value ? 'ok' : 'off'}`} />
             {this.props.value ? 'On' : 'Off'}
         </button>;
+    }
+}
+
+export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, message: string }> {
+    state = {
+        isExpanded: false,
+        isOverPoint: false,
+        message: `${this.props.param.defaultValue.length} points`,
+    }
+
+    onHover = (point?: Vec2) => {
+        this.setState({isOverPoint: !this.state.isOverPoint});
+        if (point) {
+            this.setState({message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`});
+            return;
+        }
+        this.setState({message: `${this.props.value.length} points`});
+    }
+
+    onDrag = (point: Vec2) => {
+        this.setState({message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`});
+    }
+
+    onChange = (value: PD.LineGraph['defaultValue'] ) => {
+        this.props.onChange({ name: this.props.name, param: this.props.param, value: value});
+    }
+
+    toggleExpanded = (e: React.MouseEvent<HTMLButtonElement>) => {
+        this.setState({ isExpanded: !this.state.isExpanded });
+        e.currentTarget.blur();
+    }
+
+    render() {
+        const label = this.props.param.label || camelCaseToWords(this.props.name);
+        return <>
+            <div className='msp-control-row'>
+                <span>{label}</span>
+                <div>
+                    <button onClick={this.toggleExpanded}>
+                        {`${this.state.message}`}
+                    </button>
+                </div>
+            </div>
+            <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
+                <LineGraphComponent
+                    data={this.props.param.defaultValue}
+                    onChange={this.onChange}
+                    onHover={this.onHover}
+                    onDrag={this.onDrag}/>
+            </div>
+        </>;
     }
 }
 
@@ -137,8 +193,14 @@ export class TextControl extends SimpleParam<PD.Text> {
     }
 }
 
-export class SelectControl extends SimpleParam<PD.Select<any>> {
-    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
+export class SelectControl extends SimpleParam<PD.Select<string | number>> {
+    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (typeof this.props.param.defaultValue === 'number') {
+            this.update(parseInt(e.target.value, 10));
+        } else {
+            this.update(e.target.value);
+        }
+    }
     renderControl() {
         return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
             {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
