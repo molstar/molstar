@@ -6,7 +6,7 @@
 
 import { PluginContext } from '../context';
 import { PickingId } from 'mol-geo/geometry/picking';
-import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
+import { EmptyLoci, Loci } from 'mol-model/loci';
 import { Representation } from 'mol-repr/representation';
 
 export class Canvas3dIdentifyHelper {
@@ -45,7 +45,7 @@ export class Canvas3dIdentifyHelper {
         }
 
         const loci = this.ctx.canvas3d.getLoci(this.id);
-        if (loci.repr !== this.prevLoci.repr || !areLociEqual(loci.loci, this.prevLoci.loci)) {
+        if (loci.repr !== this.prevLoci.repr || !Loci.areEqual(loci.loci, this.prevLoci.loci)) {
             this.ctx.behaviors.canvas.highlightLoci.next(loci);
             this.prevLoci = loci;
         }

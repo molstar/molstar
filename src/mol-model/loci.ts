@@ -43,33 +43,31 @@ export function createDataLoci(data: any, tag: string, indices: OrderedSet<numbe
     return { kind: 'data-loci', data, tag, indices }
 }
 
-export function areLociEqual(lociA: Loci, lociB: Loci) {
-    if (isEveryLoci(lociA) && isEveryLoci(lociB)) return true
-    if (isEmptyLoci(lociA) && isEmptyLoci(lociB)) return true
-    if (isDataLoci(lociA) && isDataLoci(lociB)) {
-        return areDataLociEqual(lociA, lociB)
-    }
-    if (Structure.isLoci(lociA) && Structure.isLoci(lociB)) {
-        return Structure.areLociEqual(lociA, lociB)
-    }
-    if (StructureElement.isLoci(lociA) && StructureElement.isLoci(lociB)) {
-        return StructureElement.areLociEqual(lociA, lociB)
-    }
-    if (Link.isLoci(lociA) && Link.isLoci(lociB)) {
-        return Link.areLociEqual(lociA, lociB)
-    }
-    if (Shape.isLoci(lociA) && Shape.isLoci(lociB)) {
-        return Shape.areLociEqual(lociA, lociB)
-    }
-    return false
-}
-
-
 export { Loci }
 
 type Loci = StructureElement.Loci | Structure.Loci | Link.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci
 
 namespace Loci {
+    export function areEqual(lociA: Loci, lociB: Loci) {
+        if (isEveryLoci(lociA) && isEveryLoci(lociB)) return true
+        if (isEmptyLoci(lociA) && isEmptyLoci(lociB)) return true
+        if (isDataLoci(lociA) && isDataLoci(lociB)) {
+            return areDataLociEqual(lociA, lociB)
+        }
+        if (Structure.isLoci(lociA) && Structure.isLoci(lociB)) {
+            return Structure.areLociEqual(lociA, lociB)
+        }
+        if (StructureElement.isLoci(lociA) && StructureElement.isLoci(lociB)) {
+            return StructureElement.areLociEqual(lociA, lociB)
+        }
+        if (Link.isLoci(lociA) && Link.isLoci(lociB)) {
+            return Link.areLociEqual(lociA, lociB)
+        }
+        if (Shape.isLoci(lociA) && Shape.isLoci(lociB)) {
+            return Shape.areLociEqual(lociA, lociB)
+        }
+        return false
+    }
 
     const sphereHelper = new CentroidHelper(), tempPos = Vec3.zero();
 

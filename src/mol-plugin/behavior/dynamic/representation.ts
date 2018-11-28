@@ -5,7 +5,7 @@
  */
 
 import { PluginBehavior } from '../behavior';
-import { EmptyLoci, Loci, areLociEqual } from 'mol-model/loci';
+import { EmptyLoci, Loci } from 'mol-model/loci';
 import { MarkerAction } from 'mol-geo/geometry/marker-data';
 import { labelFirst } from 'mol-theme/label';
 import { PluginContext } from 'mol-plugin/context';
@@ -18,7 +18,7 @@ export const HighlightLoci = PluginBehavior.create({
             this.subscribeObservable(this.ctx.behaviors.canvas.highlightLoci, current => {
                 if (!this.ctx.canvas3d) return;
 
-                if (current.repr !== prevRepr || !areLociEqual(current.loci, prevLoci)) {
+                if (current.repr !== prevRepr || !Loci.areEqual(current.loci, prevLoci)) {
                     this.ctx.canvas3d.mark(prevLoci, MarkerAction.RemoveHighlight, prevRepr);
                     this.ctx.canvas3d.mark(current.loci, MarkerAction.Highlight, current.repr);
                     prevLoci = current.loci;
@@ -37,7 +37,7 @@ export const SelectLoci = PluginBehavior.create({
             let prevLoci: Loci = EmptyLoci, prevRepr: any = void 0;
             this.subscribeObservable(this.ctx.behaviors.canvas.selectLoci, current => {
                 if (!this.ctx.canvas3d) return;
-                if (current.repr !== prevRepr || !areLociEqual(current.loci, prevLoci)) {
+                if (current.repr !== prevRepr || !Loci.areEqual(current.loci, prevLoci)) {
                     this.ctx.canvas3d.mark(prevLoci, MarkerAction.Deselect, prevRepr);
                     this.ctx.canvas3d.mark(current.loci, MarkerAction.Select, current.repr);
                     prevLoci = current.loci;
