@@ -51,9 +51,10 @@ class UpdateTransformContol extends TransformContolBase<UpdateTransformContol.Pr
 
     static getDerivedStateFromProps(props: UpdateTransformContol.Props, state: UpdateTransformContol.ComponentState) {
         if (props.transform === state.transform) return null;
+        const cell = props.state.cells.get(props.transform.ref)!;
         const newState: Partial<UpdateTransformContol.ComponentState> = {
             transform: props.transform,
-            params: props.transform.params,
+            params: (cell.params && cell.params.values) || { },
             isInitial: true,
             error: void 0
         };

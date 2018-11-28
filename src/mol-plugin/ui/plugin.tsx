@@ -143,7 +143,6 @@ export class CurrentObject extends PluginComponent {
 
     render() {
         const current = this.current;
-
         const ref = current.ref;
         const cell = current.state.cells.get(ref)!;
         const parent: StateObjectCell | undefined = (cell.sourceRef && current.state.cells.get(cell.sourceRef)!) || void 0;
