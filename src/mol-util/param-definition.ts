@@ -42,12 +42,12 @@ export namespace ParamDefinition {
         return setInfo<Value<T>>({ type: 'value', defaultValue }, info);
     }
 
-    export interface Select<T extends string> extends Base<T> {
+    export interface Select<T extends string | number> extends Base<T> {
         type: 'select'
         /** array of (value, label) tuples */
         options: [T, string][]
     }
-    export function Select<T extends string>(defaultValue: T, options: [T, string][], info?: Info): Select<T> {
+    export function Select<T extends string | number>(defaultValue: T, options: [T, string][], info?: Info): Select<T> {
         return setInfo<Select<T>>({ type: 'select', defaultValue, options }, info)
     }
 

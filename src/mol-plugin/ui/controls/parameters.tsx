@@ -99,7 +99,7 @@ export class BoolControl extends SimpleParam<PD.Boolean> {
 }
 
 export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGraph>, { isExpanded: boolean, isOverPoint: boolean, message: string }> {
-    state = { 
+    state = {
         isExpanded: false,
         isOverPoint: false,
         message: `${this.props.param.defaultValue.length} points`,
@@ -107,7 +107,7 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
 
     onHover = (point?: Vec2) => {
         this.setState({isOverPoint: !this.state.isOverPoint});
-        if(point){
+        if (point) {
             this.setState({message: `(${point[0].toFixed(2)}, ${point[1].toFixed(2)})`});
             return;
         }
@@ -140,8 +140,8 @@ export class LineGraphControl extends React.PureComponent<ParamProps<PD.LineGrap
             </div>
             <div className='msp-control-offset' style={{ display: this.state.isExpanded ? 'block' : 'none' }}>
                 <LineGraphComponent
-                    data={this.props.param.defaultValue} 
-                    onChange={this.onChange} 
+                    data={this.props.param.defaultValue}
+                    onChange={this.onChange}
                     onHover={this.onHover}
                     onDrag={this.onDrag}/>
             </div>
@@ -193,8 +193,14 @@ export class TextControl extends SimpleParam<PD.Text> {
     }
 }
 
-export class SelectControl extends SimpleParam<PD.Select<any>> {
-    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => { this.update(e.target.value); }
+export class SelectControl extends SimpleParam<PD.Select<string | number>> {
+    onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if (typeof this.props.param.defaultValue === 'number') {
+            this.update(parseInt(e.target.value, 10));
+        } else {
+            this.update(e.target.value);
+        }
+    }
     renderControl() {
         return <select value={this.props.value || ''} onChange={this.onChange} disabled={this.props.isDisabled}>
             {this.props.param.options.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
