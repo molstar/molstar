@@ -179,7 +179,7 @@ namespace Canvas3D {
             }
         }
 
-        function render(variant: RenderVariant, force: boolean) {
+        function render(variant: 'pick' | 'draw', force: boolean) {
             if (isPicking || isUpdating) return false
 
             let didRender = false
@@ -190,19 +190,21 @@ namespace Canvas3D {
 
             if (force || cameraChanged) {
                 switch (variant) {
-                    case 'pickObject': objectPickTarget.bind(); break;
-                    case 'pickInstance': instancePickTarget.bind(); break;
-                    case 'pickGroup': groupPickTarget.bind(); break;
+                    case 'pick':
+                        objectPickTarget.bind();
+                        renderer.render(scene, 'pickObject');
+                        instancePickTarget.bind();
+                        renderer.render(scene, 'pickInstance');
+                        groupPickTarget.bind();
+                        renderer.render(scene, 'pickGroup');
+                        break;
                     case 'draw':
                         webgl.unbindFramebuffer();
                         renderer.setViewport(0, 0, canvas.width, canvas.height);
+                        renderer.render(scene, variant);
+                        lastRenderTime = now()
+                        pickDirty = true
                         break;
-                }
-
-                renderer.render(scene, variant)
-                if (variant === 'draw') {
-                    lastRenderTime = now()
-                    pickDirty = true
                 }
                 didRender = true
             }
@@ -230,18 +232,18 @@ namespace Canvas3D {
             const t = now();
             camera.transition.tick(t);
             draw(false)
-            if (t - lastRenderTime > 200) {
-                if (pickDirty) pick()
+            if (t - lastRenderTime > 1000 / 12 /** picking at 12 fps */ && pickDirty) {
+                // TODO would it not be better to call pick in identify?
+                // because currently for example highlighting something
+                // sets pickDirty = true that is not true
+                // there should definitely be a better "dirty" mechanism
+                pick();
             }
             window.requestAnimationFrame(animate)
         }
 
         function pick() {
-            render('pickObject', pickDirty)
-            render('pickInstance', pickDirty)
-            render('pickGroup', pickDirty)
-            webgl.gl.finish()
-
+            render('pick', pickDirty)
             pickDirty = false
         }
 
