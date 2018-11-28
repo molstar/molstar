@@ -56,7 +56,7 @@ export class ViewportWrapper extends PluginComponent {
     render() {
         return <>
             <Viewport />
-            <div style={{ position: 'absolute', left: '10px', top: '10px', height: '100%', color: 'white' }}>
+            <div style={{ position: 'absolute', left: '10px', top: '10px', color: 'white' }}>
                 <TrajectoryControls />
             </div>
             <ViewportControls />
