@@ -18,9 +18,11 @@ import { addCylinder } from 'mol-geo/geometry/mesh/builder/cylinder';
 import { VisualUpdateState } from 'mol-repr/util';
 import { ComplexMeshVisual, ComplexMeshParams } from 'mol-repr/structure/complex-visual';
 import { Mesh } from 'mol-geo/geometry/mesh/mesh';
-import { EmptyLoci } from 'mol-model/loci';
+import { EmptyLoci, createDataLoci, Loci, isDataLoci } from 'mol-model/loci';
 import { LocationIterator } from 'mol-geo/util/location-iterator';
 import { NullLocation } from 'mol-model/location';
+import { PickingId } from 'mol-geo/geometry/picking';
+import { OrderedSet, Interval } from 'mol-data/int';
 
 export const AssemblySymmetryAxesParams = {
     ...ComplexMeshParams,
@@ -75,8 +77,8 @@ export function AssemblySymmetryAxesVisual(): ComplexVisual<AssemblySymmetryAxes
         defaultProps: PD.getDefaultValues(AssemblySymmetryAxesParams),
         createGeometry: createAssemblySymmetryAxesMesh,
         createLocationIterator,
-        getLoci: () => EmptyLoci,
-        mark: () => false,
+        getLoci,
+        mark,
         setUpdateState: (state: VisualUpdateState, newProps: PD.Values<AssemblySymmetryAxesParams>, currentProps: PD.Values<AssemblySymmetryAxesParams>) => {
             state.createGeometry = (
                 newProps.sizeFactor !== currentProps.sizeFactor ||
@@ -88,15 +90,29 @@ export function AssemblySymmetryAxesVisual(): ComplexVisual<AssemblySymmetryAxes
 }
 
 function createLocationIterator(structure: Structure) {
-    let groupCount = 0
-
     const assemblySymmetry = AssemblySymmetry.get(structure.models[0])
-    if (assemblySymmetry) {
-        const axis = assemblySymmetry.db.rcsb_assembly_symmetry_axis
-        groupCount = axis._rowCount
-    }
-
+    const groupCount = assemblySymmetry ? assemblySymmetry.db.rcsb_assembly_symmetry_axis._rowCount : 0
     return LocationIterator(groupCount, 1, () => NullLocation)
+}
+
+function getLoci(pickingId: PickingId, structure: Structure, id: number) {
+    const { objectId, groupId } = pickingId
+    if (id === objectId) {
+        const assemblySymmetry = AssemblySymmetry.get(structure.models[0])
+        if (assemblySymmetry) {
+            return createDataLoci(assemblySymmetry, 'axes', OrderedSet.ofSingleton(groupId))
+        }
+    }
+    return EmptyLoci
+}
+
+function mark(loci: Loci, structure: Structure, apply: (interval: Interval) => boolean) {
+    let changed = false
+    if (!isDataLoci(loci) || loci.tag !== 'axes') return false
+    const assemblySymmetry = AssemblySymmetry.get(structure.models[0])
+    if (!assemblySymmetry || loci.data !== assemblySymmetry) return false
+    OrderedSet.forEach(loci.indices, v => { if (apply(Interval.ofSingleton(v))) changed = true })
+    return changed
 }
 
 export function createAssemblySymmetryAxesMesh(ctx: VisualContext, structure: Structure, theme: Theme, props: PD.Values<AssemblySymmetryAxesParams>, mesh?: Mesh) {
@@ -113,16 +129,18 @@ export function createAssemblySymmetryAxesMesh(ctx: VisualContext, structure: St
     // symmetry.assembly_id not available for structure.assemblyName
     if (symmetry.assembly_id !== structure.assemblyName) return Mesh.createEmpty(mesh)
 
-    const axes = assemblySymmetry.getAxes(symmetryId)
-    if (!axes._rowCount) return Mesh.createEmpty(mesh)
-
+    const axes = assemblySymmetry.db.rcsb_assembly_symmetry_axis
     const vectorSpace = AssemblySymmetry.Schema.rcsb_assembly_symmetry_axis.start.space;
     // const colors: Color[] = []
     // const labels: string[] = []
+
     const radius = 1 * sizeFactor
     const cylinderProps = { radiusTop: radius, radiusBottom: radius }
     const builderState = MeshBuilder.createState(256, 128, mesh)
+
      for (let i = 0, il = axes._rowCount; i < il; ++i) {
+        if (axes.symmetry_id.value(i) !== symmetryId) continue
+
         const start = Tensor.toVec3(vectorSpace, axes.start.value(i))
         const end = Tensor.toVec3(vectorSpace, axes.end.value(i))
         builderState.currentGroup = i

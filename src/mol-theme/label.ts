@@ -44,6 +44,8 @@ export function labelFirst(loci: Loci): string {
             return 'Everything'
         case 'empty-loci':
             return 'Nothing'
+        case 'data-loci':
+            return ''
     }
 }
 

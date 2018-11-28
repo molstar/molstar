@@ -27,9 +27,28 @@ export function isEmptyLoci(x: any): x is EmptyLoci {
     return !!x && x.kind === 'empty-loci';
 }
 
+export interface DataLoci {
+    readonly kind: 'data-loci',
+    readonly data: any,
+    readonly tag: string
+    readonly indices: OrderedSet<number>
+}
+export function isDataLoci(x: any): x is DataLoci {
+    return !!x && x.kind === 'data-loci';
+}
+export function areDataLociEqual(a: DataLoci, b: DataLoci) {
+    return a.data === b.data && a.tag === b.tag && OrderedSet.areEqual(a.indices, b.indices)
+}
+export function createDataLoci(data: any, tag: string, indices: OrderedSet<number>): DataLoci {
+    return { kind: 'data-loci', data, tag, indices }
+}
+
 export function areLociEqual(lociA: Loci, lociB: Loci) {
     if (isEveryLoci(lociA) && isEveryLoci(lociB)) return true
     if (isEmptyLoci(lociA) && isEmptyLoci(lociB)) return true
+    if (isDataLoci(lociA) && isDataLoci(lociB)) {
+        return areDataLociEqual(lociA, lociB)
+    }
     if (Structure.isLoci(lociA) && Structure.isLoci(lociB)) {
         return Structure.areLociEqual(lociA, lociB)
     }
@@ -48,7 +67,7 @@ export function areLociEqual(lociA: Loci, lociB: Loci) {
 
 export { Loci }
 
-type Loci = StructureElement.Loci | Structure.Loci | Link.Loci | EveryLoci | EmptyLoci | Shape.Loci
+type Loci = StructureElement.Loci | Structure.Loci | Link.Loci | EveryLoci | EmptyLoci | DataLoci | Shape.Loci
 
 namespace Loci {
 

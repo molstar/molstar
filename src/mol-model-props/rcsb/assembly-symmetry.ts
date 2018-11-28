@@ -154,6 +154,7 @@ const _Descriptor: ModelPropertyDescriptor = {
 }
 
 export interface AssemblySymmetry {
+    '@type': 'rcsb_assembly_symmetry',
     db: AssemblySymmetry.Database
     getSymmetries(assemblyId: string): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry']>
     getClusters(symmetryId: number): Table<AssemblySymmetry.Schema['rcsb_assembly_symmetry_cluster']>
@@ -168,6 +169,7 @@ export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetr
     const a = db.rcsb_assembly_symmetry_axis
 
     return {
+        '@type': 'rcsb_assembly_symmetry',
         db,
         getSymmetries: (assemblyId: string) => Table.pick(f, f._schema, i => f.assembly_id.value(i) === assemblyId),
         getClusters: (symmetryId: number) => Table.pick(c, c._schema, i => c.symmetry_id.value(i) === symmetryId),
@@ -179,6 +181,9 @@ export function AssemblySymmetry(db: AssemblySymmetry.Database): AssemblySymmetr
 const Client = new GraphQLClient(AssemblySymmetry.GraphQLEndpointURL, (url: string, type: 'string' | 'binary', body?: string) => ajaxGet({ url, type, body }) )
 
 export namespace AssemblySymmetry {
+    export function is(x: any): x is AssemblySymmetry {
+        return x['@type'] === 'rcsb_assembly_symmetry'
+    }
     export const GraphQLEndpointURL = 'http://rest-experimental.rcsb.org/graphql'
     export const Schema = {
         rcsb_assembly_symmetry_info: {

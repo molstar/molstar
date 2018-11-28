@@ -10,6 +10,9 @@ import { AssemblySymmetry } from 'mol-model-props/rcsb/assembly-symmetry';
 import { CustomPropertyRegistry } from 'mol-plugin/util/custom-prop-registry';
 import { AssemblySymmetryClusterColorThemeProvider } from 'mol-model-props/rcsb/themes/assembly-symmetry-cluster';
 import { AssemblySymmetryAxesRepresentationProvider } from 'mol-model-props/rcsb/representations/assembly-symmetry-axes';
+import { Loci, isDataLoci } from 'mol-model/loci';
+import { OrderedSet } from 'mol-data/int';
+import { Table } from 'mol-data/db';
 
 export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean }>({
     name: 'rcsb-assembly-symmetry-prop',
@@ -27,6 +30,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
 
         register(): void {
             this.ctx.customModelProperties.register(this.provider);
+            this.ctx.lociLabels.addProvider(labelAssemblySymmetryAxes);
 
             // TODO: support filtering of themes and representations based on the input structure
             // in this case, it would check structure.models[0].customProperties.has(AssemblySymmetry.Descriptor)
@@ -43,6 +47,7 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
 
         unregister() {
             this.ctx.customModelProperties.unregister(AssemblySymmetry.Descriptor.name);
+            this.ctx.lociLabels.removeProvider(labelAssemblySymmetryAxes);
             this.ctx.structureRepresentation.themeCtx.colorThemeRegistry.remove('rcsb-assembly-symmetry-cluster')
             this.ctx.structureRepresentation.registry.remove('rcsb-assembly-symmetry-axes')
         }
@@ -51,3 +56,20 @@ export const RCSBAssemblySymmetry = PluginBehavior.create<{ autoAttach: boolean 
         autoAttach: PD.Boolean(false)
     })
 });
+
+function labelAssemblySymmetryAxes(loci: Loci): string | undefined {
+    if (isDataLoci(loci) && AssemblySymmetry.is(loci.data) && loci.tag === 'axes') {
+        const { rcsb_assembly_symmetry_axis: axis, rcsb_assembly_symmetry: sym } = loci.data.db
+        const labels: string[] = []
+        OrderedSet.forEach(loci.indices, v => {
+            const symmetryId = axis.symmetry_id.value(v)
+            const symmetry = Table.pickRow(sym, i => sym.id.value(i) === symmetryId)
+            if (symmetry) {
+                labels.push(`Axis of order ${axis.order.value(v)} for ${symmetry.kind} ${symmetry.type.toLowerCase()} symmetry`)
+            }
+        })
+        // labels.push(`Axis ${i + 1} for ${symmetry.kind} ${symmetry.type.toLowerCase()} symmetry`)
+        return labels.length ? labels.join(', ') : undefined
+    }
+    return undefined
+}
